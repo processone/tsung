@@ -311,7 +311,7 @@ handle_info(Msg, State ) ->
 terminate(normal, State) ->
     finish_session(State);
 terminate(Reason, State) ->
-	?LOGF("Stop, reason= ~p~n",[Reason],?INFO),
+	?LOGF("Stop, reason= ~p~n",[Reason],?NOTICE),
     ts_mon:addcount({ error_unknown }),
     finish_session(State).
 
