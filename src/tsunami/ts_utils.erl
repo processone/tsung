@@ -265,7 +265,7 @@ stop_all(Host, Name) ->
 stop_all([Host],Name,MsgName) when atom(Host) ->
     List= net_adm:world_list([Host]),
     global:sync(),
-	case global:whereis_name('ts_mon') of 
+	case global:whereis_name(Name) of 
 		undefined ->
 			Msg = MsgName ++" is not running on " ++ atom_to_list(Host),
 			erlang:display(Msg);
