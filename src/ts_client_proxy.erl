@@ -126,7 +126,7 @@ handle_info({tcp, ServerSock, String}, State)
     {ok,NewString,RepCount} = regexp:gsub(String,"https://","http://{"),
     case RepCount of 
         0    -> ok;
-        Count-> ?LOGF("substitute https: ~p times~n",[Count],?NOTICE)
+        Count-> ?LOGF("substitute https: ~p times~n",[Count],?DEB)
     end,
     gen_tcp:send(State#state.clientsock, NewString),
     {noreply, State, ?lifetime};
@@ -222,7 +222,7 @@ sockname(Socket,State)->
 parse(State=#state{parse_status=Status},ClientSock,ServerSocket,String) when Status==new ->
     NewString = lists:append(State#state.buffer,String),
     StartHeaders = string:str(NewString,"\r\n\r\n"),
-    ?LOGF("StartHeaders = ~p ~n",[StartHeaders],?NOTICE),
+    ?LOGF("StartHeaders = ~p ~n",[StartHeaders],?DEB),
 	case StartHeaders of 
 		0 -> 
             ?LOG("Headers incomplete, buffering ~n",?DEB),
@@ -336,14 +336,14 @@ check_serversocket(Socket, URL=#url{port=Port,host=Host}) ->
     {ok, RealIP} = inet:getaddr(Host,inet),
     case peername(Socket) of
         {ok, {RealIP, RealPort}} -> % same as previous URL
-            ?LOGF("Reuse socket ~p on URL ~p~n", [Socket, URL],?INFO),
+            ?LOGF("Reuse socket ~p on URL ~p~n", [Socket, URL],?DEB),
             case URL#url.querypart of 
                 []    -> {Socket, URL#url.path};
                 Query -> {Socket, URL#url.path++"?"++Query}
             end;
         Other ->
             ?LOGF("New server configuration  (~p:~p, was ~p) on URL ~p~n", 
-                  [RealIP, RealPort, Other, URL],?NOTICE),
+                  [RealIP, RealPort, Other, URL],?DEB),
             case Socket of 
                 {sslsocket, A, B} -> ssl:close(Socket);
                 _             -> gen_tcp:close(Socket)
@@ -362,7 +362,7 @@ peername(Socket)         -> prim_inet:peername(Socket).
 send({sslsocket,A,B},String) ->
     {ok,NewString,RepCount} = regexp:gsub(String,"http://{","https://"),
     {ok,RealString,RepCount2} = regexp:gsub(NewString,"Host: {","Host: "),
-    ?LOGF("Sending data to ssl socket ~p ~p (~p)~n", [A, B, RealString],?NOTICE),
+    ?LOGF("Sending data to ssl socket ~p ~p (~p)~n", [A, B, RealString],?DEB),
     ssl:send({sslsocket,A,B}, RealString);
 send(Socket,String) ->
     gen_tcp:send(Socket,String).
