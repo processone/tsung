@@ -50,7 +50,7 @@ start_link() ->
 %%----------------------------------------------------------------------
 init([]) ->
 	?LOG("starting",?DEB),
-    ClientsSup = {ts_client_sup, {ts_client_sup, start_link, []}, transient, 2000, 
+    ClientsSup = {ts_client_sup, {ts_client_sup, start_link, []}, permanent, 2000, 
 				  supervisor, [ts_client_sup]},
 	Launcher = {ts_launcher, {ts_launcher, 
 								 start, [[?config(nclients),?clients_intensity]]}, 
