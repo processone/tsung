@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!DOCTYPE idx-tsunami SYSTEM "%INSTALL_DIR%idx-tsunami-1.0.dtd" [] >
+<!DOCTYPE idx-tsunami SYSTEM "%INSTALL_DIR%idx-tsunami-1.0.dtd">
 <!-- set dumptraffic="true" to dump all received and sent packets -->
 <!-- set loglevel="debug" for maximum verbosity -->
 <idx-tsunami loglevel="notice" dumptraffic="false" version="1.0">
@@ -29,7 +29,7 @@
   </clients>
   
   <!-- Server side setup -->
-  <server host="myserver" port="7" type="tcp"></server> -->
+  <server host="myserver" port="7" type="tcp"></server>
 
   <!-- to start os monitoring (cpu, network, memory). Use an erlang
   agent on the remote machine or SNMP. erlang is the default --> 
@@ -46,7 +46,7 @@
     <users interarrival="2" unit="second"></users>
   </arrivalphase>
 
-  <!-- default values. 
+  <!--  default values. -->
   <!-- Thinktime value overrides those set in the session
   nodes if override=true. -->
   <default name="thinktime" value="3" random="false" override="false"></default>
