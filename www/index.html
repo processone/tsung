@@ -34,7 +34,42 @@ Contact&nbsp;:&nbsp;<a href="mailto:webadmin@IDEALX.org">webadmin@IDEALX.org</a>
 <h1 align="center">IDEALX's TSUNAMI project (IDX-TSUNAMI)</h1>
 <hr>
 
-FIXME: Place you blaware here :-)
+<p>
+	  The purpose of IDX-Tsunami is to simulate users in order to test the
+  scalability and performances of IP based client/server
+  applications. Currently, only the Jabber protocol has been
+  implemented and tested, but it can be easily extended . IDX-Tsunami
+  use the <a href="http://www.erlang.org/">Erlang</a> language.
+</p>
+<p>
+
+  This tool can simulate thousands of users concurrently, and can be
+  distributed on several client machines. Up to 10000 users can be
+  simulated on a single machine (the limit depends on the hardware and
+  also on the activity of the simulated clients).
+</p>
+<p>
+  The idea is to simulate the behavior of a real world client using a
+  stochastic model, in order to achieve a more realistic traffic than
+  other simple models (deterministics).
+</p>
+<p>
+
+  A client's session is characterize by:
+
+<ul>
+   <li>   the number of requests during a session
+   <li>   the mean time elapsed between each request ("think time")
+   <li>   the type and parameters of requests (including, for example,
+        'chat' message size for Jabber)
+</ul>
+
+and each of these parameters can be fixed, or random (by default,
+<em>think time</em> use an exponential distribution).
+</p>
+<p>
+	  The arrival process of users into the server is also characterize by a
+random distribution (exponential by default).
 
 <p>
 <DIV align="right" class="date">
