@@ -1,8 +1,15 @@
+
+- add cookie support
+- add POST support
+- full support of httperf sesslog file
+- cache ssl session ID
+- add erlang native http support for improved performance ?
+- handle http/1.1 pipelining ?
+- add multiple tcp connection per client (for http) ?
+- improve documentation
+- add custom http headers
+- change sequence for loading sesslog file
+
 - groupchat for Jabber
-
 - clients may do a checksum to control integrity of responses ?
-
-- http protocol:
-    - how to handle http/1.1 pipelining ?
-
 - other useful protocols: ftp, ldap, sql ... ?
