@@ -165,7 +165,7 @@ They are all represented as a graphic. \program{IDX-Tsumami} produces
 statistics regarding:
 
 \begin{itemize}
-\item \emph{Performance}: response time, connexion time, decomposition
+\item \emph{Performance}: response time, connection time, decomposition
 of the user scenario based on request grouping instruction, requests
 per second 
 \item \emph{Errors}: Statistics on page return code to trace errors 
@@ -753,7 +753,7 @@ of open socket from a single process (1024 most of the time). The idea
 is to have several system processes (Erl beam) that can handle only a
 small part of the network connection from the given computer. When the
 \varname{maxclient} limit (simultaneous) is reach, a new Erlang beam is launched
-and the newest connexion can be handle by the new beam).
+and the newest connection can be handle by the new beam).
 
 The problem is that the Erlang slave module cannot start a local slave
 node. It tries to start it with the short node name
