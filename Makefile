@@ -208,7 +208,8 @@ release:
 		 doc/*.txt doc/*.fig doc/*.png doc/Makefile doc/*.sgml \
 		COPYING README LISEZMOI TODO $(CONFFILES) FAQ Makefile \
 		priv/builder.erl idx-tsunami.sh.in vsn.mk  idx-tsunami.xml \
-		debian src/analyse_msg.pl.src CONTRIBUTORS CHANGES
+		debian src/analyse_msg.pl.src CONTRIBUTORS CHANGES \
+		configure configure.in config.guess config.sub include.mk.in
 	tar -C $(PACKAGE)-$(VERSION) -zxf tmp.tgz
 	mkdir $(PACKAGE)-$(VERSION)/ebin
 	tar zvcf  $(PACKAGE)-$(VERSION).tar.gz $(PACKAGE)-$(VERSION)
