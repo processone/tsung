@@ -203,7 +203,8 @@ release:
 		$(RECORDER_SRC) $(RECORDER_SRC_APPFILES) \
 		 doc/*.txt doc/*.fig doc/*.png CONTRIBUTORS FAQ CHANGES \
 		COPYING README LISEZMOI TODO $(CONFFILES) Makefile \
-		priv/builder.erl idx-tsunami.sh.in vsn.mk  idx-tsunami.xml
+		priv/builder.erl idx-tsunami.sh.in vsn.mk  idx-tsunami.xml \
+		debian
 	tar -C $(PACKAGE)-$(VERSION) -zxf tmp.tgz
 	mkdir $(PACKAGE)-$(VERSION)/ebin
 	tar zvcf  $(PACKAGE)-$(VERSION).tar.gz $(PACKAGE)-$(VERSION)
