@@ -84,7 +84,7 @@ A distributed multi-protocol load testing tool.
   <refsect1>
     <title>Authors</title>
     <para>
-      <command>IDX-Tsunami</command> was writen by Nicolas Niclausse
+      <command>IDX-Tsunami</command> was written by Nicolas Niclausse
       <email>nicolas.niclausse@IDEALX.com</email>.  . Contributors
       list is available in <filename>/usr/share/doc/idx-tsunami/CONTRIBUTORS</filename>
   </refsect1>
