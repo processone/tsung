@@ -23,8 +23,10 @@ HTTP_REQ_FILENAME=/usr/local/idx-tsunami/etc/http.txt
 
 # type of acknoledgment, 'global' means clients start to send messages
 # when all of them are connected (for each beam), 'local' means they
-# wait for a response from the server ("auth ok" for ex.), 'no_ack' means
-# they didn't wait for a response.
+# wait for a response from the server ("auth ok" for ex.), 'no_ack'
+# means they didn't wait for a response. 'parse' means that the
+# client parse the response to know when the response is over.
+# for HTTP, use parse.
 MESSAGES_ACK=local
 
 # mean client intearrival (in sec, can be a float) for ex. a value of
