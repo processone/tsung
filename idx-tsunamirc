@@ -14,7 +14,7 @@ CLIENT_TYPE=jabber_online
 # when all of them are connected (for each beam), 'local' means they
 # wait for a response from the server ("auth ok" for ex.), 'no_ack' means
 # they didn't wait for a response.
-MESSAGE_ACK=local
+MESSAGES_ACK=local
 
 # mean client intearrival (in sec, can be a float) for ex. a value of
 # 0.01 sec will lead to 100 new clients every second (on average).
