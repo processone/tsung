@@ -34,7 +34,10 @@ new_session() ->
 	#http{}.
 %%
 get_random_message(#http_request{url = URL, method=get, cookie=Cookie}) ->
-	list_to_binary(ts_http_common:http_get(URL, ?config(http_version), Cookie));
+	ts_http_common:http_get(URL, ?config(http_version), Cookie);
+
+get_random_message(#http_request{url = URL, method=getims, cookie=Cookie}) ->
+	ts_http_common:http_get_ifmodsince(URL, ?config(http_version), Cookie);
 
 get_random_message(#http_request{url = URL, method=post, cookie=Cookie, body= Body}) ->
 	ts_http_common:http_post(URL, ?config(http_version), Cookie, Body).

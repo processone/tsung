@@ -50,6 +50,8 @@
 					 {req_filename, "requests.txt"},	%% Fichiers de requetes
 					 {req_server_timeout, 120000},	    %% 
 					 {http_req_filename, "http.txt"},	%% Fichiers de requetes HTTP
+                     %% use for IMS GET :
+					 {http_modified_since_date, "Fri, 14 Nov 2003 02:43:31 GMT"}, 
 					 {http_version, "1.1"},	%% 
 					 {client_retry_timeout, 10},	    %% retry sending (in microsec.)
 					 {ssl_ciphers, "EXP1024-RC4-SHA,EDH-RSA-DES-CBC3-SHA"},	

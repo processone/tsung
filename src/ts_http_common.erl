@@ -29,6 +29,7 @@
 
 -export([
 		 http_get/3,
+		 http_get_ifmodsince/3,
 		 http_post/4,
 		 parse/2,
 		 protocol_headers/1
@@ -39,30 +40,40 @@
 %% Args: URL, HTTP Version, Cookie
 %%----------------------------------------------------------------------
 http_get(URL, Version, Cookie) ->
-	lists:append([?GET, " ", URL," ", "HTTP/", Version, ?CRLF, 
+	list_to_binary([?GET, " ", URL," ", "HTTP/", Version, ?CRLF, 
 				  protocol_headers(Version),
 				  user_agent(),
 				  get_cookie(Cookie),
 				  ?CRLF]).
 
 %%----------------------------------------------------------------------
+%% Func: http_get_ifmodsince/3
+%% Args: URL, HTTP Version, Cookie
+%%----------------------------------------------------------------------
+http_get_ifmodsince(URL, Version, Cookie) ->
+	list_to_binary([?GET, " ", URL," ", "HTTP/", Version, ?CRLF,
+                    ["If-Modified-Since: ", ?config(http_modified_since_date),?CRLF],
+                    protocol_headers(Version),
+                    user_agent(),
+                    get_cookie(Cookie),
+                    ?CRLF]).
+
+%%----------------------------------------------------------------------
 %% Func: http_post/4
 %% Args: URL, HTTP Version, Cookie, Content
 %% TODO: Content-Type ?
 %%----------------------------------------------------------------------
-http_post(URL, Version, Cookie, Content)  when binary(Content) ->
+http_post(URL, Version, Cookie, Content) ->
 	ContentLength=integer_to_list(size(Content)),
 	?LOGF("Content Length of POST: ~p~n.", [ContentLength], ?DEB),
-	BinHeaders = lists:append([?POST, " ", URL," ", "HTTP/", Version, ?CRLF,
-				  protocol_headers(Version),
-				  user_agent(),
-				  get_cookie(Cookie),
-				  "Content-Length: ",ContentLength, ?CRLF,
-				  ?CRLF
-				 ]),
-	concat_binary([BinHeaders, Content ]);
-http_post(URL, Version, Cookie, Content) ->
-	http_post(URL, Version, Cookie, list_to_binary(Content)).
+	Headers = [?POST, " ", URL," ", "HTTP/", Version, ?CRLF,
+               protocol_headers(Version),
+               user_agent(),
+               get_cookie(Cookie),
+               "Content-Length: ",ContentLength, ?CRLF,
+               ?CRLF
+              ],
+	list_to_binary([Headers, Content ]).
 
 %%----------------------------------------------------------------------
 %% some HTTP headers functions
@@ -82,7 +93,7 @@ get_cookie(Cookie) ->
 %%----------------------------------------------------------------------
 protocol_headers("1.1") ->
 	%% Host is mandatory in HTTP/1.1
-	lists:append(["Host: ", ?config(server_name), ?CRLF]); 
+	["Host: ", ?config(server_name), ?CRLF]; 
 protocol_headers("1.0") ->
 	[].
 	
@@ -111,14 +122,19 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 			?LOGF("HTTP Headers: ~p ~n", [ParsedHeader], ?DEB),
 			Cookie = parse_cookie(ParsedHeader),
 			ts_mon:addcount({ Status }),
-			case httpd_util:key1search(ParsedHeader,"content-length") of
-				undefined -> % no content-length, must be chunked
+			case {httpd_util:key1search(ParsedHeader,"content-length"), Status} of
+				{undefined, 304} -> % Not modified, no body
+					?LOG("HTTP Not modified~n", ?DEB),
+                    {State#state_rcv{session= #http{}, ack_done = true,
+                                     datasize = 0, % FIXME: count headers ?
+                                     dyndata= Cookie}, []};
+				{undefined, _} -> % no content-length, must be chunked
 					HeaderSize = length(Headers),
                     << BinHead:HeaderSize/binary, Body/binary >> = Data,
                     parse_chunked(httpd_util:key1search(ParsedHeader,
                                                         "transfer-encoding"),
                                   Body, State, Cookie);
-				Length ->
+				{Length, _} ->
 					CLength = list_to_integer(Length)+4,
 					?LOGF("HTTP Content-Length:~p~n",[CLength], ?DEB),
 					HeaderSize = length(Headers),
