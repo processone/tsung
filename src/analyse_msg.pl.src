@@ -295,6 +295,8 @@ sub parse_stats_file {
 	my @time;
 	my @code;
 	my @connect;
+	my @size;
+	my @users;
 	my $key;
 	my @col = ("rate","mean","stdvar","max","min","rate");
 	foreach $key (keys %{$data}) {
@@ -306,12 +308,19 @@ sub parse_stats_file {
 				($time, $data, @tmp) = split(/\s/,$data);
 				$data /= $interval;
 				$data = "$time $data @tmp";
+			} elsif ($key =~ /size/) { # bits instead of bytes
+				my ($time, @tmp) = split(/\s/,$data);
+				@tmp = map {$_*8/(1024*$interval) } @tmp; # kb/s instead of Bytes/s
+				$data = "$time @tmp";
 			}
 			print TYPE $data ."\n";
 		}
 		if ($key eq "session" or $key eq "reconnect" ) {
 			push @connect, "$key.txt";
 		} elsif ($key eq "size") {
+			push @size, "$key.txt";
+		} elsif ($key =~ /users/) {
+			push @users, "$key.txt";
 		} elsif ($key =~ /^\d+$/) {
 			push @code, "$key.txt";
 		} else {
@@ -322,6 +331,8 @@ sub parse_stats_file {
 	plot_stats(\@col,"Session","",\@connect) if $plot;
 	plot_stats(\@col,"HTTP_CODE","",\@code) if $plot;
 	plot_stats(\@col,"Perfs","",\@time) if $plot;
+	plot_stats(\@col,"Users","",\@users) if $plot;
+	plot_stats(\@col,"Size","",\@size) if $plot;
 }
 
 # parse jabber log file
