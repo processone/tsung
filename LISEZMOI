@@ -2,6 +2,7 @@
 
   IDX-TSUNAMI LISEZMOI
   IDEALX
+
   ____________________________________________________________
 
   Table des matières
@@ -19,15 +20,15 @@
      2.3 Problèmes/Bugs
      2.4 Portabilité
 
-  ______________________________________________________________________
+  ____________________________________________________________
 
   1.  Introduction
 
   1.1.  Généralités
 
-  Ce document donne un rapide descriptifs de IDX-TSUNAMI.
-
-  Les information de Copyright sont disponibles dans le fichier "COPYING."
+  Ce document donne un rapide descriptifs de IDX-TSUNAMI, qui est
+  distribué sous les termes de la GNU General Public License version 2
+  (voir le fichier COPYING).
 
   1.2.  Qu'est-ce que ce logiciel fait?
 

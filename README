@@ -2,6 +2,7 @@
 
   IDX-TSUNAMI README
   IDEALX
+
   ____________________________________________________________
 
   Table of Contents
@@ -25,9 +26,9 @@
 
   1.1.  General
 
-  This document gives pointers for information on this package.
-
-  Copyright information can be found in the  file "COPYING."
+  This document gives pointers for information on this package which is
+  distributed under the GNU General Public License version 2 (see file
+  COPYING).
 
   1.2.  What This Package Is
 
