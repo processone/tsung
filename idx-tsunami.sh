@@ -21,9 +21,13 @@ debug() {
     erl $ERL_OPTS -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT $CONF_OPT
 }
 
+status() {
+    echo "status: not yet implemented"
+}
+
 usage() {
     prog=`basename $1`
-    echo "$prog start|stop|restart|status"
+    echo "$prog start|stop|restart|debug|status"
 }
 
 while getopts ":f:" Option
@@ -46,6 +50,10 @@ case $1 in
 
     stop)
         stop
+        ;;
+
+    status)
+        status
         ;;
 
     restart)
