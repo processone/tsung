@@ -108,7 +108,7 @@ init({#session{id           = Profile,
 wait_ack(next_msg,State=#state_rcv{request=R}) when R#ts_request.ack==global->
     NewSocket = inet_setopts(State#state_rcv.protocol, State#state_rcv.socket,
                              [{active, once} ]),
-    {PageTimeStamp, _} = update_stats(State, false),
+    {PageTimeStamp, _} = update_stats(State),
     handle_next_action(State#state_rcv{socket=NewSocket, 
                                        page_timestamp=PageTimeStamp}).
 
@@ -118,8 +118,8 @@ wait_ack(next_msg,State=#state_rcv{request=R}) when R#ts_request.ack==global->
 %%          {next_state, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}                         
 %%--------------------------------------------------------------------
-handle_event(Event, StateName, StateData) ->
-	?LOGF("Unknown event (~p) received, abort", [Event], ?ERR),
+handle_event(Event, SName, StateData) ->
+	?LOGF("Unknown event (~p) received in state ~p, abort",[Event,SName],?ERR),
     {stop, unknown_event, StateData}.
 
 %%--------------------------------------------------------------------
@@ -131,7 +131,7 @@ handle_event(Event, StateName, StateData) ->
 %%          {stop, Reason, NewStateData}                          |
 %%          {stop, Reason, Reply, NewStateData}                    
 %%--------------------------------------------------------------------
-handle_sync_event(Event, From, StateName, StateData) ->
+handle_sync_event(_Event, _From, StateName, StateData) ->
     Reply = ok,
     {reply, Reply, StateName, StateData}.
 
@@ -142,8 +142,8 @@ handle_sync_event(Event, From, StateName, StateData) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
 %% inet data
-handle_info({NetEvent, Socket, Data}, wait_ack, State) when NetEvent==tcp;
-                                                            NetEvent==ssl ->
+handle_info({NetEvent, _Socket, Data}, wait_ack, State) when NetEvent==tcp;
+                                                             NetEvent==ssl ->
     case handle_data_msg(Data, State) of 
         {NewState=#state_rcv{ack_done=true}, Opts} ->
             NewSocket = inet_setopts(State#state_rcv.protocol, 
@@ -158,7 +158,7 @@ handle_info({NetEvent, Socket, Data}, wait_ack, State) when NetEvent==tcp;
             {next_state, wait_ack, NewState#state_rcv{socket=NewSocket}, NewState#state_rcv.timeout}
     end;
 %% inet close messages; persistent session, waiting for ack
-handle_info({NetEvent, Socket}, wait_ack, 
+handle_info({NetEvent, _Socket}, wait_ack, 
             State = #state_rcv{persistent=true}) when NetEvent==tcp_closed;
                                                       NetEvent==ssl_closed ->
 	?LOG("connection closed while waiting for ack",?INFO),
@@ -204,14 +204,14 @@ handle_info(timeout, StateName, State ) ->
     ?LOGF("Error: timeout receive in state ~p~n",[StateName], ?ERR),
     ts_mon:add({ count, timeout }),
     {stop, normal, State};
-handle_info({tcp, Socket, Data}, think, State = #state_rcv{request=Req} ) when Req#ts_request.ack == no_ack ->
+handle_info({tcp, _Socket, Data}, think, State = #state_rcv{request=Req} ) when Req#ts_request.ack == no_ack ->
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     ts_mon:add({ sum, size, size(Data)}),
     ?LOG("Data receive from socket in state think, no_ack so skip~n", ?NOTICE),
     NewSocket = inet_setopts(State#state_rcv.protocol, State#state_rcv.socket,
                              [{active, once}]),
     {next_state, think, State#state_rcv{socket=NewSocket}};
-handle_info({ssl, Socket, Data}, think, State = #state_rcv{request=Req} ) when Req#ts_request.ack == no_ack ->
+handle_info({ssl, _Socket, Data}, think, State = #state_rcv{request=Req} ) when Req#ts_request.ack == no_ack ->
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     ts_mon:add({ sum, size, size(Data)}),
     ?LOG("Data receive from socket in state think, no_ack so skip~n", ?NOTICE),
@@ -530,20 +530,13 @@ handle_data_msg(Data, State=#state_rcv{request=Req, clienttype=Type}) when Req#t
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
 	
     {NewState, Opts, Close} = Type:parse(Data, State),
-    NewBuffer = case {Req#ts_request.match,Req#ts_request.dynvar_specs, Data} of 
-                    {undefined,undefined,_} -> << >>;
-                    {_,_,closed} -> 
-                        State#state_rcv.buffer;
-                    _ ->
-                        ?Debug("Bufferize response~n"),
-                        OldBuffer = State#state_rcv.buffer,
-                        << OldBuffer/binary, Data/binary >>
-                end,
+    NewBuffer=set_new_buffer(Req, State#state_rcv.buffer, Data),
+
     ?DebugF("Dyndata is now ~p~n",[NewState#state_rcv.dyndata]),
     case NewState#state_rcv.ack_done of
         true ->
             ?DebugF("Response done:~p~n", [NewState#state_rcv.datasize]),
-            {PageTimeStamp, DynVars} = update_stats(NewState#state_rcv{buffer=NewBuffer}, Close),
+            {PageTimeStamp, DynVars} = update_stats(NewState#state_rcv{buffer=NewBuffer}),
             NewDynData = concat_dynvars(DynVars, NewState#state_rcv.dyndata),
             case Close of
                 true ->
@@ -572,21 +565,34 @@ handle_data_msg(Data,State=#state_rcv{request=Req,datasize=OldSize})
     {State#state_rcv{ datasize = OldSize + DataSize},[]};
 
 %% local ack, set ack_done to true
-handle_data_msg(Data, State) ->
+handle_data_msg(Data, State=#state_rcv{request=Req}) ->
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
+    NewBuffer= set_new_buffer(Req, State#state_rcv.buffer, Data),
 	DataSize = size(Data),
-    {PageTimeStamp, _} = update_stats(State#state_rcv{datasize=DataSize}, false),
-    {State#state_rcv{ack_done = true, page_timestamp= PageTimeStamp},[]}.
-
+    {PageTimeStamp, _} = update_stats(State#state_rcv{datasize=DataSize,
+                                                      buffer=NewBuffer}),
+    {State#state_rcv{ack_done = true, buffer= NewBuffer,
+                     page_timestamp= PageTimeStamp},[]}.
 
 
 %%----------------------------------------------------------------------
-%% Func: update_stats/2
+%% Func: set_new_buffer/3
+%%----------------------------------------------------------------------
+set_new_buffer(#ts_request{match=undefined, dynvar_specs=undefined},_,_) ->
+    << >>;
+set_new_buffer(_, Buffer,closed) ->
+    Buffer;
+set_new_buffer(_, OldBuffer, Data) ->
+    ?Debug("Bufferize response~n"),
+    << OldBuffer/binary, Data/binary >>.
+
+%%----------------------------------------------------------------------
+%% Func: update_stats/1
 %% Args: State
-%% Returns: Page timestamp
+%% Returns: {State, DynVars}
 %% Purpose: update the statistics
 %%----------------------------------------------------------------------
-update_stats(State, Close) ->
+update_stats(State) ->
 	Now = now(),
 	Elapsed = ts_utils:elapsed(State#state_rcv.send_timestamp, Now),
 	Stats= [{ sample, request, Elapsed},
@@ -617,11 +623,11 @@ concat_dynvars(DynVars, DynData=#dyndata{dynvars=OldDynVars}) ->
     DynData#dyndata{dynvars=lists:keymerge(1,DynVars,OldDynVars)}.
     
 %%----------------------------------------------------------------------
-%% Func: inet_setopts/4
+%% Func: inet_setopts/3
 %% Purpose: set inet options depending on the protocol (gen_tcp, gen_udp,
 %%  ssl)
 %%----------------------------------------------------------------------
-inet_setopts(Protocol, none, Opts) -> %socket was closed before
+inet_setopts(_, none, _) -> %socket was closed before
     none;
 inet_setopts(ssl, Socket, Opts) ->
 	case ssl:setopts(Socket, Opts) of
