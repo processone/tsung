@@ -88,9 +88,9 @@
   Edit Makefile if you want to change the install path (prefix)
   (/usr/local/idx-tsunami by default)
 
-  Edit src/tsunami.rel.src if your Erlang version is not R9B-0 and set
-  erts, kernel, ssl  and stdlib version according to your Erlang
-  distribution.
+  Edit src/tsunami.rel.src and src/tsunami_controller.rel.src if your
+  Erlang version is not R9B-0 and set erts, kernel, ssl and stdlib
+  version according to your Erlang distribution.
 
   make
   make install
