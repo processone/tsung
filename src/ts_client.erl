@@ -107,7 +107,7 @@ init([Profile, {CType, PType, MType, Persistent}], Count) ->
     % open connection
 	Opts = protocol_options(Protocol),
 	StartTime= now(),
-    case Protocol:connect(ServerName, Port, Opts) of
+    case Protocol:connect(ServerName, Port, Opts, ?config(connect_timeout)) of
 		{ok, Socket} -> 
 	    % start a new process for receiving messages from the server
 			case ts_client_rcv:start({PType,
@@ -207,8 +207,15 @@ handle_cast({closed, Pid}, State = #state{persistent = true}) ->
 				  [State#state.lasttimeout, Elapsed/1000], ?WARN),
 			{noreply,  State#state{socket = none}, ?short_timeout}
 	end;
-%% the connexion was closed, stop
+%% the connexion was closed after the last msg was sent, stop quietly
+handle_cast({closed, Pid}, State= #state{ count=0 }) ->
+	{stop, normal, State};
+
+%% the connexion was closed before the last msg was sent, log this event
 handle_cast({closed, Pid}, State) ->
+	?LOGF("Closed by server while pending count is: ~p~n!", 
+		  [State#state.count], ?INFO),
+	ts_mon:addcount({ closed_by_server }),
 	{stop, normal, State};
 
 handle_cast({timeout, Pid}, State) ->

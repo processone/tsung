@@ -25,6 +25,7 @@
 					 {snd_size, 32768}, %% send buffer size
 					 {rcv_size, 32768}, %% receive buffer size
 					 {tcp_timeout, 3600000},
+					 {connect_timeout, 30000},
 					 {monitoring, full},     %% full or light
 					 {parse_type, noparse},
 					 {client_type, jabber_dynamic},	%% Type de client:tsun
