@@ -1,7 +1,6 @@
 
 - test more carefully cookie support
-- test more carefully POST support
-- cache ssl session ID
+- cache ssl session ID [ssl application don't support this]
 - handle http/1.1 pipelining ?
 - add multiple tcp connections per client (for http) ?
 - improve documentation
