@@ -133,8 +133,8 @@ handle_info({tcp_closed, Socket}, State) ->
 
 handle_info({tcp_error, Socket, Reason}, State) ->
 	?LOGF("TCP error: ~p~n",[Reason], ?WARN),
-	ts_mon:addcount({ Reason }),
-	ts_client:close(State#state_rcv.ppid),
+    CountName="tcp_err_"++atom_to_list(Reason),
+	ts_client:close({CountName, State#state_rcv.ppid}),
 	{noreply, State};
 
 handle_info({ssl_closed, Socket}, State) ->
@@ -144,8 +144,8 @@ handle_info({ssl_closed, Socket}, State) ->
 
 handle_info({ssl_error, Socket, Reason}, State) ->
 	?LOGF("SSL error: ~p~n",[Reason], ?WARN),
-	ts_mon:addcount({ Reason }),
-	ts_client:close(State#state_rcv.ppid),
+    CountName="ssl_err_"++atom_to_list(Reason),
+	ts_client:close({CountName, State#state_rcv.ppid}),
 	{noreply, State};
 
 handle_info(Data, State) ->%% test if client implement parse ?

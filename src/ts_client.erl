@@ -63,8 +63,13 @@ start(Opts) ->
 	gen_server:start_link(?MODULE, Opts, []).
 
 %% stop the session 
-close(Pid) ->
+close({Reason, Pid}) when atom(Reason) -> % close after an error
+	gen_server:cast(Pid, {closed, Reason, Pid});
+close({Reason, Pid}) when list(Reason) -> % close after an error
+	gen_server:cast(Pid, {closed, list_to_atom(Reason), Pid});
+close(Pid) -> % normal close
 	gen_server:cast(Pid, {closed, Pid}).
+
 
 %% continue with the next request
 next({Pid, []}) ->
@@ -122,7 +127,7 @@ init([Profile, {CType, PType, MType, Persistent}], Count) ->
 					controlling_process(Protocol, Socket, Pid),
 					Connected = now(),
 					Elapsed = ts_utils:elapsed(StartTime, Connected),
-					ts_mon:newclient({self(), Connected}), % TODO: avoid if mon=none
+					ts_mon:newclient({self(), Connected}),
 					ts_mon:addsample({connect, Elapsed}), % connection time
 					{ok, #state{rcvpid = Pid, socket = Socket, port = Port,
 								server= ServerName, profile= Profile,
@@ -139,7 +144,8 @@ init([Profile, {CType, PType, MType, Persistent}], Count) ->
 			end;
 		{error, Reason} ->
 			?LOGF("Connect Error: ~p~n",[Reason],?ERR),
-			ts_mon:addcount({ Reason }),
+            CountName="conn_err_" ++ atom_to_list(Reason),
+			ts_mon:addcount({ list_to_atom(CountName) }),
 			{stop, connfailed}
     end.
 
@@ -213,9 +219,15 @@ handle_cast({closed, Pid}, State= #state{ count=0 }) ->
 
 %% the connexion was closed before the last msg was sent, log this event
 handle_cast({closed, Pid}, State) ->
-	?LOGF("Closed by server while pending count is: ~p~n!", 
+	?LOGF("Closed by server while pending count is: ~p~n!",
 		  [State#state.count], ?INFO),
 	ts_mon:addcount({ closed_by_server }),
+	{stop, normal, State};
+
+handle_cast({closed, Reason, Pid}, State) ->
+	?LOGF("Closed after an error while while pending count is: ~p~n!",
+		  [State#state.count], ?INFO),
+	ts_mon:addcount({ Reason }),
 	{stop, normal, State};
 
 handle_cast({timeout, Pid}, State) ->
@@ -279,7 +291,8 @@ handle_info(timeout, State ) ->
 		{error, Reason} -> 
 			?LOGF("Error: Unable to send data from process ~p, reason: ~p~n.",
 				  [self(), Reason], ?ERR),
-			ts_mon:addcount({ Reason }),
+            CountName="send_err_"++atom_to_list(Reason),
+			ts_mon:addcount({ list_to_atom(CountName) }),
 			{stop, Reason, State}
 	end.
 
