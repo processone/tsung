@@ -28,6 +28,7 @@
           get_ims_date = none, % used when the method is getims
           cookie=none,
           method=get,
+          content_type=[],
           headers=[],
           body=[],
           id = 0

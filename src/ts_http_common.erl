@@ -32,12 +32,12 @@
 -include_lib("xmerl/inc/xmerl.hrl").
 
 -export([
-		 http_get/1,
-		 http_get_ifmodsince/1,
-		 http_post/1,
-		 set_msg/1, set_msg/2,
-		 parse/2,
-		 parse_URL/1,
+         http_get/1,
+         http_get_ifmodsince/1,
+         http_post/1,
+         set_msg/1, set_msg/2,
+         parse/2,
+         parse_URL/1,
          parse_config/2,
          set_port/1
 		]).
@@ -69,16 +69,16 @@ http_get_ifmodsince(Req=#http_request{url=URL, version=Version, cookie=Cookie,
 %%----------------------------------------------------------------------
 %% Func: http_post/1
 %% Args: #http_request
-%% TODO: Content-Type ?
 %%----------------------------------------------------------------------
-http_post(Req=#http_request{url=URL, version=Version, cookie=Cookie, body=Content, 
-                            server_name=Host}) ->
+http_post(Req=#http_request{url=URL, version=Version, cookie=Cookie,
+			    content_type=ContentType, body=Content, server_name=Host}) ->
 	ContentLength=integer_to_list(size(Content)),
 	?LOGF("Content Length of POST: ~p~n.", [ContentLength], ?DEB),
 	Headers = [?POST, " ", URL," ", "HTTP/", Version, ?CRLF,
                "Host: ", Host, ?CRLF,
                user_agent(),
                get_cookie(Cookie),
+               "Content-Type: ", ContentType, ?CRLF,
                "Content-Length: ",ContentLength, ?CRLF,
                ?CRLF
               ],
@@ -111,6 +111,9 @@ parse_config(Element = #xmlElement{name=http},
     Version  = ts_config:getAttr(Element#xmlElement.attributes, version),
     URL      = ts_config:getAttr(Element#xmlElement.attributes, url),
     Contents = ts_config:getAttr(Element#xmlElement.attributes, contents),
+    %% Apache Tomcat applications need content-type informations to read post forms
+    ContentType = ts_config:getAttr(Element#xmlElement.attributes,
+                            content_type, "application/x-www-form-urlencoded"),
     Date     = ts_config:getAttr(Element#xmlElement.attributes, date),
     Method = case ts_config:getAttr(Element#xmlElement.attributes, method) of 
                  "GET"    -> get;
@@ -131,6 +134,7 @@ parse_config(Element = #xmlElement{name=http},
                                 version     = Version,
                                 get_ims_date= Date,
                                 server_name = ServerName,
+				content_type= ContentType,
                                 body        = list_to_binary(Contents)}, 0),
     ets:insert(Tab,{{CurS#session.id, Id}, Msg}),
     lists:foldl( {ts_config, parse},

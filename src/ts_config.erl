@@ -36,6 +36,7 @@
 
 -export([read/1,
          getAttr/2,
+         getAttr/3,
          parse/2
         ]).
 
@@ -69,14 +70,6 @@ parse(Element = #xmlElement{parents = []}, Conf=#config{}) ->
 		Element#xmlElement.content);
 
 
-%% parsing the Controller elements
-parse(Element = #xmlElement{name=controller}, Conf = #config{controller=Controller}) ->
-    Server  = getAttr(Element#xmlElement.attributes, host),
-
-    lists:foldl(fun parse/2,
-		Conf#config{controller = {Server}},
-		Element#xmlElement.content);
-
 %% parsing the Server elements
 parse(Element = #xmlElement{name=server}, Conf = #config{server=SList}) ->
     Server = getAttr(Element#xmlElement.attributes, host),
@@ -103,14 +96,15 @@ parse(Element = #xmlElement{name=client},
     Host     = getAttr(Element#xmlElement.attributes, host),
     Weight   = getAttr(Element#xmlElement.attributes, weight),
     MaxUsers = getAttr(Element#xmlElement.attributes, maxusers),
+    CPU = getAttr(Element#xmlElement.attributes, cpu, "1"),
+    {ok, [{integer,1,ICPU}],1} = erl_scan:string(String),
     {ok, [{integer,1,IWeight}],1} = erl_scan:string(Weight),
     {ok, [{integer,1,IMaxUsers}],1} = erl_scan:string(MaxUsers),
-
-    lists:foldl(fun parse/2,
-		Conf#config{clients = [#client{host = Host,
-                                       weight = IWeight,
-                                       maxusers = IMaxUsers}
-                               |CList]},
+    %% add a new client for each CPU
+    NewClients=lists:duplicate(ICPU,#client{host     = Host,
+                                           weight   = IWeight/ICPU,
+                                           maxusers = IMaxUsers}),
+    lists:foldl(fun parse/2, Conf#config{clients = lists:append(NewClients,CList)},
                 Element#xmlElement.content);
 
 %% Parsing the ip element
