@@ -46,11 +46,12 @@
   <!-- default values. These values overrides those set in the session
   nodes. If random is true -->
   <default name="thinktime" value="3" random="false"> </default>
+  <!-- to set specific ssl_ciphers -->
+  <default name="ssl_ciphers" value="EXP1024-RC4-SHA,EDH-RSA-DES-CBC3-SHA"> </default>
 
   <!-- HTTP parameters -->
-  <!-- set Host header (server_name) value for HTTP/1.1 -->
-  <default type="ts_http" name="server_name" value="idealx.org"> </default>
-
+  <!-- none yet -->
+  
   <!-- JABBER parameters -->
   <!-- to synchronise users,  use a global acknoledgement -->
   <default type="ts_jabber" name="global_number" value="5"> </default>
