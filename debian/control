@@ -19,3 +19,5 @@ Description: A distributed multi-protocol load testing tool.
  For HTTP, it supports 1.0 and 1.1, has a proxy mode to record
  sessions, supports GET and POST methods, Cookies, and Basic
  WWW-authentication. It also has support for SSL.
+ .
+ More information is available at http://tsunami.idealx.org/ .
