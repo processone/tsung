@@ -1,4 +1,5 @@
-1.0.beta4 ->
+1.0.beta4 -> 1.0.beta5:  Major Feature enhancements (25 Mar 2004)
+    - add SNMP monitoring (not yet customizable)
     - fix remote start: log filename is now encoded to avoid bad
       parsing of log_file by 'erl'
     Patches from mickael.remond@erlang-fr.org :
@@ -7,8 +8,8 @@
     - Extension of XML attribute entity normalisation
     - HTTP: fix Cookie support: Cookie are not necessarily separated by "; " 
     - HTTP: fix long POST request in the recorder: dorecord message
-     was missing enclosing curly brackets, and the body length counter
-     were mistakenly taking the header size in its total
+      was missing enclosing curly brackets, and the body length counter
+      were mistakenly taking the header size in its total
     - HTTP: Content-type support in the recorder (needed to handle
      non-HTML form encoded posts)
     - add autoconf support to detect Erlang installation path
