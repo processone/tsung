@@ -252,8 +252,8 @@ parse(Element = #xmlElement{name=thinktime},
                         end;
         [{_Key, Think}] ->
             Randomize = case ets:lookup(Tab,{thinktime, random}) of 
-                            {_K, "true"} -> true;
-                            _ -> false
+                            [{_K, "true"}] -> true;
+                            _              -> false
                         end
     end,
     RealThink = case Randomize of
