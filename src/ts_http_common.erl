@@ -176,7 +176,7 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 				{undefined, 304} -> % Not modified, no body
 					?LOG("HTTP Not modified~n", ?DEB),
                     {State#state_rcv{session= #http{}, ack_done = true,
-                                     datasize = 0, % FIXME: count headers ?
+                                     datasize = size(Data),
                                      dyndata= Cookie}, []};
 				{undefined, _} -> % no content-length, must be chunked
 					HeaderSize = length(Headers),
@@ -188,7 +188,8 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 					CLength = list_to_integer(Length)+4,
 					?LOGF("HTTP Content-Length:~p~n",[CLength], ?DEB),
 					HeaderSize = length(Headers),
-					BodySize = size(Data)-HeaderSize,
+                    TotalSize= size(Data),
+					BodySize = TotalSize-HeaderSize,
 					if
 						BodySize == CLength ->  % end of response
 							{State#state_rcv{session= #http{}, ack_done = true,
@@ -199,14 +200,14 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 								  [CLength], ?ERR),
 							ts_mon:addcount({ http_bad_content_length }),
 							{State#state_rcv{session= #http{}, ack_done = true,
-											 datasize = BodySize, 
+											 datasize = TotalSize, 
 											 dyndata= Cookie}, []};
 						true ->
 							Http = #http{content_length = CLength,
 										 status         = Status,
 										 body_size      = BodySize},
 							{State#state_rcv{session = Http, ack_done = false,
-											 datasize = BodySize,
+											 datasize = TotalSize,
 											 dyndata=Cookie},[]}
 					end
 			end
@@ -221,6 +222,7 @@ parse(Data, State) when (State#state_rcv.session)#http.chunk_toread >0 ->
     Cookie = State#state_rcv.dyndata,
     read_chunk_data(Data, State, Cookie, ChunkSizePending , BodySize);
 parse(Data, State) ->
+    PreviousSize = State#state_rcv.datasize,
 	DataSize = size(Data),
 	?LOGF("HTTP Body size=~p ~n",[DataSize], ?DEB),
 	Size = (State#state_rcv.session)#http.body_size + DataSize,
@@ -231,7 +233,8 @@ parse(Data, State) ->
 			 []};
 		_ ->
 			Http = (State#state_rcv.session)#http{body_size = Size},
-			{State#state_rcv{session= Http, ack_done = false, datasize = Size}, []}
+			{State#state_rcv{session= Http, ack_done = false, 
+                             datasize = DataSize+PreviousSize}, []}
 	end.
 												 
 %%----------------------------------------------------------------------
