@@ -107,9 +107,10 @@ wait({launch, []}, State) ->
 							  "Anyway, start launcher NOW! ~n", ?WARN),
 						 1
 					  end,
-	?LOGF("Activate launcher (~p users) in ~p msec ~n",[Users, Warm_timeout], ?NOTICE),
-	{next_state, launcher, State#state{phases = Rest, nusers = Users, 
-                                       intensity = Intensity, maxusers= Max },  Warm_timeout};
+    Warm = lists:min([Warm_timeout,?config(max_warm_delay)]),
+	?LOGF("Activate launcher (~p users) in ~p msec ~n",[Users, Warm], ?NOTICE),
+	{next_state,launcher,State#state{phases = Rest, nusers = Users, 
+                                     intensity=Intensity,maxusers=Max },Warm};
 
 wait({launch, {[{Intensity, Users}| Rest], Max}}, State) ->
     ?DebugF("Starting with ~p users to do in the current phase (max is ~p)~n",
