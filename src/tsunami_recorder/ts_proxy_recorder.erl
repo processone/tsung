@@ -215,7 +215,12 @@ record_http_request(State=#state{prev_host=Host, prev_port=Port},
               [URL2, HTTPVersion]),
     case Body of 
         [] -> ok;
-        _  -> io:format(Fd," contents='~s' ", [Body]) % must be a POST method
+        _  -> 
+            Body2 = case regexp:gsub(Body,"&","&amp;") of
+                        {ok,NewBody,_} -> NewBody;
+                        _ -> Body
+                    end,
+            io:format(Fd," contents='~s' ", [Body2]) % must be a POST method
     end,
     case httpd_util:key1search(ParsedHeader,"if-modified-since") of 
         undefined ->
