@@ -207,7 +207,8 @@ handle_cast({dumpstats}, State) ->
 	DateStr = ts_utils:now_sec(),
 	io:format(State#state.log,"# stats: dump at ~w~n",[DateStr]),
 	print_stats(State),
-	{noreply, State#state{laststats = State#state.stats}};
+	NewStats = reset_all_stats(State#state.stats),
+	{noreply, State#state{laststats = NewStats, stats= NewStats}};
 
 handle_cast({rcvmsg, Who, When, What}, State) when State#state.type == none ->
 	{noreply, State};
@@ -289,18 +290,12 @@ print_stats(State) ->
 
 print_dist_list([], Last, Logfile) ->
 	done;
+print_dist_list([{Key, [Mean, 0, Max, Min, Count]} | Tail], LastRes, Logfile) ->
+	io:format(Logfile, "stats: ~p ~p ~p ~p ~p ~p ~p ~n", [Key, Count, Mean, 0, Max, Min, Count ]),
+	print_dist_list(Tail, LastRes, Logfile);
 print_dist_list([{Key, [Mean, Var, Max, Min, Count]} | Tail], LastRes, Logfile) ->
 	StdVar = math:sqrt(Var/Count),
-	case dict:find(Key, LastRes) of 
-		{ok, [_M, _V, _Max, _Min, _Count]} ->
-			PreviousCount = _Count ;
-		{ok, Val } ->
-			PreviousCount = 0,
-			?PRINTDEBUG("unexpected value while printing stats ~p~n",[Val],?WARN);
-		error ->
-			PreviousCount = 0
-	end,
-	io:format(Logfile, "stats: ~p ~p ~p ~p ~p ~p ~p ~n", [Key, Count-PreviousCount, Mean, StdVar, Max, Min, Count ]),
+	io:format(Logfile, "stats: ~p ~p ~p ~p ~p ~p ~p ~n", [Key, Count, Mean, StdVar, Max, Min, Count ]),
 	print_dist_list(Tail, LastRes, Logfile);
 print_dist_list([{Key, Value} | Tail], LastRes, Logfile) ->
 	case dict:find(Key, LastRes) of 
@@ -326,6 +321,19 @@ update_stats([Mean, Var, Max, Min, Count], Value) ->
 	[NewMean, NewVar, NewMax, NewMin, Count+1];
 update_stats(Args, New) -> % ???
 	[New, 0, New, New, 1]. 
+
+%%
+reset_all_stats(Dict)->
+	MyFun = fun (Key, OldVal) -> reset_stats(OldVal) end,
+	dict:map(MyFun, Dict).
+
+%% reset all stats except min and max
+reset_stats([]) ->
+	[0, 0, 0, 0, 0];
+reset_stats([Mean, Var, Max, Min, Count]) ->
+	[0, 0, Max, Min, 0];
+reset_stats(Args) ->
+	Args.
 	
 %%----------------------------------------------------------------------
 %% Func: start_launchers/2
