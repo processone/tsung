@@ -1,0 +1,83 @@
+body        {font-size: 90%; margin-right:40px; margin-left:40px; font-family:Sans-Serif; color:#000000; background-color:#ffffff;}
+p, .n       {font-size: 90%; font-family:Sans-Serif; color:#000000; background-color:#ffffff;}
+h1          {font-size: 200%; color:#800000; background-color:#ffffff;}
+h2          {font-size:150%; color:#000080; background-color:#ffffff;}
+h3          {font-family:Sans-Serif; font-size: 120%; font-weight:bold; color:#000080; background-color:#ffffff;}
+h4          {font-family:Sans-Serif; font-size:100%; font-weight:bold; color:#000080; background-color:#ffffff;}
+h5          {font-family:Sans-Serif; font-size:100%; font-weight:bold; color:#000000;  background-color:#ffffff; margin-bottom: 0;}
+form        {margin-bottom:-5px;}
+textarea    {color:#333333;  background-color:#ffffff; width:90%;}
+table       {font-size:90%;}
+dl,ul,ol    {margin-top: 2pt; margin-bottom: 2pt;}
+u.diff      {color:#0000ff; background-color:#ffffff;}strike.diff {color:#ff0000; background-color:#ffffff;}
+tt, pre     {font-family:monospace; color:#666666; background-color:#ffffff;} /* margin-bottom: 0;}*/
+pre.code {
+    margin-top: 8pt;
+    margin-bottom: 8pt;
+    background-color: #ffffee;
+    white-space:pre;
+    border-style:solid;
+    border-width:thin;
+    border-color:#999999;    color:#333333;
+    padding:10px;
+    width:100%;
+}
+
+a:link      {color:#800000; background-color: #ffffff;}
+a:visited   {color:#006600; background-color: #ffffff;}
+a:active    {color:green; background-color: #ffffff;}
+a:hover     {background:#ffffaa;}
+
+.same            {color:#800000; background-color: #ffffff;}
+a.same           {color:#800000; background-color: #ffffff;}
+a.same:Visited   {color:#800000; background-color: #ffffff;}
+a.same:Active    {color:#800000; background-color: #ffffff;}
+a.same:Hover     {color:#ff0000; background-color: #ffffaa;}
+
+a.nonexistent {
+    font-weight: bold;
+    background-color: #F8F8F8;
+    color: #FF2222;
+}
+a.nonexistent:Active {
+    background-color: #F8F8F8;
+    color: #FF2222;
+}
+a.nonexistent:Visited {
+    background-color: #F8F8F8;
+    color: #FF2222;
+}
+a.nonexistent:Hover {background:#ffa;}
+
+.external              {font-size:90%; font-family:monospace; color:blue; background-color:#ffffff; text-decoration:none;}
+a.external             {font-size:90%; font-family:monospace; color:blue; background-color:#ffffff; text-decoration:none;}
+a.external:Visited     {font-size:90%; font-family:monospace; color:purple; background-color:#ffffff; text-decoration:none;}
+a.external:Active      {font-size:90%; font-family:monospace; color:purple; background-color:#ffffff; text-decoration:none;}
+a.external:Hover       {font-size:90%; font-family:monospace; color:#000000; background-color:#ffffff; text-decoration:underline;}
+
+.rss              {font-family:Sans-Serif; font-size:90%; color:#800000; background-color:#ffffff; text-decoration:underline;}
+a.rss             {font-family:Sans-Serif; font-size:90%; color:#800000; background-color:#ffffff; text-decoration:underline;}
+a.rss:Visited     {font-family:Sans-Serif; font-size:90%; color:#006600; background-color:#ffffff; text-decoration:underline;}
+a.rss:Active      {font-family:Sans-Serif; font-size:90%; color:#800000; background-color:#ffffff; text-decoration:underline;}
+a.rss:Hover       {font-family:Sans-Serif; font-size:90%; color:#0000ff; background-color:#aaffff; text-decoration:underline;}
+
+
+.sidebarlink           {font-size:110%; font-family:Sans-Serif; line-height:16px; color:#666666; background-color:#ffffff; text-decoration:none;}
+a.sidebarlink          {font-size:110%; font-family:Sans-serif; line-height:16px; color:#666666; background-color:#ffffff; text-decoration:none;}
+a.sidebarlink:Visited  {font-size:110%; font-family:Sans-Serif; line-height:16px; color:#666666; background-color:#ffffff; text-decoration:none;}
+a.sidebarlink:Active   {font-size:110%; font-family:Sans-Serif; line-height:16px; color:#666666; background-color:#ffffff; text-decoration:none;}
+a.sidebarlink:Hover    {font-size:110%; font-family:Sans-Serif; line-height:16px; color:#000000; background-color:#ffffff; text-decoration:underline;}
+
+
+.pullquote       {font-family:Sans-Serif; font-size:180%; color:#990000; background-color: #ffffff;}
+.new             {font-family:Sans-Serif; font-size:90%; font-weight:bold; color:#ff0000; background-color: #ffffff;}
+.deprecated      {font-family:Sans-Serif; font-size:90%; font-weight:bold; color:#ff0000; background-color: #ffffff;}
+.wiki            {font-family:Sans-Serif; font-size:110%;}
+.rc              {font-family:Sans-Serif; font-size:90%;}
+.comment         {font-family:Sans-Serif; font-size:90%; font-style:italic; color:#0000ff; background-color: #ffffff;}
+
+.piedpage, .entete {
+font-family:Sans-Serif; font-size:90%; font-style:italic; color:#0000ff; background-color: #ffffff;
+	text-align: center;	
+}
+
