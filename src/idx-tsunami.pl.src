@@ -34,7 +34,7 @@ my $ssh = "ssh -x";
 my $scp = "scp ";
 my %config;
 
-my $rootdir = "/usr/local/idx-tsunami";
+my $rootdir = "%prefix%";
 my $utilsdir = $rootdir . "/etc";
 my $rcfile = $utilsdir . "/idx-tsunamirc";
 

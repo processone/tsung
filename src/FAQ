@@ -1,0 +1,61 @@
+* IDX-tsunami crash when I start it 
+
+  does your erlang system has ssl support enabled ?
+
+  to test it:
+  > erl
+  Eshell V5.2  (abort with ^G)
+  1> ssl:start()
+  you should see 'ok' 
+
+ if it doesn't work, maybe you can do the following thing (it seems to
+ be a bug in the R9B-0 building process) :
+
+ cd /usr/lib/erlang/lib/ssl-2.3.5/priv
+ mkdir bin
+ cd obj
+ make
+
+* SSL works fine, but IDX-tsunami still crash when I start it 
+
+do you have a ~/.erlang.hosts file ?
+to test if it works, do the following thing:
+
+  > erl -name test
+  Eshell V5.2  (abort with ^G)
+  1> net_adm:world()
+
+If you see '** exited: {error,enoent} **', then something is wrong in
+your ~/.erlang.hosts file or in /etc/hosts
+
+
+* IDX-tsunami still crash !
+
+ to see what happen, start IDX-Tsunami by hand (replace $prefix by the
+ directory where IDX-Tsunami is installed, /usr/local/idx-tsunami by
+ default)
+
+ 1. create a config file with 'idx-tsunami.pl --config'
+
+ 2. cd to the ebin directory ($prefix/erlang/tsunami-0.2.0/ebin)
+
+ 3. start the tsunami application in a first node:
+ erl -name tsunami0 -setcookie 'tsunami'   -config $prefix/etc/tsunami0.config
+ Eshell V5.2  (abort with ^G)
+ 1> ssl:start().
+ ok
+ 2> application:start(tsunami).
+ you should see 'ok' 
+
+ 4. in another shell, in the same directory, start the
+ tsunami_controller application in a second node:
+ erl -name controller -setcookie 'tsunami'   -config $prefix/etc/tsunami0.config
+ Erlang (BEAM) emulator version 5.2 [source] [hipe] [threads:0]
+ Eshell V5.2  (abort with ^G)
+ 1> ssl:start().
+ ok
+ 2> application:start(tsunami_controller).
+ you should see 'ok' 
+
+ If something is wrong, start sasl (application:start(sasl) first to
+ have more logs about what happens

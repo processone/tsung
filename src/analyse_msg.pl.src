@@ -41,7 +41,7 @@ my $tagvsn = '%VSN%';
 GetOptions( "help",\$help,
 			"verbose",\$verbose,
 			"debug",\$debug,
-			"stats",\$stats,
+			"stats=s",\$stats,
 			"version",\$version,
 			"plot",\$plot
 		  );
@@ -78,10 +78,12 @@ my (@online_time,@auth_time,@offline_rcv_time,@offline_send_time,@deconnexion_ti
 
 $esperance{'online'} = $esperance{'auth'}= $esperance{'deconnexion'}= $esperance{'offline_send'}= $esperance{'offline_rcv'} =$esperance{'roster'}=$esperance{'error'} = 0;
 
-foreach (@ARGV) {
-	if ($stats) {
-		&parse_stats_file($_);
-	} else {
+
+if ($stats) {
+	&parse_stats_file($stats);
+	exit;
+} else {
+	foreach (@ARGV) {
 		&parse_file($_);
 	}
 }
@@ -474,6 +476,8 @@ type `idx-tsunami.pl --version` for details.\n\n";
     "[--help] (this help text)\n\t",
     "[--verbose] (print all messages)\n\t",
     "[--debug] (print receive without send messages)\n\t",
+    "[--stats <filename>] (use the new stats framework)\n\t",
+    "[--plot]  (make postcripts graphics using gnuplot)\n\t",
     "[file1 [file2 [...]]] (log files to analyse)\n\t";
 	exit;
 	}

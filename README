@@ -85,8 +85,8 @@
 
   2.2.  Compilation and Installation
 
-  Edit Makefile and idx-tsunami.pl if you want to change the install
-  path (/usr/local/idx-tsunami by default)
+  Edit Makefile if you want to change the install path (prefix)
+  (/usr/local/idx-tsunami by default)
 
   Edit src/tsunami.rel.src if your Erlang version is not R9B-0 and set
   erts, kernel, ssl  and stdlib version according to your Erlang
@@ -97,7 +97,7 @@
 
   How to use it:
     1a/ Edit etc/idx-tsunamirc file (read the comments for explanation on
-        the parameters)
+        the parameters, there is a sample file etc/idx-tsunamirc.default) 
 
     1b/ Read the doc/Jabber.txt file for Jabber-specific information.
 
@@ -118,15 +118,19 @@
 
 	   Since v0.2.0, you can have 'realtime' stats using with the
 	   --stats and --plot option (no monitoring needed). It will
-	   generate graphics in postscript using gnuplot.
-	   
+	   generate graphics in postscript using gnuplot. For HTTP, you
+	   MUST use --stats. This option requires a logfile, by default it
+	   is named 'idx-tsunami.log0'
+       Every 10sec (default value), stats are dump in the log file,
+       and the script can create graphics about the current activity.
+		   
 	   Availables stats:
-		  - response_time (response time for each subrequest (~ request for HTTP))
-		  - page_resptime (response time for each 'action' (~ page for HTTP))
-		  - connect (duration of the connection)
-		  - reconnect (number of reconnection)
-		  - size (size of responses)
-		  - session (duration of a user's session)
+		- response_time (response time for each subrequest (~ request for HTTP))
+		- page_resptime (response time for each 'action' (~ page for HTTP))
+		- connect (duration of the connection)
+		- reconnect (number of reconnection)
+		- size (size of responses)
+		- session (duration of a user's session)
 
        HTTP specific stats:
 		  - counter for each response status (200, 404, etc.)

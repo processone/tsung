@@ -39,14 +39,14 @@ tarball:
 clean:
 	rm -f $(ALLBEAMS) tsunami.boot tsunami.script ebin/tsunami*.app ebin/tsunami*.rel ebin/idx-tsunami.pl ebin/analyse_msg.pl
 
-tsunami.boot:	 ebin $(ALLBEAMS) $(UTILS) src/tsunami.rel.src src/tsunami.app.src src/analyse_msg.pl.src src/idx-tsunami.pl.src
+tsunami.boot:	 ebin $(ALLBEAMS) $(UTILS) src/tsunami.rel.src src/tsunami.app.src src/analyse_msg.pl.src src/idx-tsunami.pl.src Makefile
 	sed -e 's;%VSN%;$(VSN);' ./src/tsunami.app.src > ./ebin/tsunami.app
 	sed -e 's;%VSN%;$(VSN);' ./src/tsunami.rel.src > ./ebin/tsunami.rel
-	sed -e 's;%VSN%;$(VSN);' ./src/idx-tsunami.pl.src > ./ebin/idx-tsunami.pl
+	sed -e 's@%VSN%@$(VSN)@;s@%prefix%@$(prefix)@' ./src/idx-tsunami.pl.src > ./ebin/idx-tsunami.pl
 	sed -e 's;%VSN%;$(VSN);' ./src/analyse_msg.pl.src > ./ebin/analyse_msg.pl
 	erl -noshell $(PA) ./src -s make_boot make_boot tsunami
 
-tsunami_controller.boot:	 ebin $(ALLBEAMS) $(UTILS) src/tsunami_controller.rel.src src/tsunami_controller.app.src
+tsunami_controller.boot:	 ebin $(ALLBEAMS) $(UTILS) src/tsunami_controller.rel.src src/tsunami_controller.app.src Makefile
 	sed -e 's;%VSN%;$(VSN);' ./src/tsunami_controller.app.src > ./ebin/tsunami_controller.app
 	sed -e 's;%VSN%;$(VSN);' ./src/tsunami_controller.rel.src > ./ebin/tsunami_controller.rel
 	erl -noshell $(PA) ./src -s make_boot make_boot tsunami_controller
@@ -61,19 +61,21 @@ $(OUTDIR)/%.beam: src/%.erl include/*.hrl
 	$(ERLC) -o $(OUTDIR) $<
 
 install: tsunami.boot tsunami_controller.boot
-	mkdir -p $(DESTDIR)/$(prefix)
-	mkdir -p $(DESTDIR)/$(prefix)/bin
-	mkdir -p $(DESTDIR)/$(prefix)/log
-	mkdir -p $(DESTDIR)/$(prefix)/etc
-	mkdir -p $(DESTDIR)/$(prefix)/bin
-	install -m 0644 tsunami.boot $(DESTDIR)/$(prefix)/bin
-	install -m 0644 tsunami_controller.boot $(DESTDIR)/$(prefix)/bin
-	install -m 0644 idx-tsunamirc $(DESTDIR)/$(prefix)/etc/idx-tsunamirc.default
-	install ebin/idx-tsunami.pl $(DESTDIR)/${prefix}/bin
-	install ebin/analyse_msg.pl $(DESTDIR)/${prefix}/bin
-	mkdir -p $(DESTDIR)/$(prefix)
-	mkdir -p $(DESTDIR)/$(prefix)/erlang
-	mkdir -p $(DESTDIR)/$(prefix)/erlang/tsunami-$(VSN)
-	mkdir -p $(DESTDIR)/$(prefix)/erlang/tsunami-$(VSN)/ebin
-	install $(ALLBEAMS) $(DESTDIR)/$(prefix)/erlang/tsunami-$(VSN)/ebin
+	mkdir -p $(prefix)
+	mkdir -p $(prefix)/bin
+	mkdir -p $(prefix)/log
+	mkdir -p $(prefix)/etc
+	mkdir -p $(prefix)/bin
+	install -m 0644 tsunami.boot $(prefix)/bin
+	install -m 0644 tsunami.boot $(prefix)/bin
+	install -m 0644 tsunami_controller.boot $(prefix)/bin
+	sed -e 's;%prefix%;$(prefix);' idx-tsunamirc > $(prefix)/etc/idx-tsunamirc.default
+	install ebin/idx-tsunami.pl ${prefix}/bin
+	install ebin/analyse_msg.pl ${prefix}/bin
+	mkdir -p $(prefix)
+	mkdir -p $(prefix)/erlang
+	mkdir -p $(prefix)/erlang/tsunami-$(VSN)
+	mkdir -p $(prefix)/erlang/tsunami-$(VSN)/ebin
+	install $(ALLBEAMS) $(prefix)/erlang/tsunami-$(VSN)/ebin
+	install ebin/*.app $(prefix)/erlang/tsunami-$(VSN)/ebin
 
