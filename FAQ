@@ -73,3 +73,25 @@
   node in the XML config file)
 
   To double the load, divide the inter-arrival by 2.
+
+* SNMP monitoring doesn't work ?!
+
+ There is a bug in R9C in the snmp_mgr module. You have to apply this
+ patch to make it work:
+
+--- lib/snmp-3.4/src/snmp_mgr.erl.orig  2004-03-22 15:21:59.000000000 +0100
++++ lib/snmp-3.4/src/snmp_mgr.erl       2004-03-22 15:23:46.000000000 +0100
+@@ -296,6 +296,10 @@
+     end;
+ is_options_ok([{recbuf,Sz}|Opts]) when 0 < Sz, Sz =< 65535 ->
+     is_options_ok(Opts);
++is_options_ok([{receive_type, msg}|Opts]) ->
++    is_options_ok(Opts);
++is_options_ok([{receive_type, pdu}|Opts]) ->
++    is_options_ok(Opts);
+ is_options_ok([InvOpt|_]) ->
+     {error,{invalid_option,InvOpt}};
+ is_options_ok([]) -> true.
+
+
+
