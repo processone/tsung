@@ -111,18 +111,19 @@ launcher(Event, State=#state{nusers = 0, phases = [] }) ->
     {next_state, finish, #state{}, ?check_noclient_timeout};
 
 launcher(timeout, State=#state{nusers    = Users,
-                               phases    = [{NewIntensity, NewUsers}|Rest],
+                               phases    = Phases,
                                intensity = Intensity}) ->
     Wait = do_launch(Intensity),
     case check_max_raised(State) of
         true ->
             {next_state, finish, State, ?check_noclient_timeout};
         false->
-            case Users of 
-                0 -> {next_state,launcher,State#state{phases = Rest, 
-                                                      nusers = NewUsers,
-                                                      intensity = NewIntensity},
-                      Wait};
+            case {Users, Phases} of 
+                {0, [{NewIntensity, NewUsers}|Rest]} -> % new phase
+                    {next_state,launcher,State#state{phases = Rest, 
+                                                     nusers = NewUsers,
+                                                     intensity = NewIntensity},
+                     Wait};
                 _  ->{next_state,launcher,State#state{nusers = Users-1} , Wait}
             end
     end.
