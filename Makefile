@@ -51,7 +51,8 @@ INC_FILES = $(wildcard $(INC)/*.hrl)
 SRC       = $(wildcard $(ESRC)/$(APPLICATION)/*.erl)
 CONTROLLER_SRC  = $(wildcard $(ESRC)/$(CONTROLLER_APPLICATION)/*.erl)
 RECORDER_SRC    = $(wildcard $(ESRC)/$(RECORDER_APPLICATION)/*.erl)
-CONFFILES = idx-tsunami.xml
+CONFFILE = idx-tsunami.xml
+CONFFILE_SRC = idx-tsunami.xml.in
 DTD = idx-tsunami-1.0.dtd
 USERMANUAL = doc/user_manual.html  doc/IDXDOC.css
 USERMANUAL_IMG = $(wildcard doc/images/*.png)
@@ -117,7 +118,7 @@ clean:
 	-rm -f ebin/*.beam 
 #	-make -C doc clean
 
-install: doc boot  idx-tsunami.sh analyse_msg.pl install_recorder install_controller
+install: doc boot  idx-tsunami.sh analyse_msg.pl install_recorder install_controller $(CONFFILE)
 	-rm -f $(TMP)
 
 	install -d $(TARGETDIR)/priv
@@ -149,7 +150,7 @@ install: doc boot  idx-tsunami.sh analyse_msg.pl install_recorder install_contro
 
 # 
 	mkdir -p $(CONFDIR)
-	cp $(CONFFILES) $(CONFDIR)
+	cp $(CONFFILE) $(CONFDIR)
 
 	mkdir -p $(TEMPLATES_DIR)
 	cp $(TEMPLATES) $(TEMPLATES_DIR)
@@ -244,8 +245,8 @@ release:
 		$(RECORDER_SRC) $(RECORDER_SRC_APPFILES) $(TEMPLATES) \
 		 doc/*.txt doc/*.fig doc/*.png doc/Makefile doc/*.sgml \
 		$(USERMANUAL) $(USERMANUAL_SRC) $(USERMANUAL_IMG) $(DTD) \
-		COPYING README LISEZMOI TODO $(CONFFILES) Makefile \
-		priv/builder.erl idx-tsunami.sh.in vsn.mk  idx-tsunami.xml \
+		COPYING README LISEZMOI TODO $(CONFFILE_SRC) Makefile \
+		priv/builder.erl idx-tsunami.sh.in vsn.mk \
 		$(DEBIAN) src/analyse_msg.pl.src CONTRIBUTORS CHANGES \
 		configure configure.in config.guess config.sub include.mk.in \
 		install-sh idx-tsunami.spec
@@ -277,6 +278,10 @@ idx-tsunami.sh: idx-tsunami.sh.in include.mk Makefile
 		-e 's;${DESTDIR};;g' \
 		-e 's;CONFIG_DIR%;${CONFIG_DIR};g' \
 		-e 's;%VERSION%;${VERSION};g' < $< > $@
+
+idx-tsunami.xml: idx-tsunami.xml.in include.mk Makefile
+	@$(SED) \
+		-e 's;%INSTALL_DIR%;${SHARE_DIR};g' < $< > $@
 
 %:%.sh
 # Override makefile default implicit rule
