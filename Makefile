@@ -271,7 +271,8 @@ ebin/%.beam: src/$(CONTROLLER_APPLICATION)/%.erl  $(INC_FILES)
 
 %.pl: src/%.pl.src Makefile
 	@$(SED) -e 's;%VERSION%;$(VERSION);g' \
-		    -e 's;%DTD%;$(SHARE_DIR)/$(DTD);g' < $<  > $@
+		    -e 's;%DTD%;$(SHARE_DIR)/$(DTD);g' \
+	        -e 's;${DESTDIR};;g' < $< > $@
 
 idx-tsunami.sh: idx-tsunami.sh.in include.mk Makefile
 	@$(SED) \

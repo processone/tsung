@@ -39,7 +39,7 @@ make
 
 %install
 rm -rf $RPM_BUILD_ROOT
-%makeinstall 
+export DESTDIR=$RPM_BUILD_ROOT %makeinstall 
 install -m644 CONTRIBUTORS $RPM_BUILD_ROOT/usr/share/doc/%{name}/
 install -m644 README $RPM_BUILD_ROOT/usr/share/doc/%{name}/
 install -m644 TODO $RPM_BUILD_ROOT/usr/share/doc/%{name}/
