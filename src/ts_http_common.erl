@@ -80,14 +80,14 @@ http_post(URL, Version, Cookie, Content) ->
 %% some HTTP headers functions
 %%----------------------------------------------------------------------
 user_agent() ->
-	lists:append(["User-Agent: ", ?USER_AGENT, ?CRLF]).
+	["User-Agent: ", ?USER_AGENT, ?CRLF].
 
 get_cookie([]) ->
 	[];
 get_cookie(none) ->
 	[];
 get_cookie(Cookie) ->
-	lists:append(["Cookie: ", Cookie, ?CRLF]).
+	["Cookie: ", Cookie, ?CRLF].
 
 %%----------------------------------------------------------------------
 %% set HTTP headers specific to the protocol version
@@ -120,7 +120,7 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 		_ -> 
 			Headers = string:substr(List, 1, StartHeaders-1),
 			[Status, ParsedHeader] = request_header(Headers),
-			?LOGF("HTTP Headers: ~p ~n", [ParsedHeader], ?DEB),
+			?LOGF("HTTP (status=~p) Headers: ~p ~n", [Status, ParsedHeader], ?DEB),
 			Cookie = parse_cookie(ParsedHeader),
 			ts_mon:addcount({ Status }),
 			case {httpd_util:key1search(ParsedHeader,"content-length"), Status} of
