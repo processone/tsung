@@ -100,9 +100,7 @@
 	
   2.2.  Compilation et Installation
 
-  Éditer les fichiers Makefile si vous voulez changer le chemin par
-  défaut (/usr/lib/erlang/ ...).
-
+  ./configure (ceci détecte l'endroit où erlang est installé)
   make
   make install
 

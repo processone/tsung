@@ -90,9 +90,7 @@
 
   2.2.  Compilation and Installation
 
-  Edit Makefile if you want to change the install path (prefix)
-  (/usr/lib/erlang/... by default for beam files). 
-
+  ./configure (this will detect your erlang installation path)
   make
   make install
 
