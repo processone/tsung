@@ -82,8 +82,8 @@
       <ul>
         <li><a href="report.html#stats">Main statistics</a></li>
         <li><a href="report.html#transaction">Transactions</a></li>
-        <li><a href="report.html#count">Counters</a></li>
         <li><a href="report.html#network">Network Throughput</a></li>
+        <li><a href="report.html#count">Counters</a></li>
         [% IF os_mon %]
         <li><a href="report.html#os_mon">Server monitoring</a></li>
         [% END %]
