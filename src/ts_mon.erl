@@ -40,10 +40,8 @@
 -export([start/0, stop/0, newclient/1, endclient/1, newclient/1, sendmes/1,
          start_clients/1,
          rcvmes/1, error/1,
-		 addsample/1, get_sample/1,
-		 addcount/1,  get_count/1,
-		 addsum/1,    get_sum/1,
-		 dumpstats/0, addsample_counter/1
+		 add/1,
+		 dumpstats/0
 		]).
 
 -export([update_stats/2]).
@@ -99,29 +97,11 @@ rcvmes({none, Who, What}) ->
 rcvmes({_Type, Who, What}) ->
 	gen_server:cast({global, ?MODULE}, {rcvmsg, Who, now(), What}).
 
-addsample({Type, Value}) ->
-	gen_server:cast({global, ?MODULE}, {sample, Type, Value}).
-
-get_sample(Type) ->
-	gen_server:call({global, ?MODULE}, {get_sample, Type}).
-get_counter(Type) -> get_sample(Type).
-get_count(Type)   -> get_sample(Type).
-get_sum(Type)     -> get_sample(Type).
-
-addcount({Type}) ->
-	gen_server:cast({global, ?MODULE}, {count, Type}).
-
-%% for continuous incrementing counter
-addsample_counter({Type, Value}) -> 
-	gen_server:cast({global, ?MODULE}, {sample_counter, Type, Value}).
-
-%% accumulator type of data
-addsum({Type, Val}) ->
-	gen_server:cast({global, ?MODULE}, {sum, Type, Val}).
+add(Data) ->
+	gen_server:cast({global, ?MODULE}, {add, Data}).
 
 error({Who, When, What}) ->
 	gen_server:cast({global, ?MODULE}, {error, Who, When, What}).
-
 
 
 %%%----------------------------------------------------------------------
@@ -191,33 +171,13 @@ handle_cast({sendmsg, Who, When, What}, State) ->
 												 binary_to_list(What)]),
 	{noreply, State};
 
-handle_cast({sample, Type, Value}, State)  ->
-	Tab = State#state.stats,
-	MyFun = fun (OldVal) -> update_stats(OldVal, Value) end,
-	?LOGF("Stats: new sample ~p:~p ~n",[Type, Value] ,?DEB),
-	NewTab = dict:update(Type, MyFun, update_stats([],Value), Tab),
-	{noreply, State#state{stats=NewTab}};
+handle_cast({add, Data}, State) when list(Data) ->
+	NewStats = lists:foldl(fun add_stats_data/2, State#state.stats, Data ),
+	{noreply,State#state{stats=NewStats}};
 
-%% increase by one when called
-handle_cast({count, Type}, State)  ->
-	Tab = State#state.stats,
-	Add = fun (OldVal) -> OldVal+1 end,
-	NewTab = dict:update(Type, Add, 1, Tab),
-	{noreply, State#state{stats=NewTab}};
-
-%% continuous incrementing counters 
-handle_cast({sample_counter, Type, Value}, State)  ->
-	Tab = State#state.stats,
-	MyFun = fun (OldVal) -> update_stats_counter(OldVal, Value) end,
-	NewTab = dict:update(Type, MyFun, update_stats_counter([],Value), Tab),
-	{noreply, State#state{stats=NewTab}};
-
-%% cumulative counter
-handle_cast({sum, Type, Val}, State)  ->
-	Tab = State#state.stats,
-	Add = fun (OldVal) -> OldVal+Val end,
-	NewTab = dict:update(Type, Add, Val, Tab),
-	{noreply, State#state{stats=NewTab}};
+handle_cast({add, Data}, State) when tuple(Data) ->
+	NewStats = add_stats_data(Data, State#state.stats),
+	{noreply,State#state{stats=NewStats}};
 
 handle_cast({dumpstats}, State) ->
 	print_stats(State),
@@ -312,6 +272,26 @@ terminate(Reason, State) ->
 %%%----------------------------------------------------------------------
 %%% Internal functions
 %%%----------------------------------------------------------------------
+
+%%----------------------------------------------------------------------
+%% Func: add_stats_data/2
+%% Purpose:
+%% Returns: 
+%%----------------------------------------------------------------------
+add_stats_data({sample, Type, Value}, Stats)  ->
+	MyFun = fun (OldVal) -> update_stats(OldVal, Value) end,
+	dict:update(Type, MyFun, update_stats([],Value), Stats);
+%% continuous incrementing counters 
+add_stats_data({sample_counter, Type, Value}, Stats) ->
+	MyFun = fun (OldVal) -> update_stats_counter(OldVal, Value) end,
+	dict:update(Type, MyFun, update_stats_counter([],Value), Stats);
+%% increase by one when called
+add_stats_data({count, Type}, Stats)  ->
+	add_stats_data({sum, Type, 1}, Stats);
+%% cumulative counter
+add_stats_data({sum, Type, Val}, Stats)  ->
+	Add = fun (OldVal) -> OldVal+Val end,
+	dict:update(Type, Add, Val, Stats).
 
 %%----------------------------------------------------------------------
 %% Func: print_stats/2

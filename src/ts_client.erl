@@ -149,7 +149,7 @@ init({Session=#session{id            = Profile,
 		{error, Reason} ->
 			?LOGF("Connect Error: ~p~n",[Reason],?ERR),
             CountName="conn_err_" ++ atom_to_list(Reason),
-			ts_mon:addcount({ list_to_atom(CountName) }),
+			ts_mon:add({ count, list_to_atom(CountName) }),
 			{stop, normal}
     end.
 
@@ -162,7 +162,7 @@ init({Session=#session{id            = Profile,
 handle_event({closed, Reason, Pid}, StateName, State) ->
 	?LOGF("Closed reason =~p (in state ~p) after an error while pending count is: ~p~n!",
 		  [Reason, StateName, State#state.count], ?WARN),
-	ts_mon:addcount({ Reason }),
+	ts_mon:add({ count, Reason }),
 	{stop, normal, State};
 handle_event(Event, StateName, StateData) ->
     {next_state, StateName, StateData}.
@@ -214,7 +214,7 @@ wait_ack({closed, Pid}, State) ->
     %% the KeepAlive timeout in the HTTP server.
     %% FIXME: maybe we should retry instead of stopping ?
 	?LOGF("Closed when state is wait_ack (count was ~p)!~n!",[State#state.count], ?WARN),
-	ts_mon:addcount({ closed_when_send }),
+	ts_mon:add({ count, closed_when_send }),
 	{stop, normal, State};
 
 wait_ack(Event, State) ->
@@ -240,7 +240,7 @@ think({closed, Pid}, State= #state{ count=0 }) ->
 think({closed, Pid}, State) ->
 	?LOGF("Closed by server while pending count is: ~p~n!",
 		  [State#state.count], ?NOTICE),
-	ts_mon:addcount({ closed_by_server }),
+	ts_mon:add({ count, closed_by_server }),
 	{stop, normal, State};
 
 think({timeout, Pid}, State) ->
@@ -269,11 +269,11 @@ handle_info({timeout, Ref, end_thinktime}, think, State ) ->
 
 handle_info(timeout, StateName, State ) ->
     ?LOGF("Error: timeout receive in state ~p~n",[StateName], ?ERR),
-    ts_mon:addcount({ timeout }),
+    ts_mon:add({ count, timeout }),
     {stop, normal, State};
 handle_info(Msg, StateName, State ) ->
     ?LOGF("Error: Unkonwn msg receive in state ~p, stop ~p~n", [Msg,StateName], ?ERR),
-    ts_mon:addcount({ unknown_msg }),
+    ts_mon:add({ count, unknown_msg }),
     {stop, normal, State}.
 
 %%--------------------------------------------------------------------
@@ -285,7 +285,7 @@ terminate(normal, StateName,State) ->
     finish_session(State);
 terminate(Reason, StateName, State) ->
 	?LOGF("Stop in state ~p, reason= ~p~n",[StateName,Reason],?NOTICE),
-    ts_mon:addcount({ error_unknown }),
+    ts_mon:add({ count, error_unknown }),
     finish_session(State).
 
 %%--------------------------------------------------------------------
@@ -327,7 +327,7 @@ handle_next_action(State) ->
             {value, {Key, Tr}} = lists:keysearch(Tname, 1, TrList),
             Now = now(),
             Elapsed = ts_utils:elapsed(Tr, Now),
-            ts_mon:addsample({Tname, Elapsed}),
+            ts_mon:add({sample, Tname, Elapsed}),
             NewState = State#state{transactions=lists:keydelete(Tname,1,TrList),
                                    count=Count}, 
             handle_next_action(NewState);
@@ -422,7 +422,7 @@ handle_next_request(Profile, State) ->
                 {error, Reason} -> 
                     ?LOGF("Error: Unable to send data, reason: ~p~n",[Reason],?ERR),
                     CountName="send_err_"++atom_to_list(Reason),
-                    ts_mon:addcount({ list_to_atom(CountName) }),
+                    ts_mon:add({ count, list_to_atom(CountName) }),
                     {stop, normal, State};
                 {'EXIT', {noproc, _Rest}} ->
                     handle_close_while_sending(State);
@@ -490,12 +490,12 @@ reconnect(none, ServerName, Port, Protocol, IP, Pid) ->
     case Protocol:connect(ServerName, Port, Opts) of
 		{ok, Socket} -> 
 			controlling_process(Protocol, Socket, Pid),
-			ts_mon:addcount({ reconnect }),
+			ts_mon:add({ count, reconnect }),
 			{ok, Socket};
 		{error, Reason} ->
 			?LOGF("Reconnect Error: ~p~n",[Reason],?ERR),
             CountName="error_reconnect_"++atom_to_list(Reason),
-			ts_mon:addcount({ list_to_atom(CountName) }),
+			ts_mon:add({ count, list_to_atom(CountName) }),
 			{stop, normal}
     end;
 reconnect(Socket, Server, Port, Protocol, IP, Pid) ->

@@ -170,7 +170,7 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 	StartHeaders = string:str(List, "\r\n\r\n"),
 	case StartHeaders of 
 		0 -> 
-			ts_mon:addcount({ parse_error }),
+			ts_mon:add({ count, parse_error }),
 			{State#state_rcv{session= #http{}, ack_done = true, 
 							 datasize = size(Data)}, [], true};
 		_ -> 
@@ -178,7 +178,7 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 			[{Version, Status}, ParsedHeader] = request_header(Headers),
 			?LOGF("HTTP (status=~p) Headers: ~p ~n", [Status, ParsedHeader], ?DEB),
 			Cookie = parse_cookie(ParsedHeader),
-			ts_mon:addcount({ Status }),
+%%			ts_mon:add({ count, Status }), %FIXME
             Close = check_close(Version,
                                 httpd_util:key1search(ParsedHeader,"connection")),
 			case {httpd_util:key1search(ParsedHeader,"content-length"), Status} of
@@ -215,7 +215,7 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 						BodySize > CLength  ->
 							?LOGF("Error: HTTP Body > Content-Length !:~p~n",
 								  [CLength], ?ERR),
-							ts_mon:addcount({ http_bad_content_length }),
+							ts_mon:add({ count, http_bad_content_length }),
 							{State#state_rcv{session= #http{}, ack_done = true,
 											 datasize = TotalSize,
 											 dyndata= Cookie}, [], Close};
@@ -302,14 +302,14 @@ check_close(_,Else)        -> false.
 %%----------------------------------------------------------------------
 parse_chunked(undefined, Data, State, Cookie) ->
     ?LOGF("No content length ! ~p~n",[Data], ?ERR),
-    ts_mon:addcount({ http_no_content_length }),
+    ts_mon:add({ count, http_no_content_length }),
     { State#state_rcv{session=#http{}, ack_done=true, datasize=0 } , [] };
 parse_chunked("chunked", <<CRLF:4/binary,Body/binary>>, State, Cookie)->
     ?LOGF("Chunked transfer encoding, datasize=~p~n", [size(Body)] ,?DEB),
     read_chunk(Body, State, Cookie, 0, 0);
 parse_chunked(Transfer, Data, State, Cookie) ->
     ?LOGF("Unknown transfer type ! ~p~n",[Transfer], ?WARN),
-    ts_mon:addcount({ http_unknown_tranfer }),
+    ts_mon:add({ count, http_unknown_tranfer }),
     { State#state_rcv{session=#http{}, ack_done=true, datasize=0 } , [] }.
 
 %%----------------------------------------------------------------------
@@ -349,7 +349,7 @@ read_chunk(<<Char:1/binary, Data/binary>>, State, Cookie, Int, Acc) ->
 	    read_chunk(Data, State, Cookie, Int, Acc+1);
 	_Other ->
             ?LOGF("Unexpected error while parsing chunk ~p~n", [_Other] ,?DEB),
-			ts_mon:addcount({http_unexpected_chunkdata}),
+			ts_mon:add({count, http_unexpected_chunkdata}),
             {State#state_rcv{session= #http{}, ack_done = true}, []}
     end.
 
@@ -366,7 +366,7 @@ read_chunk_data(Data, State, Cookie,Int, Acc) -> % not enough data in buffer
     BodySize = size(Data),
     ?LOGF("Partial chunk received (~p/~p)~n", [BodySize,Int] ,?DEB),
     Http = #http{chunk_toread   = Int-BodySize,
-                 status         = 200, % we don't care, it has already been logged
+                 status         = 666, % we don't care, it has already been logged
                  body_size      = BodySize + Acc},
     {State#state_rcv{session  = Http,
 					 ack_done = false, % continue to read data
