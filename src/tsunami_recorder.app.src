@@ -17,7 +17,7 @@
 					 {ts_cookie, "humhum"},
 					 {config_file, "%prefix%/etc/idx-tsunami.xml"},
 					 {log_file, "%prefix%/log/idx-tsunami.log"},
-					 {proxy_log_file, "%prefix%/log/idx-tsunami_recorder.log"},
+					 {proxy_log_file, "%prefix%/log/idx-tsunami_recorder.xml"},
 					 {proxy_listen_port, 8090}
 					]},        
 	   {applications, [kernel, stdlib, ssl]},
