@@ -204,20 +204,25 @@ handle_info(timeout, StateName, State ) ->
     ?LOGF("Error: timeout receive in state ~p~n",[StateName], ?ERR),
     ts_mon:add({ count, timeout }),
     {stop, normal, State};
-handle_info({tcp, _Socket, Data}, think, State = #state_rcv{request=Req} ) when Req#ts_request.ack == no_ack ->
+% no parse
+handle_info({NetEvent, _Socket, Data}, think, State = #state_rcv{request=Req} ) 
+  when (Req#ts_request.ack /= parse) and ((NetEvent == tcp) or (NetEvent==ssl)) ->
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     ts_mon:add({ sum, size, size(Data)}),
-    ?LOG("Data receive from socket in state think, no_ack so skip~n", ?NOTICE),
+    ?LOGF("Data receive from socket in state think, ack=~p, skip~n", 
+         [Req#ts_request.ack],?NOTICE),
+    ?DebugF("Data was ~p~n",[Data]),
     NewSocket = inet_setopts(State#state_rcv.protocol, State#state_rcv.socket,
                              [{active, once}]),
     {next_state, think, State#state_rcv{socket=NewSocket}};
-handle_info({ssl, _Socket, Data}, think, State = #state_rcv{request=Req} ) when Req#ts_request.ack == no_ack ->
+handle_info({NetEvent, _Socket, Data}, think, State = #state_rcv{request=Req} ) 
+  when (NetEvent == tcp) or (NetEvent==ssl) ->
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
-    ts_mon:add({ sum, size, size(Data)}),
-    ?LOG("Data receive from socket in state think, no_ack so skip~n", ?NOTICE),
+    ts_mon:add({ count, error_unknown_data }),
+    ?LOG("Data receive from socket in state think, stop~n", ?ERR),
     NewSocket = inet_setopts(State#state_rcv.protocol, State#state_rcv.socket,
                              [{active, once}]),
-    {next_state, think, State#state_rcv{socket=NewSocket}};
+    {stop, normal, State};
 handle_info(Msg, StateName, State ) ->
     ?LOGF("Error: Unknown msg ~p receive in state ~p, stop~n", [Msg,StateName], ?ERR),
     ts_mon:add({ count, error_unknown_msg }),
@@ -371,7 +376,8 @@ handle_next_request(Profile, State) ->
                                                timestamp= Now },
                     case Profile#ts_request.ack of 
                         no_ack -> 
-                            handle_next_action(NewState#state_rcv{ack_done=true});
+                            {PTimeStamp, DynVars} = update_stats(NewState),
+                            handle_next_action(NewState#state_rcv{ack_done=true, page_timestamp=PTimeStamp});
                         global -> 
                             ts_timer:connected(self()),
                             {next_state, wait_ack, NewState};
