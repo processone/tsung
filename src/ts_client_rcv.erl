@@ -86,7 +86,7 @@ handle_call(Request, From, State) ->
 
 %% ack value -> wait
 handle_cast({wait_ack, Ack, When, EndPage, Socket, Protocol}, State) ->
-	?LOGF("receive wait_ack: ~p ~p~n",[Ack, EndPage], ?DEB),
+	?LOGF("receive wait_ack: ~p , endpage=~p~n",[Ack, EndPage], ?DEB),
 	case State#state_rcv.page_timestamp of 
 		0 -> %first request of a page
 			NewPageTimestamp = When;
@@ -130,7 +130,7 @@ handle_info({ssl, Socket, Data}, State) ->
 handle_info({tcp_closed, Socket}, State) ->
 	?LOG("TCP close: ~n", ?INFO),
     Protocol = State#state_rcv.protocol,
-    Protocol:close(Socket),
+    Protocol:close(Socket),% is it necessary for tcp ?
 	ts_client:close(State#state_rcv.ppid),
 	{noreply, State};
 
@@ -143,7 +143,7 @@ handle_info({tcp_error, Socket, Reason}, State) ->
 handle_info({ssl_closed, Socket}, State) ->
 	?LOG("SSL close: ~n", ?INFO),
     Protocol = State#state_rcv.protocol,
-    Protocol:close(Socket),
+    Protocol:close(Socket), % mandatory (see ssl man page)
 	ts_client:close(State#state_rcv.ppid),
 	{noreply, State};
 
@@ -154,7 +154,7 @@ handle_info({ssl_error, Socket, Reason}, State) ->
 	{noreply, State};
 
 handle_info(timeout, State) ->
-	?LOG("timeout: ~n", ?WARN),
+	?LOG("timeout ~n", ?WARN),
     %% FIXME: we should close not on all cases ? if we wait for a
     %% global sync for example.
 	ts_client:close({timeout, State#state_rcv.ppid}),
