@@ -25,8 +25,12 @@
 -include("../include/ts_profile.hrl").
 -include("../include/ts_http.hrl").
 
--export([get_client/2, get_random_message/1, parse/2]).
+-export([get_client/2, get_random_message/1, parse/2, new_session/0]).
 
+
+%%
+new_session() ->
+	#http{}.
 %%
 get_random_message(#http_request{url = URL, method=get, cookie=Cookie}) ->
 	list_to_binary(ts_http_common:http_get(URL, ?http_version, Cookie));

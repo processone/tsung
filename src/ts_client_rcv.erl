@@ -59,8 +59,9 @@ wait_ack({Pid, Ack, When, EndPage}) ->
 %%----------------------------------------------------------------------
 init([{PType, CType, PPid, Socket, Timeout, Ack, Monitor}]) ->
 	{ok, #state_rcv{socket = Socket, timeout= Timeout, ack = Ack,
-				ppid= PPid, clienttype = CType,
-				monitor = Monitor }}.
+					ppid= PPid, clienttype = CType,
+					session = ts_profile:new_session(CType, Ack),
+					monitor = Monitor }}.
 
 %%----------------------------------------------------------------------
 %% Func: handle_call/3

@@ -27,7 +27,8 @@
 -author('nicolas.niclausse@IDEALX.com').
 
 %% API
--export([get_client/2, get_server/0, get_message/2, parse/3, thinktime/1]).
+-export([get_client/2, get_server/0, get_message/2, parse/3,
+		 thinktime/1, new_session/2]).
 
 -include("../include/ts_profile.hrl").
 
@@ -38,6 +39,16 @@
 %%----------------------------------------------------------------------
 get_server() ->
     {?server_adr, ?server_port, ?server_protocol}.
+
+%%----------------------------------------------------------------------
+%% Function: new_session/1
+%% Purpose: initialize session information (used by 'parse' clients)
+%% Returns: record or []
+%%----------------------------------------------------------------------
+new_session(Module, parse) ->
+	Module:new_session();
+new_session(Module, _) ->
+	[].
 
 %%----------------------------------------------------------------------
 %% Function: get_client/2

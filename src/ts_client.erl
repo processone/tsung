@@ -110,7 +110,7 @@ init([Profile, {CType, PType, MType, Persistent}], Count) ->
 									CType, self(),
 									Socket,
 									?tcp_timeout, 
-									no_ack,
+									?messages_ack,
 									?monitoring}) of 
 				{ok, Pid} ->
 					?PRINTDEBUG2("rcv server started ~n",?DEB),
@@ -157,7 +157,7 @@ handle_call(Request, From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_cast({next_msg}, State) when State#state.lasttimeout == infinity ->
+handle_cast({next_msg}, State = #state{lasttimeout = infinity}) ->
 	?PRINTDEBUG("next_msg, count is ~p~n", [State#state.count], ?DEB),
 	{noreply, State#state{lasttimeout=1}, 1};
 handle_cast({next_msg}, State) ->
@@ -174,7 +174,7 @@ handle_cast({add_messages, Messages}, State) ->
 						  count = OldCount + length(Messages)}, 1};
 
 %% the connexion was closed, but  this session is persistent
-handle_cast({closed, Pid}, State) when State#state.persistent == true   ->
+handle_cast({closed, Pid}, State = #state{persistent = true}) ->
 	?PRINTDEBUG2("connection closed, stay alive (persistent)",?DEB),
 	%% TODO: set the timeout correctly ?
 	case State#state.lasttimeout of 
@@ -206,7 +206,7 @@ handle_cast({timeout, Pid}, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_info(timeout, State) when State#state.count > 0 ->
+handle_info(timeout, State ) when State#state.count > 0 ->
 	Len = length(State#state.profile), % length is O(n), maybe we should do it differently
 	[Profile | Pending] = State#state.profile,
 	case {Profile#message.type, State#state.count} of 

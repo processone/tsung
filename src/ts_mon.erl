@@ -171,10 +171,10 @@ handle_call(Request, From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_cast({sendmsg, Who, When, What}, State) when State#state.type == none -> 
+handle_cast({sendmsg, Who, When, What}, State = #state{type = none}) ->
 	{noreply, State};
 
-handle_cast({sendmsg, Who, When, What}, State) when State#state.type == light -> 
+handle_cast({sendmsg, Who, When, What}, State = #state{type = light}) ->
 	io:format(State#state.log,"Send:~w:~w:~-44s~n",[When,Who,
 												 binary_to_list(What)]),
 	{noreply, State};
@@ -210,10 +210,10 @@ handle_cast({dumpstats}, State) ->
 	NewStats = reset_all_stats(State#state.stats),
 	{noreply, State#state{laststats = NewStats, stats= NewStats}};
 
-handle_cast({rcvmsg, Who, When, What}, State) when State#state.type == none ->
+handle_cast({rcvmsg, Who, When, What}, State = #state{type=none}) ->
 	{noreply, State};
 
-handle_cast({rcvmsg, Who, When, What}, State) when State#state.type == light ->
+handle_cast({rcvmsg, Who, When, What}, State = #state{type=light}) ->
 	io:format(State#state.log,"Recv:~w:~w:~-44s~n",[When,Who, 
 													binary_to_list(What)]),
 	{noreply, State};
@@ -223,7 +223,7 @@ handle_cast({rcvmsg, Who, When, What}, State) ->
 													binary_to_list(What)]),
 	{noreply, State};
 
-handle_cast({newclient, Who, When}, State) when State#state.type == none ->
+handle_cast({newclient, Who, When}, State = #state{type = none}) ->
 	Clients =  State#state.client+1,
 	{noreply, State#state{client = Clients}};
 
@@ -250,10 +250,10 @@ handle_cast({endclient, Who, When}, State) ->
 			{noreply, State#state{client = Clients}}
 	end;
 
+handle_cast({stop}, State = #state{client = 0}) ->
+	{stop, normal, State};
 handle_cast({stop}, State) -> % we should stop, wait until no more clients are alive
-	{noreply, State#state{stop = true}};
-handle_cast({stop}, State) when State#state.client == 0 ->
-	{stop, normal, State}.
+	{noreply, State#state{stop = true}}.
 
 
 %%----------------------------------------------------------------------

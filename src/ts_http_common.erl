@@ -208,7 +208,7 @@ set_msg(URL, Think) -> % end of a page, wait before the next one
 %%----------------------------------------------------------------------
 
 %% new connection
-parse(Data, State) when record(State#state_rcv.session, http), (State#state_rcv.session)#http.status == none ->
+parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 	List = binary_to_list(Data),
 	%%	regexp:split is much less efficient ! 
 	StartHeaders = string:str(List, "\r\n\r\n"),
@@ -237,7 +237,7 @@ parse(Data, State) when record(State#state_rcv.session, http), (State#state_rcv.
 
 %% TODO : handle the case where the Headers are not complete in the first message
 %% current connection
-parse(Data, State) when record(State#state_rcv.session, http) ->
+parse(Data, State) ->
 	DataSize = size(Data),
 	Size = (State#state_rcv.session)#http.body_size + DataSize,
 	CLength = (State#state_rcv.session)#http.content_length,
@@ -247,9 +247,7 @@ parse(Data, State) when record(State#state_rcv.session, http) ->
 		_ ->
 			Http = (State#state_rcv.session)#http{body_size = Size},
 			State#state_rcv{session= Http, ack_done = false, datasize = Size}
-	end;
-parse(Data, State) ->
-	parse(Data, State#state_rcv{session=#http{}}).
+	end.
 												 
 			
 
