@@ -53,7 +53,7 @@ init([]) ->
     ClientsSup = {ts_client_sup, {ts_client_sup, start_link, []}, permanent, 2000, 
 				  supervisor, [ts_client_sup]},
 	Launcher = {ts_launcher, {ts_launcher, 
-								 start, [[?config(nclients),?clients_intensity]]}, 
+								 start, []}, 
 				transient, 2000, worker, [ts_launcher]},
 	SessionCache = {ts_session_cache, {ts_session_cache, 
 								 start, []}, 

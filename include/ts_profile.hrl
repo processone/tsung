@@ -23,7 +23,6 @@
 -record(message, {thinktime, 
 				  ack,
 				  param,
-				  type=static,
 				  endpage=false,
                   host,       % override global server hostname
                   port,       % override global server port
@@ -51,6 +50,8 @@
 -define(restart_sleep, 2000).
 -define(infinity_timeout, 15000).
 -define(short_timeout, 1).
+-define(config_timeout, 60000).
+-define(check_noclient_timeout, 60000).
 -define(retries, 4).
 
 -define(CRLF, "\r\n").

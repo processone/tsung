@@ -27,18 +27,10 @@
 -author('nicolas.niclausse@IDEALX.com').
 
 %% API
--export([get_client/2, get_server/0, get_message/2, parse/3, add_dynparams/3,
+-export([get_client/2, get_message/2, parse/3, add_dynparams/3,
 		 thinktime/0, new_session/2]).
 
 -include("../include/ts_profile.hrl").
-
-%%----------------------------------------------------------------------
-%% Function: get_server/0
-%% Purpose: Get server parameters
-%% Returns: tuple
-%%----------------------------------------------------------------------
-get_server() ->
-    {?config(server_adr), ?config(server_port), ?config(server_protocol)}.
 
 %%----------------------------------------------------------------------
 %% Function: new_session/2
@@ -47,14 +39,15 @@ get_server() ->
 %%----------------------------------------------------------------------
 new_session(Module, parse) ->
 	Module:new_session();
-new_session(Module, _) ->  
+new_session(Module, _Else) ->  
+    ?LOGF("new session without parsing (~p)~n",[_Else],?DEB),
 	[].
 %%----------------------------------------------------------------------
 %% Function: get_client/2
 %% Purpose: Generate a client session for a given protocol (Module).
 %% Args:	Module (module name)
 %%			Id
-%% Returns: List of #message
+%% Returns: {Id of sessions, Number of msg in session, local IP}
 %%----------------------------------------------------------------------
 
 get_client(Module, Id)->
@@ -73,8 +66,6 @@ get_client(Module, Id)->
 get_message(Module, Param) ->
 	?LOGF("get_message called with args ~p ~p ~n",[Module,Param],?DEB),
     Module:get_random_message(Param).
-%%TODO: utiliser le meme nom ? pourquoi ajouter random ?
-
 
 %%----------------------------------------------------------------------
 %% Function: parse/3

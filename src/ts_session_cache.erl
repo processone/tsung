@@ -26,7 +26,7 @@
           total=0.0  % total number of requests
          }).
 
--include("../include/ts_profile.hrl").
+-include("ts_profile.hrl").
 
 %%====================================================================
 %% External functions
@@ -72,14 +72,18 @@ init([]) ->
 handle_call({get_req, Id, N}, From, State) ->
 	Tab = State#state.table,
     Total = State#state.total+1,
+    ?LOGF("look for ~p th request in session ~p for ~p~n",[N,Id,From],?DEB),
 	case ets:lookup(Tab, {Id, N}) of 
 		[{Key, Session}] -> 
             Hit = State#state.hit+1,
-            ?LOGF("hitrate is ~.3f~n",[100.0*Hit/Total],?DEB),
+            ?LOGF("ok, found in cache for ~p~n",[From],?DEB),
+            ?LOGF("hitrate is ~.3f~n",[100.0*Hit/Total],?INFO),
 			{reply, Session, State#state{hit= Hit, total = Total}};
-		[] -> %% no match, ask the req_server
-            Reply = ts_req_server:get_req(Id, N),
-            ets:insert(Tab, {{Id, N}, Reply}), %% cache the response FIXME: handle bad response ?
+		[] -> %% no match, ask the config_server
+            ?LOGF("not found in cache (~p th request in session ~p for ~p)~n",[N,Id,From],?DEB),
+            Reply = ts_config_server:get_req(Id, N),
+            %% cache the response FIXME: handle bad response ?
+            ets:insert(Tab, {{Id, N}, Reply}), 
 			{reply, Reply, State#state{total = Total}};
 		Other -> %% 
             ?LOGF("error ! (~p)~n",[Other],?DEB),

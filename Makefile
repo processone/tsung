@@ -12,11 +12,14 @@ prefix = /usr/local/idx-tsunami
 # export ERLC_EMULATOR to fix a bug in R9B with native compilation
 ERLC_EMULATOR=/usr/bin/erl
 export ERLC_EMULATOR
+ERL_COMPILER_OPTIONS="[warn_unused_vars]"
+export ERL_COMPILER_OPTIONS
 OPTIONS:=+debug_info
 #OPTIONS:=+native +\{hipe,\[o3\]\}
 #OPTIONS:=+export_all
 #OPTIONS:=
-ERLC = erlc $(OPTIONS)
+INC = ./include
+ERLC = erlc $(OPTIONS) -I $(INC)
 OUTDIR = ebin
 ALLERLS:= $(wildcard src/*.erl)
 ALLBEAMS:=$(patsubst src/%.erl,$(OUTDIR)/%.beam, $(ALLERLS))
@@ -41,14 +44,14 @@ clean:
 	rm -f $(ALLBEAMS) tsunami.boot tsunami.script ebin/tsunami*.app ebin/tsunami*.rel ebin/idx-tsunami.pl ebin/analyse_msg.pl
 
 tsunami.boot:	 ebin $(ALLBEAMS) $(UTILS) src/tsunami.rel.src src/tsunami.app.src src/analyse_msg.pl.src src/idx-tsunami.pl.src Makefile
-	sed -e 's;%VSN%;$(VSN);' ./src/tsunami.app.src > ./ebin/tsunami.app
+	sed -e 's@%VSN%@$(VSN)@;s@%prefix%@$(prefix)@' ./src/tsunami.app.src > ./ebin/tsunami.app
 	sed -e 's;%VSN%;$(VSN);' ./src/tsunami.rel.src > ./ebin/tsunami.rel
 	sed -e 's@%VSN%@$(VSN)@;s@%prefix%@$(prefix)@' ./src/idx-tsunami.pl.src > ./ebin/idx-tsunami.pl
 	sed -e 's;%VSN%;$(VSN);' ./src/analyse_msg.pl.src > ./ebin/analyse_msg.pl
 	erl -noshell $(PA) ./src -s make_boot make_boot tsunami
 
 tsunami_controller.boot:	 ebin $(ALLBEAMS) $(UTILS) src/tsunami_controller.rel.src src/tsunami_controller.app.src Makefile
-	sed -e 's;%VSN%;$(VSN);' ./src/tsunami_controller.app.src > ./ebin/tsunami_controller.app
+	sed -e 's@%VSN%@$(VSN)@;s@%prefix%@$(prefix)@' ./src/tsunami_controller.app.src > ./ebin/tsunami_controller.app
 	sed -e 's;%VSN%;$(VSN);' ./src/tsunami_controller.rel.src > ./ebin/tsunami_controller.rel
 	erl -noshell $(PA) ./src -s make_boot make_boot tsunami_controller
 
@@ -66,9 +69,10 @@ install: tsunami.boot tsunami_controller.boot
 	mkdir -p $(prefix)/bin
 	mkdir -p $(prefix)/log
 	mkdir -p $(prefix)/etc
-	mkdir -p $(prefix)/bin
+	mkdir -p $(prefix)/erlang/tsunami-$(VSN)/src
 	install -m 0644 tsunami.boot $(prefix)/bin
 	install -m 0644 tsunami.boot $(prefix)/bin
+	install -m 0644 idx-tsunami.xml $(prefix)/etc/idx-tsunami_default.xml
 	install -m 0644 tsunami_controller.boot $(prefix)/bin
 	sed -e 's;%prefix%;$(prefix);' idx-tsunamirc > $(prefix)/etc/idx-tsunamirc.default
 	install ebin/idx-tsunami.pl ${prefix}/bin
@@ -79,4 +83,5 @@ install: tsunami.boot tsunami_controller.boot
 	mkdir -p $(prefix)/erlang/tsunami-$(VSN)/ebin
 	install $(ALLBEAMS) $(prefix)/erlang/tsunami-$(VSN)/ebin
 	install ebin/*.app $(prefix)/erlang/tsunami-$(VSN)/ebin
+	install src/*.erl $(prefix)/erlang/tsunami-$(VSN)/src
 

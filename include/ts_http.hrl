@@ -21,7 +21,16 @@
 -author('nicolas.niclausse@IDEALX.com').
 
 %% use by the client to create the request
--record(http_request, {url, cookie=none, method=get, body=[], id = 0 }).
+-record(http_request, {
+          url,
+          version="1.1", % default is HTTP/1.1
+          server_name,   % use for the 'Host:' header
+          get_ims_date = none, % used when the method is getims
+          cookie=none,
+          method=get,
+          body=[],
+          id = 0
+         }).
 
 -record(url,
 	{scheme,          %% http, https, ...

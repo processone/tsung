@@ -57,7 +57,7 @@ wait_ack({Pid, Ack, When, EndPage, Socket, Protocol}) ->
 %%          ignore               |
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
-init([{PType, CType, PPid, Socket, Protocol, Timeout, Ack, Monitor}]) ->
+init([{CType, PPid, Socket, Protocol, Timeout, Ack, Monitor}]) ->
 	{ok, #state_rcv{socket = Socket, timeout= Timeout, ack = Ack,
 					ppid= PPid, clienttype = CType, protocol= Protocol,
 					session = ts_profile:new_session(CType, Ack),
@@ -128,7 +128,7 @@ handle_info({ssl, Socket, Data}, State) ->
 	{noreply, NewState, State#state_rcv.timeout};
 
 handle_info({tcp_closed, Socket}, State) ->
-	?LOG("TCP close: ~n", ?NOTICE),
+	?LOG("TCP close: ~n", ?INFO),
 	ts_client:close(State#state_rcv.ppid),
 	{noreply, State};
 
@@ -139,7 +139,7 @@ handle_info({tcp_error, Socket, Reason}, State) ->
 	{noreply, State};
 
 handle_info({ssl_closed, Socket}, State) ->
-	?LOG("SSL close: ~n", ?NOTICE),
+	?LOG("SSL close: ~n", ?INFO),
 	ts_client:close(State#state_rcv.ppid),
 	{noreply, State};
 

@@ -32,24 +32,37 @@
 -behaviour(gen_fsm). %% a primitive gen_fsm with two state: launcher and wait
 
 %% External exports
--export([start/1, launch/1]).
+-export([start/0, launch/1]).
 
 %% gen_fsm callbacks
--export([init/1, launcher/2,  wait/2, handle_event/3,
+-export([init/1, launcher/2,  wait/2, finish/2, handle_event/3,
 		 handle_sync_event/4, handle_info/3, terminate/3]).
 
--record(state, {interarrival=[]}).
+-record(state, {interarrival=[],
+                intensity,
+                maxusers %% if maxusers are currently active, launch a
+                         %% new beam to handle the new users
+               }).
 
 %%%----------------------------------------------------------------------
 %%% API
 %%%----------------------------------------------------------------------
-start(Opts) ->
-	?LOGF("starting ~p~n",[[Opts]], ?DEB),
-	gen_fsm:start_link({local, ?MODULE}, ?MODULE, {Opts}, []).
 
-launch(Node) ->
+%%--------------------------------------------------------------------
+%% Function: start/0
+%%--------------------------------------------------------------------
+start() ->
+	?LOG("starting ~n", ?DEB),
+	gen_fsm:start_link({local, ?MODULE}, ?MODULE, [], []).
+
+%%--------------------------------------------------------------------
+%% Function: launch/1
+%%--------------------------------------------------------------------
+%% Start clients with given interarrival (can be empty list)
+launch({Node, Arrivals}) ->
 	?LOGF("starting on node ~p~n",[[Node]], ?DEB),
-	gen_fsm:send_event({?MODULE, Node}, launch).
+	gen_fsm:send_event({?MODULE, Node}, {launch, Arrivals}).
+
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from gen_fsm
@@ -62,10 +75,12 @@ launch(Node) ->
 %%          ignore                              |
 %%          {stop, StopReason}                   
 %%----------------------------------------------------------------------
-init({[Clients, Intensity]}) ->
+init([]) ->
     {Msec, Sec, Nsec} = ts_utils:init_seed(),
     random:seed(Msec,Sec,Nsec),
-	{ok, wait, #state{interarrival=ts_stats:exponential(Intensity,Clients)}}.
+	{ok, wait, #state{}}.
+%	{ok, wait, #state{interarrival = ts_stats:exponential(Intensity,Clients),
+%                      intensity = Intensity}}.
 
 %%----------------------------------------------------------------------
 %% Func: StateName/2
@@ -73,29 +88,61 @@ init({[Clients, Intensity]}) ->
 %%          {next_state, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}                         
 %%----------------------------------------------------------------------
-%% no more clients to launch, stop
-wait(launch, State) ->
-	Nodes = nodes(),
-	?LOGF("Available nodes : ~p ~n",[Nodes],?NOTICE),
-	{next_state, launcher, State, 10000}.
+wait({launch, []}, State) ->
+    {ok, MyHostName} = ts_utils:node_to_hostname(node()),
+	?LOGF("Launch msg receive (~p)~n",[MyHostName], ?NOTICE),
+    {ok, {[{Intensity, Users}| Rest], StartDate, Max}} = 
+        ts_config_server:get_client_config(MyHostName),
+    WaitBeforeStart = ts_utils:elapsed(now(), StartDate),
+    Warm_timeout = round(ts_stats:exponential(Intensity) + WaitBeforeStart),
+	?LOGF("Activate launcher (~p users) in ~p msec ~n",[Users, Warm_timeout], ?NOTICE),
+	{next_state, launcher, State#state{interarrival = 
+                                       ts_stats:exponential(Intensity, Users),
+                                       intensity = Rest, maxusers= Max },  Warm_timeout};
+wait({launch, {Arrivals, Max}}, State) ->
+    ?LOGF("Starting with  ~p users todo (max is ~p)~n",
+          [length(Arrivals), Max],?DEB),
+	{next_state, launcher, State#state{interarrival = Arrivals, maxusers=Max}, 1}.
 
-launcher(Event, #state{interarrival = []}) ->
-	?LOG("no more clients to start, stop ~n",?DEB),
-	ts_mon:stop(),
-	{stop, normal, #state{}};
+launcher(Event, State=#state{interarrival = []}) ->
+	?LOG("no more clients to start, wait  ~n",?DEB),
+    {next_state, finish, #state{}, ?check_noclient_timeout};
 
-launcher(timeout, #state{interarrival = [X |List]}) ->
-    %Get one client
-    Id = ts_user_server:get_idle(),%% some bench shows that this is not a bottleneck
-    %set the profile of the client
-    Profile = ts_profile:get_client(?config(client_type), Id),
-	ts_client_sup:start_child([Profile, {?config(client_type),
-										 ?config(parse_type),
-										 ?config(mes_type), 
-										 ?config(persistent)}]),
-	?LOGF("client launched, waiting ~p msec before launching next client",
-				[X],?DEB),
-	{next_state, launcher, #state{interarrival= List}, round(X)}.
+launcher(timeout, State=#state{interarrival = [X |List]}) ->
+    ActiveClients =  ts_client_sup:active_clients(),
+    case ActiveClients >= State#state.maxusers of
+       true -> %% max users reached, must start a new beam
+            ?LOGF("Max number of clients reached, must start a new beam (~p users)~n",
+                  [length(List)],?NOTICE),
+            {ok, MyHostName} = ts_utils:node_to_hostname(node()),
+            ts_config_server:newbeam(list_to_atom(MyHostName),
+                                     {List, State#state.maxusers}),
+            NewList = [];
+        false ->
+            ?LOGF("Current clients on beam: ~p~n", [ActiveClients],?DEB),
+            NewList = List
+    end,
+    %%Get one client
+    %% Id = ts_user_server:get_idle(),%% FIXME: make it work again with new config server
+    %%set the profile of the client
+    {ok, Profile} = ts_config_server:get_next_session(),
+    ts_client_sup:start_child(Profile),
+    ?LOGF("client launched, waiting ~p msec before launching next client",
+          [X],?DEB),
+    {next_state, launcher, State#state{interarrival= NewList}, round(X)}.
+    
+finish(timeout, State) ->
+    case ts_client_sup:active_clients() of
+       0 -> %% no users left, stop
+            ?LOG("No more active users, stop beam~n", ?NOTICE),
+            ts_mon:stop(),
+            slave:stop(node()), %% commit suicide
+            {stop, normal, State}; %% should never be executed
+        ActiveClients ->
+            ?LOGF("Still ~p active client(s)~n", [ActiveClients],?NOTICE),
+            {next_state, finish, State, ?check_noclient_timeout}
+    end.
+
 
 %%----------------------------------------------------------------------
 %% Func: StateName/3
@@ -144,6 +191,7 @@ handle_info(Info, StateName, StateData) ->
 %% Returns: any
 %%----------------------------------------------------------------------
 terminate(Reason, StateName, StatData) ->
+	?LOGF("launcher terminating for reason~p~n",[Reason], ?INFO),
 	ok.
 
 %%%----------------------------------------------------------------------

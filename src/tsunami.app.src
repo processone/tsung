@@ -41,7 +41,7 @@
 					 {mes_type, dynamic}, %% dynamic or static
 					 {nclients, 10},      %% Nombre de clients à connecter
 					 {interarrival, 2},  	%% Intervalle de temps entre l'arrivée de 2 clients (en sec)
-					 {log_file, "/home/idx-tsunami/log/idx-tsunami.log"},	%% Base du fichier de log
+					 {log_file, "%prefix%/log/idx-tsunami.log"},	%% Base du fichier de log
 
 					 {messages_interarrival, 10},	%% Intervalle de temps entre 2 messages (en sec)
 					 {messages_number, 100},       	%% Nombre de messages par clients

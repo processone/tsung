@@ -50,6 +50,9 @@ start_link() ->
 %%----------------------------------------------------------------------
 init([]) ->
 	?LOG("starting",?DEB),
+    Config = {ts_config_server, {ts_config_server, start_link, 
+                                 []}, transient, 2000,
+              worker, [ts_config_server]},
     Monitor = {ts_mon, {ts_mon, start, []}, transient, 2000, 
 			   worker, [ts_mon]},
     Timer = {ts_timer, {ts_timer, start, [?config(nclients)]}, transient, 2000, 
@@ -63,7 +66,7 @@ init([]) ->
 							?config(nclients)]]}, 
 			transient, 2000, worker, [ts_user_server]},
     {ok,{{one_for_one,?retries,10},
-		 [Monitor, Timer, Request, Msg, User]}}.
+		 [Config, Monitor, Timer, Request, Msg, User]}}.
 
 %%%----------------------------------------------------------------------
 %%% Internal functions

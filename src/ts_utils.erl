@@ -25,9 +25,22 @@
 
 %% user interface
 -export([debug/3, debug/4, get_val/1, init_seed/0, chop/1, elapsed/2,
-         now_sec/0, inet_setopts/4,
-         split_chr/2]).
+         now_sec/0, inet_setopts/4, node_to_hostname/1, add_time/2,
+        level2int/1]).
 
+level2int("debug")     -> ?DEB;
+level2int("info")      -> ?INFO;
+level2int("notice")    -> ?NOTICE;
+level2int("warning")   -> ?WARN;
+level2int("error")     -> ?ERR;
+level2int("critical")  -> ?CRIT;
+level2int("emergency") -> ?EMERG.
+
+%%----------------------------------------------------------------------
+%% Func: get_val/1
+%% Purpose: return environnement variable value for the current application
+%% Returns: Value | undef_var
+%%----------------------------------------------------------------------
 get_val(Var) ->
 	case application:get_env(Var) of 
 		{ok, Val} ->
@@ -37,7 +50,10 @@ get_val(Var) ->
 			undef_var
 	end.
 
-%%
+%%----------------------------------------------------------------------
+%% Func: debug/3
+%% Purpose: print debug message if level is high enough
+%%----------------------------------------------------------------------
 debug(From, Message, Level) ->
 	debug(From, Message, [], Level).
 
@@ -51,31 +67,57 @@ debug(From, Message, Args, Level) ->
 			nodebug
 	end.
 
-%% print elapsed time in microseconds
+%%----------------------------------------------------------------------
+%% Func: elapsed/2
+%% Purpose: print elapsed time in microseconds
+%% Returns: integer
+%%----------------------------------------------------------------------
 elapsed({Before1, Before2, Before3}, {After1, After2, After3}) ->
     After  = After1  * 1000000000  + After2  * 1000 + After3/1000,
     Before = Before1 * 1000000000  + Before2 * 1000 + Before3/1000,
     After - Before.
 
-%% remove trailing "\n"
+%%----------------------------------------------------------------------
+%% Func: chop/1
+%% Purpose: remove trailing "\n"
+%%----------------------------------------------------------------------
 chop(String) ->
 	string:strip(String, right, 10).
 
-%%
+%%----------------------------------------------------------------------
+%% Func: init_seed/0
+%%----------------------------------------------------------------------
 init_seed()->
     now().
 
-%%
+%%----------------------------------------------------------------------
+%% Func: now_sec/0
+%% Purpose: returns unix like elapsed time in sec
+%%----------------------------------------------------------------------
 now_sec() ->
 	{MSec, Seconds, MicroSec} = now(),
 	Seconds+1000000*MSec.
 
-%%
+%%----------------------------------------------------------------------
+%% Func: add_time/2
+%% Purpose: add given Seconds to given Time (same format as now())
+%%----------------------------------------------------------------------
+add_time({MSec, Seconds, MicroSec}, SecToAdd) ->
+    NewSec = Seconds +SecToAdd,
+    case NewSec < 1000000 of
+        true -> {MSec, NewSec, MicroSec};
+        false ->{MSec+ (NewSec div 100000), NewSec-1000000, MicroSec}
+    end.
+
+%%----------------------------------------------------------------------
+%% Func: inet_setopts/4
+%% Purpose: set inet options depending on the protocol (gen_tcp, gen_udp,
+%%  ssl)
+%%----------------------------------------------------------------------
 inet_setopts(ssl, Socket, Opts, Pid) ->
 	case ssl:setopts(Socket, Opts) of
 		ok ->
 			ok;
-%%			?LOGF("Setting ssl options to : ~p ~n", [Opts], ?DEB);
 		{error, closed} ->
 			ts_client:close(Pid);
 		Error ->
@@ -85,30 +127,18 @@ inet_setopts(gen_tcp, Socket,  Opts, Pid)->
 	case inet:setopts(Socket, Opts) of
 		ok ->
 			ok;
-%%			?LOGF("Setting inet options to : ~p ~n", [Opts], ?DEB);
 		{error, closed} ->
 			ts_client:close(Pid);
 		Error ->
 			?LOGF("Error while setting inet options ~p ~p ~n", [Opts, Error], ?ERR)
 	end;
+%% FIXME: UDP not tested
 inet_setopts(gen_udp, Socket,  Opts, Pid)->
 	ok = inet:setopts(Socket, Opts).
 
-%% Split string according to a given character
-%% Only the first occurence of the character is taken into account
-%% This mean that will have only one (no match) or two part in the
-%% result list
-%% split(String, Character) -> Tokens
-%%  String = string()
-%%  Character = char()
-%%  Tokens = [string()]
-split_chr(String, Character) ->
-    case string:chr(String, Character) of
-	%% No occurence
-	0     ->
-	    [String];
-	Index ->
-	    Part1 = string:substr(String, 1, Index -1),
-	    Part2 = string:substr(String, Index + 1),
-	    [Part1, Part2]
-    end.
+%5> inet:gethostbyname("schultze").
+%{ok,{hostent,"schultze.ird.idealx.com",["schultze"],inet,4,[{192,168,0,181}]}}
+
+node_to_hostname(Node) ->
+    [Nodename, Hostname] = string:tokens( atom_to_list(Node), "@"),
+    {ok, Hostname}.

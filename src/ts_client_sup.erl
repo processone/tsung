@@ -26,7 +26,7 @@
 -include("../include/ts_profile.hrl").
 
 %% External exports
--export([start_link/0, start_child/1]).
+-export([start_link/0, start_child/1, active_clients/0]).
 
 %% supervisor callbacks
 -export([init/1]).
@@ -37,12 +37,21 @@
 start_link() ->
 	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-start_child(ServerId) ->
-    supervisor:start_child(?MODULE,[ServerId]).
+start_child(Profile) ->
+    supervisor:start_child(?MODULE,[Profile]).
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from supervisor
 %%%----------------------------------------------------------------------
+
+%%--------------------------------------------------------------------
+%% Func: active_clients/0
+%% Returns: [ Client ]
+%% Description: returns the list of all active children on this beam's
+%% client supervisor.
+%%--------------------------------------------------------------------
+active_clients()->
+    length(supervisor:which_children(?MODULE)).
 
 %%----------------------------------------------------------------------
 %% Func: init/1
@@ -58,6 +67,7 @@ init([]) ->
 				   transient,2000,worker,[ts_client]}
 				 ],
     {ok, {SupFlags, ChildSpec}}.
+
 
 %%%----------------------------------------------------------------------
 %%% Internal functions

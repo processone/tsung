@@ -21,7 +21,7 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
--export([start/2, stop/1]).
+-export([start/2, start_phase/3, stop/1]).
 -behaviour(application).
 
 -include("../include/ts_profile.hrl").
@@ -43,6 +43,11 @@ start(Type, _StartArgs) ->
 			Error
     end.
 
+start_phase(load_config, StartType, PhaseArgs) ->
+    ts_config_server:read_config(?config(config_file));
+start_phase(start_clients, StartType, PhaseArgs) ->
+    ts_mon:start_clients({?config(clients),?config(monitoring)}).
+    
 
 %%----------------------------------------------------------------------
 %% Func: stop/1

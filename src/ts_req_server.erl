@@ -23,7 +23,9 @@
 
 %% External exports
 -export([start/0, get_random_req/0, get_all_req/0, stop/0, read/1]).
--export([read_sesslog/1, get_next_session/0, get_req/2]).
+-export([read_sesslog/1,
+         get_next_session/0,
+         get_req/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
@@ -35,7 +37,7 @@
 				total  =0 %% number of sessions in ets table
 			   }).
 
--include("../include/ts_profile.hrl").
+-include("ts_profile.hrl").
 
 %%%----------------------------------------------------------------------
 %%% API
@@ -53,7 +55,7 @@ start() ->
 	gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
 
 get_next_session()->
-	gen_server:call({global, ?MODULE},get_next_session).
+	gen_server:call({global, ?MODULE},{get_next_session, node()}).
 
 get_req(Id, Count)->
 	gen_server:call({global, ?MODULE},{get_req, Id, Count}).
@@ -96,8 +98,10 @@ handle_call(get_all_req, From, State) ->
 	Reply = {ok, State#state.items},
 	{reply, Reply, State};
 
-%% get a new session id
-handle_call(get_next_session, From, State) ->
+%% get a new session id and an ip for the given node
+handle_call({get_next_session, Node}, From, State) ->
+%%    IP = set_client_ip(Node),
+    IP = "127.0.0.1", % FIXME
 	Tab = State#state.table,
     Total=State#state.total, 
 	case State#state.current of 
@@ -109,7 +113,7 @@ handle_call(get_next_session, From, State) ->
     ?LOGF("get new session for ~p~n",[From],?DEB),
 	case ets:lookup(Tab, {State#state.current, size}) of 
 		[{Key, Size}] -> 
-            {reply, {ok, {State#state.current, Size}}, State#state{current=Next}};
+            {reply, {ok, {State#state.current, Size, IP}}, State#state{current=Next}};
 		Other ->
 			{reply, {error, Other}, State#state{current=Next}}
 	end;
@@ -273,5 +277,4 @@ read_item(File, L)->
 					read_item(File, List)
 			end
     end.
-
 

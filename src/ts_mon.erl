@@ -33,11 +33,13 @@
 
 -behaviour(gen_server).
 
--include("../include/ts_profile.hrl").
+-include("ts_profile.hrl").
+-include("ts_config.hrl").
 
 %% External exports
 -export([start/0, stop/0, newclient/1, endclient/1, newclient/1, sendmes/1,
-		rcvmes/1, error/1,
+         start_clients/1,
+         rcvmes/1, error/1,
 		 addsample/1, get_sample/1,
 		 addcount/1,  get_count/1,
 		 addsum/1,    get_sum/1,
@@ -71,6 +73,9 @@
 start() ->
 	?LOG("starting monitor, global ~n",?NOTICE),
 	gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
+
+start_clients({Machines, Monitoring}) ->
+	gen_server:call({global, ?MODULE}, {start_clients, Machines, Monitoring}).
 
 stop() ->
 	gen_server:cast({global, ?MODULE}, {stop}).
@@ -133,20 +138,18 @@ init([]) ->
 	{{Y,M,D},{H,Min,S}} = erlang:universaltime(),
 	Date = io_lib:format("-~w:~w:~w-~w:~w",[Y,M,D,H,Min]),
     Filename = ?config(log_file) ++ Date,
+    erlang:display(?config(log_file)),
     case file:open(Filename,write) of 
 		{ok, Stream} ->
 			?LOG("starting monitor~n",?NOTICE),
 			Tab = dict:new(),
-			start_launchers(?config(machines)),
-			timer:apply_interval(?config(dumpstats_interval), ?MODULE, dumpstats, [] ),
-			{ok, #state{type    = ?config(monitoring), 
-						log     = Stream,
-						stats   = Tab,
-						laststats = Tab
+			{ok, #state{ log     = Stream,
+                         stats   = Tab,
+                         laststats = Tab
 					   }};
 		{error, Reason} ->
 			?LOGF("Can't open mon log file! ~p~n",[Reason], ?ERR),
-			{stop,openerror}
+			{stop, Reason}
     end.
 
 %%----------------------------------------------------------------------
@@ -158,6 +161,11 @@ init([]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
+handle_call({start_clients, Machines, Monitoring}, From, State) ->
+    timer:apply_interval(?config(dumpstats_interval), ?MODULE, dumpstats, [] ),
+    start_launchers(Machines),
+	{reply, ok, State#state{type=Monitoring}};
+
 handle_call({get_sample, Type}, From, State) ->
 	Reply = dict:find(Type, State#state.stats),
 	{reply, Reply, State};
@@ -205,8 +213,6 @@ handle_cast({sum, Type, Val}, State)  ->
 	{noreply, State#state{stats=NewTab}};
 
 handle_cast({dumpstats}, State) ->
-	DateStr = ts_utils:now_sec(),
-	io:format(State#state.log,"# stats: dump at ~w~n",[DateStr]),
 	print_stats(State),
 	NewStats = reset_all_stats(State#state.stats),
 	{noreply, State#state{laststats = NewStats, stats= NewStats}};
@@ -289,9 +295,10 @@ handle_info(Info, State) ->
 %% Returns: any (ignored by gen_server)
 %%----------------------------------------------------------------------
 terminate(Reason, State) ->
-	?LOG("stoping monitor~n",?NOTICE),
+	?LOGF("stoping monitor (~p)~n",[Reason],?NOTICE),
 	print_stats(State),
 	file:close(State#state.log),
+    slave:stop(node()),
 	ok.
 
 %%%----------------------------------------------------------------------
@@ -303,6 +310,8 @@ terminate(Reason, State) ->
 %%----------------------------------------------------------------------
 %% TODO: add a function to print stats for gnuplot ?
 print_stats(State) ->
+	DateStr = ts_utils:now_sec(),
+	io:format(State#state.log,"# stats: dump at ~w~n",[DateStr]),
 	Res = dict:to_list(State#state.stats),
 	%% print number of simultaneous users
 	io:format(State#state.log, "stats: ~p ~p ~p~n", [users, State#state.client, State#state.maxclient]),
@@ -349,7 +358,10 @@ reset_all_stats(Dict)->
 	MyFun = fun (Key, OldVal) -> reset_stats(OldVal) end,
 	dict:map(MyFun, Dict).
 
-%% reset all stats except min and max
+%%----------------------------------------------------------------------
+%% Func: reset_stats/1
+%% Purpose: reset all stats except min and max
+%%----------------------------------------------------------------------
 reset_stats([]) ->
 	[0, 0, 0, 0, 0];
 reset_stats([Mean, Var, Max, Min, Count]) ->
@@ -362,26 +374,11 @@ reset_stats(Args) ->
 %% start the launcher on clients nodes
 %%----------------------------------------------------------------------
 
-%% list of machines separated by ":". Construct a list of node's atom
 start_launchers(Machines) -> 
-	?LOGF("Need to start tsunami client on ~s~n",[Machines], ?DEB),
-	%% tokenise and remove duplicates with usort
-	Hostnames = lists:usort(string:tokens( Machines, ":")), 
-	Atomize = fun(A) -> list_to_atom(A) end,
-	HostList = lists:map(Atomize, Hostnames),
+	?LOGF("Need to start tsunami client on ~p~n",[Machines], ?DEB),
+	GetHost = fun(A) -> list_to_atom(A#client.host) end,
+	HostList = lists:map(GetHost, Machines),
 	?LOGF("Hostlist is ~p~n",[HostList], ?DEB),
-	Nodes = net_adm:world_list(HostList), %% get list of nodes
-	?LOGF("Connected nodes ~p~n",[Nodes], ?DEB),
-	start_launchers(Nodes, node()).
-
-start_launchers([], Self) ->
-	?LOG("no more nodes~n", ?DEB),
-	ok;
-start_launchers([Self | NodeList], Self) -> % don't launch in controller node
-	?LOG("skip myself ! ~n", ?DEB),
-	start_launchers(NodeList, Self);
-start_launchers([Node | NodeList], Self) ->
-	?LOGF("starting launcher on  ~p~n",[Node],?NOTICE),
-	ts_launcher:launch(Node),
-	start_launchers(NodeList, Self).
+    %% starts beam on all client hosts
+    lists:foreach({ts_config_server, newbeam}, HostList).
 	

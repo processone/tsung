@@ -38,9 +38,10 @@ get_client(N, Id)->
 				  param = #jabber {type = 'authenticate', id = Id}},
 		 #message{ack = no_ack, thinktime=2000+random:uniform(?config(presence_delay)),
 				  param = #jabber {type = 'presence'}},
-		 #message{type= dynamic, ack = no_ack, thinktime=
-				  round(ts_stats:exponential(?messages_intensity)),
-				  param = #jabber {type = 'chat', size= ?config(messages_size), id =Id}},
+% FIXME: no more dynamic messages
+%		 #message{type= dynamic, ack = no_ack, thinktime=
+%				  round(ts_stats:exponential(?messages_intensity)),
+%				  param = #jabber {type = 'chat', size= ?config(messages_size), id =Id}},
 		 #message{ack=local, thinktime=infinity, param=#jabber{type = 'close'}}
 		],
     ?LOGF("~w~n", [List_Fin], ?DEB),

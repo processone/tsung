@@ -26,31 +26,37 @@
 -include("../include/ts_http.hrl").
 
 -export([get_client/2, add_dynparams/2,
-		 get_random_message/1, parse/2, new_session/0]).
+		 get_random_message/1,
+         parse/2,
+         parse_config/2,
+         new_session/0]).
 
 
 %%
 new_session() ->
 	#http{}.
 %%
-get_random_message(#http_request{url = URL, method=get, cookie=Cookie}) ->
-	ts_http_common:http_get(URL, ?config(http_version), Cookie);
+get_random_message(Req=#http_request{method=get}) ->
+	ts_http_common:http_get(Req);
 
-get_random_message(#http_request{url = URL, method=getims, cookie=Cookie}) ->
-	ts_http_common:http_get_ifmodsince(URL, ?config(http_version), Cookie);
+get_random_message(Req=#http_request{method=getims}) ->
+	ts_http_common:http_get_ifmodsince(Req);
 
-get_random_message(#http_request{url = URL, method=post, cookie=Cookie, body= Body}) ->
-	ts_http_common:http_post(URL, ?config(http_version), Cookie, Body).
-
-
+get_random_message(Req=#http_request{method=post}) ->
+	ts_http_common:http_post(Req).
 
 %%
 get_client(N, Id) ->
-	ts_httperf_sesslog:get_client(N, Id).
+	{ok, Session, Size, IP} = ts_config_server:get_next_session(),
+    {Session, Size, IP}.
 
 %%
 parse(Data, State) ->
 	ts_http_common:parse(Data, State).
+
+%%
+parse_config(Element, Conf) ->
+	ts_http_common:parse_config(Element, Conf).
 
 %%----------------------------------------------------------------------
 %% Func: add_dynparams/2

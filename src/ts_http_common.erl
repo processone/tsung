@@ -24,51 +24,58 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
--include("../include/ts_profile.hrl").
--include("../include/ts_http.hrl").
+-include("ts_profile.hrl").
+-include("ts_http.hrl").
+
+-include("ts_config.hrl").
+-include("xmerl.hrl").
 
 -export([
-		 http_get/3,
-		 http_get_ifmodsince/3,
-		 http_post/4,
+		 http_get/1,
+		 http_get_ifmodsince/1,
+		 http_post/1,
+		 set_msg/1, set_msg/2,
 		 parse/2,
 		 parse_URL/1,
-		 protocol_headers/1
+         parse_config/2
 		]).
 
 %%----------------------------------------------------------------------
-%% Func: http_get/3
-%% Args: URL, HTTP Version, Cookie
+%% Func: http_get/1
+%% Args: #http_request
 %%----------------------------------------------------------------------
-http_get(URL, Version, Cookie) ->
+http_get(Req=#http_request{url=URL, version=Version, cookie=Cookie,
+                           server_name = Host}) ->
 	list_to_binary([?GET, " ", URL," ", "HTTP/", Version, ?CRLF, 
-				  protocol_headers(Version),
-				  user_agent(),
-				  get_cookie(Cookie),
-				  ?CRLF]).
-
-%%----------------------------------------------------------------------
-%% Func: http_get_ifmodsince/3
-%% Args: URL, HTTP Version, Cookie
-%%----------------------------------------------------------------------
-http_get_ifmodsince(URL, Version, Cookie) ->
-	list_to_binary([?GET, " ", URL," ", "HTTP/", Version, ?CRLF,
-                    ["If-Modified-Since: ", ?config(http_modified_since_date),?CRLF],
-                    protocol_headers(Version),
+                    "Host: ", Host, ?CRLF,
                     user_agent(),
                     get_cookie(Cookie),
                     ?CRLF]).
 
 %%----------------------------------------------------------------------
-%% Func: http_post/4
-%% Args: URL, HTTP Version, Cookie, Content
+%% Func: http_get_ifmodsince/1
+%% Args: #http_request
+%%----------------------------------------------------------------------
+http_get_ifmodsince(Req=#http_request{url=URL, version=Version, cookie=Cookie,
+                                      get_ims_date=Date, server_name=Host}) ->
+	list_to_binary([?GET, " ", URL," ", "HTTP/", Version, ?CRLF,
+                    ["If-Modified-Since: ", Date, ?CRLF],
+                    "Host: ", Host, ?CRLF,
+                    user_agent(),
+                    get_cookie(Cookie),
+                    ?CRLF]).
+
+%%----------------------------------------------------------------------
+%% Func: http_post/1
+%% Args: #http_request
 %% TODO: Content-Type ?
 %%----------------------------------------------------------------------
-http_post(URL, Version, Cookie, Content) ->
+http_post(Req=#http_request{url=URL, version=Version, cookie=Cookie, body=Content, 
+                            server_name=Host}) ->
 	ContentLength=integer_to_list(size(Content)),
 	?LOGF("Content Length of POST: ~p~n.", [ContentLength], ?DEB),
 	Headers = [?POST, " ", URL," ", "HTTP/", Version, ?CRLF,
-               protocol_headers(Version),
+               "Host: ", Host, ?CRLF,
                user_agent(),
                get_cookie(Cookie),
                "Content-Length: ",ContentLength, ?CRLF,
@@ -82,22 +89,63 @@ http_post(URL, Version, Cookie, Content) ->
 user_agent() ->
 	["User-Agent: ", ?USER_AGENT, ?CRLF].
 
-get_cookie([]) ->
-	[];
-get_cookie(none) ->
-	[];
+get_cookie([])   -> [];
+get_cookie(none) -> [];
 get_cookie(Cookie) ->
 	["Cookie: ", Cookie, ?CRLF].
 
+
 %%----------------------------------------------------------------------
-%% set HTTP headers specific to the protocol version
+%% Func: parse_config/2
+%% Args: Element, Config
+%% Returns: List
+%% Purpose: parse a request defined in the XML config file
 %%----------------------------------------------------------------------
-protocol_headers("1.1") ->
-	%% Host is mandatory in HTTP/1.1
-	["Host: ", ?config(server_name), ?CRLF]; 
-protocol_headers("1.0") ->
-	[].
-	
+parse_config(Element = #xmlElement{name=http}, 
+             Config=#config{curid= Id, session_tab = Tab,
+                            sessions = [CurS |SList]}) ->
+    Version  = ts_config:getAttr(Element#xmlElement.attributes, version),
+    URL      = ts_config:getAttr(Element#xmlElement.attributes, url),
+    Contents = ts_config:getAttr(Element#xmlElement.attributes, contents),
+    Date     = ts_config:getAttr(Element#xmlElement.attributes, date),
+    Method = case ts_config:getAttr(Element#xmlElement.attributes, method) of 
+                 "GET"    -> get;
+                 "GETIMS" -> getims;
+                 "POST"   -> post;
+                 Other ->
+                     ?LOGF("Bad method ! ~p ~n",[Other],?ERR),
+                     get
+             end,
+    ServerName = case ets:lookup(Tab,{http_server_name, value}) of 
+                     [] ->
+                         ?config(server_name);
+                     [{_Key, SName}] ->
+                         SName
+                 end,
+    Msg = set_msg(#http_request{url         = URL,
+                                method      = Method,
+                                version     = Version,
+                                get_ims_date= Date,
+                                server_name = ServerName,
+                                body        = list_to_binary(Contents)}, 0),
+    ets:insert(Tab,{{CurS#session.id, Id}, Msg}),
+    lists:foldl( {ts_config, parse},
+                 Config#config{},
+                 Element#xmlElement.content);
+%% Parsing default values
+parse_config(Element = #xmlElement{name=default}, Conf = #config{session_tab = Tab}) ->
+    case ts_config:getAttr(Element#xmlElement.attributes, name) of
+        "server_name" ->
+            Val = ts_config:getAttr(Element#xmlElement.attributes, value),
+            ets:insert(Tab,{{http_server_name, value}, Val})
+    end,
+    lists:foldl( {ts_config, parse}, Conf, Element#xmlElement.content);
+%% Parsing other elements
+parse_config(Element = #xmlElement{}, Conf = #config{}) ->
+    lists:foldl( {ts_config, parse}, Conf, Element#xmlElement.content);
+%% Parsing non #xmlElement elements
+parse_config(Element, Conf = #config{}) ->
+    Conf.
 
 %%----------------------------------------------------------------------
 %% Func: parse/2
@@ -300,10 +348,10 @@ parse_cookie(ParsedHeader) ->
 			end
 	end.
 
-
-
-
-% parse host
+%%----------------------------------------------------------------------
+%% Func: parse_URL/1
+%% Returns: #url
+%%----------------------------------------------------------------------
 parse_URL("https://" ++ String) ->
     parse_URL(host, String, [], #url{scheme=https});
 parse_URL("http://" ++ String) ->
@@ -312,7 +360,6 @@ parse_URL("http://" ++ String) ->
 %%----------------------------------------------------------------------
 %% Func: parse_URL/4 (inspired by yaws_api.erl)
 %% Returns: #url record
-%% Purpose: parse a URL (surprise !)
 %%----------------------------------------------------------------------
 % parse host
 parse_URL(host, [], Acc, URL) -> % no path or port
@@ -323,6 +370,7 @@ parse_URL(host, [$:|Tail], Acc, URL) -> % port starts here
     parse_URL(port, Tail, [], URL#url{host=lists:reverse(Acc)});
 parse_URL(host, [H|Tail], Acc, URL) ->
     parse_URL(host, Tail, [H|Acc], URL);
+
 % parse port
 parse_URL(port,[], Acc, URL) ->
     URL#url{port=list_to_integer(lists:reverse(Acc)), path= "/"};
@@ -330,6 +378,7 @@ parse_URL(port,[$/|T], Acc, URL) ->
     parse_URL(path, T, "/", URL#url{port=list_to_integer(lists:reverse(Acc))});
 parse_URL(port,[H|T], Acc, URL) ->
     parse_URL(port, T, [H|Acc], URL);
+
 % parse path
 parse_URL(path,[], Acc, URL) ->
     URL#url{path=lists:reverse(Acc)};
@@ -337,3 +386,58 @@ parse_URL(path,[$?|T], Acc, URL) ->
     URL#url{path=lists:reverse(Acc), querypart=T};
 parse_URL(path,[H|T], Acc, URL) ->
     parse_URL(path, T, [H|Acc], URL).
+
+
+
+
+%%----------------------------------------------------------------------
+%% Func: set_msg/1 or /2 or /3
+%% Returns: #message record
+%% Purpose:
+%% unless specified, the thinktime is an exponential random var.
+%%----------------------------------------------------------------------
+set_msg(HTTPRequest) ->
+	set_msg(HTTPRequest, round(ts_stats:exponential(?messages_intensity))).
+
+
+%% if the URL is full (http://...), we parse it and get server host,
+%% port and scheme from the URL and override the global setup of the
+%% server. These informations are stored in the #message record.
+set_msg(HTTP=#http_request{url="http" ++ URL}, ThinkTime) -> % full URL
+    URLrec = parse_URL("http" ++ URL),
+    Path = URLrec#url.path ++ URLrec#url.querypart,
+    case URLrec of
+        #url{scheme= http, port = P} ->
+            case P of 
+                undefined ->  Port = 80;
+                Val ->        Port = Val
+            end,
+            set_msg(HTTP#http_request{url=Path},
+                    ThinkTime,
+                    #message{ack  = parse,
+                             host = URLrec#url.host,
+                             scheme = gen_tcp,
+                             port = Port});
+        #url{scheme= https, port = P} ->
+            case P of 
+                undefined ->  Port = 443;
+                Val ->        Port = Val
+            end,
+            set_msg(HTTP#http_request{url=Path},
+                    ThinkTime,
+                    #message{ack  = parse,
+                             host = URLrec#url.host,
+                             scheme = ssl,
+                             port = Port})
+    end;
+%
+set_msg(HTTPRequest, Think) -> % relative URL, use global host, port and scheme
+    set_msg(HTTPRequest, Think, #message{ack = parse}).
+            
+set_msg(HTTPRequest, 0, Msg) -> % no thinktime, only wait for response
+	Msg#message{ thinktime=infinity,
+                 param = HTTPRequest };
+set_msg(HTTPRequest, Think, Msg) -> % end of a page, wait before the next one
+	Msg#message{ endpage   = true,
+                 thinktime = Think,
+                 param = HTTPRequest }.

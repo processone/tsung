@@ -25,21 +25,22 @@
 
 -behaviour(gen_server).
 
--include("../include/ts_profile.hrl").
+-include("ts_profile.hrl").
+-include("ts_config.hrl").
 
 %% External exports
 -export([start/1, next/1, close/1]).
 
 %% gen_server callbacks
--export([init/1, init/2, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
 
 -record(state, {rcvpid, % pid of receiving process
 				server, % name (or IP) of server
 				port,   % server port
 				protocol,   % gen_tcp, gen_udp or ssl
 				socket,     % Socket descriptor
-				clienttype, % type of client (ts_http11, jabber_online, etc.)
-				mestype,    % type of messages (dynamic or static)
+				ip,         % local ip to bind to
+				clienttype, % type of client (ts_http, jabber_online, etc.)
 				profile,    % list of requests parameters
 				persistent, % if true, don't exit when connexion is closed
 				lasttimeout,% value of the last timeout
@@ -89,30 +90,18 @@ next({Pid, DynData}) ->
 %%          ignore               |
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
-init([{Profile, Size}, {CType, PType, static, Persistent}]) ->
-	?LOG("Init ... static~n",?DEB),
-	init([Profile, {CType, PType, static, Persistent}], Size);
-
-init([{Profile, Size}, {CType, PType, dynamic, Persistent}]) ->
-	?LOG("Init ... dynamic~n",?DEB),
-	random:seed(),
-	init([Profile, {CType, PType, static, Persistent}],
-		 ?config(messages_number) + Size - 1);
-
-init(Args) ->
-	?LOGF("Init ... with bad args ~p~n",[Args], ?DEB),
-    ts_mon:addcount({ badprofile }).
-	
-
-init([Profile, {CType, PType, MType, Persistent}], Count) ->
+init({Session=#session{id            = Profile,
+                        persistent   = Persistent,
+                        messages_ack = PType,
+                        type         = CType}, Count, IP}) ->
 	?LOGF("Init ... started with count = ~p  ~n",[Count],?DEB),
 	%%init seed
-%    random:seed(ts_utils:init_seed()),
-%	?LOG("seed OK  ~n",?DEB),
+    %% random:seed(ts_utils:init_seed()),
     case ts_session_cache:get_req(Profile, 1) of 
         #message{host=undefined, port= undefined, scheme= undefined} ->
             ?LOG("Server not configured in msg, get global conf ~n",?DEB),
-            {ServerName, Port, Protocol} = ts_profile:get_server(); % get global server profile
+            % get global server profile
+            {ServerName, Port, Protocol} = ts_config_server:get_server_config(); 
         #message{host=ServerName, port= Port, scheme= Protocol} ->
             %% server profile can be overriden in the first URL of the session
             %% curently, the following server modifications in the session are not used.
@@ -120,22 +109,22 @@ init([Profile, {CType, PType, MType, Persistent}], Count) ->
                   [self(), ServerName, Port, Protocol], ?INFO);
         Other ->
             ?LOGF("ERROR while getting first req [~p]! ~n",[Other],?ERR),
-            {ServerName, Port, Protocol} = ts_profile:get_server() % get global server profile
+            {ServerName, Port, Protocol} = ts_config_server:get_server_config()
     end,
-	?LOG("Got first message, connect ...  ~n",?DEB),
     % open connection
-	Opts = protocol_options(Protocol),
+	Opts = protocol_options(Protocol) ++ [{ip, IP}],
+	?LOGF("Got first message, connect to ~p with options ~p ~n",
+         [{ServerName, Port, Protocol},Opts],?DEB),
 	StartTime= now(),
     case Protocol:connect(ServerName, Port, Opts, ?config(connect_timeout)) of
 		{ok, Socket} -> 
-	    % start a new process for receiving messages from the server
-			case ts_client_rcv:start({PType,
-									CType, self(),
-									Socket,
-									Protocol,
-									?config(tcp_timeout), 
-									?config(messages_ack),
-									?config(monitoring)}) of 
+            %% start a new process for receiving messages from the server
+			case ts_client_rcv:start({ CType, self(),
+                                       Socket,
+                                       Protocol,
+                                       ?config(tcp_timeout), 
+                                       PType,
+                                       ?config(monitoring)}) of 
 				{ok, Pid} ->
 					?LOG("rcv server started ~n",?DEB),
 					controlling_process(Protocol, Socket, Pid),
@@ -145,11 +134,12 @@ init([Profile, {CType, PType, MType, Persistent}], Count) ->
 					{ok, #state{rcvpid = Pid, socket = Socket, port = Port,
 								server= ServerName, profile= Profile,
 								protocol = Protocol,
-								clienttype = CType, mestype = MType,
+								clienttype = CType,
 								persistent = Persistent,
 								starttime = StartTime,
 								monitor = ?config(monitoring),
 								count = Count,
+								ip = IP,
 								maxcount = Count
                                }, ?short_timeout};
 				{error, Reason} ->
@@ -189,13 +179,13 @@ handle_cast({next_msg}, State = #state{lasttimeout = infinity}) ->
 	?LOGF("next_msg, count is ~p~n", [State#state.count], ?DEB),
 	{noreply, State#state{lasttimeout=1}, ?short_timeout};
 handle_cast({next_msg}, State) ->
-	?LOG("next_msg (infinite timeout)",?DEB),
+	?LOGF("next_msg (timeout is set to ~p)",[State#state.lasttimeout],?DEB),
 	{noreply, State, State#state.lasttimeout};
 handle_cast({next_msg, DynData}, State = #state{lasttimeout = infinity}) ->
 	?LOGF("next_msg, count is ~p~n", [State#state.count], ?DEB),
 	{noreply, State#state{lasttimeout=1, dyndata=DynData}, ?short_timeout};
 handle_cast({next_msg, DynData}, State) ->
-	?LOG("next_msg (infinite timeout)",?DEB),
+	?LOGF("next_msg (timeout is set to ~p)",[State#state.lasttimeout],?DEB),
 	{noreply, State#state{dyndata=DynData}, State#state.lasttimeout};
 %% more case to handle ?
 
@@ -233,7 +223,7 @@ handle_cast({closed, Pid}, State) ->
 	{stop, normal, State};
 
 handle_cast({closed, Reason, Pid}, State) ->
-	?LOGF("Closed after an error while while pending count is: ~p~n!",
+	?LOGF("Closed after an error while pending count is: ~p~n!",
 		  [State#state.count], ?INFO),
 	ts_mon:addcount({ Reason }),
 	{stop, normal, State};
@@ -290,7 +280,7 @@ handle_info(timeout, State ) ->
     end,
 
 	%% reconnect if needed
-	case reconnect(Socket, Host, Port, Protocol, State#state.rcvpid) of
+	case reconnect(Socket, Host, Port, Protocol, State#state.ip, State#state.rcvpid) of
 		{ok, NewSocket} ->
             %% warn the receiving side that we are sending a new request
             ts_client_rcv:wait_ack({State#state.rcvpid,Profile#message.ack, Now,
@@ -335,6 +325,7 @@ handle_info(timeout, State ) ->
 %% Returns: any (ignored by gen_server)
 %%----------------------------------------------------------------------
 terminate(Reason, State) ->
+    %% FIXME : check Reason and report anormal return values to ts_mon
 	?LOGF("Stop, reason= ~p~n",[Reason],?INFO),
 	Now = now(),
 	Elapsed = ts_utils:elapsed(State#state.starttime, Now),
@@ -354,12 +345,8 @@ terminate(Reason, State) ->
 %% static message, get the thinktime from profile
 set_profile(MaxCount, Count, ProfileId) when integer(ProfileId) ->
     set_profile(MaxCount, Count, ts_session_cache:get_req(ProfileId, MaxCount-Count+1));
-set_profile(MaxCount, Count, Profile=#message{type = static}) ->
-    {Profile#message.thinktime, Profile };
-%% dynamic message, last message
-%% FIXME: don't work anymore: when do we stop ?
 set_profile(MaxCount, Count, Profile) ->
-    {ts_profile:thinktime(), Profile }.
+    {Profile#message.thinktime, Profile }.
      
 %%----------------------------------------------------------------------
 %% Func: new_timeout/3
@@ -379,7 +366,7 @@ new_timeout(_Else, _Count, Thinktime) -> infinity.
 %%----------------------------------------------------------------------
 reconnect(none, ServerName, Port, Protocol, Pid) ->
 	?LOGF("Try to reconnect to: ~p (~p)~n",[ServerName, Pid], ?DEB),
-	Opts = protocol_options(Protocol),
+	Opts = protocol_options(Protocol)  ++ [{ip, IP}],
     case Protocol:connect(ServerName, Port, Opts) of
 		{ok, Socket} -> 
 			controlling_process(Protocol, Socket, Pid),
@@ -391,7 +378,7 @@ reconnect(none, ServerName, Port, Protocol, Pid) ->
 			ts_mon:addcount({ list_to_atom(CountName) }),
 			{stop, connfailed}
     end;
-reconnect(Socket, Server, Port, Protocol, Pid) ->
+reconnect(Socket, Server, Port, Protocol, IP, Pid) ->
 	{ok, Socket}.
 
 %% close socket if it exists

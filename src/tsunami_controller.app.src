@@ -8,23 +8,31 @@
 					   ts_timer,
 					   ts_req_server,
 					   ts_user_server,
+					   ts_config_server,
 					   ts_msg_server
 					  ]},
        {registered,   [
-					   ts_mon
+					   ts_mon,
+					   ts_config_server
 					  ]},
 	   {env,		[        
-					 {debug_level, 2},
+					 {debug_level, 6},
 					 {ts_cookie, "humhum"},
 					 {clients_timeout, 60000},    %% timeout for global synchro
-					 {dumpstats_interval, 60000}, % 
-					 {monitoring, full},          %% full or light
+                     {warm_time, 10}, %% (seconds) initial waiting time when launching clients
+
+					 {server_name, "glop"},
+
+					 {dumpstats_interval, 10000},
+					 {monitoring, none},    %% full or light or none
 
 					 {nclients, 10},        %% number of clients
 					 {nclients_deb, 1}, 	%% beginning of interval
 					 {nclients_fin, 2000}, 	%% end of interval 
-					 {log_file, "/home/idx-tsunami/log/idx-tsunami.log"}
+					 {config_file, "%prefix%/etc/idx-tsunami.xml"},
+					 {log_file, "%prefix%/log/idx-tsunami.log"}
 					]},        
 	   {applications, [kernel, stdlib, ssl]},
+       {start_phases, [{load_config, []},{start_clients,[]}]},
        {mod,          {tsunami_controller, []}}
 	  ]}.
