@@ -74,8 +74,6 @@ close(Pid) -> % normal close
 
 
 %% continue with the next request
-next({Pid, []}) ->
-	gen_server:cast(Pid, {next_msg});
 next({Pid, DynData}) ->
 	gen_server:cast(Pid, {next_msg, DynData}).
 
@@ -131,6 +129,7 @@ init({Session=#session{id            = Profile,
 					Connected = now(),
 					Elapsed = ts_utils:elapsed(StartTime, Connected),
 					ts_mon:newclient({self(), Connected, Elapsed}),
+                    set_thinktime(?short_timeout),
 					{ok, #state{rcvpid = Pid, socket = Socket, port = Port,
 								server= ServerName, profile= Profile,
 								protocol = Protocol,
@@ -141,7 +140,7 @@ init({Session=#session{id            = Profile,
 								count = Count,
 								ip = IP,
 								maxcount = Count
-                               }, ?short_timeout};
+                               }};
 				{error, Reason} ->
 					?LOGF("Can't start rcv process ~p~n",
 								[Reason],?ERR),
@@ -175,42 +174,21 @@ handle_call(Request, From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_cast({next_msg}, State = #state{lasttimeout = infinity}) ->
-	?LOGF("next_msg, count is ~p~n", [State#state.count], ?DEB),
-	{noreply, State#state{lasttimeout=1}, ?short_timeout};
-handle_cast({next_msg}, State) ->
-	?LOGF("next_msg (timeout is set to ~p)",[State#state.lasttimeout],?DEB),
-	{noreply, State, State#state.lasttimeout};
 handle_cast({next_msg, DynData}, State = #state{lasttimeout = infinity}) ->
 	?LOGF("next_msg, count is ~p~n", [State#state.count], ?DEB),
-	{noreply, State#state{lasttimeout=1, dyndata=DynData}, ?short_timeout};
+    set_thinktime(?short_timeout),
+	{noreply, State#state{lasttimeout=1, dyndata=DynData}};
 handle_cast({next_msg, DynData}, State) ->
 	?LOGF("next_msg (timeout is set to ~p)",[State#state.lasttimeout],?DEB),
-	{noreply, State#state{dyndata=DynData}, State#state.lasttimeout};
+    set_thinktime(State#state.lasttimeout),
+	{noreply, State#state{dyndata=DynData}};
 %% more case to handle ?
-
 
 %% the connexion was closed, but this session is persistent
 handle_cast({closed, Pid}, State = #state{persistent = true}) ->
 	?LOG("connection closed, stay alive (persistent)",?DEB),
-	%% TODO: set the timeout correctly ?
-	case State#state.lasttimeout of 
-		infinity ->
-			Elapsed = 0,
-			ThinkTime = 0;
-		_ ->
-			Elapsed  = ts_utils:elapsed(State#state.timestamp, now()),
-			ThinkTime= round(State#state.lasttimeout-Elapsed)
-	end,
-	if 
-		ThinkTime > 0 ->
-			?LOGF("setting new thinktime to: ~p~n!", [ThinkTime], ?DEB),
-			{noreply,  State#state{socket = none}, ThinkTime};
-		true ->
-			?LOGF("negative thinktime after connexion closed ~p:~p~n!",
-				  [State#state.lasttimeout, Elapsed], ?WARN),
-			{noreply,  State#state{socket = none}, ?short_timeout}
-	end;
+    {noreply, State#state{socket = none}};
+
 %% the connexion was closed after the last msg was sent, stop quietly
 handle_cast({closed, Pid}, State= #state{ count=0 }) ->
 	{stop, normal, State};
@@ -238,7 +216,7 @@ handle_cast({timeout, Pid}, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
 %% no more messages to send
-handle_info(timeout, State= #state{ count=0 })  ->
+handle_info({timeout, Ref, end_thinktime}, State= #state{ count=0 })  ->
 	Protocol = State#state.protocol,
 	case State#state.socket of 
 		none ->
@@ -248,7 +226,7 @@ handle_info(timeout, State= #state{ count=0 })  ->
 			{stop, normal, State}
 	end;
 
-handle_info(timeout, State ) ->
+handle_info({timeout, Ref, end_thinktime}, State ) ->
     {Thinktime, Profile} = set_profile(State#state.maxcount, State#state.count,
                                        State#state.profile),
 	Count = State#state.count-1,
@@ -290,21 +268,21 @@ handle_info(timeout, State ) ->
             case send(Protocol, NewSocket, Message) of
                 ok -> 
                     ts_mon:sendmes({State#state.monitor, self(), Message}),
+                    set_thinktime(Timeout),
                     {noreply, State#state{socket= NewSocket, count = Count,
                                           protocol=Protocol, server=Host,
                                           port= Port,
                                           timestamp = Now,
-                                          lasttimeout = Thinktime},
-                     Timeout}; 
+                                          lasttimeout = Thinktime} }; 
                 {error, closed} -> 
                     ?LOG("connection close while sending message !~n", ?WARN),
                     case State#state.persistent of 
                         true ->
                             RetryTimeout = ?config(client_retry_timeout),
+                            set_thinktime(RetryTimeout),
                             {noreply, State#state{lasttimeout=RetryTimeout,
                                                   protocol=Protocol,
-                                                  server=Host, port=Port},
-                             RetryTimeout}; % try again in 10ms
+                                                  server=Host, port=Port}};
                         _ ->
                             {stop, closed, State}
                     end;
@@ -317,7 +295,15 @@ handle_info(timeout, State ) ->
             end;
 		_Error ->
 			{stop, reconnect, State}
-	end.
+	end;
+handle_info(timeout, State ) ->
+    ?LOG("Error: timeout receive~n", ?ERR),
+    ts_mon:addcount({ timeout }),
+    {stop, error, State};
+handle_info(Msg, State ) ->
+    ?LOGF("Error: Unkonwn msg receive, stop ~p~n", [Msg], ?ERR),
+    ts_mon:addcount({ unknown_msg }),
+    {stop, error, State}.
 
 %%----------------------------------------------------------------------
 %% Func: terminate/2
@@ -437,3 +423,12 @@ protocol_options(gen_udp) ->
 	 {keepalive, true} %% FIXME: should be an option
 	].
 	
+%%----------------------------------------------------------------------
+%% Func: set_thinktime/1
+%% Purpose: set a timer for thinktime if it is not infinite
+%%----------------------------------------------------------------------
+set_thinktime(infinity) -> ok;
+set_thinktime(Think)    -> 
+%% dot not use timer:send_after because it does not scale well:
+%%    http://www.erlang.org/ml-archive/erlang-questions/200202/msg00024.html
+    erlang:start_timer(Think, self(), end_thinktime ).
