@@ -44,8 +44,8 @@ debug(From, Message, Args, Level) ->
 	Debug_level = ?config(debug_level),
 	if 
 		Level =< Debug_level ->
-			error_logger:info_msg("~20s:(~p) "++ Message,
-					  [From, Level] ++ Args);
+			error_logger:info_msg("~20s:(~p:~p) "++ Message,
+					  [From, Level, self()] ++ Args);
 		true ->
 			nodebug
 	end.
@@ -73,7 +73,8 @@ now_sec() ->
 inet_setopts(ssl, Socket, Opts, Pid) ->
 	case ssl:setopts(Socket, Opts) of
 		ok ->
-			?LOGF("Setting ssl options to : ~p ~n", [Opts], ?DEB);
+			ok;
+%%			?LOGF("Setting ssl options to : ~p ~n", [Opts], ?DEB);
 		{error, closed} ->
 			ts_client:close(Pid);
 		Error ->
@@ -82,7 +83,8 @@ inet_setopts(ssl, Socket, Opts, Pid) ->
 inet_setopts(gen_tcp, Socket,  Opts, Pid)->
 	case inet:setopts(Socket, Opts) of
 		ok ->
-			?LOGF("Setting inet options to : ~p ~n", [Opts], ?DEB);
+			ok;
+%%			?LOGF("Setting inet options to : ~p ~n", [Opts], ?DEB);
 		{error, closed} ->
 			ts_client:close(Pid);
 		Error ->
