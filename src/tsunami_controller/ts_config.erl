@@ -61,7 +61,7 @@ read(Filename) ->
             ?LOGF("Reading config file: ~s~n", [Filename], ?NOTICE),
             Table = ets:new(sessiontable, [ordered_set, protected]),
             {ok, parse(Root, #config{session_tab = Table})};
-        {Root = #xmlElement{}, Tail} ->  % xmerl-0.19
+        {Root = #xmlElement{}, _Tail} ->  % xmerl-0.19
             ?LOGF("Reading config file: ~s~n", [Filename], ?NOTICE),
             Table = ets:new(sessiontable, [ordered_set, protected]),
             {ok, parse(Root, #config{session_tab = Table})};
@@ -92,7 +92,7 @@ parse(Element = #xmlElement{parents = []}, Conf=#config{}) ->
 
 
 %% parsing the Server elements
-parse(Element = #xmlElement{name=server}, Conf = #config{server=SList}) ->
+parse(Element = #xmlElement{name=server}, Conf) ->
     Server = getAttr(Element#xmlElement.attributes, host),
     Port   = getAttr(Element#xmlElement.attributes, port),
     Type = case getAttr(Element#xmlElement.attributes, type) of 
@@ -133,7 +133,7 @@ parse(Element = #xmlElement{name=client},
         true ->
             ?LOGF("ERROR: client config: 'host' attribute must be a hostname, "++
                   "not an IP ! (was ~p)~n",[Host],?EMERG),
-            throw(badhostname);
+            throw({error, badhostname});
         false ->
             {ok, [{integer,1,ICPU}],1} = erl_scan:string(CPU),
             {ok, [{integer,1,IWeight}],1} = erl_scan:string(Weight),
@@ -170,13 +170,19 @@ parse(Element = #xmlElement{name=arrivalphase},
     Unit  = getAttr(Element#xmlElement.attributes, unit, "second"),
     {ok, [{integer,1,IDuration}],1} = erl_scan:string(Duration),
 	D = to_seconds(Unit, IDuration),
-    lists:foldl(fun parse/2,
-		Conf#config{arrivalphases = [#arrivalphase{phase=Phase,
-                                                   duration=D
-                                                  }
-									 |AList]},
-                Element#xmlElement.content);
-
+    case lists:keysearch(Phase,#arrivalphase.phase,AList) of
+        false ->
+            lists:foldl(fun parse/2,
+                        Conf#config{arrivalphases = [#arrivalphase{phase=Phase,
+                                                                   duration=D
+                                                                  }
+                                                     |AList]},
+                        Element#xmlElement.content);
+        _ -> % already existing phase, wrong configuration.
+            ?LOGF("Client config error: phase ~p already defined, abort !~n",[Phase],?EMERG),
+            throw({error, already_defined_phase})
+    end;
+        
 %% Parsing the users element
 parse(Element = #xmlElement{name=users},
       Conf = #config{arrivalphases=[CurA | AList]}) ->
@@ -250,7 +256,7 @@ parse(Element = #xmlElement{name=session},
 
 %%%% Parsing the transaction element
 parse(Element = #xmlElement{name=transaction},
-      Conf = #config{session_tab = Tab, sessions=[CurS|SList], curid=Id}) ->
+      Conf = #config{session_tab = Tab, sessions=[CurS|_], curid=Id}) ->
 
     RawName = getAttr(Element#xmlElement.attributes, name),
     {ok, [{atom,1,Name}],1} = erl_scan:string("tr_"++RawName),
@@ -287,7 +293,7 @@ parse(Element = #xmlElement{name=dyn_variable},
 
 %%% Parsing the request element
 parse(Element = #xmlElement{name=request},
-      Conf = #config{sessions=[CurSess|SList], curid=Id,cur_req_id=ReqId}) ->
+      Conf = #config{sessions=[CurSess|SList], curid=Id}) ->
 
     Type  = CurSess#session.type,
 
