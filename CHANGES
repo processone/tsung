@@ -1,17 +1,18 @@
-1.0.beta5 -> 1.0.beta6: 
+1.0.beta5 -> 1.0.beta6:  Minor feature enhancements (5 May 2004)
     - add a DTD for the configuration file
-    - HTTP: fix partial header parsing (mickael.remond@erlang-fr.org)
-    - HTTP: fix chunk parsing when the chunk-size is split across two packets
-    - HTTP: fix parsing of no content-length with connection:close case
     - add dynamic request substitution (mickael.remond@erlang-fr)
     - add dynamic variable parsing from response (can be used
       later in the session for request substitution)
     - add response pattern to match (log if not match)
+    - HTTP: fix partial header parsing (mickael.remond@erlang-fr.org)
+    - HTTP: fix chunk parsing when the chunk-size is split across two packets
+    - HTTP: fix parsing of no content-length with connection:close case
     - check for bad input (config file, <client> name)
     - merge client and client_rcv processes into a single process
     - fix: do not connect in init anymore; this fix too long phases when
       connection time is high.
     - connect stat is now for both new connections and reconnections
+    - check phase duration in launcher
     - various code cleanup
 
 1.0.beta4 -> 1.0.beta5:  Major Feature enhancements (25 Mar 2004)

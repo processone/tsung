@@ -1,2 +1,2 @@
-IDX-TSUNAMI_VSN = 1.0.beta5
+IDX-TSUNAMI_VSN = 1.0.beta6
 
