@@ -445,6 +445,8 @@ get_line(L) ->
     get_line(L, true, []).
 get_line("\r\n\r\n" ++ Tail, Cap, Cur) ->
     {lastline, lists:reverse(Cur), Tail};
+get_line("\r\n", Cap, Cur) ->
+    {more};
 get_line("\r\n" ++ Tail, Cap, Cur) ->
     case is_nb_space(hd(Tail)) of
         true ->  %% multiline ... continue 
