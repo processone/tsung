@@ -2,7 +2,7 @@
 OTP Supervision tree:
 ====================
 
-The application is now split in two:
+The application is now split in two (see tsunami-inside.png for an overview):
 
 ** a single controller (tsunami_controller)
 
