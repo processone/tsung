@@ -261,6 +261,7 @@ sub parse_stats_file {
 	my $data;
 	my $timestamp;
 	my $first_timestamp =0;
+	my $first_interval =0;
 	my $interval;
 
 	my $maxval ;
@@ -281,6 +282,7 @@ sub parse_stats_file {
 			$interval = ($timestamp) ? $timestamp : 0; # keep previous value
 			$timestamp = $1 - $first_timestamp;
 			$interval = $timestamp-$interval;
+			$first_interval= $interval if $interval and not $first_interval;
 		}
 	}
 	close FILE;
@@ -298,6 +300,10 @@ sub parse_stats_file {
 	my @size;
 	my @users;
 	my $key;
+    if ($interval != $first_interval) {
+        print "warn, last interval ($interval) not equal to the first, use the first one ($first_interval)\n";
+        $interval=$first_interval;
+    }
 	my @col = ("rate","mean","stdvar","max","min","rate");
 	foreach $key (keys %{$data}) {
 		open (TYPE, "> $key.txt") or die "$!";
