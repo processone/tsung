@@ -1,6 +1,6 @@
 %%%  This code was developped by IDEALX (http://IDEALX.org/) and
 %%%  contributors (their names can be found in the CONTRIBUTORS file).
-%%%  Copyright (C) 2000-2001 IDEALX
+%%%  Copyright (C) 2000-2004 IDEALX
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
 %%%  it under the terms of the GNU General Public License as published by
@@ -19,6 +19,8 @@
 
 %%% common functions used by http clients to:
 %%%  - parse response from HTTP server
+%%%  - set HTTP requests
+%%%  - parse HTTP related stuff in XML config file
 
 -module(ts_http_common).
 -vc('$Id$ ').
@@ -41,6 +43,7 @@
          parse_config/2,
          set_port/1
 		]).
+
 %%----------------------------------------------------------------------
 %% Func: http_get/1
 %% Args: #http_request
@@ -134,7 +137,7 @@ parse_config(Element = #xmlElement{name=http},
                                 version     = Version,
                                 get_ims_date= Date,
                                 server_name = ServerName,
-				content_type= ContentType,
+								content_type= ContentType,
                                 body        = list_to_binary(Contents)}, 0),
     ets:insert(Tab,{{CurS#session.id, Id}, Msg}),
     lists:foldl( {ts_config, parse},
@@ -162,73 +165,50 @@ parse_config(Element, Conf = #config{}) ->
 %% Purpose: parse the response from the server and keep information
 %%  about the response if State#state_rcv.session
 %%----------------------------------------------------------------------
-
-%% new connection, headers parsing
 parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 	List = binary_to_list(Data),
-	%%	regexp:split is much less efficient ! 
-	StartHeaders = string:str(List, "\r\n\r\n"),
-	case StartHeaders of 
-		0 -> 
-			ts_mon:add({ count, parse_error }),
-			{State#state_rcv{session= #http{}, ack_done = true, 
-							 datasize = size(Data)}, [], true};
-		_ -> 
-			Headers = string:substr(List, 1, StartHeaders-1),
-			[{Version, Status}, ParsedHeader] = request_header(Headers),
-			?LOGF("HTTP (status=~p) Headers: ~p ~n", [Status, ParsedHeader], ?DEB),
-			Cookie = parse_cookie(ParsedHeader),
-%%			ts_mon:add({ count, Status }), %FIXME
-            Close = check_close(Version,
-                                httpd_util:key1search(ParsedHeader,"connection")),
-			case {httpd_util:key1search(ParsedHeader,"content-length"), Status} of
-				{undefined, 304} -> % Not modified, no body
-					?LOG("HTTP Not modified~n", ?DEB),
-                    {State#state_rcv{session= #http{}, ack_done = true,
-                                     datasize = size(Data),
-                                     dyndata= Cookie}, [], Close};
-				{undefined, _} -> % no content-length, must be chunked
-					HeaderSize = length(Headers),
-                    << BinHead:HeaderSize/binary, Body/binary >> = Data,
-                    {NewState, Opts} =parse_chunked(
-                                        httpd_util:key1search(ParsedHeader,
-                                                              "transfer-encoding"),
-                                        Body, State, Cookie),
-                    case NewState#state_rcv.ack_done of 
-                        true ->
-                            {NewState, Opts, Close};
-                        false ->
-                            Http=NewState#state_rcv.session,
-                            {NewState#state_rcv{session=Http#http{close=Close}}, Opts, false}
-                    end;
-				{Length, _} ->
-					CLength = list_to_integer(Length)+4,
-					?LOGF("HTTP Content-Length:~p~n",[CLength], ?DEB),
-					HeaderSize = length(Headers),
-                    TotalSize= size(Data),
-					BodySize = TotalSize-HeaderSize,
-					if
-						BodySize == CLength ->  % end of response
-							{State#state_rcv{session= #http{}, ack_done = true,
-											 datasize = BodySize,
-											 dyndata= Cookie}, [], Close};
-						BodySize > CLength  ->
-							?LOGF("Error: HTTP Body > Content-Length !:~p~n",
-								  [CLength], ?ERR),
-							ts_mon:add({ count, http_bad_content_length }),
-							{State#state_rcv{session= #http{}, ack_done = true,
-											 datasize = TotalSize,
-											 dyndata= Cookie}, [], Close};
-						true ->
-							Http = #http{content_length = CLength,
-                                         close          = Close,
-										 status         = Status,
-										 body_size      = BodySize},
-							{State#state_rcv{session = Http, ack_done = false,
-											 datasize = TotalSize,
-											 dyndata=Cookie},[],false}
-					end
-			end
+	TotalSize = size(Data),
+	{ok, Http, Tail} = parse_headers(#http{},List),
+%%%			ts_mon:add({ count, Http#http.status }), %FIXME
+	BodySize= length(Tail),
+	CLength = Http#http.content_length,
+	Close   = Http#http.close,
+	Cookie  = Http#http.cookie,
+	if 
+		CLength == undefined, Http#http.status== 304 ->
+			?LOG("HTTP Not modified~n", ?DEB),
+			{State#state_rcv{session= #http{}, ack_done = true,
+							 datasize = TotalSize,
+							 dyndata  = Cookie}, [], Close};
+		CLength == undefined, Http#http.chunk_toread == 0 ->
+			case parse_chunked(Tail, State#state_rcv{session=Http}) of
+				{NewState=#state_rcv{ack_done=false}, Opts} ->
+					{NewState, Opts, false};
+				{NewState, Opts} ->
+					{NewState, Opts, Close}
+			end;
+		CLength == undefined->
+			?LOG("ERROR no content length !~n", ?INFO),
+			ts_mon:add({ count, no_content_length }),
+			{State#state_rcv{session= #http{}, ack_done = true,
+							 datasize = TotalSize,
+							 dyndata= Cookie}, [], Close};
+		BodySize == CLength ->  % end of response
+			{State#state_rcv{session= #http{}, ack_done = true,
+							 datasize = BodySize,
+							 dyndata= Cookie}, [], Close};
+		BodySize > CLength  ->
+			?LOGF("Error: HTTP Body > Content-Length !:~p~n",
+				  [CLength], ?ERR),
+			ts_mon:add({ count, http_bad_content_length }),
+			{State#state_rcv{session= #http{}, ack_done = true,
+							 datasize = TotalSize,
+							 dyndata= Cookie}, [], Close};
+		true -> %% need to read more data
+			{State#state_rcv{session  = Http#http{ body_size=BodySize},
+							 ack_done = false,
+							 datasize = TotalSize,
+							 dyndata  = Cookie},[],false}
 	end;
 
 %% FIXME: handle the case where the Headers are not complete in the first message
@@ -237,116 +217,74 @@ parse(Data, State) when (State#state_rcv.session)#http.chunk_toread >=0 ->
     Http = State#state_rcv.session,
     ChunkSizePending = Http#http.chunk_toread,
     BodySize = Http#http.body_size,
-    Close = Http#http.close,
-    Cookie = State#state_rcv.dyndata,
-    {NewState, NewOpts} = read_chunk_data(Data, State, Cookie, ChunkSizePending , BodySize),
-    case NewState#state_rcv.ack_done of 
-        true ->
-            {NewState, NewOpts, Close};
-        false ->
-            Http=NewState#state_rcv.session,
-            {NewState#state_rcv{session=Http#http{close=Close}}, NewOpts, false}
-    end;
+    Close    = Http#http.close,
+    case read_chunk_data(Data, State, ChunkSizePending , BodySize) of
+		{NewState=#state_rcv{ack_done=false}, NewOpts}->
+            {NewState, NewOpts, false};
+		{NewState, NewOpts}->
+            {NewState, NewOpts, Close}
+	end;
+
 parse(Data, State) ->
     PreviousSize = State#state_rcv.datasize,
 	DataSize = size(Data),
 	?LOGF("HTTP Body size=~p ~n",[DataSize], ?DEB),
     Http = State#state_rcv.session,
-	Size = Http#http.body_size + DataSize,
 	CLength = Http#http.content_length,
-	case Size of 
+	case Http#http.body_size + DataSize of 
 		CLength -> % end of response
-			{State#state_rcv{session= #http{}, ack_done = true, datasize = Size},
+			{State#state_rcv{session= #http{}, ack_done = true, datasize = CLength},
 			 [], Http#http.close};
-		_ ->
+		Size ->
 			NewHttp = (State#state_rcv.session)#http{body_size = Size},
 			{State#state_rcv{session= NewHttp, ack_done = false, 
                              datasize = DataSize+PreviousSize}, [], false}
 	end.
 												 
 %%----------------------------------------------------------------------
-%% Func: request_header/1
-%% Returns: [HTTPStatus = integer, Headers = list]
-%% Purpose: parse HTTP headers. 
-%%----------------------------------------------------------------------
-request_header(Header)->
-    [ResponseLine|HeaderFields] = httpd_parse:split_lines(Header),
-    ParsedHeader = httpd_parse:tagup_header(HeaderFields),
-	[get_status(ResponseLine), ParsedHeader].
-
-%%----------------------------------------------------------------------
-%% Func: get_status/1
-%% Purpose: get the protocol version and HTTP response status from the 
-%%          first line of the response
-%% Returns: {Version (string), Status (integer)} 
-%%----------------------------------------------------------------------
-get_status(Line) ->
-	[Version, Status| Rest] = string:tokens(Line, " "),
-	{Version, list_to_integer(Status)}.
-
-%%----------------------------------------------------------------------
-%% Func: check_close/2
-%% Purpose: returns true if connection has to be closed 
-%%          (HTTP connection:close received for ex.)
-%%----------------------------------------------------------------------
-check_close(_,"keep-alive")-> false;
-check_close(_,"close")     -> true;
-check_close("HTTP/1.0",undefined)   -> true; % no keepalive by default
-check_close("HTTP/1.1",undefined)   -> false;
-check_close(_,Else)        -> false.
-
-%%----------------------------------------------------------------------
-%% Func: parse_chunked/4
+%% Func: parse_chunked/2
 %% Purpose: parse 'Transfer-Encoding: chunked' for HTTP/1.1
 %% Returns: {NewState= record(state_rcv), SockOpts}
 %%----------------------------------------------------------------------
-parse_chunked(undefined, Data, State, Cookie) ->
-    ?LOGF("No content length ! ~p~n",[Data], ?ERR),
-    ts_mon:add({ count, http_no_content_length }),
-    { State#state_rcv{session=#http{}, ack_done=true, datasize=0 } , [] };
-parse_chunked("chunked", <<CRLF:4/binary,Body/binary>>, State, Cookie)->
-    ?LOGF("Chunked transfer encoding, datasize=~p~n", [size(Body)] ,?DEB),
-    read_chunk(Body, State, Cookie, 0, 0);
-parse_chunked(Transfer, Data, State, Cookie) ->
-    ?LOGF("Unknown transfer type ! ~p~n",[Transfer], ?WARN),
-    ts_mon:add({ count, http_unknown_tranfer }),
-    { State#state_rcv{session=#http{}, ack_done=true, datasize=0 } , [] }.
+parse_chunked(Body, State)->
+    read_chunk(list_to_binary(Body), State, 0, 0).
 
 %%----------------------------------------------------------------------
-%% Func: read_chunk/5
+%% Func: read_chunk/4
 %% Purpose: the real stuff for parsing chunks is here
 %% Returns: {NewState= record(state_rcv), SockOpts}
 %%----------------------------------------------------------------------
-read_chunk(<<>>, State, Cookie, Int, Acc) ->
+read_chunk(<<>>, State, Int, Acc) ->
     ?LOG("NO Data in chunk ! ~n", ?WARN),
 	% FIXME: should we check if Headers has just been received and the
 	% returns a new #http record ?
     { State, [] }; % read more data
 %% this code has been inspired by inets/http_lib.erl
-read_chunk(<<Char:1/binary, Data/binary>>, State, Cookie, Int, Acc) ->
+read_chunk(<<Char:1/binary, Data/binary>>, State, Int, Acc) ->
     case Char of
 	<<C>> when $0=<C,C=<$9 ->
-	    read_chunk(Data, State, Cookie,16*Int+(C-$0), Acc+1);
+	    read_chunk(Data, State, 16*Int+(C-$0), Acc+1);
 	<<C>> when $a=<C,C=<$f ->
-	    read_chunk(Data, State, Cookie,16*Int+10+(C-$a), Acc+1);
+	    read_chunk(Data, State, 16*Int+10+(C-$a), Acc+1);
 	<<C>> when $A=<C,C=<$F ->
-	    read_chunk(Data, State, Cookie,16*Int+10+(C-$A), Acc+1);
+	    read_chunk(Data, State, 16*Int+10+(C-$A), Acc+1);
 %	<<$;>> when Int>0 ->
-%	    ExtensionList=read_chunk_ext_name(Data, State, Cookie,[],[]),
-%	    read_chunk_data(Data, State, Cookie,Int+1,ExtensionList);
+%	    ExtensionList=read_chunk_ext_name(Data, State, [],[]),
+%	    read_chunk_data(Data, State, Int+1,ExtensionList);
 %	<<$;>> when Int==0 ->
-%	    ExtensionList=read_chunk_ext_name(Data, State, Cookie,[],[]),
+%	    ExtensionList=read_chunk_ext_name(Data, State, [],[]),
 %	    read_data_lf(),
 	<<?CR>> when Int>0 ->
-	    read_chunk_data(Data,State,Cookie,Int+3, Acc+1);
+	    read_chunk_data(Data, State, Int+3, Acc+1);
 	<<?CR>> when Int==0 -> %% should be the end of tranfer
+			Cookie=(State#state_rcv.session)#http.cookie,
             ?LOGF("Finish tranfer chunk ~p~n", [binary_to_list(Data)] ,?DEB),
             {State#state_rcv{session= #http{}, ack_done = true,
                              datasize = Acc, %% FIXME: is it the correct size?
                              dyndata= Cookie}, []};
 	<<C>> when C==$ -> % Some servers (e.g., Apache 1.3.6) throw in
 			   % additional whitespace...
-	    read_chunk(Data, State, Cookie, Int, Acc+1);
+	    read_chunk(Data, State, Int, Acc+1);
 	_Other ->
             ?LOGF("Unexpected error while parsing chunk ~p~n", [_Other] ,?DEB),
 			ts_mon:add({count, http_unexpected_chunkdata}),
@@ -354,37 +292,24 @@ read_chunk(<<Char:1/binary, Data/binary>>, State, Cookie, Int, Acc) ->
     end.
 
 %%----------------------------------------------------------------------
-%% Func: read_chunk_data/5
+%% Func: read_chunk_data/4
 %% Purpose: read 'Int' bytes of data
 %% Returns: {NewState= record(state_rcv), SockOpts}
 %%----------------------------------------------------------------------
-read_chunk_data(Data, State, Cookie,Int, Acc) when size(Data) > Int->
+read_chunk_data(Data, State, Int, Acc) when size(Data) > Int->
     ?LOGF("Read ~p bytes of chunk with size = ~p~n", [Int, size(Data)] ,?DEB),
     <<NewData:Int/binary, Rest/binary >> = Data,
-    read_chunk(Rest, State, Cookie, 0, Int + Acc);
-read_chunk_data(Data, State, Cookie,Int, Acc) -> % not enough data in buffer
+    read_chunk(Rest, State,  0, Int + Acc);
+read_chunk_data(Data, State, Int, Acc) -> % not enough data in buffer
     BodySize = size(Data),
+	Cookie=(State#state_rcv.session)#http.cookie,
     ?LOGF("Partial chunk received (~p/~p)~n", [BodySize,Int] ,?DEB),
-    Http = #http{chunk_toread   = Int-BodySize,
-                 status         = 666, % we don't care, it has already been logged
-                 body_size      = BodySize + Acc},
-    {State#state_rcv{session  = Http,
+    NewHttp = (State#state_rcv.session)#http{chunk_toread   = Int-BodySize,
+											 body_size      = BodySize + Acc},
+    {State#state_rcv{session  = NewHttp,
 					 ack_done = false, % continue to read data
-                     datasize = BodySize +Acc,
+                     datasize = BodySize + Acc,
                      dyndata  = Cookie},[]}.
-
-%%----------------------------------------------------------------------
-%% Func: parse_cookie/1
-%% Purpose: parse HTTP's Cookie Header and returns cookie code
-%%----------------------------------------------------------------------
-parse_cookie(ParsedHeader) ->
-    case ts_utils:mkey1search(ParsedHeader,"set-cookie") of
-        undefined ->
-            [];
-        Cookies ->
-            lists:map(fun(Cookie) -> get_cookie_val(Cookie) end,
-                      Cookies)	    
-	end.
 
 %%----------------------------------------------------------------------
 %% Func: get_cookie_val/1
@@ -400,7 +325,6 @@ get_cookie_val(Cookie) ->
             []
     end.
      	    
-
 %%----------------------------------------------------------------------
 %% Func: parse_URL/1
 %% Returns: #url
@@ -439,9 +363,6 @@ parse_URL(path,[$?|T], Acc, URL) ->
     URL#url{path=lists:reverse(Acc), querypart=T};
 parse_URL(path,[H|T], Acc, URL) ->
     parse_URL(path, T, [H|Acc], URL).
-
-
-
 
 %%----------------------------------------------------------------------
 %% Func: set_msg/1 or /2 or /3
@@ -489,3 +410,73 @@ set_port(#url{scheme=https,port=undefined})  -> 443;
 set_port(#url{scheme=http,port=undefined})   -> 80;
 set_port(#url{port=Port}) when integer(Port) -> Port;
 set_port(#url{port=Port}) -> integer_to_list(Port).
+
+
+%%--------------------------------------------------------------------
+%% Func: parse_headers/2
+%% Purpose: Parse HTTP headers line by line
+%% Returns: {ok, #http, Body}
+%%--------------------------------------------------------------------
+parse_headers(H, Tail) ->
+    case get_line(Tail) of
+	{line, Line, Tail2} ->
+	    parse_headers(parse_line(Line, H), Tail2);
+	{lastline, Line, Tail2} ->
+	    {ok, parse_line(Line, H), Tail2}
+    end.
+
+%%--------------------------------------------------------------------
+%% Func: parse_status/2
+%% Purpose: Parse HTTP status
+%% Returns: #http
+%%--------------------------------------------------------------------
+parse_status([A,B,C|Tail],  Http) ->
+	Status=list_to_integer([A,B,C]),
+	?LOGF("HTTP Status ~p~n",[Status],?DEB),
+	Http#http{status=Status}.
+
+%%--------------------------------------------------------------------
+%% Func: parse_line/2
+%% Purpose: Parse a HTTP header
+%% Returns: #http
+%%--------------------------------------------------------------------
+parse_line("HTTP/1.1 " ++ TailLine, Http )->
+	parse_status(TailLine, Http);
+parse_line("HTTP/1.0 " ++ TailLine, Http )->
+	parse_status(TailLine, Http#http{close=true});
+
+parse_line("Content-Length: "++Tail, Http)->
+	CL=list_to_integer(Tail),
+	?LOGF("HTTP Content-Length ~p~n",[CL],?DEB),
+	Http#http{content_length=CL};
+parse_line("Connection: close"++Tail, Http)->
+	Http#http{close=true};
+parse_line("Transfer-Encoding: chunked"++Tail, Http)->
+	Http#http{chunk_toread=0};
+parse_line("Transfer-Encoding: "++Tail, Http)->
+	?LOGF("Unknown tranfer encoding ~p~n",[Tail],?NOTICE),
+	Http;
+parse_line("Set-Cookies: "++Tail, Http=#http{cookie=PrevCookies})->
+	Cookie = get_cookie_val(Tail), %% FIXME: is it ok ?
+	?LOGF("HTTP New cookie val ~p~n",[Cookie],?DEB),
+	Http#http{cookie=lists:reverse([Cookie|PrevCookies])};
+parse_line(Line,Http) ->
+	Http.
+
+%% code taken from yaws
+is_nb_space(X) ->
+    lists:member(X, [$\s, $\t]).
+% ret: {line, Line, Trail} | {lastline, Line, Trail}
+get_line(L) ->    
+    get_line(L, []).
+get_line("\r\n\r\n" ++ Tail, Cur) ->
+    {lastline, lists:reverse(Cur), Tail};
+get_line("\r\n" ++ Tail, Cur) ->
+    case is_nb_space(hd(Tail)) of
+	true ->  %% multiline ... continue 
+	    get_line(Tail, [$\n, $\r | Cur]);
+	false ->
+	    {line, lists:reverse(Cur), Tail}
+    end;
+get_line([H|T], Cur) ->
+    get_line(T, [H|Cur]).
