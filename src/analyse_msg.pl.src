@@ -27,8 +27,8 @@
 
 use strict;
 use Getopt::Long;
-use vars qw ($help @files $verbose $debug $plot $extra $version $stats);
-my $tagvsn = '%VSN%';
+use vars qw ($help @files $verbose $debug $plot $extra $version $stats $template_dir $html);
+my $tagvsn = '%VERSION%';
 
 GetOptions( "help",\$help,
 			"verbose",\$verbose,
@@ -36,15 +36,22 @@ GetOptions( "help",\$help,
 			"stats=s",\$stats,
 			"version",\$version,
 			"plot",\$plot,
+			"tdir",\$template_dir,
+			"html",\$html,
 			"extra",\$extra
 		  );
 
 &usage if $help or $Getopt::Long::error or not $stats;
 &version if $version;
 
+my $maxval;
+my $category;
+my $template_dir = "$ENV{HOME}/.idx-tsunami/templates/" unless $template_dir;
+
 my $datadir = "data"; # all data files are created in this subdirectory
 my $imgdir  = "images"; # all data files are created in this subdirectory
 my $gplotdir = "gnuplot"; # all data files are created in this subdirectory
+my $http; # true if http. add status code graphs in the HTML output
 
 foreach my $dir ($datadir, $imgdir, $gplotdir) {
     unless (-d $dir) {
@@ -56,6 +63,7 @@ foreach my $dir ($datadir, $imgdir, $gplotdir) {
 my $gnuplot = "gnuplot >> gnuplot.log 2>&1";
 
 &parse_stats_file($stats);
+&html_report() if $html;
 
 # plot stats from file
 sub plot_stats {
@@ -69,47 +77,53 @@ sub plot_stats {
 	# local var
 	my $style       = "linespoint"; # TODO: can be override in option
 	my $legend_loc  = "key right top"; # TODO: can be override in option
-	my $output_type = "png"; # TODO: can be override in option
-#	my $output_type = "postscript color"; # TODO: can be override in option
+	my $output_type;
 	my $filename; # temporary var
+	my $thumbnail_size = 0.5;
 
 	$datatype = "unknown" unless $datatype;
 	open(GP,">$gplotdir/graphes-$datatype.gplot") or die "can't open graphes-$datatype.gplot: $!";
 	select GP;
 
-	# gnuplot styles and options
-	print "set data style $style\n";
-	print "set terminal $output_type\n";
-	print "set grid\n";
-	
-	my $d; # temporary var (title)
-	foreach $d (0..$#{$title}) {
-		# gnuplot headings
-        print "set output \"$imgdir/graphes-$datatype-@{$title}[$d].png\"\n";
-		print "set title \" @{$title}[$d]\"\n";
-        if ($timestamp) {
-            print "set xlabel \"unit = $timestamp sec \"\n";
-        } else {
-            print "set xlabel \"unit = sec \"\n";
+    foreach my $output_ext ("ps", "png") {
+        if ($output_ext eq "png") {
+            $output_type = "png";
+        } elsif ($output_ext eq "ps") {
+            $output_type = "postscript color ";
         }
-		print "set ylabel \"".$ylabel->[$d]."\"\n" if $ylabel->[$d];
-		print "show title\n";
-		print "set $legend_loc\n";
-
-		print "plot ";
-		foreach $filename (@{$files}) {
-			print " \"$datadir/$filename\" using ";
-			# if $timestamp isn't defined, use the first column as timestamp
-			if ($timestamp) {
-				print $d+1 ;
-			} else {
-				print " 1:" .($d+2);
-			}
-			print " title \"$filename\"" ;
-			print "," unless ($filename eq @{$files}[$#{$files}]); # unless last occurence
-		}
-		print "\n"; # plot done
-	}
+        # gnuplot styles and options
+        print "set size $thumbnail_size,$thumbnail_size\n" if ($output_ext eq "png");
+        print "set data style $style\n";
+        print "set terminal $output_type\n";
+        print "set grid\n";
+        my $d; # temporary var (title)
+        foreach $d (0..$#{$title}) {
+            # gnuplot headings
+            print "set output \"$imgdir/graphes-$datatype-@{$title}[$d].$output_ext\"\n";
+            print "set title \" @{$title}[$d]\"\n";
+            if ($timestamp) {
+                print "set xlabel \"unit = $timestamp sec \"\n";
+            } else {
+                print "set xlabel \"unit = sec \"\n";
+            }
+            print "set ylabel \"".$ylabel->[$d]."\"\n" if $ylabel->[$d];
+            print "show title\n";
+            print "set $legend_loc\n";
+            print "plot ";
+            foreach $filename (@{$files}) {
+                print " \"$datadir/$filename\" using ";
+                # if $timestamp isn't defined, use the first column as timestamp
+                if ($timestamp) {
+                    print $d+1 ;
+                } else {
+                    print " 1:" .($d+2);
+                }
+                print " title \"$filename\"" ;
+                print "," unless ($filename eq @{$files}[$#{$files}]); # unless last occurence
+            }
+            print "\n"; # plot done
+        }
+    }
 	close GP;
 	system("$gnuplot $gplotdir/graphes-$datatype.gplot");
 }
@@ -122,6 +136,14 @@ sub max {
 	return $oldvalue;
 }
 
+sub min {
+	my $value   = shift;
+	my $oldvalue= shift;
+	return $value unless $oldvalue;
+	return $value if $oldvalue > $value;
+	return $oldvalue;
+}
+
 sub parse_stats_file {
 	my $file = shift;
 	my $data;
@@ -130,18 +152,38 @@ sub parse_stats_file {
 	my $first_interval =0;
 	my $interval;
 
-	my $maxval ;
 	open (FILE,"<$file") or die "Can't open $file $!";
 	while (<FILE>) {
 		if (/^stats: (\S+)\s+(.*)$/) {
 			my $type = $1;
 			my $values = $2;
+			$type =~ s/page_resptime/page/g;
+			$type =~ s/response_time/request/g;
+       			$type =~ s/os_mon@//g;
 			my ($rate,$mean) = split(/\s+/,$values);
 			if ($interval) {
 				$rate /= $interval;
 				$maxval->{'rate'}->{$type} = &max($rate, $maxval->{'rate'}->{$type});
 				$maxval->{'mean'}->{$type} = &max($mean, $maxval->{'mean'}->{$type});
+				$maxval->{'minmean'}->{$type} = &min($mean, $maxval->{'minmean'}->{$type}) if $rate;
 			}
+            if ($type =~ /^cpu:/ ) {
+                $category->{$type} = "os_mon_cpu";
+            } elsif ($type =~ /^freemem:/) {
+                $category->{$type} = "free";
+            } elsif ($type =~ /^\w{4}packets:/) {
+                $category->{$type} = "os_mon_packets";
+            } elsif ($type =~ /^\d+$/) {
+                $category->{$type} = "http_status";
+            } elsif ($type eq "request" or $type eq "page" or $type eq "session" or  $type eq "connect") {
+                $category->{$type} = "stats";
+            } elsif ($type =~ /^tr_/ or $type eq "page_resptime") {
+                $category->{$type} = "transaction";
+            } elsif ($type eq "size") {
+                $category->{$type} = "network";
+            } elsif ($type ne "users") {
+                $category->{$type} = "count";
+            }
 			push @{$data->{$type}}, $timestamp . " ". $values;
 		} elsif (/^\# stats:\s+dump at\s+(\d+)/) {
 			$first_timestamp= $1 unless $first_timestamp;
@@ -152,14 +194,16 @@ sub parse_stats_file {
 		}
 	}
 	close FILE;
-	foreach my $key (sort keys %{$maxval->{'rate'}}) {
-        if ($key =~ /\d+/ or $key eq 'size') {
-            printf "Total $key = %7.2f\n", $maxval->{'mean'}->{$key};
-        } else {
-            printf "Mean  $key (max sample) = %7.2f\n", $maxval->{'mean'}->{$key};
+    unless ($html) {
+        foreach my $key (sort keys %{$maxval->{'rate'}}) {
+            if ($key =~ /\d+/ or $key eq 'size') {
+                printf "Total $key = %7.2f\n", $maxval->{'mean'}->{$key};
+            } else {
+                printf "Mean  $key (max sample) = %7.2f\n", $maxval->{'mean'}->{$key};
+            }
+            printf "Rate  $key (max sample) = %7.2f\n",$maxval->{'rate'}->{$key};
         }
-        printf "Rate  $key (max sample) = %7.2f\n",$maxval->{'rate'}->{$key};
-	}
+    }
 	my @time;
 	my @tps;
 	my @code;
@@ -207,6 +251,7 @@ sub parse_stats_file {
 		} elsif ($key =~ /^tr_/ or $key eq "page_resptime") {
 			push @transactions, "$key.txt";
 		} elsif ($key =~ /^\d+$/) {
+            $http = 1;
 			push @code, "$key.txt";
 		} elsif ($key =~ /^(\S+)?:\S+?@\S+$/) {
             my $key_short_name = $1;
@@ -222,7 +267,7 @@ sub parse_stats_file {
 	plot_stats(\@col,"Transactions",undef,\@transactions,["rate/sec","msec"]) if $plot;
 	plot_stats(\@col,"Event",undef,\@time,["rate/sec","msec"]) if $plot;
 	plot_stats(\@colusers,"Users",undef,\@users,["connected users", "total"]) if $plot;
-	plot_stats(\@col,"Users_Arrival",undef,\@users_rate,["number of users/sec", "total"]) if $plot;
+	plot_stats(\@colcount,"Users_Arrival",undef,\@users_rate,["number of users/sec", "total"]) if $plot;
 	plot_stats(\@colcount,"Size",undef,\@size,["Kbits/sec","total Kbits"]) if $plot;
 
     # Generate graphes for extra indicators (os_mon for example)
@@ -233,6 +278,57 @@ sub parse_stats_file {
       }
   }
 }
+
+sub html_report {
+    require Template;
+    require Template::Plugin::Table;
+    my $titre     = 'IDX-Tsunami ';
+    my $version   = $tagvsn;
+    my $contact   = "nicolas.niclausse\@IDEALX.com";
+    my $output   = 'index.html';
+
+    my $tt = Template->new({
+                            INCLUDE_PATH => $template_dir,
+                            PRE_CHOMP    => 1,
+                            INTERPOLATE  => 1,
+                           }) or die "Template error $!";
+    my $xml_conf;
+    opendir (DIR, ".") or warn "can't open directory .";
+    while (my $file = readdir (DIR) ) {
+        if ($file =~ /.xml$/) {
+            $xml_conf= $file;
+        }
+    }
+    $maxval->{rate}->{size} = sprintf("%.2f",$maxval->{rate}->{size}*8/1024);
+    $maxval->{mean}->{size} = sprintf("%.2f",$maxval->{mean}->{size}/(1024*1024));
+    my $vars =
+        {
+         version     => $version,
+         os_mon      => $extra,
+         title       => $titre,
+         http        => $http,
+         stats_subtitle => "Stats Report ",
+         graph_subtitle => "Graphs Report ",
+         contact     => $contact,
+         data        => $maxval,
+         cat_data    => $category,
+         conf        => $xml_conf
+        };
+    $tt->process("report.thtml", $vars, "report.html") or die $tt->error(), "\n";
+    $vars =
+        {
+         version     => $version,
+         os_mon      => $extra,
+         http        => $http,
+         title       => $titre,
+         stats_subtitle => "Stats Report ",
+         graph_subtitle => "Graphs Report ",
+         contact     => $contact,
+         conf        => $xml_conf
+        };
+    $tt->process("graph.thtml", $vars, "graph.html") or die $tt->error(), "\n";
+}
+
 
 sub usage {
 	print "this script is part of IDX-TSUNAMI version $tagvsn,
