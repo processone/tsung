@@ -24,7 +24,10 @@
 				  ack,
 				  param,
 				  type=static,
-				  endpage=false
+				  endpage=false,
+                  host,       % override global server hostname
+                  port,       % override global server port
+                  scheme      % override global server type (ssl or gen_tcp) 
 				 }).
 
 % state of ts_client_rcv gen_server

@@ -107,8 +107,15 @@ init([Profile, {CType, PType, MType, Persistent}], Count) ->
 	%%init seed
 %    random:seed(ts_utils:init_seed()),
 %	?LOG("seed OK  ~n",?DEB),
-
-    {ServerName, Port, Protocol} = ts_profile:get_server(), % get server profile
+    case Profile of 
+        [#message{host=undefined, port= undefined, scheme= undefined} | Tail] ->
+            {ServerName, Port, Protocol} = ts_profile:get_server(); % get global server profile
+        [#message{host=ServerName, port= Port, scheme= Protocol} | Tail] ->
+            %% server profile can be overriden in the first URL of the session
+            %% curently, the following server modifications in the session are not used.
+            ?LOGF("Server setup overriden for this client (~p) host=~s port=~p proto=~p ~n",
+                  [pid(), ServerName, Port, Protocol], ?INFO)
+    end,
     % open connection
 	Opts = protocol_options(Protocol),
 	StartTime= now(),
@@ -262,6 +269,11 @@ handle_info(timeout, State ) ->
 	end,
 	Message = ts_profile:get_message(Type , Param),
 	Now = now(),
+
+    %% Currently, reuse the server setup (host, port protocol) from
+    %% the init function, but we could later change the setup for
+    %% every message.
+
 	%% reconnect if needed
 	Protocol = State#state.protocol,
 	{ok, Socket} = reconnect(State#state.socket, State#state.server, State#state.port,

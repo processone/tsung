@@ -197,13 +197,17 @@ read_sesslog(File, Table)->
 read_sesslog(eof, [], [], File, Table, Id) -> %the end
 	done;
 read_sesslog(eof, Session, Page, File, Table, Id) -> % the end
-	ets:insert(Table, {Id, lists:reverse([lists:reverse(Page) | Session  ])});
+    SessionList = lists:reverse([lists:reverse(Page) | Session  ]),
+    SessionRecord = ts_httperf_sesslog:build_session(SessionList), % FIXME: not generic
+	ets:insert(Table, {Id, SessionRecord });
 read_sesslog("#" ++ Tail, Session, Page, File, Table, Id) -> % skip comment
 	read_sesslog(io:get_line(File, ""), Session, Page, File, Table, Id);
 read_sesslog("\n", [], [], File, Table, Id)-> % newline again, skip
 	read_sesslog(io:get_line(File, ""), [], [], File, Table, Id);
 read_sesslog("\n", Session, Page, File, Table, Id)-> % end of a session
-	ets:insert(Table, {Id, lists:reverse([lists:reverse(Page) | Session ]) }),
+    SessionList = lists:reverse([lists:reverse(Page) | Session ]),
+    SessionRecord = ts_httperf_sesslog:build_session(SessionList), % FIXME: not generic
+	ets:insert(Table, {Id, SessionRecord }),
 	read_sesslog(io:get_line(File, ""), [], [], File, Table, Id+1);
 read_sesslog(" " ++ Tail, Session, [], File, Table, Id)-> % No current page, error
 	session_formating_error;

@@ -29,7 +29,8 @@
 
 -export([get_client/2,
 		 get_client/3,
-		 get_simple_client/2
+		 get_simple_client/2,
+         build_session/1
 		]).
 
 %%----------------------------------------------------------------------
@@ -44,7 +45,8 @@ get_client(N, Id) ->
 get_client(N, Id, File) ->
 	ts_req_server:read_sesslog(File),
 	{ok, Session} = ts_req_server:get_next_session(),
-	build_session([], Session, Id).
+    Session.
+%%%	build_session([], Session, Id).
 
 %%----------------------------------------------------------------------
 %% Func: get_simple_client/2
@@ -56,6 +58,15 @@ get_simple_client(N, Id) ->
 	ts_req_server:read(?config(http_req_filename)),
 	build_simplesession(N, [], Id).
 
+
+%%----------------------------------------------------------------------
+%% Func: build_session/1
+%% Purpose: build a session; a session is a list of Pages where a Page 
+%% is a list of 'URL'. Put a fixed Id
+%% Returns: List
+%%----------------------------------------------------------------------
+build_session(Session) ->
+	build_session([], Session, 1). 
 
 %%----------------------------------------------------------------------
 %% Func: build_session/3
@@ -178,23 +189,66 @@ httperf2record( [Head | Tail], Record) ->
 
 
 %%----------------------------------------------------------------------
-%% Func: set_msg/1 or /2
+%% Func: set_msg/1 or /2 or /3
 %% Returns: #message record
 %% Purpose:
 %% unless specified, the thinktime is an exponential random var.
 %%----------------------------------------------------------------------
 set_msg(HTTPRequest) ->
 	set_msg(HTTPRequest, round(ts_stats:exponential(?messages_intensity))).
-set_msg(HTTPRequest, 0) -> % no thinktime, only wait for response
-	#message{ack = parse, 
-			 thinktime=infinity,
-			 param = HTTPRequest };
-set_msg(HTTPRequest, Think) -> % end of a page, wait before the next one
-	#message{ack = parse, 
-			 endpage   = true,
-			 thinktime = Think,
-			 param = HTTPRequest }.
 
+
+%% if the URL is full (http://...), we parse it and get server host,
+%% port and scheme from the URL and override the global setup of the
+%% server. These informations are stored in the #message record.
+set_msg(HTTP=#http_request{url="http" ++ URL}, ThinkTime) -> % full URL
+    URLrec = ts_http_common:parse_URL("http" ++ URL),
+    Path = URLrec#url.path ++ URLrec#url.querypart,
+    case URLrec of
+        #url{port = undefined, scheme= https} ->
+            set_msg(HTTP#http_request{url=Path },
+                    ThinkTime,
+                    #message{ack  = parse,
+                             host = URLrec#url.host,
+                             scheme = ssl,
+                             port = 443});
+        #url{port = undefined, scheme= http} ->
+            set_msg(HTTP#http_request{url=Path},
+                    ThinkTime,
+                    #message{ack  = parse,
+                             host = URLrec#url.host,
+                             scheme = gen_tcp,
+                             port = 80});
+        #url{scheme= http} ->
+            set_msg(HTTP#http_request{url=Path},
+                    ThinkTime,
+                    #message{ack  = parse,
+                             host = URLrec#url.host,
+                             scheme = gen_tcp,
+                             port = URLrec#url.port});
+        #url{scheme= https} ->
+            set_msg(HTTP#http_request{url=Path},
+                    ThinkTime,
+                    #message{ack  = parse,
+                             host = URLrec#url.host,
+                             scheme = ssl,
+                             port = URLrec#url.port})
+    end;
+%
+set_msg(HTTPRequest, Think) -> % relative URL, use global host, port and scheme
+    set_msg(HTTPRequest, Think, #message{ack = parse}).
+            
+
+set_msg(HTTPRequest, 0, Msg) -> % no thinktime, only wait for response
+	Msg#message{ thinktime=infinity,
+                 param = HTTPRequest };
+set_msg(HTTPRequest, Think, Msg) -> % end of a page, wait before the next one
+	Msg#message{ endpage   = true,
+                 thinktime = Think,
+                 param = HTTPRequest }.
+
+
+    
 
 
 
