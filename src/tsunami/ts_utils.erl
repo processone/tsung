@@ -94,7 +94,7 @@ debug(From, Message, Args, Level) ->
 
 %%----------------------------------------------------------------------
 %% Func: elapsed/2
-%% Purpose: print elapsed time in microseconds
+%% Purpose: print elapsed time in milliseconds
 %% Returns: integer
 %%----------------------------------------------------------------------
 elapsed({Before1, Before2, Before3}, {After1, After2, After3}) ->
