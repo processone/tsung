@@ -133,7 +133,8 @@ build_simplesession(N, Session, Id) ->
 	build_simplesession(N-1, [set_msg(URL) | Session], Id).
 
 %%----------------------------------------------------------------------
-%% Func: http_get/2
+%% Func: http_get/3
+%% Args: URL, HTTP Version, Cookie
 %% Are we caching this string ? We should !
 %%----------------------------------------------------------------------
 http_get(URL, 1.0, none) ->
@@ -149,6 +150,10 @@ http_get(URL, 1.1, Cookie) -> %% TODO
 	CR=io_lib:nl(),
 	?GET ++ " " ++ URL ++" " ++ ?HTTP11 ++ CR++ host() ++ CR++ user_agent() ++ CR++CR.
 
+%%----------------------------------------------------------------------
+%% Func: http_post/3
+%% Args: URL, HTTP Version, Cookie
+%%----------------------------------------------------------------------
 http_post(URL, 1.0, none) ->
 	CR=io_lib:nl(),
 	?POST ++ " " ++ URL ++" " ++ ?HTTP10 ++ CR ++ user_agent() ++ CR++CR;
@@ -191,7 +196,7 @@ parse_URL(Line) ->
 %%----------------------------------------------------------------------
 set_msg(URL) ->
 	set_msg(URL, round(ts_stats:exponential(?messages_intensity))).
-set_msg(URL, 0) -> % no waiting time, only wait for response (ack=local)
+set_msg(URL, 0) -> % no waiting time, only wait for response
 	#message{ack = parse, 
 			 thinktime=infinity,
 			 param = #http_request {url= URL} };
@@ -257,10 +262,10 @@ parse(Data, State) ->
 request_header(Header)->
     [ResponseLine|HeaderFields] = httpd_parse:split_lines(Header),
     ParsedHeader = httpd_parse:tagup_header(HeaderFields),
-	[get_resp(ResponseLine), ParsedHeader].
+	[get_status(ResponseLine), ParsedHeader].
 
 %% return status code
-get_resp(Line) ->
+get_status(Line) ->
 	StartStatus = string:str(Line, " "),
 %%	HTTP = string:substr(Line, 1, StartStatus-1),
 	Status = string:substr(Line, StartStatus+1, 3),
