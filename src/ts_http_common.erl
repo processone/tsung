@@ -92,9 +92,11 @@ user_agent() ->
 get_cookie(none)    -> [];
 get_cookie(Cookies) -> get_cookie(Cookies, []).
 
-get_cookie([], Acc )   -> lists:reverse(Acc);
+get_cookie([], Acc )   -> [lists:reverse(Acc), ?CRLF];
+get_cookie([Cookie|Cookies], []) ->
+    get_cookie(Cookies, [["Cookie: ", Cookie]]);
 get_cookie([Cookie|Cookies], Acc) ->
-    get_cookie(Cookies, [["Cookie: ", Cookie, ?CRLF]|Acc]).
+    get_cookie(Cookies, [["; ", Cookie]|Acc]).
 
 %%----------------------------------------------------------------------
 %% Func: parse_config/2
@@ -338,21 +340,28 @@ read_chunk_data(Data, State, Cookie,Int, Acc) -> % not enough data in buffer
 %% Purpose: parse HTTP's Cookie Header and returns cookie code
 %%----------------------------------------------------------------------
 parse_cookie(ParsedHeader) ->
-	case ts_utils:mkey1search(ParsedHeader,"set-cookie") of
-		undefined ->
-			[];
-		Cookie ->
-			case string:tokens( Cookie, "; ") of 
-				[CookieVal |CookieOtherAttrib] ->
-					%% FIXME: handle path attribute
-					%% several cookies can be set with a different path attribute
-					CookieVal ;
-				_Other -> % something wrong
-					[]
-			end
+    case ts_utils:mkey1search(ParsedHeader,"set-cookie") of
+        undefined ->
+            [];
+        Cookies ->
+            lists:map(fun(Cookie) -> get_cookie_val(Cookie) end,
+                      Cookies)	    
 	end.
 
-	    
+%%----------------------------------------------------------------------
+%% Func: get_cookie_val/1
+%% Purpose: Separate cookie values from attributes
+%%----------------------------------------------------------------------
+get_cookie_val(Cookie) ->
+    case string:tokens( Cookie, "; ") of 
+        [CookieVal |CookieOtherAttrib] ->
+            %% FIXME: handle path attribute
+            %% several cookies can be set with a different path attribute
+            CookieVal ;
+        _Other -> % something wrong
+            []
+    end.
+     	    
 
 %%----------------------------------------------------------------------
 %% Func: parse_URL/1
