@@ -1,0 +1,27 @@
+# Taken from httperf manual page 
+# see http://freshmeat.net/projects/httperf
+# 
+# Comment lines start with a ``#'' as the first
+# character.  Lines with only whitespace delimit
+# sessions (multiple blank lines do not generate
+# ``null'' sessions).  All other lines specify a
+# uri-sequence (1 uri per line).  If the first
+# character of the line is whitespace (e.g. space
+# or tab), the uri is considered to be part of a
+# burst that is sent out after the previous
+# non-burst uri.
+
+# currently, IDX-Tsunami only parses the URL, arguments are not yet
+# used (the thinktime is set globally in idx-tsunamirc)
+
+# session 1 definition (this is a comment)
+/foo.html think=2.0
+  /pict1.gif
+  /pict2.gif
+/foo2.html method=POST contents='Post data'
+  /pict3.gif
+  /pict4.gif
+
+# session 2 definition
+/foo3.html method=POST contents="Multiline\ndata"
+/foo4.html method=HEAD
