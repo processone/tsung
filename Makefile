@@ -284,7 +284,8 @@ idx-tsunami.sh: idx-tsunami.sh.in include.mk Makefile
 
 idx-tsunami.xml: idx-tsunami.xml.in include.mk Makefile
 	@$(SED) \
-		-e 's;%INSTALL_DIR%;${SHARE_DIR};g' < $< > $@
+		-e 's;%INSTALL_DIR%;${SHARE_DIR};g' \
+        -e 's;${DESTDIR};;g' < $< > $@
 
 %:%.sh
 # Override makefile default implicit rule
