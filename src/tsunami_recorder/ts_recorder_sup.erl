@@ -62,10 +62,10 @@ init([]) ->
                   permanent, 2000, supervisor, [ts_client_proxy_sup]},
 	Recorder = {ts_proxy_recorder, {ts_proxy_recorder, 
                                     start, [?config(proxy_log_file)]}, 
-				permanent, 2000, worker, [ts_proxy_recorder]},
+				transient, 2000, worker, [ts_proxy_recorder]},
 	Listener = {ts_proxy_listener, {ts_proxy_listener,
                                   start, []}, 
-                permanent, 2000, worker, [ts_proxy_listener]},
+                transient, 2000, worker, [ts_proxy_listener]},
     {ok,{{one_for_one,?retries,10}, [ClientsSup, Recorder,Listener ]}}.
 
 %%%----------------------------------------------------------------------

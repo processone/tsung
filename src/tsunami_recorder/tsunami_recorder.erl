@@ -63,4 +63,5 @@ stop(State) ->
 %% Returns: any 
 %%----------------------------------------------------------------------
 stop_all(Arg) ->
-	ts_utils:stop_all(Arg,'ts_proxy_listener', "IDX-Tsunami recorder").
+	ts_utils:stop_all(Arg,'ts_proxy_listener', "IDX-Tsunami recorder",
+                      {ts_proxy_recorder, stop}).

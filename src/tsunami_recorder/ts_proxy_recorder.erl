@@ -40,7 +40,7 @@
 
 %%--------------------------------------------------------------------
 %% External exports
--export([start/1, dorecord/1]).
+-export([start/1, dorecord/1, stop/1]).
 -export([decode_basic_auth/1]).
 
 %% gen_server callbacks
@@ -64,6 +64,12 @@
 %%--------------------------------------------------------------------
 start(Config) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, Config, []).
+
+%%--------------------------------------------------------------------
+%% Function: stop/1
+%%--------------------------------------------------------------------
+stop(Node) ->
+    gen_server:call({?MODULE,Node},{stop}).
 
 %%--------------------------------------------------------------------
 %% Function: dorecord/1
@@ -112,6 +118,11 @@ init(Filename) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
+handle_call({stop}, From, State) ->
+    io:format(State#state.logfd,"</session>~n",[]),
+    file:close(State#state.logfd),
+    {stop, normal, ok, State};
+
 handle_call(Request, From, State) ->
     Reply = ok,
     {reply, Reply, State}.
@@ -168,8 +179,6 @@ handle_info(Info, State) ->
 %% Returns: any (ignored by gen_server)
 %%--------------------------------------------------------------------
 terminate(Reason, State) ->
-    io:format(State#state.logfd,"</session>~n",[]),
-    file:close(State#state.logfd),
     ok.
 
 %%--------------------------------------------------------------------

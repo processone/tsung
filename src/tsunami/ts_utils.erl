@@ -30,7 +30,8 @@
 -export([debug/3, debug/4, get_val/1, init_seed/0, chop/1, elapsed/2,
          now_sec/0, node_to_hostname/1, add_time/2,
          level2int/1, mkey1search/2, close_socket/2, datestr/0, datestr/1,
-		 erl_system_args/0, setsubdir/1, stop_all/2, stop_all/3, export_text/1,
+		 erl_system_args/0, setsubdir/1, export_text/1,
+         stop_all/2, stop_all/3, stop_all/4,
          make_dir_rec/1, is_ip/1, from_https/1, to_https/1]).
 
 level2int("debug")     -> ?DEB;
@@ -239,7 +240,11 @@ export_text([C | T], Cont) ->
 stop_all(Host, Name) ->
 	stop_all(Host, Name, "IDX-Tsunami").
 
-stop_all([Host],Name,MsgName) when atom(Host) ->
+stop_all([Host],Name,MsgName)  ->
+    VoidFun = fun(A)-> ok end,
+    stop_all([Host],Name,MsgName, VoidFun ).
+
+stop_all([Host],Name,MsgName,Fun) when atom(Host) ->
     List= net_adm:world_list([Host]),
     global:sync(),
 	case global:whereis_name(Name) of 
@@ -248,9 +253,10 @@ stop_all([Host],Name,MsgName) when atom(Host) ->
 			erlang:display(Msg);
 		Pid ->
 			Controller_Node = node(Pid),
+            Fun(Controller_Node),
 			slave:stop(Controller_Node)
 	end;
-stop_all(_,_,_)->
+stop_all(_,_,_,_)->
 	erlang:display("Bad Hostname").
 
 %%----------------------------------------------------------------------
