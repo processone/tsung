@@ -174,7 +174,7 @@ init([LogDir]) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
 handle_call({read_config, ConfigFile}, From, State) ->
-    case ts_config:read(ConfigFile) of
+    case catch ts_config:read(ConfigFile) of
         {ok, Config=#config{session_tab=Tab,curid=LastReqId,sessions=[LastSess| SList]}} -> 
             check_popularity(Config#config.sessions),
             application:set_env(tsunami_controller, clients, Config#config.clients),
@@ -188,6 +188,9 @@ handle_call({read_config, ConfigFile}, From, State) ->
             ets:insert(Tab, {{LastSess#session.id, size}, LastReqId}),
             {reply, ok, State#state{config=Config, total_weight = Sum}};
         {error, Reason} -> 
+            ?LOGF("Error while parsing XML config file: ~p~n",[Reason],?EMERG),
+            {reply, {error, Reason}, State};
+        {'EXIT', Reason} -> 
             ?LOGF("Error while parsing XML config file: ~p~n",[Reason],?EMERG),
             {reply, {error, Reason}, State}
     end;
