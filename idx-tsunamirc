@@ -12,7 +12,7 @@ SERVER_PROTOCOL=gen_tcp
 # possible values: jabber_online, jabber_unique, jabber_offline, jabber_auth,
 #	   			   jabber_roster, jabber_dynamic
 #	   			   ts_http
-CLIENT_TYPE=jabber_online
+CLIENT_TYPE=ts_http
 
 
 # HTTP specifics options:
@@ -27,7 +27,7 @@ HTTP_REQ_FILENAME=/usr/local/idx-tsunami/etc/http.txt
 # means they didn't wait for a response. 'parse' means that the
 # client parse the response to know when the response is over.
 # for HTTP, use parse.
-MESSAGES_ACK=local
+MESSAGES_ACK=parse
 
 # mean client intearrival (in sec, can be a float) for ex. a value of
 # 0.01 sec will lead to 100 new clients every second (on average).
@@ -43,7 +43,7 @@ MESSAGES_INTERARRIVAL=120
 # Total number of clients (distributed across all machines)
 NCLIENTS=20
 
-# list of machines (hostname or IP), separated by a ":"
+# list of client machines (hostname or IP), separated by a ":"
 MACHINES=localhost
 # tsunami controller
 CONTROLLER=localhost
