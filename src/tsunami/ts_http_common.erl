@@ -48,22 +48,24 @@
 %% Args: #http_request
 %%----------------------------------------------------------------------
 http_get(Req=#http_request{url=URL, version=Version, cookie=Cookie, 
-                           get_ims_date=undefined,
-                           server_name = Host, userid=UserId, passwd=Passwd})->
+                           get_ims_date=undefined, soap_action=SOAPAction,
+                           server_name=Host, userid=UserId, passwd=Passwd})->
 	list_to_binary([?GET, " ", URL," ", "HTTP/", Version, ?CRLF, 
                     "Host: ", Host, ?CRLF,
                     user_agent(),
                     authenticate(UserId,Passwd),
+                    soap_action(SOAPAction),
                     set_cookie_header({Cookie, Host, URL}),
                     ?CRLF]);
 
 http_get(Req=#http_request{url=URL, version=Version, cookie=Cookie,
-                           get_ims_date=Date, server_name=Host,
-                           userid=UserId, passwd=Passwd}) ->
+                           get_ims_date=Date, soap_action=SOAPAction,
+			   server_name=Host, userid=UserId, passwd=Passwd}) ->
 	list_to_binary([?GET, " ", URL," ", "HTTP/", Version, ?CRLF,
                     ["If-Modified-Since: ", Date, ?CRLF],
                     "Host: ", Host, ?CRLF,
                     user_agent(),
+                    soap_action(SOAPAction),
                     authenticate(UserId,Passwd),
                     set_cookie_header({Cookie, Host, URL}),
                     ?CRLF]).
@@ -73,14 +75,16 @@ http_get(Req=#http_request{url=URL, version=Version, cookie=Cookie,
 %% Args: #http_request
 %%----------------------------------------------------------------------
 http_post(Req=#http_request{url=URL, version=Version, cookie=Cookie,
-			    content_type=ContentType, body=Content, server_name=Host,
-                           userid=UserId, passwd=Passwd}) ->
+			    soap_action=SOAPAction, content_type=ContentType,
+			    body=Content, server_name=Host,
+			    userid=UserId, passwd=Passwd}) ->
 	ContentLength=integer_to_list(size(Content)),
 	?DebugF("Content Length of POST: ~p~n.", [ContentLength]),
 	Headers = [?POST, " ", URL," ", "HTTP/", Version, ?CRLF,
                "Host: ", Host, ?CRLF,
                user_agent(),
                authenticate(UserId,Passwd),
+               soap_action(SOAPAction),
                set_cookie_header({Cookie, Host, URL}),
                "Content-Type: ", ContentType, ?CRLF,
                "Content-Length: ",ContentLength, ?CRLF,
@@ -99,6 +103,10 @@ authenticate(UserId,Passwd)->
 
 user_agent() ->
 	["User-Agent: ", ?USER_AGENT, ?CRLF].
+
+soap_action(undefined) -> [];
+soap_action(SOAPAction) -> ["SOAPAction: \"", SOAPAction, "\"", ?CRLF].
+    
 
 %%----------------------------------------------------------------------
 %% Function: set_cookie_header/1
@@ -159,8 +167,18 @@ parse_config(Element = #xmlElement{name=http},
                             version     = Version,
                             get_ims_date= Date,
                             server_name = ServerName,
-							content_type= ContentType,
+			    content_type= ContentType,
                             body        = list_to_binary(Contents)},
+    %% SOAP Support: Add SOAPAction header to the message
+    Request2 = case lists:keysearch(soap,#xmlElement.name,
+				    Element#xmlElement.content) of
+              {value, SoapEl=#xmlElement{} } ->
+		  SOAPAction  = ts_config:getAttr(SoapEl#xmlElement.attributes,
+                                              action, []),
+                  Request#http_request{soap_action=SOAPAction};
+              _ -> 
+                  Request
+          end,
     Msg = case lists:keysearch(www_authenticate,#xmlElement.name,
                                Element#xmlElement.content) of
               {value, AuthEl=#xmlElement{} } ->
@@ -168,9 +186,9 @@ parse_config(Element = #xmlElement{name=http},
                                               userid, undefined),
                   Passwd  = ts_config:getAttr(AuthEl#xmlElement.attributes, 
                                               passwd, undefined),
-                  set_msg(Request#http_request{userid=UserId, passwd=Passwd}, 0);
-              _Data -> 
-                  set_msg(Request, 0)
+                  set_msg(Request2#http_request{userid=UserId, passwd=Passwd}, 0);
+              _ -> 
+                  set_msg(Request2, 0)
           end,
     ts_config:mark_prev_req(Id-1, Tab, CurS),
     ets:insert(Tab,{{CurS#session.id, Id}, Msg#message{endpage=true}}),
@@ -352,7 +370,8 @@ add_new_cookie(Cookie, Host, OldCookies) ->
 %%----------------------------------------------------------------------
 splitcookie(Cookie) -> splitcookie(Cookie, [], []).
 splitcookie([], Cur, Acc) -> [lists:reverse(Cur)|Acc];
-splitcookie("; "++Rest,Cur,Acc) ->splitcookie(Rest,[],[lists:reverse(Cur)|Acc]);
+splitcookie(";"++Rest,Cur,Acc) -> 
+    splitcookie(string:strip(Rest, both),[],[lists:reverse(Cur)|Acc]);
 splitcookie([Char|Rest],Cur,Acc)->splitcookie(Rest, [Char|Cur], Acc).
 
 %%----------------------------------------------------------------------
@@ -403,7 +422,7 @@ set_cookie_key([L|"omment"],Val,Cookie) when L == $C; L==$c ->
     Cookie; %don't care about comment
 set_cookie_key(Key,Val,Cookie) ->
     Cookie#cookie{key=Key,value=Val}.
-    
+
 get_cookie_key([],Acc)         -> {lists:reverse(Acc), []};
 get_cookie_key([$=|Rest],Acc)  -> {lists:reverse(Acc), Rest};
 get_cookie_key([Char|Rest],Acc)-> get_cookie_key(Rest, [Char|Acc]).

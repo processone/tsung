@@ -216,11 +216,14 @@ record_http_request(State=#state{prev_host=Host, prev_port=Port},
     case Body of 
         [] -> ok;
         _  -> 
-            Body2 = case regexp:gsub(Body,"&","&amp;") of
-                        {ok,NewBody,_} -> NewBody;
-                        _ -> Body
-                    end,
+            Body2 = ts_utils:export_text(Body),
             io:format(Fd," contents='~s' ", [Body2]) % must be a POST method
+    end,
+    %% Content-type recording (This is usefull for SOAP post for example):
+    case httpd_util:key1search(ParsedHeader,"content-type") of
+        undefined -> ok;
+        ContentType ->
+            io:format(Fd,"content_type='~s' ",[ContentType])
     end,
     case httpd_util:key1search(ParsedHeader,"if-modified-since") of 
         undefined ->
@@ -231,8 +234,15 @@ record_http_request(State=#state{prev_host=Host, prev_port=Port},
     case httpd_util:key1search(ParsedHeader,"authorization") of 
         "Basic "++Base64 ->
 			{User,Passwd}=decode_basic_auth(Base64),
-            io:format(Fd,"~n  <www_authenticate userid=~p passwd=~p/>~n",[User,Passwd]);
+            io:format(Fd,"~n  <www_authenticate userid=~p passwd=~p></www_authenticate>",[User,Passwd]);
 		_ -> ok
+    end,
+    %% SOAP Support: Need to record use of the SOAPAction header
+    case httpd_util:key1search(ParsedHeader,"soapaction") of
+        undefined -> ok;
+        QuotedSOAPAction ->
+            SOAPAction = string:strip(QuotedSOAPAction, both, $"),
+            io:format(Fd,"~n  <soap action='~s'></soap>~n",[SOAPAction])
     end,
 	io:format(Fd,"</http></request>~n",[]),
 

@@ -50,6 +50,7 @@
 
 -record(state, {
           clientsock,
+          http_version,
           parse_status   = new, %% http status = body|new
           body_size      = 0,
           content_length = 0,
@@ -129,7 +130,7 @@ handle_info({tcp, ServerSock, String}, State)
         0    -> ok;
         Count-> ?LOGF("substitute https: ~p times~n",[Count],?DEB)
     end,
-    gen_tcp:send(State#state.clientsock, NewString),
+    send(State#state.clientsock, NewString),
     {noreply, State, ?lifetime};
 
 % ssl server data, send it to the client
@@ -142,19 +143,29 @@ handle_info({ssl, ServerSock, String}, State)
         0    -> ok;
         Count-> ?LOGF("substitute https: ~p times~n",[Count],?DEB)
     end,
-    gen_tcp:send(State#state.clientsock, NewString),
+    send(State#state.clientsock, NewString),
     {noreply, State, ?lifetime};
 
 %%%%%%%%%%%% Errors and termination %%%%%%%%%%%%%%%%%%%
 
 % Log who did close the connection, and exit.
-handle_info({tcp_closed, Socket}, State=#state{serversock=Socket})->
+handle_info({tcp_closed, Socket}, State=#state{serversock=Socket,http_version=HTTPVersion})->
     ?LOG("socket closed by server~n",?INFO),
-    {noreply, State#state{serversock=undefined}, ?lifetime};
+    case HTTPVersion of
+        "HTTP/1.0" ->
+            {stop, normal, ?lifetime};%Disconnect client if it requires HTTP/1.0
+        _ ->
+            {noreply, State#state{serversock=undefined}, ?lifetime}
+    end;
 
-handle_info({ssl_closed, Socket}, State=#state{serversock=Socket})->
+handle_info({ssl_closed, Socket}, State=#state{serversock=Socket,http_version=HTTPVersion})->
     ?LOG("ssl socket closed by server~n",?INFO),
-    {noreply, State#state{serversock=undefined}, ?lifetime};
+    case HTTPVersion of
+        "HTTP/1.0" ->
+            {stop, normal, ?lifetime};%Disconnect client if it requires HTTP/1.0
+        _ ->
+            {noreply, State#state{serversock=undefined}, ?lifetime}
+    end;
 
 handle_info({tcp_closed, Socket}, State) ->
     ?LOG("socket closed by client~n",?INFO),
@@ -249,7 +260,8 @@ parse(State=#state{parse_status=Status},ClientSock,ServerSocket,String) when Sta
                           [RequestURI,RelURL,NewString], ?INFO),
                     {ok, RealString} = relative_url(NewString,RequestURI,RelURL),
                     send(NewSocket,RealString),
-                    {ok, State#state{parse_status = new, buffer=[],
+                    {ok, State#state{http_version=HTTPVersion,
+			             parse_status = new, buffer=[],
                                      serversock=NewSocket}};
                 {undefined, Diff} ->
                     {error, undefined};
@@ -270,7 +282,8 @@ parse(State=#state{parse_status=Status},ClientSock,ServerSocket,String) when Sta
                                                                       body=Body,
                                                                       headers=ParsedHeader}
                                                        }),
-                            {ok, State#state{parse_status = new, buffer=[],
+                            {ok, State#state{http_version=HTTPVersion,
+				             parse_status = new, buffer=[],
                                              serversock=NewSocket}};
                         BodySize > CLength  ->
                             {error, bad_content_length};
@@ -278,8 +291,9 @@ parse(State=#state{parse_status=Status},ClientSock,ServerSocket,String) when Sta
                             {NewSocket,RelURL} = check_serversocket(ServerSocket,RequestURI),
                             {ok,RealString,_Count} = regexp:gsub(NewString,RequestURI,RelURL),
                             send(NewSocket,RealString),
-                            {ok, State#state{content_length = CLength,
-                                             body_size = TotalSize,
+                            {ok, State#state{http_version=HTTPVersion,
+				             content_length = CLength,
+                                             body_size = TotalSize - HeaderSize, %% mremond fix
                                              serversock=NewSocket,
                                              buffer = #http_request{method=Method,
                                                                     url=RequestURI,
@@ -301,9 +315,10 @@ parse(State=#state{parse_status=Status, buffer=Http},ClientSock,ServerSocket,Str
 	CLength = State#state.content_length,
     send(ServerSocket, String),
     Buffer=lists:append(Http#http_request.body,String),
+    %% Should be checked before
 	case Size of 
 		CLength -> % end of response
-            ts_proxy_recorder:dorecord(Http#http_request{ body=Buffer} ),
+            ts_proxy_recorder:dorecord( {Http#http_request{ body=Buffer }} ),
 			{ok, State#state{body_size=0,parse_status=new, content_length=0,buffer=[]}};
 		_ ->
 			{ok, State#state{body_size = Size, buffer = Http#http_request{body=Buffer}}}
@@ -322,7 +337,6 @@ check_serversocket(Socket, URL) when list(URL)->
 check_serversocket(undefined, URL) ->
     Port = ts_http_common:set_port(URL),
     ?LOGF("Connecting to ~p:~p ...~n", [URL#url.host, Port],?DEB),
-
 
     {ok, Socket} = connect(URL#url.scheme, URL#url.host,Port),
 
@@ -387,5 +401,3 @@ relative_url(NewString,RequestURI,RelURL)->
     [RelURL_noargs|_]  = string:tokens(RelURL,"?"),
     {ok,RealString,_Count} = regexp:gsub(NewString,FullURL_noargs,RelURL_noargs),
     {ok, RealString}.
-
-    

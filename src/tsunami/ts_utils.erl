@@ -27,7 +27,7 @@
 -export([debug/3, debug/4, get_val/1, init_seed/0, chop/1, elapsed/2,
          now_sec/0, inet_setopts/4, node_to_hostname/1, add_time/2,
          level2int/1, mkey1search/2, close_socket/2, datestr/0, datestr/1,
-		 erl_system_args/0, setsubdir/1, stop_all/2, stop_all/3]).
+		 erl_system_args/0, setsubdir/1, stop_all/2, stop_all/3, export_text/1]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -45,11 +45,24 @@ level2int("emergency") -> ?EMERG.
 get_val(Var) ->
 	case application:get_env(Var) of 
 		{ok, Val} ->
-			Val;
+			ensure_string(Var, Val);
 		_ ->
 			?LOGF("WARNING, env ~p is not defined ! ~n", [Var], ?ERR),
 			undef_var
 	end.
+
+
+%% ensure atom to string conversion of environnement variable
+%% This is intended to fix a problem making Tsunami run under Windows
+%%  I convert parameter that are called from the command-line
+ensure_string(log_file, Atom) when atom(Atom) ->
+    atom_to_list(Atom);
+ensure_string(proxy_log_file, Atom) when atom(Atom) ->
+    atom_to_list(Atom);
+ensure_string(config_file, Atom) when atom(Atom) ->
+    atom_to_list(Atom);
+ensure_string(_, Other) ->
+    Other.
 
 %%----------------------------------------------------------------------
 %% Func: debug/3
@@ -216,6 +229,31 @@ setsubdir(FileName) ->
             ?LOGF("Can't create directory ~s (~p)!~n",[Dir, Err],?EMERG),
             {error, Err}
     end.
+
+%% Escape special characters `<', `&', `'' and `"' flattening the text.
+export_text(T) ->
+    export_text(T, []).
+
+export_text([$< | T], Cont) ->
+    "&lt;" ++ export_text(T, Cont);
+export_text([$> | T], Cont) ->
+    "&gt;" ++ export_text(T, Cont);
+export_text([$& | T], Cont) ->
+    "&amp;" ++ export_text(T, Cont);
+export_text([$' | T], Cont) ->
+    "&quot;" ++ export_text(T, Cont);
+export_text([$" | T], Cont) ->
+    "&quot;" ++ export_text(T, Cont);
+export_text([C | T], Cont) when integer(C) ->
+    [C | export_text(T, Cont)];
+export_text([T | T1], Cont) ->
+    export_text(T, [T1 | Cont]);
+export_text([], [T | Cont]) ->
+    export_text(T, Cont);
+export_text([], []) ->
+    [];
+export_text(Bin, Cont) ->
+    export_text(binary_to_list(Bin), Cont).
 
 stop_all(Host, Name) ->
 	stop_all(Host, Name, "IDX-Tsunami").

@@ -33,7 +33,8 @@
           body=[],
           id = 0,
           userid, % for www_authentication
-          passwd  % for www_authentication
+          passwd, % for www_authentication
+          soap_action % for SOAP support
          }).
 
 -record(url,

@@ -86,7 +86,7 @@ newbeam(Host, {Arrivals, MaxUsers})->
 	gen_server:cast({global, ?MODULE},{newbeam, Host, {Arrivals, MaxUsers} }).
 
 %%--------------------------------------------------------------------
-%% Function: read_config/2
+%% Function: get_req/2
 %% Description: get Nth request from given session Id
 %% Returns: #message | {error, Reason}
 %%--------------------------------------------------------------------
