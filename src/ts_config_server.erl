@@ -169,7 +169,9 @@ handle_call({read_config, ConfigFile}, From, State) ->
             %% in the table
             ets:insert(Tab, {{LastSess#session.id, size}, LastReqId}),
             {reply, ok, #state{config=Config, total_weight = Sum}};
-        {error, Reason} -> {reply, {error, Reason}, State}
+        {error, Reason} -> 
+            ?LOGF("Error while parsing XML config file: ~p~n",[Reason],?EMERG),
+            {reply, {error, Reason}, State}
     end;
 
 %% get Nth request from given session Id

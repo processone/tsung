@@ -47,12 +47,12 @@
 %%%----------------------------------------------------------------------
 read(Filename) ->
     case xmerl_scan:file(Filename) of
-        {ok, Root = #xmlElement{}} ->
-	    ?LOGF("Reading config file: ~s~n", [Filename], ?NOTICE),
+        {Root = #xmlElement{}, Tail} ->
+            ?LOGF("Reading config file: ~s~n", [Filename], ?NOTICE),
             Table = ets:new(sessiontable, [ordered_set, protected]),
             {ok, parse(Root, #config{session_tab = Table})};
-	Error ->
-	    {error, Error}
+        {error,Reason} ->
+            {error, Reason}
     end.
 
 %%%----------------------------------------------------------------------
