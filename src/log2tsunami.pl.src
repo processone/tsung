@@ -17,7 +17,7 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-# Auteur: Nicolas Niclausse (Nicolas.Niclausse@sophia.inria.fr)
+# Auteur: Nicolas Niclausse (nicolas@niclux.org)
 # Version: $Id$
 
 # purpose: create a config file for IDX-Tsunami from a Combined Log file
@@ -217,12 +217,15 @@ foreach my $key (sort {$visite->{$a}->{'id'} cmp $visite->{$b}->{'id'}} keys %$v
 	}
 }
 print '</idx-tsunami>';
-print STDERR "real_visit = $real_visit\n" if $verbose;
-print STDERR "total_visit = $visit_tot  , bad visit = $bad_visit  " if $verbose;
-printf STDERR "page/visit = %.2f\n",($page_tot/($visit_tot-$bad_visit)) if $verbose;
-print STDERR "good_pages = $page_tot , bad pages = $bad_pages  " if $verbose;
-printf STDERR "hit/page = %.2f\n",($hit_tot/$page_tot) if $verbose;
-print STDERR "bad   = $bad\n" if $verbose;
+if ($verbose) {
+    select STDERR;
+    print "real_visit = $real_visit\n";
+    print  "total_visit = $visit_tot  , bad visit = $bad_visit  ";
+    printf  "page/visit = %.2f\n",($page_tot/($visit_tot-$bad_visit));
+    print  "good_pages = $page_tot , bad pages = $bad_pages  ";
+    printf  "hit/page = %.2f\n",($hit_tot/$page_tot);
+    print  "bad   = $bad\n";
+}
 
 sub replace_entities {
     my $str = shift;
