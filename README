@@ -108,11 +108,15 @@
 
     2/ use the script "idx-tsunami.pl --start" to launch the simulated clients.
 
+     2a/ use "idx-tsunami.pl --config" to create only the
+         configuration files (based on idx-tsunamirc); this can be
+         useful if you want to start erlang by hand.
+
     3/ When it's finished, you can use analyse_msg.pl to get
        statistical results from the logfiles (require at least 'light'
        monitoring, see comments in 'idx-tsunamirc' ). 
 
-	   With v0.2.0, you can have 'realtime' stats using with the
+	   Since v0.2.0, you can have 'realtime' stats using with the
 	   --stats and --plot option (no monitoring needed). It will
 	   generate graphics in postscript using gnuplot.
 	   

@@ -10,12 +10,12 @@ PA = -pa ./ebin -pa ./src -pa . -pa ./system -pa ../ebin -pa .. -pa ../system -p
 prefix = /usr/local/idx-tsunami
 
 # export ERLC_EMULATOR to fix a bug in R9B with native compilation
-ERLC_EMULATOR=/usr/local/bin/erl
+ERLC_EMULATOR=/usr/bin/erl
 export ERLC_EMULATOR
-DEBUGINFO:=+debug_info
+OPTIONS:=+debug_info
 #OPTIONS:=+native +\{hipe,\[o3\]\}
+#OPTIONS:=
 ERLC = erlc $(OPTIONS)
-ERLC = erlc $(DEBUGINFO)
 OUTDIR = ebin
 ALLERLS:= $(wildcard src/*.erl)
 ALLBEAMS:=$(patsubst src/%.erl,$(OUTDIR)/%.beam, $(ALLERLS))
@@ -28,7 +28,7 @@ show:
 
 tarball: 
 	mkdir -p $(TARDIR)
-	tar zcf tmp.tgz src/*.erl src/*.src include/*.hrl doc/*.txt LISEZMOI README CONTRIBUTORS COPYING src/idx-tsunami.pl.src idx-tsunamirc TODO Makefile vsn.mk src/analyse_msg.pl.src
+	tar zcf tmp.tgz src/*.erl src/*.src include/*.hrl doc/*.txt doc/*.fig doc/*.png LISEZMOI README CONTRIBUTORS COPYING src/idx-tsunami.pl.src idx-tsunamirc TODO Makefile vsn.mk src/analyse_msg.pl.src
 	tar -C $(TARDIR) -zxf tmp.tgz
 	mkdir $(TARDIR)/ebin
 	tar zvcf  idx-tsunami-$(VSN).tar.gz $(TARDIR)
