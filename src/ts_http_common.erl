@@ -17,6 +17,9 @@
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 %%% 
 
+%%% common functions used by http clients to:
+%%%  - parse httperf's style session file
+%%%  - parse response from HTTP server
 
 -module(ts_http_common).
 -vc('$Id$ ').
@@ -192,7 +195,8 @@ parse_requestline(Line) ->
 token2record({"think", Value}, Record) -> % currently not used 
 	Record;
 token2record({"method", Value}, Record) ->
-	Record#http_request{method = Value};
+    LowValue = list_to_atom(httpd_util:to_lower(Value)),
+	Record#http_request{method = LowValue};
 token2record({"contents", Value}, Record) ->
 	Record#http_request{body = Value};
 token2record(Unknown, Record) ->
