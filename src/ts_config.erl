@@ -97,7 +97,7 @@ parse(Element = #xmlElement{name=client},
     Weight   = getAttr(Element#xmlElement.attributes, weight),
     MaxUsers = getAttr(Element#xmlElement.attributes, maxusers),
     CPU = getAttr(Element#xmlElement.attributes, cpu, "1"),
-    {ok, [{integer,1,ICPU}],1} = erl_scan:string(String),
+    {ok, [{integer,1,ICPU}],1} = erl_scan:string(CPU),
     {ok, [{integer,1,IWeight}],1} = erl_scan:string(Weight),
     {ok, [{integer,1,IMaxUsers}],1} = erl_scan:string(MaxUsers),
     %% add a new client for each CPU
