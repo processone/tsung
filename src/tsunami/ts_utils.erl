@@ -31,7 +31,7 @@
          now_sec/0, inet_setopts/4, node_to_hostname/1, add_time/2,
          level2int/1, mkey1search/2, close_socket/2, datestr/0, datestr/1,
 		 erl_system_args/0, setsubdir/1, stop_all/2, stop_all/3, export_text/1,
-         make_dir_rec/1]).
+         make_dir_rec/1, is_ip/1]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -306,3 +306,13 @@ make_dir_rec(Path, [Parent|Childs]) ->
         {error, Reason}  ->
             {error,Reason}
     end.
+
+%% check if a string is an IP (as "192.168.0.1")
+is_ip(String) when list(String) ->
+    EightBit="(2[0-4][0-9]|25[0-5]|1[0-9][0-9]|[0-9][0-9]|[0-9])",
+    RegExp = lists:append(["^",EightBit,"\.",EightBit,"\.",EightBit,"\.",EightBit,"$"]), %"
+    case regexp:first_match(String, RegExp) of 
+       {match,Start,Length} -> true;
+       _ -> false
+    end;                            
+is_ip(_) -> false.

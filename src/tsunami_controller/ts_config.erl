@@ -116,15 +116,24 @@ parse(Element = #xmlElement{name=client},
     Weight   = getAttr(Element#xmlElement.attributes, weight),
     MaxUsers = getAttr(Element#xmlElement.attributes, maxusers),
     CPU = getAttr(Element#xmlElement.attributes, cpu, "1"),
-    {ok, [{integer,1,ICPU}],1} = erl_scan:string(CPU),
-    {ok, [{integer,1,IWeight}],1} = erl_scan:string(Weight),
-    {ok, [{integer,1,IMaxUsers}],1} = erl_scan:string(MaxUsers),
-    %% add a new client for each CPU
-    NewClients=lists:duplicate(ICPU,#client{host     = Host,
+    %% must be hostname and not ip:
+    case ts_utils:is_ip(Host) of 
+        true ->
+            ?LOGF("ERROR: client config: 'host' attribute must be a hostname, "++
+                  "not an IP ! (was ~p)~n",[Host],?EMERG),
+            throw(badhostname);
+        false ->
+            {ok, [{integer,1,ICPU}],1} = erl_scan:string(CPU),
+            {ok, [{integer,1,IWeight}],1} = erl_scan:string(Weight),
+            {ok, [{integer,1,IMaxUsers}],1} = erl_scan:string(MaxUsers),
+            %% add a new client for each CPU
+            NewClients=lists:duplicate(ICPU,#client{host     = Host,
                                            weight   = IWeight/ICPU,
-                                           maxusers = IMaxUsers}),
-    lists:foldl(fun parse/2, Conf#config{clients = lists:append(NewClients,CList)},
-                Element#xmlElement.content);
+                                                    maxusers = IMaxUsers}),
+            lists:foldl(fun parse/2, 
+                        Conf#config{clients = lists:append(NewClients,CList)},
+                        Element#xmlElement.content)
+    end;
 
 %% Parsing the ip element
 parse(Element = #xmlElement{name=ip},
@@ -245,8 +254,11 @@ parse(Element = #xmlElement{name=request},
 
     Type  = CurSess#session.type,
 
+    SubstitutionFlag  = getAttr(Element#xmlElement.attributes, subst, false),
+
     lists:foldl( fun(A,B) ->Type:parse_config(A,B) end,
-                 Conf#config{curid=Id+1, cur_req_id=Id+1},
+                 Conf#config{curid=Id+1, cur_req_id=Id+1,
+			     subst=SubstitutionFlag},
                  Element#xmlElement.content);
 
 %%% Parsing the default element
@@ -389,3 +401,5 @@ mark_prev_req(Id, Tab, CurS) ->
 			mark_prev_req(Id-1, Tab, CurS);
 		_ -> ok
 	end.
+
+	
