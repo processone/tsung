@@ -58,11 +58,11 @@ wait_ack({Pid, Ack, When, EndPage, Socket, Protocol, Host}) ->
 %%          ignore               |
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
-init([{CType, PPid, Socket, Protocol, ServerName, Timeout, Ack, Monitor}]) ->
+init([{CType,PPid,Socket,Protocol,ServerName,Timeout,Ack,Monitor,DynData}]) ->
 	{ok, #state_rcv{socket = Socket, timeout= Timeout, ack = Ack,
 					ppid= PPid, clienttype = CType, protocol= Protocol,
 					session = CType:new_session(), host=ServerName,
-					monitor = Monitor }}.
+					monitor = Monitor, dyndata=DynData }}.
 
 %%----------------------------------------------------------------------
 %% Func: handle_call/3

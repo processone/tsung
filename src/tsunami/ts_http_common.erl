@@ -231,22 +231,23 @@ parse(Data, State=#state_rcv{session=HTTP}) when HTTP#http.status == none;
 			{State#state_rcv{ack_done=false,session=HTTPRec,acc=Tail},[],false};
         %% Complete header, chunked encoding
 		{ok, Http=#http{content_length=0, chunk_toread=0}, Tail} ->
+			DynData = concat_cookies(Http#http.cookie, State#state_rcv.dyndata),
 			case parse_chunked(Tail, State#state_rcv{session=Http, acc=[]}) of
 				{NewState=#state_rcv{ack_done=false}, Opts} ->
-					{NewState, Opts, false};
+					{NewState#state_rcv{dyndata=DynData}, Opts, false};
 				{NewState, Opts} ->
-					{NewState#state_rcv{acc=[]}, Opts, Http#http.close}
+					{NewState#state_rcv{acc=[],dyndata=DynData}, Opts, Http#http.close}
 			end;
 		{ok, Http=#http{content_length=0, close=true}, Tail} ->
 			%% FIXME: does it means that there is no more data to read?
 			%% TODO: check HTTP/1.0 spec.
-			Cookie = concat_cookies(Http#http.cookie, State#state_rcv.dyndata),
+			DynData = concat_cookies(Http#http.cookie, State#state_rcv.dyndata),
 			{State#state_rcv{session= #http{}, ack_done = true,
 							 datasize = 0, acc = [],
-							 dyndata= Cookie}, [], true};
+							 dyndata= DynData}, [], true};
 		{ok, Http=#http{content_length=CLength}, Tail} ->
-			Cookie = concat_cookies(Http#http.cookie, State#state_rcv.dyndata),
-			check_resp_size(Http, length(Tail), Cookie, Tail, 
+			DynData = concat_cookies(Http#http.cookie, State#state_rcv.dyndata),
+			check_resp_size(Http, length(Tail), DynData, Tail, 
                             State#state_rcv{acc=[]}, TotalSize)
 	end;
 
@@ -283,29 +284,30 @@ parse(Data, State) ->
 %% Returns: {NewState= record(state_rcv), SockOpts, Close}
 %%----------------------------------------------------------------------
 check_resp_size(Http=#http{content_length=CLength, close=Close}, CLength, 
-				Cookie, Tail, State, DataSize) ->
+				DynData, Tail, State, DataSize) ->
 	%% end of response
 	{State#state_rcv{session= #http{}, ack_done = true,
 					 datasize = DataSize,
-					 dyndata= Cookie}, [], Close};
+					 dyndata= DynData}, [], Close};
 check_resp_size(Http=#http{content_length=CLength, close = Close}, 
-				BodySize, Cookie, Tail, State, DataSize) when BodySize > CLength ->
+				BodySize, DynData, Tail, State, DataSize) when BodySize > CLength ->
 	?LOGF("Error: HTTP Body (~p)> Content-Length (~p) !~n",
 		  [BodySize, CLength], ?ERR),
 	ts_mon:add({ count, http_bad_content_length }),
 	{State#state_rcv{session= #http{}, ack_done = true,
 					 datasize = DataSize,
-					 dyndata= Cookie}, [], Close};
-check_resp_size(Http, BodySize, Cookie, Tail, State, DataSize) -> %% need to read more data
+					 dyndata= DynData}, [], Close};
+check_resp_size(Http, BodySize, DynData, Tail, State, DataSize) -> 
+    %% need to read more data
 	{State#state_rcv{session  = Http#http{ body_size=BodySize},
 					 ack_done = false,
 					 datasize = DataSize,
-					 dyndata  = Cookie},[],false}.
+					 dyndata  = DynData},[],false}.
 												 
 %%----------------------------------------------------------------------
 %% Func: parse_chunked/2
 %% Purpose: parse 'Transfer-Encoding: chunked' for HTTP/1.1
-%% Returns: {NewState= record(state_rcv), SockOpts}
+%% Returns: {NewState= record(state_rcv), SockOpts, Close}
 %%----------------------------------------------------------------------
 parse_chunked(Body, State)->
     ?DebugF("Parse chunk data = [~p]~n", [Body]),
@@ -314,13 +316,14 @@ parse_chunked(Body, State)->
 %%----------------------------------------------------------------------
 %% Func: read_chunk/4
 %% Purpose: the real stuff for parsing chunks is here
-%% Returns: {NewState= record(state_rcv), SockOpts}
+%% Returns: {NewState= record(state_rcv), SockOpts, Close}
 %%----------------------------------------------------------------------
 read_chunk(<<>>, State, Int, Acc) ->
     ?LOGF("No data in chunk [Int=~p, Acc=~p] ~n", [Int,Acc],?INFO),
-    AccInt= list_to_binary(httpd_util:integer_to_hexlist(Int)),
+    AccInt = list_to_binary(httpd_util:integer_to_hexlist(Int)),
     { State#state_rcv{acc = AccInt }, [] }; % read more data
 %% this code has been inspired by inets/http_lib.erl
+%% Extensions not implemented
 read_chunk(<<Char:1/binary, Data/binary>>, State, Int, Acc) ->
     case Char of
 	<<C>> when $0=<C,C=<$9 ->
@@ -329,21 +332,13 @@ read_chunk(<<Char:1/binary, Data/binary>>, State, Int, Acc) ->
 	    read_chunk(Data, State, 16*Int+10+(C-$a), Acc+1);
 	<<C>> when $A=<C,C=<$F ->
 	    read_chunk(Data, State, 16*Int+10+(C-$A), Acc+1);
-%	<<$;>> when Int>0 ->
-%	    ExtensionList=read_chunk_ext_name(Data, State, [],[]),
-%	    read_chunk_data(Data, State, Int+1,ExtensionList);
-%	<<$;>> when Int==0 ->
-%	    ExtensionList=read_chunk_ext_name(Data, State, [],[]),
-%	    read_data_lf(),
 	<<?CR>> when Int>0 ->
 	    read_chunk_data(Data, State, Int+3, Acc+1);
 	<<?CR>> when Int==0, size(Data) == 3 -> %% should be the end of transfer
-            Cookie  = concat_cookies((State#state_rcv.session)#http.cookie,
-                                     State#state_rcv.dyndata),
             ?DebugF("Finish tranfer chunk ~p~n", [binary_to_list(Data)]),
             {State#state_rcv{session= #http{}, ack_done = true,
-                             datasize = Acc, %% FIXME: is it the correct size?
-                             dyndata= Cookie}, []};
+                             datasize = Acc %% FIXME: is it the correct size?
+                            }, []};
 	<<?CR>> when Int==0, size(Data) < 3 ->  % lack ?CRLF, continue 
             { State#state_rcv{acc =  <<48, ?CR, ?LF>> }, [] };
 	<<C>> when C==$ -> % Some servers (e.g., Apache 1.3.6) throw in
@@ -366,15 +361,12 @@ read_chunk_data(Data, State=#state_rcv{acc=[]}, Int, Acc) when size(Data) > Int-
     read_chunk(Rest, State,  0, Int + Acc);
 read_chunk_data(Data, State=#state_rcv{acc=[]}, Int, Acc) -> % not enough data in buffer
     BodySize = size(Data),
-    Cookie  = concat_cookies((State#state_rcv.session)#http.cookie,
-                             State#state_rcv.dyndata),
     ?DebugF("Partial chunk received (~p/~p)~n", [BodySize,Int]),
     NewHttp = (State#state_rcv.session)#http{chunk_toread   = Int-BodySize,
 											 body_size      = BodySize + Acc},
     {State#state_rcv{session  = NewHttp,
 					 ack_done = false, % continue to read data
-                     datasize = BodySize + Acc,
-                     dyndata  = Cookie},[]};
+                     datasize = BodySize + Acc},[]};
 read_chunk_data(Data, State=#state_rcv{acc=Acc}, Int, AccSize) ->
     ?DebugF("Accumulated data = [~p]~n", [Acc]),
     NewData = <<Acc/binary, Data/binary>>,
@@ -405,9 +397,12 @@ splitcookie([Char|Rest],Cur,Acc)->splitcookie(Rest, [Char|Cur], Acc).
 %% Purpose: add new cookies to a list of old ones. If the keys already
 %%          exists, replace with the new ones
 %%----------------------------------------------------------------------
-concat_cookies([],  CookiesList) -> CookiesList;
+concat_cookies(New,  DynData=#http_dyndata{cookies=Cookies}) ->
+    NewCookies = concat_cookies(New,  Cookies),
+    DynData#http_dyndata{cookies=NewCookies};
+concat_cookies([],  DynData) -> DynData;
 concat_cookies(New, []) -> New;
-concat_cookies([New=#cookie{}| Rest], OldCookies) ->
+concat_cookies([New=#cookie{}|Rest], OldCookies)->
     case lists:keysearch(New#cookie.key, #cookie.key, OldCookies) of
         {value, OldVal} ->
             ?DebugF("Reset key ~p with new value ~p~n",[New#cookie.key,

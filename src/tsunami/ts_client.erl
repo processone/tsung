@@ -110,7 +110,7 @@ init({Session=#session{id            = Profile,
 	ts_utils:init_seed(),
     {ServerName, Port, Protocol} = get_server_cfg({Profile,1}),
 	?DebugF("Get dynparams for ~p  ~n",[CType]),
-	Dyndata = CType:init_dynparams(),
+	DynData = CType:init_dynparams(),
     % open connection
 	Opts = protocol_options(Protocol) ++ [{ip, IP}],
 	?DebugF("Got first message, connect to ~p with options ~p ~n",
@@ -125,7 +125,8 @@ init({Session=#session{id            = Profile,
                                        ServerName,
                                        ?config(tcp_timeout), 
                                        PType,
-                                       ?config(monitoring)}) of 
+                                       ?config(monitoring),
+                                       DynData }) of 
 				{ok, Pid} ->
 					?Debug("rcv server started ~n"),
 					controlling_process(Protocol, Socket, Pid),
@@ -144,7 +145,7 @@ init({Session=#session{id            = Profile,
 								count      = Count,
 								ip         = IP,
 								maxcount   = Count,
-								dyndata    = Dyndata
+								dyndata    = DynData
                                }};
 				{error, Reason} ->
 					?LOGF("Can't start rcv process ~p~n", [Reason],?ERR),

@@ -37,6 +37,12 @@
           soap_action % for SOAP support
          }).
 
+-record(http_dyndata, 
+        { cookies=[], % HTTP Cookies
+          match,     % match regexp if defined
+          response_re=[]  % regexp used to get values from response
+         }).
+
 -record(url,
 	{scheme,          %% http, https, ...
 	 host, 

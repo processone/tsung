@@ -75,13 +75,13 @@ parse_config(Element, Conf) ->
 %% Purpose: add dynamic parameters to build the message
 %%          this is used for ex. for Cookies in HTTP
 %%----------------------------------------------------------------------
-add_dynparams([],Param, Host) ->
+add_dynparams(#http_dyndata{cookies=[]},Param, Host) ->
 	Param#http_request{server_name=Host};
-add_dynparams(DynData, Param, Host) ->
+add_dynparams(#http_dyndata{cookies=DynData}, Param, Host) ->
 	Param#http_request{cookie=DynData,server_name=Host}.
 
 init_dynparams() ->
-	[].
+	#http_dyndata{}.
 
 
 %%----------------------------------------------------------------------
