@@ -120,9 +120,7 @@ handle_call({accepted, Tag, ClientSock}, From, State) ->
             ?LOGF("Failed to launch new client ~p~n",[Error],?ERR),
             gen_tcp:close(ClientSock)
     end,
-    
     NumCnx = State#state.accept_count,
-
     {reply, continue, State#state{accept_count=NumCnx+1}};
 
 handle_call({accept_error, Tag, Error}, From, State) ->
@@ -191,28 +189,15 @@ code_change(OldVsn, State, Extra) ->
 %%   and returns the new state. If the instance is already active, do
 %%   nothing.
 %%--------------------------------------------------------------------
-
 activate(State)->
     case State#state.acceptsock of
 	undefined ->
-%	    Config=State#state.config,
-%	    {ok,Portno}=Config(portno),
-%	    {ok,Certfile}=Config(certfile),
-%	    {ok,Keyfile}=Config(keyfile),
-%	    {ok, ServerSock} = ssl:listen(Portno, [{packet, 0},
-%						   {active, once},
-%						% { reuseaddr, 1 },
-%						   {certfile,Certfile},
-%						   {keyfile,Keyfile},
-%						   {verify, 0}]),
 	    Portno=?config(proxy_listen_port),
 	    {ok, ServerSock} = gen_tcp:listen(Portno,
                                           [{packet, 0},
                                            {reuseaddr, true},
                                            {active, once}
-                                           %% { reuseaddr, 1 },
                                           ]),
-    
 	    NewState = State#state
 			 {acceptsock=ServerSock,
 			  acceptloop_pid = spawn_link(?MODULE,
@@ -229,7 +214,6 @@ activate(State)->
 %%          to the gen_server proper.
 %% Returns: only returns by throwing an exception
 %%--------------------------------------------------------------------
-
 accept_loop(PPid, Tag, ServerSock)->
     case
         case gen_tcp:accept(ServerSock) of
@@ -245,7 +229,6 @@ accept_loop(PPid, Tag, ServerSock)->
         _->
             normal
     end.
-
 
 %% Local Variables:
 %% tab-width:4
