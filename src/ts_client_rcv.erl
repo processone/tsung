@@ -93,14 +93,26 @@ handle_cast({wait_ack, Ack, When, EndPage, Socket, Protocol}, State) ->
 		_ -> %page already started
 			NewPageTimestamp = State#state_rcv.page_timestamp
 	end,
-	{noreply, State#state_rcv{ack=Ack,
-							  socket=Socket,
-							  ack_done=false,
-							  endpage=EndPage,
-							  ack_timestamp= When,
-							  protocol= Protocol,
-							  page_timestamp = NewPageTimestamp}};
-
+    case Ack of 
+        no_ack -> % don't wait for incoming data, ack now
+            NewState=State#state_rcv{ ack_done = true,
+                                      ack = Ack,
+                                      endpage=EndPage,
+                                      ack_timestamp = When,
+                                      page_timestamp = NewPageTimestamp},
+            PageTimeStamp = update_stats(NewState, false),
+            {noreply, NewState#state_rcv{ page_timestamp = PageTimeStamp,
+                                          endpage = false}};
+        _ ->
+            {noreply, State#state_rcv{ack=Ack,
+                                      socket=Socket,
+                                      ack_done=false,
+                                      endpage=EndPage,
+                                      ack_timestamp= When,
+                                      protocol= Protocol,
+                                      page_timestamp = NewPageTimestamp}}
+    end;
+        
 handle_cast({stop}, State) ->
 	{stop, normal, State};
 
@@ -254,13 +266,15 @@ update_stats(State, Close) ->
 
 %%----------------------------------------------------------------------
 %% Func: doack/3 
-%% Args: parse|local|global, Pid, DynData
+%% Args: parse|local|no_ack|global, Pid, DynData
 %% Purpose: warn the sending process that the request is over
 %%----------------------------------------------------------------------
 doack(parse, Pid, DynData, Close) ->
 	ts_client:next({Pid, DynData, Close});
-doack(local, Pid, DynData,Close) ->
-	ts_client:next({Pid, DynData});
+doack(local, Pid, DynData, Close) ->
+	ts_client:next({Pid, DynData, Close});
+doack(no_ack, Pid, DynData, Close) ->
+	ts_client:next({Pid, DynData, Close});
 doack(global, Pid, DynData,Close) ->
 	ts_timer:connected(Pid).
 

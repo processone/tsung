@@ -27,14 +27,14 @@
 -behaviour(gen_fsm).
 
 %% Puropose:
-%%  gen_fsm with 2 states:  receiver, ack
+%%  gen_fsm with 3 states:  receiver, ack, initialize
 %%  External events: connected
 
 %% External exports
--export([start/1, connected/1]).
+-export([start/1, connected/1, config/1]).
 
 %% gen_fsm callbacks
--export([init/1, receiver/2, ack/2, handle_event/3,
+-export([init/1, initialize/2, receiver/2, ack/2, handle_event/3,
 		 handle_sync_event/4, handle_info/3, terminate/3]).
 
 -record(state, {nclient, pidlist = []}).
@@ -45,6 +45,10 @@
 start(NClients) ->
 	?LOG("starting fsm timer",?INFO),
 	gen_fsm:start_link({global, ?MODULE}, ?MODULE, [NClients], []).
+
+config(NClients) ->
+	?LOG("Configure fsm timer",?INFO),
+	gen_fsm:send_event({global, ?MODULE}, {config, NClients}).
 
 connected(Pid) ->
 	gen_fsm:send_event({global, ?MODULE}, {connected, Pid}).
@@ -60,9 +64,9 @@ connected(Pid) ->
 %%          ignore                              |
 %%          {stop, StopReason}                   
 %%----------------------------------------------------------------------
-init([NClients]) ->
+init(Args) ->
 	?LOG("starting timer",?INFO),
-	{ok, receiver, #state{nclient= NClients}}.
+	{ok, initialize, #state{}}.
 
 %%----------------------------------------------------------------------
 %% Func: StateName/2
@@ -70,6 +74,10 @@ init([NClients]) ->
 %%          {next_state, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}                         
 %%----------------------------------------------------------------------
+%% now all the clients are connected, let's start to ack them
+initialize({config, Val}, State) ->
+	{next_state, receiver, State#state{nclient=Val}}.
+
 
 %% now all the clients are connected, let's start to ack them
 receiver({connected, Pid}, #state{pidlist=List, nclient=0}) ->
@@ -90,7 +98,7 @@ ack(timeout, #state{pidlist=[]}) ->
 
 %% ack all pids
 ack(timeout, #state{pidlist=L}) ->
-	lists:foreach(fun(A)->ts_client:next(A) end, L),
+	lists:foreach(fun(A)->ts_client:next({A}) end, L),
 	{next_state, receiver, #state{pidlist=[]}}.
 												
 

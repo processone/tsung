@@ -17,7 +17,7 @@
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 %%% 
 
--module(jabber_common).
+-module(ts_jabber_common).
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
@@ -40,12 +40,16 @@ get_message(#jabber{type = 'close'}) ->
 get_message(#jabber{type = 'presence'}) ->
     presence();
 
+get_message(Jabber=#jabber{id=Id}) when is_integer(Id)->
+    get_message(Jabber#jabber{id=integer_to_list(Id)});
 get_message(Jabber=#jabber{username = Name, passwd= Passwd, id=Id}) ->
     FullName = Name ++ Id,
     FullPasswd = Passwd ++ Id,
 	get_message2(Jabber#jabber{username=FullName,passwd=FullPasswd}).
 get_message2(Jabber=#jabber{type = 'register'}) ->
     registration(Jabber);
+get_message2(Jabber=#jabber{type = 'presence:roster',dest=previous,id=Id}) ->
+    presence(roster, Jabber#jabber{dest=Id}); %% ??? FIXME
 get_message2(Jabber=#jabber{type = 'presence:roster'}) ->
     presence(roster, Jabber);
 get_message2(Jabber=#jabber{type = 'authenticate', id = Id}) ->
@@ -119,14 +123,14 @@ message(Dest, Jabber, Service) when is_integer(Dest) ->
 	message(integer_to_list(Dest),Jabber, Service);
 message(Dest, #jabber{size=Size, username=Username}, Service) when is_integer(Size) ->
     list_to_binary([
-	  "<message id='",ts_msg_server:get_id(list), "' to='",
-	  Username,Dest, "@", Service,
-	  "'><body>",garbage(Size), "</body></message>"]).
+                    "<message id='",ts_msg_server:get_id(list), "' to='",
+                    Username, Dest, "@", Service,
+                    "'><body>",garbage(Size), "</body></message>"]).
 
 %% generate list of given size. implement by duplicating list of
 %% length 10 to be faster
 garbage(Size) when Size > 10->
-	Msg= lists:duplicate(Size/10,"0123456789"),
+	Msg= lists:duplicate(Size div 10,"0123456789"),
 	case Size rem 10 of
 		0->
 			Msg;
@@ -134,7 +138,7 @@ garbage(Size) when Size > 10->
 			lists:append(Msg,garbage(Rest))
 	end;
 garbage(Size)->
-	lists:duplicate(Size/10,"a").
+	lists:duplicate(Size rem 10,"a").
 	
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -144,10 +148,12 @@ garbage(Size)->
 
 %% presence
 presence() -> 
-	list_to_binary([ "<presence id='",ts_msg_server:get_id(),"' />"]).
+	list_to_binary([ "<presence id='",ts_msg_server:get_id(list),"' />"]).
 
+presence(roster, Jabber=#jabber{dest=Dest}) when is_integer(Dest)->
+    presence(roster, Jabber#jabber{dest=integer_to_list(Dest)}) ;
 presence(roster, #jabber{dest=Dest, domain=Domain, username=UserName})->
-    DestName = UserName ++ integer_to_list(Dest),
+    DestName = UserName ++ Dest,
     list_to_binary([
 	  "<presence id='",ts_msg_server:get_id(list),
 	  "' to='", DestName, "@" , Domain,
@@ -157,10 +163,12 @@ presence(roster, #jabber{dest=Dest, domain=Domain, username=UserName})->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%              <iq>
 
+request(roster_set, UserName, Domain, Id) when is_integer(Id)->
+    request(roster_set, UserName, Domain, integer_to_list(Id));
 request(roster_set, UserName, Domain, Id)->
-	Name = UserName ++ integer_to_list(Id),
+	Name = UserName ++ Id,
 	list_to_binary([
-		"<iq id='" ,integer_to_list(ts_msg_server:get_id(list)),
+		"<iq id='" ,ts_msg_server:get_id(list),
 		"' type='set'>","<query xmlns='jabber:iq:roster'><item jid='",
 		Name,"@",Domain,
 		"' name='gg1000'/></query></iq>"]);
@@ -196,19 +204,20 @@ get_random_params(Intensity, N, Size, Type) when is_integer(N), N >= 0 ->
 parse_config(Element = #xmlElement{name=jabber}, 
              Config=#config{curid= Id, session_tab = Tab,
                             sessions = [CurS |SList]}) ->
-    Type  = ts_config:getAttr(Element#xmlElement.attributes, type, "chat"),
+    TypeStr  = ts_config:getAttr(Element#xmlElement.attributes, type, "chat"),
     AckStr  = ts_config:getAttr(Element#xmlElement.attributes, ack, "no_ack"),
-    DestStr= ts_config:getAttr(Element#xmlElement.attributes, destination,"undefined"),
+    DestStr= ts_config:getAttr(Element#xmlElement.attributes, destination,"random"),
     SizeStr= ts_config:getAttr(Element#xmlElement.attributes, size,"0"),
-    {ok, [{integer,1,Size}],1} = erl_scan:string(SizeStr),
-    {ok, [{atom,1,Dest}],1} = erl_scan:string(DestStr),
-    {ok, [{atom,1,Ack}],1} = erl_scan:string(AckStr),
+    Type= list_to_atom(TypeStr),
+    Size= list_to_integer(SizeStr),
+    Dest= list_to_atom(DestStr),
+    Ack = list_to_atom(AckStr),
 
-	Domain=ts_config:get_default(Tab, jabber_domain_name, jabber_domain),
+	Domain  =ts_config:get_default(Tab, jabber_domain_name, jabber_domain),
 	UserName=ts_config:get_default(Tab, jabber_username, jabber_username),
-	Passwd=ts_config:get_default(Tab, jabber_passwd, jabber_passwd),
+	Passwd  =ts_config:get_default(Tab, jabber_passwd, jabber_passwd),
 
-	Msg=#message{ack   = AckStr,
+	Msg=#message{ack   = Ack,
 				 param = #jabber{domain = Domain,
 								username = UserName,
 								passwd = Passwd,
@@ -226,13 +235,23 @@ parse_config(Element = #xmlElement{name=default}, Conf = #config{session_tab = T
     case ts_config:getAttr(Element#xmlElement.attributes, name) of
         "username" ->
             Val = ts_config:getAttr(Element#xmlElement.attributes, value),
-            ets:insert(Tab,{{jabber_username, value}, Val});
+            ets:insert(Tab,{{jabber_username,value}, Val});
         "passwd" ->
             Val = ts_config:getAttr(Element#xmlElement.attributes, value),
-            ets:insert(Tab,{{jabber_passwd, value}, Val});
+            ets:insert(Tab,{{jabber_passwd,value}, Val});
         "domain" ->
             Val = ts_config:getAttr(Element#xmlElement.attributes, value),
-            ets:insert(Tab,{{jabber_domain_name, value}, Val})
+            ets:insert(Tab,{{jabber_domain_name,value}, Val});
+        "global_number" ->
+            Val = ts_config:getAttr(Element#xmlElement.attributes, value),
+            {ok, [{integer,1,N}],1} = erl_scan:string(Val),
+            ts_timer:config(N),
+            ets:insert(Tab,{{jabber_global_number, value}, N});
+        "userid_max" ->
+            Val = ts_config:getAttr(Element#xmlElement.attributes, value),
+            {ok, [{integer,1,N}],1} = erl_scan:string(Val),
+            ts_user_server:reset(N),
+            ets:insert(Tab,{{jabber_userid_max,value}, N})
     end,
     lists:foldl( fun(A,B) -> ts_config:parse(A,B) end, Conf, Element#xmlElement.content);
 %% Parsing other elements

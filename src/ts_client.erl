@@ -82,6 +82,9 @@ close(Pid) ->
 %% Func: next/1
 %% Purpose: continue with the next request
 %%----------------------------------------------------------------------
+next({Pid}) ->
+	gen_fsm:send_event(Pid, {next_msg});
+
 next({Pid, DynData}) ->
 	gen_fsm:send_event(Pid, {next_msg, DynData});
 
@@ -187,6 +190,9 @@ handle_sync_event(Event, From, StateName, StateData) ->
 %%          {next_state, NextStateName, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
+wait_ack({next_msg}, State) ->
+	?DebugF("next_msg, count is ~p~n", [State#state.count]),
+    handle_next_action(State);
 wait_ack({next_msg, DynData}, State) ->
 	?DebugF("next_msg, count is ~p~n", [State#state.count]),
     NewState = State#state{dyndata=DynData},
@@ -469,16 +475,6 @@ handle_close_while_sending(State) ->
 set_profile(MaxCount, Count, ProfileId) when is_integer(ProfileId) ->
     ts_session_cache:get_req(ProfileId, MaxCount-Count+1).
      
-%%----------------------------------------------------------------------
-%% Func: new_timeout/3
-%% Args: Type, Count, Thinktime
-%% Puropose: If we need to ack the message, we have to wait first the
-%% acknoledgement from the receiving process, therefore, set infinite timeout
-%% ----------------------------------------------------------------------
-new_timeout(no_ack, Count, Thinktime) -> Thinktime;
-new_timeout(_Else,  0,     Thinktime) -> Thinktime; % last message, don't wait
-new_timeout(_Else, _Count, Thinktime) -> infinity.
-
 %%----------------------------------------------------------------------
 %% Func: reconnect/4
 %% Returns: {Socket   }          |

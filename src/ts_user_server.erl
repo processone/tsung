@@ -25,15 +25,13 @@
 -include("ts_profile.hrl").
 
 %%-compile(export_all).
--export([reset/3, 
+-export([reset/1, 
 	 get_id/0,
 	 get_idle/0,
 	 get_offline/0,
-	 add_to_connected/1,
+%	 add_to_connected/1,
 	 remove_connected/1,
 	 get_one_connected/1,
-	 connect_first/0,
-	 disconnect_first/0,
 	 get_first/0]).
 
 -behaviour(gen_server).
@@ -44,25 +42,29 @@
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
--record(state, {list_offline, list_user, list_connected, first_client, free_users}).
+-record(state, {offline,      %ets table 
+                online,    %ets table
+                first_client, % id (integer)
+                userid_max    % max number of ids (starts at 1)
+                }).
 
 
 %%%----------------------------------------------------------------------
 %%% API
 %%%----------------------------------------------------------------------
-start([NDeb, NFin, NClients]) ->
-	?LOGF("Starting with args ~p ~n",[[NDeb, NFin, NClients]],?INFO),
-    gen_server:start_link({global, ?MODULE}, ?MODULE, {NDeb, NFin, NClients}, []).
+start(Args) ->
+	?LOGF("Starting with args ~p ~n",[Args],?INFO),
+    gen_server:start_link({global, ?MODULE}, ?MODULE, Args, []).
 
-reset(NDeb, NFin, NClients)->
-    gen_server:call({global, ?MODULE}, {reset, NDeb, NFin, NClients}).
+reset(NFin)->
+    gen_server:call({global, ?MODULE}, {reset, NFin}).
 
 get_id()->
     gen_server:call({global, ?MODULE }, get_id).
 
+%% get an idle id, and add it to the connected table
 get_idle()->
     gen_server:call({global, ?MODULE}, get_idle).
-
 
 get_one_connected(Id)->
     gen_server:call({global, ?MODULE}, {get_one_connected, Id}). 
@@ -71,22 +73,11 @@ get_offline()->
     gen_server:call({global, ?MODULE}, get_offline).
 
 
-add_to_connected(Id)->
-    gen_server:call({global, ?MODULE}, {add_to_connected, Id}). 
-
-
-connect_first()->
-    gen_server:call({global, ?MODULE}, connect_first).
-
-disconnect_first()->
-    gen_server:call({global, ?MODULE}, disconnect_first).
-
-
 get_first()->
     gen_server:call({global, ?MODULE}, get_first).
 
 remove_connected(Id)->
-    gen_server:call({global, ?MODULE}, {remove_connected, Id}). 
+    gen_server:cast({global, ?MODULE}, {remove_connected, Id}). 
 
 stop()->
     gen_server:call({global, ?MODULE}, stop).
@@ -102,22 +93,10 @@ stop()->
 %%          ignore               |
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
-init({NDeb, NFin, NClients}) when  NFin =< NDeb->
-	?LOGF("Bad interval ! ~p is not < ~p~n",[NDeb, NFin],?ERR),
-	{stop, badinterval}	;
-
-init({NDeb, NFin, NClients}) ->
+init(Args) ->
     ts_utils:init_seed(),
-
-    {Offline, [H|T]} = build_clients({NDeb, NFin}, NClients+1),
-	Free= length(T),
-	?LOGF("ok, started with ~p free users~n",[Free], ?INFO),
-    State = #state{list_user = T, 
-		   list_offline = Offline,
-		   list_connected = [],
-		   free_users = Free,
-		   first_client= {H, not_connected}},
-    {ok, State}.
+	?LOG("ok, started with unconfigured~n", ?INFO),
+    {ok, #state{}}.
 
 
 %%----------------------------------------------------------------------
@@ -132,79 +111,63 @@ init({NDeb, NFin, NClients}) ->
 
 %%Get one id in the full list of potential users
 handle_call(get_id, From, State) ->
-    List = State#state.list_user ++ State#state.list_connected ++ State#state.list_offline,
-    Indice = random:uniform( length(List) ) ,
-    Element = lists:nth(Indice, List),
-    {reply, Element, State};
+    Key = random:uniform( State#state.userid_max ) +1,
+    {reply, Key, State};
 
 %%Get one id in the users whos have to be connected
-handle_call(get_idle, From, State) ->
-    case State#state.free_users of
-		0 ->
-			?LOG("No more free users ! ~n", ?WARN),
-			{reply, [], State};
-		_Other ->
-			[Element | NewList] = State#state.list_user,
-			
-			State2 = State#state{list_user = NewList,
-								 free_users = State#state.free_users -1,
-								 list_connected = [Element | State#state.list_connected]},
-			{reply, Element, State2}
+handle_call(get_idle, From, State=#state{offline=Offline,online=Online}) ->
+    case ets:first(Offline) of 
+        '$end_of_table' ->
+			?LOG("No more free users !~n", ?WARN),
+            {reply, {error, no_free_userid}, State};
+        Key ->
+            ets:delete(Offline, Key),
+            ets:insert(Online, {Key,1}),
+            case State#state.first_client of 
+                undefined ->
+                    {reply, Key, State#state{first_client=Key}};
+                Id ->
+                    {reply, Key, State}
+            end
     end;
 
 %%Get one offline id 
-handle_call(get_offline, From, State) ->
-    Indice = random:uniform( length(State#state.list_offline) ) ,
-    Element = lists:nth(Indice, State#state.list_offline),
-    {reply, Element, State};
+handle_call(get_offline, From, State=#state{offline=Offline,online=Online}) ->
+    case ets:first(Offline) of 
+        '$end_of_table' ->
+            {reply, {error, no_offline}, State};
+        Key ->
+            {reply, Key, State}
+    end;
 
 
 handle_call(get_first, From, State) ->
     {reply, State#state.first_client, State};
 
-handle_call(connect_first, From, State) ->
-    {Id, Status} = State#state.first_client,
-    State2 = State#state{ first_client = {Id, connected} },
+handle_call({reset, NFin}, From, State) ->
+    Offline = ets:new(offline,[set, private]),
+    Online  = ets:new(online, [set, private]),
+
+    fill_offline(NFin, Offline),
+    State2 = #state{offline=Offline, first_client = undefined,
+                    online =Online, userid_max=NFin},
     {reply, ok, State2};
-
-handle_call(disconnect_first, From, State) ->
-    {Id, Status} = State#state.first_client,
-    State2 = State#state{ first_client = {Id, not_connected} },
-    {reply, ok, State2};
-
-handle_call({reset, NDeb, NFin, NClients}, From, State) ->
-    {Offline, [H|T]} = build_clients({NDeb, NFin}, NClients+1),
-    State2 = #state{list_user = T, 
-		   list_offline = Offline,
-		   free_users = length(T),
-		   list_connected = [],
-		   first_client= {H, not_connected}},
-    {reply, ok, State2};
-
-
-handle_call({remove_connected, Id}, From, State) ->
-    State2 = State#state{list_connected = lists:delete(Id, State#state.list_connected),
-						 free_users = State#state.free_users + 1,
-						 list_user = [Id | State#state.list_user]},
-    {reply, ok, State2};
-
 
 %%% Get a connected id different from 'Id'
-handle_call( {get_one_connected, Id}, From, State) ->
-    ?DebugF("free_users=~w, connected= ~w~n",
-				[State#state.free_users, State#state.list_connected]),
-	%% First remove Id from the connected list
-    Connected = lists:delete(Id, State#state.list_connected),
-    case {State#state.free_users, length(Connected)} of
-		{0,0} ->
-			{reply, undefined, State};
-		{_, Length} ->
-			Indice = random:uniform(Length+State#state.free_users) ,
-			List = State#state.list_user ++ Connected,
-			{reply, lists:nth(Indice, List), State}
+handle_call( {get_one_connected, Id}, From, State=#state{offline=Offline,online=Online}) ->
+    case ets:first(Online) of
+        '$end_of_table' ->
+            {reply, {error, no_online}, State};
+        Id ->
+            case ets:next(Online, Id) of
+                '$end_of_table' ->
+                    {reply, {error, no_online}, State};
+                Key ->
+                    {reply, Key, State}
+            end;
+        Key2 ->
+            {reply, Key2, State}
     end;
-
-
     
 handle_call(stop, From, State)->
     {stop, normal, ok, State}.
@@ -216,6 +179,11 @@ handle_call(stop, From, State)->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
+handle_cast({remove_connected, Id}, State=#state{offline=Offline,online=Online}) ->
+    ets:delete(Online, Id),
+    ets:insert(Offline, {Id,2}),
+    {noreply, State};
+
 handle_cast(Msg, State) ->
     {noreply, State}.
 
@@ -247,7 +215,11 @@ code_change(OldVsn, State, Extra) ->
 %%%----------------------------------------------------------------------
 %%% Internal functions
 %%%----------------------------------------------------------------------
-
+fill_offline(0, Tab)->
+    ok;
+fill_offline(N, Tab) when is_integer(N) ->
+    ets:insert(Tab,{N, 0}),
+    fill_offline(N-1, Tab).
 %%%----------------------------------------------------------------------
 %%% Return two lists:
 %%% A list of N id's between NDeb and Nfin
