@@ -293,7 +293,7 @@ handle_info(timeout, State ) ->
 				  [self(), Reason], ?ERR),
             CountName="send_err_"++atom_to_list(Reason),
 			ts_mon:addcount({ list_to_atom(CountName) }),
-			{stop, Reason, State};
+			{stop, Reason, State}
 	end.
 
 
