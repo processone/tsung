@@ -144,9 +144,9 @@ matchdomain_url(Cookie, Host, URL) -> % return a cookie only if domain match
 %% Purpose: parse a request defined in the XML config file
 %%----------------------------------------------------------------------
 parse_config(Element = #xmlElement{name=http}, 
-             Config=#config{curid= Id, session_tab = Tab,
+             Config=#config{curid = Id, session_tab = Tab,
                             sessions = [CurS |SList],
-							subst = SubstFlag}) ->
+							subst    = SubstFlag}) ->
     Version  = ts_config:getAttr(Element#xmlElement.attributes, version),
     URL      = ts_config:getAttr(Element#xmlElement.attributes, url),
     Contents = ts_config:getAttr(Element#xmlElement.attributes, contents),
@@ -174,12 +174,12 @@ parse_config(Element = #xmlElement{name=http},
     Request2 = case lists:keysearch(soap,#xmlElement.name,
 				    Element#xmlElement.content) of
               {value, SoapEl=#xmlElement{} } ->
-		  SOAPAction  = ts_config:getAttr(SoapEl#xmlElement.attributes,
-                                              action, []),
-                  Request#http_request{soap_action=SOAPAction};
-              _ -> 
-                  Request
-          end,
+                       SOAPAction  = ts_config:getAttr(SoapEl#xmlElement.attributes,
+                                                       action, []),
+                       Request#http_request{soap_action=SOAPAction};
+                   _ -> 
+                       Request
+               end,
     Msg = case lists:keysearch(www_authenticate,#xmlElement.name,
                                Element#xmlElement.content) of
               {value, AuthEl=#xmlElement{} } ->
