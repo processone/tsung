@@ -81,6 +81,11 @@
     xmerl-0.15 should work, but the notation <tag/> is not supported
     by this version (use instead the full <tag></tag> notation)
 
+  - extended regexp module: gregexp.erl available at
+     http://www.cellicium.com/erlang/contribs/ . The module is
+     included in the source and binary distribution of
+     IDX-Tsunami. It is released under the EPL Licence.
+
   - gnuplot and perl5 (optional; for graphical output with
     analyse_msg.pl script).  The Template Toolkit is used for HTML
     reports (see http://template-toolkit.org/)
