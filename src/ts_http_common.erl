@@ -217,7 +217,7 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 
 %% FIXME: handle the case where the Headers are not complete in the first message
 %% current connection
-parse(Data, State) when (State#state_rcv.session)#http.chunk_toread >0 ->
+parse(Data, State) when (State#state_rcv.session)#http.chunk_toread >=0 ->
     Http = State#state_rcv.session,
     ChunkSizePending = Http#http.chunk_toread,
     BodySize = Http#http.body_size,
@@ -268,7 +268,7 @@ parse_chunked(undefined, Data, State, Cookie) ->
     ts_mon:addcount({ http_no_content_length }),
     { State#state_rcv{session=#http{}, ack_done=true, datasize=0 } , [] };
 parse_chunked("chunked", <<CRLF:4/binary,Body/binary>>, State, Cookie)->
-    ?LOGF("Chunked tranfer encoding, datasize=~p~n", [size(Body)] ,?DEB),
+    ?LOGF("Chunked transfer encoding, datasize=~p~n", [size(Body)] ,?DEB),
     read_chunk(Body, State, Cookie, 0, 0);
 parse_chunked(Transfer, Data, State, Cookie) ->
     ?LOGF("Unknown transfer type ! ~p~n",[Transfer], ?WARN),
@@ -312,7 +312,7 @@ read_chunk(<<Char:1/binary, Data/binary>>, State, Cookie, Int, Acc) ->
 	    read_chunk(Data, State, Cookie, Int, Acc+1);
 	_Other ->
             ?LOGF("Unexpected error while parsing chunk ~p~n", [_Other] ,?DEB),
-			ts_mon:count({http_unexpected_chunkdata}),
+			ts_mon:addcount({http_unexpected_chunkdata}),
             {State#state_rcv{session= #http{}, ack_done = true}, []}
     end.
 
@@ -321,12 +321,13 @@ read_chunk(<<Char:1/binary, Data/binary>>, State, Cookie, Int, Acc) ->
 %% Purpose: read 'Int' bytes of data
 %% Returns: {NewState= record(state_rcv), SockOpts}
 %%----------------------------------------------------------------------
-read_chunk_data(Data, State, Cookie,Int, Acc) when size(Data) >= Int->
-    ?LOGF("Read Chunked of size ~p~n", [Int] ,?DEB),
+read_chunk_data(Data, State, Cookie,Int, Acc) when size(Data) > Int->
+    ?LOGF("Read ~p bytes of chunk with size = ~p~n", [Int, size(Data)] ,?DEB),
     <<NewData:Int/binary, Rest/binary >> = Data,
     read_chunk(Rest, State, Cookie, 0, Int + Acc);
 read_chunk_data(Data, State, Cookie,Int, Acc) -> % not enough data in buffer
     BodySize = size(Data),
+    ?LOGF("Partial chunk received (~p/~p)~n", [BodySize,Int] ,?DEB),
     Http = #http{chunk_toread   = Int-BodySize,
                  status         = 200, % we don't care, it has already been logged
                  body_size      = BodySize + Acc},
