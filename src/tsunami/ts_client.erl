@@ -199,7 +199,7 @@ handle_info({ssl, Socket, Data}, think, State = #state_rcv{request=Req} ) when R
     {next_state, think, State#state_rcv{socket=NewSocket}};
 handle_info(Msg, StateName, State ) ->
     ?LOGF("Error: Unknown msg ~p receive in state ~p, stop~n", [Msg,StateName], ?ERR),
-    ts_mon:add({ count, unknown_msg }),
+    ts_mon:add({ count, error_unknown_msg }),
     {stop, normal, State}.
 
 %%--------------------------------------------------------------------

@@ -48,6 +48,7 @@ GetOptions( "help",\$help,
 &version if $version;
 
 my $match =0;
+my $errors =0;
 my $maxval;
 my $category;
 
@@ -209,6 +210,8 @@ sub parse_stats_file {
                 $category->{$type} = "transaction";
             } elsif ($type eq "size") {
                 $category->{$type} = "network";
+            } elsif ($type =~ /^error/) {
+                $category->{$type} = "error";
             } elsif ($type =~ /match/) {
                 $match = 1;
                 $category->{$type} = "match";
@@ -236,6 +239,7 @@ sub parse_stats_file {
         }
     }
 	my @time;
+	my @errors;
 	my @tps;
 	my @code;
     my %extra_info = ();
@@ -281,6 +285,8 @@ sub parse_stats_file {
 			push @users_rate, "$key.txt";
 		} elsif ($key =~ /match/) {
 			push @match, "$key.txt";
+		} elsif ($key =~ /^error/) {
+			push @errors, "$key.txt";
 		} elsif ($key =~ /request$/ or $key eq "connect") {
 			push @tps, "$key.txt";
 		} elsif ($key =~ /^tr_/ or $key eq "page") {
@@ -302,6 +308,7 @@ sub parse_stats_file {
 	plot_stats(\@col,"Transactions",undef,\@transactions,["rate/sec","msec"],$logy) if $plot;
 	plot_stats(\@colcount,"Match",undef,\@match,["rate/sec","rate/sec"],$logy) if $plot;
 	plot_stats(\@colcount,"Event",undef,\@time,["rate/sec","msec"],$logy) if $plot;
+	plot_stats(\@colcount,"Errors",undef,\@errors,["rate/sec","total"],$logy) if $plot;
 	plot_stats(\@colusers,"Users",undef,\@users,["connected users", "total"],$logy) if $plot;
 	plot_stats(\@colcount,"Users_Arrival",undef,\@users_rate,["number of users/sec", "total"],$logy) if $plot;
 	plot_stats(\@colcount,"Size",undef,\@size,["Kbits/sec","total Kbits"],$logy) if $plot;
@@ -315,13 +322,14 @@ sub parse_stats_file {
         }
     }
     $extra=0 if (scalar keys %extra_info == 0 ); # no extra information available
+    $errors=1 unless (scalar @errors == 0 ); # no extra information available
 }
 
 sub html_report {
     require Template;
     my $titre     = 'IDX-Tsunami ';
     my $version   = $tagvsn;
-    my $contact   = "idx-tsunami\@IDEALX.com";
+    my $contact   = "nicolas\@niclux.org";
     my $output   = 'index.html';
 
     my $tt = Template->new({
@@ -347,6 +355,7 @@ sub html_report {
         {
          version     => $version,
          os_mon      => $extra,
+         errors      => $errors,
          title       => $titre,
          http        => $http,
          stats_subtitle => "Stats Report ",
@@ -361,6 +370,7 @@ sub html_report {
         {
          version     => $version,
          os_mon      => $extra,
+         errors      => $errors,
          http        => $http,
          match       => $match,
          title       => $titre,

@@ -90,6 +90,9 @@
         [% IF http %]
         <li><a href="report.html#http_status">HTTP status</a></li>
         [% END %]
+        [% IF errors %]
+        <li><a href="report.html#errors">Errors</a></li>
+        [% END %]
       </ul>
 
       <h2><a class="subtitle" href="graph.html">[% graph_subtitle %]</a></h2>
@@ -102,6 +105,9 @@
         [% END %]
         [% IF http %]
         <li><a href="graph.html#http_status">HTTP status</a></li>
+        [% END %]
+        [% IF errors %]
+        <li><a href="graph.html#errors">Errors</a></li>
         [% END %]
      </ul>
         [% IF conf %]
