@@ -24,6 +24,9 @@
 
 					 {server_name, "glop"},
 
+					 {thinktime_value, "5"}, % default value = 5sec
+					 {thinktime_override, "false"},
+					 {thinktime_random, "false"},
 					 {dumpstats_interval, 10000},
 					 {dump, none},          %% full or light or none
 					 {stats_backend, none}, %% text|rrdtool

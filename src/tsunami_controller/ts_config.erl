@@ -314,10 +314,13 @@ parse(Element = #xmlElement{name=default},
             case getAttr(Element#xmlElement.attributes, name) of
                 "thinktime" ->
                     Val = getAttr(Element#xmlElement.attributes, value),
-                    {ok, [{integer,1,IThink}],1} = erl_scan:string(Val),
-                    ets:insert(Tab,{{thinktime, value}, IThink}),
-                    Random = getAttr(Element#xmlElement.attributes, random),
+                    ets:insert(Tab,{{thinktime, value}, Val}),
+                    Random = getAttr(Element#xmlElement.attributes, random,
+                                     ?config(thinktime_random)),
                     ets:insert(Tab,{{thinktime, random}, Random}),
+                    Override = getAttr(Element#xmlElement.attributes, override,
+                                       ?config(thinktime_override)),
+                    ets:insert(Tab,{{thinktime, override}, Override}),
                     lists:foldl( fun parse/2, Conf, Element#xmlElement.content);
                 "ssl_ciphers" ->
                     Cipher = getAttr(Element#xmlElement.attributes, value, negociate),
@@ -337,25 +340,23 @@ parse(Element = #xmlElement{name=default},
 parse(Element = #xmlElement{name=thinktime},
       Conf = #config{cur_req_id=ReqId, curid=Id, session_tab = Tab, 
                      sessions = [CurS |SList]}) ->
-    case ets:lookup(Tab,{thinktime, value}) of 
-        [] -> % no default value
-            StrThink = getAttr(Element#xmlElement.attributes, value,"0"),
-			{ok, [{integer,1,Think}],1} = erl_scan:string(StrThink),
-            Randomize = case getAttr(Element#xmlElement.attributes, random) of
-                            "true" -> true;
-                            _      -> false
-                        end;
-        [{_Key, Think}] ->
-            Randomize = case ets:lookup(Tab,{thinktime, random}) of 
-                            [{_K, "true"}] -> true;
-                            _              -> false
-                        end
-    end,
+    DefThink = get_default(Tab,{thinktime, value},thinktime_value),
+    DefRandom = get_default(Tab,{thinktime, random},thinktime_random),
+    {StrThink, Randomize} = 
+        case get_default(Tab,{thinktime, override},thinktime_override) of
+            "true" -> 
+                {DefThink, DefRandom};
+            "false" ->
+                CurThink = getAttr(Element#xmlElement.attributes, value,DefThink),
+                CurRandom=getAttr(Element#xmlElement.attributes,random,DefRandom),
+                {CurThink, CurRandom}
+        end,
+    {ok, [{integer,1,Think}],1} = erl_scan:string(StrThink),
+                         
     RealThink = case Randomize of
-                    true ->
+                    "true" ->
 						{random, Think * 1000};
-%                        round(ts_stats:exponential(1/(Think*1000)));
-                    false ->
+                    "false" ->
                         round(Think * 1000)
                 end,
     ?LOGF("New thinktime ~p for id (~p:~p)~n",[RealThink, CurS#session.id, Id+1],
@@ -366,7 +367,6 @@ parse(Element = #xmlElement{name=thinktime},
     
     lists:foldl( fun parse/2, Conf#config{curthink=Think,curid=Id+1}, 
                  Element#xmlElement.content);
-
 
 %% Parsing other elements
 parse(Element = #xmlElement{}, Conf = #config{}) ->
@@ -418,12 +418,16 @@ build_list(String) -> build_list(String, "%").
 build_list(String, Sep) ->
     string:tokens(String, Sep).
 
-%%
+%%%----------------------------------------------------------------------
+%%% Function: get_default/2
+%%%----------------------------------------------------------------------
+get_default(Tab, Key,ConfigName) when not is_tuple(Key) ->
+    get_default(Tab, {Key, value},ConfigName);
 get_default(Tab, Key,ConfigName) ->
-    case ets:lookup(Tab,{Key, value}) of 
+    case ets:lookup(Tab,Key) of 
 		[] ->
 			?config(ConfigName);
-		[{_Key, SName}] ->
+		[{_, SName}] ->
 			SName
 	end.
 
@@ -446,4 +450,3 @@ mark_prev_req(Id, Tab, CurS) ->
 			mark_prev_req(Id-1, Tab, CurS);
 		_ -> ok
 	end.
-

@@ -46,9 +46,10 @@
     <users interarrival="2" unit="second"></users>
   </arrivalphase>
 
-  <!-- default values. These values overrides those set in the session
-  nodes. If random is true -->
-  <default name="thinktime" value="3" random="false"></default>
+  <!-- default values. 
+  <!-- Thinktime value overrides those set in the session
+  nodes if override=true. -->
+  <default name="thinktime" value="3" random="false" override="false"></default>
   <!-- to set specific ssl_ciphers -->
   <default name="ssl_ciphers" value="EXP1024-RC4-SHA,EDH-RSA-DES-CBC3-SHA"></default>
 
