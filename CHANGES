@@ -1,3 +1,25 @@
+1.0.beta4 ->
+    - fix remote start: log filename is now encoded to avoid bad
+      parsing of log_file by 'erl'
+    Patches from mickael.remond@erlang-fr.org :
+    - Added ~/.idx-tsunami creation in idx-tsunami script if the directory
+      does not already exist
+    - Extension of XML attribute entity normalisation
+    - HTTP: fix Cookie support: Cookie are not necessarily separated by "; " 
+    - HTTP: fix long POST request in the recorder: dorecord message
+     was missing enclosing curly brackets, and the body length counter
+     were mistakenly taking the header size in its total
+    - HTTP: Content-type support in the recorder (needed to handle
+     non-HTML form encoded posts)
+    - add autoconf support to detect Erlang installation path
+    - SOAP Support: IDX-Tsunami can now record and replay SOAP HTTP
+      scenario. The SOAPAction HTTP header is now recorded
+    - Preliminary Windows support: A workaround has been introduced in
+      the code to handle behaviour difference between Erlang Un*x and
+      Erlang Windows on how the command-line is handled. When an
+      assumtion is made on the string type of a parameter, it should be
+      check that this is actually a string and not an atom.
+
 1.0.beta3 -> 1.0.beta4:  Minor bugfixes (16 Mar 2004)
     - fix lost cookie when transfer-encoding:chunked is used
     - fix config parsing (the last request of the last page of a
