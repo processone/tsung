@@ -259,9 +259,11 @@ parse(Element = #xmlElement{name=transaction},
 %%% Parsing the dyn_variable element
 parse(Element = #xmlElement{name=dyn_variable},
       Conf=#config{sessions=[CurS|SList],dynvar=DynVar}) ->
-    RegExp  = getAttr(Element#xmlElement.attributes, regexp),
     StrName  = getAttr(Element#xmlElement.attributes, name),
+    DefaultRegExp = "name=(\"|')"++ StrName ++"(\"|') +value=(\"|')\\([^\"]+\\)(\"|')",
+    RegExp  = getAttr(Element#xmlElement.attributes, regexp, DefaultRegExp),
     {ok, [{atom,1,Name}],1} = erl_scan:string(StrName),
+    ?LOGF("Add new regexp: ~s ~n", [RegExp],?INFO),
     %% precompilation of the regexp
     {ok, RegExpStr} = gregexp:parse(lists:flatten(RegExp)),
     NewDynVar = case DynVar of 
