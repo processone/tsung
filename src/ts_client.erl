@@ -46,7 +46,8 @@
 				timestamp,  % previous message date
 				starttime,  % date of the beginning of the session
 				dyndata =[],    % dynamic data (only used by parsing clients)
-				count       % number of requests waiting to be sent
+				count,      % number of requests waiting to be sent
+				monitor     % type of monitoring
 			   }).
 
 %%%----------------------------------------------------------------------
@@ -55,11 +56,11 @@
 
 %% Start a new session 
 start(Opts) ->
-	?PRINTDEBUG("Starting with opts: ~p~n",[Opts],?DEB),
+	?LOGF("Starting with opts: ~p~n",[Opts],?DEB),
 %	fprof:start(),
 %	Res = fprof:trace(start, "/tmp/tsunami.fprof"),
-%	?PRINTDEBUG("starting profiler: ~p~n",[Res], ?WARN),
-	gen_server:start(?MODULE, Opts, []).
+%	?LOGF("starting profiler: ~p~n",[Res], ?WARN),
+	gen_server:start_link(?MODULE, Opts, []).
 
 %% stop the session 
 close(Pid) ->
@@ -83,24 +84,24 @@ next({Pid, DynData}) ->
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
 init([Profile, {CType, PType, static, Persistent}]) ->
-	?PRINTDEBUG2("Init ... static~n",?DEB),
+	?LOG("Init ... static~n",?DEB),
 	init([Profile, {CType, PType, static, Persistent}], length(Profile));
 
 init([Profile, {CType, PType, dynamic, Persistent}]) ->
-	?PRINTDEBUG2("Init ... dynamic~n",?DEB),
+	?LOG("Init ... dynamic~n",?DEB),
 	random:seed(),
 	init([Profile, {CType, PType, static, Persistent}],
-		 ?messages_number + length(Profile) - 1);
+		 ?config(messages_number) + length(Profile) - 1);
 
 init(Args) ->
-	?PRINTDEBUG("Init ... with unknown args ~p~n",[Args],?DEB).
+	?LOGF("Init ... with unknown args ~p~n",[Args], ?DEB).
 	
 
 init([Profile, {CType, PType, MType, Persistent}], Count) ->
-	?PRINTDEBUG("Init ... started with count = ~p  ~n",[Count],?DEB),
+	?LOGF("Init ... started with count = ~p  ~n",[Count],?DEB),
 	%%init seed
 %    random:seed(ts_utils:init_seed()),
-%	?PRINTDEBUG2("seed OK  ~n",?DEB),
+%	?LOG("seed OK  ~n",?DEB),
 
     {ServerName, Port, Protocol} = ts_profile:get_server(), % get server profile
     % open connection
@@ -113,11 +114,11 @@ init([Profile, {CType, PType, MType, Persistent}], Count) ->
 									CType, self(),
 									Socket,
 									Protocol,
-									?tcp_timeout, 
-									?messages_ack,
-									?monitoring}) of 
+									?config(tcp_timeout), 
+									?config(messages_ack),
+									?config(monitoring)}) of 
 				{ok, Pid} ->
-					?PRINTDEBUG2("rcv server started ~n",?DEB),
+					?LOG("rcv server started ~n",?DEB),
 					controlling_process(Protocol, Socket, Pid),
 					Connected = now(),
 					Elapsed = ts_utils:elapsed(StartTime, Connected),
@@ -129,14 +130,15 @@ init([Profile, {CType, PType, MType, Persistent}], Count) ->
 								clienttype = CType, mestype = MType,
 								persistent = Persistent,
 								starttime = StartTime,
+								monitor = ?config(monitoring),
 								count = Count}, ?short_timeout};
 				{error, Reason} ->
-					?PRINTDEBUG("Can't start rcv process ~p~n",
+					?LOGF("Can't start rcv process ~p~n",
 								[Reason],?ERR),
 					{stop, Reason}
 			end;
 		{error, Reason} ->
-			?PRINTDEBUG("Connect Error: ~p~n",[Reason],?ERR),
+			?LOGF("Connect Error: ~p~n",[Reason],?ERR),
 			ts_mon:addcount({ Reason }),
 			{stop, connfailed}
     end.
@@ -162,16 +164,16 @@ handle_call(Request, From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
 handle_cast({next_msg}, State = #state{lasttimeout = infinity}) ->
-	?PRINTDEBUG("next_msg, count is ~p~n", [State#state.count], ?DEB),
+	?LOGF("next_msg, count is ~p~n", [State#state.count], ?DEB),
 	{noreply, State#state{lasttimeout=1}, ?short_timeout};
 handle_cast({next_msg}, State) ->
-	?PRINTDEBUG2("next_msg (infinite timeout)",?DEB),
+	?LOG("next_msg (infinite timeout)",?DEB),
 	{noreply, State, State#state.lasttimeout};
 handle_cast({next_msg, DynData}, State = #state{lasttimeout = infinity}) ->
-	?PRINTDEBUG("next_msg, count is ~p~n", [State#state.count], ?DEB),
+	?LOGF("next_msg, count is ~p~n", [State#state.count], ?DEB),
 	{noreply, State#state{lasttimeout=1, dyndata=DynData}, ?short_timeout};
 handle_cast({next_msg, DynData}, State) ->
-	?PRINTDEBUG2("next_msg (infinite timeout)",?DEB),
+	?LOG("next_msg (infinite timeout)",?DEB),
 	{noreply, State#state{dyndata=DynData}, State#state.lasttimeout};
 %% more case to handle ?
 
@@ -181,11 +183,12 @@ handle_cast({add_messages, Messages}, State) ->
 	OldProfile = State#state.profile,
 	OldCount = State#state.count,
 	{noreply, State#state{profile = Messages ++ OldProfile, 
-						  count = OldCount + length(Messages)}, ?short_timeout};
+						  count = OldCount + length(Messages)},
+	 ?short_timeout};
 
 %% the connexion was closed, but this session is persistent
 handle_cast({closed, Pid}, State = #state{persistent = true}) ->
-	?PRINTDEBUG2("connection closed, stay alive (persistent)",?DEB),
+	?LOG("connection closed, stay alive (persistent)",?DEB),
 	%% TODO: set the timeout correctly ?
 	case State#state.lasttimeout of 
 		infinity ->
@@ -197,10 +200,11 @@ handle_cast({closed, Pid}, State = #state{persistent = true}) ->
 	end,
 	if 
 		ThinkTime > 0 ->
-			?PRINTDEBUG("setting new thinktime to: ~p~n!",[ThinkTime], ?DEB),
+			?LOGF("setting new thinktime to: ~p~n!", [ThinkTime], ?DEB),
 			{noreply,  State#state{socket = none}, ThinkTime};
 		true ->
-			?PRINTDEBUG("negative thinktime after connexion closed ~p:~p~n!",[State#state.lasttimeout, Elapsed/1000], ?WARN),
+			?LOGF("negative thinktime after connexion closed ~p:~p~n!",
+				  [State#state.lasttimeout, Elapsed/1000], ?WARN),
 			{noreply,  State#state{socket = none}, ?short_timeout}
 	end;
 %% the connexion was closed, stop
@@ -249,26 +253,25 @@ handle_info(timeout, State ) ->
     Timeout = new_timeout(Profile#message.ack, Count, Thinktime),
     case send(Protocol, Socket, Message) of
 		ok -> 
-			ts_mon:sendmes({State#state_rcv.monitor, self(), Message}),
+			ts_mon:sendmes({State#state.monitor, self(), Message}),
 			{noreply, State#state{socket= Socket, count = Count,
 								  profile = Pending,
 								  timestamp = Now,
 								  lasttimeout = Thinktime},
 			 Timeout}; 
 		{error, closed} -> 
-			?PRINTDEBUG2("connection close while sending message !~n.",  ?WARN),
+			?LOG("connection close while sending message !~n.", ?WARN),
 			case State#state.persistent of 
 				true ->
-					RetryTimeout = ?client_retry_timeout,
+					RetryTimeout = ?config(client_retry_timeout),
 					{noreply, State#state{lasttimeout=RetryTimeout}, 
 					 RetryTimeout}; % try again in 10ms
 				_ ->
 					{stop, closed, State}
 			end;
 		{error, Reason} -> 
-			?PRINTDEBUG(
-			   "Error: Unable to send data from process ~p, reason: ~p~n.", 
-			   [self(), Reason],?ERR),
+			?LOGF("Error: Unable to send data from process ~p, reason: ~p~n.",
+				  [self(), Reason], ?ERR),
 			ts_mon:addcount({ Reason }),
 			{stop, Reason, State}
 	end.
@@ -280,7 +283,7 @@ handle_info(timeout, State ) ->
 %% Returns: any (ignored by gen_server)
 %%----------------------------------------------------------------------
 terminate(Reason, State) ->
-	?PRINTDEBUG("Stop, reason= ~p~n",[Reason],?INFO),
+	?LOGF("Stop, reason= ~p~n",[Reason],?INFO),
 	Now = now(),
 	Elapsed = ts_utils:elapsed(State#state.starttime, Now),
 	ts_mon:endclient({self(), Now}),
@@ -325,7 +328,7 @@ new_timeout(_Else, _Count, Thinktime) -> infinity.
 %% purpose: try to reconnect if this is needed (when the socket is set to none)
 %%----------------------------------------------------------------------
 reconnect(none, ServerName, Port, Protocol, Pid) ->
-	?PRINTDEBUG("Try to reconnect to: ~p (~p)~n",[ServerName, Pid], ?DEB),
+	?LOGF("Try to reconnect to: ~p (~p)~n",[ServerName, Pid], ?DEB),
 	Opts = protocol_options(Protocol),
     case Protocol:connect(ServerName, Port, Opts) of
 		{ok, Socket} -> 
@@ -333,7 +336,7 @@ reconnect(none, ServerName, Port, Protocol, Pid) ->
 			ts_mon:addcount({ reconnect }),
 			Socket;
 		{error, Reason} ->
-			?PRINTDEBUG("Error: ~p~n",[Reason],?ERR),
+			?LOGF("Error: ~p~n",[Reason],?ERR),
 			ts_mon:addcount({ failedreconnect }),
 			{stop, connfailed}
     end;
@@ -371,21 +374,21 @@ controlling_process(gen_udp,Socket,Pid) ->
 protocol_options(ssl) ->
 	[binary, 
 	 {active, once},
-	 {ciphers, ?ssl_ciphers}
+	 {ciphers, ?config(ssl_ciphers)}
 	];
 protocol_options(gen_tcp) ->
 	[binary, 
 	 {active, once},
 %	 {packet, http}, % for testing purpose
-	 {recbuf, ?rcv_size},
-	 {sndbuf, ?snd_size},
+	 {recbuf, ?config(rcv_size)},
+	 {sndbuf, ?config(snd_size)},
 	 {keepalive, true}
 	];
 protocol_options(gen_udp) ->
 	[binary, 
 	 {active, once},
-	 {recbuf, ?rcv_size},
-	 {sndbuf, ?snd_size},
+	 {recbuf, ?config(rcv_size)},
+	 {sndbuf, ?config(snd_size)},
 	 {keepalive, true}
 	].
 	
