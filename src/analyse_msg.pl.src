@@ -50,6 +50,7 @@ GetOptions( "help",\$help,
 &version if $version;
 
 
+my $gnuplot = "gnuplot > gnuplot.log 2>&1";
 my $debut = 0;
 my $fin = 0;
 my $online = 0;
@@ -193,7 +194,7 @@ sub plot {
 	print "\n";
 
 	close GP;
-	system("gnuplot graphes-$fic.gplot")
+	system("$gnuplot graphes-$fic.gplot")
 }
 
 
@@ -243,7 +244,15 @@ sub plot_stats {
 		print "\n"; # plot done
 	}
 	close GP;
-	system("gnuplot graphes-$datatype.gplot");
+	system("$gnuplot graphes-$datatype.gplot");
+}
+
+sub max {
+	my $value   = shift;
+	my $oldvalue= shift;
+	return $value unless $oldvalue;
+	return $value if $oldvalue < $value;
+	return $oldvalue;
 }
 
 sub parse_stats_file {
@@ -251,18 +260,37 @@ sub parse_stats_file {
 	my $data;
 	my $timestamp;
 	my $first_timestamp =0;
+	my $interval;
+
+	my $maxval ;
 	open (FILE,"<$file") or die "Can't open $file $!";
 	while (<FILE>) {
 		if (/^stats: (\w+)\s+(.*)$/) {
 			my $type = $1;
 			my $values = $2;
+			my ($rate,$mean) = split(/\s+/,$values);
+			if ($interval) {
+				$rate /= $interval;
+				$maxval->{'rate'}->{$type} = &max($rate, $maxval->{'rate'}->{$type});
+				$maxval->{'mean'}->{$type} = &max($mean, $maxval->{'mean'}->{$type});
+			}
 			push @{$data->{$type}}, $timestamp . " ". $values;
 		} elsif (/^\# stats:\s+dump at\s+(\d+)/) {
 			$first_timestamp= $1 unless $first_timestamp;
+			$interval = ($timestamp) ? $timestamp : 0; # keep previous value
 			$timestamp = $1 - $first_timestamp;
+			$interval = $timestamp-$interval;
 		}
 	}
 	close FILE;
+	foreach my $key (sort keys %{$maxval->{'rate'}}) {
+		if ($key =~ /\d+/ or $key eq 'size') {
+			printf "Total $key = %7.2f\n", $maxval->{'mean'}->{$key};
+		} else {
+			printf "Mean  $key (max sample) = %7.2f\n", $maxval->{'mean'}->{$key};
+		}
+		printf "Rate  $key (max sample) = %7.2f\n",$maxval->{'rate'}->{$key};
+	}
 	my @time;
 	my @code;
 	my @connect;
