@@ -55,7 +55,10 @@ init([]) ->
 	Launcher = {ts_launcher, {ts_launcher, 
 								 start, [[?config(nclients),?clients_intensity]]}, 
 				transient, 2000, worker, [ts_launcher]},
-    {ok,{{one_for_one,?retries,10}, [ClientsSup, Launcher]}}.
+	SessionCache = {ts_session_cache, {ts_session_cache, 
+								 start, []}, 
+				transient, 2000, worker, [ts_session_cache]},
+    {ok,{{one_for_one,?retries,10}, [SessionCache, ClientsSup, Launcher ]}}.
 
 %%%----------------------------------------------------------------------
 %%% Internal functions

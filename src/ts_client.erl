@@ -109,7 +109,7 @@ init([Profile, {CType, PType, MType, Persistent}], Count) ->
 	%%init seed
 %    random:seed(ts_utils:init_seed()),
 %	?LOG("seed OK  ~n",?DEB),
-    case ts_req_server:get_req(Profile, 1) of 
+    case ts_session_cache:get_req(Profile, 1) of 
         #message{host=undefined, port= undefined, scheme= undefined} ->
             ?LOG("Server not configured in msg, get global conf ~n",?DEB),
             {ServerName, Port, Protocol} = ts_profile:get_server(); % get global server profile
@@ -353,7 +353,7 @@ terminate(Reason, State) ->
 %%----------------------------------------------------------------------
 %% static message, get the thinktime from profile
 set_profile(MaxCount, Count, ProfileId) when integer(ProfileId) ->
-    set_profile(MaxCount, Count, ts_req_server:get_req(ProfileId, MaxCount-Count+1));
+    set_profile(MaxCount, Count, ts_session_cache:get_req(ProfileId, MaxCount-Count+1));
 set_profile(MaxCount, Count, Profile=#message{type = static}) ->
     {Profile#message.thinktime, Profile };
 %% dynamic message, last message
@@ -377,7 +377,7 @@ new_timeout(_Else, _Count, Thinktime) -> infinity.
 %%          {stop, Reason}
 %% purpose: try to reconnect if this is needed (when the socket is set to none)
 %%----------------------------------------------------------------------
-reconnect(none, ServerName, Port, Protocol, Pid) ->
+reconnect(none, ServerName, Port, Protocol, IP, Pid) ->
 	?LOGF("Try to reconnect to: ~p (~p)~n",[ServerName, Pid], ?DEB),
 	Opts = protocol_options(Protocol),
     case Protocol:connect(ServerName, Port, Opts) of

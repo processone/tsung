@@ -4,6 +4,7 @@
        {modules,      [
 					   tsunami,
 					   ts_launcher,
+					   ts_session_cache,
 					   ts_client,
 					   ts_client_rcv,
 					   ts_client_sup,
@@ -13,7 +14,8 @@
 					   ts_profile
 					  ]},
        {registered,   [
-					   ts_launcher
+					   ts_launcher,
+					   ts_session_cache
 					  ]},
 	   {env,		[        
 					 {debug_level, 2},
