@@ -212,7 +212,7 @@ sub stop {
 	my @hostnames;
 	foreach my $host (@hosts) {
 		if ($host =~ /localhost/) { # erlang beam use the real name, not localhost
-			$host = `hostname`;
+			$host = `hostname -f`;
 			chomp $host;
 		}
 		push @hostnames, $host;
@@ -223,7 +223,14 @@ sub stop {
 
 sub stopcontrol {
 	my @args = ("tsunami_controller");
-	my @hostnames = ("$config{'controller'}");
+	my @hostnames;
+	if ($config{'controller'} eq "localhost") {
+		my $host = `hostname -f`;
+		chomp $host;
+		@hostnames = ($host);
+	} else {
+		@hostnames = ("$config{'controller'}");
+	}
 	&rpc_node(1,"application","stop",\@args,\@hostnames,"controller");
 }
 
@@ -282,7 +289,7 @@ type `idx-tsunami.pl --version` for details.\n";
 	print "\n";
 	print "options: [--start]  start clients\n";
     print "       : [--restart] start only tsunami controller\n";
-    print "       : [--stop]   stop clients\n";
+    print "       : [--stop]   stop tsunami clients\n";
     print "       : [--stopcontrol]   stop tsunami controller only \n";
     print "       : [--config] only generate config files\n";
     print "       : [-h]       help\n";
