@@ -32,6 +32,7 @@
 		 http_get_ifmodsince/3,
 		 http_post/4,
 		 parse/2,
+		 parse_URL/1,
 		 protocol_headers/1
 		]).
 
@@ -302,3 +303,37 @@ parse_cookie(ParsedHeader) ->
 
 
 
+% parse host
+parse_URL("https://" ++ String) ->
+    parse_URL(host, String, [], #url{scheme=https});
+parse_URL("http://" ++ String) ->
+    parse_URL(host, String, [], #url{scheme=http}).
+
+%%----------------------------------------------------------------------
+%% Func: parse_URL/4 (inspired by yaws_api.erl)
+%% Returns: #url record
+%% Purpose: parse a URL (surprise !)
+%%----------------------------------------------------------------------
+% parse host
+parse_URL(host, [], Acc, URL) -> % no path or port
+    URL#url{host=lists:reverse(Acc), path= "/"};
+parse_URL(host, [$/|Tail], Acc, URL) -> % path starts here
+    parse_URL(path, Tail, [], URL#url{host=lists:reverse(Acc)});
+parse_URL(host, [$:|Tail], Acc, URL) -> % port starts here
+    parse_URL(port, Tail, [], URL#url{host=lists:reverse(Acc)});
+parse_URL(host, [H|Tail], Acc, URL) ->
+    parse_URL(host, Tail, [H|Acc], URL);
+% parse port
+parse_URL(port,[], Acc, URL) ->
+    URL#url{port=list_to_integer(lists:reverse(Acc)), path= "/"};
+parse_URL(port,[$/|T], Acc, URL) ->
+    parse_URL(path, T, "/", URL#url{port=list_to_integer(lists:reverse(Acc))});
+parse_URL(port,[H|T], Acc, URL) ->
+    parse_URL(port, T, [H|Acc], URL);
+% parse path
+parse_URL(path,[], Acc, URL) ->
+    URL#url{path=lists:reverse(Acc)};
+parse_URL(path,[$?|T], Acc, URL) ->
+    URL#url{path=lists:reverse(Acc), querypart=T};
+parse_URL(path,[H|T], Acc, URL) ->
+    parse_URL(path, T, [H|Acc], URL).
