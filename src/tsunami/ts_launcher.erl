@@ -257,7 +257,7 @@ check_max_raised(State=#state{phases=Phases,maxusers=Max,nusers=Users,
     ActiveClients =  ts_client_sup:active_clients(),
     case ActiveClients >= Max of
         true ->
-            ?LOG("Max number of clients reached, must start a new beam~n", ?NOTICE),
+            ?LOG("Max number of concurrent clients reached, must start a new beam~n", ?NOTICE),
             Args = case Users of 
                        0 ->  Phases;
                        _ -> [{Intensity,Users-1}|Phases]
