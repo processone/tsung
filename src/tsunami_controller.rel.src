@@ -1,6 +1,6 @@
-{release, {"tsunami_controller", "%VSN%"}, {erts, "5.2"},
+{release, {"tsunami_controller", "%VSN%"}, {erts, "5.3"},
  [{tsunami_controller,"%VSN%"},
   {tsunami,"%VSN%"},
-  {kernel,"2.8.0"},
-  {ssl,"2.3.5"},
-  {stdlib,"1.11.0"}]}.
+  {kernel,"2.9"},
+  {ssl,"3.0.1"},
+  {stdlib,"1.12"}]}.
