@@ -61,7 +61,7 @@
   détermine le taux d'arrivée des clients sur le système (ie. le
   nombre de clients arrivant sur le système -- démarrant leur session -- par
   unité de temps). Plusieurs phases peuvent être définies pour un
-  tests, chaque phase injectant des utilisateur à un taux donné.
+  tests, chaque phase injectant des utilisateurs à un taux donné.
 
   Dans l'implémentation actuelle, la taux d'arrivée des clients et le
   temps entre message d'un même client ("think time") sont modélisés
@@ -69,8 +69,12 @@
   d'arrivée est un processus de Poisson).
 
   Le trafic peut être "dumpé" dans un fichier, afin de pouvoir
-  effectuer toutes sortes de calculs (temps de réponse) après coup
-  (option 'umptrafic' dans le fichier de configuration XML)
+  effectuer toutes sortes d'analyse après coup (option 'dumptrafic'
+  dans le fichier de configuration XML). Attention, cette option peux
+  ralentir considérablement les injecteurs en cas de très forte
+  charge.
+
+  Voir également le site  http://tsunami.idealx.org/
 
   2.  Installation
 
@@ -78,7 +82,13 @@
   
   - nécessite Erlang/OTP R9C-0 (http://www.erlang.org/download.html)
 
-  - xmerl-0.19 (http://sowap.sourceforge.net/download.html)
+  - xmerl-0.19 (http://sowap.sourceforge.net/download.html). Un paque
+    debian binaire est disponible à l'adresse 
+    http://tsunami.idealx.org/dist/
+
+    xmerl-0.15 devrait fonctionner, mais la notation <tag/> n'est pas
+    supporté par cette version de xmerl (il faut utiliser à la place
+    la notation <tag></tag> )
 
   - gnuplot et perl5 (optionel, utilisé pour les sorties graphiques du script 
     analyse_msg.pl)
@@ -90,25 +100,21 @@
   2.2.  Compilation et Installation
 
   Éditer les fichiers Makefile si vous voulez changer le chemin par
-  défaut (/usr/local/idx-tsunami/).
-
-  Éditer src/tsunami.rel.src si votre version d'Erlang n'est pas R9C-0 
-  (les numéros de version des modules erts, kernel, stdlib et ssl sont
-  différents d'une version d'Erlang à l'autre).
+  défaut (/usr/lib/erlang/ ...).
 
   make
   make install
 
   Comment l'utiliser:
-    1a/ Éditer le fichier etc/idx-tsunami.xml (toutes les options sont
-    décrites en commentaires dans le fichier d'exemple
-    etc/idx-tsunami_default.xml).
+    1a/ Éditer un fichier ~/.idx-tsunami/idx-tsunami.xml (toutes les
+    options sont décrites en commentaires dans le fichier d'exemple
+    /usr/share/doc/idx-tsunami/examples/idx-tsunami.xml).
 
     1b/ Lire le fichier doc/Jabber.txt pour des informations spécifiques à 
     Jabber.
 
     2/ utilisez le script "idx-tsunami --start" pour démarrer le 
-    test de charge.
+    test de charge (man idx-tsunami pour avoir les options disponibles)
 
     3/ Lorsque c'est terminé (idx-tsunami --stop pour forcer l'arrêt), le
     script analyse_msg.pl génère une synthèse des temps de réponses;
@@ -150,7 +156,7 @@
 
   2.3.  Problèmes/Bugs
  
-    Envoyez vos questions/rapports de bugs à  nicolas.niclausse@IDEALX.com
+    Envoyez vos questions/rapports de bugs à nicolas.niclausse@IDEALX.com
  
   2.4.  Portabilité
 

@@ -61,11 +61,13 @@
   (therefore, the arrival process is a Poisson process). The thinktime
   can also be fixed (determinist).
 
-  The traffic can be logged to a file andthis file can be analyzed by
+  The traffic can be logged to a file and this file can be analyzed by
   scripts to get useful measurements of responses time. 
 
   Since v0.2.0, these stats are also be computed in real-time. A
   script is provided to print  graphics using gnuplot.
+
+  For a list of features, see http://tsunami.idealx.org/features.en.html
 
   2.  Getting Things Installed
 
@@ -90,20 +92,18 @@
   (/usr/lib/erlang/... by default for beam files). Default
   configuration and log files are  saved in ~/.idx-tsunami/ )
 
-  Edit src/tsunami.rel.src and src/tsunami_controller.rel.src if your
-  Erlang version is not R9C-0 and set erts, kernel, ssl and stdlib
-  version according to your Erlang distribution.
-
   make
   make install
 
   How to use it:
-    1a/ Edit $prefix/etc/idx-tsunami.xml file (read the comments for explanation
-        on the parameters, there is a sample file etc/idx-tsunami_default.xml) 
+    1a/ Edit ~/.idx-tsunami/idx-tsunami.xml file (read the comments
+    for explanation on the parameters, there is a sample file
+     /usr/share/doc/idx-tsunami/examples/idx-tsunami.xml)
 
     1b/ Read the doc/Jabber.txt file for Jabber-specific information.
 
-    2/ use "idx-tsunami start" to launch the simulated clients.
+    2/ use "idx-tsunami start" to launch the simulated clients (man
+    idx-tsunami for available options)
 
     3/ When it's finished, or during the test, you can use analyse_msg.pl to get
        statistical results from the logfile.
@@ -139,7 +139,7 @@
 
   2.3.  Problems/Bugs
  
-  Submit bug reports/ask questions to  nicolas.niclausse@IDEALX.com
+  Submit bug reports/ask questions to nicolas.niclausse@IDEALX.com
  
   2.4.  Platform Issues
 

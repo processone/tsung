@@ -1,4 +1,11 @@
-0.2.1 -> 1.0.beta1:  Major Feature Enhancements (3 Jan 2004)
+1.0.beta1 ->  1.0.beta2:  Minor feature enhancements (11 Feb 2004)
+    - reorganise the sources 
+    - add tools to build a debian package
+    - fix documentations
+    - add minimalistic man page
+    - syntax change: GETIMS +date replace by GET +'if_modified_since'
+
+0.2.1 -> 1.0.beta1:  Major Feature Enhancements (3 Feb 2004)
     - rewrite the configuration engine. Now use an XML file.
     - add recording application: use as a HTTP proxy to record session into XML
       format
