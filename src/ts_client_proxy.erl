@@ -38,20 +38,22 @@
 -include("ts_http.hrl").
 
 -define(lifetime, 120000).
+-define(tcp_buffer, 65536).
 
 %%--------------------------------------------------------------------
 %% External exports
 -export([start/1]).
 
 %% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
+		 code_change/3]).
 
 -record(state, {
           clientsock,
-          parse_status=new, %% http status = body|new|headers
-          body_size=0,
-          content_length=0,
-          buffer=[],
+          parse_status   = new, %% http status = body|new
+          body_size      = 0,
+          content_length = 0,
+          buffer = [],
           serversock
           }).
 %%====================================================================
@@ -160,7 +162,6 @@ handle_info({ssl_closed, Socket}, State) ->
     ?LOG("socket closed by client~n",?INFO),
     {stop, normal, ?lifetime};
 
-	
 % Log properly who caused an error, and exit.
 handle_info({tcp_error, Socket, Reason}, State) ->
     ?LOGF("error on socket ~p ~p~n",[Socket,Reason],?ERR),
@@ -374,8 +375,8 @@ connect(Scheme, Host, Port)->
         http  -> 
             {ok, Socket} = gen_tcp:connect(Host,Port,
                                            [{active, once},
-                                            {recbuf, 65536},
-                                            {sndbuf, 65536}
+                                            {recbuf, ?tcp_buffer},
+                                            {sndbuf, ?tcp_buffer}
                                            ])
     end.
 
