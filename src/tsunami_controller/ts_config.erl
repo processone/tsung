@@ -262,7 +262,8 @@ parse(Element = #xmlElement{name=dyn_variable},
     RegExp  = getAttr(Element#xmlElement.attributes, regexp),
     StrName  = getAttr(Element#xmlElement.attributes, name),
     {ok, [{atom,1,Name}],1} = erl_scan:string(StrName),
-    {ok, RegExpStr} =gregexp:parse(lists:flatten(RegExp)),
+    %% precompilation of the regexp
+    {ok, RegExpStr} = gregexp:parse(lists:flatten(RegExp)),
     NewDynVar = case DynVar of 
                     undefined ->[{Name, RegExpStr}];
                     _->[{Name, RegExpStr}|DynVar]
@@ -280,12 +281,17 @@ parse(Element = #xmlElement{name=request},
     SubstitutionFlag  = getAttr(Element#xmlElement.attributes, subst, false),
     MatchRegExp  = getAttr(Element#xmlElement.attributes, match, undefined),
 
+    %% we must parse dyn_variable before; unfortunately, there is no
+    %% lists:keysort with Fun. FIXME: this will not work if a protocol
+    %% name is sorted before 'dyn_variable'
+    SortedContent = lists:keysort(#xmlElement.name, Element#xmlElement.content),
+
     lists:foldl( fun(A,B) ->Type:parse_config(A,B) end,
                  Conf#config{curid=Id+1, cur_req_id=Id+1,
                              subst=SubstitutionFlag,
                              match=MatchRegExp
                             },
-                 Element#xmlElement.content);
+                 SortedContent);
 
 %%% Parsing the default element
 parse(Element = #xmlElement{name=default},
@@ -428,4 +434,3 @@ mark_prev_req(Id, Tab, CurS) ->
 		_ -> ok
 	end.
 
-	
