@@ -1,0 +1,410 @@
+#!/usr/bin/perl -w
+#
+#  This code was developped by IDEALX (http://IDEALX.org/) and
+#  contributors (their names can be found in the CONTRIBUTORS file).
+#  Copyright (C) 2000-2001 IDEALX
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
+
+# Version: $Id$
+
+# purpose: quick and dirty ugly hack to compute stats and plots graph
+# given a (set of) log file(s)  from the benchmark tool.
+
+
+# offline_send : time between <message>.....MESSAGE OFFLINE
+# offline_rcv :  time between <presence>....<message type='offline'>
+# deconnexion :  time between </stream:stream>......</stream:stream>
+# roster : durée de réception presence (y compris à travers le stockage offline -> pas représentatif et potentiellement très long)
+# error : time to receive an error notification
+# auth: time for authentication <iq auth>....<iq result>
+# online: time for message transmission
+
+use strict;
+use Getopt::Long;
+use vars qw ($help @files $verbose $debug $plot $version);
+my $tagvsn = '%VSN%';
+
+GetOptions( "help",\$help,
+			"verbose",\$verbose,
+			"debug",\$debug,
+			"version",\$version,
+			"plot",\$plot
+		  );
+
+&usage if $help || $Getopt::Long::error;
+&version if $version;
+
+
+my $debut = 0;
+my $fin = 0;
+my $online = 0;
+my $online_real = 0;
+my $auth = 0;
+my $offline = 0;
+my $offline_send = 0;
+my $offline_rcv = 0;
+my $deconnexion = 0;
+my $finsend = 0;
+my $roster = 0;
+my $error = 0;
+my %fin;
+my (%offline_id, %online_id);
+my %offline_rcv;
+my %offline_send;
+my %presence;
+my %esperance;
+my %deconnexion;
+my %var;
+my %roster;
+my %jud;
+my ($message_number,$delta,$tmp,@online,@auth,@offline_rcv,@offline_send,@deconnexion,@roster,@error);
+# ugly, we should use a hash of table ...
+my (@online_time,@auth_time,@offline_rcv_time,@offline_send_time,@deconnexion_time,@roster_time,@error_time);
+
+$esperance{'online'} = $esperance{'auth'}= $esperance{'deconnexion'}= $esperance{'offline_send'}= $esperance{'offline_rcv'} =$esperance{'roster'}=$esperance{'error'} = 0;
+
+foreach (@ARGV) {
+	&parse_file($_);
+}
+
+if ($debug) {
+	foreach (keys %offline_id) {
+		unless ($online_id{$_}) {
+			print "#$offline_id{$_}\n";
+		}
+	}
+}
+
+if ($verbose) {
+	foreach (keys %jud) {
+		print "$jud{$_} $_\n";
+	}
+}
+
+if ($plot) {
+	open (PLOT,"> stats.data");
+	select PLOT;
+    # first, find the max number of items in each array
+    my ($max) = sort {$b <=> $a} ($#online, $#auth, $#offline_rcv, $#offline_send, $#deconnexion, $#error);
+    my $i;
+
+	my @title= ("Messages (Online, ...)","Authentications"," Offline Messages","Offline Notifications ","Deconnexion","Error");
+	my @max= ($#online,$#auth,$#offline_rcv,$#offline_send,$#deconnexion,$#error);
+	print "# " . join ("\t", @title) . "\n";
+
+	# trick (otherwise, gnuplot stop if a column is full of '-')
+	foreach $i (0..$#title*2) {
+		print "0\t";
+	}
+	print "\n";
+    foreach $i (0..$max) {
+	print defined($online_time[$i])?$online_time[$i]:"-";
+	print "\t";
+	print defined($online[$i])?$online[$i]:"-";
+	print "\t";
+	print defined($auth_time[$i])?$auth_time[$i]:"-";
+	print "\t";
+	print defined($auth[$i])?$auth[$i]:"-";
+	print "\t";
+	print defined($offline_rcv_time[$i])?$offline_rcv_time[$i]:"-";
+	print "\t";
+	print defined($offline_rcv[$i])?$offline_rcv[$i]:"-";
+	print "\t";
+	print defined($offline_send_time[$i])?$offline_send_time[$i]:"-";
+	print "\t";
+	print defined($offline_send[$i])?$offline_send[$i]:"-";
+	print "\t";
+	print defined($deconnexion_time[$i])?$deconnexion_time[$i]:"-";
+	print "\t";
+	print defined($deconnexion[$i])?$deconnexion[$i]:"-";
+	print "\t";
+# 	print defined($roster_time[$i])?$roster_time[$i]:"-";
+# 	print "\t";
+# 	print defined($roster[$i])?$roster[$i]:"-";
+# 	print "\t";
+	print defined($error_time[$i])?$error_time[$i]:"-";
+	print "\t";
+	print defined($error[$i])?$error[$i]:"-";
+	print "\n";
+    }
+	select STDOUT;
+	&plot(\@title,"stats",\@max);
+
+} else {
+    &print_res();
+}
+
+sub plot {
+	my $data = shift;
+	my $fic = shift;
+	my $maxx= shift;
+	my $style ="point";
+	my $m;
+	my $d;
+
+	open(GP,">graphes-$fic.gplot");
+	select GP;
+		
+	print "set data style $style\n";
+	print "set terminal postscript color\n";
+	print "set output \"graphes-$fic.ps\"\n";
+	print "set grid\n";
+
+	for  ($d=0;$d<=$#{$data}*2;$d+=2) {
+		print "set title \" " .@{$data}[$d/2] . "\"\n";
+		print "show title\n";
+		print "set key right top\n";
+		print "plot [0:" . ($fin-$debut) ."] ";
+		print " \"$fic.data\" using " .($d+1).":".($d+2) . " title \".@{$data}[$d/2]\"" ;
+		print "\n";
+	}
+
+	# everything in a single graph (broken ?)
+	print "set title \"Summary\"\n";
+	print "show title\n";
+	print "set key right top\n";
+	print "plot [0:" . ($fin-$debut) ."] ";
+	for  ($d=0;$d<=$#{$data}*2;$d+=2) {
+		print " \"$fic.data\" using " .($d+1).":".($d+2) . " title \".@{$data}[$d/2]\"" ;
+		print "," unless ($d>=$#{$data}*2); # unless last occurence
+	}
+	print "\n";
+
+	close GP;
+	system("gnuplot graphes-$fic.gplot")
+}
+
+# 
+sub parse_file {
+	my $file = shift; 
+	my ($type,$d1,$d2,$d3,$pid,$message,$date,%recv,%send,%dat,$id,%mes);
+
+	%presence =();
+	%fin =();
+	%dat=();
+	%mes = ();
+
+	if ($file =~ /\.gz$/) {
+		open(LOG, "zcat $file|" ) or die("Error, can't open file $file");
+	} else {
+		open(LOG, "< $file" ) or die("Error, can't open file $file");
+	}
+	print "# Analysing $file ...\n#\n";
+	while (<LOG>) {
+		if (/(\w+):{(\d+),(\d+),(\d+)}:<0.(\d+).0>:([^\n]+)\n/) {
+			($type,$d1,$d2,$d3,$pid,$message) = ($1,$2,$3,$4,$5,$6);
+			next if ($message =~ /\?xml/);
+			$date = $d1*1000000+ $d2+ $d3/1000000 ;
+			$debut = $date unless $debut;
+			$fin = $date if ($date > $fin);
+			if ($message =~ /^<presence/) { # presence
+				$presence{$pid} = $date;
+			}
+			next if ($message =~ /^\<stream\:stream/); # connection statup
+			if ($message =~ /^\<\/stream\:stream/) {
+				if ($type eq "Send") {
+					$fin{$pid}= $date;
+					$finsend ++;
+				} else {
+					
+					# yuck, ugly !
+					# here we assume that the receiver pid is n+1
+					# where n is the emmiter's pid. This assumption is
+					# not true in all cases. We should use a more
+					# robust algorithm !
+
+					unless ($fin{$pid-1}) {
+						print "# warn, no pid ! $pid\n";
+						next;
+					}
+					$delta = $date - $fin{$pid-1};
+					$tmp = $delta-$esperance{'deconnexion'};
+					$esperance{'deconnexion'} += $tmp/($deconnexion+1);
+					$var{'deconnexion'} += $tmp*($delta-$esperance{'deconnexion'});
+					$deconnexion++;
+					push @deconnexion, $delta;
+					push @deconnexion_time, $fin{$pid-1}-$debut;
+				}
+				next;
+			}
+			if ($message =~ / id='(\d+)'/) {
+				$id = $1;
+				if ((defined $dat{$id}) and ($message !~ /Offline Storage/)) {
+					$delta = $date-$dat{$id};
+					printf "%.3f # %.3f # %.3f # %s # %s\n",$delta,$dat{$id},$date,$mes{$id},$message if ($verbose);
+					if (/<iq id=\'\d+\' type=\'result\'\/>/) { # authentication ack
+						$tmp = $delta-$esperance{'auth'};
+						$esperance{'auth'} += $tmp/($auth+1);
+						$var{'auth'} += $tmp*($delta-$esperance{'auth'});
+						$auth++;
+						push @auth, $delta;
+						push @auth_time, $dat{$id}-$debut;
+					}
+					elsif (/type=\'error\'/) { # error
+						$tmp = $delta-$esperance{'error'};
+						$esperance{'error'} += $tmp/($error+1);
+						$var{'error'} += $tmp*($delta-$esperance{'error'});
+						$error++;
+						push @error, $delta;
+						push @error_time, $dat{$id}-$debut;
+					}
+					elsif (/MESSAGE OFFLINE/) { # offline notification
+						$tmp = $delta-$esperance{'offline_send'};
+						$esperance{'offline_send'} += $tmp/($offline_send+1);
+						$var{'offline_send'} += $tmp*($delta-$esperance{'offline_send'});
+						$offline_send++;
+						push @offline_send, $delta;
+						push @offline_send_time, $dat{$id}-$debut;
+						$offline_id{$id} = $message; 
+					}
+					elsif (/presence/) { # roster
+						$tmp = $delta-$esperance{'roster'};
+						$esperance{'roster'} += $tmp/($roster+1);
+						$var{'roster'} += $tmp*($delta-$esperance{'roster'});
+						$roster++;
+						push @roster, $delta;
+						push @roster_time, $dat{$id}-$debut;
+					}
+					else { # online message
+						$message_number = 0;
+						while ($message =~ /<message /g) { $message_number++ }
+						$online_real += $message_number;
+						print "#$message_number\n" if ($verbose);
+						$tmp = $delta-$esperance{'online'};
+						$esperance{'online'} += $tmp/($online+1);
+						$var{'online'} += $tmp*($delta-$esperance{'online'});
+						$online++;
+						push @online, $delta;
+						push @online_time, $dat{$id}-$debut;
+					}
+					undef $dat{$id} ;
+				}
+				elsif ($type eq "Send") {
+					$dat{$id} = $date;
+					$mes{$id} = $message;
+				}
+				elsif (/Offline Storage/){ # offline messages (-> presence)
+					# several messages in a single packet is possible
+					unless ($presence{$pid-1}) {
+						print "# warn, no pid ! $pid\n";
+						next;
+					}
+					$online_id{$id} = $message; 
+					$message_number = 0;
+					$delta = $date - $presence{$pid-1};
+					printf "%.3f # %.3f # %.3f # presence # %s ",$delta,$presence{$pid-1},$date,$message if ($verbose);
+					while ($message =~ /<message /g) { $message_number++ }
+					$offline += $message_number;
+					print "#$message_number\n" if ($verbose);
+					$tmp = $delta-$esperance{'offline_rcv'};
+					$esperance{'offline_rcv'} += $tmp/($offline_rcv+1);
+					$var{'offline_rcv'} += $tmp*($delta-$esperance{'offline_rcv'});
+					$offline_rcv++;
+					push @offline_rcv, $delta;
+					push @offline_rcv_time, $presence{$pid-1}-$debut;
+				}
+				else {
+					print "## single # $type # $date # $message\n" if ($debug);
+				}
+			}
+			else { # if the message is fragmented in reveral IP packets
+				print "#\n## unknown # $type # $date # $message\n" if ($debug);
+			}
+		}
+		else {
+			next if (/NewClient/);
+			next if (/EndClient/);
+			next if (/load:/);
+			next if (/timeout monitor/);
+			print "# bad match : $_\n" if ($debug);
+		}
+	}
+}
+
+
+sub print_res {
+	&stats("# Messages (real = $online_real):",'online', $online, \@online);
+	&stats("# Error:",'error', $error, \@error);
+	&stats("# Authentication:",'auth', $auth, \@auth);
+	&stats("# Offline Notification:",'offline_send', $offline_send, \@offline_send);
+	&stats("# Offline Messages (real = $offline):",'offline_rcv', $offline_rcv, \@offline_rcv);
+
+#   &stats("# Presence info:",'roster', $roster, \@roster);
+   &stats("# Deconnexions (sent = $finsend) :",'deconnexion', $deconnexion, \@deconnexion);
+}
+
+sub stats {
+	my $title = shift;
+	my $type = shift;
+	my $count = shift;
+	my $data = shift;
+	
+	print "# $title ". ($count) ."\n";
+	if ($count) {
+		@_ = sort {$a <=> $b} @{$data};
+		print affiche("min",$_[0]) . "\n";
+		print affiche("max",$_[$#_]) . "\n";
+		print affiche("mean",$esperance{$type}) . "\n";
+		print affiche("median",$_[$#_/2]) . "\n";
+		print affiche("stdvar",sqrt($var{$type}/$count)) . "\n";
+		print "#\n";
+	}
+}
+
+sub usage {
+	print "this script is part of IDX-TSUNAMI version $tagvsn,
+Copyright (C) 2001 IDEALX (http://IDEALX.org/)\n\n";
+	print "IDX-TSUNAMI comes with ABSOLUTELY NO WARRANTY; This is free software, and
+ou are welcome to redistribute it under certain conditions
+type `idx-tsunami.pl --version` for details.\n\n";
+
+    print "Usage: $0 [<options>]\n","Available options:\n\t",
+    "[--help] (this help text)\n\t",
+    "[--verbose] (print all messages)\n\t",
+    "[--debug] (print receive without send messages)\n\t",
+    "[file1 [file2 [...]]] (log files to analyse)\n\t";
+	exit;
+	}
+
+sub	affiche() {
+	my $name = shift;
+	my $value = shift;
+	return sprintf "#%7s = %.3f",$name,$value;
+}
+
+sub version {
+print "this script is part of IDX-TSUNAMI version $tagvsn
+
+Written by Nicolas Niclausse and Jean François Lecomte
+
+Copyright (C) 2001 IDEALX (http://IDEALX.org/)
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program (see COPYING); if not, write to the 
+Free Software Foundation, Inc., 59 Temple Place - Suite 330, 
+Boston, MA 02111-1307, USA.";
+exit;
+}

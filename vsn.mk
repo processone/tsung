@@ -1,0 +1,2 @@
+IDX-TSUNAMI_VSN = 0.1.0
+

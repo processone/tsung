@@ -1,0 +1,123 @@
+# $Id$
+
+  IDX-TSUNAMI LISEZMOI
+  IDEALX
+  ____________________________________________________________
+
+  Table des matières
+
+
+  1. Introduction
+
+     1.1 Généralités
+     1.2 Qu'est-ce que ce logiciel fait
+
+  2. Installation
+
+     2.1 Dépendances
+     2.2 Compilation et Installation
+     2.3 Problèmes/Bugs
+     2.4 Portabilité
+
+  ______________________________________________________________________
+
+  1.  Introduction
+
+  1.1.  Généralités
+
+  Ce document donne un rapide descriptifs de IDX-TSUNAMI.
+
+  Les information de Copyright sont disponibles dans le fichier "COPYING."
+
+  1.2.  Qu'est-ce que ce logiciel fait
+
+  Le propos de IDX-TSUNAMI est de simuler des utilisateurs afin de
+  tester la montée en charge et les performances d'applications
+  client/serveur (basées sur IP). Actuellement, seul le protocole
+  Jabber est implémenté et testé, mais IDX-TSUNAMI est très facilement
+  extensible (voir le fichier doc/Design_fr.txt pour une description
+  de l'implémentation et des possibilités d'extensions). IDX-TSUNAMI
+  utilise le langage Erlang.
+
+  Ce logiciel est capable de simuler plusieurs milliers d'utilisateurs
+  simultanément, et ceux-ci peuvent être répartis sur plusieurs
+  machines. Plus de 10000 utilisateurs peuvent être simulés sur une
+  seule machine; la limite supérieure dépend du type de hardware et
+  également de l'activité des clients simulés.
+
+  L'idée est de simuler le comportement d'un client réel en utilisant
+  un modèle de type stochastique, ceci afin de reproduire le trafic
+  plus fidèlement que peuvent le faire de simple modèles déterministes.
+
+  Un utilisateur est caractérisé par:
+      - le temps écoulé entre chacun de ses messages/requêtes ("think time")
+      - le nombre de requêtes effectuées lors d'une session
+      - le type et les paramètres paramètres des requêtes  (par exemple
+        le type et la taille du message pour Jabber)
+
+  Un autre paramètre est le taux d'arrivés des clients (ie. le nombre
+  de clients arrivant sur le système -- démarrant leur session -- par
+  unité de temps).
+
+  Dans l'implémentation actuelle, la taux d'arrivé des clients et le
+  temps entre message d'un même client ("think time") sont modélisés
+  par une distribution exponentielle (par conséquent, le processus
+  d'arrivé est un processus de Poisson).
+
+  La trafic peut être "loggué" dans des fichiers, afin de pouvoir
+  calculer toutes sorte de mesures (temps de réponse) après coup. Un
+  script (calculant notamment les moyennes, écart-type et médiane des
+  temps de réponse) est fourni pour le protocole Jabber.
+
+  2.  Installation
+
+  2.1.  Dépendances
+  
+  - nécessite Erlang/OTP R7B-0 ou supérieur (testé avec la version R7B-2)
+    (http://www.erlang.org/download.html)
+
+  - perl5 (pour utiliser les scripts)
+	
+  - gnuplot (optionnel, utilisé pour les sorties graphiques du script 
+    analyse_msg.pl)
+
+  2.2.  Compilation et Installation
+
+  Éditer les fichiers Makefile et idx-tsunami.pl si vous voulez
+  changer le chemin par défaut (/usr/local/idx-tsunami/).
+
+  Éditer src/tsunami.rel.src si votre version d'Erlang n'est pas R7B-2 
+  (les numéros de version des modules erts, kernel et stdlib sont
+  différents d'une version d'Erlang à l'autre)
+
+  make
+  make install
+
+  Comment l'utiliser:
+    1a/ Éditer le fichier etc/idx-tsunamirc (toutes les options sont
+    décrites en commentaires)
+
+    1b/ Lire le fichier doc/Jabber.txt pour des informations spécifiques à 
+    Jabber
+
+    2/ utilisez le script "idx-tsunami.pl --start" pour démarrer les
+    clients simulés.
+
+    3/ Lorsque c'est terminé (idx-tsunami.pl --stop pour forcer) Le
+    script analyse_msg.pl génère une synthèse des temps de réponses
+    (nécessite un monitoring full ou light); ce script peut également
+    générer des graphes avec l'option --plot.
+  
+  2.3.  Problèmes/Bugs
+ 
+    Envoyez vos questions/rapports de bugs aux auteurs (cf. fichier
+    CONTRIBUTORS).
+ 
+  2.4.  Portabilité
+
+    Ce logiciel n'a été testé que sous Linux. Il devrait néanmoins
+    fonctionner sus toute plateforme supporté par Erlang (Solaris et
+    FreeBSD en particulier)
+
+
+

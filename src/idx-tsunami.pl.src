@@ -1,0 +1,246 @@
+#! /usr/bin/perl -w
+#
+#  This code was developped by IDEALX (http://IDEALX.org/) and
+#  contributors (their names can be found in the CONTRIBUTORS file).
+#  Copyright (C) 2000-2001 IDEALX
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
+
+#  Created by : Nicolas Niclausse <nniclausse@idealx.com>
+
+my $vsn = '$Id$ ';
+my $tagvsn = '%VSN%';
+
+use strict;
+use POSIX;
+use Getopt::Long;
+use vars qw /$help $start $config $stop $version/;
+
+my $erl = "/usr/bin/erl";
+my $ssh = "ssh -x";
+my $scp = "scp ";
+my %config;
+
+my $rootdir = "/usr/local/idx-tsunami";
+my $utilsdir = $rootdir . "/etc";
+my $rcfile = $utilsdir . "/idx-tsunamirc";
+
+my ($nbeams, $ndeb, $nfin);
+my $monitor ;
+my $nodename ;
+my $maxclients = 1000 ;
+my $range = 2000 ;
+my $nfirst = 0 ;
+my $totalclient = 0 ;
+my $currentclient = 0 ;
+my ($key,$nmachines,$interarrival) ; # tocheck
+my ($host,@hosts);
+my ($debug,$i,$appfile,$cookie);
+my @servers;
+my $server_id=0;
+
+GetOptions( "h|help",\$help,
+			"start",\$start,
+			"config",\$config,
+			"version",\$version,
+			"stop",\$stop
+		  );
+
+&usage if ($help);
+&version if ($version);
+
+
+if ($config or $start) {
+	&read_rc;
+
+	print "Config: $totalclient clients will be launched from $nmachines machines ($nbeams beams per machine)\n";
+	my $session_duration = $config{'messages_number'}*$config{'messages_interarrival'}/60;
+	my $launching_duration = $interarrival*$totalclient/60;
+	print "Estimated minimum duration  : ". POSIX::ceil($session_duration+$launching_duration) ." mn\n" ;
+	print "single session min duration : ". POSIX::ceil($session_duration) ." mn\n" ;
+	print "last client will be launched after : ". POSIX::ceil($launching_duration) ." mn\n" ;
+
+	my $j=0;
+	foreach $host (@hosts) {
+		foreach $i ($j..$j+$nbeams-1)  {
+			$ndeb = $nfirst + $i*$range ;
+			$nfin = $nfirst + ($i+1)*$range - 1;
+			$currentclient += $config{'nclients'};
+			if ($currentclient > $totalclient) {
+				# remove exceeding client (caused by ceiling)
+				$config{'nclients'} -= ($currentclient - $totalclient);
+			}
+			# create .config file
+			$appfile = "$rootdir/etc/tsunami$i.config";
+			open (APP,">$appfile") or die("Impossible d'ouvrir le fichier $appfile");
+			select APP;
+			print "[{tsunami,
+  [\n";
+			foreach $key (sort keys %config) {
+				if ($key eq "server_adr") {
+					# if multiple servers are set, we choose one using a
+					# round robin algorithm
+					@servers = split(/:/,$config{$key});
+					print "{$key, \"". $servers[$server_id] . "\"},\n";
+					$server_id = ($server_id + 1) % ($#servers+1) ;
+				}
+				else {
+					# if contains  ':' ,'.' or '-' , put quotes, otherwise,
+					# Erlang is not happy
+					if (($config{$key} =~ /[:|-|\.]/) and ($config{$key} !~ /^\d+\.\d+$/)){
+						print "{$key, \"". $config{$key} . "\"},\n";
+					}
+					else {
+						print "{$key, ". $config{$key} . "},\n";
+					}
+				}
+			}
+			print "{nclients_deb, ". $ndeb . "},\n";
+			print "{nclients_fin, ". $nfin . "},\n";
+			if ($config{'client_type'} =~ /dynamic/) {
+				print "{mes_type, dynamic}\n";
+			} else {
+				print "{mes_type, static}\n";
+			}
+			print "   ]
+ }].\n";
+			
+			close APP ;
+			select STDOUT;
+			if ($start and not $config) {
+				$nodename = "tsunami$i";
+				print "launching Beam $nodename on host $host\n";
+				unless ($config{'nfs'} or $host eq "localhost") {
+					print "copying config file to remote host ...\n";
+					system("$scp $appfile $host:$appfile");
+				}
+				if ($host eq "localhost") {
+					print "$erl -sname $nodename -setcookie \'$config{'cookie'}\' -detached -boot $rootdir/bin/tsunami -boot_var TSUNAMIPATH $rootdir/erlang -config $rootdir/etc/tsunami$i\.config\n" ;#and die "system failed: $?" ;
+					system("$erl -sname $nodename -setcookie \'$config{'cookie'}\' -detached -boot $rootdir/bin/tsunami -boot_var TSUNAMIPATH $rootdir/erlang -config $rootdir/etc/tsunami$i\.config" ) ;#and die "system failed: $?" ;
+				}
+				else {
+					system("$ssh $host \" $erl -sname $nodename -setcookie \'$config{'cookie'}\' -detached -boot $rootdir/bin/tsunami -boot_var TSUNAMIPATH $rootdir/erlang -config $rootdir/etc/tsunami$i\.config\"" ); # and die "system failed: $?" ;
+				}
+			}
+		}
+		$j += $nbeams;
+	}
+} elsif ($stop) {
+	&read_rc;
+	&stop;
+} else {
+	print "Nothing to do ... aborting (try --help)\n";
+}
+
+sub read_rc {
+	my $value;
+	my $name;
+	
+	open (RC,"<$rcfile") or die("Impossible d'ouvrir le fichier $rcfile");
+	while (<RC>) {
+		next if /^\#/; #remove comments
+		if (/(\w+)\s*=\s*([^\n]+)\n/) {
+			$value = $2;
+			$value =~ s/\"//g;
+			$name = lc($1);
+			$config{$name} = $value;
+		}
+	}
+
+	$totalclient = $config{'nclients'}; 
+	$nmachines = ($config{'machines'} =~ tr/:/:/) +1; # TODO
+	$nbeams = POSIX::ceil($config{'nclients'}/($nmachines*$maxclients));
+	$config{'nclients'} = POSIX::ceil($config{'nclients'}/($nmachines*$nbeams));
+	$interarrival = $config{'interarrival'};
+	$config{'interarrival'} = $interarrival *($nbeams*$nmachines);
+
+	
+	@hosts = split (/:/,$config{'machines'});
+}
+
+sub stop {
+	# apply function application:stop() by rpc
+	&rpc(1,"application","stop",("tsunami"));
+}
+
+sub rpc {
+	my $stop= shift;
+	my $module= shift;
+	my $function=shift;
+	my @args=@_;
+	my ($host,$i,$j,$sname,$nodename);
+
+	my @hostnames;
+	
+	foreach (@hosts) {
+		if (/localhost/) { # erlang beam use the real name, not localhost
+			$_ = $ENV{HOSTNAME};
+		}
+		push @hostnames, $_;
+	}
+
+	open(ERL,"| $erl -sname rpcnode -setcookie $config{'cookie'} >/dev/null");
+	select ERL;
+	print  "net_adm:world_list(\['". join("','", @hostnames) . "'\]).\n";
+	$j = 0;
+	foreach $host (@hostnames) {
+		foreach $i ($j..$j+$nbeams-1)  {
+			$nodename = "tsunami$i";
+			$sname="$nodename\@$host";
+			print "rpc:cast(\'$sname\',$module,$function,\[". join(",
+", @args) ."\]).\n";
+			print "slave:stop(\'$sname\').\n" if $stop;
+		}
+		$j += $nbeams;
+	}
+	close ERL;
+}
+
+sub usage  {
+	print "IDX-TSUNAMI version $tagvsn, Copyright (C) 2001 IDEALX (http://IDEALX.org/)\n\n";
+	print "IDX-TSUNAMI comes with ABSOLUTELY NO WARRANTY; This is free software, and
+ou are welcome to redistribute it under certain conditions
+type `idx-tsunami.pl --version` for details.\n";
+	print "\n";
+	print "options: [--start]  start clients\n";
+    print "       : [--stop]   stop clients (not yet implemented)\n";
+    print "       : [--config] only generate config files\n";
+    print "       : [-h]       help\n";
+    exit;
+}
+
+sub version {
+print "IDX-TSUNAMI version $tagvsn
+
+Written by Nicolas Niclausse and Jean François Lecomte
+
+Copyright (C) 2001 IDEALX (http://IDEALX.org/)
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program (see COPYING); if not, write to the 
+Free Software Foundation, Inc., 59 Temple Place - Suite 330, 
+Boston, MA 02111-1307, USA.";
+exit;
+}

@@ -1,0 +1,108 @@
+Arbre de supervision OTP:
+========================
+
+ * ts_mon (gen_server)
+
+ * ts_timer  (utilisé par ts_client_rcv en global) (gen_fsm)
+
+ * ts_client_sup -> ts_client, ts_client_rcv
+
+ serveurs utilisés pour construire les messages:
+
+ * ts_req_server (gen_server) permet de générer des messages à partir
+   d'un fichier externe
+ 
+ * ts_msg_server (gen_server) 
+
+ * ts_user_server (gen_server) utilisé par ts_launcher et jabber_*
+   pour l'unicité des utilisateurs
+
+ * ts_launcher (gen_fsm) lance les clients simulés (selon un processus de 
+   Poisson).
+
+
+
+Le principaux modules sont:
+==========================
+
+   1/ ts_launcher. Le processus maître qui va lancer les autres processus :
+
+   1.1/ processus clients initiant les connexions TCP
+      (module ts_client). Ces processus sont lancés par le processus
+      maître avec un intervalle de temps suivant une distribution de
+      probabilité exponentielle d'intensité paramétrable au démarrage
+      (unité = sec). Chaque processus client va lancer un processus
+      pour recevoir et traiter les messages (module
+      ts_client_rcv). Le nombre de clients total est également
+      paramétrable au démarrage du processus maître (il s'agit bien du
+      nombre de client total et non du nombre de clients simultanés)
+
+	  Warning: Tous les messages d'une session d'un utilisateur sont
+	  construits par ts_launcher, juste avant de lancer le processus
+	  client (dans une liste). Par conséquent, si le nombre de
+	  messages est très grand, cela peut prendre BEAUCOUP de
+	  mémoire. Pour réaliser de très long tests, if faut utiliser un
+	  message de type 'dynamic' (voir jabber_dynamic et Jabber.txt
+	  pour un exemple d'utilisation), qui sera construit à la volée
+	  par le client autant de fois que nécessaire.
+
+      Les paramètres importants régissant le comportement des
+      utilisateurs (pour Jabber) sont:
+
+		 1/ taille des messages de chat en octets (250 par défaut) 
+
+		 2/ distribution de probabilité des intervalles de temps
+		 entre chaque envoi de message de chat (loi
+		 exponentielle). 
+
+		 3/ Le nombre de messages de chat envoyés par chaque
+		 client. La valeur par défaut est de 20. 
+
+   1.2/ Le processus de monitoring (module ts_mon)
+
+   2/ Un module pour gérer les échantillons aléatoire (module ts_stats)
+
+   3/ Un module (ts_profile) générique pour gérer les sessions des clients
+
+   4/ Les modules spécifiques pour gérer les différents protocoles (module
+      jabber_online par ex.).
+   
+Comment rajouter un nouveau protocole ou étendre un existant:
+============================================================
+
+    Tout protocole doit implémenter l'API définie dans profile.erl, ie.
+    doit implémenter les fonctions suivantes:
+	 - get_client/2
+	 - get_random_message/1
+
+
+Références:
+==========
+
+  - Erlang
+
+  http://www.erlang.org/
+
+  Design principles: 
+		  http://www.erlang.org/doc/r7b/doc/design_principles/part_first.html
+
+  - Jabber
+
+  http://docs.jabber.org/general/html/protocol.html
+
+  
+  - modélisation stochastiques :
+
+  Plus de détails sur ce type de modélisation sont disponibles dans les
+  documents suivants (dans le contexte du protocole HTTP)
+
+    Nicolas Niclausse. Modélisation, analyse de performance et
+    dimensionnement du World Wide Web. Thèse de Doctorat, Université
+    de Nice - Sophia Antipolis, Juin 1999.
+    http://www-sop.inria.fr/mistral/personnel/Nicolas.Niclausse/these.html
+
+	Z. Liu, N. Niclausse, C. Jalpa-Villanueva & S. Barbier. Traffic
+    Model and Performance Evaluation of Web Servers Rapport de
+    recherche INRIA, RR-3840 (http://www.inria.fr/rrrt/rr-3840.html)
+
+

@@ -1,0 +1,85 @@
+{application, tsunami,
+      [{description,  "IDX-TSUNAMI, a bench tool for TCP/UDP servers"},
+       {vsn,          "%VSN%"},
+       {modules,      [
+					   tsunami,
+					   ts_launcher,
+					   ts_mon,
+					   ts_client,
+					   ts_client_rcv,
+					   ts_client_sup,
+					   ts_sup,
+					   ts_stats,
+					   ts_utils,
+					   ts_timer,
+					   ts_req_server,
+					   ts_user_server,
+					   ts_msg_server,
+					   ts_profile,
+					   jabber_common,
+					   jabber_auth,
+					   jabber_dynamic,
+					   jabber_offline,
+					   jabber_roster,
+					   jabber_online,
+					   jabber_unique,
+					   jabber_real
+					  ]},
+       {registered,   [
+					   ts_launcher,
+					   ts_mon
+					  ]},
+	   {env,		[        
+					 {debug_level, 2},
+					 {ts_cookie, "humhum"},
+					 {server_adr, "127.0.0.1"}, %% Adresse du proxy
+					 {server_port, 7},		%% Port sur lequel parle les clients
+					 {snd_size, 2048},
+					 {rcv_size, 2048},
+					 {tcp_timeout, 3600000},
+					 {clients_timeout, 60000}, %% timeout en cas de synchro globale
+					 {monitor_timeout, 60000},
+					 {presence_delay, 10000}, %% temps d'attente apres l'envoie d'un presence
+					 {monitoring, full},     %% full or light
+
+					 {client_type, jabber_dynamic},	%% Type de client:
+									%%     		jabber_online, 
+									%%			jabber_unique, 
+									%%			jabber_offline
+									%%			jabber_auth
+									%%			jabber_roster
+
+					 {parse_type, noparse}, %% parse or noparse
+					 {mes_type, dynamic}, %% dynamic or static
+					 {nclients, 10},      %% Nombre de clients à connecter
+					 {nclients_deb, 1}, 	%% Debut de la plage de clients pour cette beam
+					 {nclients_fin, 2000}, 	%% Fin de la plage de clients
+					 {interarrival, 2},  	%% Intervalle de temps entre l'arrivée de 2 clients (en sec)
+					 {log_file, "/home/idx-tsunami/log/idx-tsunami.log"},	%% Base du fichier de log
+
+
+
+					 {messages_interarrival, 10},	%% Intervalle de temps entre 2 messages (en sec)
+					 {messages_number, 100},       	%% Nombre de messages par clients
+					 {messages_size, 100},  		%% Taille des messages
+					 {messages_last_time, 64000},	%% Temps pour le dernier message
+					 {messages_ack, local}, 		%% no_ack, local, global
+
+					 {n_roster_clients, 6},
+					 {setroster, 60}, %% Intervalle de temps entre 2 messages de roster et autres (pour la phase remplissage)
+
+						
+					 {req_filename, "requests.txt"},	%% Fichiers de requetes
+					 {boucle1_percent, 63},	
+					 {boucle2_percent, 31},	
+					 {boucle3_percent, 3},	
+					 
+					 {jabber_users, 2000000},
+					 {jabber_username, "c"},
+                     {jabber_password, "pas"},
+                     {jabber_domain, "mydomain.com"}
+
+					]},        
+	   {applications, [kernel, stdlib]},
+       {mod,          {tsunami, []}}
+	  ]}.
