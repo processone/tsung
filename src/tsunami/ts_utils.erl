@@ -237,6 +237,9 @@ export_text([$" | T], Cont) ->
 export_text([C | T], Cont) ->
     export_text(T, [C | Cont]).
 
+%%----------------------------------------------------------------------
+%% stop_all/2
+%%----------------------------------------------------------------------
 stop_all(Host, Name) ->
 	stop_all(Host, Name, "IDX-Tsunami").
 

@@ -134,7 +134,7 @@ parse(Element = #xmlElement{name=client},
             {ok, [{integer,1,IMaxUsers}],1} = erl_scan:string(MaxUsers),
             %% add a new client for each CPU
             NewClients=lists:duplicate(ICPU,#client{host     = Host,
-                                           weight   = IWeight/ICPU,
+                                                    weight   = IWeight/ICPU,
                                                     maxusers = IMaxUsers}),
             lists:foldl(fun parse/2, 
                         Conf#config{clients = lists:append(NewClients,CList)},
