@@ -193,6 +193,8 @@ sub parse_stats_file {
                 $category->{$type} = "transaction";
             } elsif ($type eq "size") {
                 $category->{$type} = "network";
+            } elsif ($type =~ /match/) {
+                $category->{$type} = "match";
             } elsif ($type ne "users") {
                 $category->{$type} = "count";
             }
@@ -223,6 +225,7 @@ sub parse_stats_file {
 	my @session;
 	my @connect;
 	my @size;
+	my @match;
 	my @users;
 	my @users_rate;
 	my @transactions;
@@ -259,6 +262,8 @@ sub parse_stats_file {
 			push @users, "$key.txt";
 		} elsif ($key =~ /users/) {
 			push @users_rate, "$key.txt";
+		} elsif ($key =~ /match/) {
+			push @match, "$key.txt";
 		} elsif ($key =~ /request$/ or $key eq "connect") {
 			push @tps, "$key.txt";
 		} elsif ($key =~ /^tr_/ or $key eq "page") {
@@ -278,6 +283,7 @@ sub parse_stats_file {
 	plot_stats(\@colcount,"HTTP_CODE",undef,\@code,["number/sec","total"]) if $plot;
 	plot_stats(\@col,"Perfs",undef,\@tps,["rate/sec","msec"]) if $plot;
 	plot_stats(\@col,"Transactions",undef,\@transactions,["rate/sec","msec"]) if $plot;
+	plot_stats(\@colcount,"Match",undef,\@match,["rate/sec","rate/sec"]) if $plot;
 	plot_stats(\@colcount,"Event",undef,\@time,["rate/sec","msec"]) if $plot;
 	plot_stats(\@colusers,"Users",undef,\@users,["connected users", "total"]) if $plot;
 	plot_stats(\@colcount,"Users_Arrival",undef,\@users_rate,["number of users/sec", "total"]) if $plot;
