@@ -15,7 +15,7 @@ The application is now split in two (see tsunami-inside.png for an overview):
  * ts_os_mon (gen_server). Use to monitor remote node activity (cpu,
    memory, network traffic). Currently, use an erlang agent on remote nodes.
 
- * ts_timer  (used by ts_client_rcv when ack is global) (gen_fsm)
+ * ts_timer  (used by ts_client when ack is global) (gen_fsm)
 
    servers used to construct messages:
 
@@ -31,7 +31,7 @@ This application is simpler:
  * ts_session_cache (gen_server) cache the sessions's definition (ask
    the config_server if it's not yet in the cache)
 
- * 2 process per simultated client (ts_client, ts_client_rcv), under
+ * 1 process per simultated client (ts_client), under
    the supervision of ts_clients_sup ( using simple_one_for_one )
 
 Main modules:
@@ -39,16 +39,8 @@ Main modules:
 
    1/ ts_launcher. the master process that spawns other simulated clients:
 
-   1.1/ client processes: at each simulated client correspond 2 erlang
-        process: 
-
-           a/one that will initiate TCP|UDP|SSL connection and will send
-           messages (ts_client module). These processes are spawns by
-           ts_launcher (using an sleeping time between two clients
-           following an exponential distribution).
-
-           b/ Each of these process will spawn a new process to handle
-           incoming data from the server (ts_client_rcv module).
+   1.1/ client processes: at each simulated client correspond 1 erlang
+        process (ts_client)
 
    1.2/ monitoring process (ts_mon)
 
@@ -82,12 +74,13 @@ How to add a new protocol, or extend an existing one:
  To add a new protocol, you have to create a module that implement and
  exports:
 
-    init_dynparams/0, 	
-    add_dynparams/2,
-	get_message/1,
-	parse/2,
-    parse_config/2,
-    new_session/0
+-export([init_dynparams/0,
+		 add_dynparams/4,
+		 get_message/1,
+		 session_defaults/0,
+         parse/2,
+         parse_config/2,
+         new_session/0]).
 
 
 References:
@@ -117,6 +110,6 @@ References:
 
 	Z. Liu, N. Niclausse, C. Jalpa-Villanueva & S. Barbier. Traffic
     Model and Performance Evaluation of Web Servers Rapport de
-    recherche INRIA, RR-3840 (http://www.inria.fr/rrrt/rr-3840.html)
+recherche INRIA, RR-3840 (http://www.inria.fr/rrrt/rr-3840.html)
 
 

@@ -1,83 +1,74 @@
-**********************************************************
-*** Ce document n'est pas à jour. Cf. version anglaise ***
-**********************************************************
 
 Arbre de supervision OTP:
 ========================
 
+Tsunami est divisé en deux applications aux sens OTP:
+
+** un controlleur unique (tsunami_controller) 
+
+ * ts_config_server (gen_server). Serveur de configuration server. La
+   définition des sessions est gardé part le serveur de configuration.
+
  * ts_mon (gen_server)
 
- * ts_timer  (utilisé par ts_client_rcv en global) (gen_fsm)
+ * ts_os_mon (gen_server)
 
- * ts_client_sup -> ts_client, ts_client_rcv
+ * ts_timer  (utilisé par ts_client en global) (gen_fsm)
 
  serveurs utilisés pour construire les messages:
 
- * ts_req_server (gen_server) permet de générer des messages à partir
-   d'un fichier externe
- 
  * ts_msg_server (gen_server) 
 
  * ts_user_server (gen_server) utilisé par ts_launcher et jabber_*
    pour l'unicité des utilisateurs
 
+** plusieurs injecteurs (tsunami). Plusieus noeuds peuvent être actifs
+   simultanément
+
  * ts_launcher (gen_fsm) lance les clients simulés (selon un processus de 
    Poisson).
+
+ * ts_session_cache (gen_server) cache les sessions (interroge le
+   config_server si la session n'est pas encore dans le cache)
+
+ * 1 processus erlang par client simulé (ts_client), sous la
+   supervision de ts_client_sup (simple_one_for_one)
 
 
 
 Le principaux modules sont:
 ==========================
 
-   1/ ts_launcher. Le processus maître qui va lancer les autres processus :
+   1/ ts_launcher. Le processus maître qui va lancer les autres
+       processus (un par beam)
 
    1.1/ processus clients initiant les connexions TCP
       (module ts_client). Ces processus sont lancés par le processus
       maître avec un intervalle de temps suivant une distribution de
       probabilité exponentielle d'intensité paramétrable au démarrage
-      (unité = sec). Chaque processus client va lancer un processus
-      pour recevoir et traiter les messages (module
-      ts_client_rcv). Le nombre de clients total est également
+      (unité = sec). Le nombre de clients total est également
       paramétrable au démarrage du processus maître (il s'agit bien du
       nombre de client total et non du nombre de clients simultanés)
 
-	  Warning: Tous les messages d'une session d'un utilisateur sont
-	  construits par ts_launcher, juste avant de lancer le processus
-	  client (dans une liste). Par conséquent, si le nombre de
-	  messages est très grand, cela peut prendre BEAUCOUP de
-	  mémoire. Pour réaliser de très long tests, if faut utiliser un
-	  message de type 'dynamic' (voir jabber_dynamic et Jabber.txt
-	  pour un exemple d'utilisation), qui sera construit à la volée
-	  par le client autant de fois que nécessaire.
-
-      Les paramètres importants régissant le comportement des
-      utilisateurs (pour Jabber) sont:
-
-		 1/ taille des messages de chat en octets (250 par défaut) 
-
-		 2/ distribution de probabilité des intervalles de temps
-		 entre chaque envoi de message de chat (loi
-		 exponentielle). 
-
-		 3/ Le nombre de messages de chat envoyés par chaque
-		 client. La valeur par défaut est de 20. 
-
    1.2/ Le processus de monitoring (module ts_mon)
 
-   2/ Un module pour gérer les échantillons aléatoire (module ts_stats)
-
-   3/ Un module (ts_profile) générique pour gérer les sessions des clients
+   2/ Un module pour gérer les échantillons aléatoires (module ts_stats)
 
    4/ Les modules spécifiques pour gérer les différents protocoles (module
-      jabber_online par ex.).
+      ts_jabber ou ts_http par ex.).
    
 Comment rajouter un nouveau protocole ou étendre un existant:
 ============================================================
 
-    Tout protocole doit implémenter l'API définie dans profile.erl, ie.
-    doit implémenter les fonctions suivantes:
-	 - get_client/2
-	 - get_random_message/1
+    Tout protocole doit exporter les fonctions suivantes:
+
+-export([init_dynparams/0,
+		 add_dynparams/4,
+		 get_message/1,
+		 session_defaults/0,
+         parse/2,
+         parse_config/2,
+         new_session/0]).
 
 
 Références:
