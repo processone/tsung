@@ -50,7 +50,9 @@
 -define(short_timeout, 1).
 -define(retries, 4).
 
--define(CR, "\r\n").
+-define(CRLF, "\r\n").
+-define(CR,13).
+-define(LF,10).
 
 %% retry sending message after this timeout (in microsec.)
 -define(config(Var), ts_utils:get_val(Var)).
