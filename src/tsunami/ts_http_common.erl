@@ -19,7 +19,7 @@
 
 %%% common functions used by http clients to:
 %%%  - set HTTP requests
-%%%  - parse HTTP related stuff in XML config file
+%%%  - parse HTTP response from server
 
 -module(ts_http_common).
 -vc('$Id$ ').
@@ -335,14 +335,17 @@ concat_cookies([New=#cookie{}|Rest], OldCookies)->
             concat_cookies(Rest, [New | OldCookies])
     end.
 
-
-%% cf RFC 2965 
+%%----------------------------------------------------------------------
+%% Func: parse_set_cookie/2
+%%       cf. RFC 2965 
+%%----------------------------------------------------------------------
 parse_set_cookie([], Cookie) -> Cookie;
 parse_set_cookie([Field| Rest], Cookie=#cookie{}) ->
     {Key,Val} = get_cookie_key(Field,[]),
     ?DebugF("Parse cookie key ~p with value ~p~n",[Key, Val]),
     parse_set_cookie(Rest, set_cookie_key(Key, Val, Cookie)).
 
+%%----------------------------------------------------------------------
 set_cookie_key([L|"ersion"],Val,Cookie) when L == $V; L==$v ->
     Cookie#cookie{version=Val};
 set_cookie_key([L|"omain"],Val,Cookie) when L == $D; L==$d ->
@@ -366,6 +369,7 @@ set_cookie_key([L|"omment"],Val,Cookie) when L == $C; L==$c ->
 set_cookie_key(Key,Val,Cookie) ->
     Cookie#cookie{key=Key,value=Val}.
 
+%%----------------------------------------------------------------------
 get_cookie_key([],Acc)         -> {lists:reverse(Acc), []};
 get_cookie_key([$=|Rest],Acc)  -> {lists:reverse(Acc), Rest};
 get_cookie_key([Char|Rest],Acc)-> get_cookie_key(Rest, [Char|Acc]).
