@@ -317,9 +317,7 @@ parse_chunked(Body, State)->
 %% Returns: {NewState= record(state_rcv), SockOpts}
 %%----------------------------------------------------------------------
 read_chunk(<<>>, State, Int, Acc) ->
-    ?LOGF("NO Data in chunk [Int=~p, Acc=~p] ! ~n", [Int,Acc],?WARN),
-	% FIXME: should we check if Headers has just been received and the
-	% returns a new #http record ?
+    ?LOGF("No data in chunk [Int=~p, Acc=~p] ~n", [Int,Acc],?INFO),
     AccInt= list_to_binary(httpd_util:integer_to_hexlist(Int)),
     { State#state_rcv{acc = AccInt }, [] }; % read more data
 %% this code has been inspired by inets/http_lib.erl
@@ -346,7 +344,7 @@ read_chunk(<<Char:1/binary, Data/binary>>, State, Int, Acc) ->
             {State#state_rcv{session= #http{}, ack_done = true,
                              datasize = Acc, %% FIXME: is it the correct size?
                              dyndata= Cookie}, []};
-	<<?CR>> when Int==0, size(Data) < 3 ->  % lack ?CRLF
+	<<?CR>> when Int==0, size(Data) < 3 ->  % lack ?CRLF, continue 
             { State#state_rcv{acc =  <<48, ?CR, ?LF>> }, [] };
 	<<C>> when C==$ -> % Some servers (e.g., Apache 1.3.6) throw in
 			   % additional whitespace...
