@@ -1,6 +1,6 @@
 %%%  This code was developped by IDEALX (http://IDEALX.org/) and
 %%%  contributors (their names can be found in the CONTRIBUTORS file).
-%%%  Copyright (C) 2000-2003 IDEALX
+%%%  Copyright (C) 2000-2004 IDEALX
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
 %%%  it under the terms of the GNU General Public License as published by
@@ -144,10 +144,6 @@ handle_call({start_clients, Machines, Monitoring}, From, State) ->
     start_launchers(Machines),
 	{reply, ok, State#state{type=Monitoring}};
 
-handle_call({get_sample, Type}, From, State) ->
-	Reply = dict:find(Type, State#state.stats),
-	{reply, Reply, State};
-
 handle_call(Request, From, State) ->
 	Reply = ok,
 	{reply, Reply, State}.
@@ -161,21 +157,19 @@ handle_call(Request, From, State) ->
 handle_cast({sendmsg, Who, When, What}, State = #state{type = none}) ->
 	{noreply, State};
 
-handle_cast({sendmsg, Who, When, What}, State = #state{type = light}) ->
-	io:format(State#state.log,"Send:~w:~w:~-44s~n",[When,Who,
-												 binary_to_list(What)]),
+handle_cast({sendmsg, Who, When, What}, State = #state{type=light,log=Log}) ->
+	io:format(Log,"Send:~w:~w:~-44s~n",[When,Who, binary_to_list(What)]),
 	{noreply, State};
 
-handle_cast({sendmsg, Who, When, What}, State) ->
-	io:format(State#state.log,"Send:~w:~w:~s~n",[When,Who,
-												 binary_to_list(What)]),
+handle_cast({sendmsg, Who, When, What}, State=#state{log=Log}) ->
+	io:format(Log,"Send:~w:~w:~s~n",[When,Who,binary_to_list(What)]),
 	{noreply, State};
 
-handle_cast({add, Data}, State) when list(Data) ->
+handle_cast({add, Data}, State) when is_list(Data) ->
 	NewStats = lists:foldl(fun add_stats_data/2, State#state.stats, Data ),
 	{noreply,State#state{stats=NewStats}};
 
-handle_cast({add, Data}, State) when tuple(Data) ->
+handle_cast({add, Data}, State) when is_tuple(Data) ->
 	NewStats = add_stats_data(Data, State#state.stats),
 	{noreply,State#state{stats=NewStats}};
 
@@ -187,14 +181,12 @@ handle_cast({dumpstats}, State) ->
 handle_cast({rcvmsg, Who, When, What}, State = #state{type=none}) ->
 	{noreply, State};
 
-handle_cast({rcvmsg, Who, When, What}, State = #state{type=light}) ->
-	io:format(State#state.log,"Recv:~w:~w:~-44s~n",[When,Who, 
-													binary_to_list(What)]),
+handle_cast({rcvmsg, Who, When, What}, State = #state{type=light, log=Log}) ->
+	io:format(Log,"Recv:~w:~w:~-44s~n",[When,Who, binary_to_list(What)]),
 	{noreply, State};
 
-handle_cast({rcvmsg, Who, When, What}, State) ->
-	io:format(State#state.log,"Recv:~w:~w:~s~n",[When,Who, 
-													binary_to_list(What)]),
+handle_cast({rcvmsg, Who, When, What}, State=#state{log=Log}) ->
+	io:format(Log, "Recv:~w:~w:~s~n",[When,Who,binary_to_list(What)]),
 	{noreply, State};
 
 handle_cast({newclient, Who, When, Connect}, State) ->
@@ -302,7 +294,8 @@ print_stats(State) ->
 	io:format(State#state.log,"# stats: dump at ~w~n",[DateStr]),
 	Res = dict:to_list(State#state.stats),
 	%% print number of simultaneous users
-	io:format(State#state.log, "stats: ~p ~p ~p~n", [users, State#state.client, State#state.maxclient]),
+	io:format(State#state.log, "stats: ~p ~p ~p~n", [users, State#state.client,
+													 State#state.maxclient]),
 	print_dist_list(Res, State#state.laststats , State#state.log).
 %% Print os_mon figures
 %%ts_os_mon:print(State#state.log).
@@ -382,10 +375,10 @@ reset_stats(Args) ->
 %%----------------------------------------------------------------------
 
 start_launchers(Machines) -> 
-	?LOGF("Need to start tsunami client on ~p~n",[Machines], ?DEB),
+	?DebugF("Need to start tsunami client on ~p~n",[Machines]),
 	GetHost = fun(A) -> list_to_atom(A#client.host) end,
 	HostList = lists:map(GetHost, Machines),
-	?LOGF("Hostlist is ~p~n",[HostList], ?DEB),
+	?DebugF("Hostlist is ~p~n",[HostList]),
     %% starts beam on all client hosts
     lists:foreach({ts_config_server, newbeam}, HostList).
 	

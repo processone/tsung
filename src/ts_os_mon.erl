@@ -257,15 +257,9 @@ packets() ->
 start_beam([]) ->
     ok;
 start_beam([Host|Hosts]) ->
-    Shared = case init:get_argument(shared) of 
-                 error     -> " ";
-                 {ok,[[]]} -> " -shared"
-             end,
-    Args = "-rsh ssh -setcookie " ++ atom_to_list(erlang:get_cookie()) ++ Shared
-	++ " +Mea r10b",
-
+	Args = ts_utils:erl_system_args(),
     {ok, Node} = slave:start_link(Host, ?NODE, Args),
-    ?LOGF("started os_mon newbeam on node ~p~n", [Node], ?NOTICE),
+    ?LOGF("started os_mon newbeam on node ~p~n", [Node], ?INFO),
     start_beam(Hosts).
 
 stop_beam([]) ->
@@ -284,7 +278,7 @@ load_code(Nodes) ->
 
     Res3 = rpc:multicall(Nodes, ?MODULE, client_start, [], infinity),
     %% first value of load call is garbage
-    ?LOGF("load_code - ~p ~p~n", [Res1, Res2, Res3], ?DEB),
+    ?DebugF("load_code - ~p ~p~n", [Res1, Res2, Res3]),
     ok.
 
 

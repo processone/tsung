@@ -21,7 +21,7 @@
 -author('jflecomte@IDEALX.com').
 -vc('$Id$ ').
 
--export([get_id/0, reset/0]).
+-export([get_id/0, get_id/1, reset/0]).
 
 -include("ts_profile.hrl").
 
@@ -39,11 +39,14 @@
 %%% API
 %%%----------------------------------------------------------------------
 start() ->
-	?LOG("Starting ~n",?DEB),
+	?LOG("Starting ~n",?INFO),
     gen_server:start_link({global,?MODULE}, ?MODULE, [], []).
 
 get_id()->
    gen_server:call({global, ?MODULE}, get_id).
+
+get_id(list)->
+   integer_to_list(get_id()).
 
 reset()->
     gen_server:call({global, ?MODULE}, reset).
@@ -110,7 +113,7 @@ handle_info(Info, State) ->
 %% Returns: any (ignored by gen_server)
 %%----------------------------------------------------------------------
 terminate(Reason, State) ->
-	?LOG("terminate ~n",?DEB),
+	?LOG("terminate ~n",?INFO),
     ok.
 
 %%----------------------------------------------------------------------

@@ -41,6 +41,7 @@
 %%--------------------------------------------------------------------
 %% External exports
 -export([start/1, dorecord/1]).
+-export([decode_basic_auth/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -180,7 +181,6 @@ code_change(OldVsn, State, Extra) ->
 %% Purpose: record request given State=#state and Request=#http_request
 %% Returns: {ok, NewState}
 %%--------------------------------------------------------------------
-%% FIXME handle post and body data
 record_http_request(State=#state{prev_host=Host, prev_port=Port},
                     Request=#http_request{method  = Method, url = RequestURI,
                                           version = "HTTP/" ++ HTTPVersion,
@@ -208,8 +208,27 @@ record_http_request(State=#state{prev_host=Host, prev_port=Port},
     end,
     case httpd_util:key1search(ParsedHeader,"if-modified-since") of 
         undefined ->
-            io:format(Fd,"method='~s'></http></request>~n", [ Method]);
+            io:format(Fd,"method='~s'>~n", [ Method]);
         Date ->
-            io:format(Fd,"method='GETIMS' date='~s'></http></request>~n",[Date])
+            io:format(Fd,"method='GETIMS' date='~s'>",[Date])
     end,
+    case httpd_util:key1search(ParsedHeader,"authorization") of 
+        "Basic "++Base64 ->
+			{User,Passwd}=decode_basic_auth(Base64),
+            io:format(Fd,"<www_authenticate userid='~p' passwd='~p'/>~n",[User,Passwd]);
+		_ -> ok
+    end,
+	io:format(Fd,"</http></request>~n",[]),
+
     {ok, State#state{prev_port=NewPort,prev_host=NewHost}}.
+
+%%--------------------------------------------------------------------
+%% Func: decode_basic_auth/1
+%% Purpose: decode base64 encoded user passwd for basic authentication
+%% Returns: {User, Passwd}
+%%--------------------------------------------------------------------
+decode_basic_auth(Base64)->
+	AuthStr= httpd_util:decode_base64(Base64),
+	Sep = string:chr(AuthStr,$:),
+	{string:substr(AuthStr,1,Sep-1),string:substr(AuthStr,Sep+1)}.
+	

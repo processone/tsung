@@ -66,16 +66,21 @@
 
 
 %% errors messages
--define(DEBUG, TRUE).
 
+-define(LOGF(Msg, Args, Level),
+		ts_utils:debug(?MODULE, Msg, Args, Level)).
+-define(LOG(Msg, Level),
+		ts_utils:debug(?MODULE, Msg, Level)).
+
+%% Debug messages can be completely disabled if DEBUG is not defined
 -ifdef(DEBUG).
-    -define(LOGF(Msg, Args, Level),
-            ts_utils:debug(?MODULE, Msg, Args, Level)).
-    -define(LOG(Msg, Level),
-            ts_utils:debug(?MODULE, Msg, Level)).
+    -define(DebugF(Msg, Args),
+            ts_utils:debug(?MODULE, Msg, Args, ?DEB)).
+    -define(Debug(Msg),
+            ts_utils:debug(?MODULE, Msg, ?DEB)).
 -else.
-    -define(LOGF(Msg, Args, Level), ok).
-    -define(LOG(Msg, Level), ok).
+    -define(DebugF(Msg, Args), ok).
+    -define(Debug(Msg), ok).
 -endif.
 
 -define(EMERG, 0). % The system is unusable. 

@@ -59,7 +59,7 @@
 
 %% Start a new session 
 start(Opts) ->
-	?LOGF("Starting with opts: ~p~n",[Opts],?DEB),
+	?DebugF("Starting with opts: ~p~n",[Opts]),
 	gen_fsm:start_link(?MODULE, Opts, []).
 
 %%----------------------------------------------------------------------
@@ -67,9 +67,9 @@ start(Opts) ->
 %% Purpose: the connection was closed by the server
 %%----------------------------------------------------------------------
 %% close after an error, send_all_state
-close({Reason, Pid}) when atom(Reason) ->
+close({Reason, Pid}) when is_atom(Reason) ->
 	gen_fsm:send_all_state_event(Pid, {closed, Reason, Pid});
-close({Reason, Pid}) when list(Reason) ->
+close({Reason, Pid}) when is_list(Reason) ->
 	gen_fsm:send_all_state_event(Pid, {closed, list_to_atom(Reason), Pid});
 close({Reason, Pid}) ->
 	gen_fsm:send_all_state_event(Pid, {closed, close_unknown, Pid});
@@ -103,15 +103,15 @@ init({Session=#session{id            = Profile,
                         persistent   = Persistent,
                         messages_ack = PType,
                         type         = CType}, Count, IP}) ->
-	?LOGF("Init ... started with count = ~p  ~n",[Count],?DEB),
-	%%init seed
-    %% random:seed(ts_utils:init_seed()),
+	?DebugF("Init ... started with count = ~p  ~n",[Count]),
+	ts_utils:init_seed(),
     {ServerName, Port, Protocol} = get_server_cfg({Profile,1}),
-
+	?DebugF("Get dynparams for ~p  ~n",[CType]),
+	Dyndata = CType:init_dynparams(),
     % open connection
 	Opts = protocol_options(Protocol) ++ [{ip, IP}],
-	?LOGF("Got first message, connect to ~p with options ~p ~n",
-         [{ServerName, Port, Protocol},Opts],?DEB),
+	?DebugF("Got first message, connect to ~p with options ~p ~n",
+         [{ServerName, Port, Protocol},Opts]),
 	StartTime= now(),
     case Protocol:connect(ServerName, Port, Opts, ?config(connect_timeout)) of
 		{ok, Socket} -> 
@@ -123,7 +123,7 @@ init({Session=#session{id            = Profile,
                                        PType,
                                        ?config(monitoring)}) of 
 				{ok, Pid} ->
-					?LOG("rcv server started ~n",?DEB),
+					?Debug("rcv server started ~n"),
 					controlling_process(Protocol, Socket, Pid),
 					Connected = now(),
 					Elapsed = ts_utils:elapsed(StartTime, Connected),
@@ -139,15 +139,15 @@ init({Session=#session{id            = Profile,
 								monitor    = ?config(monitoring),
 								count      = Count,
 								ip         = IP,
-								maxcount   = Count
+								maxcount   = Count,
+								dyndata    = Dyndata
                                }};
 				{error, Reason} ->
-					?LOGF("Can't start rcv process ~p~n",
-								[Reason],?ERR),
+					?LOGF("Can't start rcv process ~p~n", [Reason],?ERR),
 					{stop, Reason}
 			end;
 		{error, Reason} ->
-			?LOGF("Connect Error: ~p~n",[Reason],?ERR),
+			?LOGF("Connect Error: ~p~n",[Reason], ?ERR),
             CountName="conn_err_" ++ atom_to_list(Reason),
 			ts_mon:add({ count, list_to_atom(CountName) }),
 			{stop, normal}
@@ -188,11 +188,11 @@ handle_sync_event(Event, From, StateName, StateData) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
 wait_ack({next_msg, DynData}, State) ->
-	?LOGF("next_msg, count is ~p~n", [State#state.count], ?DEB),
+	?DebugF("next_msg, count is ~p~n", [State#state.count]),
     NewState = State#state{dyndata=DynData},
     handle_next_action(NewState);
 wait_ack({next_msg, DynData, Close}, State) ->
-	?LOGF("next_msg, count is ~p, close is ~p~n", [State#state.count, Close], ?DEB),
+	?DebugF("next_msg, count is ~p, close is ~p~n", [State#state.count, Close]),
     case Close of 
         true ->
             NewState = State#state{dyndata=DynData, socket=none};
@@ -272,7 +272,7 @@ handle_info(timeout, StateName, State ) ->
     ts_mon:add({ count, timeout }),
     {stop, normal, State};
 handle_info(Msg, StateName, State ) ->
-    ?LOGF("Error: Unkonwn msg receive in state ~p, stop ~p~n", [Msg,StateName], ?ERR),
+    ?LOGF("Error: Unknown msg ~p receive in state ~p, stop~n", [Msg,StateName], ?ERR),
     ts_mon:add({ count, unknown_msg }),
     {stop, normal, State}.
 
@@ -312,7 +312,7 @@ handle_next_action(State) ->
 	Count = State#state.count-1,
     case set_profile(State#state.maxcount,State#state.count,State#state.profile) of
         {thinktime, Think} ->
-            ?LOGF("Starting new thinktime ~p~n", [Think], ?DEB),
+            ?DebugF("Starting new thinktime ~p~n", [Think]),
             set_thinktime(Think),
             {next_state, think, State#state{count=Count}};
         {transaction, start, Tname} ->
@@ -350,7 +350,7 @@ get_server_cfg({Profile, Id}) ->
 %% Func: get_server_cfg/3
 %%----------------------------------------------------------------------
 get_server_cfg(#message{host=undefined, port=undefined, scheme=undefined},P,_)->
-    ?LOG("Server not configured in msg, get global conf ~n", ?DEB),
+    ?Debug("Server not configured in msg, get global conf ~n"),
     %% get global server profile
     ts_config_server:get_server_config();
 get_server_cfg(#message{host=ServerName, port= Port, scheme= Protocol},P,Id) ->
@@ -378,9 +378,9 @@ handle_next_request(Profile, State) ->
 		[] ->
 			Param = Profile#message.param;
 		DynData -> % add dynamic info (cookie for ex.) to request parameters
-			Param = ts_profile:add_dynparams(Type, Profile#message.param, DynData)
+			Param = Type:add_dynparams(Profile#message.param, DynData)
 	end,
-	Message = ts_profile:get_message(Type , Param),
+	Message = Type:get_message(Param),
 	Now = now(),
 
 	%% does the next message change the server setup ?
@@ -394,7 +394,7 @@ handle_next_request(Profile, State) ->
 				{Host, Port, Protocol} -> % server setup unchanged
 					Socket = State#state.socket;
 				_ ->
-					?LOG("Change server configuration inside a session ~n",?DEB),
+					?Debug("Change server configuration inside a session ~n"),
 					ts_utils:close_socket(State#state.protocol, State#state.socket),
 					Socket = none
 			end
@@ -421,7 +421,7 @@ handle_next_request(Profile, State) ->
                     handle_close_while_sending(State);
                 {error, Reason} -> 
                     ?LOGF("Error: Unable to send data, reason: ~p~n",[Reason],?ERR),
-                    CountName="send_err_"++atom_to_list(Reason),
+                    CountName="error_send_"++atom_to_list(Reason),
                     ts_mon:add({ count, list_to_atom(CountName) }),
                     {stop, normal, State};
                 {'EXIT', {noproc, _Rest}} ->
@@ -429,7 +429,8 @@ handle_next_request(Profile, State) ->
                 Exit ->
                     ?LOGF("EXIT Error: Unable to send data, reason: ~p~n",
                           [Exit], ?ERR),
-                    {stop, senderror, State}
+                    ts_mon:add({ count, error_send }),
+                    {stop, normal, State}
             end;
 		_Error ->
 			{stop, normal, State} %% already log in reconnect
@@ -465,7 +466,7 @@ handle_close_while_sending(State) ->
 %% Func: set_profile/2
 %% Args: MaxCount, Count (integer), ProfileId (integer)
 %%----------------------------------------------------------------------
-set_profile(MaxCount, Count, ProfileId) when integer(ProfileId) ->
+set_profile(MaxCount, Count, ProfileId) when is_integer(ProfileId) ->
     ts_session_cache:get_req(ProfileId, MaxCount-Count+1).
      
 %%----------------------------------------------------------------------
@@ -485,7 +486,7 @@ new_timeout(_Else, _Count, Thinktime) -> infinity.
 %% purpose: try to reconnect if this is needed (when the socket is set to none)
 %%----------------------------------------------------------------------
 reconnect(none, ServerName, Port, Protocol, IP, Pid) ->
-	?LOGF("Try to reconnect to: ~p (~p)~n",[ServerName, Pid], ?DEB),
+	?DebugF("Try to reconnect to: ~p (~p)~n",[ServerName, Pid]),
 	Opts = protocol_options(Protocol)  ++ [{ip, IP}],
     case Protocol:connect(ServerName, Port, Opts) of
 		{ok, Socket} -> 
@@ -557,4 +558,5 @@ set_thinktime({random, Think}) ->
 set_thinktime(Think) -> 
 %% dot not use timer:send_after because it does not scale well:
 %% http://www.erlang.org/ml-archive/erlang-questions/200202/msg00024.html
+	?DebugF("thinktime of ~p~n",[Think]),
     erlang:start_timer(Think, self(), end_thinktime ).

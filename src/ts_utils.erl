@@ -26,7 +26,8 @@
 %% user interface
 -export([debug/3, debug/4, get_val/1, init_seed/0, chop/1, elapsed/2,
          now_sec/0, inet_setopts/4, node_to_hostname/1, add_time/2,
-         level2int/1, mkey1search/2, close_socket/2, datestr/0, datestr/1]).
+         level2int/1, mkey1search/2, close_socket/2, datestr/0, datestr/1,
+		 erl_system_args/0]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -88,7 +89,8 @@ chop(String) ->
 %% Func: init_seed/0
 %%----------------------------------------------------------------------
 init_seed()->
-    now().
+    {A,B,C}=now(),
+	random:seed(A,B,C).
 
 %%----------------------------------------------------------------------
 %% Func: now_sec/0
@@ -138,9 +140,6 @@ inet_setopts(gen_tcp, Socket,  Opts, Pid)->
 inet_setopts(gen_udp, Socket,  Opts, Pid)->
 	ok = inet:setopts(Socket, Opts).
 
-%5> inet:gethostbyname("schultze").
-%{ok,{hostent,"schultze.ird.idealx.com",["schultze"],inet,4,[{192,168,0,181}]}}
-
 node_to_hostname(Node) ->
     [Nodename, Hostname] = string:tokens( atom_to_list(Node), "@"),
     {ok, Hostname}.
@@ -184,3 +183,17 @@ datestr()->
 %%----------------------------------------------------------------------
 datestr({{Y,M,D},{H,Min,S}})->
 	io_lib:format("-~w:~w:~w-~w:~w",[Y,M,D,H,Min]).
+
+erl_system_args()->
+	Shared = case init:get_argument(shared) of 
+                 error     -> " ";
+                 {ok,[[]]} -> " -shared "
+             end,
+%	Connected = "-connect_all false ", 
+%	Connected = case init:get_argument(connect_all) of 
+%					{ok,[["false"]]} -> " -connect_all false ";
+%					_ -> ""
+%				end,
+    lists:append(["-rsh ssh -setcookie ",atom_to_list(erlang:get_cookie()),
+				  Shared," +Mea r10b "]).
+

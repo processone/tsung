@@ -35,7 +35,7 @@
 %%% API
 %%%----------------------------------------------------------------------
 start_link() ->
-	?LOG("starting supervisor ...~n",?DEB),
+	?LOG("starting supervisor ...~n",?INFO),
 	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 %%%----------------------------------------------------------------------
@@ -49,7 +49,7 @@ start_link() ->
 %%          {error, Reason}   
 %%----------------------------------------------------------------------
 init([]) ->
-	?LOG("starting",?DEB),
+	?LOG("starting",?INFO),
     Config = {ts_config_server, {ts_config_server, start_link, 
                                  []}, transient, 2000,
               worker, [ts_config_server]},
@@ -57,18 +57,16 @@ init([]) ->
                  worker, [ts_mon]},
     Os_Mon = {ts_os_mon, {ts_os_mon, start, []}, transient, 2000, 
 			   worker, [ts_os_mon]},
-    Timer = {ts_timer, {ts_timer, start, [?config(nclients)]}, transient, 2000, 
+    Timer = {ts_timer, {ts_timer, start, [?config(nclients)]}, transient, 2000,
 			   worker, [ts_timer]},
-    Request = {ts_req_server, {ts_req_server, start, []}, transient, 2000, 
-			   worker, [ts_req_server]},
-    Msg = {ts_msg_server, {ts_msg_server, start, []}, transient, 2000, 
+    Msg  = {ts_msg_server, {ts_msg_server, start, []}, transient, 2000,
 			   worker, [ts_msg_server]},
-    User = {ts_user_server, {ts_user_server, start, 
+    User = {ts_user_server, {ts_user_server, start,
 						  [[?config(nclients_deb), ?config(nclients_fin),
-							?config(nclients)]]}, 
+							?config(nclients)]]},
 			transient, 2000, worker, [ts_user_server]},
     {ok,{{one_for_one,?retries,10},
-		 [Config, Stats_Mon, Timer, Request, Msg, User, Os_Mon]}}.
+		 [Config, Stats_Mon, Timer, Msg, User, Os_Mon]}}.
 
 %%%----------------------------------------------------------------------
 %%% Internal functions

@@ -76,7 +76,7 @@ http_get_ifmodsince(Req=#http_request{url=URL, version=Version, cookie=Cookie,
 http_post(Req=#http_request{url=URL, version=Version, cookie=Cookie,
 			    content_type=ContentType, body=Content, server_name=Host}) ->
 	ContentLength=integer_to_list(size(Content)),
-	?LOGF("Content Length of POST: ~p~n.", [ContentLength], ?DEB),
+	?DebugF("Content Length of POST: ~p~n.", [ContentLength]),
 	Headers = [?POST, " ", URL," ", "HTTP/", Version, ?CRLF,
                "Host: ", Host, ?CRLF,
                user_agent(),
@@ -126,12 +126,7 @@ parse_config(Element = #xmlElement{name=http},
                      ?LOGF("Bad method ! ~p ~n",[Other],?ERR),
                      get
              end,
-    ServerName = case ets:lookup(Tab,{http_server_name, value}) of 
-                     [] ->
-                         ?config(server_name);
-                     [{_Key, SName}] ->
-                         SName
-                 end,
+    ServerName = ts_config:get_default(Tab,http_server_name, server_name),
     Msg = set_msg(#http_request{url         = URL,
                                 method      = Method,
                                 version     = Version,
@@ -169,14 +164,14 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 	List = binary_to_list(Data),
 	TotalSize = size(Data),
 	{ok, Http, Tail} = parse_headers(#http{},List),
-%%%			ts_mon:add({ count, Http#http.status }), %FIXME
+%	ts_mon:add({ count, Http#http.status }),% FIXME
 	BodySize= length(Tail),
 	CLength = Http#http.content_length,
 	Close   = Http#http.close,
 	Cookie  = Http#http.cookie,
 	if 
 		CLength == undefined, Http#http.status== 304 ->
-			?LOG("HTTP Not modified~n", ?DEB),
+			?Debug("HTTP Not modified~n"),
 			{State#state_rcv{session= #http{}, ack_done = true,
 							 datasize = TotalSize,
 							 dyndata  = Cookie}, [], Close};
@@ -213,22 +208,18 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 
 %% FIXME: handle the case where the Headers are not complete in the first message
 %% current connection
-parse(Data, State) when (State#state_rcv.session)#http.chunk_toread >=0 ->
-    Http = State#state_rcv.session,
-    ChunkSizePending = Http#http.chunk_toread,
-    BodySize = Http#http.body_size,
-    Close    = Http#http.close,
-    case read_chunk_data(Data, State, ChunkSizePending , BodySize) of
+parse(Data, State=#state_rcv{session=Http}) when Http#http.chunk_toread >=0 ->
+    case read_chunk_data(Data,State,Http#http.chunk_toread,Http#http.body_size) of
 		{NewState=#state_rcv{ack_done=false}, NewOpts}->
             {NewState, NewOpts, false};
 		{NewState, NewOpts}->
-            {NewState, NewOpts, Close}
+            {NewState, NewOpts, Http#http.close}
 	end;
 
 parse(Data, State) ->
     PreviousSize = State#state_rcv.datasize,
 	DataSize = size(Data),
-	?LOGF("HTTP Body size=~p ~n",[DataSize], ?DEB),
+	?DebugF("HTTP Body size=~p ~n",[DataSize]),
     Http = State#state_rcv.session,
 	CLength = Http#http.content_length,
 	case Http#http.body_size + DataSize of 
@@ -278,7 +269,7 @@ read_chunk(<<Char:1/binary, Data/binary>>, State, Int, Acc) ->
 	    read_chunk_data(Data, State, Int+3, Acc+1);
 	<<?CR>> when Int==0 -> %% should be the end of tranfer
 			Cookie=(State#state_rcv.session)#http.cookie,
-            ?LOGF("Finish tranfer chunk ~p~n", [binary_to_list(Data)] ,?DEB),
+            ?DebugF("Finish tranfer chunk ~p~n", [binary_to_list(Data)]),
             {State#state_rcv{session= #http{}, ack_done = true,
                              datasize = Acc, %% FIXME: is it the correct size?
                              dyndata= Cookie}, []};
@@ -286,7 +277,7 @@ read_chunk(<<Char:1/binary, Data/binary>>, State, Int, Acc) ->
 			   % additional whitespace...
 	    read_chunk(Data, State, Int, Acc+1);
 	_Other ->
-            ?LOGF("Unexpected error while parsing chunk ~p~n", [_Other] ,?DEB),
+            ?LOGF("Unexpected error while parsing chunk ~p~n", [_Other] ,?WARN),
 			ts_mon:add({count, http_unexpected_chunkdata}),
             {State#state_rcv{session= #http{}, ack_done = true}, []}
     end.
@@ -297,13 +288,13 @@ read_chunk(<<Char:1/binary, Data/binary>>, State, Int, Acc) ->
 %% Returns: {NewState= record(state_rcv), SockOpts}
 %%----------------------------------------------------------------------
 read_chunk_data(Data, State, Int, Acc) when size(Data) > Int->
-    ?LOGF("Read ~p bytes of chunk with size = ~p~n", [Int, size(Data)] ,?DEB),
+    ?DebugF("Read ~p bytes of chunk with size = ~p~n", [Int, size(Data)]),
     <<NewData:Int/binary, Rest/binary >> = Data,
     read_chunk(Rest, State,  0, Int + Acc);
 read_chunk_data(Data, State, Int, Acc) -> % not enough data in buffer
     BodySize = size(Data),
 	Cookie=(State#state_rcv.session)#http.cookie,
-    ?LOGF("Partial chunk received (~p/~p)~n", [BodySize,Int] ,?DEB),
+    ?DebugF("Partial chunk received (~p/~p)~n", [BodySize,Int]),
     NewHttp = (State#state_rcv.session)#http{chunk_toread   = Int-BodySize,
 											 body_size      = BodySize + Acc},
     {State#state_rcv{session  = NewHttp,
@@ -408,7 +399,7 @@ set_msg(HTTPRequest, Think, Msg) -> % end of a page, wait before the next one
 %%--------------------------------------------------------------------
 set_port(#url{scheme=https,port=undefined})  -> 443;
 set_port(#url{scheme=http,port=undefined})   -> 80;
-set_port(#url{port=Port}) when integer(Port) -> Port;
+set_port(#url{port=Port}) when is_integer(Port) -> Port;
 set_port(#url{port=Port}) -> integer_to_list(Port).
 
 
@@ -432,7 +423,7 @@ parse_headers(H, Tail) ->
 %%--------------------------------------------------------------------
 parse_status([A,B,C|Tail],  Http) ->
 	Status=list_to_integer([A,B,C]),
-	?LOGF("HTTP Status ~p~n",[Status],?DEB),
+	?DebugF("HTTP Status ~p~n",[Status]),
 	Http#http{status=Status}.
 
 %%--------------------------------------------------------------------
@@ -447,7 +438,7 @@ parse_line("HTTP/1.0 " ++ TailLine, Http )->
 
 parse_line("Content-Length: "++Tail, Http)->
 	CL=list_to_integer(Tail),
-	?LOGF("HTTP Content-Length ~p~n",[CL],?DEB),
+	?DebugF("HTTP Content-Length ~p~n",[CL]),
 	Http#http{content_length=CL};
 parse_line("Connection: close"++Tail, Http)->
 	Http#http{close=true};
@@ -458,10 +449,17 @@ parse_line("Transfer-Encoding: "++Tail, Http)->
 	Http;
 parse_line("Set-Cookies: "++Tail, Http=#http{cookie=PrevCookies})->
 	Cookie = get_cookie_val(Tail), %% FIXME: is it ok ?
-	?LOGF("HTTP New cookie val ~p~n",[Cookie],?DEB),
+	?DebugF("HTTP New cookie val ~p~n",[Cookie]),
 	Http#http{cookie=lists:reverse([Cookie|PrevCookies])};
 parse_line(Line,Http) ->
 	Http.
+%% Response:
+%%HTTP 401 Unauthorized
+%%WWW-Authenticate: Basic realm="bla"
+%% Next request: 
+%%Authorization: Basic 'base64(username:passwd)' 
+% 
+%httpd_util:encode_base64(lists:append(Username,":",Passwd)).
 
 %% code taken from yaws
 is_nb_space(X) ->

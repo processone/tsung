@@ -54,7 +54,7 @@
 %% Function: start/0
 %%--------------------------------------------------------------------
 start() ->
-	?LOG("starting ~n", ?DEB),
+	?LOG("starting ~n", ?INFO),
 	gen_fsm:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 %%--------------------------------------------------------------------
@@ -62,7 +62,7 @@ start() ->
 %%--------------------------------------------------------------------
 %% Start clients with given interarrival (can be empty list)
 launch({Node, Arrivals}) ->
-	?LOGF("starting on node ~p~n",[[Node]], ?DEB),
+	?LOGF("starting on node ~p~n",[[Node]], ?INFO),
 	gen_fsm:send_event({?MODULE, Node}, {launch, Arrivals}).
 
 
@@ -78,8 +78,12 @@ launch({Node, Arrivals}) ->
 %%          {stop, StopReason}                   
 %%----------------------------------------------------------------------
 init([]) ->
-    {Msec, Sec, Nsec} = ts_utils:init_seed(),
-    random:seed(Msec,Sec,Nsec),
+    ts_utils:init_seed(),
+%	ControllerNode = ?config(controller),
+%	Res = net_adm:ping(ControllerNode),
+%	global:sync(),
+%	?LOGF("ping ~p: ~p (nodes=~p)~n",[ControllerNode, Res,nodes()],?NOTICE),
+
     {ok, MyHostName} = ts_utils:node_to_hostname(node()),
 	{ok, wait, #state{myhostname=MyHostName}}.
 
@@ -94,20 +98,27 @@ wait({launch, []}, State) ->
 	?LOGF("Launch msg receive (~p)~n",[MyHostName], ?NOTICE),
     {ok, {[{Intensity, Users}| Rest], StartDate, Max}} = 
         ts_config_server:get_client_config(MyHostName),
-    WaitBeforeStart = ts_utils:elapsed(now(), StartDate),
-    Warm_timeout = round(ts_stats:exponential(Intensity) + WaitBeforeStart),
+	Warm_timeout=case ts_utils:elapsed(now(), StartDate) of 
+					 WaitBeforeStart when WaitBeforeStart>0 -> 
+						 round(ts_stats:exponential(Intensity) + WaitBeforeStart);
+					 Neg -> 
+						 ?LOG("Negative Warm timeout !!! Check if client "++
+							  " machines are synchronized (ntp ?)~n"++
+							  "Anyway, start launcher NOW! ~n", ?WARN),
+						 1
+					  end,
 	?LOGF("Activate launcher (~p users) in ~p msec ~n",[Users, Warm_timeout], ?NOTICE),
 	{next_state, launcher, State#state{phases = Rest, nusers = Users, 
                                        intensity = Intensity, maxusers= Max },  Warm_timeout};
 
 wait({launch, {[{Intensity, Users}| Rest], Max}}, State) ->
-    ?LOGF("Starting with  ~p users todo in the current phase (max is ~p)~n",
-          [Users, Max],?DEB),
+    ?DebugF("Starting with ~p users to do in the current phase (max is ~p)~n",
+			[Users, Max]),
 	{next_state, launcher, State#state{phases = Rest, nusers = Users, 
                                        intensity = Intensity, maxusers= Max }, ?short_timeout}.
 
 launcher(Event, State=#state{nusers = 0, phases = [] }) ->
-	?LOG("no more clients to start, wait  ~n",?DEB),
+	?LOG("no more clients to start, wait  ~n",?INFO),
     {next_state, finish, #state{}, ?check_noclient_timeout};
 
 launcher(timeout, State=#state{nusers    = Users,
@@ -210,17 +221,15 @@ check_max_raised(State=#state{phases=Phases,maxusers=Max,nusers=Users,
             ts_config_server:newbeam(list_to_atom(State#state.myhostname), {Args, Max}),
             true;
         false ->
-            ?LOGF("Current clients on beam: ~p~n", [ActiveClients],?DEB),
+            ?DebugF("Current clients on beam: ~p~n", [ActiveClients]),
             false
     end.
 
 do_launch({Intensity, MyHostName})->
     %%Get one client
-    %% Id = ts_user_server:get_idle(),%% FIXME: make it work again with new config server
     %%set the profile of the client
     {ok, Profile} = ts_config_server:get_next_session(MyHostName),
     ts_client_sup:start_child(Profile),
     X = round(ts_stats:exponential(Intensity)),
-    ?LOGF("client launched, waiting ~p msec before launching next client",
-          [X],?DEB),
+    ?DebugF("client launched, wait ~p ms before launching next client~n",[X]),
     X.

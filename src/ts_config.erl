@@ -37,7 +37,8 @@
 -export([read/1,
          getAttr/2,
          getAttr/3,
-         parse/2
+         parse/2,
+         get_default/3
         ]).
 
 %%%----------------------------------------------------------------------
@@ -135,9 +136,10 @@ parse(Element = #xmlElement{name=ip},
 parse(Element = #xmlElement{name=arrivalphase},
       Conf = #config{arrivalphases=AList}) ->
 
-    Phase     = getAttr(Element#xmlElement.attributes, phase),
+    PhaseStr     = getAttr(Element#xmlElement.attributes, phase),
+    {ok, [{integer,1,Phase}],1} = erl_scan:string(PhaseStr),
     Duration  = getAttr(Element#xmlElement.attributes, duration),
-    Unit  = getAttr(Element#xmlElement.attributes, duration, "seconds"),
+    Unit  = getAttr(Element#xmlElement.attributes, unit, "second"),
     {ok, [{integer,1,IDuration}],1} = erl_scan:string(Duration),
 	D = to_seconds(Unit, IDuration),
     lists:foldl(fun parse/2,
@@ -151,16 +153,21 @@ parse(Element = #xmlElement{name=arrivalphase},
 parse(Element = #xmlElement{name=users},
       Conf = #config{arrivalphases=[CurA | AList]}) ->
     
-    MaxVal = getAttr(Element#xmlElement.attributes, maxnumber, infinity),
-	?LOGF("Maximum number of users ~p~n",[MaxVal],?INFO),
-	{ok, [{integer,1,MaxNumber}],1} = erl_scan:string(MaxVal),
+    MaxNumber = case getAttr(Element#xmlElement.attributes, maxnumber, infinity) of
+				 infinity -> 
+					 infinity;
+				 Val ->
+					 {ok, [{integer,1,Max}],1} = erl_scan:string(Val),
+					 Max
+			 end,
+	?LOGF("Maximum number of users ~p~n",[MaxNumber],?INFO),
 
     InterArrival  =    
         case erl_scan:string(getAttr(Element#xmlElement.attributes, interarrival)) of
             {ok, [{integer,1,I}],1} -> I;
             {ok, [{float,1,F}],1} -> F
         end,
-    Unit  = getAttr(Element#xmlElement.attributes, duration, "seconds"),
+    Unit  = getAttr(Element#xmlElement.attributes, unit, "second"),
     Intensity= 1/(1000 * to_seconds(Unit,InterArrival)),
 
     lists:foldl(fun parse/2,
@@ -340,3 +347,12 @@ to_seconds("millisecond", Val)-> Val/1000.
 build_list(String) -> build_list(String, "%").
 build_list(String, Sep) ->
     string:tokens(String, Sep).
+
+%%
+get_default(Tab, Key,ConfigName) ->
+    case ets:lookup(Tab,{Key, value}) of 
+		[] ->
+			?config(ConfigName);
+		[{_Key, SName}] ->
+			SName
+	end.

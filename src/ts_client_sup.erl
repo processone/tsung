@@ -66,6 +66,10 @@ init([]) ->
 				  {ts_client,{ts_client, start, []},
 				   temporary,2000,worker,[ts_client]}
 				 ],
+%	fprof:start(),
+%	Res = fprof:trace(start, "/tmp/tsunami.fprof"),
+%	?LOGF("starting profiler: ~p~n",[Res], ?WARN),
+
     {ok, {SupFlags, ChildSpec}}.
 
 

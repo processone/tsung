@@ -51,7 +51,7 @@
 %%% API
 %%%----------------------------------------------------------------------
 start([NDeb, NFin, NClients]) ->
-	?LOGF("Starting with args ~p ~n",[[NDeb, NFin, NClients]],?DEB),
+	?LOGF("Starting with args ~p ~n",[[NDeb, NFin, NClients]],?INFO),
     gen_server:start_link({global, ?MODULE}, ?MODULE, {NDeb, NFin, NClients}, []).
 
 reset(NDeb, NFin, NClients)->
@@ -107,13 +107,11 @@ init({NDeb, NFin, NClients}) when  NFin =< NDeb->
 	{stop, badinterval}	;
 
 init({NDeb, NFin, NClients}) ->
-	?LOG("starting ...",?DEB),
-    {Msec, Sec, Nsec} = ts_utils:init_seed(),
-    random:seed(Msec,Sec,Nsec),
+    ts_utils:init_seed(),
 
     {Offline, [H|T]} = build_clients({NDeb, NFin}, NClients+1),
 	Free= length(T),
-	?LOGF("ok, started with ~p free users~n",[Free], ?DEB),
+	?LOGF("ok, started with ~p free users~n",[Free], ?INFO),
     State = #state{list_user = T, 
 		   list_offline = Offline,
 		   list_connected = [],
@@ -193,8 +191,8 @@ handle_call({remove_connected, Id}, From, State) ->
 
 %%% Get a connected id different from 'Id'
 handle_call( {get_one_connected, Id}, From, State) ->
-    ?LOGF("free_users=~w, connected= ~w~n",
-				[State#state.free_users, State#state.list_connected],?DEB),
+    ?DebugF("free_users=~w, connected= ~w~n",
+				[State#state.free_users, State#state.list_connected]),
 	%% First remove Id from the connected list
     Connected = lists:delete(Id, State#state.list_connected),
     case {State#state.free_users, length(Connected)} of

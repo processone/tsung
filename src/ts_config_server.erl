@@ -143,8 +143,7 @@ get_next_session(Host)->
 %%          {stop, Reason}
 %%--------------------------------------------------------------------
 init([]) ->
-    {Msec, Sec, Nsec} = ts_utils:init_seed(),
-    random:seed(Msec,Sec,Nsec),
+	ts_utils:init_seed(),
     {ok, #state{}}.
 
 %%--------------------------------------------------------------------
@@ -177,10 +176,10 @@ handle_call({read_config, ConfigFile}, From, State) ->
 handle_call({get_req, Id, N}, From, State) ->
     Config = State#state.config,
 	Tab    = Config#config.session_tab,
-    ?LOGF("look for ~p th request in session ~p for ~p~n",[N,Id,From],?DEB),
+    ?DebugF("look for ~p th request in session ~p for ~p~n",[N,Id,From]),
 	case ets:lookup(Tab, {Id, N}) of 
 		[{Key, Session}] -> 
-            ?LOGF("ok, found ~p for ~p~n",[Session,From],?DEB),
+            ?DebugF("ok, found ~p for ~p~n",[Session,From]),
 			{reply, Session, State};
 		Other ->
 			{reply, {error, Other}, State}
@@ -195,7 +194,7 @@ handle_call({get_next_session, HostName}, From, State) ->
     
     {ok,IP,NewPos} = choose_client_ip(Client,State#state.lastips),
     
-    ?LOGF("get new session for ~p~n",[From],?DEB),
+    ?DebugF("get new session for ~p~n",[From]),
 	NewState=State#state{lastips=NewPos},
     case choose_session(Config#config.sessions) of
         {ok, Session=#session{id=Id}} ->
@@ -234,7 +233,7 @@ handle_call({get_client_config, Host}, From, State) ->
         _ ->
             {reply, {error, notfound}, State}
     end;
-            
+
 %%
 handle_call({get_monitor_hosts}, From, State) ->
     Config = State#state.config,
@@ -257,20 +256,18 @@ handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
     Name = "tsunami" ++ integer_to_list(NodeId),
     {ok, [[PathName, PathVal]]} = init:get_argument(boot_var),
     {ok, [[BootController]]}    = init:get_argument(boot),
-    Shared = case init:get_argument(shared) of 
-                 error     -> "";
-                 {ok,[[]]} -> " -shared"
-             end,
     {ok, Boot, _} = regexp:sub(BootController,"tsunami_controller","tsunami"),
-    Args = lists:append(["-rsh ssh -setcookie ",atom_to_list(erlang:get_cookie()),
-        " -boot ", Boot,
+	Sys_Args= ts_utils:erl_system_args(),
+    Args = lists:append([ Sys_Args," -boot ", Boot,
         " -boot_var ", PathName, " ",PathVal,
         " -tsunami debug_level ", integer_to_list(?config(debug_level)),
-        " -tsunami monitoring ", atom_to_list(?config(monitoring)), Shared, 
-        " +Mea r10b" ]),
+        " -tsunami monitoring ", atom_to_list(?config(monitoring)),
+        " -tsunami controller ", atom_to_list(node())
+        ]),
     {ok, Node} = slave:start_link(Host, Name, Args),
     ?LOGF("started newbeam on node ~p~n", [Node], ?NOTICE),
     Res = net_adm:ping(Node),
+    ?LOGF("ping ~p ~p~n", [Node,Res], ?NOTICE),
     ts_launcher:launch({Node, Arrivals}),
     {noreply, State#state{last_beam_id = NodeId +1}};
 
@@ -361,8 +358,8 @@ get_client_cfg([], Clients, TotalWeight, Host, Cur) ->
     {value, Client} = lists:keysearch(Host, #client.host, Clients),
     Max = Client#client.maxusers,
     {ok, lists:reverse(Cur), Max};
-get_client_cfg([Arrival=#arrivalphase{duration=Duration, 
-                                      intensity=PhaseIntensity, 
+get_client_cfg([Arrival=#arrivalphase{duration = Duration, 
+                                      intensity= PhaseIntensity, 
                                       maxnumber= MaxNumber } | AList],
                Clients, TotalWeight, Host, Cur) ->
     {value, Client} = lists:keysearch(Host, #client.host, Clients),
@@ -372,9 +369,11 @@ get_client_cfg([Arrival=#arrivalphase{duration=Duration,
                  infinity -> %% only use the duration to set the number of users
                      Duration * 1000 * ClientIntensity;
                  Val ->
-                     lists:min([MaxNumber, Duration * 1000 * ClientIntensity])
+                     lists:min([MaxNumber, Duration*1000*ClientIntensity])
              end,
-    ?LOGF("New arrival phase: will start ~p users~n",[NUsers],?NOTICE),
+	%% TODO: store the max number of clients
+    ?LOGF("New arrival phase ~p for client ~p: will start ~p users~n",
+		  [Arrival#arrivalphase.phase, Host, NUsers],?NOTICE),
     get_client_cfg(AList, Clients, TotalWeight, Host,
                    [{ClientIntensity, round(NUsers)} | Cur]).
 
@@ -384,11 +383,12 @@ get_client_cfg([Arrival=#arrivalphase{duration=Duration,
 %%----------------------------------------------------------------------
 check_popularity(Sessions) ->
     Sum = lists:foldl(fun(X, Sum) -> X#session.popularity+Sum end, 0, Sessions),
-    Epsilon = 0.01, %% popularity may be a float number. 10-3 precision
+    Epsilon = 0.01, %% popularity may be a float number. 10-2 precision
     Delta = abs(Sum - 100),
     case Delta < Epsilon of
         true -> ok;
         false -> 
-            ?LOGF("*** Total sum of popularity is not 100 (~p) !",[Sum],?ERR)
+            ?LOGF("*** Total sum of popularity is not 100 (~p) !",[Sum],?ERR),
+			throw({error,bad_popularity_sum})
     end.
     

@@ -47,20 +47,17 @@ exponential(Param) ->
 
 %% N samples from an exponential distribution
 exponential(Param, N) ->
-    {Msec, Sec, Nsec} = now(), 
-    random:seed(Msec,Sec,Nsec), % est-ce necessaire de faire ça ici ?
     sample(fun(X) -> exponential(X) end , Param, N).
 
 %% random sample from a Pareto distribution
-pareto(Param) ->
-    Param#pareto.a/(math:pow(random:uniform(), 1/Param#pareto.beta)).
+pareto(#pareto{a=A, beta=Beta}) ->
+    A/(math:pow(random:uniform(), 1/Beta)).
 
 %% if a list is given, construct a record for the parameters
-pareto(Param, N) when list(Param)->
-    pareto(#pareto{a = lists:nth(1,Param) , beta = lists:nth(2,Param) }, N);
+pareto([A, Beta], N) ->
+    pareto(#pareto{a = A , beta = Beta }, N);
 %% N samples from a Pareto distribution
 pareto(Param, N) ->
-    random:seed(), % est-ce necessaire de faire ça ici ?
     sample(fun(X) -> pareto(X) end , Param, N).
 
 %% incremental computation of the mean

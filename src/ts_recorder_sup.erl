@@ -43,7 +43,7 @@
 %%% API
 %%%----------------------------------------------------------------------
 start_link() ->
-	?LOG("starting supervisor ...~n",?DEB),
+	?LOG("starting supervisor ...~n",?INFO),
 	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 %%%----------------------------------------------------------------------
@@ -57,7 +57,7 @@ start_link() ->
 %%          {error, Reason}   
 %%----------------------------------------------------------------------
 init([]) ->
-	?LOG("starting",?DEB),
+	?LOG("starting",?INFO),
     ClientsSup = {ts_client_proxy_sup, {ts_client_proxy_sup, start_link, []},
                   permanent, 2000, supervisor, [ts_client_proxy_sup]},
 	Recorder = {ts_proxy_recorder, {ts_proxy_recorder, 

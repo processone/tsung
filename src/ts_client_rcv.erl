@@ -60,7 +60,7 @@ wait_ack({Pid, Ack, When, EndPage, Socket, Protocol}) ->
 init([{CType, PPid, Socket, Protocol, Timeout, Ack, Monitor}]) ->
 	{ok, #state_rcv{socket = Socket, timeout= Timeout, ack = Ack,
 					ppid= PPid, clienttype = CType, protocol= Protocol,
-					session = ts_profile:new_session(CType, Ack),
+					session = CType:new_session(),
 					monitor = Monitor }}.
 
 %%----------------------------------------------------------------------
@@ -86,7 +86,7 @@ handle_call(Request, From, State) ->
 
 %% ack value -> wait
 handle_cast({wait_ack, Ack, When, EndPage, Socket, Protocol}, State) ->
-	?LOGF("receive wait_ack: ~p , endpage=~p~n",[Ack, EndPage], ?DEB),
+	?DebugF("receive wait_ack: ~p , endpage=~p~n",[Ack, EndPage]),
 	case State#state_rcv.page_timestamp of 
 		0 -> %first request of a page
 			NewPageTimestamp = When;
@@ -159,6 +159,7 @@ handle_info(timeout, State) ->
     {noreply, State};
 
 handle_info(Data, State) ->%% test if client implement parse ?
+	?LOGF("Unknown data received ~p~n",[Data], ?WARN),
 	{NewState, Opts} = handle_data_msg(Data, State),
 	Socket = NewState#state_rcv.socket,
 	ts_utils:inet_setopts(State#state_rcv.protocol, Socket,
@@ -187,17 +188,17 @@ handle_data_msg(Data, State=#state_rcv{ack=no_ack}) ->
 	ts_mon:rcvmes({State#state_rcv.monitor, self(), Data}),
     {State, []};
 
-handle_data_msg(Data, State=#state_rcv{ack=parse}) ->
+handle_data_msg(Data, State=#state_rcv{ack=parse, clienttype=Type}) ->
 	ts_mon:rcvmes({State#state_rcv.monitor, self(), Data}),
-    {NewState, Opts, Close} =
-        ts_profile:parse(State#state_rcv.clienttype, Data, State),
+	
+    {NewState, Opts, Close} = Type:parse(Data, State),
     case NewState#state_rcv.ack_done of
         true ->
-            ?LOGF("Response done:~p~n", [NewState#state_rcv.datasize], ?DEB),
+            ?DebugF("Response done:~p~n", [NewState#state_rcv.datasize]),
             PageTimeStamp = update_stats(NewState, Close),
             case Close of
                 true ->
-                    ?LOG("Close connection required by protocol~n", ?DEB),
+                    ?Debug("Close connection required by protocol~n"),
                     ts_utils:close_socket(State#state_rcv.protocol,State#state_rcv.socket),
                     {NewState#state_rcv{endpage = false, % reinit in case of
                                         page_timestamp = PageTimeStamp,
@@ -207,7 +208,7 @@ handle_data_msg(Data, State=#state_rcv{ack=parse}) ->
                                         page_timestamp = PageTimeStamp}, Opts}
             end;
         _ ->
-            ?LOGF("Response: continue:~p~n",[NewState#state_rcv.datasize],?DEB),
+            ?DebugF("Response: continue:~p~n",[NewState#state_rcv.datasize]),
             {NewState, Opts}
     end;
 
@@ -235,9 +236,8 @@ handle_data_msg(Data, State=#state_rcv{ack_done=false}) ->
 update_stats(State, Close) ->
 	Now = now(),
 	Elapsed = ts_utils:elapsed(State#state_rcv.ack_timestamp, Now),
-%	Stats= [{ sample, response_time, Elapsed},
-%			{ sum, size, State#state_rcv.datasize}],
-	Stats=[],
+	Stats= [{ sample, response_time, Elapsed},
+			{ sum, size, State#state_rcv.datasize}],
 	case State#state_rcv.endpage of
 		true -> % end of a page, compute page reponse time 
 			PageElapsed = ts_utils:elapsed(State#state_rcv.page_timestamp, Now),
@@ -246,7 +246,7 @@ update_stats(State, Close) ->
                   State#state_rcv.dyndata, Close),
 			0;
 		_ ->
-%			ts_mon:add(Stats),
+			ts_mon:add(Stats),
 			doack(State#state_rcv.ack, State#state_rcv.ppid,
                   State#state_rcv.dyndata, Close),
 			State#state_rcv.page_timestamp

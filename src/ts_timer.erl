@@ -43,7 +43,7 @@
 %%% API
 %%%----------------------------------------------------------------------
 start(NClients) ->
-	?LOG("starting fsm timer",?DEB),
+	?LOG("starting fsm timer",?INFO),
 	gen_fsm:start_link({global, ?MODULE}, ?MODULE, [NClients], []).
 
 connected(Pid) ->
@@ -61,10 +61,7 @@ connected(Pid) ->
 %%          {stop, StopReason}                   
 %%----------------------------------------------------------------------
 init([NClients]) ->
-	?LOG("starting timer",?DEB),
-	%% init seed
-    {Msec, Sec, Nsec} = ts_utils:init_seed(),
-    random:seed(Msec,Sec,Nsec),
+	?LOG("starting timer",?INFO),
 	{ok, receiver, #state{nclient= NClients}}.
 
 %%----------------------------------------------------------------------
@@ -91,10 +88,10 @@ receiver(timeout, StateData) ->
 ack(timeout, #state{pidlist=[]}) ->
 	{stop, normal, #state{}};
 
-%% ack  (1 sec timeout hardcoded, urk!)
-ack(timeout, #state{pidlist=[Pid|T]}) ->
-	ts_client:next(Pid),
-	{next_state, ack, #state{pidlist=T}, 50+random:uniform(1000)}.
+%% ack all pids
+ack(timeout, #state{pidlist=L}) ->
+	lists:foreach({ts_client, next}, L),
+	{next_state, receiver, #state{pidlist=[]}}.
 												
 
 %%----------------------------------------------------------------------
@@ -145,7 +142,7 @@ handle_info(Info, StateName, StateData) ->
 %% Returns: any
 %%----------------------------------------------------------------------
 terminate(Reason, StateName, StatData) ->
-	?LOG("terminate timer",?DEB),
+	?LOG("terminate timer",?INFO),
 	ok.
 
 %%%----------------------------------------------------------------------

@@ -1,6 +1,6 @@
 %%%  This code was developped by IDEALX (http://IDEALX.org/) and
 %%%  contributors (their names can be found in the CONTRIBUTORS file).
-%%%  Copyright (C) 2000-2001 IDEALX
+%%%  Copyright (C) 2000-2004 IDEALX
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
 %%%  it under the terms of the GNU General Public License as published by
@@ -17,13 +17,16 @@
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 %%% 
 
+%%% File    : ts_jabber.erl
+%%% Author  : Nicolas Niclausse <nniclausse@IDEALX.com>
+%%% Purpose : 
+%%% Created : 11 Jan 2004 by Nicolas Niclausse <nniclausse@IDEALX.com>
 
--module(ts_http).
--vc('$Id$ ').
--author('nicolas.niclausse@IDEALX.com').
+-module(ts_jabber).
+-author('nniclausse@hyperion').
 
 -include("ts_profile.hrl").
--include("ts_http.hrl").
+-include("ts_jabber.hrl").
 
 -export([init_dynparams/0,
 		 add_dynparams/2,
@@ -39,48 +42,39 @@
 %% Returns: record or []
 %%----------------------------------------------------------------------
 new_session() ->
-	#http{}.
-
+	#jabber{}.
 %%----------------------------------------------------------------------
-%% Function: get_message/21
-%% Purpose: Build a message/request ,
-%% Args:	#http_request
+%% Function: get_message/1
+%% Purpose: Build a message/request
+%% Args:	#jabber
 %% Returns: binary
 %%----------------------------------------------------------------------
-get_message(Req=#http_request{method=get}) ->
-	ts_http_common:http_get(Req);
+get_message(Req=#jabber{}) ->
+	ts_jabber_common:get_message(Req).
 
-get_message(Req=#http_request{method=getims}) ->
-	ts_http_common:http_get_ifmodsince(Req);
-
-get_message(Req=#http_request{method=post}) ->
-	ts_http_common:http_post(Req).
 
 %%----------------------------------------------------------------------
-%% Function: parse/2
+%% Function: parse/3
 %% Purpose: Parse the given data and return a new state
 %% Args:	Data (binary)
 %%			State (record)
 %% Returns: NewState (record)
 %%----------------------------------------------------------------------
+%% no parsing in jabber. use only ack
 parse(Data, State) ->
-	ts_http_common:parse(Data, State).
+	State.
 
-%%----------------------------------------------------------------------
-%% Function: parse_config/2
-%%----------------------------------------------------------------------
+%%
 parse_config(Element, Conf) ->
-	ts_http_common:parse_config(Element, Conf).
+	ts_jabber_common:parse_config(Element, Conf).
 
 %%----------------------------------------------------------------------
 %% Function: add_dynparams/2
 %% Purpose: add dynamic parameters to build the message
-%%          this is used for ex. for Cookies in HTTP
 %%----------------------------------------------------------------------
 add_dynparams(Param, DynData) ->
-	Param#http_request{cookie=DynData}.
+	Param#jabber{id=DynData}.
 
 init_dynparams() ->
-	[].
-
+	ts_user_server:get_idle().
 
