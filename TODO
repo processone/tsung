@@ -1,21 +1,8 @@
 - groupchat for Jabber
 
-- Maybe use a single gen_server instead of 4 (msg, user, request, timer)
-
-- instead of logging everything, let the client (or the monitor)
-  compute stats ?
-
-- Maybe use a single monitor process for all beams ? this allow us to
-centralise the results, (but it can be a bottleneck if too much
-logging data are sent to it ?)
-
-- implement client parsing server response (needed for some protocols)
-
 - clients may do a checksum to control integrity of responses ?
 
-- implement http protocol:
-	- reuse already existing erlang modules.
-	- handle non persistant connections (http/1.0) within a user session
+- http protocol:
     - how to handle http/1.1 pipelining ?
 
 - other useful protocols: ftp, ldap, sql ... ?

@@ -64,7 +64,9 @@
   useful measurements of responses time. An small script is furnished
   for the Jabber protocol (mean, median, standard variation, and so on
   are computed, for different types of messages: authentication,
-  chat, offline messages ...)
+  chat, offline messages ...). 
+  Since v0.2.0, stats can also be computed in real-time, and dumped in
+  a text file at regular interval.
 
   This software is currently under development and can be enhanced
   in many ways (see TODO file). 
@@ -73,7 +75,7 @@
 
   2.1.  Dependencies
   
-  - requires Erlang/OTP R7B-0 or up (tested with R7B-2)
+  - tested with Erlang/OTP R9B-0
     (http://www.erlang.org/download.html)
 
   - perl5 (if you want tu use the scripts)
@@ -85,8 +87,8 @@
   Edit Makefile and idx-tsunami.pl if you want to change the install
   path (/usr/local/idx-tsunami by default)
 
-  Edit src/tsunami.rel.src if your Erlang version is not R7B-2 and set
-  erts, kernel and stdlib version according to your Erlang
+  Edit src/tsunami.rel.src if your Erlang version is not R9B-0 and set
+  erts, kernel, ssl  and stdlib version according to your Erlang
   distribution.
 
   make
@@ -102,7 +104,9 @@
 
     3/ When it's finished, you can use analyse_msg.pl to get
        statistical results from the logfiles (require at least 'light'
-       monitoring, see comments in 'idx-tsunamirc' )
+       monitoring, see comments in 'idx-tsunamirc' ). With v0.2.0, you
+       can have 'realtime' stats using with the --stats option (no
+       monitoring needed).
   
   2.3.  Problems/Bugs
  
