@@ -274,7 +274,7 @@ analyse_msg.pl: src/analyse_msg.pl.src Makefile
 idx-tsunami.sh: idx-tsunami.sh.in include.mk Makefile
 	@$(SED) \
 		-e 's;%INSTALL_DIR%;${raw_erlang_prefix};g' \
-		-e 's;$DESTDIR%;;g' \
+		-e 's;${DESTDIR};;g' \
 		-e 's;CONFIG_DIR%;${CONFIG_DIR};g' \
 		-e 's;%VERSION%;${VERSION};g' < $< > $@
 
