@@ -83,15 +83,15 @@ newclient({Who, When}) ->
 endclient({Who, When}) ->
 	gen_server:cast({global, ?MODULE}, {endclient, Who, When}).
 
-sendmes({none, Who, When, What}) ->
+sendmes({none, Who, What}) ->
 	skip;
-sendmes({_Type, Who, When, What}) ->
-	gen_server:cast({global, ?MODULE}, {sendmsg, Who, When, What}).
+sendmes({_Type, Who, What}) ->
+	gen_server:cast({global, ?MODULE}, {sendmsg, Who, now(), What}).
 
-rcvmes({none, Who, When, What}) ->
+rcvmes({none, Who, What}) ->
 	skip;
-rcvmes({_Type, Who, When, What}) ->
-	gen_server:cast({global, ?MODULE}, {rcvmsg, Who, When, What}).
+rcvmes({_Type, Who, What}) ->
+	gen_server:cast({global, ?MODULE}, {rcvmsg, Who, now(), What}).
 
 addsample({Type, Value}) ->
 	gen_server:cast({global, ?MODULE}, {sample, Type, Value}).

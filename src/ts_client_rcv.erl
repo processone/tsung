@@ -166,7 +166,7 @@ terminate(Reason, State) ->
 %% Purpose: handle data received from a socket
 %%----------------------------------------------------------------------
 handle_data_msg(Data, State) ->
-	ts_mon:rcvmes({State#state_rcv.monitor, self(), now(), Data}),
+	ts_mon:rcvmes({State#state_rcv.monitor, self(), Data}),
 	DataSize = size(Data),
 	case {State#state_rcv.ack, State#state_rcv.ack_done} of
 		{no_ack, _} ->
