@@ -44,7 +44,7 @@
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
--record(state, {list_offline, list_user, list_connected, first_client}).
+-record(state, {list_offline, list_user, list_connected, first_client, free_users}).
 
 
 %%%----------------------------------------------------------------------
@@ -106,17 +106,21 @@ stop()->
 %%          ignore               |
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
+init({NDeb, NFin, NClients}) when  NFin =< NDeb->
+	?PRINTDEBUG("Bad interval ! ~p is not < ~p~n",[NDeb, NFin],?ERR),
+	{stop, badinterval}	;
+
 init({NDeb, NFin, NClients}) ->
 	?PRINTDEBUG2("starting ...",?DEB),
     {Msec, Sec, Nsec} = ts_utils:init_seed(),
     random:seed(Msec,Sec,Nsec),
 
-    List =  build_idlist(NDeb, NFin, NClients+1),
-    {Offline, [H|T]} = select_client(List, NClients+1, []),
+    {Offline, [H|T]} = build_clients({NDeb, NFin}, NClients+1),
 	?PRINTDEBUG2("ok",?DEB),
     State = #state{list_user = T, 
 		   list_offline = Offline,
 		   list_connected = [],
+		   free_users = length(T),
 		   first_client= {H, not_connected}},
     {ok, State}.
 
@@ -140,14 +144,15 @@ handle_call(get_id, From, State) ->
 
 %%Get one id in the users whos have to be connected
 handle_call(get_idle, From, State) ->
-    case length(State#state.list_user) of
+    case #state.free_users of
 	0 ->
 	    {reply, [], State};
 	_Other ->
-		%% pourquoi pas [Element | List2] = State#state.list_user,
-		Element = lists:nth(1, State#state.list_user),
-	    State2 = State#state{list_user = lists:delete(Element, State#state.list_user),
-				 list_connected = lists:append(State#state.list_connected, [Element])},
+		[Element | NewList] = State#state.list_user,
+
+	    State2 = State#state{list_user = NewList,
+							 free_users = State#state.free_users -1,
+							 list_connected = [Element | State#state.list_connected]},
 	    {reply, Element, State2}
     end;
 
@@ -172,8 +177,10 @@ handle_call(disconnect_first, From, State) ->
     {reply, ok, State2};
 
 handle_call({reset, NDeb, NFin, NClients}, From, State) ->
-    [H|T] = build_idlist(NDeb, NFin, NClients+1) ,
+    {Offline, [H|T]} = build_clients({NDeb, NFin}, NClients+1),
     State2 = #state{list_user = T, 
+		   list_offline = Offline,
+		   free_users = length(T),
 		   list_connected = [],
 		   first_client= {H, not_connected}},
     {reply, ok, State2};
@@ -181,26 +188,24 @@ handle_call({reset, NDeb, NFin, NClients}, From, State) ->
 
 handle_call({remove_connected, Id}, From, State) ->
     State2 = State#state{list_connected = lists:delete(Id, State#state.list_connected),
-			list_user = lists:append(State#state.list_user, [Id])},
+						 free_users = State#state.free_users + 1,
+						 list_user = [Id | State#state.list_user]},
     {reply, ok, State2};
 
 
+%%% Get a connected id different from 'Id'
 handle_call( {get_one_connected, Id}, From, State) ->
-    ?PRINTDEBUG("~w ~w~n", [State#state.list_user, State#state.list_connected],?DEB),
-    List = State#state.list_user ++ State#state.list_connected,
-    case length(List) of
-		0 ->
-			{reply, [], State};
-		Length ->
-			Indice = random:uniform(Length) ,
-			case lists:nth(Indice, List) of
-				Id ->
-					Indice2 = (Indice rem Length) + 1,
-					Element2 = lists:nth(Indice2, List),
-					{reply, Element2, State}; 
-				Element ->
-					{reply, Element, State}
-			end
+    ?PRINTDEBUG("free_users=~w, connected= ~w~n",
+				[State#state.free_users, State#state.list_connected],?DEB),
+	%% First remove Id from the connected list
+    Connected = lists:delete(Id, State#state.list_connected),
+    case {State#state.free_users, length(Connected)} of
+		{0,0} ->
+			{reply, undefined, State};
+		{_, Length} ->
+			Indice = random:uniform(Length+State#state.free_users) ,
+			List = State#state.list_user ++ Connected,
+			{reply, lists:nth(Indice, List), State}
     end;
 
 
@@ -248,29 +253,17 @@ code_change(OldVsn, State, Extra) ->
 %%%----------------------------------------------------------------------
 
 %%%----------------------------------------------------------------------
-%%% Build list of potential users id.
+%%% Return two lists:
+%%% A list of N id's between NDeb and Nfin
+%%% A list of (Nfin - NDeb +1) - N  offline Id's (between NDeb and Nfin)
 %%%----------------------------------------------------------------------
-select_client(List, 0, L)->
+build_clients({NDeb, NFin}, N)->
+	build_clients(lists:seq(NDeb, NFin), N, []).
+
+build_clients(List, 0, L)->
     {List, L};
-select_client(List, N, L)->
-    Indice = random:uniform( length(List) ) ,
+build_clients(List, N, L)->
+    Indice = random:uniform( length(List) ) , %% length is not efficient !
     Element = lists:nth(Indice, List),
     List2 = lists:delete(Element, List),
-    select_client(List2, N-1, L ++ [Element]).
-
-
-
-%% Build list from NDeb to Nfin  
-
-buildidlist(NFin, NFin, L)->
-    L ++ [NFin];
-buildidlist(N, NFin, L)->
-    buildidlist(N+1, NFin, L ++ [N]). 
-
-build_idlist(NDeb, NFin, NClients) when NDeb =< NFin ->
-    List = buildidlist(NDeb, NFin, []);
-
-build_idlist(NDeb, NFin, NClients)  ->
-	?PRINTDEBUG("Bad interval ! ~p is not < ~p~n",[NDeb, NFin],?ERR),
-	badinterval.
-
+    build_clients(List2, N-1, [Element|L]).
