@@ -145,7 +145,7 @@
         This will create two files report.html and graph.html
     
       Ex: > cd ~/.idx-tsunami/log/2004YYYY-XX:XX
-          > analyse_msg.pl --stats idx-tsunami.log  --extra --html
+          > analyse_msg.pl --stats idx-tsunami.log  --plot --html
 
      4/ To start the proxy recorder for HTTP sessions, use the command
      'idx-tsunami recorder'. The proxy will start listening to the

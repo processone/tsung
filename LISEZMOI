@@ -153,7 +153,7 @@
        encore peut être configuré par --tdir <dir>
  
       Ex: > cd ~/.idx-tsunami/log/2004YYYY-XX:XX
-          > analyse_msg.pl --stats idx-tsunami.log --extra --html
+          > analyse_msg.pl --stats idx-tsunami.log --plot --html
 
     4/ Pour utiliser le proxy enregistreur de sessions HTTP depuis un
     navigateur, il faut d'abord démarrer le proxy avec la commande
