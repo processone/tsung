@@ -97,9 +97,9 @@ sendmes({none, Who, What}) ->
 sendmes({_Type, Who, What}) ->
 	gen_server:cast({global, ?MODULE}, {sendmsg, Who, now(), What}).
 
-rcvmes({none, Who, What}) ->
-	skip;
-rcvmes({_Type, Who, What}) ->
+rcvmes({none, Who, What})-> skip;
+rcvmes({_, Who, closed}) -> skip;
+rcvmes({_Type, Who, What})  ->
 	gen_server:cast({global, ?MODULE}, {rcvmsg, Who, now(), What}).
 
 add(Data) ->
