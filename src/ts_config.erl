@@ -201,17 +201,36 @@ parse(Element = #xmlElement{name=session},
                                                  persistent   = APersistent
                                                 }
                                         |SList],
-                            curid=0},% re-initialize request id
+                            curid=0, cur_req_id=0},% re-initialize request id
                 Element#xmlElement.content);
+
+%%%% Parsing the transaction element
+parse(Element = #xmlElement{name=transaction},
+      Conf = #config{session_tab = Tab, sessions=[CurS|SList], curid=Id}) ->
+
+    RawName = getAttr(Element#xmlElement.attributes, name),
+    {ok, [{atom,1,Name}],1} = erl_scan:string("tr_"++RawName),
+    ?LOGF("Add start transaction ~p in session ~p as id ~p",
+         [Name,CurS#session.id,Id+1],?INFO),
+    ets:insert(Tab, {{CurS#session.id, Id+1}, {transaction,start,Name}}),
+
+    NewConf=lists:foldl( fun parse/2,
+                 Conf#config{curid=Id+1},
+                 Element#xmlElement.content),
+    NewId = NewConf#config.curid,
+    ?LOGF("Add end transaction ~p in session ~p as id ~p",
+         [Name,CurS#session.id,NewId+1],?INFO),
+    ets:insert(Tab, {{CurS#session.id, NewId+1}, {transaction,stop,Name}}),
+    NewConf#config{curid=NewId+1} ;
 
 %%% Parsing the request element
 parse(Element = #xmlElement{name=request},
-      Conf = #config{sessions=[CurSess|SList], curid=Id}) ->
+      Conf = #config{sessions=[CurSess|SList], curid=Id,cur_req_id=ReqId}) ->
 
     Type  = CurSess#session.type,
 
     lists:foldl( {Type, parse_config},
-                 Conf#config{curid=Id+1},
+                 Conf#config{curid=Id+1, cur_req_id=Id+1},
                  Element#xmlElement.content);
 
 %%% Parsing the default element
@@ -237,7 +256,8 @@ parse(Element = #xmlElement{name=default},
 
 %%% Parsing the thinktim element
 parse(Element = #xmlElement{name=thinktime},
-      Conf = #config{curid=Id, session_tab = Tab, sessions = [CurS |SList]}) ->
+      Conf = #config{cur_req_id=ReqId, curid=Id, session_tab = Tab, 
+                     sessions = [CurS |SList]}) ->
     case ets:lookup(Tab,{thinktime, value}) of 
         [] -> % no default value
             Think = case getAttr(Element#xmlElement.attributes, value) of
@@ -262,12 +282,13 @@ parse(Element = #xmlElement{name=thinktime},
                     false ->
                         round(Think * 1000)
                 end,
-    ?LOGF("New thinktime ~p for id (~p:~p)~n",[RealThink, CurS#session.id, Id],
+    ?LOGF("New thinktime ~p for id (~p:~p)~n",[RealThink, CurS#session.id, Id+1],
           ?INFO),
-    [{Key, Msg}] = ets:lookup(Tab,{CurS#session.id, Id}),
+    ets:insert(Tab,{{CurS#session.id, Id+1}, {thinktime, RealThink}}),
+    [{Key, Msg}] = ets:lookup(Tab,{CurS#session.id, ReqId}),
     ets:insert(Tab,{Key, Msg#message{thinktime=RealThink, endpage=true}}),
     
-    lists:foldl( fun parse/2, Conf#config{curthink=Think}, 
+    lists:foldl( fun parse/2, Conf#config{curthink=Think,curid=Id+1}, 
                  Element#xmlElement.content);
 
 

@@ -43,13 +43,13 @@
 				clienttype, % type of client (ts_http, jabber_online, etc.)
 				profile,    % list of requests parameters
 				persistent, % if true, don't exit when connexion is closed
-				lasttimeout,% value of the last timeout
 				timestamp,  % previous message date
 				starttime,  % date of the beginning of the session
 				dyndata =[],    % dynamic data (only used by parsing clients)
 				maxcount,   % total number of requests to sent
 				count,      % number of requests waiting to be sent
-				monitor     % type of monitoring
+				monitor,    % type of monitoring
+				transactions=[]% current transactions
 			   }).
 
 %%%----------------------------------------------------------------------
@@ -95,20 +95,8 @@ init({Session=#session{id            = Profile,
 	?LOGF("Init ... started with count = ~p  ~n",[Count],?DEB),
 	%%init seed
     %% random:seed(ts_utils:init_seed()),
-    case ts_session_cache:get_req(Profile, 1) of 
-        #message{host=undefined, port= undefined, scheme= undefined} ->
-            ?LOG("Server not configured in msg, get global conf ~n",?DEB),
-            % get global server profile
-            {ServerName, Port, Protocol} = ts_config_server:get_server_config(); 
-        #message{host=ServerName, port= Port, scheme= Protocol} ->
-            %% server profile can be overriden in the first URL of the session
-            %% curently, the following server modifications in the session are not used.
-            ?LOGF("Server setup overriden for this client (~p) host=~s port=~p proto=~p ~n",
-                  [self(), ServerName, Port, Protocol], ?INFO);
-        Other ->
-            ?LOGF("ERROR while getting first req [~p]! ~n",[Other],?ERR),
-            {ServerName, Port, Protocol} = ts_config_server:get_server_config()
-    end,
+    {ServerName, Port, Protocol} = get_server_cfg({Profile,1}),
+
     % open connection
 	Opts = protocol_options(Protocol) ++ [{ip, IP}],
 	?LOGF("Got first message, connect to ~p with options ~p ~n",
@@ -174,15 +162,10 @@ handle_call(Request, From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_cast({next_msg, DynData}, State = #state{lasttimeout = infinity}) ->
-	?LOGF("next_msg, count is ~p~n", [State#state.count], ?DEB),
-    set_thinktime(?short_timeout),
-	{noreply, State#state{lasttimeout=1, dyndata=DynData}};
 handle_cast({next_msg, DynData}, State) ->
-	?LOGF("next_msg (timeout is set to ~p)",[State#state.lasttimeout],?DEB),
-    set_thinktime(State#state.lasttimeout),
-	{noreply, State#state{dyndata=DynData}};
-%% more case to handle ?
+	?LOGF("next_msg, count is ~p~n", [State#state.count], ?DEB),
+    NewState = State#state{dyndata=DynData},
+    handle_info({timeout, next, end_thinktime}, NewState);
 
 %% the connexion was closed, but this session is persistent
 handle_cast({closed, Pid}, State = #state{persistent = true}) ->
@@ -227,9 +210,88 @@ handle_info({timeout, Ref, end_thinktime}, State= #state{ count=0 })  ->
 	end;
 
 handle_info({timeout, Ref, end_thinktime}, State ) ->
-    {Thinktime, Profile} = set_profile(State#state.maxcount, State#state.count,
-                                       State#state.profile),
 	Count = State#state.count-1,
+    case set_profile(State#state.maxcount, State#state.count,State#state.profile) of 
+        {thinktime, Think} ->
+            set_thinktime(Think),
+            {noreply, State#state{count=Count}};
+        {transaction, start, Tname} ->
+            ?LOGF("Starting new transaction ~p~n", [Tname], ?INFO),
+            TrList = State#state.transactions,
+            NewState = State#state{transactions=[{Tname,now()}|TrList],
+                                   count=Count}, 
+            handle_info({timeout, Ref, end_thinktime},NewState);
+        {transaction, stop, Tname} ->      
+            ?LOGF("Stopping transaction ~p~n", [Tname], ?INFO),
+            TrList = State#state.transactions,
+            {value, {Key, Tr}} = lists:keysearch(Tname, 1, TrList),
+            Now = now(),
+            Elapsed = ts_utils:elapsed(Tr, Now),
+            ts_mon:addsample({Tname, Elapsed}),
+            NewState = State#state{transactions=lists:keydelete(Tname,1,TrList),
+                                   count=Count}, 
+            handle_info({timeout, Ref, end_thinktime},NewState);
+        Profile=#message{} ->                                        
+            handle_next_request(Profile, State)
+    end;
+
+handle_info(timeout, State ) ->
+    ?LOG("Error: timeout receive~n", ?ERR),
+    ts_mon:addcount({ timeout }),
+    {stop, normal, State};
+handle_info(Msg, State ) ->
+    ?LOGF("Error: Unkonwn msg receive, stop ~p~n", [Msg], ?ERR),
+    ts_mon:addcount({ unknown_msg }),
+    {stop, normal, State}.
+
+%%----------------------------------------------------------------------
+%% Func: terminate/2
+%% Purpose: Shutdown the server
+%% Returns: any (ignored by gen_server)
+%%----------------------------------------------------------------------
+terminate(normal, State) ->
+    finish_session(State);
+terminate(Reason, State) ->
+	?LOGF("Stop, reason= ~p~n",[Reason],?NOTICE),
+    ts_mon:addcount({ error_unknown }),
+    finish_session(State).
+
+
+%%%----------------------------------------------------------------------
+%%% Internal functions
+%%%----------------------------------------------------------------------
+
+%%----------------------------------------------------------------------
+%% Func: get_server_cfg/1
+%% Args: Profile, Id
+%%----------------------------------------------------------------------
+get_server_cfg({Profile, Id}) ->
+    get_server_cfg(ts_session_cache:get_req(Profile, Id), Profile, Id).
+%%----------------------------------------------------------------------
+get_server_cfg(#message{host=undefined, port= undefined, scheme= undefined},P,Id) ->
+    ?LOG("Server not configured in msg, get global conf ~n",?DEB),
+    %% get global server profile
+    ts_config_server:get_server_config();
+get_server_cfg(#message{host=ServerName, port= Port, scheme= Protocol},P,Id) ->
+    %% server profile can be overriden in the first URL of the session
+    %% curently, the following server modifications in the session are not used.
+    ?LOGF("Server setup overriden for this client (~p) host=~s port=~p proto=~p ~n",
+          [self(), ServerName, Port, Protocol], ?INFO),
+    {ServerName, Port, Protocol};
+get_server_cfg({transaction,Type,Name},Profile,Id) ->
+    get_server_cfg(ts_session_cache:get_req(Profile, Id+1), Profile, Id+1);
+get_server_cfg({thinktime,_},Profile,Id) ->
+    get_server_cfg(ts_session_cache:get_req(Profile, Id+1), Profile, Id+1);
+get_server_cfg(Other,P,Id) ->
+    ?LOGF("ERROR while getting first req [~p]! ~n",[Other],?ERR),
+    ts_config_server:get_server_config().
+
+%%----------------------------------------------------------------------
+%% Func: handle_next_request/2
+%% Args: Profile, State
+%%----------------------------------------------------------------------
+handle_next_request(Profile, State) ->
+    Count = State#state.count-1,
 	Type  = State#state.clienttype,
 	case State#state.dyndata of 
 		[] ->
@@ -264,16 +326,13 @@ handle_info({timeout, Ref, end_thinktime}, State ) ->
             ts_client_rcv:wait_ack({State#state.rcvpid,Profile#message.ack, Now,
                                     Profile#message.endpage, NewSocket,
                                     Protocol}),
-            Timeout = new_timeout(Profile#message.ack, Count, Thinktime),
             case catch send(Protocol, NewSocket, Message) of
                 ok -> 
                     ts_mon:sendmes({State#state.monitor, self(), Message}),
-                    set_thinktime(Timeout),
                     {noreply, State#state{socket= NewSocket, count = Count,
                                           protocol=Protocol, server=Host,
                                           port= Port,
-                                          timestamp = Now,
-                                          lasttimeout = Thinktime} }; 
+                                          timestamp = Now }}; 
                 {error, closed} -> 
                     ?LOG("connection close while sending message !~n", ?WARN),
                     handle_close_while_sending(State);
@@ -293,32 +352,7 @@ handle_info({timeout, Ref, end_thinktime}, State ) ->
             end;
 		_Error ->
 			{stop, normal, State}
-	end;
-handle_info(timeout, State ) ->
-    ?LOG("Error: timeout receive~n", ?ERR),
-    ts_mon:addcount({ timeout }),
-    {stop, normal, State};
-handle_info(Msg, State ) ->
-    ?LOGF("Error: Unkonwn msg receive, stop ~p~n", [Msg], ?ERR),
-    ts_mon:addcount({ unknown_msg }),
-    {stop, normal, State}.
-
-%%----------------------------------------------------------------------
-%% Func: terminate/2
-%% Purpose: Shutdown the server
-%% Returns: any (ignored by gen_server)
-%%----------------------------------------------------------------------
-terminate(normal, State) ->
-    finish_session(State);
-terminate(Reason, State) ->
-	?LOGF("Stop, reason= ~p~n",[Reason],?NOTICE),
-    ts_mon:addcount({ error_unknown }),
-    finish_session(State).
-
-
-%%%----------------------------------------------------------------------
-%%% Internal functions
-%%%----------------------------------------------------------------------
+	end.
 
 %%----------------------------------------------------------------------
 %% Func: finish_session/1
@@ -340,9 +374,8 @@ finish_session(State) ->
 %%          reconnect before sending)
 %%----------------------------------------------------------------------
 handle_close_while_sending(State=#state{persistent=true}) ->
-    RetryTimeout = ?config(client_retry_timeout),
-    set_thinktime(RetryTimeout),
-    {noreply, State#state{lasttimeout=RetryTimeout}};
+    set_thinktime(?config(client_retry_timeout)),
+    {noreply, State};
 handle_close_while_sending(State) ->
     {stop, error, State}.
     
@@ -353,9 +386,7 @@ handle_close_while_sending(State) ->
 %%----------------------------------------------------------------------
 %% static message, get the thinktime from profile
 set_profile(MaxCount, Count, ProfileId) when integer(ProfileId) ->
-    set_profile(MaxCount, Count, ts_session_cache:get_req(ProfileId, MaxCount-Count+1));
-set_profile(MaxCount, Count, Profile) ->
-    {Profile#message.thinktime, Profile }.
+    ts_session_cache:get_req(ProfileId, MaxCount-Count+1).
      
 %%----------------------------------------------------------------------
 %% Func: new_timeout/3
