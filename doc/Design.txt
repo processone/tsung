@@ -6,6 +6,9 @@ The application is now split in two (see tsunami-inside.png for an overview):
 
 ** a single controller (tsunami_controller)
 
+ * ts_config_server (gen_server). Configuration server. Session's
+   definitions are kept by the config server.
+
  * ts_mon (gen_server). Each client send reports of stats to this
    server. Several types of messages are handled by ts_mon.
 
@@ -22,6 +25,9 @@ The application is now split in two (see tsunami-inside.png for an overview):
 This application is simpler:
   
  * ts_launcher (gen_fsm) launch simulated users.
+
+ * ts_session_cache (gen_server) cache the sessions's definition (ask
+   the config_server if it's not yet in the cache)
 
  * 2 process per simultated client (ts_client, ts_client_rcv), under
    the supervision of ts_clients_sup ( using simple_one_for_one )
@@ -41,19 +47,6 @@ Main modules:
 
            b/ Each of these process will spawn a new process to handle
            incoming data from the server (ts_client_rcv module).
-
-	    The total number of clients (NCLIENTS) can be changed in the
-	    config file. It represent the total number of clients that
-	    will be launched, and not the maximal simultaneous number of
-	    client.
-
-	  Warning: All the messages for a user session are computed by
-	  ts_launcher, just before spawning the user process (in a
-	  list). Therefore, if the number of messages is huge, it can
-	  takes A LOT of memory. If you want to do very long experiments,
-	  use a single 'dynamic' messages (see jabber_dynamic and
-	  Jabber.txt for an exemple), which will be send over and over by
-	  the user.
 
       Important parameters for Jabber :
          1/ chat messages size, in bytes (250 by default) 
