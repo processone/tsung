@@ -134,8 +134,7 @@ init([Profile, {CType, PType, MType, Persistent}], Count) ->
 					controlling_process(Protocol, Socket, Pid),
 					Connected = now(),
 					Elapsed = ts_utils:elapsed(StartTime, Connected),
-					ts_mon:newclient({self(), Connected}),
-					ts_mon:addsample({connect, Elapsed}), % connection time
+					ts_mon:newclient({self(), Connected, Elapsed}),
 					{ok, #state{rcvpid = Pid, socket = Socket, port = Port,
 								server= ServerName, profile= Profile,
 								protocol = Protocol,
@@ -191,7 +190,7 @@ handle_cast({next_msg, DynData}, State) ->
 %% more case to handle ?
 
 
-%% to be done : what about the current timer ?
+%% FIXME:to be done : what about the current timer ?
 handle_cast({add_messages, Messages}, State) ->
 	OldProfile = State#state.profile,
 	OldCount = State#state.count,
@@ -270,44 +269,63 @@ handle_info(timeout, State ) ->
 	Message = ts_profile:get_message(Type , Param),
 	Now = now(),
 
-    %% Currently, reuse the server setup (host, port protocol) from
-    %% the init function, but we could later change the setup for
-    %% every message.
+	%% does the profile update the server setup ?
+    case Profile of 
+        #message{host=undefined, port= undefined, scheme= undefined} ->
+            {Host, Port, Protocol, Socket} = {State#state.server,State#state.port,
+									  State#state.protocol, State#state.socket};
+        #message{host=Host, port= Port, scheme= Protocol} ->
+			%% need to reconnect if the server/port/scheme has changed
+			case {State#state.server,State#state.port, State#state.protocol} of
+				{Host, Port, Protocol} -> % server setup unchanged
+					Socket = State#state.socket;
+				_ ->
+					?LOG("Change server configuration inside a session ~n",?DEB),
+					close_socket(State#state.protocol, State#state.socket),
+					Socket = none
+			end
+    end,
 
 	%% reconnect if needed
-	Protocol = State#state.protocol,
-	{ok, Socket} = reconnect(State#state.socket, State#state.server, State#state.port,
-					   Protocol, State#state.rcvpid),
-	%% warn the receiving side that we are sending a new request
-	ts_client_rcv:wait_ack({State#state.rcvpid,Profile#message.ack, Now, 
-							Profile#message.endpage, Socket}),
-    Timeout = new_timeout(Profile#message.ack, Count, Thinktime),
-    case send(Protocol, Socket, Message) of
-		ok -> 
-			ts_mon:sendmes({State#state.monitor, self(), Message}),
-			{noreply, State#state{socket= Socket, count = Count,
-								  profile = Pending,
-								  timestamp = Now,
-								  lasttimeout = Thinktime},
-			 Timeout}; 
-		{error, closed} -> 
-			?LOG("connection close while sending message !~n.", ?WARN),
-			case State#state.persistent of 
-				true ->
-					RetryTimeout = ?config(client_retry_timeout),
-					{noreply, State#state{lasttimeout=RetryTimeout}, 
-					 RetryTimeout}; % try again in 10ms
-				_ ->
-					{stop, closed, State}
-			end;
-		{error, Reason} -> 
-			?LOGF("Error: Unable to send data from process ~p, reason: ~p~n.",
-				  [self(), Reason], ?ERR),
-            CountName="send_err_"++atom_to_list(Reason),
-			ts_mon:addcount({ list_to_atom(CountName) }),
-			{stop, Reason, State}
+	case reconnect(Socket, Host, Port, Protocol, State#state.rcvpid) of
+		{ok, NewSocket} ->
+            %% warn the receiving side that we are sending a new request
+            ts_client_rcv:wait_ack({State#state.rcvpid,Profile#message.ack, Now,
+                                    Profile#message.endpage, NewSocket,
+                                    Protocol}),
+            Timeout = new_timeout(Profile#message.ack, Count, Thinktime),
+            case send(Protocol, NewSocket, Message) of
+                ok -> 
+                    ts_mon:sendmes({State#state.monitor, self(), Message}),
+                    {noreply, State#state{socket= NewSocket, count = Count,
+                                          protocol=Protocol, server=Host,
+                                          port= Port,
+                                          profile = Pending,
+                                          timestamp = Now,
+                                          lasttimeout = Thinktime},
+                     Timeout}; 
+                {error, closed} -> 
+                    ?LOG("connection close while sending message !~n", ?WARN),
+                    case State#state.persistent of 
+                        true ->
+                            RetryTimeout = ?config(client_retry_timeout),
+                            {noreply, State#state{lasttimeout=RetryTimeout,
+                                                  protocol=Protocol,
+                                                  server=Host, port=Port},
+                             RetryTimeout}; % try again in 10ms
+                        _ ->
+                            {stop, closed, State}
+                    end;
+                {error, Reason} -> 
+                    ?LOGF("Error: Unable to send data from process ~p, reason: ~p~n",
+                          [self(), Reason], ?ERR),
+                    CountName="send_err_"++atom_to_list(Reason),
+                    ts_mon:addcount({ list_to_atom(CountName) }),
+                    {stop, Reason, State}
+            end;
+		_Error ->
+			{stop, reconnect, State}
 	end.
-
 
 %%----------------------------------------------------------------------
 %% Func: terminate/2
@@ -318,8 +336,7 @@ terminate(Reason, State) ->
 	?LOGF("Stop, reason= ~p~n",[Reason],?INFO),
 	Now = now(),
 	Elapsed = ts_utils:elapsed(State#state.starttime, Now),
-	ts_mon:endclient({self(), Now}),
-	ts_mon:addsample({session, Elapsed}), % session duration
+	ts_mon:endclient({self(), Now, Elapsed}),
 	ts_client_rcv:stop(State#state.rcvpid),
 %	fprof:stop(),
 	ok.
@@ -368,7 +385,7 @@ reconnect(none, ServerName, Port, Protocol, Pid) ->
 			ts_mon:addcount({ reconnect }),
 			{ok, Socket};
 		{error, Reason} ->
-			?LOGF("Error: ~p~n",[Reason],?ERR),
+			?LOGF("Reconnect Error: ~p~n",[Reason],?ERR),
             CountName="error_reconnect_"++atom_to_list(Reason),
 			ts_mon:addcount({ list_to_atom(CountName) }),
 			{stop, connfailed}
@@ -376,10 +393,17 @@ reconnect(none, ServerName, Port, Protocol, Pid) ->
 reconnect(Socket, Server, Port, Protocol, Pid) ->
 	{ok, Socket}.
 
+%% close socket if it exists
+close_socket(Protocol, none)->
+	ok;
+close_socket(Protocol, Socket)->
+	Protocol:close(Socket).
+	
 %%----------------------------------------------------------------------
 %% Func: send/3
 %% Purpose: this fonction is used to avoid the costly M:fun form of function
 %% call, see http://www.erlang.org/doc/r9b/doc/efficiency_guide/
+%% FIXME: is it really faster ? 
 %%----------------------------------------------------------------------
 send(gen_tcp,Socket,Message) ->
     gen_tcp:send(Socket,Message);
@@ -415,13 +439,13 @@ protocol_options(gen_tcp) ->
 %	 {packet, http}, % for testing purpose
 	 {recbuf, ?config(rcv_size)},
 	 {sndbuf, ?config(snd_size)},
-	 {keepalive, true}
+	 {keepalive, true} %% FIXME: should be an option
 	];
 protocol_options(gen_udp) ->
 	[binary, 
 	 {active, once},
 	 {recbuf, ?config(rcv_size)},
 	 {sndbuf, ?config(snd_size)},
-	 {keepalive, true}
+	 {keepalive, true} %% FIXME: should be an option
 	].
 	
