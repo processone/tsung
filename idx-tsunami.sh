@@ -3,20 +3,39 @@
 HOST=`hostname -s`
 NAME=idx-tsunami
 CONTROLLER=tsunami_controller
+TSUNAMIPATH=%prefix%/erlang/tsunami-%VSN%/ebin
+CONF_OPT="-tsunami_controller config_file \"%prefix%/etc/idx-tsunami.xml\""
+BOOT_OPT="-boot_var TSUNAMIPATH %prefix%/erlang -boot %prefix%/bin/tsunami_controller"
+ERL_OPTS="-rsh ssh +A 1 +Mea r10b -shared"
+COOKIE='tsunami'
 
 stop() {
-    erl -sname killer -setcookie -s slave stop $CONTROLLER@$HOST
+    erl $ERL_OPTS -noshell  -sname killer -setcookie $COOKIE -pa $TSUNAMIPATH -s tsunami_controller stop_all $HOST -s init stop
 }
 
 start() {
-    erl -rsh ssh -detached -sname $CONTROLLER -setcookie 'tsunami' -boot_var TSUNAMIPATH /usr/local/idx-tsunami/erlang -boot /usr/local/idx-tsunami/bin/tsunami_controller +A 1 -tsunami_controller config_file \"/usr/local/idx-tsunami/etc/idx-tsunami.xml\" -shared +Mea r10b
+    erl $ERL_OPTS -detached -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT $CONF_OPT
 }
 
 debug() {
-    erl -rsh ssh  -sname $CONTROLLER -setcookie 'tsunami' -boot_var TSUNAMIPATH /usr/local/idx-tsunami/erlang -boot /usr/local/idx-tsunami/bin/tsunami_controller +A 1 -tsunami_controller config_file \"/usr/local/idx-tsunami/etc/idx-tsunami.xml\" -shared +Mea r10b
+    erl $ERL_OPTS -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT $CONF_OPT
 }
 
-case "$1" in
+usage() {
+    prog=`basename $1`
+    echo "$prog start|stop|restart|status"
+}
+
+while getopts ":f:" Option
+do
+    case $Option in
+        f) CONF_OPT="-tsunami_controller config_file \"$OPTARG\" ";;
+		*) usage ;;
+    esac
+done	
+shift $(($OPTIND - 1))
+
+case $1 in
     start)
         start
         ;;
@@ -35,7 +54,6 @@ case "$1" in
         ;;
 
     *)
-        echo "Usage: $NAME {start|stop|restart}"
-        exit 1
+        usage $0
         ;;
 esac

@@ -21,7 +21,7 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
--export([start/2, start_phase/3, stop/1]).
+-export([start/2, start_phase/3, stop/1, stop_all/1]).
 -behaviour(application).
 
 -include("../include/ts_profile.hrl").
@@ -55,3 +55,14 @@ start_phase(start_clients, StartType, PhaseArgs) ->
 %%----------------------------------------------------------------------
 stop(State) ->
     stop.
+
+%%----------------------------------------------------------------------
+%% Func: stop_all/0
+%% Returns: any 
+%%----------------------------------------------------------------------
+stop_all([Host]) ->
+    List= net_adm:world_list([Host]),
+    global:sync(),
+    Pid = global:whereis_name('ts_mon'),
+    Controller_Node = node(Pid),
+    slave:stop(Controller_Node).
