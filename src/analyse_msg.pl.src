@@ -1,4 +1,5 @@
 #!/usr/bin/perl -w
+# -*- Mode: CPerl -*-
 #
 #  This code was developped by IDEALX (http://IDEALX.org/) and
 #  contributors (their names can be found in the CONTRIBUTORS file).
@@ -34,12 +35,13 @@
 
 use strict;
 use Getopt::Long;
-use vars qw ($help @files $verbose $debug $plot $version);
+use vars qw ($help @files $verbose $debug $plot $version $stats);
 my $tagvsn = '%VSN%';
 
 GetOptions( "help",\$help,
 			"verbose",\$verbose,
 			"debug",\$debug,
+			"stats",\$stats,
 			"version",\$version,
 			"plot",\$plot
 		  );
@@ -77,7 +79,11 @@ my (@online_time,@auth_time,@offline_rcv_time,@offline_send_time,@deconnexion_ti
 $esperance{'online'} = $esperance{'auth'}= $esperance{'deconnexion'}= $esperance{'offline_send'}= $esperance{'offline_rcv'} =$esperance{'roster'}=$esperance{'error'} = 0;
 
 foreach (@ARGV) {
-	&parse_file($_);
+	if ($stats) {
+		&parse_stats_file($_);
+	} else {
+		&parse_file($_);
+	}
 }
 
 if ($debug) {
@@ -148,10 +154,11 @@ if ($plot) {
 }
 
 sub plot {
-	my $data = shift;
-	my $fic = shift;
-	my $maxx= shift;
-	my $style ="point";
+	my $data  = shift;
+	my $fic   = shift;
+	my $maxx  = shift;
+	my $style = shift;
+	$style = "point" unless $style;
 	my $m;
 	my $d;
 
@@ -185,6 +192,90 @@ sub plot {
 
 	close GP;
 	system("gnuplot graphes-$fic.gplot")
+}
+
+
+sub plot_stats {
+	# args:
+	my $title     = shift; # arrayref contaning data titles
+	my $datatype  = shift; # type of data (added in filenames)
+	my $timestamp = shift;
+	my $files     = shift; # array contaning data files
+
+	# local var
+	my $style       = "linespoint"; # TODO: can be override in option
+	my $legend_loc  = "key right top"; # TODO: can be override in option
+	my $output_type = "postscript color"; # TODO: can be override in option
+	my $filename; # temporary var
+
+	$datatype = "unknown" unless $datatype;
+	open(GP,">graphes-$datatype.gplot") or die "can't open graphes-$datatype.gplot: $!";
+	select GP;
+
+	# gnuplot styles and options
+	print "set data style $style\n";
+	print "set terminal $output_type\n";
+	print "set output \"graphes-$datatype.ps\"\n";
+	print "set grid\n";
+	
+	my $d; # temporary var (title)
+	foreach $d (0..$#{$title}) {
+		# gnuplot headings
+		print "set title \" @{$title}[$d]\"\n";
+		print "set xlabel \"unit = $timestamp sec \"\n" if $timestamp;
+		print "show title\n";
+		print "set $legend_loc\n";
+
+		print "plot ";
+		foreach $filename (@{$files}) {
+			print " \"$filename\" using ";
+			# if $timestamp isn't defined, use the first column as timestamp
+			if ($timestamp) {
+				print $d+1 ;
+			} else {
+				print " 1:" .($d+2);
+			}
+			print " title \"$filename\"" ;
+			print "," unless ($filename eq @{$files}[$#{$files}]); # unless last occurence
+		}
+		print "\n"; # plot done
+	}
+	close GP;
+	system("gnuplot graphes-$datatype.gplot");
+}
+
+sub parse_stats_file {
+	my $file = shift;
+	my $data;
+	my $timestamp;
+	my $first_timestamp =0;
+	open (FILE,"<$file") or die "Can't open $file $!";
+	while (<FILE>) {
+		if (/^stats: (\w+)\s+(.*)$/) {
+			my $type = $1;
+			my $values = $2;
+			push @{$data->{$type}}, $timestamp . " ". $values;
+		} elsif (/^\# stats:\s+dump at\s+(\d+)/) {
+			$first_timestamp= $1 unless $first_timestamp;
+			$timestamp = $1 - $first_timestamp;
+		}
+	}
+	close FILE;
+	
+	foreach my $key (keys %{$data}) {
+		my $col;
+		my @col; # temporary var
+		open (TYPE, "> $key.txt") or die "$!";
+		foreach my $data (@{$data->{$key}}) {
+			@col = split(/\s+/, $data);
+			print TYPE $data ."\n";
+		}
+		foreach my $i (0..$#col) {
+			$col->[$i] = $i;
+		}
+		close TYPE;
+		plot_stats($col,$key,"",["$key.txt"]) if $plot;
+	}
 }
 
 # 
