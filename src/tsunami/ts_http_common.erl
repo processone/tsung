@@ -322,7 +322,8 @@ read_chunk_data(Data, State, Int, Acc) when size(Data) > Int->
     read_chunk(Rest, State,  0, Int + Acc);
 read_chunk_data(Data, State, Int, Acc) -> % not enough data in buffer
     BodySize = size(Data),
-	Cookie=(State#state_rcv.session)#http.cookie,
+    Cookie  = concat_cookies((State#state_rcv.session)#http.cookie,
+                             State#state_rcv.dyndata),
     ?DebugF("Partial chunk received (~p/~p)~n", [BodySize,Int]),
     NewHttp = (State#state_rcv.session)#http{chunk_toread   = Int-BodySize,
 											 body_size      = BodySize + Acc},
