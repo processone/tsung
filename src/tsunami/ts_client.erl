@@ -560,7 +560,7 @@ update_stats(State, Close) ->
 %%----------------------------------------------------------------------
 %% Func: concat_dynvars/2
 %%----------------------------------------------------------------------
-concat_dynvars(undefined, DynData) -> DynData;
+concat_dynvars(DynData, undefined)  -> #dyndata{dynvars=DynData};
 concat_dynvars([], DynData) -> DynData;
 concat_dynvars(DynVars, DynData=#dyndata{dynvars=OldDynVars}) -> 
     %% FIXME: should we remove duplicate keys ?

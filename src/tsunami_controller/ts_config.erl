@@ -262,7 +262,7 @@ parse(Element = #xmlElement{name=dyn_variable},
     RegExp  = getAttr(Element#xmlElement.attributes, regexp),
     StrName  = getAttr(Element#xmlElement.attributes, name),
     {ok, [{atom,1,Name}],1} = erl_scan:string(StrName),
-    {ok, RegExpStr} =regexp:parse(lists:flatten(RegExp)),
+    {ok, RegExpStr} =gregexp:parse(lists:flatten(RegExp)),
     NewDynVar = case DynVar of 
                     undefined ->[{Name, RegExpStr}];
                     _->[{Name, RegExpStr}|DynVar]
