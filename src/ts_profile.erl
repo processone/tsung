@@ -28,7 +28,7 @@
 
 %% API
 -export([get_client/2, get_server/0, get_message/2, parse/3,
-		 thinktime/1, new_session/2]).
+		 thinktime/0, new_session/2]).
 
 -include("../include/ts_profile.hrl").
 
@@ -96,7 +96,7 @@ parse(Module, Data, State) ->
 %% Args:	Module (term)
 %% Returns: integer
 %%----------------------------------------------------------------------
-thinktime(Module) ->
+thinktime() ->
 	round(ts_stats:exponential(?messages_intensity)). % hardcoded for now
 %	Module:thinktime().
 

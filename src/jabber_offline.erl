@@ -36,7 +36,7 @@ get_client(N, Id) ->
     List_Fin = [#message{ack = no_ack, thinktime=3000, param = #jabber {type = 'connect'}}, 
 		#message{ack = ?messages_ack, thinktime=infinity, param = #jabber {type = 'authenticate', id = Id}},
 		#message{ack = no_ack, thinktime=random:uniform(?presence_delay), param = #jabber {type = 'presence'}}] ++
-	profile_jabber:get_offline_params(?messages_intensity,
+	get_offline_params(?messages_intensity,
 					  N,
 					  ?messages_size,'chat', Id) ++
 	[ #message{ack = no_ack, thinktime = 100, param = #jabber {type = 'close'}}],
