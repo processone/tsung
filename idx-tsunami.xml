@@ -32,8 +32,9 @@
   <server host="myserver" port="7" type="tcp"></server> -->
 
   <!-- to start os monitoring (cpu, network, memory). Use an erlang
-  agent on the remote machine --> 
-  <monitor host="myserver"></monitor>
+  agent on the remote machine or SNMP. erlang is the default --> 
+  <monitor host="myserver" type="snmp"></monitor>
+  <monitor host="myserver2" type="erlang"></monitor>
   
   <!-- several arrival phases can be set: for each phase, you can set
   the mean inter-arrival time between new clients and the phase

@@ -30,14 +30,21 @@
 %%----------------------------------------------------------------------
 -module(ts_os_mon).
 -author('mickael.remond@erlang-fr.org').
--vc('$Id: ').
+-modifiedby('nniclausse@IDEALX.com').
+-vc('$Id$ ').
 
 -behaviour(gen_server).
+
 
 %%--------------------------------------------------------------------
 %% Include files
 %%--------------------------------------------------------------------
 -include("ts_profile.hrl").
+
+%% two types of monotoring: snmp or using an erlang agent
+-record(state, {erlang_pids=[], snmp_pids=[], timer}).
+
+-include_lib("snmp/include/snmp_types.hrl").
 
 %%--------------------------------------------------------------------
 %% External exports
@@ -55,12 +62,32 @@
 -define(OPTIONS, [{timeout,?TIMEOUT}]).
 -define(INTERVAL, 5000).
 
+
+%% SNMP definitions
+%% FIXME: make this customizable in the XML config file
+
+-define(SNMP_PORT, 161).
+-define(SNMP_COMMUNITY, public).
+
+-define(SNMP_CPU_RAW_USER, [1,3,6,1,4,1,2021,11,50,0]).
+-define(SNMP_CPU_RAW_SYSTEM, [1,3,6,1,4,1,2021,11,52,0]).
+-define(SNMP_CPU_RAW_IDLE, [1,3,6,1,4,1,2021,11,53,0]).
+
+-define(SNMP_MEM_BUFFER, [1,3,6,1,4,1,2021,4,14,0]).
+-define(SNMP_MEM_CACHED, [1,3,6,1,4,1,2021,4,15,0]).
+-define(SNMP_MEM_AVAIL, [1,3,6,1,4,1,2021,4,6,0]).
+-define(SNMP_MEM_TOTAL, [1,3,6,1,4,1,2021,4,5,0]).
+
 %%====================================================================
 %% External functions
 %%====================================================================
-%% This is used by tsunami to start the cluster monitor service
+
+%%--------------------------------------------------------------------
+%% Function: activate/0
+%% Purpose: This is used by tsunami to start the cluster monitor service
 %% It will only be started if there are cluster/monitor@host element
 %% in the config file.
+%%--------------------------------------------------------------------
 activate() ->
     case ts_config_server:get_monitor_hosts() of
     	[] ->
@@ -86,12 +113,19 @@ start() ->
 stop() ->
     gen_server:call(?SERVER, {stop}, ?OTP_TIMEOUT).
 
-%% Start the monitor tools on the node that you want to spy on
+%%--------------------------------------------------------------------
+%% Function: client_start/0
+%% Purpose: Start the monitor tools on the node that you want to spy on
+%%--------------------------------------------------------------------
 client_start() ->
     application:start(stdlib),
     application:start(sasl),
     application:start(os_mon).
 
+%%--------------------------------------------------------------------
+%% Function: updatestats/0
+%% Purpose: update stats for erlang monitoring
+%%--------------------------------------------------------------------
 updatestats() ->
     Node = atom_to_list(node()),
     {Cpu, FreeMem, RecvPackets, SentPackets} = node_data(),
@@ -118,8 +152,9 @@ updatestats() ->
 %%--------------------------------------------------------------------
 init(_Args) ->
     ?LOG(" os_mon started",?NOTICE),
-	process_flag(trap_exit,true), %% to get the EXIT signal from spawn processes on remote nodes
-	{ok, []}.
+    %% to get the EXIT signal from spawn processes on remote nodes
+	process_flag(trap_exit,true), 
+	{ok, #state{}}.
 
 %%--------------------------------------------------------------------
 %% Function: handle_call/3
@@ -145,24 +180,9 @@ handle_call(Request, From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
 handle_cast({activate, Hosts}, State) ->
-    start_beam(Hosts),    %% Start an Erlang node on all hosts
-    %% TODO: Replace net_adm:world by an explicite ping ?
-    net_adm:world_list(lists:map(fun(Host) -> list_to_atom(Host) end,Hosts)),
-    
-    %% Load ts_os_mon code
-    Nodes = lists:map(fun(Host) -> list_to_atom(?NODE ++ "@" ++ Host) end, Hosts),
-    load_code(Nodes),
-    
-	%% because the stats for cpu has to be called from the same
-	%% process (otherwise the same value (mean cpu% since the system
-	%% last boot)  is returned by cpu_sup:util), we spawn a process
-	%% on each node that will do the stats collection and send it to
-	%% ts_mon
-    PidKeys = lists:map(fun(Node) ->{spawn_link(Node, ?MODULE, updatestats, []),
-									 Node}
-						end,
-					 Nodes),
-    {noreply, PidKeys};
+    NewState = active_host(Hosts,State),
+    {noreply, NewState};
+
 handle_cast(Msg, State) ->
     {noreply, State}.
 
@@ -173,7 +193,30 @@ handle_cast(Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-handle_info({'EXIT',From,Reason}, State) ->
+handle_info({timeout, Ref, send_snmp_request},  State ) ->
+    node_data(snmp, State),
+    {noreply, State#state{timer=undefined}};
+
+% response from the SNMP server    
+handle_info({snmp_msg, Msg, Ip, Udp}, State) ->
+    PDU = snmp_mgr_misc:get_pdu(Msg),
+    case PDU#pdu.type of 
+        'get-response' ->
+            ?LOGF("Got SNMP PDU ~p from ~p~n",[PDU, Ip],?WARN),
+            {ok,{hostent,Hostname,_,inet,_,_}} =inet:gethostbyaddr(Ip),
+            analyse_snmp_data(PDU#pdu.varbinds, Hostname);
+        _ ->
+            skip
+    end,
+    case  State#state.timer of 
+        undefined ->
+            erlang:start_timer(?INTERVAL, self(), send_snmp_request ),
+            {noreply, State#state{timer=on}};
+        _ ->
+            {noreply, State}
+    end;
+
+handle_info({'EXIT', From, Reason}, State) ->
 	?LOGF("received exit from ~p with reason ~p~n",[From, Reason],?ERR),
 	%% get node name of died pid
 	case lists:keysearch(From,1,State) of 
@@ -187,8 +230,8 @@ handle_info({'EXIT',From,Reason}, State) ->
 			?LOGF("unknown exit from ~p !~n",[From],?WARN),
 			{noreply, State}
 	end;
-
 handle_info(Info, State) ->
+	?LOGF("handle info: unknown msg ~p~n",[Info],?WARN),
     {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -196,10 +239,10 @@ handle_info(Info, State) ->
 %% Description: Shutdown the server
 %% Returns: any (ignored by gen_server)
 %%--------------------------------------------------------------------
-terminate(normal, State_Nodes) ->
-    stop_beam(State_Nodes),    
+terminate(normal, #state{erlang_pids=Nodes}) ->
+    stop_beam(Nodes),    
     ok;
-terminate(Reason, State_Nodes) ->
+terminate(Reason, State) ->
     ok.
 
 %%--------------------------------------------------------------------
@@ -214,20 +257,41 @@ code_change(OldVsn, State, Extra) ->
 %%% Internal functions
 %%--------------------------------------------------------------------
 
+%%--------------------------------------------------------------------
+%% Func: node_data/0
+%%--------------------------------------------------------------------
 node_data() ->
     {RecvPackets, SentPackets} = packets(),
     {cpu(), freemem(), RecvPackets, SentPackets}.
 
-%% Return node cpu utilisation
+%%--------------------------------------------------------------------
+%% Func: node_data/2
+%%--------------------------------------------------------------------
+node_data(snmp, #state{snmp_pids=Pids}) ->
+    node_data(snmp,Pids);
+node_data(snmp, [])->
+    ok;
+node_data(snmp, [Pid|List]) when is_pid(Pid)->
+    snmp_get(Pid, [?SNMP_CPU_RAW_SYSTEM, ?SNMP_CPU_RAW_USER, ?SNMP_MEM_AVAIL ]),
+    node_data(snmp, List).
+
+%%--------------------------------------------------------------------
+%% Purpose: Return node cpu utilisation
+%%--------------------------------------------------------------------
 cpu() ->
     cpu_sup:util().
 
-%% Return node cpu average load on 1 minute
+%%--------------------------------------------------------------------
+%% Purpose: Return node cpu average load on 1 minute
+%%--------------------------------------------------------------------
 cpu1() -> cpu_sup:avg1()/256.
 
-%% Return free memory in bytes
+%%--------------------------------------------------------------------
+%% Function: freemem/0
+%% Purpose: Return free memory in bytes
 %% Use the result of the free commands on Linux
 %%  and os_mon on all other platforms
+%%--------------------------------------------------------------------
 freemem() ->
     case os:type() of
 	{unix, linux} -> freemem_linux();
@@ -253,22 +317,29 @@ packets() ->
         string:tokens(Result, " \n:"),
     {list_to_integer(RecvPackets), list_to_integer(SentPackets)}.
 
-%% Start an Erlang node on every host that you want to spy
-start_beam([]) ->
-    ok;
-start_beam([Host|Hosts]) ->
+%%--------------------------------------------------------------------
+%% Function: start_beam/1
+%% Purpose: Start an Erlang node on given host
+%%--------------------------------------------------------------------
+start_beam(Host) ->
 	Args = ts_utils:erl_system_args(),
     {ok, Node} = slave:start_link(Host, ?NODE, Args),
     ?LOGF("started os_mon newbeam on node ~p~n", [Node], ?INFO),
-    start_beam(Hosts).
+    {ok, Node}.
 
+%%--------------------------------------------------------------------
+%% Function: stop_beam/1
+%%--------------------------------------------------------------------
 stop_beam([]) ->
     ok;
 stop_beam([Node|Nodes]) ->
     rpc:cast(Node, erlang, halt, []),
     stop_beam(Nodes).
 
-%% Load ts_os_mon code on all Erlang nodes
+%%--------------------------------------------------------------------
+%% Function: load_code/1
+%% Purpose: Load ts_os_mon code on all Erlang nodes
+%%--------------------------------------------------------------------
 load_code(Nodes) ->
     ?LOGF("loading tsunami monitor on nodes ~p~n", [Nodes], ?NOTICE),
     {?MODULE, Binary, _File} = code:get_object_code(?MODULE),
@@ -281,11 +352,83 @@ load_code(Nodes) ->
     ?DebugF("load_code - ~p ~p~n", [Res1, Res2, Res3]),
     ok.
 
+%%--------------------------------------------------------------------
+%% Function: active_host/2
+%% Purpose: Activate monitoring
+%%--------------------------------------------------------------------
+active_host([], State) ->
+    State;
+%% monitoring using snmp
+active_host([{HostStr, snmp} | HostList], State=#state{snmp_pids=PidList}) ->
+    {ok, Host} = inet:getaddr(HostStr, inet),
+    ?DebugF("Starting SNMP mgr on ~p~n", [Host]),
+    {ok, Pid} = snmp_mgr:start_link([{agent, Host},
+                                     {agent_udp, ?SNMP_PORT},
+%%%                                     {community, ?SNMP_COMMUNITY},
+                                     {receive_type, msg},
+                                     quiet
+                                    ]),
+    %% since snmp_mgr can handle only a single snmp server, change the
+    %% registered name to start several smp_mgr at once !
+    unregister(snmp_mgr),
+    ?LOGF("SNMP mgr started; remote node is ~p~n", [Host],?INFO),
+    node_data(snmp, [Pid]),
+    active_host(HostList, State#state{snmp_pids=[Pid|PidList]});
 
-%% Config file description: 
-%%  <cluster>
-%%   <monitor host="f14-1"></monitor>
-%%   <monitor host="f14-2"></monitor>
-%%   <monitor host="bigfoot-1"></monitor>
-%%   <monitor host="bigfoot-2"></monitor>
-%%  </cluster>
+%% monitoring using a remote erlang node
+active_host([{Host, erlang}| HostList], State=#state{erlang_pids=PidList}) ->
+    {ok, Node} = start_beam(Host),
+	Pong= net_adm:ping(Node),
+    ?LOGF("ping ~p: ~p~n", [Node, Pong],?INFO),
+    load_code([Node]),
+	%% because the stats for cpu has to be called from the same
+	%% process (otherwise the same value (mean cpu% since the system
+	%% last boot)  is returned by cpu_sup:util), we spawn a process
+	%% that will do the stats collection and send it to ts_mon
+    Pid = spawn_link(Node, ?MODULE, updatestats, []),
+    active_host(HostList, State#state{erlang_pids=[Pid|PidList]}).
+
+%%--------------------------------------------------------------------
+%% Function: analyse_snmp_data/2
+%%--------------------------------------------------------------------
+analyse_snmp_data(Args, Host) ->
+    analyse_snmp_data(Args, Host, []).
+
+analyse_snmp_data([],Host, Resp) ->
+    ts_mon:add(Resp);
+
+analyse_snmp_data([#varbind{oid=?SNMP_CPU_RAW_SYSTEM, value=Val}| Tail], Host, Stats) ->
+    {value, User} = lists:keysearch(?SNMP_CPU_RAW_USER, #varbind.oid, Tail),
+    Value = Val + User#varbind.value,
+    CountName = list_to_atom("cpu:os_mon@" ++ Host),
+    NewValue = Value/(?INTERVAL/1000),
+    NewTail = lists:keydelete(?SNMP_CPU_RAW_USER, #varbind.oid, Tail),
+    analyse_snmp_data(NewTail, Host, [{sample_counter, CountName, NewValue}| Stats]);
+
+analyse_snmp_data([User=#varbind{oid=?SNMP_CPU_RAW_USER}| Tail], Host, Stats) ->
+    %%put this entry at the end, this will be used when SYSTEM match
+    analyse_snmp_data(Tail ++ [User], Host, Stats);
+
+analyse_snmp_data([#varbind{oid=OID, value=Val}| Tail], Host, Stats) ->
+    {Type, Name, Value}= oid_to_statname(OID, Host, Val),
+    analyse_snmp_data(Tail, Host, [{Type, Name, Value}| Stats]).
+
+%%--------------------------------------------------------------------
+%% Function: oid_to_statname/3
+%%--------------------------------------------------------------------
+oid_to_statname(?SNMP_CPU_RAW_IDLE, Name, Value) ->
+    CountName = list_to_atom("cpu_idle:os_mon@" ++ Name),
+    ?DebugF("Adding counter value for ~p~n",[CountName]),
+    {sample_counter, CountName, Value/(?INTERVAL/1000)};
+oid_to_statname(?SNMP_MEM_AVAIL, Name, Value)-> 
+    CountName = list_to_atom("freemem:os_mon@" ++ Name),
+    ?DebugF("Adding counter value for ~p~n",[CountName]),
+    {sample,CountName, Value/1000}.
+    
+%%--------------------------------------------------------------------
+%% Function: snmp_get/2
+%% Description: ask a list of OIDs to the given snmp_mgr
+%%--------------------------------------------------------------------
+snmp_get(Pid, Oids) ->
+    ?DebugF("send snmp get for oid ~p to pid ~p ",[Oids,Pid]),
+    Pid ! {get, Oids}, ok.

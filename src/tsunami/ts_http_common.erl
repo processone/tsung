@@ -191,7 +191,7 @@ parse_config(Element = #xmlElement{name=http},
                   set_msg(Request2, 0)
           end,
     ts_config:mark_prev_req(Id-1, Tab, CurS),
-    ets:insert(Tab,{{CurS#session.id, Id}, Msg#message{endpage=true}}),
+    ets:insert(Tab,{{CurS#session.id, Id}, Msg#ts_request{endpage=true}}),
     lists:foldl( fun(A,B)->ts_config:parse(A,B) end,
                  Config#config{},
                  Element#xmlElement.content);
@@ -468,7 +468,7 @@ parse_URL(path,[H|T], Acc, URL) ->
 
 %%----------------------------------------------------------------------
 %% Func: set_msg/1 or /2 or /3
-%% Returns: #message record
+%% Returns: #ts_request record
 %% Purpose:
 %% unless specified, the thinktime is an exponential random var.
 %%----------------------------------------------------------------------
@@ -477,7 +477,7 @@ set_msg(HTTPRequest) ->
 
 %% if the URL is full (http://...), we parse it and get server host,
 %% port and scheme from the URL and override the global setup of the
-%% server. These informations are stored in the #message record.
+%% server. These informations are stored in the #ts_request record.
 set_msg(HTTP=#http_request{url="http" ++ URL}, ThinkTime) -> % full URL
     URLrec = parse_URL("http" ++ URL),
     Path = URLrec#url.path ++ URLrec#url.querypart,
@@ -487,21 +487,21 @@ set_msg(HTTP=#http_request{url="http" ++ URL}, ThinkTime) -> % full URL
                  https -> ssl
              end,
     set_msg(HTTP#http_request{url=Path}, ThinkTime,
-            #message{ack  = parse,
-                     host = URLrec#url.host,
-                     scheme = Scheme,
-                     port = Port});
+            #ts_request{ack  = parse,
+                        host = URLrec#url.host,
+                        scheme = Scheme,
+                        port = Port});
 %
 set_msg(HTTPRequest, Think) -> % relative URL, use global host, port and scheme
-    set_msg(HTTPRequest, Think, #message{ack = parse}).
+    set_msg(HTTPRequest, Think, #ts_request{ack = parse}).
             
 set_msg(HTTPRequest, 0, Msg) -> % no thinktime, only wait for response
-	Msg#message{ thinktime=infinity,
-                 param = HTTPRequest };
+	Msg#ts_request{ thinktime=infinity,
+                    param = HTTPRequest };
 set_msg(HTTPRequest, Think, Msg) -> % end of a page, wait before the next one
-	Msg#message{ endpage   = true,
-                 thinktime = Think,
-                 param = HTTPRequest }.
+	Msg#ts_request{ endpage   = true,
+                    thinktime = Think,
+                    param = HTTPRequest }.
 
 %%--------------------------------------------------------------------
 %% Func: set_port/1

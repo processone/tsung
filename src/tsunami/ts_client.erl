@@ -309,7 +309,7 @@ code_change(OldVsn, StateName, StateData, Extra) ->
 
 %%----------------------------------------------------------------------
 %% Func: handle_next_action/1
-%% Purpose: handle next action: thinktime, transaction or #message
+%% Purpose: handle next action: thinktime, transaction or #ts_request
 %% Args: State
 %%----------------------------------------------------------------------
 handle_next_action(State=#state{count=0}) ->
@@ -338,7 +338,7 @@ handle_next_action(State) ->
             NewState = State#state{transactions=lists:keydelete(Tname,1,TrList),
                                    count=Count}, 
             handle_next_action(NewState);
-        Profile=#message{} ->                                        
+        Profile=#ts_request{} ->                                        
             handle_next_request(Profile, State);
         Other ->
             ?LOGF("Error: set profile return value is ~p (count=~p)~n",[Other,Count],?ERR),
@@ -356,11 +356,11 @@ get_server_cfg({Profile, Id}) ->
 %%----------------------------------------------------------------------
 %% Func: get_server_cfg/3
 %%----------------------------------------------------------------------
-get_server_cfg(#message{host=undefined, port=undefined, scheme=undefined},P,_)->
+get_server_cfg(#ts_request{host=undefined, port=undefined, scheme=undefined},P,_)->
     ?Debug("Server not configured in msg, get global conf ~n"),
     %% get global server profile
     ts_config_server:get_server_config();
-get_server_cfg(#message{host=ServerName, port= Port, scheme= Protocol},P,Id) ->
+get_server_cfg(#ts_request{host=ServerName, port= Port, scheme= Protocol},P,Id) ->
     %% server profile can be overriden in the first URL of the session
     %% curently, the following server modifications in the session are not used.
     ?LOGF("Server setup overriden for this client host=~s port=~p proto=~p~n",
@@ -384,10 +384,10 @@ handle_next_request(Profile, State) ->
 
 	%% does the next message change the server setup ?
     case Profile of 
-        #message{host=undefined, port= undefined, scheme= undefined} ->
+        #ts_request{host=undefined, port= undefined, scheme= undefined} ->
             {Host,Port,Protocol,Socket} = {State#state.server,State#state.port,
                                            State#state.protocol,State#state.socket};
-        #message{host=Host, port= Port, scheme= Protocol} ->
+        #ts_request{host=Host, port= Port, scheme= Protocol} ->
 			%% need to reconnect if the server/port/scheme has changed
 			case {State#state.server,State#state.port, State#state.protocol} of
 				{Host, Port, Protocol} -> % server setup unchanged
@@ -399,7 +399,7 @@ handle_next_request(Profile, State) ->
 			end
     end,
 
-    Param = Type:add_dynparams(State#state.dyndata,Profile#message.param,Host),
+    Param = Type:add_dynparams(State#state.dyndata,Profile#ts_request.param,Host),
 	Message = Type:get_message(Param),
 	Now = now(),
 
@@ -407,8 +407,8 @@ handle_next_request(Profile, State) ->
 	case reconnect(Socket,Host,Port,Protocol,State#state.ip,State#state.rcvpid) of
 		{ok, NewSocket} ->
             %% warn the receiving side that we are sending a new request
-            ts_client_rcv:wait_ack({State#state.rcvpid,Profile#message.ack,Now,
-                                    Profile#message.endpage, NewSocket,
+            ts_client_rcv:wait_ack({State#state.rcvpid,Profile#ts_request.ack,Now,
+                                    Profile#ts_request.endpage, NewSocket,
                                     Protocol, Host}),
             case catch send(Protocol, NewSocket, Message) of
                 ok -> 

@@ -20,14 +20,15 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
--record(message, {thinktime, 
-				  ack,
-				  param,
-				  endpage=false,
-                  host,       % override global server hostname
-                  port,       % override global server port
-                  scheme      % override global server type (ssl or gen_tcp) 
-				 }).
+-record(ts_request,
+        {thinktime, 
+         ack,
+         param,
+         endpage=false,
+         host,       % override global server hostname
+         port,       % override global server port
+         scheme      % override global server type (ssl or gen_tcp) 
+        }).
 
 % state of ts_client_rcv gen_server
 -record(state_rcv, 

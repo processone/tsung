@@ -181,15 +181,15 @@ request(roster_get, UserName, Domain, Id)->
 %%      N         : number of messages
 %% Out: 
 get_random_params(Intensity, 1, Size, Type, L) -> 
-    L ++ [#message{ ack = no_ack, 
+    L ++ [#ts_request{ ack = no_ack, 
 		    thinktime = ?config(messages_last_time),
 		    param = #jabber {size=Size, type=Type}}];
 
 get_random_params(Intensity, N, Size, Type, L)  ->
     get_random_params(Intensity, N-1, Size, Type, 
-		      [#message{ ack = no_ack, 
-				 thinktime = round(ts_stats:exponential(Intensity)),
-				 param = #jabber {size=Size, type=Type}}
+		      [#ts_request{ack = no_ack, 
+                           thinktime = round(ts_stats:exponential(Intensity)),
+                           param = #jabber {size=Size, type=Type}}
 		       | L]).
 
 get_random_params(Intensity, N, Size, Type) when is_integer(N), N >= 0 ->
@@ -217,14 +217,14 @@ parse_config(Element = #xmlElement{name=jabber},
 	UserName=ts_config:get_default(Tab, jabber_username, jabber_username),
 	Passwd  =ts_config:get_default(Tab, jabber_passwd, jabber_passwd),
 
-	Msg=#message{ack   = Ack,
-				 endpage = true,
-				 param = #jabber{domain = Domain,
-								username = UserName,
-								passwd = Passwd,
-								type   = Type,
-								dest   = Dest,
-								size   = Size
+	Msg=#ts_request{ack   = Ack,
+                    endpage = true,
+                    param = #jabber{domain = Domain,
+                                    username = UserName,
+                                    passwd = Passwd,
+                                    type   = Type,
+                                    dest   = Dest,
+                                    size   = Size
 							   }
 				},
     ts_config:mark_prev_req(Id-1, Tab, CurS),

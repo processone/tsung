@@ -101,10 +101,10 @@ parse(Element = #xmlElement{name=server}, Conf = #config{server=SList}) ->
 %% Parsing the cluster monitoring element (monitor)
 parse(Element = #xmlElement{name=monitor}, Conf = #config{monitor_hosts=MHList}) ->
     Host = getAttr(Element#xmlElement.attributes, host),
-    %% TODO:
-    %% Type = getAttr(Element#xmlElement.attributes, type), % os_mon | snmp
+    TypeStr = getAttr(Element#xmlElement.attributes, type, "erlang"),
+    {ok, [{atom,1,Type}],1} = erl_scan:string(TypeStr),
     lists:foldl(fun parse/2,
-		Conf#config{monitor_hosts = lists:append(MHList, [Host])},
+		Conf#config{monitor_hosts = lists:append(MHList, [{Host, Type}])},
 		Element#xmlElement.content);
 
 
@@ -305,7 +305,7 @@ parse(Element = #xmlElement{name=thinktime},
           ?INFO),
     ets:insert(Tab,{{CurS#session.id, Id+1}, {thinktime, RealThink}}),
     [{Key, Msg}] = ets:lookup(Tab,{CurS#session.id, ReqId}),
-    ets:insert(Tab,{Key, Msg#message{thinktime=RealThink}}),
+    ets:insert(Tab,{Key, Msg#ts_request{thinktime=RealThink}}),
     
     lists:foldl( fun parse/2, Conf#config{curthink=Think,curid=Id+1}, 
                  Element#xmlElement.content);
@@ -380,11 +380,11 @@ get_default(Tab, Key,ConfigName) ->
 mark_prev_req(0, Tab, _)  ->
 	ok;
 mark_prev_req(Id, Tab, CurS) ->
-    %% if the previous msg is a #message request, set endpage to
+    %% if the previous msg is a #ts_request request, set endpage to
     %% false, we are the current last request of the page
 	case ets:lookup(Tab,{CurS#session.id, Id}) of 
-		[{Key, Msg=#message{}}] ->
-			ets:insert(Tab,{Key, Msg#message{endpage=false}});
+		[{Key, Msg=#ts_request{}}] ->
+			ets:insert(Tab,{Key, Msg#ts_request{endpage=false}});
 		[{Key, {transaction,_,_}}] ->% transaction, continue to search back
 			mark_prev_req(Id-1, Tab, CurS);
 		_ -> ok
