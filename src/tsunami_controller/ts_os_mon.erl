@@ -224,13 +224,13 @@ handle_info({snmp_msg, Msg, Ip, _Udp}, State) ->
 handle_info({'EXIT', From, Reason}, State) ->
 	?LOGF("received exit from ~p with reason ~p~n",[From, Reason],?ERR),
 	%% get node name of died pid
-	case lists:keysearch(From,1,State) of 
+	case lists:keysearch(From,1,State#state.erlang_pids) of 
 		{value, {From, Node}} ->
 			%% start a new process on this node
 			Pid = spawn_link(Node, ?MODULE, updatestats, []),
 			%% replace the pid value
-			NewState = lists:keyreplace(From,1,State,{Pid, Node}),
-			{noreply, NewState};
+			NewPids = lists:keyreplace(From,1,State#state.erlang_pids,{Pid, Node}),
+			{noreply, State#state{erlang_pids=NewPids}};
 		false -> %% the EXIT is not from a stats pid, do nothing 
 			?LOGF("unknown exit from ~p !~n",[From],?WARN),
 			{noreply, State}
@@ -329,8 +329,10 @@ get_os_data(packets, _OS) ->
 %%--------------------------------------------------------------------
 start_beam(Host) ->
 	Args = ts_utils:erl_system_args(),
+    ?LOGF("starting os_mon beam (~p) on host ~p with Args ~p~n",
+          [?NODE,Host, Args], ?INFO), 
     {ok, Node} = slave:start_link(Host, ?NODE, Args),
-    ?LOGF("started os_mon newbeam on node ~p~n", [Node], ?INFO),
+   ?LOGF("started os_mon newbeam on node ~p~n", [Node], ?INFO),
     {ok, Node}.
 
 %%--------------------------------------------------------------------
@@ -338,7 +340,8 @@ start_beam(Host) ->
 %%--------------------------------------------------------------------
 stop_beam([]) ->
     ok;
-stop_beam([Node|Nodes]) ->
+stop_beam([{Pid, Node}|Nodes]) ->
+    ?LOGF("stopping os_mon beam on node ~p~n", [Node], ?INFO),
     rpc:cast(Node, erlang, halt, []),
     stop_beam(Nodes).
 
@@ -392,7 +395,7 @@ active_host([{Host, erlang}| HostList], State=#state{erlang_pids=PidList}) ->
 	%% last boot)  is returned by cpu_sup:util), we spawn a process
 	%% that will do the stats collection and send it to ts_mon
     Pid = spawn_link(Node, ?MODULE, updatestats, []),
-    active_host(HostList, State#state{erlang_pids=[Pid|PidList]}).
+    active_host(HostList, State#state{erlang_pids=[{Pid, Node}|PidList]}).
 
 %%--------------------------------------------------------------------
 %% Function: analyse_snmp_data/2
