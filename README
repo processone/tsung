@@ -81,7 +81,9 @@
     xmerl-0.15 should work, but the notation <tag/> is not supported
     by this version (use instead the full <tag></tag> notation)
 
-  - gnuplot and perl5 (optional; for graphical output with analyse_msg.pl script)
+  - gnuplot and perl5 (optional; for graphical output with
+    analyse_msg.pl script).  The Template Toolkit is used for HTML
+    reports (see http://template-toolkit.org/)
 
   - for distributed tests, you need an ssh access to remote machines
     without passwd (use a RSA/DSA key without passphrase or ssh-agent)
@@ -89,16 +91,18 @@
   2.2.  Compilation and Installation
 
   Edit Makefile if you want to change the install path (prefix)
-  (/usr/lib/erlang/... by default for beam files). Default
-  configuration and log files are  saved in ~/.idx-tsunami/ )
+  (/usr/lib/erlang/... by default for beam files). 
 
   make
   make install
 
   How to use it:
     1a/ Edit ~/.idx-tsunami/idx-tsunami.xml file (read the comments
-    for explanation on the parameters, there is a sample file
-     /usr/share/doc/idx-tsunami/examples/idx-tsunami.xml)
+     for explanation on the parameters, there is a sample file
+     /usr/share/doc/idx-tsunami/examples/idx-tsunami.xml). Log files
+     are saved in ~/.idx-tsunami/log/ . A new subdirectory is created
+     for each test using the current date as name
+     (~/.idx-tsunami/log/20040217-09:40 for ex.)
 
     1b/ Read the doc/Jabber.txt file for Jabber-specific information.
 
@@ -107,19 +111,19 @@
 
     3/ When it's finished, or during the test, you can use
       analyse_msg.pl ( located in /usr/lib/idx-tsunami/bin/analyse_msg.pl) 
-      to get statistical results from the logfile.
+      to get statistical results from the logfile. 
 
 	   Since v0.2.0, you can have 'realtime' stats using with the
 	   --stats and --plot option. It will
 	   generate graphics in postscript using gnuplot. The --stats
 	   option requires a logfile, by default it is named
-	   'idx-tsunami.log-YYYY:MM:DD-HH:mm'
+	   'idx-tsunami.log'
        Every 10sec (default value), stats are dump in that log file,
        and the script can create graphics about the current activity.
 		   
 	   Availables stats:
-		- response_time (response time for each request (~ request for HTTP))
-		- page_resptime (response time for each set of requests (~ page for HTTP))
+		- request (response time for each request)
+		- page (response time for each set of requests)
 		- connect (duration of the connection)
 		- reconnect (number of reconnection)
 		- size (size of responses)
@@ -130,7 +134,18 @@
 		  - counter for each response status (200, 404, etc.)
   
         Since v1.0.beta1, you can customize statistics using
-        "transactions" in session definition.
+        "transactions" in session definition. The --extra option is
+        required to print the os_mon statistics (monitoring of cpu and
+        freemem)
+
+        Since v1.0.beta3, you can add --html to analyse_msg.pl to have
+        a nice HTML report (this requires the perl Template
+        toolkit). The template directory is ~/idx-tsunami/templates or
+        /usr/share/idx-tsunami/template or can be set with --tdir <dir>
+        This will create two files report.html and graph.html
+    
+      Ex: > cd ~/.idx-tsunami/log/2004YYYY-XX:XX
+          > analyse_msg.pl --stats idx-tsunami.log  --extra --html
 
      4/ To start the proxy recorder for HTTP sessions, use the command
      'idx-tsunami recorder'. The proxy will start listening to the
@@ -145,7 +160,7 @@
   2.4.  Platform Issues
 
   This package has only be tested on Linux. It should work
-  on Erlang supported platforms (Solaris, *BSD, and maybe Win32)
+on Erlang supported platforms (Solaris, *BSD, and maybe Win32)
 
 
 

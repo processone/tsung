@@ -91,7 +91,8 @@
     la notation <tag></tag> )
 
   - gnuplot et perl5 (optionel, utilisé pour les sorties graphiques du script 
-    analyse_msg.pl)
+    analyse_msg.pl). Le Template Toolkit est utilisé pour les rapports en HTML
+    (cf. http://template-toolkit.org/)
   
   - les tests distribués utilisent un accès ssh non intéractif pour
     démarrer Erlang à distance. Il faut donc utiliser une clé RSA/DSA,
@@ -129,8 +130,8 @@
  	   de log, par défaut 'idx-tsunami.log-YYYY:MM:DD-HH:mm'
 		   
 	   Les mesures suivantes sont disponibles:
-		- response_time (temps de réponse pour chaque requête (~ requête pour HTTP))
-		- page_resptime (response time pour chaque ensemble de requête (~ page pour HTTP))
+		- response_time (temps de réponse pour chaque requête)
+		- page_resptime (response time pour chaque ensemble de requête)
 		- connect (durée pour effectuer la connexion)
 		- reconnect (nombre de reconnexion)
 		- size (taille des réponses)
@@ -140,10 +141,19 @@
        mesures spécifiques à HTTP :
 		  - un compteur pour chaque type de réponse (200, 404, etc.)
   
-        Depuis la version v1.0.beta1, il est possible de customiser
-        les mesures en définissant des "transactions" dans les
-        sessions.
+       Depuis la version v1.0.beta1, il est possible de customiser
+       les mesures en définissant des "transactions" dans les
+       sessions. L'option --extra est nécessaire pour afficher les
+       statistiques os_mon (cpu, mémoire libre)
+
+       Depuis la version v1.0.beta3, un rapport HTML peut être générer
+       en utilisant l'option --html. Ceci utilise le Template
+       Toolkit. Le répertoire contenenant les templates est
+       ~/idx-tsunami/templates ou /usr/share/idx-tsunami/template ou
+       encore peut être configuré par --tdir <dir>
  
+      Ex: > cd ~/.idx-tsunami/log/2004YYYY-XX:XX
+          > analyse_msg.pl --stats idx-tsunami.log --extra --html
 
     4/ Pour utiliser le proxy enregistreur de sessions HTTP depuis un
     navigateur, il faut d'abord démarrer le proxy avec la commande

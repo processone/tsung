@@ -27,7 +27,7 @@
 
 use strict;
 use Getopt::Long;
-use vars qw ($help @files $verbose $debug $plot $extra $version $stats $template_dir $html);
+use vars qw ($help @files $verbose $debug $plot $extra $version $stats $template_dir $html $template_dir);
 my $tagvsn = '%VERSION%';
 
 GetOptions( "help",\$help,
@@ -46,7 +46,14 @@ GetOptions( "help",\$help,
 
 my $maxval;
 my $category;
-my $template_dir = "$ENV{HOME}/.idx-tsunami/templates/" unless $template_dir;
+
+unless ($template_dir) {
+    if (-d "$ENV{HOME}/.idx-tsunami/templates/") {
+        $template_dir = "$ENV{HOME}/.idx-tsunami/templates/";
+    } elsif (-d "/usr/share/idx-tsunami/templates") {
+        $template_dir = "/usr/share/idx-tsunami/templates";
+    }
+}
 
 my $datadir = "data"; # all data files are created in this subdirectory
 my $imgdir  = "images"; # all data files are created in this subdirectory
@@ -281,7 +288,6 @@ sub parse_stats_file {
 
 sub html_report {
     require Template;
-    require Template::Plugin::Table;
     my $titre     = 'IDX-Tsunami ';
     my $version   = $tagvsn;
     my $contact   = "nicolas.niclausse\@IDEALX.com";

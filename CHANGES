@@ -1,11 +1,13 @@
-1.0.beta2 ->
+1.0.beta2 -> 1.0.beta3:  Minor feature enhancements (24 Feb 2004)
     - fix stupid bug in start script for recorder
-    - HTTP: fix '&' writes in the XML recorder fon 'content' attribute
-    - HTTP: enchanced Cookies parsing.
+    - HTTP: fix '&' writes in the XML recorder for 'content' attribute
+    - HTTP: enhanced Cookies parsing ('domain' and 'path' implemtented).
+    - ssl_ciphers can be customized
     - change log directory structure: all log files in one directory per test
     - add HTML reports  (requires the perl Template toolkit)
+    - change stats names:  page_resptime -> page, response_time -> request
 
-1.0.beta1 ->  1.0.beta2:  Minor feature enhancements (11 Feb 2004)
+1.0.beta1 -> 1.0.beta2:  Minor feature enhancements (11 Feb 2004)
     - reorganise the sources 
     - add tools to build a debian package
     - fix documentations

@@ -1,11 +1,10 @@
 
 P2 add SNMP support to remote monitoring of servers
 P2 test updated jabber modules with a real jabber server
-P2 better report/graphics generation
+P2 improve documentation
 
-P3 improve documentation
+P3 better report/graphics generation 
 P3 other useful protocols: ftp, smtp, ldap, sql ... ?
-P3 handle all cookies attributes
 
 P4 learn how to really use xmerl 
 P4 add a web interface ?

@@ -257,12 +257,12 @@ handle_data_msg(Data, State=#state_rcv{ack_done=false}) ->
 update_stats(State, Close) ->
 	Now = now(),
 	Elapsed = ts_utils:elapsed(State#state_rcv.ack_timestamp, Now),
-	Stats= [{ sample, response_time, Elapsed},
+	Stats= [{ sample, request, Elapsed},
 			{ sum, size, State#state_rcv.datasize}],
 	case State#state_rcv.endpage of
 		true -> % end of a page, compute page reponse time 
 			PageElapsed = ts_utils:elapsed(State#state_rcv.page_timestamp, Now),
-			ts_mon:add(lists:append([Stats,[{sample, page_resptime, PageElapsed}]])),
+			ts_mon:add(lists:append([Stats,[{sample, page, PageElapsed}]])),
 			doack(State#state_rcv.ack, State#state_rcv.ppid, 
                   State#state_rcv.dyndata, Close),
 			0;

@@ -1,3 +1,9 @@
+idx-tsunami (1.0.beta3-1) unstable; urgency=low
+
+  * New upstream release 
+
+ -- Nicolas Niclausse <nicolas.niclausse@IDEALX.com>  Tue, 24 Feb 2004 19:06:03 +0100
+
 idx-tsunami (1.0.beta2-1) unstable; urgency=low
 
   * Initial Release.
