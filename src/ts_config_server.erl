@@ -43,9 +43,12 @@
 
 %%--------------------------------------------------------------------
 %% External exports
--export([start_link/0, read_config/1, get_req/2, get_next_session/0,
+-export([start_link/0, read_config/1, get_req/2, get_next_session/1,
          get_client_config/1, newbeam/1, newbeam/2, get_server_config/0,
-	 get_monitor_hosts/0]).
+		 get_monitor_hosts/0]).
+
+%%debug
+-export([choose_client_ip/2, choose_session/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
@@ -54,6 +57,7 @@
 -record(state, {config,
                 start_date,       % 
                 last_beam_id = 0, % last tsunami beam id (used to set nodenames)
+                lastips,          % store next ip to choose for each client host
                 total_weight      % total weight of client machines
                }).
 
@@ -123,8 +127,8 @@ get_monitor_hosts()->
 %% Description: choose randomly a session
 %% Returns: {ok, Session ID, Session Size (integer), IP (tuple)}
 %%--------------------------------------------------------------------
-get_next_session()->
-	gen_server:call({global, ?MODULE},{get_next_session, node()}).
+get_next_session(Host)->
+	gen_server:call({global, ?MODULE},{get_next_session, Host}).
 
 %%====================================================================
 %% Server functions
@@ -182,29 +186,28 @@ handle_call({get_req, Id, N}, From, State) ->
 			{reply, {error, Other}, State}
 	end;
 
-
 %% get a new session id and an ip for the given node
-handle_call({get_next_session, Node}, From, State) ->
+handle_call({get_next_session, HostName}, From, State) ->
     Config = State#state.config,
 	Tab    = Config#config.session_tab,
 
-    {ok, HostName}  = ts_utils:node_to_hostname(Node),
     {value, Client} = lists:keysearch(HostName, #client.host, Config#config.clients),
     
-    {ok, IP} = choose_client_ip(Client),
+    {ok,IP,NewPos} = choose_client_ip(Client,State#state.lastips),
     
     ?LOGF("get new session for ~p~n",[From],?DEB),
+	NewState=State#state{lastips=NewPos},
     case choose_session(Config#config.sessions) of
         {ok, Session=#session{id=Id}} ->
             ?LOGF("Session ~p choosen~n",[Id],?INFO),
             case ets:lookup(Tab, {Id, size}) of 
                 [{Key, Size}] -> 
-                    {reply, {ok, {Session, Size, IP}}, State};
+                    {reply, {ok, {Session, Size, IP}}, NewState};
                 Other ->
-                    {reply, {error, Other}, State}
+                    {reply, {error, Other}, NewState}
             end;
 		Other ->
-			{reply, {error, Other}, State}
+			{reply, {error, Other}, NewState}
     end;
 
 %%
@@ -308,14 +311,23 @@ code_change(OldVsn, State, Extra) ->
 %% Func: choose_client_ip/1
 %% Args: #client
 %% Purpose: choose an IP for a client
-%% Returns: IPv4 address {A1,A2,A3,A4}
+%% Returns: {ok, {IP, NewList}} IP=IPv4 address {A1,A2,A3,A4}
 %%----------------------------------------------------------------------
-choose_client_ip(Client=#client{ip = [IP]}) -> %% only one IP
-    {ok, IP};
-choose_client_ip(Client=#client{ip = IPList}) ->
-    %% FIXME: optimize (use round robin for ex. ?)
-    N = random:uniform(length(IPList)), %% random IP
-    {ok, lists:nth(N,IPList)}.
+choose_client_ip(Client=#client{ip = [IP]},RR) -> %% only one IP
+    {ok, IP, RR};
+choose_client_ip(Client,undefined) ->
+	choose_client_ip(Client, dict:new());
+choose_client_ip(Client=#client{ip = IPList, host=Host},RRval) ->
+    case dict:find(Host, RRval) of 
+		{ok, NextVal} -> 
+			NewRR = dict:update_counter(Host,1,RRval),
+			I = (NextVal rem length(IPList))+1, %% round robin
+			{ok, lists:nth(I, IPList), NewRR};
+		error ->
+			Dict = dict:store(Host,1,RRval),
+			[IP|_] = IPList,
+			{ok, IP, Dict}
+	end.
 
 %%----------------------------------------------------------------------
 %% Func: choose_session/1
