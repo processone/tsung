@@ -164,8 +164,9 @@ parse(Data, State=#state_rcv{session=HTTP}) when HTTP#http.status == none;
 					{NewState#state_rcv{acc=[],dyndata=DynData}, Opts, Http#http.close}
 			end;
 		{ok, Http=#http{content_length=0, close=true}, Tail} ->
+            %% no content length, close=true: the server will close the connection
 			DynData = concat_cookies(Http#http.cookie, State#state_rcv.dyndata),
-			{State#state_rcv{session= Http,
+			{State#state_rcv{session= Http, ack_done = false, 
 							 datasize = TotalSize,
 							 dyndata= DynData}, [], true};
 		{ok, Http=#http{content_length=CLength}, Tail} ->

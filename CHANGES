@@ -1,4 +1,5 @@
 1.0.beta6 -> 1.0.beta7:  Minor bugfixes (20 Jul 2004)
+    - HTTP: really (?) fix parsing of no content-length with connection:close
     - better handling of configure (--prefix is working)
     - add different types of output backend (currently, only 'text'
       works; 'rrdtool' is started but unfinished)
