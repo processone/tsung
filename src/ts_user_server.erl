@@ -116,11 +116,12 @@ init({NDeb, NFin, NClients}) ->
     random:seed(Msec,Sec,Nsec),
 
     {Offline, [H|T]} = build_clients({NDeb, NFin}, NClients+1),
-	?PRINTDEBUG2("ok",?DEB),
+	Free= length(T),
+	?PRINTDEBUG("ok, started with ~p free users~n",[Free], ?DEB),
     State = #state{list_user = T, 
 		   list_offline = Offline,
 		   list_connected = [],
-		   free_users = length(T),
+		   free_users = Free,
 		   first_client= {H, not_connected}},
     {ok, State}.
 
@@ -144,16 +145,17 @@ handle_call(get_id, From, State) ->
 
 %%Get one id in the users whos have to be connected
 handle_call(get_idle, From, State) ->
-    case #state.free_users of
-	0 ->
-	    {reply, [], State};
-	_Other ->
-		[Element | NewList] = State#state.list_user,
-
-	    State2 = State#state{list_user = NewList,
-							 free_users = State#state.free_users -1,
-							 list_connected = [Element | State#state.list_connected]},
-	    {reply, Element, State2}
+    case State#state.free_users of
+		0 ->
+			?PRINTDEBUG2("No more free users ! ~n", ?WARN),
+			{reply, [], State};
+		_Other ->
+			[Element | NewList] = State#state.list_user,
+			
+			State2 = State#state{list_user = NewList,
+								 free_users = State#state.free_users -1,
+								 list_connected = [Element | State#state.list_connected]},
+			{reply, Element, State2}
     end;
 
 %%Get one offline id 
