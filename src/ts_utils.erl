@@ -25,7 +25,7 @@
 
 %% user interface
 -export([debug/3, debug/4, get_val/1, init_seed/0, chop/1, elapsed/2,
-		now_sec/0]).
+		now_sec/0, inet_setopts/3]).
 
 get_val(Var) ->
 	case application:get_env(Var) of 
@@ -55,14 +55,33 @@ elapsed({Before1, Before2, Before3}, {After1, After2, After3}) ->
     Before = Before1 * 1000000000  + Before2 * 1000 + Before3/1000,
     After - Before.
 
-% remove trailing "\n"
+%% remove trailing "\n"
 chop(String) ->
 	string:strip(String, right, 10).
 
+%%
 init_seed()->
     now().
 
+%%
 now_sec() ->
 	{MSec, Seconds, MicroSec} = now(),
 	Seconds+1000000*MSec.
-	
+
+%%
+inet_setopts(ssl, Socket, Opts) ->
+	case ssl:setopts(Socket, Opts) of
+		ok ->
+			?PRINTDEBUG("Setting inet options to : ~p ~n", [Opts], ?DEB);
+		Error ->
+			?PRINTDEBUG("Error while setting inet options ~p ~p ~n", [Opts, Error], ?ERR)
+	end;
+inet_setopts(gen_tcp, Socket,  Opts)->
+	case inet:setopts(Socket, Opts) of
+		ok ->
+			?PRINTDEBUG("Setting inet options to : ~p ~n", [Opts], ?DEB);
+		Error ->
+			?PRINTDEBUG("Error while setting inet options ~p ~p ~n", [Opts, Error], ?ERR)
+	end;
+inet_setopts(gen_udp, Socket,  Opts)->
+	ok = inet:setopts(Socket, Opts).

@@ -29,8 +29,9 @@
 
 % state of ts_client_rcv gen_server
 -record(state_rcv, 
-		{socket,	  %  unused ?
+		{socket,	  %  
 		 timeout,	  % ?
+		 protocol,	  % gen_udp, gen_tcp or ssl
 		 ack,         % type of ack: no_ack, local, global or parse
 		 ack_done=false, % 'true' if the ack was sent, else 'false' (unused if ack=no_ack)
 		 ack_timestamp,  % date when the 'request' was sent 
@@ -45,6 +46,7 @@
 
 -define(restart_sleep, 2000).
 -define(infinity_timeout, 15000).
+-define(short_timeout, 1).
 -define(retries, 4).
 
 %% retry sending message after this timeout (in microsec.)

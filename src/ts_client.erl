@@ -109,6 +109,7 @@ init([Profile, {CType, PType, MType, Persistent}], Count) ->
 			case ts_client_rcv:start({PType,
 									CType, self(),
 									Socket,
+									Protocol,
 									?tcp_timeout, 
 									?messages_ack,
 									?monitoring}) of 
@@ -125,7 +126,7 @@ init([Profile, {CType, PType, MType, Persistent}], Count) ->
 								clienttype = CType, mestype = MType,
 								persistent = Persistent,
 								starttime = StartTime,
-								count = Count}, 1};
+								count = Count}, ?short_timeout};
 				{error, Reason} ->
 					?PRINTDEBUG("Can't start rcv process ~p~n",
 								[Reason],?ERR),
@@ -159,7 +160,7 @@ handle_call(Request, From, State) ->
 %%----------------------------------------------------------------------
 handle_cast({next_msg}, State = #state{lasttimeout = infinity}) ->
 	?PRINTDEBUG("next_msg, count is ~p~n", [State#state.count], ?DEB),
-	{noreply, State#state{lasttimeout=1}, 1};
+	{noreply, State#state{lasttimeout=1}, ?short_timeout};
 handle_cast({next_msg}, State) ->
 	?PRINTDEBUG2("next_msg (infinite timeout)",?DEB),
 	{noreply, State, State#state.lasttimeout};
@@ -171,7 +172,7 @@ handle_cast({add_messages, Messages}, State) ->
 	OldProfile = State#state.profile,
 	OldCount = State#state.count,
 	{noreply, State#state{profile = Messages ++ OldProfile, 
-						  count = OldCount + length(Messages)}, 1};
+						  count = OldCount + length(Messages)}, ?short_timeout};
 
 %% the connexion was closed, but this session is persistent
 handle_cast({closed, Pid}, State = #state{persistent = true}) ->
@@ -191,7 +192,7 @@ handle_cast({closed, Pid}, State = #state{persistent = true}) ->
 			{noreply,  State#state{socket = none}, ThinkTime};
 		true ->
 			?PRINTDEBUG("negative thinktime after connexion closed ~p:~p~n!",[State#state.lasttimeout, Elapsed/1000], ?WARN),
-			{noreply,  State#state{socket = none}, 1}
+			{noreply,  State#state{socket = none}, ?short_timeout}
 	end;
 %% the connexion was closed, stop
 handle_cast({closed, Pid}, State) ->
@@ -223,12 +224,13 @@ handle_info(timeout, State ) ->
 	Message = ts_profile:get_message(State#state.clienttype,
                                      Profile#message.param),
 	Now = now(),
-	%% warn the receiving side that we are sending a new request
-	ts_client_rcv:wait_ack({State#state.rcvpid,Profile#message.ack, Now, Profile#message.endpage}),
 	%% reconnect if needed
 	Protocol = State#state.protocol,
 	Socket = reconnect(State#state.socket, State#state.server, State#state.port,
 					   Protocol, State#state.rcvpid),
+	%% warn the receiving side that we are sending a new request
+	ts_client_rcv:wait_ack({State#state.rcvpid,Profile#message.ack, Now, 
+							Profile#message.endpage, Socket}),
     Timeout = new_timeout(Profile#message.ack, Count, Thinktime),
     case send(Protocol, Socket, Message) of
 		ok -> 
@@ -269,6 +271,7 @@ terminate(Reason, State) ->
 	ts_mon:endclient({self(), Now}),
 	ts_mon:addsample({session, Elapsed}), % session duration
 	ts_client_rcv:stop(State#state.rcvpid),
+%	fprof:stop(),
 	ok.
 
 %%%----------------------------------------------------------------------
@@ -352,19 +355,20 @@ controlling_process(gen_udp,Socket,Pid) ->
 %%----------------------------------------------------------------------
 protocol_options(ssl) ->
 	[binary, 
-	 {active, true},
+	 {active, once},
 	 {ciphers, ?ssl_ciphers}
 	];
 protocol_options(gen_tcp) ->
 	[binary, 
-	 {active, true},
+	 {active, once},
+%	 {packet, http}, % for testing purpose
 	 {recbuf, ?rcv_size},
 	 {sndbuf, ?snd_size},
 	 {keepalive, true}
 	];
 protocol_options(gen_udp) ->
 	[binary, 
-	 {active, true},
+	 {active, once},
 	 {recbuf, ?rcv_size},
 	 {sndbuf, ?snd_size},
 	 {keepalive, true}

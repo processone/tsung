@@ -72,7 +72,7 @@ build_session(N, [FirstPage | Session] , Id) ->
 %% Args: Thinktime (integer), Session, Page, FinalSession, Id
 %%----------------------------------------------------------------------
 build_session([], [], [Line], Session, Id) ->
-	case parse_URL(Line) of 
+	case parse_requestline(Line) of 
 		{error, Reason} ->
 			?PRINTDEBUG("unexpected value while parsing sesslog ~p~n",[Reason],?ERR),
 			abort;
@@ -89,7 +89,7 @@ build_session(Think, [], [URL], Session, Id) ->
 
 %% single URL in a page, wait during thinktime
 build_session([], [Next| PendingSession], [Line], Session, Id) ->
-	case parse_URL(Line) of 
+	case parse_requestline(Line) of 
 		{error, Reason} ->
 			?PRINTDEBUG("unexpected value while parsing sesslog ~p~n",[Reason],?ERR),
 			abort;
@@ -105,7 +105,7 @@ build_session(Think, [Next| PendingSession], [URL], Session, Id) ->
 
 %% First URL in a page, don't wait (wait 1ms in reality).
 build_session([], PendingSession, [Line | Page ], Session, Id) ->
-	case parse_URL(Line) of 
+	case parse_requestline(Line) of 
 		{error, Reason} ->
 			abort;
 		{URL, Think} ->
@@ -176,10 +176,16 @@ host() ->
 	"Host:" ++ ?server_name.
 
 %%----------------------------------------------------------------------
-%% Func: parse_URL/1
+%% Func: parse_requestline/1
+%% Args: Line (string)
+%% Returns: {URL (string), thinktime (integer)} | {error, Reason} 
+%% Purpose: parse a line from sesslog (cf. httperf man page)
+%% Input example:  /foo2.html method=POST contents='Post data'
+%%
+%% TODO: we should return a #http_request record
 %%----------------------------------------------------------------------
-parse_URL(Line) ->
-	case regexp:split(Line, "(\s|\t)+") of 
+parse_requestline(Line) ->
+	case regexp:split(Line, "(\s|\t)+") of  %% slow ?
 		{ok, [URL | FieldList]} ->
 			%% TODO: parse FieldList
 			{URL, round(ts_stats:exponential(?messages_intensity))};
@@ -187,16 +193,18 @@ parse_URL(Line) ->
 			?PRINTDEBUG("Error while parsing session ~p~n",[Reason],?ERR),
 			{error, Reason}
 	end.
-%% example:  /foo2.html method=POST contents='Post data'
-%% TODO: a URL should be a record: #url{url , method, body, auth, cookie}
 
 %%----------------------------------------------------------------------
 %% Func: set_msg/1 or /2
+%% Returns: #message record
+%% Purpose:
 %% unless specified, the thinktime is an exponential random var.
+%% TODO: the given URL should be already a record #http_request 
+%%       (cf parse_requestline)
 %%----------------------------------------------------------------------
 set_msg(URL) ->
 	set_msg(URL, round(ts_stats:exponential(?messages_intensity))).
-set_msg(URL, 0) -> % no waiting time, only wait for response
+set_msg(URL, 0) -> % no thinktime, only wait for response
 	#message{ack = parse, 
 			 thinktime=infinity,
 			 param = #http_request {url= URL} };
@@ -210,9 +218,33 @@ set_msg(URL, Think) -> % end of a page, wait before the next one
 
 %%----------------------------------------------------------------------
 %% Func: parse/2
+%% Args: Data, State
+%% Returns: {NewState, Options for socket (list)}
+%% Purpose: parse the response from the server and keep information
+%%  about the response if State#state_rcv.session
 %%----------------------------------------------------------------------
 
-%% new connection
+%% Experimental code, only used when {packet, http} is set 
+parse({http_response, Socket, {VsnMaj, VsnMin}, Status, Data}, State) ->
+	?PRINTDEBUG("HTTP Reponse: ~p ~p ~p ~p ~n", [VsnMaj, VsnMin, Status, Data], ?DEB),
+	ts_mon:addcount({ Status }),
+	Http = #http{ status = Status},
+	{State#state_rcv{session=Http}, []};
+parse({http_header, Socket, Num, 'Content-Length', _, Data}, State) ->
+	CLength = list_to_integer(Data),
+	?PRINTDEBUG("HTTP Content length: ~p ~p~n", [Num, CLength], ?DEB),
+	OldHttp = State#state_rcv.session,
+	NewHttp = OldHttp#http{content_length=CLength},
+	{State#state_rcv{session=NewHttp}, []};
+parse({http_header, Socket, Num, Header, _R, Data}, State) ->
+	?PRINTDEBUG("HTTP Headers: ~p ~p ~p ~p ~n", [Num, Header, _R, Data], ?DEB),
+	{State, []};
+parse({http_eoh, Socket}, State) ->
+	?PRINTDEBUG2("HTTP eoh: ~n", ?DEB),
+	{State, [{packet, raw}]};
+%% end of experimental code
+
+%% new connection, headers parsing
 parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 	List = binary_to_list(Data),
 	%%	regexp:split is much less efficient ! 
@@ -231,12 +263,12 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 			BodySize = size(Data)-HeaderSize,
 			case BodySize of 
 				CLength ->  % end of response
-					State#state_rcv{session= #http{}, ack_done = true, datasize = BodySize};
+					{State#state_rcv{session= #http{}, ack_done = true, datasize = BodySize}, []};
 				_ ->
 					Http = #http{content_length = CLength,
 								 status         = Status,
 								 body_size      = BodySize},
-					State#state_rcv{session = Http, ack_done = false, datasize = BodySize}
+					{State#state_rcv{session = Http, ack_done = false, datasize = BodySize},[]}
 			end
 	end;
 
@@ -244,47 +276,40 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 %% current connection
 parse(Data, State) ->
 	DataSize = size(Data),
+	?PRINTDEBUG("HTTP Body ~p~n",[DataSize], ?DEB),
 	Size = (State#state_rcv.session)#http.body_size + DataSize,
 	CLength = (State#state_rcv.session)#http.content_length,
 	case Size of 
 		CLength -> % end of response
-			State#state_rcv{session= #http{}, ack_done = true, datasize = Size};
+			{State#state_rcv{session= #http{}, ack_done = true, datasize = Size},
+			 []};
+%			 [{packet, http}]}; %% testing purpose
 		_ ->
 			Http = (State#state_rcv.session)#http{body_size = Size},
-			State#state_rcv{session= Http, ack_done = false, datasize = Size}
+			{State#state_rcv{session= Http, ack_done = false, datasize = Size}, []}
 	end.
 												 
 			
 
 %%----------------------------------------------------------------------
 %% Func: request_header/1
+%% Returns: [HTTPStatus (integer), Headers]
+%% Purpose: parse HTTP headers. 
 %%----------------------------------------------------------------------
 request_header(Header)->
     [ResponseLine|HeaderFields] = httpd_parse:split_lines(Header),
     ParsedHeader = httpd_parse:tagup_header(HeaderFields),
 	[get_status(ResponseLine), ParsedHeader].
 
-%% return status code
+%%----------------------------------------------------------------------
+%% Func: get_status/1
+%% Purpose: returns HTTP status code
+%%----------------------------------------------------------------------
 get_status(Line) ->
 	StartStatus = string:str(Line, " "),
-%%	HTTP = string:substr(Line, 1, StartStatus-1),
 	Status = string:substr(Line, StartStatus+1, 3),
 	list_to_integer(Status).
 
-%"HTTP/1.1 200 OK\r\nDate: sdf\r\nContent-Length: 4\r\nKeep-Alive: sdfsdf\r\nConnection: \r\nContent-Type:\r\n\r\nDataqdlfkqjsdmflqksdjfmqslkdfjqmsdlfkqsjmf"
-% réponse HTTP: 
-% HTTP/1.1 200 OK\r\n
-% Date: 
-% Server: 
-% Last-Modified: 
-% ETag: 
-% Accept-Ranges: 
-% Content-Length: 
-% Keep-Alive:
-% Connection: 
-% Content-Type:
-% \r\n
-% Data 
 
 
 
