@@ -2,11 +2,14 @@
 OTP Supervision tree:
 ====================
 
- * ts_mon (gen_server)
+The application is now split in two:
+
+** a single controller (tsunami_controller)
+
+ * ts_mon (gen_server). Each client send reports of stats to this
+   server. Several types of messages are handled by ts_mon.
 
  * ts_timer  (used by ts_client_rcv when ack is global) (gen_fsm)
-
- * ts_client_sup -> ts_client, ts_client_rcv
 
    servers used to construct messages:
 
@@ -14,20 +17,25 @@ OTP Supervision tree:
  * ts_msg_server (gen_server) 
  * ts_user_server (gen_server) used by ts_launcher and jabber_* for unicity of users id
 
-    main server
+** several clients (tsunami) Several nodes can be used simultaneously
 
+This application is simpler:
+  
  * ts_launcher (gen_fsm) launch simulated users.
+
+ * 2 process per simultated client (ts_client, ts_client_rcv), under
+   the supervision of ts_clients_sup ( using simple_one_for_one )
 
 Main modules:
 ============
 
-   1/ ts_launcher. the master process that spawns other processes:
+   1/ ts_launcher. the master process that spawns other simulated clients:
 
    1.1/ client processes: at each simulated client correspond 2 erlang
         process: 
 
            a/one that will initiate TCP (UDP) connection and will send
-           messages (ts_client module). These process are spawns by
+           messages (ts_client module). These processes are spawns by
            ts_launcher (using an sleeping time between two clients
            following an exponential distribution).
 
@@ -60,7 +68,7 @@ Main modules:
 
    3/ a generic module for building user sessions (ts_profile)
 
-   4/ protocol-specific modules (jabber_online for example).
+   4/ protocol-specific modules (jabber_online or ts_http, for example).
 
 How to add a new protocol, or extend an existing one: 
 ====================================================
@@ -69,6 +77,11 @@ How to add a new protocol, or extend an existing one:
     must implement these functions:
 	 - get_client/2
 	 - get_random_message/1
+
+    If you have to parse the responses from the server, two other
+    functions has to be implemented:
+	 - parse/2
+	 - new_session/0
 
 References:
 ==========
