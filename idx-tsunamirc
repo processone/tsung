@@ -5,10 +5,21 @@
 SERVER_ADR=127.0.0.1
 SERVER_PORT=5222
 
+# usually, 'gen_tcp'; other values: 'ssl' and 'gen_udp'
+SERVER_PROTOCOL=gen_tcp
+
 # type of client
 # possible values: jabber_online, jabber_unique, jabber_offline, jabber_auth,
 #	   			   jabber_roster, jabber_dynamic
+#	   			   ts_http
 CLIENT_TYPE=jabber_online
+
+
+# HTTP specifics options:
+# HTTP version
+HTTP_VERSION=1.1
+# filename of the session's description
+HTTP_REQ_FILENAME=/usr/local/idx-tsunami/etc/http.txt
 
 # type of acknoledgment, 'global' means clients start to send messages
 # when all of them are connected (for each beam), 'local' means they
@@ -21,6 +32,7 @@ MESSAGES_ACK=local
 INTERARRIVAL=0.1
 
 # number of message/request sent by each client during a session.
+# not used for HTTP (see HTTP_REQ_FILENAME instead)
 MESSAGES_NUMBER=10
 
 # average elapsed time between two messages/requests sent by a client, in sec.
@@ -31,6 +43,8 @@ NCLIENTS=20
 
 # list of machines (hostname or IP), separated by a ":"
 MACHINES=localhost
+# tsunami controller
+CONTROLLER=localhost
 
 # config file access (needed to copy dynamically generated config
 # files to remote machines). Possible values are: nfs or scp. 
@@ -41,7 +55,11 @@ FILE_ACCES=nfs
 # full dump of all the traffic (warning: use more RAM, and can use a
 # lot of disk space). Using 'light', you will have only the first bytes of
 # every packets, and 'none' will log nothing at all.
-MONITORING=full
+# for HTTP, none is enough.
+MONITORING=none
+
+# periodic dump of the statistics about response time, etc. (in msec)
+DUMPSTATS_INTERVAL=10000
 
 # logfile name
 LOG_FILE=/usr/local/idx-tsunami/log/idx-tsunami.log
