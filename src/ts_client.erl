@@ -23,7 +23,7 @@
 -author('nicolas.niclausse@IDEALX.com').
 -modified_by('jflecomte@IDEALX.com').
 
--behaviour(gen_server).
+-behaviour(gen_fsm).
 
 -include("ts_profile.hrl").
 -include("ts_config.hrl").
@@ -32,7 +32,8 @@
 -export([start/1, next/1, close/1]).
 
 %% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
+-export([init/1, wait_ack/2, think/2, handle_sync_event/4, handle_event/3,
+         handle_info/3, terminate/3, code_change/4]).
 
 -record(state, {rcvpid, % pid of receiving process
 				server, % name (or IP) of server
@@ -62,20 +63,22 @@ start(Opts) ->
 %	fprof:start(),
 %	Res = fprof:trace(start, "/tmp/tsunami.fprof"),
 %	?LOGF("starting profiler: ~p~n",[Res], ?WARN),
-	gen_server:start_link(?MODULE, Opts, []).
+	gen_fsm:start_link(?MODULE, Opts, []).
 
 %% stop the session 
 close({Reason, Pid}) when atom(Reason) -> % close after an error
-	gen_server:cast(Pid, {closed, Reason, Pid});
+	gen_fsm:send_all_state_event(Pid, {closed, Reason, Pid});
 close({Reason, Pid}) when list(Reason) -> % close after an error
-	gen_server:cast(Pid, {closed, list_to_atom(Reason), Pid});
+	gen_fsm:send_all_state_event(Pid, {closed, list_to_atom(Reason), Pid});
+close({Reason, Pid}) -> % close after an error
+	gen_fsm:send_all_state_event(Pid, {closed, close_unknown, Pid});
 close(Pid) -> % normal close
-	gen_server:cast(Pid, {closed, Pid}).
+	gen_fsm:send_event(Pid, {closed, Pid}).
 
 
 %% continue with the next request
 next({Pid, DynData}) ->
-	gen_server:cast(Pid, {next_msg, DynData}).
+	gen_fsm:send_event(Pid, {next_msg, DynData}).
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from gen_server
@@ -83,8 +86,8 @@ next({Pid, DynData}) ->
 
 %%----------------------------------------------------------------------
 %% Func: init/1
-%% Returns: {ok, State}          |
-%%          {ok, State, Timeout} |
+%% Returns: {ok, StateName, State}          |
+%%          {ok, StateName, State, Timeout} |
 %%          ignore               |
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
@@ -118,7 +121,7 @@ init({Session=#session{id            = Profile,
 					Elapsed = ts_utils:elapsed(StartTime, Connected),
 					ts_mon:newclient({self(), Connected, Elapsed}),
                     set_thinktime(?short_timeout),
-					{ok, #state{rcvpid = Pid, socket = Socket, port = Port,
+					{ok, think, #state{rcvpid = Pid, socket = Socket, port = Port,
 								server= ServerName, profile= Profile,
 								protocol = Protocol,
 								clienttype = CType,
@@ -140,21 +143,34 @@ init({Session=#session{id            = Profile,
 			ts_mon:addcount({ list_to_atom(CountName) }),
 			{stop, normal}
     end.
+
+%%--------------------------------------------------------------------
+%% Func: handle_event/3
+%% Returns: {next_state, NextStateName, NextStateData}          |
+%%          {next_state, NextStateName, NextStateData, Timeout} |
+%%          {stop, Reason, NewStateData}                         
+%%--------------------------------------------------------------------
+handle_event({closed, Reason, Pid}, StateName, State) ->
+	?LOGF("Closed reason =~p (in state ~p) after an error while pending count is: ~p~n!",
+		  [StateName, Reason, State#state.count], ?WARN),
+	ts_mon:addcount({ Reason }),
+	{stop, normal, State};
+handle_event(Event, StateName, StateData) ->
+    {next_state, StateName, StateData}.
+
     
-
-
-%%----------------------------------------------------------------------
-%% Func: handle_call/3
-%% Returns: {reply, Reply, State}          |
-%%          {reply, Reply, State, Timeout} |
-%%          {noreply, State}               |
-%%          {noreply, State, Timeout}      |
-%%          {stop, Reason, Reply, State}   | (terminate/2 is called)
-%%          {stop, Reason, State}            (terminate/2 is called)
-%%----------------------------------------------------------------------
-handle_call(Request, From, State) ->
-	Reply = ok,
-	{reply, Reply, State}.
+%%--------------------------------------------------------------------
+%% Func: handle_sync_event/4
+%% Returns: {next_state, NextStateName, NextStateData}            |
+%%          {next_state, NextStateName, NextStateData, Timeout}   |
+%%          {reply, Reply, NextStateName, NextStateData}          |
+%%          {reply, Reply, NextStateName, NextStateData, Timeout} |
+%%          {stop, Reason, NewStateData}                          |
+%%          {stop, Reason, Reply, NewStateData}                    
+%%--------------------------------------------------------------------
+handle_sync_event(Event, From, StateName, StateData) ->
+    Reply = ok,
+    {reply, Reply, StateName, StateData}.
 
 %%----------------------------------------------------------------------
 %% Func: handle_cast/2
@@ -162,35 +178,56 @@ handle_call(Request, From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_cast({next_msg, DynData}, State) ->
+wait_ack({next_msg, DynData}, State) ->
 	?LOGF("next_msg, count is ~p~n", [State#state.count], ?DEB),
     NewState = State#state{dyndata=DynData},
-    handle_info({timeout, next, end_thinktime}, NewState);
+    handle_info({timeout, next, end_thinktime}, think, NewState);
+
+%% We should not received closed event in this state, but it was the
+%% last request, quit anyway
+wait_ack({closed, Pid}, State= #state{ count=0 }) ->
+	{stop, normal, State};
+%% Oh oh. Received close when state is wait_ack !
+wait_ack({closed, Pid}, State) ->
+    %% this may happen in ssl when a server close happen
+    %% simultaneously with the send; the send call return value is ok,
+    %% but the ssl driver has been receiving close in the same
+    %% time. To reproduce this case, set the timout equal to the
+    %% KeepAlive timeout in the HTTP server.
+    %% FIXME: maybe we should retry instead of stopping ?
+	?LOGF("Closed when state is wait_ack (count was ~p)!~n!",[State#state.count], ?WARN),
+	ts_mon:addcount({ closed_when_send }),
+	{stop, normal, State};
+
+wait_ack(Event, State) ->
+	?LOGF("Unknown event ~p in state wait_ack~n", [Event], ?ERR),
+    {stop, unknown_event, State}.
+
 
 %% the connexion was closed, but this session is persistent
-handle_cast({closed, Pid}, State = #state{persistent = true}) ->
-	?LOG("connection closed, stay alive (persistent)",?DEB),
-    {noreply, State#state{socket = none}};
+think({closed, Pid}, State = #state{persistent = true}) ->
+	?LOG("connection closed, stay alive (persistent)",?INFO),
+    {next_state, think, State#state{socket = none}};
 
 %% the connexion was closed after the last msg was sent, stop quietly
-handle_cast({closed, Pid}, State= #state{ count=0 }) ->
+think({closed, Pid}, State= #state{ count=0 }) ->
 	{stop, normal, State};
 
 %% the connexion was closed before the last msg was sent, log this event
-handle_cast({closed, Pid}, State) ->
+think({closed, Pid}, State) ->
 	?LOGF("Closed by server while pending count is: ~p~n!",
-		  [State#state.count], ?INFO),
+		  [State#state.count], ?NOTICE),
 	ts_mon:addcount({ closed_by_server }),
 	{stop, normal, State};
 
-handle_cast({closed, Reason, Pid}, State) ->
-	?LOGF("Closed after an error while pending count is: ~p~n!",
-		  [State#state.count], ?INFO),
-	ts_mon:addcount({ Reason }),
-	{stop, normal, State};
+think({timeout, Pid}, State) ->
+	{stop, timeoutrcv, State};
 
-handle_cast({timeout, Pid}, State) ->
-	{stop, timeoutrcv, State}.
+think(Event, State) ->
+	?LOGF("Unknown event ~p in state think~n", [Event], ?ERR),
+    {stop, unknown_event, State}.
+
+
 
 %%----------------------------------------------------------------------
 %% Func: handle_info/2
@@ -199,28 +236,24 @@ handle_cast({timeout, Pid}, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
 %% no more messages to send
-handle_info({timeout, Ref, end_thinktime}, State= #state{ count=0 })  ->
-	Protocol = State#state.protocol,
-	case State#state.socket of 
-		none ->
-			{stop, normal, State};
-		Else ->
-			Protocol:close(State#state.socket),
-			{stop, normal, State}
-	end;
+handle_info({timeout, Ref, end_thinktime}, think, State= #state{ count=0 })  ->
+    ?LOG("Session ending ~n", ?INFO),
+    {stop, normal, State};
 
-handle_info({timeout, Ref, end_thinktime}, State ) ->
+handle_info({timeout, Ref, end_thinktime}, think, State ) ->
+
 	Count = State#state.count-1,
     case set_profile(State#state.maxcount, State#state.count,State#state.profile) of 
         {thinktime, Think} ->
+            ?LOGF("Starting new thinktime ~p~n", [Think], ?DEB),
             set_thinktime(Think),
-            {noreply, State#state{count=Count}};
+            {next_state, think, State#state{count=Count}};
         {transaction, start, Tname} ->
             ?LOGF("Starting new transaction ~p~n", [Tname], ?INFO),
             TrList = State#state.transactions,
             NewState = State#state{transactions=[{Tname,now()}|TrList],
                                    count=Count}, 
-            handle_info({timeout, Ref, end_thinktime},NewState);
+            handle_info({timeout, transaction, end_thinktime},think, NewState);
         {transaction, stop, Tname} ->      
             ?LOGF("Stopping transaction ~p~n", [Tname], ?INFO),
             TrList = State#state.transactions,
@@ -230,32 +263,39 @@ handle_info({timeout, Ref, end_thinktime}, State ) ->
             ts_mon:addsample({Tname, Elapsed}),
             NewState = State#state{transactions=lists:keydelete(Tname,1,TrList),
                                    count=Count}, 
-            handle_info({timeout, Ref, end_thinktime},NewState);
+            handle_info({timeout, transaction, end_thinktime},think, NewState);
         Profile=#message{} ->                                        
             handle_next_request(Profile, State)
     end;
 
-handle_info(timeout, State ) ->
-    ?LOG("Error: timeout receive~n", ?ERR),
+handle_info(timeout, StateName, State ) ->
+    ?LOGF("Error: timeout receive in state ~p~n",[StateName], ?ERR),
     ts_mon:addcount({ timeout }),
     {stop, normal, State};
-handle_info(Msg, State ) ->
-    ?LOGF("Error: Unkonwn msg receive, stop ~p~n", [Msg], ?ERR),
+handle_info(Msg, StateName, State ) ->
+    ?LOGF("Error: Unkonwn msg receive in state ~p, stop ~p~n", [Msg,StateName], ?ERR),
     ts_mon:addcount({ unknown_msg }),
     {stop, normal, State}.
 
-%%----------------------------------------------------------------------
-%% Func: terminate/2
-%% Purpose: Shutdown the server
-%% Returns: any (ignored by gen_server)
-%%----------------------------------------------------------------------
-terminate(normal, State) ->
+%%--------------------------------------------------------------------
+%% Func: terminate/3
+%% Purpose: Shutdown the fsm
+%% Returns: any
+%%--------------------------------------------------------------------
+terminate(normal, StateName,State) ->
     finish_session(State);
-terminate(Reason, State) ->
-	?LOGF("Stop, reason= ~p~n",[Reason],?NOTICE),
+terminate(Reason, StateName, State) ->
+	?LOGF("Stop in state ~p, reason= ~p~n",[StateName,Reason],?NOTICE),
     ts_mon:addcount({ error_unknown }),
     finish_session(State).
 
+%%--------------------------------------------------------------------
+%% Func: code_change/4
+%% Purpose: Convert process state when code is changed
+%% Returns: {ok, NewState, NewStateData}
+%%--------------------------------------------------------------------
+code_change(OldVsn, StateName, StateData, Extra) ->
+    {ok, StateName, StateData}.
 
 %%%----------------------------------------------------------------------
 %%% Internal functions
@@ -302,7 +342,7 @@ handle_next_request(Profile, State) ->
 	Message = ts_profile:get_message(Type , Param),
 	Now = now(),
 
-	%% does the profile update the server setup ?
+	%% does the next message change the server setup ?
     case Profile of 
         #message{host=undefined, port= undefined, scheme= undefined} ->
             {Host, Port, Protocol, Socket} = {State#state.server,State#state.port,
@@ -329,10 +369,12 @@ handle_next_request(Profile, State) ->
             case catch send(Protocol, NewSocket, Message) of
                 ok -> 
                     ts_mon:sendmes({State#state.monitor, self(), Message}),
-                    {noreply, State#state{socket= NewSocket, count = Count,
-                                          protocol=Protocol, server=Host,
-                                          port= Port,
-                                          timestamp = Now }}; 
+                    {next_state, wait_ack, State#state{socket= NewSocket,
+                                                       count = Count,
+                                                       protocol=Protocol,
+                                                       server=Host,
+                                                       port= Port,
+                                                       timestamp = Now }};
                 {error, closed} -> 
                     ?LOG("connection close while sending message !~n", ?WARN),
                     handle_close_while_sending(State);
@@ -343,7 +385,6 @@ handle_next_request(Profile, State) ->
                     ts_mon:addcount({ list_to_atom(CountName) }),
                     {stop, normal, State};
                 {'EXIT', {noproc, _Rest}} ->
-                    ?LOG("Server must have closed connection upon us~n", ?NOTICE),
                     handle_close_while_sending(State);
                 Exit ->
                     ?LOGF("EXIT Error: Unable to send data, reason: ~p~n",
@@ -351,7 +392,7 @@ handle_next_request(Profile, State) ->
                     {stop, senderror, State}
             end;
 		_Error ->
-			{stop, normal, State}
+			{stop, normal, State} %% already log in reconnect
 	end.
 
 %%----------------------------------------------------------------------
@@ -361,10 +402,8 @@ handle_next_request(Profile, State) ->
 finish_session(State) ->
 	Now = now(),
 	Elapsed = ts_utils:elapsed(State#state.starttime, Now),
-	ts_mon:endclient({self(), Now, Elapsed}),
-	ts_client_rcv:stop(State#state.rcvpid),
+	ts_mon:endclient({self(), Now, Elapsed}).
 %	fprof:stop(),
-	ok.
 
 %%----------------------------------------------------------------------
 %% Func: handle_close_while_sending/1
@@ -374,8 +413,11 @@ finish_session(State) ->
 %%          reconnect before sending)
 %%----------------------------------------------------------------------
 handle_close_while_sending(State=#state{persistent=true}) ->
-    set_thinktime(?config(client_retry_timeout)),
-    {noreply, State};
+    Think = ?config(client_retry_timeout),
+    set_thinktime(Think),
+    ?LOGF("Server must have closed connection upon us, waiting ~p msec~n",
+          [Think], ?NOTICE),
+    {next_state, think, State};
 handle_close_while_sending(State) ->
     {stop, error, State}.
     
@@ -416,7 +458,7 @@ reconnect(none, ServerName, Port, Protocol, IP, Pid) ->
 			?LOGF("Reconnect Error: ~p~n",[Reason],?ERR),
             CountName="error_reconnect_"++atom_to_list(Reason),
 			ts_mon:addcount({ list_to_atom(CountName) }),
-			{stop, connfailed}
+			{stop, normal}
     end;
 reconnect(Socket, Server, Port, Protocol, IP, Pid) ->
 	{ok, Socket}.
@@ -485,4 +527,4 @@ set_thinktime(infinity) -> ok;
 set_thinktime(Think)    -> 
 %% dot not use timer:send_after because it does not scale well:
 %%    http://www.erlang.org/ml-archive/erlang-questions/200202/msg00024.html
-    erlang:start_timer(Think, self(), end_thinktime ).
+    Ret = erlang:start_timer(Think, self(), end_thinktime ).
