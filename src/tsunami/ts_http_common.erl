@@ -110,7 +110,7 @@ set_cookie_header([], Host) -> [];
 set_cookie_header(Cookies, Host) -> 
     MatchDomain = fun (A) -> matchdomain(A,Host) end,
     CurCookies = lists:filter(MatchDomain, Cookies),
-    set_cookie_header(CurCookies, Host, []). %% TODO: check for domain
+    set_cookie_header(CurCookies, Host, []).
 
 set_cookie_header([], Host, Acc)   -> [lists:reverse(Acc), ?CRLF];
 set_cookie_header([Cookie|Cookies], Host, []) ->
@@ -334,9 +334,19 @@ read_chunk_data(Data, State, Int, Acc) -> % not enough data in buffer
 %% Purpose: Separate cookie values from attributes
 %%----------------------------------------------------------------------
 add_new_cookie(Cookie, Host, OldCookies) ->
-    {ok, Fields} = regexp:split( Cookie, "; "),
+    Fields = splitcookie(Cookie),
     New = parse_set_cookie(Fields, #cookie{domain=Host}),
     concat_cookies([New],OldCookies).
+
+%%----------------------------------------------------------------------
+%% Function: splitcookie/3
+%% Purpose:  split according to string "; ". 
+%%  Not very elegant but 5x faster than the regexp:split version
+%%----------------------------------------------------------------------
+splitcookie(Cookie) -> splitcookie(Cookie, [], []).
+splitcookie([], Cur, Acc) -> [lists:reverse(Cur)|Acc];
+splitcookie("; "++Rest,Cur,Acc) ->splitcookie(Rest,[],[lists:reverse(Cur)|Acc]);
+splitcookie([Char|Rest],Cur,Acc)->splitcookie(Rest, [Char|Cur], Acc).
 
 %%----------------------------------------------------------------------
 %% Func: concat_cookie/2
