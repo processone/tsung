@@ -33,10 +33,10 @@
  
  <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1>
 <TR><TD ALIGN=left NOWRAP bgcolor="#f2f2f2">Version:</TD>
-<TD ALIGN=left NOWRAP>1.10</TD>
+<TD ALIGN=left NOWRAP>1.12</TD>
 </TR>
 <TR><TD ALIGN=left NOWRAP bgcolor="#f2f2f2">Date :</TD>
-<TD ALIGN=left NOWRAP>July 20, 2004</TD>
+<TD ALIGN=left NOWRAP>August 12, 2004</TD>
 </TR></TABLE>
  </DIV>
 
@@ -84,23 +84,24 @@
 <LI><A HREF="#htoc23">5.6&nbsp;&nbsp;Sessions</A>
 <LI><A HREF="#htoc24">5.7&nbsp;&nbsp;Dynamic substitutions</A>
 <LI><A HREF="#htoc25">5.8&nbsp;&nbsp;Dynamic variables</A>
+<LI><A HREF="#htoc26">5.9&nbsp;&nbsp;Checking the server's response</A>
 </UL>
-<LI><A HREF="#htoc26">6&nbsp;&nbsp;Statistics and reports</A>
+<LI><A HREF="#htoc27">6&nbsp;&nbsp;Statistics and reports</A>
 <UL><LI>
-<A HREF="#htoc27">6.1&nbsp;&nbsp;Generating the report</A>
-<LI><A HREF="#htoc28">6.2&nbsp;&nbsp;Tsunami summary</A>
-<LI><A HREF="#htoc29">6.3&nbsp;&nbsp;Graphical overview</A>
+<A HREF="#htoc28">6.1&nbsp;&nbsp;Generating the report</A>
+<LI><A HREF="#htoc29">6.2&nbsp;&nbsp;Tsunami summary</A>
+<LI><A HREF="#htoc30">6.3&nbsp;&nbsp;Graphical overview</A>
 </UL>
-<LI><A HREF="#htoc30">7&nbsp;&nbsp;References</A>
-<LI><A HREF="#htoc31">8&nbsp;&nbsp;Acknowledgements</A>
-<LI><A HREF="#htoc32">A&nbsp;&nbsp;Frequently Asked Questions</A>
+<LI><A HREF="#htoc31">7&nbsp;&nbsp;References</A>
+<LI><A HREF="#htoc32">8&nbsp;&nbsp;Acknowledgments</A>
+<LI><A HREF="#htoc33">A&nbsp;&nbsp;Frequently Asked Questions</A>
 <UL><LI>
-<A HREF="#htoc33">A.1&nbsp;&nbsp;IDX-tsunami crash when I start it </A>
-<LI><A HREF="#htoc34">A.2&nbsp;&nbsp;IDX-tsunami still doesn't start ...</A>
-<LI><A HREF="#htoc35">A.3&nbsp;&nbsp;IDX-tsunami still crash/fails when I start it !</A>
-<LI><A HREF="#htoc36">A.4&nbsp;&nbsp;What is the format of the stats file idx-tsunami.log ?</A>
-<LI><A HREF="#htoc37">A.5&nbsp;&nbsp;How can i specify the number of concurrent users ?</A>
-<LI><A HREF="#htoc38">A.6&nbsp;&nbsp;SNMP monitoring doesn't work ?!</A>
+<A HREF="#htoc34">A.1&nbsp;&nbsp;IDX-tsunami crash when I start it </A>
+<LI><A HREF="#htoc35">A.2&nbsp;&nbsp;IDX-tsunami still doesn't start ...</A>
+<LI><A HREF="#htoc36">A.3&nbsp;&nbsp;IDX-tsunami still crash/fails when I start it !</A>
+<LI><A HREF="#htoc37">A.4&nbsp;&nbsp;What is the format of the stats file idx-tsunami.log ?</A>
+<LI><A HREF="#htoc38">A.5&nbsp;&nbsp;How can i specify the number of concurrent users ?</A>
+<LI><A HREF="#htoc39">A.6&nbsp;&nbsp;SNMP monitoring doesn't work ?!</A>
 </UL>
 </UL>
 
@@ -166,11 +167,12 @@ Volume 46, Issue 2-3, October 2001</EM>.<BR>
  IP/WDM test platform for new generation Internet applications).</UL>
 <EM>IDX-Tsunami</EM> has been used for very high load tests:
 <UL><LI>
-<EM>Jabber</EM> protocol: 10 000 simultaneous users. Tsunami were
-running on a 3-computers cluster (CPU 800Mhz) 
-<LI><EM>HTTP and HTTPS</EM> protocol: 12 000 simultaneous users. <EM>IDX-Tsunami</EM>
-were running on a 4-computers cluster. The tested platform reached
-3 000 requests per second. 
+<EM>Jabber</EM> protocol: 10 000 simultaneous users.
+ <EM>IDX-Tsunami</EM> were running on a 3-computers cluster (CPU
+ 800Mhz)
+<LI><EM>HTTP and HTTPS</EM> protocol: 12 000 simultaneous users.
+ <EM>IDX-Tsunami</EM> were running on a 4-computers cluster. The
+ tested platform reached 3 000 requests per second.
 </UL>
 <EM>IDX-Tsunami</EM> has been used at: 
 <UL><LI>
@@ -189,10 +191,14 @@ for Petroleum
 <H3><A NAME="htoc6">2.1</A>&nbsp;&nbsp;IDX-Tsunami main features</H3><!--SEC END -->
 
 <UL><LI>
-<EM>High Performance</EM>: <EM>IDX-Tsunami</EM> can simulate a huge number
-of simultaneous users par physical computer: It can simulates up to
-10000 users on a single CPU. Traditional injection tools can hardly
-go further than 200 users. 
+<EM>High Performance</EM>: <EM>IDX-Tsunami</EM> can simulate a
+ huge number of simultaneous users par physical computer: It can
+ simulates thousands of users on a single CPU (Note: a simulated user
+ is not always active: it can be idle during a <TT>thinktime</TT>
+ period). Traditional injection tools can hardly go further than a
+ few hundreds (Hint: if all you want to do is requesting a single URL
+ in a loop, use <EM>ab</EM>; but if you want to build complex
+ scenarios with extended reports, <EM>IDX-Tsunami</EM> is for you).
 <LI><EM>Distributed</EM>: the load can be distributed on a cluster of
 client machines 
 <LI><EM>Multi-Protocols</EM> using a plug-in system: HTTP (both standard
@@ -203,7 +209,9 @@ SMTP are on the TODO list.
 the underlying OS IP Aliasing 
 <LI><EM>OS monitoring</EM> (CPU, memory and network traffic) using Erlang
 agents on remote servers or <EM>SNMP</EM>
-<LI><EM>XML configuration system</EM>
+<LI><EM>XML configuration system</EM>: complex user's scenarios are written
+ in XML. Scenarios can be written with a simple browser using the
+ tsunami recorder (for HTTP only).
 <LI><EM>Mixed behaviours</EM>: several sessions can be used to simulate
 different type of users during the same benchmark. You can define
 the proportion of the various behaviours in the benchmark scenario. 
@@ -232,7 +240,7 @@ HTTP/1.0 and HTTP/1.1 support
 Authentication, presence and register messages 
 <LI>Chat messages to online or offline users 
 <LI>Roster set and get requests 
-<LI>Global users<CODE>'</CODE> synchronisation can be set on specific actions 
+<LI>Global users<CODE>'</CODE> synchronization can be set on specific actions 
 </UL>
 <!--TOC subsection Complete reports set-->
 
@@ -251,7 +259,7 @@ from the target server(s). Tsunami produce graphs for CPU and memory
 consumption and network traffic. SNMP is also supported. 
 </UL>
 
-Note that <EM>IDX-Tsunami</EM> take care of the synchronisation process
+Note that <EM>IDX-Tsunami</EM> take care of the synchronization process
 by itself. Gathered statistics are «synchronized».<BR>
 <BR>
 It is possible to generate graphs during the benchmark as statistics
@@ -269,8 +277,8 @@ protocol. No need to write complex scripts. Dynamic scenarios only
 requires small trivial piece of code.
 <LI><EM>Multi-protocol support</EM>: <EM>IDX-Tsunami</EM> is for example one of
 the only tool to benchmark SOAP applications 
-<LI><EM>Monitoring</EM> of the target cluster to analyse the behaviour
-and find bottlenecks. For example, it has been used to analyse cluster
+<LI><EM>Monitoring</EM> of the target server(s) to analyze the behaviour
+and find bottlenecks. For example, it has been used to analyze cluster
 symmetry (is the load properly balanced ?) and to determine the best
 combination of machines on the three cluster tiers (Web engine, EJB
 engine and database) 
@@ -287,16 +295,17 @@ supported platforms (Solaris, *BSD, Win32 and MacOS-X).<BR>
 <H3><A NAME="htoc12">3.1</A>&nbsp;&nbsp;Dependencies</H3><!--SEC END -->
 
 <UL><LI>
-Erlang/OTP R9C-0
- (<A HREF="http://www.erlang.org/download.html"><TT>http://www.erlang.org/download.html</TT></A>). R9C-2 is recommanded.
-<LI>xmerl-0.19 (<A HREF="http://sowap.sourceforge.net/download.html"><TT>http://sowap.sourceforge.net/download.html</TT></A>). A debian
- binary package is provided at
+Erlang/OTP R9C-0 (<A HREF="http://www.erlang.org/download.html"><TT>http://www.erlang.org/download.html</TT></A>).
+ R9C-2 is recommended. RedHat users can download a R9C-2 rpm at
+ <A HREF="http://www.erlang-projects.org/Public/rpmdeb/rpm_erlang_otp_r9c-2/view"><TT>http://www.erlang-projects.org/Public/rpmdeb/rpm_erlang_otp_r9c-2/view</TT></A>.
+<LI>xmerl-0.19 (<A HREF="http://sowap.sourceforge.net/download.html"><TT>http://sowap.sourceforge.net/download.html</TT></A>). Debian and Redhat
+ binaries are provided at
  <A HREF="http://tsunami.idealx.org/dist/"><TT>http://tsunami.idealx.org/dist/</TT></A>
  <LI>extended regexp module (used for dynamic variables):
  gregexp.erl available at
  <A HREF="http://www.cellicium.com/erlang/contribs/"><TT>http://www.cellicium.com/erlang/contribs/</TT></A> . The module is
  included in the source and binary distribution of <EM>IDX-Tsunami</EM>. It
- is released under the EPL Licence.
+ is released under the EPL License.
  <LI>gnuplot and perl5 (optional; for graphical output with
  <TT>analyse_msg.pl</TT> script). The Template Toolkit is used for HTML
  reports (see <A HREF="http://template-toolkit.org/"><TT>http://template-toolkit.org/</TT></A>)
@@ -358,7 +367,7 @@ Use the idx-tsunami mailing list (see
 suggestions or questions about <EM>IDX-Tsunami</EM>.<BR>
 <BR>
 For any questions concerning commercial support, ask
-<A HREF="solutions@idealx.com"><TT>solutions@idealx.com</TT></A>.<BR>
+<A HREF="mailto:solutions@idealx.com">solutions@idealx.com</A>.<BR>
 <BR>
 <!--TOC section HTTP benchmark approach-->
 
@@ -367,18 +376,23 @@ For any questions concerning commercial support, ask
 <OL type=1><LI>
 Record scenario: start the recorder with: <TT>idx-tsunami
  recorder</TT>, and then configure your browser to use IDX-Tsunami
- proxy recorder (the listen port is 8090).
-<LI>Edit / organize scenario 
+ proxy recorder (the listen port is 8090). A session file will be
+ created.
+<LI>Edit / organize scenario
 <LI>Write small code for dynamic parts if needed and place dynamic mark-up
 in the scenario 
 <LI>Test and adjust scenario to have a nice progression of the load. This
 is highly dependent of the application and of the size of the target
-cluster. Calculate the normal duration of the scenario and use the
+server(s). Calculate the normal duration of the scenario and use the
 interarrival time between users and the duration of the phase to estimate
 the number of simultaneous users for each given phase. 
 <LI>Launch benchmark with your first application parameters set-up:
  <TT>idx-tsunami start</TT>
-<LI>wait for the end of the test or stop by by hand with <TT>idx-tsunami stop</TT>
+<LI>Wait for the end of the test or stop by hand with
+ <TT>idx-tsunami stop</TT> (reports can also be generated during the
+ test (see § <A HREF="#sec:statistics-reports">6</A>) : the statistics are
+ updated every 10 seconds). For a brief summary of the current
+ activity, use <TT>idx-tsunami status</TT>
 <LI>Analyse results, change parameters and relaunch another benchmark 
 </OL>
 <!--TOC section Understanding idx-tsunami.xml configuration file-->
@@ -524,7 +538,8 @@ is preferred. They can be mixed. erlang is the default value for monitoring.<BR>
 <BR>
 Note: For Erlang monitoring, monitored computers need to be
 accessible through the network. SSH needs to be configured to allow
-connection without password on.<BR>
+connection without password on. <B>You must use the same version of
+Erlang/OTP on all nodes otherwise it may not work properly !</B><BR>
 <BR>
 <!--TOC subsection Defining the load progression-->
 
@@ -569,6 +584,17 @@ The load progression is set-up by defining several arrival phases:<BR>
 </TR></TABLE></TD>
 </TR></TABLE></TD>
 </TR></TABLE><BR>
+With this setup, during the first 10 minutes of the test, a new user
+will be created every 2 seconds, then during the next 10 minutes, a
+new user will be created every seconds, and for the last 10 minutes,
+10 users will be generated every seconds. The test will finish when
+all users have ended their session.<BR>
+<BR>
+The load generated in terms of HTTP requests / seconds will also
+depend on the mean number of requests within a session (if you have a
+mean value of 100 requests per session and 10 new users per seconds,
+the theoretical average throughput will be 1000 requests/ sec).<BR>
+<BR>
 <!--TOC subsection Default values-->
 
 <H3><A NAME="htoc22">5.5</A>&nbsp;&nbsp;Default values</H3><!--SEC END -->
@@ -709,7 +735,7 @@ the requests to execute.<BR>
 </TR></TABLE></TD>
 </TR></TABLE><BR>
 The popularity is the frequency of this type of session. This is used
-to decided which session a new user will execute. The sum of all
+to decide which session a new user will execute. The sum of all
 session<CODE>'</CODE>s popularity must be 100. <BR>
 <BR>
 This example show several features of the HTTP protocol support in
@@ -898,7 +924,7 @@ new(Pid) -&gt;
 </TR></TABLE><BR>
 As you can this, writing scenario with dynamic substitution is trivial.<BR>
 <BR>
-If you want to set unique id, you can use the function
+If you want to set unique id, you can use the built-in function
 <TT>ts_user_server:get_unique_id</TT>.
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -1004,9 +1030,9 @@ form like:
 </TR></TABLE></TD>
 </TR></TABLE></TD>
 </TR></TABLE><BR>
-Now <TT>random_num</TT> will be set to 42 for the user session. It's
+Now <TT>random_num</TT> will be set to 42 during the user's session. It's
 value will be replace in all mark-up of the form
-<FONT COLOR=purple>%%_random_num%%</FONT> if and only if the request tag has the
+<FONT COLOR=purple>%%_random_num%%</FONT> if and only if the <TT>request</TT> tag has the
 attribute <FONT COLOR=purple>subst="true"</FONT>, like:<BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -1074,10 +1100,55 @@ hand, for example to get the title of a HTML page:
 </TR></TABLE></TD>
 </TR></TABLE></TD>
 </TR></TABLE><BR>
+<!--TOC subsection Checking the server's response-->
+
+<H3><A NAME="htoc26">5.9</A>&nbsp;&nbsp;Checking the server's response</H3><!--SEC END -->
+
+With the attribute <TT>match</TT> in a <TT>request</TT> tag, you can
+check the server's response against a given string. If it matches, this
+will increment the <TT>match</TT> counter, if it does not match, the
+<TT>nomatch</TT> counter will be incremented.<BR>
+<BR>
+For example, let's say you want to test a login page. If the login is
+ok, the server will respond with <FONT COLOR=purple>Welcome !</FONT> in the
+HTML body, otherwise not. To check that:
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
+<TR><TD><TABLE BORDER=0 CELLPADDING=0
+ CELLSPACING=0>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+<TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
+<TR><TD><PRE>
+ &lt;request match="Welcome !"&gt;
+      &lt;http url='/login.php' version='1.0' method='POST' 
+       contents='username=nic&amp;amp;user_password=sesame'
+       content_type='application/x-www-form-urlencoded' &gt;
+ &lt;/request&gt;
+</PRE></TD>
+</TR></TABLE></TD>
+<TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR></TABLE></TD>
+</TR></TABLE><BR>
 <!--TOC section Statistics and reports-->
 
-<H2><A NAME="htoc26">6</A>&nbsp;&nbsp;Statistics and reports</H2><!--SEC END -->
+<H2><A NAME="htoc27">6</A>&nbsp;&nbsp;Statistics and reports</H2><!--SEC END -->
 
+<A NAME="sec:statistics-reports"></A>
 Available stats:
 <UL><LI>
 request (response time for each request)
@@ -1095,7 +1166,7 @@ counter for each response status (200, 404, etc.)
 </UL>
 <!--TOC subsection Generating the report-->
 
-<H3><A NAME="htoc27">6.1</A>&nbsp;&nbsp;Generating the report</H3><!--SEC END -->
+<H3><A NAME="htoc28">6.1</A>&nbsp;&nbsp;Generating the report</H3><!--SEC END -->
 
 cd to the log directory of your test (say
 <TT>~/.idx-tsunami/log/20040325-16:33/</TT>) and use the script
@@ -1130,7 +1201,7 @@ cd to the log directory of your test (say
 </TR></TABLE><BR>
 <!--TOC subsection Tsunami summary-->
 
-<H3><A NAME="htoc28">6.2</A>&nbsp;&nbsp;Tsunami summary</H3><!--SEC END -->
+<H3><A NAME="htoc29">6.2</A>&nbsp;&nbsp;Tsunami summary</H3><!--SEC END -->
 
 <BLOCKQUOTE><DIV ALIGN=center><HR WIDTH="80%" SIZE=2></DIV>
  <DIV ALIGN=center>
@@ -1143,7 +1214,7 @@ cd to the log directory of your test (say
 <DIV ALIGN=center><HR WIDTH="80%" SIZE=2></DIV></BLOCKQUOTE>
 <!--TOC subsection Graphical overview-->
 
-<H3><A NAME="htoc29">6.3</A>&nbsp;&nbsp;Graphical overview</H3><!--SEC END -->
+<H3><A NAME="htoc30">6.3</A>&nbsp;&nbsp;Graphical overview</H3><!--SEC END -->
 
 <BLOCKQUOTE><DIV ALIGN=center><HR WIDTH="80%" SIZE=2></DIV>
  <DIV ALIGN=center>
@@ -1156,7 +1227,7 @@ cd to the log directory of your test (say
 <DIV ALIGN=center><HR WIDTH="80%" SIZE=2></DIV></BLOCKQUOTE>
 <!--TOC section References-->
 
-<H2><A NAME="htoc30">7</A>&nbsp;&nbsp;References</H2><!--SEC END -->
+<H2><A NAME="htoc31">7</A>&nbsp;&nbsp;References</H2><!--SEC END -->
 
 <UL><LI>
 <EM>IDX-Tsunami</EM> home page: <A HREF="http://tsunami.idealx.org/"><TT>http://tsunami.idealx.org/</TT></A>
@@ -1167,9 +1238,9 @@ cd to the log directory of your test (say
 <LI><EM>Making reliable system in presence of software errors</EM>, Doctoral Thesis,
 Joe Armstrong, Stockholm, 2003 <SUP><A NAME="text3" HREF="#note3">3</A></SUP>
 </UL>
-<!--TOC section Acknowledgements-->
+<!--TOC section Acknowledgments-->
 
-<H2><A NAME="htoc31">8</A>&nbsp;&nbsp;Acknowledgements</H2><!--SEC END -->
+<H2><A NAME="htoc32">8</A>&nbsp;&nbsp;Acknowledgments</H2><!--SEC END -->
 
 The first version of this document is based on a talk given by Mickael
 Rémond<SUP><A NAME="text4" HREF="#note4">4</A></SUP> during an Object
@@ -1178,11 +1249,11 @@ Web benchmarking workshop in April 2004 (more info at
 <BR>
 <!--TOC section Frequently Asked Questions-->
 
-<H2><A NAME="htoc32">A</A>&nbsp;&nbsp;Frequently Asked Questions</H2><!--SEC END -->
+<H2><A NAME="htoc33">A</A>&nbsp;&nbsp;Frequently Asked Questions</H2><!--SEC END -->
 
 <!--TOC subsection IDX-tsunami crash when I start it -->
 
-<H3><A NAME="htoc33">A.1</A>&nbsp;&nbsp;IDX-tsunami crash when I start it </H3><!--SEC END -->
+<H3><A NAME="htoc34">A.1</A>&nbsp;&nbsp;IDX-tsunami crash when I start it </H3><!--SEC END -->
 
 Does your Erlang system has ssl support enabled ?<BR>
 <BR>
@@ -1220,7 +1291,7 @@ to test it:
 </TR></TABLE><BR>
 <!--TOC subsection IDX-tsunami still doesn't start ...-->
 
-<H3><A NAME="htoc34">A.2</A>&nbsp;&nbsp;IDX-tsunami still doesn't start ...</H3><!--SEC END -->
+<H3><A NAME="htoc35">A.2</A>&nbsp;&nbsp;IDX-tsunami still doesn't start ...</H3><!--SEC END -->
 
 Most of the time, when a crash happened at startup without any traffic 
 generated, the problem arise because the main Erlang controller node cannot 
@@ -1320,7 +1391,7 @@ of your client machine should not refer to this address.<BR>
 <BR>
 <!--TOC subsection IDX-tsunami still crash/fails when I start it !-->
 
-<H3><A NAME="htoc35">A.3</A>&nbsp;&nbsp;IDX-tsunami still crash/fails when I start it !</H3><!--SEC END -->
+<H3><A NAME="htoc36">A.3</A>&nbsp;&nbsp;IDX-tsunami still crash/fails when I start it !</H3><!--SEC END -->
 
 First look at the log file
 <TT>~/.idx-tsunami/log/XXX/tsunami_controller@yourhostname'</TT> to see
@@ -1340,7 +1411,7 @@ an erlang shell on the <TT>tsunami_controller</TT> node. Use
 Erlang.
 <!--TOC subsection What is the format of the stats file idx-tsunami.log ?-->
 
-<H3><A NAME="htoc36">A.4</A>&nbsp;&nbsp;What is the format of the stats file idx-tsunami.log ?</H3><!--SEC END -->
+<H3><A NAME="htoc37">A.4</A>&nbsp;&nbsp;What is the format of the stats file idx-tsunami.log ?</H3><!--SEC END -->
 <BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -1399,7 +1470,7 @@ or for HTTP returns code, size ...<BR>
 <BR>
 <!--TOC subsection How can i specify the number of concurrent users ?-->
 
-<H3><A NAME="htoc37">A.5</A>&nbsp;&nbsp;How can i specify the number of concurrent users ?</H3><!--SEC END -->
+<H3><A NAME="htoc38">A.5</A>&nbsp;&nbsp;How can i specify the number of concurrent users ?</H3><!--SEC END -->
 
 You can't. But it's on purpose: the load generated by
 <EM>IDX-Tsunami</EM> is dependent on the arrival time between new
@@ -1415,10 +1486,10 @@ XML config file).<BR>
 <BR>
 <!--TOC subsection SNMP monitoring doesn't work ?!-->
 
-<H3><A NAME="htoc38">A.6</A>&nbsp;&nbsp;SNMP monitoring doesn't work ?!</H3><!--SEC END -->
+<H3><A NAME="htoc39">A.6</A>&nbsp;&nbsp;SNMP monitoring doesn't work ?!</H3><!--SEC END -->
 
 There is a small bug in the <TT>snmp\_mgr</TT> module (R9C-0 release). You have to
-apply this patch to make it work. This is fixed in version R9C-1 and up.<BR>
+apply this patch to make it work. This is fixed in erlang R9C-1 and up.<BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
  CELLSPACING=0>
@@ -1463,7 +1534,7 @@ apply this patch to make it work. This is fixed in version R9C-1 and up.<BR>
 <HR WIDTH="50%" SIZE=1><DL><DT><A NAME="note1" HREF="#text1"><FONT SIZE=5>1</FONT></A><DD><A HREF="http://www.erlang-projects.org/Members/mremond/events/dossier_de_presentat/block_10766817551485/file"><TT>http://www.erlang-projects.org/Members/mremond/events/dossier_de_presentat/block_10766817551485/file</TT></A>
 <DT><A NAME="note2" HREF="#text2"><FONT SIZE=5>2</FONT></A><DD><A HREF="http://www.editions-eyrolles.com/php.accueil/Ouvrages/ouvrage.php3?ouv_ean13=9782212110791"><TT>http://www.editions-eyrolles.com/php.accueil/Ouvrages/ouvrage.php3?ouv_ean13=9782212110791</TT></A>
 <DT><A NAME="note3" HREF="#text3"><FONT SIZE=5>3</FONT></A><DD><A HREF="http://www.sics.se/~joe/thesis/armstrong_thesis_2003.pdf"><TT>http://www.sics.se/~joe/thesis/armstrong_thesis_2003.pdf</TT></A>
-<DT><A NAME="note4" HREF="#text4"><FONT SIZE=5>4</FONT></A><DD><A HREF="mickael.remond@erlang-fr.org"><TT>mickael.remond@erlang-fr.org</TT></A>
+<DT><A NAME="note4" HREF="#text4"><FONT SIZE=5>4</FONT></A><DD><A HREF="mailto:mickael.remond@erlang-fr.org">mickael.remond@erlang-fr.org</A>
 </DL>
 <!--END NOTES-->
 <!--HTMLFOOT-->

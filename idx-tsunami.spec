@@ -1,6 +1,6 @@
 %define name idx-tsunami
-%define version 1.0.beta7
-%define release 2
+%define version 1.0
+%define release 1
 
 Summary: A distributed multi-protocol load testing tool.
 URL: http://tsunami.idealx.org/
@@ -59,6 +59,8 @@ rm -rf $RPM_BUILD_ROOT
 %doc /usr/share/man/man1/idx-tsunami.1.gz
 
 %changelog
+* Mon Aug  9 2004 Nicolas Niclausse <nicolas.niclausse@IDEALX.com> 1.0-1
+- new release 
 * Mon Aug  9 2004 Nicolas Niclausse <nicolas.niclausse@IDEALX.com> 1.0.beta7-2
 - fix doc 
 * Mon Aug  9 2004 Nicolas Niclausse <nicolas.niclausse@IDEALX.com> 1.0.beta7-1

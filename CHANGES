@@ -1,3 +1,10 @@
+1.0.beta7 -> 1.0:  Minor bugfixes (13 Aug 2004)
+    - fix: broken path when building debian package
+    - add rpm arget in makefile
+    - implement status
+    - add 'match' in graph and doc
+    - fix add_dynparams for jabber
+
 1.0.beta6 -> 1.0.beta7:  Minor bugfixes (20 Jul 2004)
     - HTTP: really (?) fix parsing of no content-length with connection:close
     - better handling of configure (--prefix is working)
