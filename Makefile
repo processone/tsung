@@ -14,6 +14,7 @@ ERLC_EMULATOR=/usr/bin/erl
 export ERLC_EMULATOR
 OPTIONS:=+debug_info
 #OPTIONS:=+native +\{hipe,\[o3\]\}
+#OPTIONS:=+export_all
 #OPTIONS:=
 ERLC = erlc $(OPTIONS)
 OUTDIR = ebin
@@ -28,7 +29,7 @@ show:
 
 tarball: 
 	mkdir -p $(TARDIR)
-	tar zcf tmp.tgz src/*.erl src/*.src include/*.hrl doc/*.txt doc/*.fig doc/*.png LISEZMOI README CONTRIBUTORS COPYING src/idx-tsunami.pl.src idx-tsunamirc TODO Makefile vsn.mk src/analyse_msg.pl.src FAQ
+	tar zcf tmp.tgz src/*.erl src/*.src include/*.hrl doc/*.txt doc/*.fig doc/*.png LISEZMOI README CONTRIBUTORS COPYING src/idx-tsunami.pl.src idx-tsunamirc TODO Makefile vsn.mk src/analyse_msg.pl.src FAQ CHANGES
 	tar -C $(TARDIR) -zxf tmp.tgz
 	mkdir $(TARDIR)/ebin
 	tar zvcf  idx-tsunami-$(VSN).tar.gz $(TARDIR)
