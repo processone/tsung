@@ -6,9 +6,15 @@ include include.mk
 ERL_COMPILER_OPTIONS="[warn_unused_vars]"
 export ERL_COMPILER_OPTIONS
 
-#OPT =+debug_info -DDEBUG
-#OPT:=+export_all
-OPT = 
+ifeq ($(TYPE),debug)
+OPT =+debug_info -DDEBUG
+else 
+ ifeq ($(TYPE),test)
+   OPT:=+export_all
+  else
+   OPT = 
+  endif	
+endif
 INC = ./include
 CC  = erlc
 ERL = erl
@@ -23,10 +29,10 @@ VERSION = $(IDX-TSUNAMI_VSN)
 RAW_INSTALL_DIR = $(ERLDIR)/lib/erlang
 # $DESTDIR is used to build the debian package
 ERLANG_INSTALL_DIR = $(DESTDIR)/$(RAW_INSTALL_DIR)/lib
-BINDIR    = $(DESTDIR)/usr/bin
-LIBDIR    = $(DESTDIR)/usr/lib/idx-tsunami/bin/
-CONFDIR   = $(DESTDIR)/usr/share/doc/idx-tsunami/examples
-SHARE_DIR = $(DESTDIR)/usr/share/idx-tsunami/
+BINDIR    = $(INSTALLPREFIX)/bin
+LIBDIR    = $(INSTALLPREFIX)/lib/idx-tsunami/bin/
+CONFDIR   = $(INSTALLPREFIX)/share/doc/idx-tsunami/examples
+SHARE_DIR = $(INSTALLPREFIX)/share/idx-tsunami/
 TEMPLATES_DIR = $(SHARE_DIR)/templates
 
 
@@ -72,7 +78,7 @@ CONTROLLER_TGT_APPFILES_P = priv/$(CONTROLLER_APPLICATION)*
 
 SCRIPT   = $(BINDIR)/idx-tsunami
 BUILD_OPTIONS =	'[{systools, [{variables,[{"ROOT","$(RAW_INSTALL_DIR)"}]}]}, \
-	{sh_script, none}, {report, verbose}, \
+	    {sh_script, none}, \
         {make_app, true }, {make_rel, true}].'
 BUILD_OPTIONS_FILE = ./BUILD_OPTIONS 
 
@@ -85,6 +91,12 @@ all: clean idx-tsunami
 # used to generate the erlang Emakefile
 emake:
 	@echo $(EMAKE) | tr -s ' ' '\n' > ebin/Emakefile
+
+debug:
+	$(MAKE) TYPE=debug
+
+test:
+	$(MAKE) TYPE=test
 
 clean:
 	-cd priv && rm -f $(shell ls priv | grep -v builder\.erl) && cd ..

@@ -52,6 +52,10 @@ unless ($template_dir) {
         $template_dir = "$ENV{HOME}/.idx-tsunami/templates/";
     } elsif (-d "/usr/share/idx-tsunami/templates") {
         $template_dir = "/usr/share/idx-tsunami/templates";
+    } elsif (-d "/usr/local/share/idx-tsunami/templates") {
+        $template_dir = "/usr/local/share/idx-tsunami/templates";
+    } else {
+        warn "Can't find template directory !";
     }
 }
 

@@ -98,14 +98,14 @@
 
   2.2.  Compilation and Installation
 
-  ./configure (this will detect your erlang installation path)
+  ./configure
   make
   make install
 
   How to use it:
     1a/ Edit ~/.idx-tsunami/idx-tsunami.xml file (read the comments
      for explanation on the parameters, there is a sample file
-     /usr/share/doc/idx-tsunami/examples/idx-tsunami.xml). Log files
+     $prefix/share/doc/idx-tsunami/examples/idx-tsunami.xml). Log files
      are saved in ~/.idx-tsunami/log/ . A new subdirectory is created
      for each test using the current date as name
      (~/.idx-tsunami/log/20040217-09:40 for ex.)
@@ -116,7 +116,7 @@
     idx-tsunami for available options)
 
     3/ When it's finished, or during the test, you can use
-      analyse_msg.pl ( located in /usr/lib/idx-tsunami/bin/analyse_msg.pl) 
+      analyse_msg.pl ( located in $prefix/lib/idx-tsunami/bin/analyse_msg.pl) 
       to get statistical results from the logfile. 
 
 	   Since v0.2.0, you can have 'realtime' stats using with the
@@ -147,7 +147,7 @@
         Since v1.0.beta3, you can add --html to analyse_msg.pl to have
         a nice HTML report (this requires the perl Template
         toolkit). The template directory is ~/idx-tsunami/templates or
-        /usr/share/idx-tsunami/template or can be set with --tdir <dir>
+        $prefix/share/idx-tsunami/template or can be set with --tdir <dir>
         This will create two files report.html and graph.html
     
       Ex: > cd ~/.idx-tsunami/log/2004YYYY-XX:XX

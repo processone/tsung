@@ -4,3 +4,7 @@ export ERLC_EMULATOR
 
 ERLDIR=@ERLDIR@
 export ERLDIR
+
+PREFIX             = @prefix@
+INSTALLPREFIX      = $(DESTDIR)$(PREFIX)
+
