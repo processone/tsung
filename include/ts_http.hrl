@@ -27,6 +27,7 @@
 %% the parsing of the response
 -record(http, {content_length= 0, % HTTP header: content length
 			   body_size     = 0, % current size of body,
+			   chunk_toread  = 0, % chunk data to be read
 			   status        = none  % HTTP resp. status :200, etc. 'none' if no current cnx.
 			  }).
 

@@ -18,7 +18,6 @@
 %%% 
 
 %%% common functions used by http clients to:
-%%%  - parse httperf's style session file
 %%%  - parse response from HTTP server
 
 -module(ts_http_common).
@@ -28,104 +27,23 @@
 -include("../include/ts_profile.hrl").
 -include("../include/ts_http.hrl").
 
--export([get_client/2,
-		 get_client/3,
+-export([
 		 http_get/3,
 		 http_post/4,
 		 parse/2,
-		 protocol_headers/1,
-		 get_simple_client/2
+		 protocol_headers/1
 		]).
-
-%%----------------------------------------------------------------------
-%% Func: get_client/2
-%% Purpose: Generate a client session.
-%% N and Id are currently not used (instead, data are taken from the
-%%  the session server).
-%% Returns: List
-%%----------------------------------------------------------------------
-get_client(N, Id) ->
-	get_client(N, Id, ?config(http_req_filename)).
-get_client(N, Id, File) ->
-	ts_req_server:read_sesslog(File),
-	{ok, Session} = ts_req_server:get_next_session(),
-	build_session([], Session, Id).
-
-%%----------------------------------------------------------------------
-%% Func: get_simple_client/2
-%% Purpose: build an http session without reading inputs from a file
-%% Returns: List
-%% currently unused !
-%%----------------------------------------------------------------------
-get_simple_client(N, Id) ->
-	ts_req_server:read(?config(http_req_filename)),
-	build_simplesession(N, [], Id).
-
-
-%%----------------------------------------------------------------------
-%% Func: build_session/3
-%% Purpose: build a session; a session is a list of Pages where a Page 
-%% is a list of 'URL'
-%% Returns: List
-%%----------------------------------------------------------------------
-build_session(N, [FirstPage | Session] , Id) ->
-	build_session(N, Session, FirstPage, [], Id).
-
-%%----------------------------------------------------------------------
-%% Func: build_session/5
-%% Args: Thinktime (integer), Session, Page, FinalSession, Id
-%% rem: crash if parse_requestline returns an error
-%%----------------------------------------------------------------------
-build_session([], [], [Line], Session, Id) ->
-	{ok, Req, Think} = parse_requestline(Line),
-	lists:reverse([ set_msg(Req, Think) | Session ]); %% should we set think to 0 ?
-
-build_session(Think, [], [Line], Session, Id) ->
-	%% the "efficiency guide" said that doing the reverse at the end
-	%% is faster than using '++' during recursion
-	{ok, Req, _Think} = parse_requestline(Line),
-	lists:reverse([ set_msg(Req, Think) | Session ]) ;
-
-%% single URL in a page, wait during thinktime
-build_session([], [Next| PendingSession], [Line], Session, Id) ->
-	{ok, Req, Think} = parse_requestline(Line),
-	build_session([], PendingSession, Next, [set_msg(Req, Think) | Session], Id);
-
-%% Last URL in a page, wait during thinktime
-build_session(Think, [Next| PendingSession], [Line], Session, Id) ->
-	{ok, Req, _Think} = parse_requestline(Line),
-	build_session([], PendingSession, Next, [set_msg(Req, Think) | Session], Id);
-
-%% First URL in a page, don't wait (wait 1ms in reality).
-build_session([], PendingSession, [Line | Page ], Session, Id) ->
-	{ok, Req, Think} = parse_requestline(Line),
-	build_session(Think, PendingSession, Page, [ set_msg(Req, 0) | Session ], Id);
-
-build_session(Think, PendingSession, [Line | Page ], Session, Id) ->
-	{ok, Req, _Think} = parse_requestline(Line),
-	build_session(Think, PendingSession, Page, [ set_msg(Req, 0) | Session ], Id).
-
-
-%%----------------------------------------------------------------------
-%% Func: build_simplesession/3
-%% This type of session is just a list of URL, no page (~burst).
-%%----------------------------------------------------------------------
-build_simplesession(0, Session, Id) ->
-	Session;
-build_simplesession(N, Session, Id) ->
-	{ok, URL} = ts_req_server:get_random_req(),
-	build_simplesession(N-1, [set_msg(URL) | Session], Id).
 
 %%----------------------------------------------------------------------
 %% Func: http_get/3
 %% Args: URL, HTTP Version, Cookie
 %%----------------------------------------------------------------------
 http_get(URL, Version, Cookie) ->
-	lists:append([?GET, " ", URL," ", "HTTP/", Version, ?CR, 
+	lists:append([?GET, " ", URL," ", "HTTP/", Version, ?CRLF, 
 				  protocol_headers(Version),
 				  user_agent(),
 				  get_cookie(Cookie),
-				  ?CR]).
+				  ?CRLF]).
 
 %%----------------------------------------------------------------------
 %% Func: http_post/4
@@ -135,12 +53,12 @@ http_get(URL, Version, Cookie) ->
 http_post(URL, Version, Cookie, Content)  when binary(Content) ->
 	ContentLength=integer_to_list(size(Content)),
 	?LOGF("Content Length of POST: ~p~n.", [ContentLength], ?DEB),
-	BinHeaders = lists:append([?POST, " ", URL," ", "HTTP/", Version, ?CR,
+	BinHeaders = lists:append([?POST, " ", URL," ", "HTTP/", Version, ?CRLF,
 				  protocol_headers(Version),
 				  user_agent(),
 				  get_cookie(Cookie),
-				  "Content-Length: ",ContentLength, ?CR,
-				  ?CR
+				  "Content-Length: ",ContentLength, ?CRLF,
+				  ?CRLF
 				 ]),
 	concat_binary([BinHeaders, Content ]);
 http_post(URL, Version, Cookie, Content) ->
@@ -150,108 +68,24 @@ http_post(URL, Version, Cookie, Content) ->
 %% some HTTP headers functions
 %%----------------------------------------------------------------------
 user_agent() ->
-	lists:append(["User-Agent: ", ?USER_AGENT, ?CR]).
+	lists:append(["User-Agent: ", ?USER_AGENT, ?CRLF]).
 
 get_cookie([]) ->
 	[];
 get_cookie(none) ->
 	[];
 get_cookie(Cookie) ->
-	lists:append(["Cookie: ", Cookie, ?CR]).
+	lists:append(["Cookie: ", Cookie, ?CRLF]).
 
 %%----------------------------------------------------------------------
 %% set HTTP headers specific to the protocol version
 %%----------------------------------------------------------------------
 protocol_headers("1.1") ->
-	lists:append(["Host: ", ?config(server_name), ?CR]);
+	%% Host is mandatory in HTTP/1.1
+	lists:append(["Host: ", ?config(server_name), ?CRLF]); 
 protocol_headers("1.0") ->
 	[].
 	
-
-%%----------------------------------------------------------------------
-%% Func: parse_requestline/1
-%% Args: Line (string)
-%% Returns: {URL (string), thinktime (integer)} | {error, Reason} 
-%% Purpose: parse a line from sesslog (cf. httperf man page)
-%% Input example:  /foo2.html method=POST contents='Post data'
-%%----------------------------------------------------------------------
-parse_requestline(Line) ->
-	case regexp:split(Line, "(\s|\t)+") of  %% slow ?
-		{ok, [URL | FieldList]} ->
-			Request = httperf2record(FieldList),
-			{ok, Request#http_request{url=URL} , 
-			 round(ts_stats:exponential(?messages_intensity)) };
-		{error, Reason} ->
-			?LOGF("Error while parsing session ~p~n",[Reason],?ERR),
-			{error, Reason}
-	end.
-
-%%----------------------------------------------------------------------
-%% Func: token2record/2
-%% Args: {Name, Value} , #http_request
-%% Returns: #http_request
-%% Purpose: set the value of record according to {tag, value}
-%%----------------------------------------------------------------------
-token2record({"think", Value}, Record) -> % currently not used 
-	Record;
-token2record({"method", Value}, Record) ->
-    LowValue = list_to_atom(httpd_util:to_lower(Value)),
-	Record#http_request{method = LowValue};
-token2record({"contents", Value}, Record) ->
-	Record#http_request{body = Value};
-token2record(Unknown, Record) ->
-	?LOGF("Unknown ~p~n",[Unknown], ?NOTICE),
-	Record.
-
-%%----------------------------------------------------------------------
-%% Func: httperf2record/1
-%% Args: List
-%% Returns: record 
-%% Purpose: parse a list of ["tag=value"] from httperf sesslog file
-%%----------------------------------------------------------------------
-httperf2record([]) ->
-	#http_request{};
-httperf2record(List) ->
-	httperf2record(List,#http_request{}).
-
-%% Func: httperf2record/2 
-httperf2record( [], Record) ->
-	Record;
-httperf2record( [Head | Tail], Record) ->
-	case string:tokens( Head, "=") of 
-		[Name, Value] -> 
-			NewRecord=token2record({httpd_util:to_lower(Name), Value}, Record);
-		[Val] -> 
-			%% we assume (!) that there were some whitespace in the contents tag
-			%% so append this string to it.
-			PrevContents = Record#http_request.body,
-			NewRecord=Record#http_request{body = PrevContents ++ " " ++ Val};
-		[] ->
-			NewRecord = Record
-	end,
-	httperf2record(Tail, NewRecord).
-
-
-
-%%----------------------------------------------------------------------
-%% Func: set_msg/1 or /2
-%% Returns: #message record
-%% Purpose:
-%% unless specified, the thinktime is an exponential random var.
-%%----------------------------------------------------------------------
-set_msg(HTTPRequest) ->
-	set_msg(HTTPRequest, round(ts_stats:exponential(?messages_intensity))).
-set_msg(HTTPRequest, 0) -> % no thinktime, only wait for response
-	#message{ack = parse, 
-			 thinktime=infinity,
-			 param = HTTPRequest };
-set_msg(HTTPRequest, Think) -> % end of a page, wait before the next one
-	#message{ack = parse, 
-			 endpage   = true,
-			 thinktime = Think,
-			 param = HTTPRequest }.
-
-
 
 %%----------------------------------------------------------------------
 %% Func: parse/2
@@ -260,26 +94,6 @@ set_msg(HTTPRequest, Think) -> % end of a page, wait before the next one
 %% Purpose: parse the response from the server and keep information
 %%  about the response if State#state_rcv.session
 %%----------------------------------------------------------------------
-
-%% Experimental code, only used when {packet, http} is set 
-parse({http_response, Socket, {VsnMaj, VsnMin}, Status, Data}, State) ->
-	?LOGF("HTTP Reponse: ~p ~p ~p ~p ~n", [VsnMaj, VsnMin, Status, Data], ?DEB),
-	ts_mon:addcount({ Status }),
-	Http = #http{ status = Status},
-	{State#state_rcv{session=Http}, []};
-parse({http_header, Socket, Num, 'Content-Length', _, Data}, State) ->
-	CLength = list_to_integer(Data),
-	?LOGF("HTTP Content length: ~p ~p~n", [Num, CLength], ?DEB),
-	OldHttp = State#state_rcv.session,
-	NewHttp = OldHttp#http{content_length=CLength},
-	{State#state_rcv{session=NewHttp}, []};
-parse({http_header, Socket, Num, Header, _R, Data}, State) ->
-	?LOGF("HTTP Headers: ~p ~p ~p ~p ~n", [Num, Header, _R, Data], ?DEB),
-	{State, []};
-parse({http_eoh, Socket}, State) ->
-	?LOG("HTTP eoh: ~n", ?DEB),
-	{State, [{packet, raw}]};
-%% end of experimental code
 
 %% new connection, headers parsing
 parse(Data, State) when (State#state_rcv.session)#http.status == none ->
@@ -298,12 +112,12 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 			Cookie = parse_cookie(ParsedHeader),
 			ts_mon:addcount({ Status }),
 			case httpd_util:key1search(ParsedHeader,"content-length") of
-				undefined ->
-					?LOGF("No content length ! ~p~n",[Headers], ?DEB),
-                    ts_mon:addcount({ http_no_content_length }),
-					{ State#state_rcv{session=#http{},
-                                      ack_done=true,
-                                      datasize=0 } , [] };
+				undefined -> % no content-length, must be chunked
+					HeaderSize = length(Headers),
+                    << BinHead:HeaderSize/binary, Body/binary >> = Data,
+                    parse_chunked(httpd_util:key1search(ParsedHeader,
+                                                        "transfer-encoding"),
+                                  Body, State, Cookie);
 				Length ->
 					CLength = list_to_integer(Length)+4,
 					?LOGF("HTTP Content-Length:~p~n",[CLength], ?DEB),
@@ -332,8 +146,14 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 			end
 	end;
 
-%% TODO : handle the case where the Headers are not complete in the first message
+%% FIXME: handle the case where the Headers are not complete in the first message
 %% current connection
+parse(Data, State) when (State#state_rcv.session)#http.chunk_toread >0 ->
+    Http = State#state_rcv.session,
+    ChunkSizePending = Http#http.chunk_toread,
+    BodySize = Http#http.body_size,
+    Cookie = State#state_rcv.dyndata,
+    read_chunk_data(Data, State, Cookie, ChunkSizePending , BodySize);
 parse(Data, State) ->
 	DataSize = size(Data),
 	?LOGF("HTTP Body size=~p ~n",[DataSize], ?DEB),
@@ -343,17 +163,14 @@ parse(Data, State) ->
 		CLength -> % end of response
 			{State#state_rcv{session= #http{}, ack_done = true, datasize = Size},
 			 []};
-%			 [{packet, http}]}; %% testing purpose
 		_ ->
 			Http = (State#state_rcv.session)#http{body_size = Size},
 			{State#state_rcv{session= Http, ack_done = false, datasize = Size}, []}
 	end.
 												 
-			
-
 %%----------------------------------------------------------------------
 %% Func: request_header/1
-%% Returns: [HTTPStatus (integer), Headers]
+%% Returns: [HTTPStatus = integer, Headers = list]
 %% Purpose: parse HTTP headers. 
 %%----------------------------------------------------------------------
 request_header(Header)->
@@ -363,7 +180,7 @@ request_header(Header)->
 
 %%----------------------------------------------------------------------
 %% Func: get_status/1
-%% Purpose: returns HTTP status code
+%% Purpose: returns HTTP status code = integer()
 %%----------------------------------------------------------------------
 get_status(Line) ->
 	StartStatus = string:str(Line, " "),
@@ -371,22 +188,99 @@ get_status(Line) ->
 	list_to_integer(Status).
 
 %%----------------------------------------------------------------------
+%% Func: parse_chunked/4
+%% Purpose: parse 'Transfer-Encoding: chunked' for HTTP/1.1
+%% Returns: {NewState= record(state_rcv), SockOpts}
+%%----------------------------------------------------------------------
+parse_chunked(undefined, Data, State, Cookie) ->
+    ?LOGF("No content length ! ~p~n",[Data], ?ERR),
+    ts_mon:addcount({ http_no_content_length }),
+    { State#state_rcv{session=#http{}, ack_done=true, datasize=0 } , [] };
+parse_chunked("chunked", <<CRLF:4/binary,Body/binary>>, State, Cookie)->
+    ?LOGF("Chunked tranfer encoding, datasize=~p~n", [size(Body)] ,?DEB),
+    read_chunk(Body, State, Cookie, 0, 0);
+parse_chunked(Transfer, Data, State, Cookie) ->
+    ?LOGF("Unknown transfer type ! ~p~n",[Transfer], ?WARN),
+    ts_mon:addcount({ http_unknown_tranfer }),
+    { State#state_rcv{session=#http{}, ack_done=true, datasize=0 } , [] }.
+
+%%----------------------------------------------------------------------
+%% Func: read_chunk/5
+%% Purpose: the real stuff for parsing chunks is here
+%% Returns: {NewState= record(state_rcv), SockOpts}
+%%----------------------------------------------------------------------
+read_chunk(<<>>, State, Cookie, Int, Acc) ->
+    ?LOG("NO Data in chunk ! ~n", ?WARN),
+	% FIXME: should we check if Headers has just been received and the
+	% returns a new #http record ?
+    { State, [] }; % read more data
+%% this code has been inspired by inets/http_lib.erl
+read_chunk(<<Char:1/binary, Data/binary>>, State, Cookie, Int, Acc) ->
+    case Char of
+	<<C>> when $0=<C,C=<$9 ->
+	    read_chunk(Data, State, Cookie,16*Int+(C-$0), Acc+1);
+	<<C>> when $a=<C,C=<$f ->
+	    read_chunk(Data, State, Cookie,16*Int+10+(C-$a), Acc+1);
+	<<C>> when $A=<C,C=<$F ->
+	    read_chunk(Data, State, Cookie,16*Int+10+(C-$A), Acc+1);
+%	<<$;>> when Int>0 ->
+%	    ExtensionList=read_chunk_ext_name(Data, State, Cookie,[],[]),
+%	    read_chunk_data(Data, State, Cookie,Int+1,ExtensionList);
+%	<<$;>> when Int==0 ->
+%	    ExtensionList=read_chunk_ext_name(Data, State, Cookie,[],[]),
+%	    read_data_lf(),
+	<<?CR>> when Int>0 ->
+	    read_chunk_data(Data,State,Cookie,Int+3, Acc+1);
+	<<?CR>> when Int==0 -> %% should be the end of tranfer
+            ?LOGF("Finish tranfer chunk ~p~n", [binary_to_list(Data)] ,?DEB),
+            {State#state_rcv{session= #http{}, ack_done = true,
+                             datasize = Acc, %% FIXME: is it the correct size?
+                             dyndata= Cookie}, []};
+	<<C>> when C==$ -> % Some servers (e.g., Apache 1.3.6) throw in
+			   % additional whitespace...
+	    read_chunk(Data, State, Cookie, Int, Acc+1);
+	_Other ->
+            ?LOGF("Unexpected error while parsing chunk ~p~n", [_Other] ,?DEB),
+			ts_mon:count({http_unexpected_chunkdata}),
+            {State#state_rcv{session= #http{}, ack_done = true}, []}
+    end.
+
+%%----------------------------------------------------------------------
+%% Func: read_chunk_data/5
+%% Purpose: read 'Int' bytes of data
+%% Returns: {NewState= record(state_rcv), SockOpts}
+%%----------------------------------------------------------------------
+read_chunk_data(Data, State, Cookie,Int, Acc) when size(Data) >= Int->
+    ?LOGF("Read Chunked of size ~p~n", [Int] ,?DEB),
+    <<NewData:Int/binary, Rest/binary >> = Data,
+    read_chunk(Rest, State, Cookie, 0, Int + Acc);
+read_chunk_data(Data, State, Cookie,Int, Acc) -> % not enough data in buffer
+    BodySize = size(Data),
+    Http = #http{chunk_toread   = Int-BodySize,
+                 status         = 200, % we don't care, it has already been logged
+                 body_size      = BodySize + Acc},
+    {State#state_rcv{session  = Http,
+					 ack_done = false, % continue to read data
+                     datasize = BodySize +Acc,
+                     dyndata  = Cookie},[]}.
+
+%%----------------------------------------------------------------------
 %% Func: parse_cookie/1
-%% Purpose: returns HTTP cookie code
+%% Purpose: parse HTTP's Cookie Header and returns cookie code
 %%----------------------------------------------------------------------
 parse_cookie(ParsedHeader) ->
 	case httpd_util:key1search(ParsedHeader,"set-cookie") of
 		undefined ->
 			[];
 		Cookie ->
-				case string:tokens( Cookie, "; ") of 
-					[CookieVal |CookieOtherAttrib] ->
-						% TODO handle path attribute
-						% several cookies can be set with a different path attribute
-						CookieVal ;
-					_Other -> % something wrong
-						[]
-				end
+			case string:tokens( Cookie, "; ") of 
+				[CookieVal |CookieOtherAttrib] ->
+					%% FIXME: handle path attribute
+					%% several cookies can be set with a different path attribute
+					CookieVal ;
+				_Other -> % something wrong
+					[]
+			end
 	end.
 
 

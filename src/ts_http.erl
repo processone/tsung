@@ -43,7 +43,7 @@ get_random_message(#http_request{url = URL, method=post, cookie=Cookie, body= Bo
 
 %%
 get_client(N, Id) ->
-	ts_http_common:get_client(N, Id).
+	ts_httperf_sesslog:get_client(N, Id).
 
 %%
 parse(Data, State) ->
