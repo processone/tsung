@@ -20,6 +20,15 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
--record(jabber, {dest, size, type, jud_param, cle, id = 0}).
+-record(jabber, {dest,
+				 size,
+				 type,
+				 jud_param,
+				 cle,
+				 id = 0,
+				 domain, %% jabber domain
+				 username, %% first chars of username (will append id dynamically)
+				 passwd   %% first chars of passwd (will append id dynamically)
+				}).
 
 -define(setroster_intensity, 1/(ts_utils:get_val(setroster)*1000)).
