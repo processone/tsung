@@ -22,7 +22,7 @@
 -author('jflecomte@IDEALX.com').
 -modifiedby('nniclausse@IDEALX.com').
 
--include("../include/ts_profile.hrl").
+-include("ts_profile.hrl").
 
 -behaviour(gen_fsm).
 

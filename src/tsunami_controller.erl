@@ -24,7 +24,7 @@
 -export([start/2, start_phase/3, stop/1, stop_all/1]).
 -behaviour(application).
 
--include("../include/ts_profile.hrl").
+-include("ts_profile.hrl").
 
 %%----------------------------------------------------------------------
 %% Func: start/2

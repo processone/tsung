@@ -23,7 +23,7 @@
 
 -behaviour(gen_server).
 
--include("../include/ts_profile.hrl").
+-include("ts_profile.hrl").
 
 %% External exports
 -export([start/1, stop/1, wait_ack/1]).

@@ -21,8 +21,8 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
--include("../include/ts_profile.hrl").
--include("../include/ts_jabber.hrl").
+-include("ts_profile.hrl").
+-include("ts_jabber.hrl").
 
 -export([get_client/2, get_random_message/1]).
 

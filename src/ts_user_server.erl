@@ -22,7 +22,7 @@
 
 -vc('$Id$ ').
 
--include("../include/ts_profile.hrl").
+-include("ts_profile.hrl").
 
 %%-compile(export_all).
 -export([reset/3, 

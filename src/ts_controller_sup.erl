@@ -21,7 +21,7 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
--include("../include/ts_profile.hrl").
+-include("ts_profile.hrl").
 
 -behaviour(supervisor).
 

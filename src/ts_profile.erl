@@ -30,7 +30,7 @@
 -export([get_client/2, get_message/2, parse/3, add_dynparams/3,
 		 thinktime/0, new_session/2]).
 
--include("../include/ts_profile.hrl").
+-include("ts_profile.hrl").
 
 %%----------------------------------------------------------------------
 %% Function: new_session/2

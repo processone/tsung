@@ -35,8 +35,8 @@
 	 requete/3
 		]).
 
--include("../include/ts_profile.hrl").
--include("../include/ts_jabber.hrl").
+-include("ts_profile.hrl").
+-include("ts_jabber.hrl").
 
 %%Liste des différents feeling
 

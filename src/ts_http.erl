@@ -22,8 +22,8 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
--include("../include/ts_profile.hrl").
--include("../include/ts_http.hrl").
+-include("ts_profile.hrl").
+-include("ts_http.hrl").
 
 -export([get_client/2, add_dynparams/2,
 		 get_random_message/1,

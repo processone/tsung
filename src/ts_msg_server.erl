@@ -23,7 +23,7 @@
 
 -export([get_id/0, reset/0]).
 
--include("../include/ts_profile.hrl").
+-include("ts_profile.hrl").
 
 -behaviour(gen_server).
 

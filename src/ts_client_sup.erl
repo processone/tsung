@@ -23,7 +23,7 @@
 
 -behaviour(supervisor).
 
--include("../include/ts_profile.hrl").
+-include("ts_profile.hrl").
 
 %% External exports
 -export([start_link/0, start_child/1, active_clients/0]).
