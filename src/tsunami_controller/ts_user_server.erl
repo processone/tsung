@@ -26,6 +26,7 @@
 
 %%-compile(export_all).
 -export([reset/1, 
+	 get_unique_id/1,
 	 get_id/0,
 	 get_idle/0,
 	 get_offline/0,
@@ -42,10 +43,11 @@
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
--record(state, {offline,      %ets table 
-                online,    %ets table
-                first_client, % id (integer)
-                userid_max    % max number of ids (starts at 1)
+-record(state, {offline,        %ets table 
+                online,         %ets table
+                first_client,   % id (integer)
+                last_unique_id=0, % can be used to get an id in 'subst' requests
+                userid_max      % max number of ids (starts at 1)
                 }).
 
 
@@ -61,6 +63,9 @@ reset(NFin)->
 
 get_id()->
     gen_server:call({global, ?MODULE }, get_id).
+
+get_unique_id(Pid)->
+    gen_server:call({global, ?MODULE }, {get_unique_id, Pid}).
 
 %% get an idle id, and add it to the connected table
 get_idle()->
@@ -108,6 +113,11 @@ init(Args) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
+
+%%return a unique id
+handle_call({get_unique_id, Pid}, From, State=#state{last_unique_id=Current}) ->
+    New = Current+1,
+    {reply, New, State#state{last_unique_id=New}};
 
 %%Get one id in the full list of potential users
 handle_call(get_id, From, State) ->
