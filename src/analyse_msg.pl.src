@@ -184,7 +184,7 @@ sub parse_stats_file {
                 $category->{$type} = "http_status";
             } elsif ($type eq "request" or $type eq "page" or $type eq "session" or  $type eq "connect") {
                 $category->{$type} = "stats";
-            } elsif ($type =~ /^tr_/ or $type eq "page_resptime") {
+            } elsif ($type =~ /^tr_/ or $type eq "page") {
                 $category->{$type} = "transaction";
             } elsif ($type eq "size") {
                 $category->{$type} = "network";
@@ -253,9 +253,9 @@ sub parse_stats_file {
 			push @users, "$key.txt";
 		} elsif ($key =~ /users/) {
 			push @users_rate, "$key.txt";
-		} elsif ($key =~ /response_time$/) {
+		} elsif ($key =~ /request$/) {
 			push @tps, "$key.txt";
-		} elsif ($key =~ /^tr_/ or $key eq "page_resptime") {
+		} elsif ($key =~ /^tr_/ or $key eq "page") {
 			push @transactions, "$key.txt";
 		} elsif ($key =~ /^\d+$/) {
             $http = 1;
