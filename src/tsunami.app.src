@@ -32,15 +32,17 @@
 	   {env,		[        
 					 {debug_level, 2},
 					 {ts_cookie, "humhum"},
+					 {server_name, "localhost"}, %% 
 					 {server_adr, "127.0.0.1"}, %% Adresse du proxy
 					 {server_port, 7},		%% Port sur lequel parle les clients
+					 {server_protocol, gen_tcp}, %% gen_tcp, gen_udp or ssl
 					 {snd_size, 2048},
 					 {rcv_size, 2048},
 					 {tcp_timeout, 3600000},
 					 {clients_timeout, 60000}, %% timeout en cas de synchro globale
 					 {monitor_timeout, 60000},
 					 {presence_delay, 10000}, %% temps d'attente apres l'envoie d'un presence
-					 {monitoring, full},     %% full or light
+							 {monitoring, full},     %% full or light
 
 					 {client_type, jabber_dynamic},	%% Type de client:
 									%%     		jabber_online, 
@@ -50,7 +52,7 @@
 									%%			jabber_roster
 
 					 {parse_type, noparse}, %% parse or noparse
-							 {conn_type, true}, %% persistent connection: true or false
+			  		 {persistent, true}, %% persistent connection: true or false
 					 {mes_type, dynamic}, %% dynamic or static
 					 {nclients, 10},      %% Nombre de clients à connecter
 					 {nclients_deb, 1}, 	%% Debut de la plage de clients pour cette beam
@@ -71,6 +73,8 @@
 
 						
 					 {req_filename, "requests.txt"},	%% Fichiers de requetes
+					 {http_req_filename, "http.txt"},	%% Fichiers de requetes HTTP
+					 {ssl_ciphers, "EXP1024-RC4-SHA,EDH-RSA-DES-CBC3-SHA"},	
 					 {boucle1_percent, 63},	
 					 {boucle2_percent, 31},	
 					 {boucle3_percent, 3},	
@@ -81,6 +85,6 @@
                      {jabber_domain, "mydomain.com"}
 
 					]},        
-	   {applications, [kernel, stdlib]},
+	   {applications, [kernel, stdlib, ssl]},
        {mod,          {tsunami, []}}
 	  ]}.

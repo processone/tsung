@@ -24,7 +24,7 @@
 -include("../include/ts_profile.hrl").
 
 %% user interface
--export([debug/3, debug/4, get_val/1, init_seed/0]).
+-export([debug/3, debug/4, get_val/1, init_seed/0, chop/1, elapsed/2]).
 
 get_val(Var) ->
 	case application:get_env(Var) of 
@@ -48,6 +48,15 @@ debug(From, Message, Args, Level) ->
 			nodebug
 	end.
 
+%% print elapsed time in microseconds
+elapsed({Before1, Before2, Before3}, {After1, After2, After3}) ->
+    After  = After1  * 1000000000000  + After2  * 1000000 + After3,
+    Before = Before1 * 1000000000000  + Before2 * 1000000 + Before3,
+    After - Before.
+
+% remove trailing "\n"
+chop(String) ->
+	string:strip(String, right, 10).
 
 init_seed()->
     now().

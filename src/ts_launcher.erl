@@ -79,7 +79,7 @@ launcher(timeout, #state{interarrival = [X |List]}) ->
     Id = ts_user_server:get_idle(),
     %set the profile of the client
     Profile = ts_profile:get_client(?client_type, Id),
-	ts_client_sup:start_child([Profile, {?client_type, ?parse_type, ?mes_type, ?conn_type}]),
+	ts_client_sup:start_child([Profile, {?client_type, ?parse_type, ?mes_type, ?persistent}]),
 	?PRINTDEBUG("client launched, waiting ~p msec before launching next client",
 				[X],?DEB),
 	{next_state, launcher, #state{interarrival= List}, round(X)}.

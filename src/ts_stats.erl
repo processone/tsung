@@ -24,7 +24,11 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
--export([exponential/1, exponential/2, pareto/2, mean/1]).
+-export([exponential/1, exponential/2, pareto/2, 
+		 mean/1,     mean/3,
+		 variance/1, 
+		 meanvar/4,
+		 stdvar/1]).
 
 -record(pareto, {a = 1 , beta}).
 
@@ -59,15 +63,35 @@ pareto(Param, N) ->
     random:seed(), % est-ce necessaire de faire ça ici ?
     sample(fun(X) -> pareto(X) end , Param, N).
 
-%% use to compute the mean of a list
-mean(N, []) -> N;
+%% incremental computation of the mean
+mean(Esp, [], _) -> Esp;
 
-mean(N, [X|H]) ->
-    I = length(H) + 1,
-    mean((X+N*I)/(I+1), H).
+mean(Esp, [X|H], I) ->
+	Next = I+1,
+    mean((Esp+(X-Esp)/(Next)), H, Next).
 
 %% compute the mean of a list
 mean([]) -> 0;
 
-mean([X|H]) ->
-    mean(X, H).
+mean(H) ->
+    mean(0, H, 0).
+
+%% incremental computation of the variance
+meanvar(Esp, Var,[], I) -> {Esp, Var, I};
+
+meanvar(Esp, Var, [X|H], I) ->
+	Next = I+1,
+	C = X - Esp,
+	EspNew = (X+Esp*I)/(Next),
+    meanvar(EspNew, Var+C*(X-EspNew) , H, Next).
+
+%% compute the variance of a list
+variance([]) -> 0;
+variance(H) ->
+    {Mean, Var, I} = meanvar(0, 0, H, 0),
+	Var/I.
+
+stdvar(H) ->
+	math:sqrt(variance(H)).
+
+

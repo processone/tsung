@@ -37,11 +37,11 @@
 %% Returns: tuple
 %%----------------------------------------------------------------------
 get_server() ->
-    {?server_adr, ?server_port}.
+    {?server_adr, ?server_port, ?server_protocol}.
 
 %%----------------------------------------------------------------------
 %% Function: get_client/2
-%% Purpose: Generate a client session for a given protocole (Module).
+%% Purpose: Generate a client session for a given protocol (Module).
 %% Args:	Module (module name)
 %%			Id
 %% Returns: List of #message
@@ -63,3 +63,4 @@ get_client(Module, Id)->
 get_message(Module, Param) ->
 	?PRINTDEBUG("get_message called with args ~p ~p ~n",[Module,Param],?DEB),
     Module:get_random_message(Param).
+%%TODO: utiliser le meme nom ? pourquoi ajouter random ?
