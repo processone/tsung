@@ -27,7 +27,7 @@
 -export([debug/3, debug/4, get_val/1, init_seed/0, chop/1, elapsed/2,
          now_sec/0, inet_setopts/4, node_to_hostname/1, add_time/2,
          level2int/1, mkey1search/2, close_socket/2, datestr/0, datestr/1,
-		 erl_system_args/0]).
+		 erl_system_args/0, setsubdir/1]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -178,12 +178,16 @@ close_socket(gen_udp, Socket)-> gen_udp:close(Socket).
 %%----------------------------------------------------------------------
 datestr()->
     datestr(erlang:universaltime()).
+
 %%----------------------------------------------------------------------
 %% datestr/1
 %%----------------------------------------------------------------------
 datestr({{Y,M,D},{H,Min,S}})->
-	io_lib:format("-~w~2.10.0b~2.10.0b-~2.10.0b:~2.10.0b",[Y,M,D,H,Min]).
+	io_lib:format("~w~2.10.0b~2.10.0b-~2.10.0b:~2.10.0b",[Y,M,D,H,Min]).
 
+%%----------------------------------------------------------------------
+%% erl_system_args/0
+%%----------------------------------------------------------------------
 erl_system_args()->
 	Shared = case init:get_argument(shared) of 
                  error     -> " ";
@@ -191,4 +195,25 @@ erl_system_args()->
              end,
     lists:append(["-rsh ssh -detached -setcookie  ",atom_to_list(erlang:get_cookie()),
 				  Shared," +Mea r10b "]).
+
+%%----------------------------------------------------------------------
+%% setsubdir/1
+%% Purpose: all log files are created in a directory whose name is the
+%%          start date of the test.
+%% ----------------------------------------------------------------------
+setsubdir(FileName) ->
+    Date = datestr(),
+    Path = filename:dirname(FileName),
+    Base = filename:basename(FileName),
+    Dir  = filename:join(Path, Date),
+    case file:make_dir(Dir) of
+        ok ->
+            filename:join(Dir,Base);
+        {error, eexist} ->
+            ?DebugF("Directory ~s already exist~n",[Dir]),
+            filename:join(Dir,Base);
+        Err ->
+            ?LOGF("Can't create directory ~s (~p)!~n",[Dir, Err],?EMERG),
+            throw(Err)
+    end.
 

@@ -118,7 +118,7 @@ error({Who, When, What}) ->
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
 init([]) ->
-    Filename = ?config(log_file) ++ ts_utils:datestr(),
+    Filename = ts_utils:setsubdir(?config(log_file)),
     case file:open(Filename,write) of 
 		{ok, Stream} ->
 			?LOG("starting monitor~n",?NOTICE),
@@ -148,7 +148,7 @@ handle_call({start_clients, Machines, Monitoring}, From, State) ->
         none ->
             {reply, ok, State#state{type=Monitoring}};
         _ ->
-            Filename = ?config(log_file) ++ ".dump",
+            Filename = ts_utils:setsubdir(?config(log_file)) ++ ".dump",
             case file:open(Filename,write) of 
                 {ok, Stream} ->
                     ?LOG("dump file openedstarting monitor~n",?INFO),

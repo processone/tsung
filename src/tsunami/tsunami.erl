@@ -35,7 +35,8 @@
 start(Type, _StartArgs) ->
 %	error_logger:tty(false),
     ?LOG("open logfile  ~n",?DEB),
-	error_logger:logfile({open, ?config(log_file) ++ "-" ++ atom_to_list(node())}),
+    LogFile = ts_utils:setsubdir(?config(log_file)),
+	error_logger:logfile({open, LogFile ++ "-" ++ atom_to_list(node())}),
     ?LOG("ok  ~n",?DEB),
     case ts_sup:start_link() of
 		{ok, Pid} -> 

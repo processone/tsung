@@ -34,7 +34,8 @@
 %%----------------------------------------------------------------------
 start(Type, _StartArgs) ->
 	error_logger:tty(false),
-	error_logger:logfile({open, ?config(log_file) ++ "-" ++ atom_to_list(node())}),
+    LogFile = ts_utils:setsubdir(?config(log_file)),
+	error_logger:logfile({open, LogFile ++ "-" ++ atom_to_list(node())}),
     case ts_controller_sup:start_link() of
 		{ok, Pid} -> 
 			{ok, Pid};
@@ -44,7 +45,9 @@ start(Type, _StartArgs) ->
     end.
 
 start_phase(load_config, StartType, PhaseArgs) ->
-    ts_config_server:read_config(?config(config_file));
+    Config = ?config(config_file),
+    backup_config(Config, ?config(log_file)), 
+    ts_config_server:read_config(Config);
 start_phase(start_os_monitoring, StartType, PhaseArgs) ->
     ts_os_mon:activate();
 start_phase(start_clients, StartType, PhaseArgs) ->
@@ -68,3 +71,14 @@ stop_all([Host]) ->
     Pid = global:whereis_name('ts_mon'),
     Controller_Node = node(Pid),
     slave:stop(Controller_Node).
+
+%%----------------------------------------------------------------------
+%% Func: backup_config/2
+%% Purpose: copy a backup copy of the config file in the log directory
+%%   This is useful to have an history of all parameters of a test.
+%%----------------------------------------------------------------------
+backup_config(Config, Logfile) ->
+    RealLogFile = ts_utils:setsubdir(Logfile),
+    Path = filename:dirname(RealLogFile),
+    Backup = filename:basename(Config),
+    {ok, BytesCopied} = file:copy(Config, filename:join(Path,Backup)).
