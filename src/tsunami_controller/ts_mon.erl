@@ -38,7 +38,7 @@
 
 %% External exports
 -export([start/1, stop/0, newclient/1, endclient/1, newclient/1, sendmes/1,
-         start_clients/1,
+         start_clients/1, abort/0,
          rcvmes/1, error/1,
 		 add/1,
 		 dumpstats/0
@@ -82,6 +82,9 @@ start_clients({Machines, Monitoring}) ->
 
 stop() ->
 	gen_server:cast({global, ?MODULE}, {stop}).
+
+abort() ->
+	gen_server:cast({global, ?MODULE}, {abort}).
 
 dumpstats() ->
 	gen_server:cast({global, ?MODULE}, {dumpstats}).
@@ -259,7 +262,12 @@ handle_cast({stop}, State = #state{client = 0}) ->
     ts_os_mon:stop(),
 	{stop, normal, State};
 handle_cast({stop}, State) -> % we should stop, wait until no more clients are alive
-	{noreply, State#state{stop = true}}.
+	{noreply, State#state{stop = true}};
+
+handle_cast({abort}, State) -> % stop now !
+    ?LOG("Aborting by request !~n", ?EMERG),
+    ts_os_mon:stop(),
+	{stop, abort, State}.
 
 
 %%----------------------------------------------------------------------

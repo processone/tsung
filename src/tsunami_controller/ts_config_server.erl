@@ -272,12 +272,18 @@ handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
         " -tsunami controller ", atom_to_list(node())
         ]),
     ?LOGF("starting newbeam on host ~p with Args ~p~n", [Host, Args], ?DEB), 
-    {ok, Node} = slave:start_link(Host, Name, Args),
-    ?LOGF("started newbeam on node ~p ~n", [Node], ?NOTICE), 
-    Res = net_adm:ping(Node),
-    ?LOGF("ping ~p ~p~n", [Node,Res], ?NOTICE),
-    ts_launcher:launch({Node, Arrivals}),
-    {noreply, State#state{last_beam_id = NodeId +1}};
+    case slave:start_link(Host, Name, Args) of
+        {ok, Node} ->
+            ?LOGF("started newbeam on node ~p ~n", [Node], ?NOTICE), 
+            Res = net_adm:ping(Node),
+            ?LOGF("ping ~p ~p~n", [Node,Res], ?NOTICE),
+            ts_launcher:launch({Node, Arrivals}),
+            {noreply, State#state{last_beam_id = NodeId +1}};
+        {error, Reason} ->
+            ?LOGF("Can't start newbeam on host ~p ! Aborting!~n",[Host],?EMERG),
+            ts_mon:abort(),
+            {stop, normal}
+    end;
 
 handle_cast(Msg, State) ->
     {noreply, State}.
