@@ -286,34 +286,46 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 	List = binary_to_list(Data),
 	%%	regexp:split is much less efficient ! 
 	StartHeaders = string:str(List, "\r\n\r\n"),
-	Headers = string:substr(List, 1, StartHeaders-1),
-	[Status, ParsedHeader] = request_header(Headers),
-	?LOGF("HTTP Headers: ~p ~n", [ParsedHeader], ?DEB),
-	Cookie = parse_cookie(ParsedHeader),
-	ts_mon:addcount({ Status }),
-	case httpd_util:key1search(ParsedHeader,"content-length") of
-		undefined ->
-			?LOGF("No content length ! ~p~n",[Headers], ?WARN),
-			State#state_rcv{session= #http{}, ack_done = true, datasize = 0};
-		Length ->
-			CLength = list_to_integer(Length)+4,
-			?LOGF("HTTP Content-Length:~p~n",[CLength], ?DEB),
-			HeaderSize = length(Headers),
-			BodySize = size(Data)-HeaderSize,
-			if
-				BodySize == CLength ->  % end of response
-					{State#state_rcv{session= #http{}, ack_done = true, 
-									 datasize = BodySize, dyndata= Cookie}, []};
-				BodySize > CLength  ->
-					?LOGF("Error: HTTP Body > Content-Length !:~p~n",[CLength], ?ERR),
-					{State#state_rcv{session= #http{}, ack_done = true, 
-									 datasize = BodySize, dyndata= Cookie}, []};
-				true ->
-					Http = #http{content_length = CLength,
-								 status         = Status,
-								 body_size      = BodySize},
-					{State#state_rcv{session = Http, ack_done = false,
-									 datasize = BodySize, dyndata=Cookie},[]}
+	case StartHeaders of 
+		0 -> 
+			ts_mon:addcount({ parse_error }),
+			{State#state_rcv{session= #http{}, ack_done = true, 
+							 datasize = size(Data)}, []};
+		_ -> 
+			Headers = string:substr(List, 1, StartHeaders-1),
+			[Status, ParsedHeader] = request_header(Headers),
+			?LOGF("HTTP Headers: ~p ~n", [ParsedHeader], ?DEB),
+			Cookie = parse_cookie(ParsedHeader),
+			ts_mon:addcount({ Status }),
+			case httpd_util:key1search(ParsedHeader,"content-length") of
+				undefined ->
+					?LOGF("No content length ! ~p~n",[Headers], ?WARN),
+					State#state_rcv{session=#http{}, ack_done=true, datasize=0};
+				Length ->
+					CLength = list_to_integer(Length)+4,
+					?LOGF("HTTP Content-Length:~p~n",[CLength], ?DEB),
+					HeaderSize = length(Headers),
+					BodySize = size(Data)-HeaderSize,
+					if
+						BodySize == CLength ->  % end of response
+							{State#state_rcv{session= #http{}, ack_done = true, 
+											 datasize = BodySize,
+											 dyndata= Cookie}, []};
+						BodySize > CLength  ->
+							?LOGF("Error: HTTP Body > Content-Length !:~p~n",
+								  [CLength], ?ERR),
+							ts_mon:addcount({ http_bad_content_length }),
+							{State#state_rcv{session= #http{}, ack_done = true,
+											 datasize = BodySize, 
+											 dyndata= Cookie}, []};
+						true ->
+							Http = #http{content_length = CLength,
+										 status         = Status,
+										 body_size      = BodySize},
+							{State#state_rcv{session = Http, ack_done = false,
+											 datasize = BodySize,
+											 dyndata=Cookie},[]}
+					end
 			end
 	end;
 
