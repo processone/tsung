@@ -183,6 +183,20 @@ handle_info(timeout, StateName, State ) ->
     ?LOGF("Error: timeout receive in state ~p~n",[StateName], ?ERR),
     ts_mon:add({ count, timeout }),
     {stop, normal, State};
+handle_info({tcp, Socket, Data}, think, State = #state_rcv{request=Req} ) when Req#ts_request.ack == no_ack ->
+	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
+    ts_mon:add({ sum, size, size(Data)}),
+    ?LOG("Data receive from socket in state think, no_ack so skip~n", ?NOTICE),
+    NewSocket = inet_setopts(State#state_rcv.protocol, State#state_rcv.socket,
+                             [{active, once}]),
+    {next_state, think, State#state_rcv{socket=NewSocket}};
+handle_info({ssl, Socket, Data}, think, State = #state_rcv{request=Req} ) when Req#ts_request.ack == no_ack ->
+	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
+    ts_mon:add({ sum, size, size(Data)}),
+    ?LOG("Data receive from socket in state think, no_ack so skip~n", ?NOTICE),
+    NewSocket = inet_setopts(State#state_rcv.protocol, State#state_rcv.socket,
+                             [{active, once}]),
+    {next_state, think, State#state_rcv{socket=NewSocket}};
 handle_info(Msg, StateName, State ) ->
     ?LOGF("Error: Unknown msg ~p receive in state ~p, stop~n", [Msg,StateName], ?ERR),
     ts_mon:add({ count, unknown_msg }),
@@ -325,16 +339,21 @@ handle_next_request(Profile, State) ->
                                             State#state_rcv.page_timestamp
                                     end,
                     ts_mon:sendmes({State#state_rcv.dump, self(), Message}),
-                    %%FIXME: need to set ack_done to true if ack=no_ack ?
-                    {next_state, wait_ack, State#state_rcv{socket   = NewSocket,
-                                                           count    = Count,
-                                                           protocol = Protocol,
-                                                           host     = Host,
-                                                           request  = Profile,
-                                                           port     = Port,
-                                                           page_timestamp= PageTimeStamp,
-                                                           send_timestamp= Now,
-                                                           timestamp= Now }};
+                    NewState = State#state_rcv{socket   = NewSocket,
+                                               protocol = Protocol,
+                                               host     = Host,
+                                               request  = Profile,
+                                               port     = Port,
+                                               count    = Count,
+                                               page_timestamp= PageTimeStamp,
+                                               send_timestamp= Now,
+                                               timestamp= Now },
+                    case Profile#ts_request.ack of 
+                        no_ack -> 
+                            handle_next_action(NewState#state_rcv{ack_done=true});
+                        _ -> 
+                            {next_state, wait_ack, NewState}
+                        end;
                 {error, closed} -> 
                     ?LOG("connection close while sending message !~n", ?WARN),
                     handle_close_while_sending(State#state_rcv{socket=NewSocket,
@@ -490,6 +509,7 @@ set_thinktime(Think) ->
 %% Purpose: handle data received from a socket
 %%----------------------------------------------------------------------
 handle_data_msg(Data, State=#state_rcv{request=Req}) when Req#ts_request.ack==no_ack->
+    ?Debug("data received while previous msg was no_ack~n"),
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     {State, []};
 
@@ -530,19 +550,21 @@ handle_data_msg(Data, State=#state_rcv{request=Req, clienttype=Type}) when Req#t
             {NewState#state_rcv{buffer=NewBuffer}, Opts}
     end;
 
+%% FIXME: we should reset ack_done to false in handle_info when calling handle_next_action
 handle_data_msg(Data, State=#state_rcv{ack_done=true}) ->
     %% still same message, increase size
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
 	DataSize = size(Data),
-    OldSize = State#state_rcv.datasize,
-    {State#state_rcv{datasize = OldSize+DataSize}, []};
+    {PageTimeStamp, _} = update_stats(State#state_rcv{datasize=DataSize}, false),
+    {State#state_rcv{ page_timestamp= PageTimeStamp},[]};
 
+%% FIXME: almost same code as previous case. does it matter ? (need to
+%% check the ack=global case)
 handle_data_msg(Data, State=#state_rcv{ack_done=false}) ->
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
 	DataSize = size(Data),
-    {PageTimeStamp, _} = update_stats(State, false),
-    {State#state_rcv{datasize=DataSize,%ack for a new message, init size
-                     ack_done = true, page_timestamp= PageTimeStamp},[]}.
+    {PageTimeStamp, _} = update_stats(State#state_rcv{datasize=DataSize}, false),
+    {State#state_rcv{ ack_done = true, page_timestamp= PageTimeStamp},[]}.
 
 
 
