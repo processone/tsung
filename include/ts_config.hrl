@@ -33,6 +33,7 @@
           monitor_hosts = [], %% Cluster host to monitor (for CPU, MEM usage)
           arrivalphases = [], %% arrival process specs
           thinktime,  %% default thinktime specs
+          subst = false, %% Substitution should be applied on the request
           sessions=[],
           session_tab,
           curthink, %% temporary var (current request think)

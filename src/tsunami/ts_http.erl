@@ -28,6 +28,7 @@
 -export([init_dynparams/0,
 		 add_dynparams/3,
 		 get_message/1,
+         subst/1,
          parse/2,
          parse_config/2,
          new_session/0]).
@@ -83,3 +84,15 @@ init_dynparams() ->
 	[].
 
 
+%%----------------------------------------------------------------------
+%% Function: subst/1
+%% Purpose: Replace on the fly dynamic element of the HTTP request For
+%%          the moment, we only do dynamic substitution in URL, body,
+%%          userid, passwd, because we see no need for the other HTTP
+%%          request parameters.
+%%----------------------------------------------------------------------
+subst(Req=#http_request{url=URL, body=Body, userid=UserId, passwd=Passwd}) ->
+    Req#http_request{url    = ts_search:subst(URL),
+					 body   = ts_search:subst(Body),
+					 userid = ts_search:subst(UserId),
+					 passwd = ts_search:subst(Passwd)}.

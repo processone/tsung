@@ -23,6 +23,7 @@
 -record(ts_request,
         {thinktime, 
          ack,
+         subst=false,
          param,
          endpage=false,
          host,       % override global server hostname
@@ -41,6 +42,7 @@
 		 ack_timestamp,  % date when the 'request' was sent 
 		 page_timestamp=0,  % date when the first 'request' of a page was sent 
 		 endpage=false,  % if true, a page is ending 
+		 acc=[],     % Accumulator to store temporary unparsable data (Waiting for more data)
 		 session,    % record of session status; depends on 'clienttype'
 		 datasize=0,
 		 dyndata=[],

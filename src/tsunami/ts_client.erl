@@ -400,8 +400,9 @@ handle_next_request(Profile, State) ->
     end,
 
     Param = Type:add_dynparams(State#state.dyndata,Profile#ts_request.param,Host),
-	Message = Type:get_message(Param),
-	Now = now(),
+    SubstParam = dyn_substitution(Profile#ts_request.subst, Type, Param),
+    Message = Type:get_message(SubstParam),
+    Now = now(),
 
 	%% reconnect if needed
 	case reconnect(Socket,Host,Port,Protocol,State#state.ip,State#state.rcvpid) of
@@ -560,3 +561,16 @@ set_thinktime(Think) ->
 %% http://www.erlang.org/ml-archive/erlang-questions/200202/msg00024.html
 	?DebugF("thinktime of ~p~n",[Think]),
     erlang:start_timer(Think, self(), end_thinktime ).
+
+
+%%----------------------------------------------------------------------
+%% Func: dyn_substitution/3
+%% Purpose: If the message is parametered for substitution, call the 
+%%          protocole substitution
+%%----------------------------------------------------------------------
+dyn_substitution(false, Type, Request) ->
+    Request;
+%% If the subst request attribute in the config file has been set to
+%% something: We assume we should use substitution
+dyn_substitution(_, Type, Request) ->
+    Type:subst(Request).

@@ -31,6 +31,7 @@
 -export([init_dynparams/0,
 		 add_dynparams/3,
 		 get_message/1,
+         subst/1,
          parse/2,
          parse_config/2,
          new_session/0]).
@@ -80,3 +81,12 @@ add_dynparams(DynData, Param, Host) ->
 init_dynparams() ->
 	ts_user_server:get_idle().
 
+
+%%----------------------------------------------------------------------
+%% Function: subst/1
+%% Purpose: Replace on the fly dynamic element of the HTTP request
+%%          For the moment, this feature is not supported for the Jabber
+%%          protocol
+%%----------------------------------------------------------------------
+subst(Req) ->
+    Req.

@@ -53,6 +53,7 @@
                                      % if no current cnx.
 			   close         = false, % true if HTTP/1.0 or 'connection: close'
                                      % has been received
+			   partial=false,    % true if headers are partially received
 			   cookie=[]
 			  }).
 

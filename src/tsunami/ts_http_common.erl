@@ -36,7 +36,7 @@
 -export([
          http_get/1,
          http_post/1,
-         set_msg/1, set_msg/2,
+         set_msg/1, set_msg/3,
          parse/2,
          parse_URL/1,
          parse_config/2,
@@ -145,7 +145,8 @@ matchdomain_url(Cookie, Host, URL) -> % return a cookie only if domain match
 %%----------------------------------------------------------------------
 parse_config(Element = #xmlElement{name=http}, 
              Config=#config{curid= Id, session_tab = Tab,
-                            sessions = [CurS |SList]}) ->
+                            sessions = [CurS |SList],
+							subst = SubstFlag}) ->
     Version  = ts_config:getAttr(Element#xmlElement.attributes, version),
     URL      = ts_config:getAttr(Element#xmlElement.attributes, url),
     Contents = ts_config:getAttr(Element#xmlElement.attributes, contents),
@@ -186,9 +187,9 @@ parse_config(Element = #xmlElement{name=http},
                                               userid, undefined),
                   Passwd  = ts_config:getAttr(AuthEl#xmlElement.attributes, 
                                               passwd, undefined),
-                  set_msg(Request2#http_request{userid=UserId, passwd=Passwd}, 0);
-              _ -> 
-                  set_msg(Request2, 0)
+                  set_msg(Request2#http_request{userid=UserId, passwd=Passwd},0, SubstFlag);
+              _ ->
+                  set_msg(Request2, 0, SubstFlag)
           end,
     ts_config:mark_prev_req(Id-1, Tab, CurS),
     ets:insert(Tab,{{CurS#session.id, Id}, Msg#ts_request{endpage=true}}),
@@ -213,74 +214,93 @@ parse_config(Element, Conf = #config{}) ->
 %%----------------------------------------------------------------------
 %% Func: parse/2
 %% Args: Data, State
-%% Returns: {NewState, Options for socket (list)}
+%% Returns: {NewState, Options for socket (list), Close}
 %% Purpose: parse the response from the server and keep information
 %%  about the response if State#state_rcv.session
 %%----------------------------------------------------------------------
-parse(Data, State) when (State#state_rcv.session)#http.status == none ->
-	List = binary_to_list(Data),
-	TotalSize = size(Data),
-	{ok, Http, Tail} = parse_headers(#http{},List, State#state_rcv.host),
-	ts_mon:add({ count, Http#http.status }),
-	BodySize= length(Tail),
-	CLength = Http#http.content_length,
-	Close   = Http#http.close,
-	Cookie  = concat_cookies(Http#http.cookie, State#state_rcv.dyndata),
-	if 
-		CLength == 0, Http#http.chunk_toread == 0 ->
-			case parse_chunked(Tail, State#state_rcv{session=Http}) of
+parse(Data, State=#state_rcv{session=HTTP}) when HTTP#http.status == none;
+												 HTTP#http.partial == true ->
+    List = binary_to_list(Data),
+    TotalSize = size(Data),
+    Header = State#state_rcv.acc ++ List,
+
+    case parse_headers(HTTP, Header, State#state_rcv.host) of
+		%% Partial header:
+		{more, HTTPRec, Tail} ->
+            ?LOGF("Partial Header: [HTTP=~p : Tail=~p]~n",[HTTPRec, Tail],?DEB),
+			{State#state_rcv{ack_done=false,session=HTTPRec,acc=Tail},[],false};
+        %% Complete header, chunked encoding
+		{ok, Http=#http{content_length=0, chunk_toread=0}, Tail} ->
+			case parse_chunked(Tail, State#state_rcv{session=Http, acc=[]}) of
 				{NewState=#state_rcv{ack_done=false}, Opts} ->
 					{NewState, Opts, false};
 				{NewState, Opts} ->
-					{NewState, Opts, Close}
+					{NewState#state_rcv{acc=[]}, Opts, Http#http.close}
 			end;
-		CLength == 0, Close == true -> % no body, but close connection
+		{ok, Http=#http{content_length=0, close=true}, Tail} ->
+			%% FIXME: does it means that there is no more data to read?
+			%% TODO: check HTTP/1.0 spec.
+			Cookie = concat_cookies(Http#http.cookie, State#state_rcv.dyndata),
 			{State#state_rcv{session= #http{}, ack_done = true,
-							 datasize = 0,
-							 dyndata= Cookie}, [], Close};
-		BodySize == CLength ->  % end of response
-			{State#state_rcv{session= #http{}, ack_done = true,
-							 datasize = BodySize,
-							 dyndata= Cookie}, [], Close};
-		BodySize > CLength  ->
-			?LOGF("Error: HTTP Body (~p)> Content-Length (~p) !~n",
-				  [BodySize, CLength], ?ERR),
-			ts_mon:add({ count, http_bad_content_length }),
-			{State#state_rcv{session= #http{}, ack_done = true,
-							 datasize = TotalSize,
-							 dyndata= Cookie}, [], Close};
-		true -> %% need to read more data
-			{State#state_rcv{session  = Http#http{ body_size=BodySize},
-							 ack_done = false,
-							 datasize = TotalSize,
-							 dyndata  = Cookie},[],false}
+							 datasize = 0, acc = [],
+							 dyndata= Cookie}, [], true};
+		{ok, Http=#http{content_length=CLength}, Tail} ->
+			Cookie = concat_cookies(Http#http.cookie, State#state_rcv.dyndata),
+			check_resp_size(Http, length(Tail), Cookie, Tail, 
+                            State#state_rcv{acc=[]}, TotalSize)
 	end;
 
-%% FIXME: handle the case where the Headers are not complete in the first message
-%% current connection
+%% continued chunked tranfer
 parse(Data, State=#state_rcv{session=Http}) when Http#http.chunk_toread >=0 ->
+    ?DebugF("Parse chunk data = [~p]~n", [binary_to_list(Data)]),
     case read_chunk_data(Data,State,Http#http.chunk_toread,Http#http.body_size) of
 		{NewState=#state_rcv{ack_done=false}, NewOpts}->
             {NewState, NewOpts, false};
 		{NewState, NewOpts}->
-            {NewState, NewOpts, Http#http.close}
+            {NewState#state_rcv{acc=[]}, NewOpts, Http#http.close}
 	end;
 
+%% continued normal tranfer
 parse(Data, State) ->
     PreviousSize = State#state_rcv.datasize,
 	DataSize = size(Data),
 	?DebugF("HTTP Body size=~p ~n",[DataSize]),
     Http = State#state_rcv.session,
 	CLength = Http#http.content_length,
-	case Http#http.body_size + DataSize of 
+	case Http#http.body_size + DataSize of
 		CLength -> % end of response
-			{State#state_rcv{session= #http{}, ack_done = true, datasize = CLength},
+			{State#state_rcv{session=#http{}, acc=[], ack_done = true, datasize = CLength},
 			 [], Http#http.close};
 		Size ->
 			NewHttp = (State#state_rcv.session)#http{body_size = Size},
-			{State#state_rcv{session= NewHttp, ack_done = false, 
+			{State#state_rcv{session = NewHttp, ack_done = false,
                              datasize = DataSize+PreviousSize}, [], false}
 	end.
+
+%%----------------------------------------------------------------------
+%% Func: check_resp_size/2
+%% Purpose: Check response size
+%% Returns: {NewState= record(state_rcv), SockOpts, Close}
+%%----------------------------------------------------------------------
+check_resp_size(Http=#http{content_length=CLength, close=Close}, CLength, 
+				Cookie, Tail, State, DataSize) ->
+	%% end of response
+	{State#state_rcv{session= #http{}, ack_done = true,
+					 datasize = DataSize,
+					 dyndata= Cookie}, [], Close};
+check_resp_size(Http=#http{content_length=CLength, close = Close}, 
+				BodySize, Cookie, Tail, State, DataSize) when BodySize > CLength ->
+	?LOGF("Error: HTTP Body (~p)> Content-Length (~p) !~n",
+		  [BodySize, CLength], ?ERR),
+	ts_mon:add({ count, http_bad_content_length }),
+	{State#state_rcv{session= #http{}, ack_done = true,
+					 datasize = DataSize,
+					 dyndata= Cookie}, [], Close};
+check_resp_size(Http, BodySize, Cookie, Tail, State, DataSize) -> %% need to read more data
+	{State#state_rcv{session  = Http#http{ body_size=BodySize},
+					 ack_done = false,
+					 datasize = DataSize,
+					 dyndata  = Cookie},[],false}.
 												 
 %%----------------------------------------------------------------------
 %% Func: parse_chunked/2
@@ -288,6 +308,7 @@ parse(Data, State) ->
 %% Returns: {NewState= record(state_rcv), SockOpts}
 %%----------------------------------------------------------------------
 parse_chunked(Body, State)->
+    ?DebugF("Parse chunk data = [~p]~n", [Body]),
     read_chunk(list_to_binary(Body), State, 0, 0).
 
 %%----------------------------------------------------------------------
@@ -296,10 +317,11 @@ parse_chunked(Body, State)->
 %% Returns: {NewState= record(state_rcv), SockOpts}
 %%----------------------------------------------------------------------
 read_chunk(<<>>, State, Int, Acc) ->
-    ?LOG("NO Data in chunk ! ~n", ?WARN),
+    ?LOGF("NO Data in chunk [Int=~p, Acc=~p] ! ~n", [Int,Acc],?WARN),
 	% FIXME: should we check if Headers has just been received and the
 	% returns a new #http record ?
-    { State, [] }; % read more data
+    AccInt= list_to_binary(httpd_util:integer_to_hexlist(Int)),
+    { State#state_rcv{acc = AccInt }, [] }; % read more data
 %% this code has been inspired by inets/http_lib.erl
 read_chunk(<<Char:1/binary, Data/binary>>, State, Int, Acc) ->
     case Char of
@@ -317,13 +339,15 @@ read_chunk(<<Char:1/binary, Data/binary>>, State, Int, Acc) ->
 %	    read_data_lf(),
 	<<?CR>> when Int>0 ->
 	    read_chunk_data(Data, State, Int+3, Acc+1);
-	<<?CR>> when Int==0 -> %% should be the end of tranfer
+	<<?CR>> when Int==0, size(Data) == 3 -> %% should be the end of transfer
             Cookie  = concat_cookies((State#state_rcv.session)#http.cookie,
                                      State#state_rcv.dyndata),
             ?DebugF("Finish tranfer chunk ~p~n", [binary_to_list(Data)]),
             {State#state_rcv{session= #http{}, ack_done = true,
                              datasize = Acc, %% FIXME: is it the correct size?
                              dyndata= Cookie}, []};
+	<<?CR>> when Int==0, size(Data) < 3 ->  % lack ?CRLF
+            { State#state_rcv{acc =  <<48, ?CR, ?LF>> }, [] };
 	<<C>> when C==$ -> % Some servers (e.g., Apache 1.3.6) throw in
 			   % additional whitespace...
 	    read_chunk(Data, State, Int, Acc+1);
@@ -338,11 +362,11 @@ read_chunk(<<Char:1/binary, Data/binary>>, State, Int, Acc) ->
 %% Purpose: read 'Int' bytes of data
 %% Returns: {NewState= record(state_rcv), SockOpts}
 %%----------------------------------------------------------------------
-read_chunk_data(Data, State, Int, Acc) when size(Data) > Int->
+read_chunk_data(Data, State=#state_rcv{acc=[]}, Int, Acc) when size(Data) > Int->
     ?DebugF("Read ~p bytes of chunk with size = ~p~n", [Int, size(Data)]),
     <<NewData:Int/binary, Rest/binary >> = Data,
     read_chunk(Rest, State,  0, Int + Acc);
-read_chunk_data(Data, State, Int, Acc) -> % not enough data in buffer
+read_chunk_data(Data, State=#state_rcv{acc=[]}, Int, Acc) -> % not enough data in buffer
     BodySize = size(Data),
     Cookie  = concat_cookies((State#state_rcv.session)#http.cookie,
                              State#state_rcv.dyndata),
@@ -352,7 +376,11 @@ read_chunk_data(Data, State, Int, Acc) -> % not enough data in buffer
     {State#state_rcv{session  = NewHttp,
 					 ack_done = false, % continue to read data
                      datasize = BodySize + Acc,
-                     dyndata  = Cookie},[]}.
+                     dyndata  = Cookie},[]};
+read_chunk_data(Data, State=#state_rcv{acc=Acc}, Int, AccSize) ->
+    ?DebugF("Accumulated data = [~p]~n", [Acc]),
+    NewData = <<Acc/binary, Data/binary>>,
+    read_chunk(NewData, State#state_rcv{acc=[]}, 0, AccSize).
 
 %%----------------------------------------------------------------------
 %% Func: add_new_cookie/3
@@ -365,7 +393,7 @@ add_new_cookie(Cookie, Host, OldCookies) ->
 
 %%----------------------------------------------------------------------
 %% Function: splitcookie/3
-%% Purpose:  split according to string "; ". 
+%% Purpose:  split according to string ";". 
 %%  Not very elegant but 5x faster than the regexp:split version
 %%----------------------------------------------------------------------
 splitcookie(Cookie) -> splitcookie(Cookie, [], []).
@@ -407,19 +435,19 @@ set_cookie_key([L|"omain"],Val,Cookie) when L == $D; L==$d ->
 set_cookie_key([L|"ath"],Val,Cookie) when L == $P; L==$p ->
     Cookie#cookie{path=Val};
 set_cookie_key([L|"ax-Age"],Val,Cookie) when L == $M; L==$m ->
-    Cookie#cookie{max_age=Val};
+    Cookie#cookie{max_age=Val}; % NOT IMPLEMENTED
 set_cookie_key([L|"xpires"],Val,Cookie) when L == $E; L==$e ->
-    Cookie#cookie{expires=Val};
+    Cookie#cookie{expires=Val}; % NOT IMPLEMENTED
 set_cookie_key([L|"ort"],Val,Cookie) when L == $P; L==$p ->
     Cookie#cookie{port=Val};
 set_cookie_key([L|"iscard"],Val,Cookie) when L == $D; L==$d ->
-    Cookie#cookie{discard=true};
+    Cookie#cookie{discard=true}; % NOT IMPLEMENTED
 set_cookie_key([L|"ecure"],Val,Cookie) when L == $S; L==$s ->
-    Cookie#cookie{secure=true};
+    Cookie#cookie{secure=true}; % NOT IMPLEMENTED
 set_cookie_key([L|"ommenturl"],Val,Cookie) when L == $C; L==$c ->
-    Cookie; %don't care about comment
+    Cookie; % don't care about comment
 set_cookie_key([L|"omment"],Val,Cookie) when L == $C; L==$c ->
-    Cookie; %don't care about comment
+    Cookie; % don't care about comment
 set_cookie_key(Key,Val,Cookie) ->
     Cookie#cookie{key=Key,value=Val}.
 
@@ -467,18 +495,18 @@ parse_URL(path,[H|T], Acc, URL) ->
     parse_URL(path, T, [H|Acc], URL).
 
 %%----------------------------------------------------------------------
-%% Func: set_msg/1 or /2 or /3
+%% Func: set_msg/1 or /3
 %% Returns: #ts_request record
 %% Purpose:
 %% unless specified, the thinktime is an exponential random var.
 %%----------------------------------------------------------------------
 set_msg(HTTPRequest) ->
-	set_msg(HTTPRequest, round(ts_stats:exponential(?messages_intensity))).
+	set_msg(HTTPRequest, round(ts_stats:exponential(?messages_intensity)), false).
 
 %% if the URL is full (http://...), we parse it and get server host,
 %% port and scheme from the URL and override the global setup of the
 %% server. These informations are stored in the #ts_request record.
-set_msg(HTTP=#http_request{url="http" ++ URL}, ThinkTime) -> % full URL
+set_msg(HTTP=#http_request{url="http" ++ URL}, ThinkTime, SubstFlag) -> % full URL
     URLrec = parse_URL("http" ++ URL),
     Path = URLrec#url.path ++ URLrec#url.querypart,
     Port = set_port(URLrec),
@@ -486,19 +514,20 @@ set_msg(HTTP=#http_request{url="http" ++ URL}, ThinkTime) -> % full URL
                  http  -> gen_tcp;
                  https -> ssl
              end,
-    set_msg(HTTP#http_request{url=Path}, ThinkTime,
+    set_msg2(HTTP#http_request{url=Path}, ThinkTime,
             #ts_request{ack  = parse,
+						subst = SubstFlag,
                         host = URLrec#url.host,
                         scheme = Scheme,
                         port = Port});
 %
-set_msg(HTTPRequest, Think) -> % relative URL, use global host, port and scheme
-    set_msg(HTTPRequest, Think, #ts_request{ack = parse}).
+set_msg(HTTPRequest, Think, SubstFlag) -> % relative URL, use global host, port and scheme
+    set_msg2(HTTPRequest, Think, #ts_request{ack = parse, subst = SubstFlag}).
             
-set_msg(HTTPRequest, 0, Msg) -> % no thinktime, only wait for response
+set_msg2(HTTPRequest, 0, Msg) -> % no thinktime, only wait for response
 	Msg#ts_request{ thinktime=infinity,
                     param = HTTPRequest };
-set_msg(HTTPRequest, Think, Msg) -> % end of a page, wait before the next one
+set_msg2(HTTPRequest, Think, Msg) -> % end of a page, wait before the next one
 	Msg#ts_request{ endpage   = true,
                     thinktime = Think,
                     param = HTTPRequest }.
@@ -524,7 +553,9 @@ parse_headers(H, Tail, Host) ->
 	{line, Line, Tail2} ->
 	    parse_headers(parse_line(Line, H, Host), Tail2, Host);
 	{lastline, Line, Tail2} ->
-	    {ok, parse_line(Line, H, Host), Tail2}
+	    {ok, parse_line(Line, H#http{partial=false}, Host), Tail2};
+	{more} -> %% Partial header
+	    {more, H#http{partial=true}, Tail}
     end.
 
 %%--------------------------------------------------------------------
@@ -535,6 +566,7 @@ parse_headers(H, Tail, Host) ->
 parse_status([A,B,C|Tail],  Http) ->
 	Status=list_to_integer([A,B,C]),
 	?DebugF("HTTP Status ~p~n",[Status]),
+	ts_mon:add({ count, Status }),
 	Http#http{status=Status}.
 
 %%--------------------------------------------------------------------
@@ -574,7 +606,7 @@ parse_line(Line,Http, Host) ->
 is_nb_space(X) ->
     lists:member(X, [$\s, $\t]).
 % ret: {line, Line, Trail} | {lastline, Line, Trail}
-get_line(L) ->    
+get_line(L) ->
     get_line(L, true, []).
 get_line("\r\n\r\n" ++ Tail, Cap, Cur) ->
     {lastline, lists:reverse(Cur), Tail};
@@ -592,4 +624,6 @@ get_line([H|T], false, Cur) ->
 get_line([Char|T], true, Cur) when Char >= $A, Char =< $Z ->
     get_line(T, true, [Char + 32|Cur]);
 get_line([H|T], true, Cur) ->
-    get_line(T, true, [H|Cur]).
+    get_line(T, true, [H|Cur]);
+get_line([], _, Cur) -> %% Headers are fragmented ... We need more data
+    {more}.
