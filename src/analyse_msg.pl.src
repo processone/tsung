@@ -124,7 +124,10 @@ sub plot_stats {
                 } else {
                     print " 1:" .($d+2);
                 }
-                print " title \"$filename\"" ;
+                my $cur_title = $filename;
+                $cur_title =~ s/\.txt$//;
+                $cur_title =~ s/:os_mon//;
+                print " title \"$cur_title\"" ;
                 print "," unless ($filename eq @{$files}[$#{$files}]); # unless last occurence
             }
             print "\n"; # plot done
