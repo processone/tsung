@@ -210,7 +210,7 @@ handle_cast({closed, Pid}, State = #state{persistent = true}) ->
 			ThinkTime = 0;
 		_ ->
 			Elapsed  = ts_utils:elapsed(State#state.timestamp, now()),
-			ThinkTime= round(State#state.lasttimeout-Elapsed/1000)
+			ThinkTime= round(State#state.lasttimeout-Elapsed)
 	end,
 	if 
 		ThinkTime > 0 ->
@@ -218,7 +218,7 @@ handle_cast({closed, Pid}, State = #state{persistent = true}) ->
 			{noreply,  State#state{socket = none}, ThinkTime};
 		true ->
 			?LOGF("negative thinktime after connexion closed ~p:~p~n!",
-				  [State#state.lasttimeout, Elapsed/1000], ?WARN),
+				  [State#state.lasttimeout, Elapsed], ?WARN),
 			{noreply,  State#state{socket = none}, ?short_timeout}
 	end;
 %% the connexion was closed after the last msg was sent, stop quietly
