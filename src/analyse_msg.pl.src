@@ -204,7 +204,8 @@ sub plot_stats {
 	my $title     = shift; # arrayref contaning data titles
 	my $datatype  = shift; # type of data (added in filenames)
 	my $timestamp = shift;
-	my $files     = shift; # array contaning data files
+	my $files     = shift; # arrayref contaning data files
+	my $ylabel    = shift;
 
 	# local var
 	my $style       = "linespoint"; # TODO: can be override in option
@@ -226,7 +227,12 @@ sub plot_stats {
 	foreach $d (0..$#{$title}) {
 		# gnuplot headings
 		print "set title \" @{$title}[$d]\"\n";
-		print "set xlabel \"unit = $timestamp sec \"\n" if $timestamp;
+        if ($timestamp) {
+            print "set xlabel \"unit = $timestamp sec \"\n";
+        } else {
+            print "set xlabel \"unit = sec \"\n";
+        }
+		print "set ylabel \"".$ylabel->[$d]."\"\n" if $ylabel->[$d];
 		print "show title\n";
 		print "set $legend_loc\n";
 
@@ -299,12 +305,15 @@ sub parse_stats_file {
 	my @connect;
 	my @size;
 	my @users;
+	my @users_rate;
 	my $key;
     if ($interval != $first_interval) {
         print "warn, last interval ($interval) not equal to the first, use the first one ($first_interval)\n";
         $interval=$first_interval;
     }
-	my @col = ("rate","mean","stdvar","max","min","rate");
+	my @col = ("rate","mean","stdvar","max sample","min sample");
+	my @colcount = ("rate","total");
+	my @colusers = ("simultaneous","maximum simultaneous");
 	foreach $key (keys %{$data}) {
 		open (TYPE, "> $key.txt") or die "$!";
 		foreach my $data (@{$data->{$key}}) {
@@ -325,8 +334,10 @@ sub parse_stats_file {
 			push @connect, "$key.txt";
 		} elsif ($key eq "size") {
 			push @size, "$key.txt";
-		} elsif ($key =~ /users/) {
+		} elsif ($key =~ /^users$/) {
 			push @users, "$key.txt";
+		} elsif ($key =~ /users/) {
+			push @users_rate, "$key.txt";
 		} elsif ($key =~ /^\d+$/) {
 			push @code, "$key.txt";
 		} else {
@@ -334,11 +345,12 @@ sub parse_stats_file {
 		}
 		close TYPE;
 	}
-	plot_stats(\@col,"Session","",\@connect) if $plot;
-	plot_stats(\@col,"HTTP_CODE","",\@code) if $plot;
-	plot_stats(\@col,"Perfs","",\@time) if $plot;
-	plot_stats(\@col,"Users","",\@users) if $plot;
-	plot_stats(\@col,"Size","",\@size) if $plot;
+	plot_stats(\@col,"Session",undef,\@connect,["sessions/sec"]) if $plot;
+	plot_stats(\@colcount,"HTTP_CODE",undef,\@code,["number/($interval sec)","total"]) if $plot;
+	plot_stats(\@col,"Perfs",undef,\@time,["rate/sec","msec"]) if $plot;
+	plot_stats(\@colusers,"Users",undef,\@users,["connected users", "total"]) if $plot;
+	plot_stats(\@col,"Users_Arrival",undef,\@users_rate,["number of users/sec", "total"]) if $plot;
+	plot_stats(\@colcount,"Size",undef,\@size,["Kbits/sec","total Kbits"]) if $plot;
 }
 
 # parse jabber log file
