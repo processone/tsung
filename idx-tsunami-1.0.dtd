@@ -73,7 +73,7 @@
 
 <!ELEMENT dyn_variable EMPTY >
 <!ATTLIST dyn_variable name CDATA #REQUIRED >
-<!ATTLIST dyn_variable regexp CDATA #REQUIRED >
+<!ATTLIST dyn_variable regexp CDATA #IMPLIED >
 
 <!ELEMENT www_authenticate EMPTY >
 <!ATTLIST www_authenticate passwd CDATA #REQUIRED >
