@@ -7,7 +7,7 @@ o Nicolas Niclausse <nicolas.niclausse@IDEALX.com>: Maintainer;
 
 CONTRIBUTORS:
 ======================
-o Jean François Lecomte <jflecomte@IDEALX.com>: several enhancements for Jabber
+o Jean François Lecomte : several enhancements for Jabber
 
 o Mickael Rémond <mickael.remond@erlang-fr.org>: erlang server monitoring;
   various patches for HTTP; configure support; SOAP support. 
