@@ -81,7 +81,6 @@ init({Session=#session{id            = Profile,
                                     profile    = Profile,
                                     protocol   = Protocol,
                                     clienttype = CType,
-                                    ack 	   = PType,
                                     session = CType:new_session(),
                                     persistent = Persistent,
                                     starttime  = StartTime,
@@ -317,12 +316,11 @@ handle_next_request(Profile, State) ->
                     {next_state, wait_ack, State#state_rcv{socket   = NewSocket,
                                                            count    = Count,
                                                            protocol = Protocol,
-                                                           host   = Host,
-                                                           ack    = Profile#ts_request.ack,
+                                                           host     = Host,
+                                                           request  = Profile,
                                                            port     = Port,
-                                                           endpage = Profile#ts_request.endpage,
                                                            page_timestamp= PageTimeStamp,
-                                                           send_timestamp = Now,
+                                                           send_timestamp= Now,
                                                            timestamp= Now }};
                 {error, closed} -> 
                     ?LOG("connection close while sending message !~n", ?WARN),
@@ -485,33 +483,40 @@ dyn_substitution(_, Type, Request) ->
 %% Returns: {NewState ('state_rcv' record), Socket options (list)}
 %% Purpose: handle data received from a socket
 %%----------------------------------------------------------------------
-handle_data_msg(Data, State=#state_rcv{ack=no_ack}) ->
+handle_data_msg(Data, State=#state_rcv{request=Req}) when Req#ts_request.ack==no_ack->
 	ts_mon:rcvmes({State#state_rcv.monitor, self(), Data}),
     {State, []};
 
-handle_data_msg(Data, State=#state_rcv{ack=parse, clienttype=Type}) ->
+handle_data_msg(Data, State=#state_rcv{request=Req, clienttype=Type}) when Req#ts_request.ack==parse->
 	ts_mon:rcvmes({State#state_rcv.monitor, self(), Data}),
 	
     {NewState, Opts, Close} = Type:parse(Data, State),
+    NewBuffer = case Req#ts_request.match of 
+                    undefined -> << >>;
+                    _ ->
+                        ?Debug("Buffurize response~n"),
+                        OldBuffer = State#state_rcv.buffer,
+                        << OldBuffer/binary, Data/binary >>
+                end,
     ?DebugF("Dyndata is now ~p~n",[NewState#state_rcv.dyndata]),
     case NewState#state_rcv.ack_done of
         true ->
             ?DebugF("Response done:~p~n", [NewState#state_rcv.datasize]),
-            PageTimeStamp = update_stats(NewState, Close),
+            PageTimeStamp = update_stats(NewState#state_rcv{buffer=NewBuffer}, Close),
             case Close of
                 true ->
                     ?Debug("Close connection required by protocol~n"),
                     ts_utils:close_socket(State#state_rcv.protocol,State#state_rcv.socket),
-                    {NewState#state_rcv{endpage = false, % reinit in case of
-                                        page_timestamp = PageTimeStamp,
-                                        socket  = undefined}, Opts};
+                    {NewState#state_rcv{ page_timestamp = PageTimeStamp,
+                                         socket = undefined,
+                                         buffer = <<>>}, Opts};
                 false -> 
-                    {NewState#state_rcv{endpage = false, % reinit in case of
-                                        page_timestamp = PageTimeStamp}, Opts}
+                    {NewState#state_rcv{ page_timestamp = PageTimeStamp,
+                                         buffer = <<>>}, Opts}
             end;
         _ ->
             ?DebugF("Response: continue:~p~n",[NewState#state_rcv.datasize]),
-            {NewState, Opts}
+            {NewState#state_rcv{buffer=NewBuffer}, Opts}
     end;
 
 handle_data_msg(Data, State=#state_rcv{ack_done=true}) ->
@@ -526,8 +531,7 @@ handle_data_msg(Data, State=#state_rcv{ack_done=false}) ->
 	DataSize = size(Data),
     PageTimeStamp = update_stats(State, false),
     {State#state_rcv{datasize=DataSize,%ack for a new message, init size
-                     ack_done = true, endpage=false,
-                     page_timestamp= PageTimeStamp},[]}.
+                     ack_done = true, page_timestamp= PageTimeStamp},[]}.
 
 
 
@@ -542,8 +546,9 @@ update_stats(State, Close) ->
 	Elapsed = ts_utils:elapsed(State#state_rcv.send_timestamp, Now),
 	Stats= [{ sample, request, Elapsed},
 			{ sum, size, State#state_rcv.datasize}],
-%    ts_search:match(State#state_rcv.buffer,),
-	case State#state_rcv.endpage of
+    Profile = State#state_rcv.request,
+    ts_search:match(Profile#ts_request.match, State#state_rcv.buffer),
+	case Profile#ts_request.endpage of
 		true -> % end of a page, compute page reponse time 
 			PageElapsed = ts_utils:elapsed(State#state_rcv.page_timestamp, Now),
 			ts_mon:add(lists:append([Stats,[{sample, page, PageElapsed}]])),

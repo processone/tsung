@@ -24,7 +24,9 @@
 -module(ts_search).
 -vc('$Id$ ').
 
--export([subst/1]).
+-export([subst/1, match/2]).
+
+-include("ts_profile.hrl").
 
 %% ----------------------------------------------------------------------
 %% Function: subst/1
@@ -66,3 +68,26 @@ extract_function([$%,$%|Tail], Acc, Mod, Fun) ->
     subst(Tail, lists:reverse(Result) ++ Acc);
 extract_function([H|Tail], Acc, Mod, Fun) ->
     extract_function(Tail, Acc, Mod, [H|Fun]).
+
+%%----------------------------------------------------------------------
+%% Func: match/2 
+%% Args: 
+%% Purpose: 
+%%----------------------------------------------------------------------
+match(undefined, Data) -> ok;
+match(RegExp, Data)  when is_binary(Data)->
+    ?DebugF("Matching Data size ~p~n",[size(Data)]),
+    match(RegExp, binary_to_list(Data));
+match(RegExp, String) ->
+    case regexp:first_match(String, RegExp) of
+        {match,Start,Length} ->
+            ?LOGF("Ok Match (regexp=~p) ~n",[RegExp], ?INFO),
+            ts_mon:add({count, match}),
+            ok;
+        nomatch ->
+            ?LOGF("Bad Match (regexp=~p), ~n",[RegExp], ?NOTICE),
+            ts_mon:add({count, nomatch});
+        {error,Error} ->
+            ?LOGF("Error while matching: bad REGEXP (~p)~n", [RegExp], ?WARN),
+            ts_mon:add({count, badregexp})
+    end.

@@ -146,7 +146,7 @@ matchdomain_url(Cookie, Host, URL) -> % return a cookie only if domain match
 parse_config(Element = #xmlElement{name=http}, 
              Config=#config{curid = Id, session_tab = Tab,
                             sessions = [CurS |SList],
-							subst    = SubstFlag}) ->
+							subst    = SubstFlag, match=MatchRegExp}) ->
     Version  = ts_config:getAttr(Element#xmlElement.attributes, version),
     URL      = ts_config:getAttr(Element#xmlElement.attributes, url),
     Contents = ts_config:getAttr(Element#xmlElement.attributes, contents),
@@ -168,7 +168,7 @@ parse_config(Element = #xmlElement{name=http},
                             version     = Version,
                             get_ims_date= Date,
                             server_name = ServerName,
-			    content_type= ContentType,
+                            content_type= ContentType,
                             body        = list_to_binary(Contents)},
     %% SOAP Support: Add SOAPAction header to the message
     Request2 = case lists:keysearch(soap,#xmlElement.name,
@@ -187,9 +187,10 @@ parse_config(Element = #xmlElement{name=http},
                                               userid, undefined),
                   Passwd  = ts_config:getAttr(AuthEl#xmlElement.attributes, 
                                               passwd, undefined),
-                  set_msg(Request2#http_request{userid=UserId, passwd=Passwd},0, SubstFlag);
+                  NewReq=Request2#http_request{userid=UserId, passwd=Passwd},
+                  set_msg(NewReq, 0, {SubstFlag, MatchRegExp} );
               _ ->
-                  set_msg(Request2, 0, SubstFlag)
+                  set_msg(Request2, 0, {SubstFlag, MatchRegExp} )
           end,
     ts_config:mark_prev_req(Id-1, Tab, CurS),
     ets:insert(Tab,{{CurS#session.id, Id}, Msg#ts_request{endpage=true}}),
@@ -499,7 +500,8 @@ set_msg(HTTPRequest) ->
 %% if the URL is full (http://...), we parse it and get server host,
 %% port and scheme from the URL and override the global setup of the
 %% server. These informations are stored in the #ts_request record.
-set_msg(HTTP=#http_request{url="http" ++ URL}, ThinkTime, SubstFlag) -> % full URL
+set_msg(HTTP=#http_request{url="http" ++ URL}, 
+        ThinkTime, {SubstFlag, MatchRegExp}) ->  % full URL
     URLrec = parse_URL("http" ++ URL),
     Path = URLrec#url.path ++ URLrec#url.querypart,
     Port = set_port(URLrec),
@@ -510,12 +512,17 @@ set_msg(HTTP=#http_request{url="http" ++ URL}, ThinkTime, SubstFlag) -> % full U
     set_msg2(HTTP#http_request{url=Path}, ThinkTime,
             #ts_request{ack  = parse,
 						subst = SubstFlag,
+						match = MatchRegExp,
                         host = URLrec#url.host,
                         scheme = Scheme,
                         port = Port});
 %
-set_msg(HTTPRequest, Think, SubstFlag) -> % relative URL, use global host, port and scheme
-    set_msg2(HTTPRequest, Think, #ts_request{ack = parse, subst = SubstFlag}).
+set_msg(HTTPRequest, Think, {SubstFlag, MatchRegExp}) -> % relative URL, 
+%%% use global host, port and scheme
+    set_msg2(HTTPRequest, Think, #ts_request{ack = parse,
+                                             subst = SubstFlag,
+                                             match = MatchRegExp
+                                            }).
             
 set_msg2(HTTPRequest, 0, Msg) -> % no thinktime, only wait for response
 	Msg#ts_request{ thinktime=infinity,
