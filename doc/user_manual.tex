@@ -111,10 +111,12 @@ for Petroleum
 \subsection{IDX-Tsunami main features}
 
 \begin{itemize}
-\item \emph{High Performance}: \program{IDX-Tsunami} can simulate a huge number
-of simultaneous users par physical computer: It can simulates up to
-10000 users on a single CPU. Traditional injection tools can hardly
-go further than 200 users. 
+\item \emph{High Performance}: \program{IDX-Tsunami} can simulate a
+  huge number of simultaneous users par physical computer: It can
+  simulates up to 10000 users on a single CPU (Note: a simulated user
+  is not always active: it can be idle during a \varname{thinktime}
+  period). Traditional injection tools can hardly go further than a
+  few hundreds.
 \item \emph{Distributed}: the load can be distributed on a cluster of
 client machines 
 \item \emph{Multi-Protocols} using a plug-in system: HTTP (both standard
@@ -125,7 +127,9 @@ SMTP are on the TODO list.
 the underlying OS IP Aliasing 
 \item \emph{OS monitoring} (CPU, memory and network traffic) using Erlang
 agents on remote servers or \emph{SNMP}
-\item \emph{XML configuration system}
+\item \emph{XML configuration system}: complex user's scenarios are written
+  in XML. Scenarios can be written with a simple browser using the
+  tsunami recorder (for HTTP only).
 \item \emph{Mixed behaviours}: several sessions can be used to simulate
 different type of users during the same benchmark. You can define
 the proportion of the various behaviours in the benchmark scenario. 
@@ -155,7 +159,7 @@ distribution (exponential currently)
 \item Authentication, presence and register messages 
 \item Chat messages to online or offline users 
 \item Roster set and get requests 
-\item Global users\verb|'| synchronisation can be set on specific actions 
+\item Global users\verb|'| synchronization can be set on specific actions 
 \end{itemize}
 
 \subsection{Complete reports set}
@@ -173,7 +177,7 @@ per second
 from the target server(s). Tsunami produce graphs for CPU and memory
 consumption and network traffic. SNMP is also supported. 
 \end{itemize}
-\par Note that \program{IDX-Tsunami} take care of the synchronisation process
+\par Note that \program{IDX-Tsunami} take care of the synchronization process
 by itself. Gathered statistics are «synchronized».
 
  It is possible to generate graphs during the benchmark as statistics
@@ -192,8 +196,8 @@ requires small trivial piece of code.
 % Tsunami scenarii realisation is mostly based on 
 \item \emph{Multi-protocol support}: \program{IDX-Tsunami} is for example one of
 the only tool to benchmark SOAP applications 
-\item \emph{Monitoring} of the target cluster to analyse the behaviour
-and find bottlenecks. For example, it has been used to analyse cluster
+\item \emph{Monitoring} of the target server(s) to analyze the behaviour
+and find bottlenecks. For example, it has been used to analyze cluster
 symmetry (is the load properly balanced ?) and to determine the best
 combination of machines on the three cluster tiers (Web engine, EJB
 engine and database) 
@@ -209,7 +213,7 @@ supported platforms (Solaris, *BSD,  Win32 and MacOS-X).
 \subsection{Dependencies}
 \begin{itemize}
 \item Erlang/OTP R9C-0
-  (\url{http://www.erlang.org/download.html}). R9C-2 is recommanded.
+  (\url{http://www.erlang.org/download.html}). R9C-2 is recommended.
 \item xmerl-0.19 (\url{http://sowap.sourceforge.net/download.html}). A debian
     binary package is provided at
     \url{http://tsunami.idealx.org/dist/}
@@ -217,7 +221,7 @@ supported platforms (Solaris, *BSD,  Win32 and MacOS-X).
     gregexp.erl available at
     \url{http://www.cellicium.com/erlang/contribs/} . The module is
     included in the source and binary distribution of \program{IDX-Tsunami}. It
-    is released under the EPL Licence.
+    is released under the EPL License.
    \item  gnuplot and perl5 (optional; for graphical output with
     \command{analyse\_msg.pl} script).  The Template Toolkit is used for HTML
     reports (see \url{http://template-toolkit.org/})
@@ -249,7 +253,7 @@ Use the idx-tsunami mailing list (see
 suggestions or questions about \program{IDX-Tsunami}.
 
 For any questions concerning commercial support, ask
-\url{solutions@idealx.com}.
+\email{solutions@idealx.com}.
 
 \section{HTTP benchmark approach}
 
@@ -262,12 +266,14 @@ For any questions concerning commercial support, ask
 in the scenario 
 \item Test and adjust scenario to have a nice progression of the load. This
 is highly dependent of the application and of the size of the target
-cluster. Calculate the normal duration of the scenario and use the
+server(s). Calculate the normal duration of the scenario and use the
 interarrival time between users and the duration of the phase to estimate
 the number of simultaneous users for each given phase. 
 \item Launch benchmark with your first application parameters set-up:
   \command{idx-tsunami start}
-\item wait for the end of the test or stop by by hand with \command{idx-tsunami stop}
+\item Wait for the end of the test or stop by hand with
+  \command{idx-tsunami stop} (reports can also be generated during the
+  test: the statistics are updated every 10 seconds)
 \item Analyse results, change parameters and relaunch another benchmark 
 \end{enumerate}
 
@@ -339,7 +345,8 @@ is preferred. They can be mixed. erlang is the default value for monitoring.
 
 \par Note: For Erlang monitoring, monitored computers need to be
 accessible through the network. SSH needs to be configured to allow
-connection without password on.
+connection without password on. \strong{You must use the same version of
+Erlang/OTP on all nodes otherwise it may not work properly !}
 
 
 \subsection{Defining the load progression}
@@ -360,6 +367,17 @@ connection without password on.
   </arrivalphase>
 \end{Verbatim}
 
+With this setup, during the first 10 minutes of the test, a new user
+will be created every 2 seconds, then during the next 10 minutes, a
+new user will be created every seconds, and for the last 10 minutes,
+10 users will be generated every seconds. The test will finish when
+all users have ended their session.
+
+The load generated in terms of HTTP requests / seconds will also
+depend on the mean number of requests within a session (if you have a
+mean value of 100 requests per session and 10 new users per seconds,
+the theoretical average throughput will be 1000 requests/ sec).
+ 
 \subsection{Default values}
 
 \par Default values can be set-up globally: thinktime between requests
@@ -427,7 +445,7 @@ the requests to execute.
 \end{Verbatim}
 
 The popularity is the frequency of this type of session. This is used
-to decided which session a new user will execute. The sum of all
+to decide which session a new user will execute. The sum of all
 session\verb|'|s popularity must be 100. 
 
 This example show several features of the HTTP protocol support in
@@ -544,7 +562,7 @@ new(Pid) ->
 
 As you can this, writing scenario with dynamic substitution is trivial.
 
-If you want to set unique id, you can use the function
+If you want to set unique id, you can use the built-in function
 \varname{ts\_user\_server:get\_unique\_id}.
 \begin{Verbatim}
 <session name="rec20040316-08:47" popularity="100" type="ts_http">
@@ -576,9 +594,9 @@ form like:
  </request>
 \end{Verbatim}
 
-Now \varname{random\_num} will be set to 42 for the user session. It's
+Now \varname{random\_num} will be set to 42 during the user's session. It's
 value will be replace in all mark-up of the form
-\userinput{\%\%\_random\_num\%\%} if and only if the request tag has the
+\userinput{\%\%\_random\_num\%\%} if and only if the \varname{request} tag has the
 attribute \userinput{subst="true"}, like:
 
 \begin{Verbatim}
@@ -600,6 +618,23 @@ hand, for example to get the title of a HTML page:
     </request>
 \end{Verbatim}
 
+\subsection{Checking the server's response}
+
+With the attribute \varname{match} in a \varname{request} tag, you can
+check the server's response against a given string. If it matches, this
+will increment the \varname{match} counter, if it does not match, the
+\varname{nomatch} counter will be incremented.
+
+For example, let's say you want to test a login page. If the login is
+ok, the server will respond with \computeroutput{Welcome !} in the
+HTML body, otherwise not. To check that:
+\begin{Verbatim}
+ <request match="Welcome !">
+      <http url='/login.php' version='1.0' method='POST' 
+       contents='username=nic&amp;user_password=sesame'
+       content_type='application/x-www-form-urlencoded' >
+ </request>
+\end{Verbatim}
 
 \section{Statistics and reports}
 
@@ -667,10 +702,10 @@ cd to the log directory of your test (say
 Joe Armstrong, Stockholm, 2003 \footnote{\url{http://www.sics.se/~joe/thesis/armstrong_thesis_2003.pdf}}
 \end{itemize}
 
-\section{Acknowledgements}
+\section{Acknowledgments}
 
 The first version of this document is based on a talk given by Mickael
-Rémond\footnote{\url{mickael.remond@erlang-fr.org}} during an Object
+Rémond\footnote{\email{mickael.remond@erlang-fr.org}} during an Object
 Web benchmarking workshop in April 2004 (more info at
 \url{http://jmob.objectweb.org/}).
 
@@ -835,7 +870,7 @@ XML config file).
 \subsection{SNMP monitoring doesn't work ?!}
 
 There is a small bug in the \file{snmp\_mgr} module (R9C-0 release). You have to
-apply this patch to make it work. This is fixed in version R9C-1 and up.
+apply this patch to make it work. This is fixed in erlang R9C-1 and up.
 
 
 \begin{Verbatim}
