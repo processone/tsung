@@ -1,3 +1,13 @@
+0.2.1 -> 0.3.0:  Major Feature Enhancements 
+    - rewrite the configuration engine. now use an XML file.
+    - can now use several client IPs per machine
+    - several arrival phases can be set with different arrival rates and duration
+    - can set test duration instead of number of users
+    - add user defined statistics using a 'transaction' tag
+    - fix cookies handling in http (mickael.remond@erlang-fr.org)
+    - fix bad timeout computation when close occur for persistent client
+    - fix very slow implemetation ts_stats.erl:sample
+
 0.2.0 -> 0.2.1:  Minor bugfixes and small enhancements (9 Dec 2003) 
     - optimize session memory consumption: use an ets table to store session setup
     - HTTP: fix crash when content-length is not set in headers
