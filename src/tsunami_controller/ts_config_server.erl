@@ -309,7 +309,7 @@ handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
             ts_launcher:launch({Node, Arrivals}),
             {noreply, State#state{last_beam_id = NodeId +1}};
         {error, Reason} ->
-            ?LOGF("Can't start newbeam on host ~p ! Aborting!~n",[Host],?EMERG),
+            ?LOGF("Can't start newbeam on host ~p (reason: ~p) ! Aborting!~n",[Host, Reason],?EMERG),
             ts_mon:abort(),
             {stop, normal}
     end;
@@ -391,7 +391,7 @@ choose_session([S=#session{popularity=P} | SList], Rand, Cur) ->
 
 
 %%----------------------------------------------------------------------
-%% Func: get_client_cfg/3
+%% Func: get_client_cfg/4
 %% Args: list of #arrivalphase, list of #client, String
 %% Purpose: set parameters for given host client
 %% Returns: {ok, {Intensity = float, Users=integer, StartDate = tuple}} 
@@ -401,6 +401,7 @@ get_client_cfg(Arrival, Clients, TotalWeight, Host) ->
     SortedPhases=lists:keysort(#arrivalphase.phase, Arrival),
     get_client_cfg(SortedPhases, Clients, TotalWeight,Host, []).
 
+%% get_client_cfg/5
 get_client_cfg([], Clients, TotalWeight, Host, Cur) ->
     {value, Client} = lists:keysearch(Host, #client.host, Clients),
     Max = Client#client.maxusers,
@@ -425,7 +426,7 @@ get_client_cfg([Arrival=#arrivalphase{duration = Duration,
                    [{ClientIntensity, round(NUsers)} | Cur]).
 
 %%----------------------------------------------------------------------
-%% Func: get_client_cfg/1
+%% Func: check_popularity/1
 %% Purpose: Check if the sum of session's popularity is 100
 %%----------------------------------------------------------------------
 check_popularity(Sessions) ->
