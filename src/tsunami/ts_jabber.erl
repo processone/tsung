@@ -29,7 +29,7 @@
 -include("ts_jabber.hrl").
 
 -export([init_dynparams/0,
-		 add_dynparams/3,
+		 add_dynparams/4,
 		 get_message/1,
 		 session_defaults/0,
          subst/1,
@@ -78,12 +78,12 @@ parse_config(Element, Conf) ->
 	ts_config_jabber:parse_config(Element, Conf).
 
 %%----------------------------------------------------------------------
-%% Function: add_dynparams/2
+%% Function: add_dynparams/4
 %% Purpose: add dynamic parameters to build the message
 %%----------------------------------------------------------------------
-add_dynparams([], Param, Host) ->
+add_dynparams(Subst,[], Param, Host) ->
 	Param;
-add_dynparams(DynData, Param, Host) ->
+add_dynparams(Subst,DynData, Param, Host) ->
 	Param#jabber{id=DynData}.
 
 init_dynparams() ->
