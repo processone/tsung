@@ -36,7 +36,7 @@
          now_sec/0, node_to_hostname/1, add_time/2,
          level2int/1, mkey1search/2, close_socket/2, datestr/0, datestr/1,
 		 erl_system_args/0, setsubdir/1, export_text/1,
-         stop_all/2, stop_all/3, stop_all/4, join/2,
+         stop_all/2, stop_all/3, stop_all/4, join/2, split2/2, split2/3,
          make_dir_rec/1, is_ip/1, from_https/1, to_https/1]).
 
 level2int("debug")     -> ?DEB;
@@ -351,3 +351,16 @@ join2(Sep, [First | List]) when is_float(First)->
     join2(Sep, [float_to_list(First) | List]);
 join2(Sep, [First | List]) when is_list(First)->
         lists:foldl(fun(X, Sum) -> X ++ Sep ++ Sum end, First, List).
+
+%% split a string in 2 (at first occurence of char)
+split2(String,Chr) ->
+    split2(String,Chr,nostrip).
+
+split2(String,Chr,strip) -> % split and strip blanks
+    {A, B} = split2(String,Chr,nostrip),
+    {string:strip(A), string:strip(B)};
+split2(String,Chr,nostrip) ->
+    case string:chr(String, Chr) of
+        0   -> {String,[]};
+        Pos -> {string:substr(String,1,Pos-1), string:substr(String,Pos+1)}
+    end.
