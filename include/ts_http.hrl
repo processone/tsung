@@ -23,6 +23,13 @@
 %% use by the client to create the request
 -record(http_request, {url, cookie=none, method=get, body=[], id = 0 }).
 
+-record(url,
+	{scheme,          %% http, https, ...
+	 host, 
+	 port,            %% undefined means use default (80 or 443)
+	 path = [],
+	 querypart = []}).
+
 %% use by the client process to store information about the current request during 
 %% the parsing of the response
 -record(http, {content_length= 0, % HTTP header: content length
