@@ -330,5 +330,7 @@ join(Sep, List) when is_list(List)->
     join2(Sep, lists:reverse(List)).
 join2(Sep, [First | List]) when is_integer(First)->
     join2(Sep, [integer_to_list(First) | List]);
+join2(Sep, [First | List]) when is_float(First)->
+    join2(Sep, [float_to_list(First) | List]);
 join2(Sep, [First | List]) when is_list(First)->
         lists:foldl(fun(X, Sum) -> X ++ Sep ++ Sum end, First, List).
