@@ -50,6 +50,7 @@
 									%%			jabber_roster
 
 					 {parse_type, noparse}, %% parse or noparse
+							 {conn_type, true}, %% persistent connection: true or false
 					 {mes_type, dynamic}, %% dynamic or static
 					 {nclients, 10},      %% Nombre de clients à connecter
 					 {nclients_deb, 1}, 	%% Debut de la plage de clients pour cette beam

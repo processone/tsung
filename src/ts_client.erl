@@ -38,10 +38,12 @@
 				port,   % server port
 				socket, % 
 				clienttype, %
-				parsetype,   % type of client (parse or noparse)
-				mestype,   % type of messages (dynamic or static)
-				profile,% list of requests parameters
-				count  % number of requests waiting to be sent
+				parsetype,  % type of client (parse or noparse)
+				mestype,    % type of messages (dynamic or static)
+				profile,    % list of requests parameters
+				persistent, % if true, don't exit when connexion is closed
+				lasttimeout, % value of the last timeout
+				count       % number of requests waiting to be sent
 			   }).
 
 %%%----------------------------------------------------------------------
@@ -68,20 +70,23 @@ next(Pid) ->
 %%          ignore               |
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
-init([Profile, {CType, PType, static}]) ->
+init([Profile, {CType, PType, CType}]) -> %% default value for persistenct is false
+	init([Profile, {CType, PType, CType, false}], length(Profile));
+init([Profile, {CType, PType, static, Persistent}]) ->
 	?PRINTDEBUG2("Init ... static~n",?DEB),
-	init([Profile, {CType, PType, static}], length(Profile));
+	init([Profile, {CType, PType, static, Persistent}], length(Profile));
 
-init([Profile, {CType, PType, dynamic}]) ->
+init([Profile, {CType, PType, dynamic, Persistent}]) ->
 	?PRINTDEBUG2("Init ... dynamic~n",?DEB),
 	random:seed(),
-	init([Profile, {CType, PType, static}], ?messages_number + length(Profile) - 1);
+	init([Profile, {CType, PType, static, Persistent}],
+		 ?messages_number + length(Profile) - 1);
 
 init(Args) ->
 	?PRINTDEBUG("Init ... with unknown args ~p~n",[Args],?DEB).
 	
 
-init([Profile, {CType, PType, MType}], Count) ->
+init([Profile, {CType, PType, MType, Persistent}], Count) ->
 	%%init seed
 	?PRINTDEBUG("Init ... started with count = ~p  ~n",[Count],?DEB),
 %    random:seed(ts_utils:init_seed()),
@@ -104,11 +109,12 @@ init([Profile, {CType, PType, MType}], Count) ->
 												no_ack}) of 
 				{ok, Pid} ->
 					?PRINTDEBUG2("rcv server started ~n",?DEB),
-					gen_tcp:controlling_process(Socket, Pid),
 					ts_mon:newclient({self(), now()}),
+					gen_tcp:controlling_process(Socket, Pid),
 					{ok, #state{rcvpid = Pid, socket = Socket, port = Port,
 								server= Server, profile= Profile, 
 								clienttype = CType, mestype = MType,
+								persistent = Persistent,
 								count = Count, parsetype = PType}, 1};
 				{error, Reason} ->
 					?PRINTDEBUG("Can't start rcv process ~p~n",
@@ -152,11 +158,14 @@ handle_cast({add_messages, Messages}, State) ->
 	{noreply, State#state{profile = Messages ++ OldProfile, 
 						  count = OldCount + length(Messages)}, 1};
 
+handle_cast({closed, Pid}, State) when State#state.persistent == true   ->
+	?PRINTDEBUG2("connection closed, stay alive (persistent)",?DEB),
+	%% TODO: set the timeout to the remai
+	{noreply,  State#state{socket = none}, State#state.lasttimeout};
 handle_cast({closed, Pid}, State) ->
 	{stop, normal, State};
 
 handle_cast({timeout, Pid}, State) ->
-	ts_mon:endclient({self(), now()}),
 	{stop, timeoutrcv, State}.
 
 %%----------------------------------------------------------------------
@@ -184,10 +193,15 @@ handle_info(timeout, State) when State#state.count > 0 ->
 	Message = ts_profile:get_message(State#state.clienttype,
 								  Profile#message.param),
 	ts_client_rcv:wait_ack(State#state.rcvpid,Profile#message.ack),
-    case gen_tcp:send(State#state.socket, Message) of
+	%% reconnect if needed
+	Socket = reconnect(State#state.socket, State#state.server, State#state.port,
+					   State#state.rcvpid), 
+    case gen_tcp:send(Socket, Message) of
 		ok -> 
 			ts_mon:sendmes({self(), now(), Message}),
-			{noreply, State#state{count = Count, profile = PendingProfile},
+			{noreply, State#state{socket= Socket, count = Count,
+								  profile = PendingProfile,
+								  lasttimeout = Thinktime},
 			 Thinktime}; 
 		{error, Reason} -> 
 			?PRINTDEBUG(
@@ -198,8 +212,8 @@ handle_info(timeout, State) when State#state.count > 0 ->
 
 %% no more messages to send
 handle_info(timeout, State)  ->
-	ts_mon:endclient({self(), now()}),
-	{stop, normal,State}.
+	gen_tcp:close(State#state.socket),
+	{stop, normal, State}.
 
 %%----------------------------------------------------------------------
 %% Func: terminate/2
@@ -208,10 +222,33 @@ handle_info(timeout, State)  ->
 %%----------------------------------------------------------------------
 terminate(Reason, State) ->
 	?PRINTDEBUG("Stop, reason= ~p~n",[Reason],?INFO),
-	gen_tcp:close(State#state.socket),
+	ts_mon:endclient({self(), now()}),
+	ts_client_rcv:stop(State#state.rcvpid),
 	ok.
 
 %%%----------------------------------------------------------------------
 %%% Internal functions
 %%%----------------------------------------------------------------------
 
+%%----------------------------------------------------------------------
+%% Func: reconnect/4
+%% Returns: {Socket   }          |
+%%          {stop, Reason}
+%% purpose: try to reconnect if this is needed (when the socket is set to none)
+%%----------------------------------------------------------------------
+reconnect(none, Server, Port, Pid) ->
+	?PRINTDEBUG("Try to reconnect to: ~p (~p)~n",[Server, Pid], ?DEB),
+    case gen_tcp:connect(Server, Port,
+						 [binary, 
+						  {active, true},
+						  {keepalive, true},
+						  {sndbuf, ?snd_size}]) of 
+		{ok, Socket} -> 
+			gen_tcp:controlling_process(Socket, Pid),
+			Socket;
+		{error, Reason} ->
+			?PRINTDEBUG("Error: ~p~n",[Reason],?ERR),
+			{stop, connfailed}
+    end;
+reconnect(Socket, Server, Port, Pid) ->
+	Socket.

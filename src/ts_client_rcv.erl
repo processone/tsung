@@ -26,25 +26,30 @@
 -include("../include/ts_profile.hrl").
 
 %% External exports
--export([start/1, wait_ack/2]).
+-export([start/1, stop/1, wait_ack/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
 
--record(state, {socket,		% 
+-record(state, {socket,		% unused ?
 				timeout,	% ?
 				ack,        % 
 				ppid,		% pid of send process
-				clienttype, % module name (jabber
-				parsetype		% parse|noparse
+				clienttype, % module name (jabber, etc.)
+				parsetype   % parse|noparse
 			   }).
 
 %%%----------------------------------------------------------------------
 %%% API
 %%%----------------------------------------------------------------------
+%% reconnection: new socket
 start(Opts) ->
 	?PRINTDEBUG("Starting with opts: ~p~n",[Opts],?DEB),
 	gen_server:start_link(?MODULE, [Opts], []).
+
+stop(Pid) ->
+	?PRINTDEBUG2("Stoping ~n",?DEB),
+	gen_server:cast(Pid, {stop}).
 
 wait_ack(Pid, Ack) ->
 	gen_server:cast(Pid, {wait_ack, Ack}).
@@ -96,6 +101,8 @@ handle_cast({wait_ack, Ack}, State) ->
 	?PRINTDEBUG("receive wait_ack: ~p~n",[Ack], ?DEB),
 	{noreply, State#state{ack=Ack}};
 
+handle_cast({stop}, State) ->
+	{stop, normal, State};
 
 %% ack value -> wait
 handle_cast(Message, State) ->
@@ -158,6 +165,7 @@ handle_info(Info, State) ->
 %% Returns: any (ignored by gen_server)
 %%----------------------------------------------------------------------
 terminate(Reason, State) ->
+	?PRINTDEBUG("Stop, reason= ~p~n",[Reason],?DEB),
 	ok.
 
 %%%----------------------------------------------------------------------

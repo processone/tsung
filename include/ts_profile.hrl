@@ -23,6 +23,7 @@
 -record(message, {thinktime, ack, param, type=static}).
 
 -define(restart_sleep, 2000).
+-define(infinity_timeout, 15000).
 -define(retries, 4).
 
 -define(restart_try, 3).
@@ -42,6 +43,7 @@
 -define(client_type, ts_utils:get_val(client_type)).
 -define(parse_type, ts_utils:get_val(parse_type)).
 -define(mes_type, ts_utils:get_val(mes_type)).
+-define(conn_type, ts_utils:get_val(conn_type)).
 
 -define(snd_size, ts_utils:get_val(snd_size)).
 -define(rcv_size, ts_utils:get_val(rcv_size)).
