@@ -275,7 +275,7 @@ parse(Element = #xmlElement{name=transaction},
 
 %%% Parsing the dyn_variable element
 parse(Element = #xmlElement{name=dyn_variable},
-      Conf=#config{sessions=[CurS|SList],dynvar=DynVar}) ->
+      Conf=#config{sessions=[CurS|_],dynvar=DynVar}) ->
     StrName  = getAttr(Element#xmlElement.attributes, name),
     DefaultRegExp = "name=(\"|')"++ StrName ++"(\"|') +value=(\"|')\\([^\"]+\\)(\"|')",%'
     RegExp  = getAttr(Element#xmlElement.attributes, regexp, DefaultRegExp),
@@ -293,7 +293,7 @@ parse(Element = #xmlElement{name=dyn_variable},
 
 %%% Parsing the request element
 parse(Element = #xmlElement{name=request},
-      Conf = #config{sessions=[CurSess|SList], curid=Id}) ->
+      Conf = #config{sessions=[CurSess|_], curid=Id}) ->
 
     Type  = CurSess#session.type,
 
@@ -345,7 +345,7 @@ parse(Element = #xmlElement{name=default},
 %%% Parsing the thinktime element
 parse(Element = #xmlElement{name=thinktime},
       Conf = #config{cur_req_id=ReqId, curid=Id, session_tab = Tab, 
-                     sessions = [CurS |SList]}) ->
+                     sessions = [CurS |_]}) ->
     DefThink = get_default(Tab,{thinktime, value},thinktime_value),
     DefRandom = get_default(Tab,{thinktime, random},thinktime_random),
     {StrThink, Randomize} = 
@@ -379,7 +379,7 @@ parse(Element = #xmlElement{}, Conf = #config{}) ->
     lists:foldl(fun parse/2, Conf, Element#xmlElement.content);
 
 %% Parsing non #xmlElement elements
-parse(Element, Conf = #config{}) ->
+parse(_Element, Conf = #config{}) ->
     Conf.
 
 
@@ -389,16 +389,16 @@ parse(Element, Conf = #config{}) ->
 %%%----------------------------------------------------------------------
 getAttr(Attr, Name) -> getAttr(Attr, Name, "").
 
-getAttr([Attr = #xmlAttribute{name=Name}|Tail], Name, Default) ->
+getAttr([Attr = #xmlAttribute{name=Name}|_], Name, Default) ->
     case Attr#xmlAttribute.value of
 	[] -> Default;
 	A  -> A
     end;
 
-getAttr([H|T], Name, Default) ->
+getAttr([_H|T], Name, Default) ->
     getAttr(T, Name, Default);
 
-getAttr([], Name, Default) ->
+getAttr([], _Name, Default) ->
     Default.
 
 
@@ -406,9 +406,8 @@ getAttr([], Name, Default) ->
 %%% Function: getText/1
 %%% Purpose:  get the text of the XML node
 %%%----------------------------------------------------------------------
-getText([Text = #xmlText{value=Value}|Tail]) -> build_list(
-						  string:strip(Value, both));
-getText(_Other)                              -> "".
+getText([#xmlText{value=Value}|_]) -> build_list(string:strip(Value, both));
+getText(_Other) -> "".
 
 %%%----------------------------------------------------------------------
 %%% Function: to_seconds/2
@@ -444,7 +443,7 @@ get_default(Tab, Key,ConfigName) ->
 %%%   parse, then the previous one must be set to false, unless there is
 %%%   a thinktime between them
 %%%----------------------------------------------------------------------
-mark_prev_req(0, Tab, _)  ->
+mark_prev_req(0, _, _)  ->
 	ok;
 mark_prev_req(Id, Tab, CurS) ->
     %% if the previous msg is a #ts_request request, set endpage to
@@ -452,7 +451,7 @@ mark_prev_req(Id, Tab, CurS) ->
 	case ets:lookup(Tab,{CurS#session.id, Id}) of 
 		[{Key, Msg=#ts_request{}}] ->
 			ets:insert(Tab,{Key, Msg#ts_request{endpage=false}});
-		[{Key, {transaction,_,_}}] ->% transaction, continue to search back
+		[{_, {transaction,_,_}}] ->% transaction, continue to search back
 			mark_prev_req(Id-1, Tab, CurS);
 		_ -> ok
 	end.

@@ -46,7 +46,7 @@
 %% TODO: Dynamic content substitution is not yet supported for Jabber
 parse_config(Element = #xmlElement{name=jabber}, 
              Config=#config{curid= Id, session_tab = Tab,
-                            sessions = [CurS |SList]}) ->
+                            sessions = [CurS |_]}) ->
     TypeStr  = ts_config:getAttr(Element#xmlElement.attributes, type, "chat"),
     AckStr  = ts_config:getAttr(Element#xmlElement.attributes, ack, "no_ack"),
     DestStr= ts_config:getAttr(Element#xmlElement.attributes, destination,"random"),
@@ -103,6 +103,6 @@ parse_config(Element = #xmlElement{name=default}, Conf = #config{session_tab = T
 parse_config(Element = #xmlElement{}, Conf = #config{}) ->
     lists:foldl( fun(A,B) -> ts_config:parse(A,B) end, Conf, Element#xmlElement.content);
 %% Parsing non #xmlElement elements
-parse_config(Element, Conf = #config{}) ->
+parse_config(_, Conf = #config{}) ->
     Conf.
 

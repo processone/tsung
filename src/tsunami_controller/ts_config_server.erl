@@ -173,9 +173,9 @@ init([LogDir]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-handle_call({read_config, ConfigFile}, From, State) ->
+handle_call({read_config, ConfigFile}, _From, State) ->
     case catch ts_config:read(ConfigFile) of
-        {ok, Config=#config{session_tab=Tab,curid=LastReqId,sessions=[LastSess| SList]}} -> 
+        {ok, Config=#config{session_tab=Tab,curid=LastReqId,sessions=[LastSess| _]}} -> 
             check_popularity(Config#config.sessions),
             application:set_env(tsunami_controller, clients, Config#config.clients),
             application:set_env(tsunami_controller, dump, Config#config.dump),
@@ -201,7 +201,7 @@ handle_call({get_req, Id, N}, From, State) ->
 	Tab    = Config#config.session_tab,
     ?DebugF("look for ~p th request in session ~p for ~p~n",[N,Id,From]),
 	case ets:lookup(Tab, {Id, N}) of 
-		[{Key, Session}] -> 
+		[{_, Session}] -> 
             ?DebugF("ok, found ~p for ~p~n",[Session,From]),
 			{reply, Session, State};
 		Other ->
@@ -223,7 +223,7 @@ handle_call({get_next_session, HostName}, From, State) ->
         {ok, Session=#session{id=Id}} ->
             ?LOGF("Session ~p choosen~n",[Id],?INFO),
             case ets:lookup(Tab, {Id, size}) of 
-                [{Key, Size}] -> 
+                [{_, Size}] -> 
                     {reply, {ok, {Session, Size, IP}}, NewState};
                 Other ->
                     {reply, {error, Other}, NewState}
@@ -233,13 +233,13 @@ handle_call({get_next_session, HostName}, From, State) ->
     end;
 
 %%
-handle_call({get_server_config}, From, State) ->
+handle_call({get_server_config}, _From, State) ->
     Config = State#state.config,
     Server = Config#config.server,
     {reply,{Server#server.host, Server#server.port, Server#server.type}, State};
 
 %% 
-handle_call({get_client_config, Host}, From, State) ->
+handle_call({get_client_config, Host}, _From, State) ->
     Config = State#state.config,
     %% set start date if not done yet
     StartDate = case State#state.start_date of 
@@ -258,17 +258,17 @@ handle_call({get_client_config, Host}, From, State) ->
     end;
 
 %%
-handle_call({get_monitor_hosts}, From, State) ->
+handle_call({get_monitor_hosts}, _From, State) ->
     Config = State#state.config,
     {reply, Config#config.monitor_hosts, State};
 
 % get status: send the number of actives nodes
-handle_call({status}, From, State) ->
+handle_call({status}, _From, State) ->
     Config = State#state.config,
     Reply = {ok, length(Config#config.clients), State#state.ending_beams},
     {reply, Reply, State};
 
-handle_call(Request, From, State) ->
+handle_call(Request, _From, State) ->
     ?LOGF("Unknown call ~p !~n",[Request],?ERR),
     Reply = ok,
     {reply, Reply, State}.
@@ -282,7 +282,6 @@ handle_call(Request, From, State) ->
 %%--------------------------------------------------------------------
 %% start a new beam with slave module 
 handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
-    Config = State#state.config,
     Name = "tsunami" ++ integer_to_list(NodeId),
     {ok, [[BootController]]}    = init:get_argument(boot),
     ?DebugF("BootController ~p~n", [BootController]), 
@@ -331,7 +330,7 @@ handle_cast(Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-handle_info(Info, State) ->
+handle_info(_Info, State) ->
     {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -339,7 +338,7 @@ handle_info(Info, State) ->
 %% Description: Shutdown the server
 %% Returns: any (ignored by gen_server)
 %%--------------------------------------------------------------------
-terminate(Reason, State) ->
+terminate(_Reason, State) ->
     ok.
 
 %%--------------------------------------------------------------------
@@ -347,7 +346,7 @@ terminate(Reason, State) ->
 %% Purpose: Convert process state when code is changed
 %% Returns: {ok, NewState}
 %%--------------------------------------------------------------------
-code_change(OldVsn, State, Extra) ->
+code_change(OldVsn, State, _Extra) ->
     {ok, State}.
 
 %%--------------------------------------------------------------------
@@ -360,11 +359,11 @@ code_change(OldVsn, State, Extra) ->
 %% Purpose: choose an IP for a client
 %% Returns: {ok, {IP, NewList}} IP=IPv4 address {A1,A2,A3,A4}
 %%----------------------------------------------------------------------
-choose_client_ip(Client=#client{ip = [IP]},RR) -> %% only one IP
+choose_client_ip(#client{ip = [IP]},RR) -> %% only one IP
     {ok, IP, RR};
 choose_client_ip(Client,undefined) ->
 	choose_client_ip(Client, dict:new());
-choose_client_ip(Client=#client{ip = IPList, host=Host},RRval) ->
+choose_client_ip(#client{ip = IPList, host=Host},RRval) ->
     case dict:find(Host, RRval) of 
 		{ok, NextVal} -> 
 			NewRR = dict:update_counter(Host,1,RRval),
@@ -387,9 +386,9 @@ choose_session([Session]) -> %% only one Session
 choose_session(Sessions) ->
     choose_session(Sessions, random:uniform(100),0).
 
-choose_session([S=#session{popularity=P} | SList],Rand,Cur) when Rand =< P+Cur->
+choose_session([S=#session{popularity=P} | _],Rand,Cur) when Rand =< P+Cur->
     {ok, S};
-choose_session([S=#session{popularity=P} | SList], Rand, Cur) ->
+choose_session([#session{popularity=P} | SList], Rand, Cur) ->
     choose_session(SList, Rand, Cur+P).
 
 
@@ -405,7 +404,7 @@ get_client_cfg(Arrival, Clients, TotalWeight, Host) ->
     get_client_cfg(SortedPhases, Clients, TotalWeight,Host, []).
 
 %% get_client_cfg/5
-get_client_cfg([], Clients, TotalWeight, Host, Cur) ->
+get_client_cfg([], Clients, _TotalWeight, Host, Cur) ->
     {value, Client} = lists:keysearch(Host, #client.host, Clients),
     Max = Client#client.maxusers,
     {ok, lists:reverse(Cur), Max};
@@ -419,7 +418,7 @@ get_client_cfg([Arrival=#arrivalphase{duration = Duration,
     NUsers = case MaxNumber of 
                  infinity -> %% only use the duration to set the number of users
                      Duration * 1000 * ClientIntensity;
-                 Val ->
+                 _ ->
                      lists:min([MaxNumber, Duration*1000*ClientIntensity])
              end,
 	%% TODO: store the max number of clients
