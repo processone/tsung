@@ -57,6 +57,44 @@ A distributed multi-protocol load testing tool.
       <filename>/usr/share/doc/idx-tsunami/examples/idx-tsunami.xml</filename>.
       </para>
 
+    <variablelist>
+      <varlistentry>
+        <term><option>start</option></term>
+        <listitem>
+          <para>start idx-tsunami</filename></para>
+        </listitem>
+        <term><option>debug</option></term>
+        <listitem>
+          <para>start idx-tsunami with an erlang shell</filename></para>
+        </listitem>
+        <term><option>stop</option></term>
+        <listitem>
+          <para>stop idx-tsunami</filename></para>
+        </listitem>
+        <term><option>recorder</option></term>
+        <listitem>
+          <para>start the HTTP proxy recorder (listening port is 8090) </filename></para>
+        </listitem>
+        <term><option>stop_recorder</option></term>
+        <listitem>
+          <para>stop the HTTP proxy recorder</filename></para>
+        </listitem>
+        <term><option>status</option></term>
+        <listitem>
+          <para>print current status of idx-tsunami</filename></para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+
+  </refsect1>
+  <refsect1>
+    <title>manual</title> <para>A manual should be available at
+    <filename>/usr/share/doc/idx-tsunami/user_manual.html</filename>. It
+    is also available online at
+    <address>http://tsunami.idealx.org/user_manual.html</address>
+    </para>
+  </refsect1>
+
   <refsect1>
     <title>options</title>
     <variablelist>
@@ -76,17 +114,26 @@ A distributed multi-protocol load testing tool.
   </refsect1>
 
   <refsect1>
-    <title>Bugs</title>
-    <para> ...
+    <title>Bugs</title> <para> Please reports bugs to the mailing list
+    <email>idx-tsunami@lists.idealx.org</email>, see
+    <address>http://lists.idealx.org/info/idx-tsunami</address> for
+    archives.
+    </para>
+  </refsect1>
+
+  <refsect1>
+    <title>see also</title>
+    <para><filename>erlang</filename><manvolnum>3</manvolnum>
     </para>
   </refsect1>
 
   <refsect1>
     <title>Authors</title>
     <para>
-      <command>IDX-Tsunami</command> was written by Nicolas Niclausse
-      <email>nicolas.niclausse@IDEALX.com</email>.  . Contributors
-      list is available in <filename>/usr/share/doc/idx-tsunami/CONTRIBUTORS</filename>
+        <command>IDX-Tsunami</command> is written by <author>Nicolas Niclausse</author>
+      <email>nicolas@niclux.org</email>. Contributors list
+      is available in
+      <filename>/usr/share/doc/idx-tsunami/CONTRIBUTORS</filename>
   </refsect1>
   
 </refentry>
