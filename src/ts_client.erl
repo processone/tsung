@@ -377,7 +377,7 @@ new_timeout(_Else, _Count, Thinktime) -> infinity.
 %%          {stop, Reason}
 %% purpose: try to reconnect if this is needed (when the socket is set to none)
 %%----------------------------------------------------------------------
-reconnect(none, ServerName, Port, Protocol, IP, Pid) ->
+reconnect(none, ServerName, Port, Protocol, Pid) ->
 	?LOGF("Try to reconnect to: ~p (~p)~n",[ServerName, Pid], ?DEB),
 	Opts = protocol_options(Protocol),
     case Protocol:connect(ServerName, Port, Opts) of
