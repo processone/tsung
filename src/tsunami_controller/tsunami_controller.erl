@@ -62,7 +62,9 @@ start_phase(load_config, StartType, PhaseArgs) ->
 start_phase(start_os_monitoring, StartType, PhaseArgs) ->
     ts_os_mon:activate();
 start_phase(start_clients, StartType, PhaseArgs) ->
-    ts_mon:start_clients({?config(clients),?config(monitoring)}).
+    ts_mon:start_clients({?config(clients),
+                          ?config(dump),
+                          ?config(stats_backend)}).
     
 
 %%----------------------------------------------------------------------

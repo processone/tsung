@@ -1,5 +1,6 @@
 <!ELEMENT idx-tsunami ( #PCDATA | arrivalphase | clients | default | monitoring | server | session )* >
 <!ATTLIST idx-tsunami dumptraffic (true | false) #REQUIRED >
+<!ATTLIST idx-tsunami backend (text | rrdtool) #IMPLIED >
 <!ATTLIST idx-tsunami loglevel (emergency | critical | error | warning | notice| info | debug) #REQUIRED >
 <!ATTLIST idx-tsunami version NMTOKEN #IMPLIED >
 

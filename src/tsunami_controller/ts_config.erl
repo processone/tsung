@@ -72,14 +72,17 @@ read(Filename) ->
 parse(Element = #xmlElement{parents = []}, Conf=#config{}) ->
     Loglevel = getAttr(Element#xmlElement.attributes, loglevel),
     Dump     = getAttr(Element#xmlElement.attributes, dumptraffic),
-    Monitor = case Dump of 
-                  "false" -> none;
-                  "true" -> full;
-                  "light" -> light
-              end,
+    BackEndStr  = getAttr(Element#xmlElement.attributes, backend, "text"),
+    {ok, [{atom,1,BackEnd}],1} = erl_scan:string(BackEndStr),
+    DumpType = case Dump of 
+                   "false" -> none;
+                   "true"  -> full;
+                   "light" -> light
+               end,
     lists:foldl(fun parse/2,
-		Conf#config{monitoring= Monitor, loglevel= ts_utils:level2int(Loglevel)},
-		Element#xmlElement.content);
+                Conf#config{dump= DumpType, stats_backend=BackEnd,
+                            loglevel= ts_utils:level2int(Loglevel)},
+                Element#xmlElement.content);
 
 
 %% parsing the Server elements

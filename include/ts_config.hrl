@@ -25,7 +25,8 @@
 -record(config,	{
           name,
           loglevel = ?WARN,
-          monitoring = none,
+          dump = none,
+          stats_backend,
           controller, %% controller machine
           clients=[], %% client machines
 

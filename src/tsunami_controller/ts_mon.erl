@@ -35,13 +35,12 @@
 
 -include("ts_profile.hrl").
 -include("ts_config.hrl").
+-include("rrdtool.hrl").
 
 %% External exports
 -export([start/1, stop/0, newclient/1, endclient/1, newclient/1, sendmes/1,
          start_clients/1, abort/0,
-         rcvmes/1, error/1,
-		 add/1,
-		 dumpstats/0
+         rcvmes/1, add/1, dumpstats/0
 		]).
 
 -export([update_stats/2]).
@@ -53,7 +52,9 @@
 -define(DUMP_FILENAME,"idx-tsunami.dump").
 
 -record(state, {log,          % log fd
+                backend,      % type of backend: text|rrdtool
                 log_dir,      % log directory
+                dump_interval,%
                 dumpfile,     % file used when dumptrafic is set light or full
 				client=0,     % number of clients currently running
 				maxclient=0,  % max of simultaneous clients 
@@ -77,8 +78,9 @@ start(LogDir) ->
 	?LOG("starting monitor, global ~n",?NOTICE),
 	gen_server:start_link({global, ?MODULE}, ?MODULE, [LogDir], []).
 
-start_clients({Machines, Monitoring}) ->
-    gen_server:call({global, ?MODULE}, {start_clients, Machines, Monitoring}, infinity).
+start_clients({Machines, Dump, BackEnd}) ->
+    gen_server:call({global, ?MODULE}, {start_logger, Machines, Dump, BackEnd},
+                    infinity).
 
 stop() ->
 	gen_server:cast({global, ?MODULE}, {stop}).
@@ -108,10 +110,6 @@ rcvmes({_Type, Who, What})  ->
 add(Data) ->
 	gen_server:cast({global, ?MODULE}, {add, Data}).
 
-error({Who, When, What}) ->
-	gen_server:cast({global, ?MODULE}, {error, Who, When, What}).
-
-
 %%%----------------------------------------------------------------------
 %%% Callback functions from gen_server
 %%%----------------------------------------------------------------------
@@ -133,6 +131,7 @@ init([LogDir]) ->
 			?LOG("starting monitor~n",?NOTICE),
 			Tab = dict:new(),
 			{ok, #state{ log     = Stream,
+                         dump_interval = ?config(dumpstats_interval),
                          log_dir = LogDir,
                          stats   = Tab,
                          laststats = Tab
@@ -151,24 +150,17 @@ init([LogDir]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_call({start_clients, Machines, Monitoring}, From, State) ->
-    timer:apply_interval(?config(dumpstats_interval), ?MODULE, dumpstats, [] ),
-    start_launchers(Machines),
-    case Monitoring of 
-        none ->
-            {reply, ok, State#state{type=Monitoring}};
+handle_call({start_logger, Machines, DumpType, rrdtool}, From, State) ->
+    case whereis(rrdtool) of 
+        undefined ->
+            ?LOG("rrdtool port not available, switch to text backend~n",?WARN),
+            start_logger({Machines, DumpType, text}, From, State);
         _ ->
-            Filename = filename:join(State#state.log_dir,?DUMP_FILENAME),
-            case file:open(Filename,write) of 
-                {ok, Stream} ->
-                    ?LOG("dump file openedstarting monitor~n",?INFO),
-                    {reply, ok, State#state{dumpfile=Stream, type=Monitoring}};
-                {error, Reason} ->
-                    ?LOGF("Can't open mon dump file! ~p~n",[Reason], ?ERR),
-                    {reply, ok, State#state{type=none}}
-            end
+            ?LOG("rrdtool port OK !~n",?DEB),
+            start_logger({Machines, DumpType, rrdtool}, From, State)
     end;
-                
+handle_call({start_logger, Machines, DumpType, text}, From, State) ->
+    start_logger({Machines, DumpType, text}, From, State);
             
 handle_call(Request, From, State) ->
 	Reply = ok,
@@ -200,7 +192,7 @@ handle_cast({add, Data}, State) when is_tuple(Data) ->
 	{noreply,State#state{stats=NewStats}};
 
 handle_cast({dumpstats}, State) ->
-	print_stats(State),
+	export_stats(State),
 	NewStats = reset_all_stats(State#state.stats),
 	{noreply, State#state{laststats = NewStats, stats= NewStats}};
 
@@ -219,8 +211,8 @@ handle_cast({newclient, Who, When}, State) ->
 	Clients =  State#state.client+1,
 	Max= lists:max([Clients,State#state.maxclient]),
 	Tab = State#state.stats,
-	Add = fun (OldVal) -> OldVal+1 end,
-	NewTab = dict:update(users_count, Add, 1, Tab),
+	Add = fun ({count,OldVal}) -> {count,OldVal+1} end,
+	NewTab = dict:update(users_count, Add, {count,1}, Tab),
 
 	case State#state.type of 
 		none -> ok;
@@ -233,12 +225,12 @@ handle_cast({newclient, Who, When}, State) ->
 handle_cast({endclient, Who, When, Elapsed}, State) ->
 	Clients =  State#state.client-1,
 	Tab = State#state.stats,
-	Add = fun (OldVal) -> OldVal+1 end,
-	New1Tab = dict:update(finish_users_count, Add, 1, Tab),
+	Add = fun ({count,OldVal}) -> {count,OldVal+1} end,
+	New1Tab = dict:update(finish_users_count, Add, {count,1}, Tab),
 
 	%% update session sample
 	MyFun = fun (OldV) -> update_stats(OldV, Elapsed) end,
-	NewTab = dict:update(session, MyFun, update_stats([],Elapsed), New1Tab),
+	NewTab = dict:update(session, MyFun, update_stats({sample,[]},Elapsed), New1Tab),
 
 	case State#state.type of
 		none ->
@@ -286,7 +278,7 @@ handle_info(Info, State) ->
 %%----------------------------------------------------------------------
 terminate(Reason, State) ->
 	?LOGF("stoping monitor (~p)~n",[Reason],?NOTICE),
-	print_stats(State),
+	export_stats(State),
     io:format(State#state.log,"EndMonitor:~w~n",[now()]),
 	file:close(State#state.log),
     slave:stop(node()),
@@ -305,33 +297,66 @@ code_change(OldVsn, StateData, Extra) ->
 %%%----------------------------------------------------------------------
 
 %%----------------------------------------------------------------------
+%% Func: start_logger/3
+%% Purpose: open log files and start timer
+%% Returns: {reply, ok, State} | {stop, Reason, State}
+%%----------------------------------------------------------------------
+start_logger({Machines, DumpType, BackEnd}, From, State) ->
+    ?LOGF("Activate clients with ~p backend~n",[BackEnd],?NOTICE),
+    timer:apply_interval(State#state.dump_interval, ?MODULE, dumpstats, [] ),
+    start_launchers(Machines),
+    case DumpType of 
+        none ->
+            {reply, ok, State#state{backend=BackEnd, type=DumpType}};
+        _ ->
+            Filename = filename:join(State#state.log_dir,?DUMP_FILENAME),
+            case file:open(Filename,write) of 
+                {ok, Stream} ->
+                    ?LOG("dump file opened, starting monitor~n",?INFO),
+                    {reply, ok, State#state{dumpfile=Stream,
+                                            type=DumpType,
+                                            backend=BackEnd}};
+                {error, Reason} ->
+                    ?LOGF("Can't open mon dump file! ~p~n",[Reason], ?ERR),
+                    {reply, ok, State#state{type=none, backend=BackEnd}}
+            end
+    end.
+
+%%----------------------------------------------------------------------
 %% Func: add_stats_data/2
-%% Purpose:
-%% Returns: 
+%% Purpose: update or add value in dictionnary
+%% Returns: Dict
 %%----------------------------------------------------------------------
 add_stats_data({sample, Type, Value}, Stats)  ->
 	MyFun = fun (OldVal) -> update_stats(OldVal, Value) end,
-	dict:update(Type, MyFun, update_stats([],Value), Stats);
+	dict:update(Type, MyFun, update_stats({sample, []},Value), Stats);
 %% continuous incrementing counters 
 add_stats_data({sample_counter, Type, Value}, Stats) ->
-	MyFun = fun (OldVal) -> update_stats_counter(OldVal, Value) end,
-	dict:update(Type, MyFun, update_stats_counter([],Value), Stats);
+	MyFun = fun (OldVal) -> update_stats(OldVal, Value) end,
+	dict:update(Type, MyFun, update_stats({sample_counter, []},Value), Stats);
 %% increase by one when called
 add_stats_data({count, Type}, Stats)  ->
-	add_stats_data({sum, Type, 1}, Stats);
+	Add = fun ({Type, OldVal}) -> {Type, OldVal+1} end,
+	dict:update(Type, Add, {count, 1}, Stats);
 %% cumulative counter
 add_stats_data({sum, Type, Val}, Stats)  ->
-	Add = fun (OldVal) -> OldVal+Val end,
-	dict:update(Type, Add, Val, Stats);
+	Add = fun ({Type, OldVal}) -> {Type, OldVal+Val} end,
+	dict:update(Type, Add, {sum, Val}, Stats);
 add_stats_data(Data, Stats) ->
     ?LOGF("Wrong stats data ! ~p~n",[Data], ?WARN),
     Stats.
 
 %%----------------------------------------------------------------------
-%% Func: print_stats/2
+%% Func: export_stats/2
 %%----------------------------------------------------------------------
-%% TODO: add a function to print stats for gnuplot ?
-print_stats(State) ->
+export_stats(State=#state{backend=rrdtool,laststats=Last, stats=Dict}) ->
+    New_Keys = dict:fetch_keys(Dict) -- dict:fetch_keys(Last),
+    ?DebugF("create new rrd keys [~p]~n",[New_Keys]),
+    rrd_create(State#state.log_dir, New_Keys, State#state.dump_interval),
+    Res = dict:to_list(State#state.stats),
+    rrd_update(State#state.log_dir,Res);
+    
+export_stats(State=#state{backend=text}) ->
 	DateStr = ts_utils:now_sec(),
 	io:format(State#state.log,"# stats: dump at ~w~n",[DateStr]),
 	Res = dict:to_list(State#state.stats),
@@ -339,27 +364,25 @@ print_stats(State) ->
 	io:format(State#state.log, "stats: ~p ~p ~p~n", [users, State#state.client,
 													 State#state.maxclient]),
 	print_dist_list(Res, State#state.laststats , State#state.log).
-%% Print os_mon figures
-%%ts_os_mon:print(State#state.log).
 
 print_dist_list([], Last, Logfile) ->
 	done;
-print_dist_list([{Key, [Mean, 0, Max, Min, Count| _]} | Tail], LastRes, Logfile) ->
-	io:format(Logfile, "stats: ~s ~p ~p ~p ~p ~p ~p ~n", 
-			  [Key, Count, Mean, 0, Max, Min, Count ]),
+print_dist_list([{Key,{Type,[Mean,0,Max,Min,Count|_]}}|Tail],LastRes,Logfile)->
+	io:format(Logfile, "stats: ~s ~p ~p ~p ~p ~p~n", 
+			  [Key, Count, Mean, 0, Max, Min ]),
 	print_dist_list(Tail, LastRes, Logfile);
-print_dist_list([{Key, [Mean, Var, Max, Min, Count | _]} | Tail], LastRes, Logfile) ->
+print_dist_list([{Key,{Type,[Mean,Var,Max,Min,Count|_]}}|Tail],LastRes,Logfile)->
 	StdVar = math:sqrt(Var/Count),
-	io:format(Logfile, "stats: ~s ~p ~p ~p ~p ~p ~p ~n",
-			  [Key, Count, Mean, StdVar, Max, Min, Count ]),
+	io:format(Logfile, "stats: ~s ~p ~p ~p ~p ~p~n",
+			  [Key, Count, Mean, StdVar, Max, Min ]),
 	print_dist_list(Tail, LastRes, Logfile);
-print_dist_list([{Key, [Sample,Last]} | Tail], LastRes, Logfile) ->
+print_dist_list([{Key, {Type, [Sample,Last]}} | Tail], LastRes, Logfile) ->
 	io:format(Logfile, "stats: ~s ~p ~p~n", [Key, Sample, Last ]),
     print_dist_list(Tail, LastRes, Logfile);
-print_dist_list([{Key, Value} | Tail], LastRes, Logfile) ->
+print_dist_list([{Key, {Type, Value}} | Tail], LastRes, Logfile) ->
 	case dict:find(Key, LastRes) of 
-		{ok,  _Count} ->
-			PrevVal = _Count ;
+		{ok,  {_, OldVal}} ->
+			PrevVal = OldVal ;
 		error ->
 			PrevVal = 0 
 	end,
@@ -369,34 +392,29 @@ print_dist_list([{Key, Value} | Tail], LastRes, Logfile) ->
 	
 %%----------------------------------------------------------------------
 %% Func: update_stats/2
-%% Returns: List  = [Mean, Variance, Max, Min, Count]
 %%----------------------------------------------------------------------
-update_stats([], New) ->
-	[New, 0, New, New, 1];
-update_stats([Mean, Var, Max, Min, Count], Value) ->
+update_stats({sample, []}, New) ->
+	{sample, [New, 0, New, New, 1]};
+update_stats({sample, [Mean, Var, Max, Min, Count]}, Value) ->
 	{NewMean, NewVar, _} = ts_stats:meanvar(Mean, Var, [Value], Count),
 	NewMax = lists:max([Max, Value]),
 	NewMin = lists:min([Min, Value]),
-	[NewMean, NewVar, NewMax, NewMin, Count+1];
-update_stats(Args, New) -> % ???
-	[New, 0, New, New, 1]. 
+	{sample, [NewMean, NewVar, NewMax, NewMin, Count+1]};
 
-%%----------------------------------------------------------------------
-%% Func: update_stats_counter/2
-%% Returns: List  = [Mean, Variance, Max, Min, Count, LastValue]
-%%----------------------------------------------------------------------
-update_stats_counter([], New) -> %% first call, store the initial value
-	[0, 0, 0, 0, 0, New];
-update_stats_counter([0, 0, 0, 0, 0, Last], Value) ->
+update_stats({sample_counter,[]}, New) -> %% first call, store the initial value
+	{sample_counter, [0, 0, 0, 0, 0, New]};
+update_stats({sample_counter, [0, 0, 0, 0, 0, Last]}, Value) ->
     New = Value-Last,
-	[New, 0, New, New, 1, Value];
-update_stats_counter([Mean, Var, Max, Min, Count, Last], Value) ->
+	{sample_counter,[New, 0, New, New, 1, Value]};
+update_stats({sample_counter,[Mean, Var, Max, Min, Count, Last]}, Value) ->
 	{NewMean, NewVar, _} = ts_stats:meanvar(Mean, Var, [Value-Last], Count),
 	NewMax = lists:max([Max, Value]),
 	NewMin = lists:min([Min, Value]),
-	[NewMean, NewVar, NewMax, NewMin, Count+1, Value].
+	{sample_counter,[NewMean, NewVar, NewMax, NewMin, Count+1, Value]}.
 
-%%
+%%----------------------------------------------------------------------
+%% Func: reset_all_stats/2
+%%----------------------------------------------------------------------
 reset_all_stats(Dict)->
 	MyFun = fun (Key, OldVal) -> reset_stats(OldVal) end,
 	dict:map(MyFun, Dict).
@@ -405,22 +423,24 @@ reset_all_stats(Dict)->
 %% Func: reset_stats/1
 %% Purpose: reset all stats except min and max
 %%----------------------------------------------------------------------
-reset_stats([]) ->
-	[0, 0, 0, 0, 0];
-reset_stats([Mean, Var, Max, Min, Count, Last]) ->
-	[0, 0, Max, Min, 0, Last];
-reset_stats([Mean, Var, Max, Min, Count]) ->
-	[0, 0, Max, Min, 0];
-reset_stats([Sample, LastValue]) -> %% counter
-	[0, LastValue];
+reset_stats({Type,[]}) ->
+	{Type, [0, 0, 0, 0, 0]};
+reset_stats({Type, [Mean, Var, Max, Min, Count, Last]}) ->
+	{Type, [0, 0, Max, Min, 0, Last]};
+reset_stats({Type, [Mean, Var, Max, Min, Count]}) ->
+	{Type, [0, 0, Max, Min, 0]};
+reset_stats({Type, [Sample, LastValue]}) ->
+	{Type, [0, LastValue]};
+reset_stats({Type, LastValue}) ->
+	{Type, LastValue};
 reset_stats(Args) ->
+	?LOGF("resetting  unknown stats~p~n",[Args],?WARN),
 	Args.
 	
 %%----------------------------------------------------------------------
 %% Func: start_launchers/2
 %% start the launcher on clients nodes
 %%----------------------------------------------------------------------
-
 start_launchers(Machines) -> 
 	?DebugF("Need to start tsunami client on ~p~n",[Machines]),
 	GetHost = fun(A) -> list_to_atom(A#client.host) end,
@@ -437,3 +457,50 @@ start_launchers(Machines) ->
 backup_config(Dir, Config) ->
     Backup = filename:basename(Config),
     {ok, _} = file:copy(Config, filename:join(Dir,Backup)).
+
+%%----------------------------------------------------------------------
+%% Func: rrd_create/2
+%% FIXME: Not yet operationnal
+%%----------------------------------------------------------------------
+rrd_create(LogDir, [], Interval) -> ok;
+rrd_create(LogDir, [NameI|Rest], Interval) when is_integer(NameI)->
+    Name=integer_to_list(NameI),
+    rrd_create(LogDir, [Name|Rest], Interval);
+rrd_create(LogDir, [NameA|Rest], Interval) when is_atom(NameA)->
+    Name=atom_to_list(NameA),
+    rrd_create(LogDir, [Name|Rest], Interval);
+rrd_create(LogDir, [Name|Rest], Interval) when is_list(Name)->
+    ?DebugF("rrd_create called with ~p ~p~n",[Name, Rest]),
+    File=filename:join(LogDir, Name  ++ ".rrd"),
+    ?LOGF("Adding new rrd database ~p in file ~p~n",[Name, File],?INFO),
+    Step = Interval div 1000, % convert in sec
+    rrdtool:create(#rrd_create{filename=File,
+                                    step=Step,
+                                    ds=[#rrd_ds{name="main"}], %FIXME
+                                    rra=[#rrd_rra{rows=2880,cf="LAST"}]}),
+    rrd_create(LogDir,Rest, Interval).
+
+%%----------------------------------------------------------------------
+%% Func: rrd_update/2
+%% FIXME: Not yet operationnal
+%%----------------------------------------------------------------------
+rrd_update(LogDir,[]) -> ok;
+rrd_update(LogDir,[{Key, Val} | Tail]) when is_integer(Key)->
+    KeyStr = integer_to_list(Key),
+    rrd_update(LogDir,[{KeyStr, Val} | Tail]);
+rrd_update(LogDir,[{Key, Val} | Tail]) when is_atom(Key)->
+    KeyStr = atom_to_list(Key),
+    rrd_update(LogDir,[{KeyStr, Val} | Tail]);
+rrd_update(LogDir,[{Key,{Type, [Mean,Var,Max,Min,Count|_]}} | Tail]) when is_list(Key),is_integer(Mean) or is_float(Mean)->
+    File=filename:join(LogDir, Key  ++ ".rrd"),
+    rrdtool:update(#rrd_update{filename=File,
+                               updates=[#rrd_supdate{values=[Mean]}]}),
+    rrd_update(LogDir, Tail);
+rrd_update(LogDir,[{Key,{Type, Val}} | Tail]) when is_list(Key),
+                                                   is_integer(Val) or is_float(Val)->
+    File=filename:join(LogDir, Key  ++ ".rrd"),
+    rrdtool:update(#rrd_update{filename=File,
+                               updates=[#rrd_supdate{values=[Val]}]}),
+    rrd_update(LogDir, Tail).
+   
+

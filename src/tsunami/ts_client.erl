@@ -79,7 +79,7 @@ init({Session=#session{id           = Profile,
                             persistent = Persistent,
                             starttime  = StartTime,
                             timeout    = ?config(tcp_timeout),
-                            monitor    = ?config(monitoring),
+                            dump       = ?config(dump),
                             ssl_ciphers= Ciphers,
                             count      = Count,
                             ip         = IP,
@@ -318,7 +318,7 @@ handle_next_request(Profile, State) ->
                                         _ -> %page already started
                                             State#state_rcv.page_timestamp
                                     end,
-                    ts_mon:sendmes({State#state_rcv.monitor, self(), Message}),
+                    ts_mon:sendmes({State#state_rcv.dump, self(), Message}),
                     %%FIXME: need to set ack_done to true if ack=no_ack ?
                     {next_state, wait_ack, State#state_rcv{socket   = NewSocket,
                                                            count    = Count,
@@ -484,11 +484,11 @@ set_thinktime(Think) ->
 %% Purpose: handle data received from a socket
 %%----------------------------------------------------------------------
 handle_data_msg(Data, State=#state_rcv{request=Req}) when Req#ts_request.ack==no_ack->
-	ts_mon:rcvmes({State#state_rcv.monitor, self(), Data}),
+	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     {State, []};
 
 handle_data_msg(Data, State=#state_rcv{request=Req, clienttype=Type}) when Req#ts_request.ack==parse->
-	ts_mon:rcvmes({State#state_rcv.monitor, self(), Data}),
+	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
 	
     {NewState, Opts, Close} = Type:parse(Data, State),
     NewBuffer = case {Req#ts_request.match,Req#ts_request.dynvar_specs, Data} of 
@@ -526,13 +526,13 @@ handle_data_msg(Data, State=#state_rcv{request=Req, clienttype=Type}) when Req#t
 
 handle_data_msg(Data, State=#state_rcv{ack_done=true}) ->
     %% still same message, increase size
-	ts_mon:rcvmes({State#state_rcv.monitor, self(), Data}),
+	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
 	DataSize = size(Data),
     OldSize = State#state_rcv.datasize,
     {State#state_rcv{datasize = OldSize+DataSize}, []};
 
 handle_data_msg(Data, State=#state_rcv{ack_done=false}) ->
-	ts_mon:rcvmes({State#state_rcv.monitor, self(), Data}),
+	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
 	DataSize = size(Data),
     {PageTimeStamp, _} = update_stats(State, false),
     {State#state_rcv{datasize=DataSize,%ack for a new message, init size

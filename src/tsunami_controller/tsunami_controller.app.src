@@ -25,7 +25,8 @@
 					 {server_name, "glop"},
 
 					 {dumpstats_interval, 10000},
-					 {monitoring, none},    %% full or light or none
+					 {dump, none},          %% full or light or none
+					 {stats_backend, none}, %% text|rrdtool
 
 					 {nclients, 10},        %% number of clients
 					 {nclients_deb, 1}, 	%% beginning of interval

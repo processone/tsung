@@ -67,7 +67,7 @@
                      % session (Cookies for examples)
 		 clienttype, % module name (ts_jabber, etc.)
          transactions=[], % current transactions
-		 monitor     % type of monitoring (full, light, none)
+		 dump        % type of dump (full, light, none)
 		}).
 
 -define(restart_sleep, 2000).
@@ -97,11 +97,13 @@
 
 %% Debug messages can be completely disabled if DEBUG is not defined
 -ifdef(DEBUG).
+    -define(TRACE, [{debug, [trace]}]).
     -define(DebugF(Msg, Args),
             ts_utils:debug(?MODULE, Msg, Args, ?DEB)).
     -define(Debug(Msg),
             ts_utils:debug(?MODULE, Msg, ?DEB)).
 -else.
+    -define(TRACE, []).
     -define(DebugF(Msg, Args), ok).
     -define(Debug(Msg), ok).
 -endif.

@@ -29,7 +29,7 @@
 					 {tcp_timeout, 600000}, %% 10min timeout
 					 {connect_timeout, 30000},
 					 {max_warm_delay, 60000},
-					 {monitoring, full},     %% full or light
+					 {dump, full},     %% full or light
 					 {parse_type, noparse},
 					 {client_type, jabber_dynamic},	%% Type de client:tsun
 									%%     		jabber_online, 

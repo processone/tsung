@@ -163,7 +163,8 @@ handle_call({read_config, ConfigFile}, From, State) ->
         {ok, Config=#config{session_tab=Tab,curid=LastReqId,sessions=[LastSess| SList]}} -> 
             check_popularity(Config#config.sessions),
             application:set_env(tsunami_controller, clients, Config#config.clients),
-            application:set_env(tsunami_controller, monitoring, Config#config.monitoring),
+            application:set_env(tsunami_controller, dump, Config#config.dump),
+            application:set_env(tsunami_controller, stats_backend, Config#config.stats_backend),
             application:set_env(tsunami_controller, debug_level, Config#config.loglevel),
             SumWeights = fun(X, Sum) -> X#client.weight + Sum end,
             Sum = lists:foldl(SumWeights, 0, Config#config.clients),
@@ -266,7 +267,7 @@ handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
     LogDir = encode_filename(State#state.logdir),
     Args = lists:append([ Sys_Args," -boot ", Boot,
         " -tsunami debug_level ", integer_to_list(?config(debug_level)),
-        " -tsunami monitoring ", atom_to_list(?config(monitoring)),
+        " -tsunami dump ", atom_to_list(?config(dump)),
         " -tsunami log_file ", LogDir,
         " -tsunami controller ", atom_to_list(node())
         ]),
