@@ -85,7 +85,7 @@ initialize({config, Val}, State) ->
 %% now all the clients are connected, let's start to ack them
 receiver({connected, Pid}, #state{pidlist=List, nclient=1}) ->
 	?LOG("All connected, global ack!",?NOTICE),
-	{next_state, ack, #state{pidlist=[Pid|List]}, 1};
+	{next_state, ack, #state{pidlist=[Pid|List],nclient=0}, 1};
 
 %% receive a new connected mes
 receiver({connected, Pid}, #state{pidlist=List, nclient=N}) ->
