@@ -56,10 +56,11 @@ start(Opts) ->
 %%          ignore               |
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
-init({Session=#session{id            = Profile,
-                        persistent   = Persistent,
-                        messages_ack = PType,
-                        type         = CType}, Count, IP}) ->
+init({Session=#session{id           = Profile,
+                       persistent   = Persistent,
+                       messages_ack = PType,
+                       ssl_ciphers  = Ciphers,
+                       type         = CType}, Count, IP}) ->
 	?DebugF("Init ... started with count = ~p  ~n",[Count]),
 	ts_utils:init_seed(),
 
@@ -79,6 +80,7 @@ init({Session=#session{id            = Profile,
                             starttime  = StartTime,
                             timeout    = ?config(tcp_timeout),
                             monitor    = ?config(monitoring),
+                            ssl_ciphers= Ciphers,
                             count      = Count,
                             ip         = IP,
                             maxcount   = Count,
@@ -306,7 +308,8 @@ handle_next_request(Profile, State) ->
     Now = now(),
 
 	%% reconnect if needed
-	case reconnect(Socket,Host,Port,Protocol,State#state_rcv.ip) of
+    Proto = {Protocol,State#state_rcv.ssl_ciphers},
+	case reconnect(Socket,Host,Port,Proto,State#state_rcv.ip) of
 		{ok, NewSocket} ->
             case catch send(Protocol, NewSocket, Message) of
                 ok -> 
@@ -393,10 +396,10 @@ set_profile(MaxCount, Count, ProfileId) when is_integer(ProfileId) ->
 %%          {stop, Reason}
 %% purpose: try to reconnect if this is needed (when the socket is set to none)
 %%----------------------------------------------------------------------
-reconnect(none, ServerName, Port, Protocol, IP) ->
+reconnect(none, ServerName, Port, {Protocol, Ciphers}, IP) ->
 	?DebugF("Try to (re)connect to: ~p:~p using protocol ~p~n",
             [ServerName,Port,Protocol]),
-	Opts = protocol_options(Protocol)  ++ [{ip, IP}],
+	Opts = protocol_options(Protocol, Ciphers)  ++ [{ip, IP}],
     Before= now(),
     case Protocol:connect(ServerName, Port, Opts) of
 		{ok, Socket} -> 
@@ -439,26 +442,20 @@ controlling_process(gen_udp,Socket,Pid) ->
 %% Func: protocol_options/1
 %% Purpose: set connection's options for the given protocol
 %%----------------------------------------------------------------------
-protocol_options(ssl) ->
-    case ?config(ssl_ciphers) of
-        negociate ->
-            [binary, {active, once} ];
-        Cipher ->
-            ?DebugF("cipher is ~p~n",[Cipher]),
-            [binary, 
-             {active, once},
-             {ciphers, Cipher}
-            ]
-    end;
+protocol_options(ssl,negociate) ->
+    [binary, {active, once} ];
+protocol_options(ssl,Ciphers) ->
+    ?DebugF("cipher is ~p~n",[Ciphers]),
+    [binary, {active, once}, {ciphers, Ciphers} ];
 
-protocol_options(gen_tcp) ->
+protocol_options(gen_tcp,_) ->
 	[binary, 
 	 {active, once},
 	 {recbuf, ?config(rcv_size)},
 	 {sndbuf, ?config(snd_size)},
 	 {keepalive, true} %% FIXME: should be an option
 	];
-protocol_options(gen_udp) ->
+protocol_options(gen_udp,_) ->
 	[binary, 
 	 {active, once},
 	 {recbuf, ?config(rcv_size)},

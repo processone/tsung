@@ -222,8 +222,9 @@ parse(Element = #xmlElement{name=session},
 
     case Id of 
         0 -> ok; % first session 
-        _ -> ets:insert(Tab, {{Id, size}, PrevReqId}) 
-             %% add total requests count in previous session in ets table
+        _ -> 
+            %% add total requests count in previous session in ets table
+            ets:insert(Tab, {{Id, size}, PrevReqId}) 
     end,
             
     lists:foldl(fun parse/2,
@@ -231,7 +232,8 @@ parse(Element = #xmlElement{name=session},
                                                  popularity   = Popularity,
                                                  type         = AType,
                                                  messages_ack = AMsg_Ack,
-                                                 persistent   = APersistent
+                                                 persistent   = APersistent,
+                                                 ssl_ciphers  = Conf#config.ssl_ciphers
                                                 }
                                         |SList],
                             curid=0, cur_req_id=0},% re-initialize request id
@@ -309,7 +311,7 @@ parse(Element = #xmlElement{name=default},
                     ets:insert(Tab,{{thinktime, random}, Random}),
                     lists:foldl( fun parse/2, Conf, Element#xmlElement.content);
                 "ssl_ciphers" ->
-                    Cipher = getAttr(Element#xmlElement.attributes, value, "negociate"),
+                    Cipher = getAttr(Element#xmlElement.attributes, value, negociate),
                     lists:foldl( fun parse/2, Conf#config{ssl_ciphers=Cipher},
                                  Element#xmlElement.content);
                 _ ->                    

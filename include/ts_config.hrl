@@ -41,7 +41,7 @@
           curthink, %% temporary var (current request think)
           curid = 0, %% temporary var (current request id (can be transaction))
           cur_req_id = 0, %% temporary var (current real request id)
-          ssl_ciphers = "negociate"
+          ssl_ciphers = negociate
 		}).
 
 -record(client,	
@@ -61,6 +61,7 @@
           type,
           messages_ack = parse,
           persistent   = false,
+          ssl_ciphers  = negociate,
           size 
         }).
 

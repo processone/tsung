@@ -46,6 +46,7 @@
 		 host,	      % hostname (or IP) of remote server
          port,        % server port
 		 protocol,	  % gen_udp, gen_tcp or ssl
+         ssl_ciphers, % for ssl only
          profile,     % session id
          request,     % current request specs
          persistent,  % if true, don't exit when connexion is closed
