@@ -200,11 +200,17 @@ parse(Element = #xmlElement{name=session},
       Conf = #config{session_tab = Tab, curid= PrevReqId, sessions=SList}) ->
 
     Id = length(SList),
-    Msg_ack     = getAttr(Element#xmlElement.attributes, messages_ack),
-    Persistent  = getAttr(Element#xmlElement.attributes, persistent),
-    Name        = getAttr(Element#xmlElement.attributes, name),
     Type        = getAttr(Element#xmlElement.attributes, type),
+    {ok, [{atom,1,AType}],1}       = erl_scan:string(Type),
+
+    {ok, Ack_def, Persistent_def} = AType:session_defaults(),
+
+    Msg_ack     = getAttr(Element#xmlElement.attributes, messages_ack, Ack_def),
+    Persistent  = getAttr(Element#xmlElement.attributes, persistent, Persistent_def),
+
+    Name        = getAttr(Element#xmlElement.attributes, name),
     ?LOGF("Session name for id ~p is ~p~n",[Id+1, Name],?NOTICE),
+    ?LOGF("Session type: ack=~p persistent=~p~n",[Msg_ack, Persistent],?NOTICE),
     Popularity = 
         case erl_scan:string(getAttr(Element#xmlElement.attributes, popularity)) of
             {ok, [{integer,1,IPop}],1} -> IPop;
@@ -213,7 +219,6 @@ parse(Element = #xmlElement{name=session},
         
     {ok, [{atom,1,AMsg_Ack}],1}    = erl_scan:string(Msg_ack),
     {ok, [{atom,1,APersistent}],1} = erl_scan:string(Persistent),
-    {ok, [{atom,1,AType}],1}       = erl_scan:string(Type),
 
     case Id of 
         0 -> ok; % first session 
@@ -258,10 +263,13 @@ parse(Element = #xmlElement{name=request},
     Type  = CurSess#session.type,
 
     SubstitutionFlag  = getAttr(Element#xmlElement.attributes, subst, false),
+    MatchRegExp  = getAttr(Element#xmlElement.attributes, match, undefined),
 
     lists:foldl( fun(A,B) ->Type:parse_config(A,B) end,
                  Conf#config{curid=Id+1, cur_req_id=Id+1,
-			     subst=SubstitutionFlag},
+                             subst=SubstitutionFlag,
+                             match=MatchRegExp
+                            },
                  Element#xmlElement.content);
 
 %%% Parsing the default element

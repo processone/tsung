@@ -43,9 +43,9 @@
 <!ATTLIST default value CDATA #REQUIRED >
 
 <!ELEMENT session ( request | thinktime | transaction )* >
-<!ATTLIST session messages_ack (parse | local | global | no_ack) #REQUIRED >
+<!ATTLIST session messages_ack (parse | local | global | no_ack) #IMPLIED >
 <!ATTLIST session name NMTOKEN #REQUIRED >
-<!ATTLIST session persistent (true|false) #REQUIRED >
+<!ATTLIST session persistent (true | false) #IMPLIED >
 <!ATTLIST session popularity NMTOKEN #REQUIRED >
 <!ATTLIST session type NMTOKEN #REQUIRED >
 

@@ -28,11 +28,21 @@
 -export([init_dynparams/0,
 		 add_dynparams/3,
 		 get_message/1,
+		 session_defaults/0,
          subst/1,
          parse/2,
          parse_config/2,
          new_session/0]).
 
+%%----------------------------------------------------------------------
+%% Function: session_default/0
+%% Purpose: default parameters for session (ack_type and persistent)
+%% Returns: {ok, "parse"|"no_ack"|"local", "true"|"false"} 
+%%----------------------------------------------------------------------
+session_defaults() ->
+    %% we parse the server response, and continue if the tcp
+    %% connection is closed
+	{ok,"parse", "true"}.
 
 %%----------------------------------------------------------------------
 %% Function: new_session/0
