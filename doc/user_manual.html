@@ -33,7 +33,7 @@
  
  <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1>
 <TR><TD ALIGN=left NOWRAP bgcolor="#f2f2f2">Version:</TD>
-<TD ALIGN=left NOWRAP>1.4</TD>
+<TD ALIGN=left NOWRAP>1.5</TD>
 </TR>
 <TR><TD ALIGN=left NOWRAP bgcolor="#f2f2f2">Date :</TD>
 <TD ALIGN=left NOWRAP>May 5, 2004</TD>
@@ -96,10 +96,11 @@
 <LI><A HREF="#htoc32">A&nbsp;&nbsp;Frequently Asked Questions</A>
 <UL><LI>
 <A HREF="#htoc33">A.1&nbsp;&nbsp;IDX-tsunami crash when I start it </A>
-<LI><A HREF="#htoc34">A.2&nbsp;&nbsp;IDX-tsunami still crash when I start it</A>
-<LI><A HREF="#htoc35">A.3&nbsp;&nbsp;What is the format of the stats file idx-tsunami.log ?</A>
-<LI><A HREF="#htoc36">A.4&nbsp;&nbsp;How can i specify the number of concurrent users ?</A>
-<LI><A HREF="#htoc37">A.5&nbsp;&nbsp;SNMP monitoring doesn't work ?!</A>
+<LI><A HREF="#htoc34">A.2&nbsp;&nbsp;IDX-tsunami still doesn't start ...</A>
+<LI><A HREF="#htoc35">A.3&nbsp;&nbsp;IDX-tsunami still crash/fails when I start it !</A>
+<LI><A HREF="#htoc36">A.4&nbsp;&nbsp;What is the format of the stats file idx-tsunami.log ?</A>
+<LI><A HREF="#htoc37">A.5&nbsp;&nbsp;How can i specify the number of concurrent users ?</A>
+<LI><A HREF="#htoc38">A.6&nbsp;&nbsp;SNMP monitoring doesn't work ?!</A>
 </UL>
 </UL>
 
@@ -134,9 +135,9 @@ Tsunami is based on the Erlang OTP (Open Transaction Platform) and
 inherits several characteristics from Erlang: 
 <UL><LI>
 <EM>Performance</EM>: Erlang has been made to support hundred thousands
-of lightweight processus in a single virtual machine. 
-<LI><EM>Scalability</EM>: Erlang development environnement is naturally
-distributed, promoting the idea of processus location transparence. 
+of lightweight processes in a single virtual machine. 
+<LI><EM>Scalability</EM>: Erlang development environment is naturally
+distributed, promoting the idea of process's location transparency. 
 <LI><EM>Fault-tolerance</EM>:Erlang has been built to develop robust,
 fault-tolerant systems. As such, wrong answer sent from the server
 to <EM>IDX-Tsunami</EM> does not make the whole running benchmark crash. 
@@ -150,7 +151,7 @@ More informations on Erlang on <A HREF="http://www.erlang.org"><TT>http://www.er
 
 History:
 <UL><LI>
-<EM>IDX-Tsunami</EM> is being developped since 2001 
+<EM>IDX-Tsunami</EM> is being developed since 2001 
 <LI>It is an industrial implementation of a <EM>stochastic model</EM>
 for real users simulation. User events distribution is based on a
 Poisson Process. More information on this topic in:<BR>
@@ -190,23 +191,23 @@ for Petroleum
 <UL><LI>
 <EM>High Performance</EM>: <EM>IDX-Tsunami</EM> can simulate a huge number
 of simultaneous users par physical computer: It can simulates up to
-10000 users on a single CPU. Traditionnal injection tools can hardly
+10000 users on a single CPU. Traditional injection tools can hardly
 go further than 200 users. 
 <LI><EM>Distributed</EM>: the load can be distributed on a cluster of
 client machines 
-<LI><EM>Multi-Protocols</EM> using a plugin system: HTTP (both standard
+<LI><EM>Multi-Protocols</EM> using a plug-in system: HTTP (both standard
 web traffic and SOAP) and Jabber are currently supported. LDAP and
 SMTP are on the TODO list. 
 <LI><EM>SSL</EM> support 
 <LI><EM>Several IP addresses</EM> can be used on a single machine using
 the underlying OS IP Aliasing 
-<LI><EM>OS monitoring</EM> (CPU, memory and network trafic) using Erlang
+<LI><EM>OS monitoring</EM> (CPU, memory and network traffic) using Erlang
 agents on remote servers or <EM>SNMP</EM>
 <LI><EM>XML configuration system</EM>
 <LI><EM>Mixed behaviours</EM>: several sessions can be used to simulate
-differents type of users during the same benchmark. You can define
+different type of users during the same benchmark. You can define
 the proportion of the various behaviours in the benchmark scenario. 
-<LI><EM>Stochastic processes</EM>: in order to generate a realistic trafic,
+<LI><EM>Stochastic processes</EM>: in order to generate a realistic traffic,
 user thinktimes and the arrival rate can be randomize using a probability
 distribution (exponential currently) 
 </UL>
@@ -237,7 +238,7 @@ Authentication, presence and register messages
 
 <H3><A NAME="htoc9">2.4</A>&nbsp;&nbsp;Complete reports set</H3><!--SEC END -->
 
-Mesures and statistics produced by Tsunami are extremely featurefull.
+Measures and statistics produced by Tsunami are extremely feature-full.
 They are all represented as a graphic. <EM>IDX-Tsumami</EM> produces
 statistics regarding:
 <UL><LI>
@@ -264,12 +265,12 @@ are gathered in real-time.<BR>
 <UL><LI>
 <EM>Outstanding performance</EM> and <EM>distributed benchmark</EM>
 <LI><EM>Ease of use</EM>: The hard work is already done for all supported
-protocol. No need to write complex scripts. Dynamic scenarii only
+protocol. No need to write complex scripts. Dynamic scenarios only
 requires small trivial piece of code.
 <LI><EM>Multi-protocol support</EM>: <EM>IDX-Tsunami</EM> is for example one of
 the only tool to benchmark SOAP applications 
 <LI><EM>Monitoring</EM> of the target cluster to analyse the behaviour
-and find bottlenecks. For exemple, I did use it to analyse cluster
+and find bottlenecks. For example, I did use it to analyse cluster
 symmetry (is the load properly balanced ?) and to determine the best
 combination of machines on the three cluster tiers (Web engine, EJB
 engine and database) 
@@ -299,7 +300,7 @@ Erlang/OTP R9C-0 (<A HREF="http://www.erlang.org/download.html"><TT>http://www.e
  <TT>analyse_msg.pl</TT> script). The Template Toolkit is used for HTML
  reports (see <A HREF="http://template-toolkit.org/"><TT>http://template-toolkit.org/</TT></A>)
  <LI>for distributed tests, you need an ssh access to remote
- machines without passwd (use a RSA/DSA key without passphrase or
+ machines without password (use a RSA/DSA key without pass-phrase or
  ssh-agent)
 </UL>
 <!--TOC subsection Compilation-->
@@ -320,7 +321,7 @@ Erlang/OTP R9C-0 (<A HREF="http://www.erlang.org/download.html"><TT>http://www.e
 </TR></TABLE></TD>
 <TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
 <TR><TD><PRE>
-./configure (this will detect your erlang installation path)
+./configure (this will detect your Erlang installation path)
  make
  make install
 </PRE></TD>
@@ -385,7 +386,7 @@ the number of simultaneous users for each given phase.
 
 <H3><A NAME="htoc18">5.1</A>&nbsp;&nbsp;File structure</H3><!--SEC END -->
 
-Scenarii are enclosed into idx-tsunami tags:<BR>
+Scenarios are enclosed into idx-tsunami tags:<BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
  CELLSPACING=0>
@@ -422,7 +423,7 @@ Scenarii are enclosed into idx-tsunami tags:<BR>
 
 <H3><A NAME="htoc19">5.2</A>&nbsp;&nbsp;Clients and server</H3><!--SEC END -->
 
-Scenarii start with a clients (Tsunami cluster) and server definition:<BR>
+Scenarios start with a clients (Tsunami cluster) and server definition:<BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
  CELLSPACING=0>
@@ -464,7 +465,7 @@ Scenarii start with a clients (Tsunami cluster) and server definition:<BR>
  
  Several virtual IP can be used to simulate more machines. This is
  very useful when a load-balancer use the client<CODE>'</CODE>s IP to
- distribute the traffic amoung a cluster of servers. <BR>
+ distribute the traffic among a cluster of servers. <BR>
 <BR>
 In this example, a second machine is used in the Tsunami cluster,
  with a higher weight, and 2 cpus. Two Erlang virtual machines will be
@@ -477,7 +478,7 @@ The server is the entry point into the cluster (Only one server
 
 <H3><A NAME="htoc20">5.3</A>&nbsp;&nbsp;Monitoring</H3><!--SEC END -->
 
-Scenarii can contain optional monitoring informations. For example,
+Scenarios can contain optional monitoring informations. For example,
 here is a cluster monitoring definition based on Erlang agents, for
 a cluster of 6 computers:<BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
@@ -516,7 +517,7 @@ a cluster of 6 computers:<BR>
 </TR></TABLE></TD>
 </TR></TABLE><BR>
 The type keyword snmp can replace the erlang keyword, if SNMP monitoring
-is prefered. They can be mixed. erlang is the default value for monitoring.<BR>
+is preferred. They can be mixed. erlang is the default value for monitoring.<BR>
 <BR>
 Note: For Erlang monitoring, monitored computers need to be
 accessible through the network. SSH needs to be configured to allow
@@ -937,7 +938,7 @@ response later in the session, and this value is <B>dynamically
 generated</B> by the server for each user. For this, you can use
 <FONT COLOR=purple>&lt;dyn_variable&gt;</FONT> in the scenario<BR>
 <BR>
-Let's take an exemple with HTTP. You can easily grab a value in a HTML
+Let's take an example with HTTP. You can easily grab a value in a HTML
 form like:
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -1074,7 +1075,7 @@ hand, for example to get the title of a HTML page:
 
 <H2><A NAME="htoc26">6</A>&nbsp;&nbsp;Statistics and reports</H2><!--SEC END -->
 
-Availables stats:
+Available stats:
 <UL><LI>
 request (response time for each request)
 <LI>page (response time for each set of requests)
@@ -1180,7 +1181,7 @@ Web benchmarking workshop in April 2004 (more info at
 
 <H3><A NAME="htoc33">A.1</A>&nbsp;&nbsp;IDX-tsunami crash when I start it </H3><!--SEC END -->
 
-Does your erlang system has ssl support enabled ?<BR>
+Does your Erlang system has ssl support enabled ?<BR>
 <BR>
 to test it:
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
@@ -1214,9 +1215,109 @@ to test it:
 </TR></TABLE></TD>
 </TR></TABLE></TD>
 </TR></TABLE><BR>
-<!--TOC subsection IDX-tsunami still crash when I start it-->
+<!--TOC subsection IDX-tsunami still doesn't start ...-->
 
-<H3><A NAME="htoc34">A.2</A>&nbsp;&nbsp;IDX-tsunami still crash when I start it</H3><!--SEC END -->
+<H3><A NAME="htoc34">A.2</A>&nbsp;&nbsp;IDX-tsunami still doesn't start ...</H3><!--SEC END -->
+
+Most of the time, when a crash happened at startup without any traffic 
+generated, the problem arise because the main Erlang controller node cannot 
+create a "slave" Erlang virtual machine. The message looks like:<BR>
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
+<TR><TD><TABLE BORDER=0 CELLPADDING=0
+ CELLSPACING=0>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+<TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
+<TR><TD><PRE>
+===============================================
+=ERROR REPORT==== 4-May-2004::22:38:26 ===
+** Generic server ts_config_server terminating
+** Last message in was {'$gen_cast',{newbeam,myshortname,[]}}
+** When Server state == {state,{config,
+                                     undefined,
+                                     5,
+                                     full,
+                                     undefined,
+                                     [{client,
+                                          "myshortname",
+                                          2.00000,
+                                          5,
+                                          [{10,68,133,140}]}],
+                                     {server,"foo.net",80,gen_tcp},
+                                     [],
+                                     [{arrivalphase,
+                                          1,
+                                          60,
+                                          undefined,
+                                          undefined,
+                                          5.00000e-5,
+                                          infinity}],
+                                     undefined,
+                                     [{session,
+                                          1,
+                                          100,
+                                          ts_http,
+                                          parse,
+                                          true,
+                                          undefined}],
+                                     14,
+                                     3,
+                                     7,
+                                     6,
+                                     "negociate"},
+  "/home/username/.idx-tsunami/log/20040204-18:32",
+                               undefined,
+                               0,
+                               undefined,
+                               2.00000}
+** Reason for termination ==
+** {{badmatch,{error,timeout}},
+    [{ts_config_server,handle_cast,2},
+     {gen_server,handle_msg,6},
+     {proc_lib,init_p,5}]}
+</PRE></TD>
+</TR></TABLE></TD>
+<TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR></TABLE></TD>
+</TR></TABLE><BR>
+IDX-Tsunami launches a new erl virtual machine to do the actual
+injection even when you have only one machine in the injection
+cluster. This is because it need to by-pass some limit with the number
+of open socket from a single process (1024 most of the time). The idea
+is to have several system processes (Erl beam) that can handle only a
+small part of the network connection from the given computer. When the
+<TT>maxclient</TT> limit (simultaneous) is reach, a new Erlang beam is launched
+and the newest connexion can be handle by the new beam).<BR>
+<BR>
+The problem is that the Erlang slave module cannot start a local slave
+node. It tries to start it with the short node name
+<TT>"myshortname"</TT> (<TT>erl -sname myshortname</TT>).
+ If this fails the injection process cannot
+start. Most of the time, adding the short name with the correct IP
+address in the <TT>/etc/hosts</TT> file is sufficient to make it work.<BR>
+<BR>
+Note that you do not need to use the 127.0.0.1 address in the config file. 
+It will not work if you use it as the injection interface. The shortname 
+of your client machine should not refer to this address.<BR>
+<BR>
+<!--TOC subsection IDX-tsunami still crash/fails when I start it !-->
+
+<H3><A NAME="htoc35">A.3</A>&nbsp;&nbsp;IDX-tsunami still crash/fails when I start it !</H3><!--SEC END -->
 
 First look at the log file
 <TT>~/.idx-tsunami/log/XXX/tsunami_controller@yourhostname'</TT> to see
@@ -1236,7 +1337,7 @@ an erlang shell on the <TT>tsunami_controller</TT> node. Use
 Erlang.
 <!--TOC subsection What is the format of the stats file idx-tsunami.log ?-->
 
-<H3><A NAME="htoc35">A.3</A>&nbsp;&nbsp;What is the format of the stats file idx-tsunami.log ?</H3><!--SEC END -->
+<H3><A NAME="htoc36">A.4</A>&nbsp;&nbsp;What is the format of the stats file idx-tsunami.log ?</H3><!--SEC END -->
 <BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -1295,7 +1396,7 @@ or for HTTP returns code, size ...<BR>
 <BR>
 <!--TOC subsection How can i specify the number of concurrent users ?-->
 
-<H3><A NAME="htoc36">A.4</A>&nbsp;&nbsp;How can i specify the number of concurrent users ?</H3><!--SEC END -->
+<H3><A NAME="htoc37">A.5</A>&nbsp;&nbsp;How can i specify the number of concurrent users ?</H3><!--SEC END -->
 
 You can't. But it's on purpose: the load generated by
 <EM>IDX-Tsunami</EM> is dependent on the arrival time between new
@@ -1311,7 +1412,7 @@ XML config file).<BR>
 <BR>
 <!--TOC subsection SNMP monitoring doesn't work ?!-->
 
-<H3><A NAME="htoc37">A.5</A>&nbsp;&nbsp;SNMP monitoring doesn't work ?!</H3><!--SEC END -->
+<H3><A NAME="htoc38">A.6</A>&nbsp;&nbsp;SNMP monitoring doesn't work ?!</H3><!--SEC END -->
 
 There is a small bug in the <TT>snmp\_mgr</TT> module (R9C release). You have to
 apply this patch to make it work.<BR>
