@@ -26,7 +26,8 @@ ERLANG_INSTALL_DIR = $(DESTDIR)/$(RAW_INSTALL_DIR)/lib
 BINDIR    = $(DESTDIR)/usr/bin
 LIBDIR    = $(DESTDIR)/usr/lib/idx-tsunami/bin/
 CONFDIR   = $(DESTDIR)/usr/share/doc/idx-tsunami/examples
-TEMPLATES_DIR = $(DESTDIR)/usr/share/idx-tsunami/templates
+SHARE_DIR = $(DESTDIR)/usr/share/idx-tsunami/
+TEMPLATES_DIR = $(SHARE_DIR)/templates
 
 
 PACKAGE = idx-tsunami
@@ -45,6 +46,7 @@ SRC       = $(wildcard $(ESRC)/$(APPLICATION)/*.erl)
 CONTROLLER_SRC  = $(wildcard $(ESRC)/$(CONTROLLER_APPLICATION)/*.erl)
 RECORDER_SRC    = $(wildcard $(ESRC)/$(RECORDER_APPLICATION)/*.erl)
 CONFFILES = idx-tsunami.xml
+DTD = idx-tsunami-1.0.dtd
 
 TARGET   = $(addsuffix .beam, $(basename \
              $(addprefix $(EBIN)/, $(notdir $(SRC)))))
@@ -119,6 +121,7 @@ install: doc build idx-tsunami.sh analyse_msg.pl install_recorder install_contro
 
 	mkdir -p $(TEMPLATES_DIR)
 	cp $(TEMPLATES) $(TEMPLATES_DIR)
+	cp $(DTD) $(SHARE_DIR)
 
 install_recorder:
 	install -d $(RECORDER_TARGETDIR)/priv
