@@ -317,7 +317,7 @@ sub parse_stats_file {
 	foreach $key (keys %{$data}) {
 		open (TYPE, "> $key.txt") or die "$!";
 		foreach my $data (@{$data->{$key}}) {
-			if ($key =~ /time$/ and $interval) {#
+			if (($key !~ /^users$/ and $key !~ /^size$/) and $interval) {#
 				my @tmp;
 				my $time;
 				($time, $data, @tmp) = split(/\s/,$data);
@@ -346,7 +346,7 @@ sub parse_stats_file {
 		close TYPE;
 	}
 	plot_stats(\@col,"Session",undef,\@connect,["sessions/sec"]) if $plot;
-	plot_stats(\@colcount,"HTTP_CODE",undef,\@code,["number/($interval sec)","total"]) if $plot;
+	plot_stats(\@colcount,"HTTP_CODE",undef,\@code,["number/sec","total"]) if $plot;
 	plot_stats(\@col,"Perfs",undef,\@time,["rate/sec","msec"]) if $plot;
 	plot_stats(\@colusers,"Users",undef,\@users,["connected users", "total"]) if $plot;
 	plot_stats(\@col,"Users_Arrival",undef,\@users_rate,["number of users/sec", "total"]) if $plot;
