@@ -164,18 +164,18 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 	List = binary_to_list(Data),
 	TotalSize = size(Data),
 	{ok, Http, Tail} = parse_headers(#http{},List),
-%	ts_mon:add({ count, Http#http.status }),% FIXME
+	ts_mon:add({ count, Http#http.status }),
 	BodySize= length(Tail),
 	CLength = Http#http.content_length,
 	Close   = Http#http.close,
 	Cookie  = lists:append([Http#http.cookie, State#state_rcv.dyndata]),
 	if 
-		CLength == undefined, Http#http.status== 304 ->
+		CLength == 0, Http#http.status== 304 ->
 			?Debug("HTTP Not modified~n"),
 			{State#state_rcv{session= #http{}, ack_done = true,
 							 datasize = TotalSize,
 							 dyndata  = Cookie}, [], Close};
-		CLength == undefined, Http#http.chunk_toread == 0 ->
+		CLength == 0, Http#http.chunk_toread == 0 ->
 			case parse_chunked(Tail, State#state_rcv{session=Http}) of
 				{NewState=#state_rcv{ack_done=false}, Opts} ->
 					{NewState, Opts, false};
@@ -193,8 +193,8 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 							 datasize = BodySize,
 							 dyndata= Cookie}, [], Close};
 		BodySize > CLength  ->
-			?LOGF("Error: HTTP Body > Content-Length !:~p~n",
-				  [CLength], ?ERR),
+			?LOGF("Error: HTTP Body (~p)> Content-Length (~p) !~n",
+				  [BodySize, CLength], ?ERR),
 			ts_mon:add({ count, http_bad_content_length }),
 			{State#state_rcv{session= #http{}, ack_done = true,
 							 datasize = TotalSize,
@@ -444,23 +444,18 @@ parse_line("Content-Length: "++Tail, Http)->
 parse_line("Connection: close"++Tail, Http)->
 	Http#http{close=true};
 parse_line("Transfer-Encoding: chunked"++Tail, Http)->
+	?LOG("Chunked transfer encoding~n",?DEB),
 	Http#http{chunk_toread=0};
-parse_line("Transfer-Encoding: "++Tail, Http)->
+parse_line("Transfer-Encoding:"++Tail, Http)->
 	?LOGF("Unknown tranfer encoding ~p~n",[Tail],?NOTICE),
 	Http;
-parse_line("Set-Cookies: "++Tail, Http=#http{cookie=PrevCookies})->
+parse_line("Set-Cookie: "++Tail, Http=#http{cookie=PrevCookies})->
 	Cookie = get_cookie_val(Tail), %% FIXME: is it ok ?
 	?DebugF("HTTP New cookie val ~p~n",[Cookie]),
 	Http#http{cookie=lists:reverse([Cookie|PrevCookies])};
 parse_line(Line,Http) ->
+	?DebugF("Skip header ~p (Http record is ~p)~n",[Line,Http]),
 	Http.
-%% Response:
-%%HTTP 401 Unauthorized
-%%WWW-Authenticate: Basic realm="bla"
-%% Next request: 
-%%Authorization: Basic 'base64(username:passwd)' 
-% 
-%httpd_util:encode_base64(lists:append(Username,":",Passwd)).
 
 %% code taken from yaws
 is_nb_space(X) ->
