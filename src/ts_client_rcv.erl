@@ -58,7 +58,6 @@ wait_ack(Pid, Ack, When) ->
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
 init([{PType, CType, PPid, Socket, Timeout, Ack, Monitor}]) ->
-	ts_mon:newclientrcv({self(), now()}),
 	{ok, #state_rcv{socket = Socket, timeout= Timeout, ack = Ack,
 				ppid= PPid, parsetype = PType, clienttype = CType,
 				monitor = Monitor }}.
