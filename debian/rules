@@ -13,7 +13,7 @@ configure: configure-stamp
 configure-stamp:
 	dh_testdir
 	# Add here commands to configure the package.
-
+	./configure
 	touch configure-stamp
 
 
@@ -25,6 +25,7 @@ build-stamp: configure-stamp
 	# Add here commands to compile the package.
 	$(MAKE)
 	touch build-stamp
+
 
 clean:
 	dh_testdir
