@@ -117,7 +117,8 @@
     test de charge (man idx-tsunami pour avoir les options disponibles)
 
     3/ Lorsque c'est terminé (idx-tsunami --stop pour forcer l'arrêt), le
-    script analyse_msg.pl génère une synthèse des temps de réponses;
+    script analyse_msg.pl (/usr/lib/idx-tsunami/bin/analyse_msg.pl)
+    génère une synthèse des temps de réponses;
     ce script peut également générer des graphes avec l'option --plot.
 
  	   Depuis la version 0.2.0, les statistique peuvent être calculés

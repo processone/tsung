@@ -105,8 +105,9 @@
     2/ use "idx-tsunami start" to launch the simulated clients (man
     idx-tsunami for available options)
 
-    3/ When it's finished, or during the test, you can use analyse_msg.pl to get
-       statistical results from the logfile.
+    3/ When it's finished, or during the test, you can use
+      analyse_msg.pl ( located in /usr/lib/idx-tsunami/bin/analyse_msg.pl) 
+      to get statistical results from the logfile.
 
 	   Since v0.2.0, you can have 'realtime' stats using with the
 	   --stats and --plot option. It will
