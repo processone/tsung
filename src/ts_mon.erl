@@ -135,9 +135,7 @@ error({Who, When, What}) ->
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
 init([]) ->
-	{{Y,M,D},{H,Min,S}} = erlang:universaltime(),
-	Date = io_lib:format("-~w:~w:~w-~w:~w",[Y,M,D,H,Min]),
-    Filename = ?config(log_file) ++ Date,
+    Filename = ?config(log_file) ++ ts_utils:datestr(),
     case file:open(Filename,write) of 
 		{ok, Stream} ->
 			?LOG("starting monitor~n",?NOTICE),

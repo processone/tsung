@@ -26,7 +26,7 @@
 %% user interface
 -export([debug/3, debug/4, get_val/1, init_seed/0, chop/1, elapsed/2,
          now_sec/0, inet_setopts/4, node_to_hostname/1, add_time/2,
-         level2int/1, mkey1search/2, close_socket/2]).
+         level2int/1, mkey1search/2, close_socket/2, datestr/0, datestr/1]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -172,4 +172,15 @@ close_socket(Protocol, none) -> ok;
 close_socket(gen_tcp, Socket)-> gen_tcp:close(Socket);
 close_socket(ssl, Socket)    -> ssl:close(Socket);
 close_socket(gen_udp, Socket)-> gen_udp:close(Socket).
-	
+
+%%----------------------------------------------------------------------
+%% datestr/0
+%% Purpose: print date as a string 'YYYY:MM:DD-HH:MM'
+%%----------------------------------------------------------------------
+datestr()->
+    datestr(erlang:universaltime()).
+%%----------------------------------------------------------------------
+%% datestr/1
+%%----------------------------------------------------------------------
+datestr({{Y,M,D},{H,Min,S}})->
+	io_lib:format("-~w:~w:~w-~w:~w",[Y,M,D,H,Min]).

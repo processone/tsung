@@ -51,6 +51,7 @@
           parse_status=new, %% http status = body|new|headers
           body_size=0,
           content_length=0,
+          buffer=[],
           serversock
           }).
 %%====================================================================
@@ -188,69 +189,87 @@ sockname(Socket,State)->
 %% Purpose: parse HTTP request
 %% Returns: {ok, NewState}
 %%--------------------------------------------------------------------
-parse(State=#state{parse_status=Status},ClientSock,ServerSocket,String) 
-  when Status == new ->
-    StartHeaders = string:str(String, "\r\n\r\n"),
-    Headers = string:substr(String, 1, StartHeaders-1),%FIXME: headers may not be complete
-    {ok,[Method, RequestURI, HTTPVersion, RequestLine, ParsedHeader]} =
-        httpd_parse:request_header(Headers),
-    TotalSize= length(String),
-    ?LOGF("Headers =~p~n",[Headers],?INFO),
-    ?LOGF("StartHeaders = ~p, totalsize =~p~n",[StartHeaders, TotalSize],?DEB),
-    case {httpd_util:key1search(ParsedHeader,"content-length"), TotalSize-StartHeaders} of
-        {undefined, 3} -> % no body, everything received
-            ts_proxy_recorder:dorecord({#http_request{method=Method,
-                                                      url=RequestURI,
-                                                      version=HTTPVersion,
-                                                      headers=ParsedHeader}
-                                        }),
-            NewSocket = check_serversocket(ServerSocket,RequestURI),
-            gen_tcp:send(NewSocket,String),
-            {ok, State#state{parse_status = new,
-                             serversock=NewSocket}};
-        {undefined, Diff} ->
-            {error, undefined};
-        {Length, _} ->
-            CLength = list_to_integer(Length)+4,
-            ?LOGF("HTTP Content-Length:~p~n",[CLength], ?DEB),
-            ts_proxy_recorder:dorecord({#http_request{method=Method,
-                                                      url=RequestURI,
-                                                      version=HTTPVersion,
-                                                      headers=ParsedHeader}
-                                       }),
-            HeaderSize = length(Headers),
-            BodySize = TotalSize-HeaderSize,
-            if
-                BodySize == CLength ->  % end of response
+parse(State=#state{parse_status=Status},ClientSock,ServerSocket,String) when Status==new ->
+    NewString = lists:append(State#state.buffer,String),
+    StartHeaders = string:str(NewString,"\r\n\r\n"),
+    ?LOGF("StartHeaders = ~p ~n",[StartHeaders],?NOTICE),
+	case StartHeaders of 
+		0 -> 
+            ?LOG("Headers incomplete, buffering ~n",?DEB),
+			{ok, State#state{parse_status=new, buffer=NewString}};
+        _ -> 
+            Headers = string:substr(NewString, 1, StartHeaders-1),
+            ?LOGF("Headers ~p ~n",[Headers],?DEB),
+            {ok,[Method, RequestURI, HTTPVersion, RequestLine, ParsedHeader]} =
+                httpd_parse:request_header(Headers),
+            TotalSize= length(NewString),
+            ?LOGF("Headers =~p~n",[Headers],?INFO),
+            ?LOGF("StartHeaders = ~p, totalsize =~p~n",[StartHeaders, TotalSize],?DEB),
+            case {httpd_util:key1search(ParsedHeader,"content-length"),
+                  TotalSize-StartHeaders} of
+                {undefined, 3} -> % no body, everything received
+                    ts_proxy_recorder:dorecord({#http_request{method=Method,
+                                                              url=RequestURI,
+                                                              version=HTTPVersion,
+                                                              headers=ParsedHeader}
+                                               }),
                     NewSocket = check_serversocket(ServerSocket,RequestURI),
-                    gen_tcp:send(NewSocket,String),
-                    {ok, State#state{parse_status = new,
+                    gen_tcp:send(NewSocket,NewString),
+                    {ok, State#state{parse_status = new, buffer=[],
                                      serversock=NewSocket}};
-                BodySize > CLength  ->
-                    {error, bad_content_length};
-                true ->
-                    NewSocket = check_serversocket(ServerSocket,RequestURI),
-                    gen_tcp:send(NewSocket,String),
-                    {ok, State#state{content_length = CLength,
-                                body_size = TotalSize,
-                                parse_status = body
-                                    }}
+                {undefined, Diff} ->
+                    {error, undefined};
+                {Length, _} ->
+                    CLength = list_to_integer(Length)+4,
+                    ?LOGF("HTTP Content-Length:~p~n",[CLength], ?DEB),
+                    HeaderSize = length(Headers),
+                    BodySize = TotalSize-HeaderSize,
+                    Body=string:substr(NewString, StartHeaders+4, TotalSize),
+                    if
+                        BodySize == CLength ->  % end of response
+                            NewSocket = check_serversocket(ServerSocket,RequestURI),
+                            gen_tcp:send(NewSocket,NewString),
+                            ts_proxy_recorder:dorecord({#http_request{method=Method,
+                                                                      url=RequestURI,
+                                                                      version=HTTPVersion,
+                                                                      body=Body,
+                                                                      headers=ParsedHeader}
+                                                       }),
+                            {ok, State#state{parse_status = new, buffer=[],
+                                             serversock=NewSocket}};
+                        BodySize > CLength  ->
+                            {error, bad_content_length};
+                        true ->
+                            NewSocket = check_serversocket(ServerSocket,RequestURI),
+                            gen_tcp:send(NewSocket,NewString),
+                            {ok, State#state{content_length = CLength,
+                                             body_size = TotalSize,
+                                             buffer = #http_request{method=Method,
+                                                                    url=RequestURI,
+                                                                    version=HTTPVersion,
+                                                                    body=Body,
+                                                                    headers=ParsedHeader},
+                                             parse_status = body
+                                            }
+                            }
+                    end
             end
-    
     end;
 
-parse(State=#state{parse_status=Status},ClientSock,ServerSocket,String) 
+parse(State=#state{parse_status=Status, buffer=Http},ClientSock,ServerSocket,String) 
   when Status == body ->
 	DataSize = length(String),
 	?LOGF("HTTP Body size=~p ~n",[DataSize], ?DEB),
 	Size = State#state.body_size + DataSize,
 	CLength = State#state.content_length,
     gen_tcp:send(ServerSocket, String),
+    Buffer=lists:append(Http#http_request.body,String),
 	case Size of 
 		CLength -> % end of response
-			State#state{body_size=0,parse_status=new, content_length=0};
+            ts_proxy_recorder:dorecord(Http#http_request{ body=Buffer} ),
+			State#state{body_size=0,parse_status=new, content_length=0,buffer=[]};
 		_ ->
-			State#state{body_size = Size}
+			State#state{body_size = Size, buffer = Http#http_request{body=Buffer}}
 	end.
 
 %%--------------------------------------------------------------------

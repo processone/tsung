@@ -208,6 +208,7 @@ activate(State)->
 	    Portno=?config(proxy_listen_port),
 	    {ok, ServerSock} = gen_tcp:listen(Portno,
                                           [{packet, 0},
+                                           {reuseaddr, true},
                                            {active, once}
                                            %% { reuseaddr, 1 },
                                           ]),

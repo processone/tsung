@@ -91,7 +91,7 @@ init(Filename) ->
                          logfd    = Stream
 					   }};
 		{error, Reason} ->
-			?LOGF("Can't open mon log file! ~p~n",[Reason], ?ERR),
+			?LOGF("Can't open log file ~p! ~p~n",[Filename,Reason], ?ERR),
 			{stop, Reason}
     end.
 
@@ -121,8 +121,9 @@ handle_cast({record, endsession}, State) ->
     {noreply, State};
 
 handle_cast({record, {HTTPRequest}}, State=#state{timestamp=0}) -> % first record
-    io:format(State#state.logfd,"<session name='recorded' popularity='1' "++
-              " persistent='true' messages_ack='parse' type='ts_http'>~n",[]),
+    Name= ts_utils:datestr(),
+    io:format(State#state.logfd,"<session name='~s' popularity='1' "++
+              " persistent='true' messages_ack='parse' type='ts_http'>~n",[Name]),
     {ok, NewState} = record_http_request(State, HTTPRequest),
     {noreply, NewState#state{timestamp=now()}};
 
@@ -181,17 +182,28 @@ code_change(OldVsn, State, Extra) ->
 %%--------------------------------------------------------------------
 %% FIXME handle post and body data
 record_http_request(State=#state{prev_host=Host, prev_port=Port},
-                    Request=#http_request{method  = Method, url=RequestURI,
+                    Request=#http_request{method  = Method, url = RequestURI,
                                           version = "HTTP/" ++ HTTPVersion,
-                                          headers = ParsedHeader}) ->
+                                          headers = ParsedHeader,body=Body}) ->
     {URL,NewPort,NewHost} = 
         case ts_http_common:parse_URL(RequestURI) of 
-              #url{path=RelURL, host=Host, port=Port} -> {RelURL, Port, Host};
-              #url{path=RelURL, host=Host2,port=Port2 } -> {RequestURI,Port2,Host2 }
+              #url{path=RelURL, host=Host, port=Port,querypart=Args} -> {RelURL, Port, Host};
+              #url{path=RelURL, host=Host2,port=Port2,querypart=Args } -> {RequestURI,Port2,Host2 }
         end,
     Fd=State#state.logfd,
-    io:format(Fd,"<request><http url='~s' version='~s' ",
-              [URL, HTTPVersion]),
+    ?LOGF("Query is ~p~n",[Args],?NOTICE),
+    case Args of 
+        [] ->
+            io:format(Fd,"<request><http url='~s' version='~s' ",
+                      [URL, HTTPVersion]);
+        _ ->
+            io:format(Fd,"<request><http url='~s' version='~s' ",
+                      [lists:append(URL,"?",Args), HTTPVersion])
+    end,
+    case Body of 
+        [] -> ok;
+        _  -> io:format(Fd," contents='~s' ", [Body]) % must be a POST method
+    end,
     case httpd_util:key1search(ParsedHeader,"if-modified-since") of 
         undefined ->
             io:format(Fd,"method='~s'></http></request>~n", [ Method]);
