@@ -123,11 +123,11 @@ install: doc build idx-tsunami.sh analyse_msg.pl install_recorder install_contro
 	cp $(SRC) $(SRC_APPFILES) $(TARGETDIR)/src
 
 # install the man page & user's manual
-	install -d $(DESTDIR)/usr/share/man/man1
-	install doc/idx-tsunami.1 $(DESTDIR)/usr/share/man/man1
-	install -d $(DESTDIR)/usr/share/doc/idx-tsunami/images
-	install $(USERMANUAL) $(DESTDIR)/usr/share/doc/idx-tsunami/
-	install $(USERMANUAL_IMG) $(DESTDIR)/usr/share/doc/idx-tsunami/images
+	install -d $(INSTALLPREFIX)/share/man/man1
+	install doc/idx-tsunami.1 $(INSTALLPREFIX)/share/man/man1
+	install -d $(INSTALLPREFIX)/share/doc/idx-tsunami/images
+	install $(USERMANUAL) $(INSTALLPREFIX)/share/doc/idx-tsunami/
+	install $(USERMANUAL_IMG) $(INSTALLPREFIX)/share/doc/idx-tsunami/images
 
 # create startup script
 	cp idx-tsunami.sh $(SCRIPT)
