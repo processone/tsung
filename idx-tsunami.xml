@@ -68,7 +68,7 @@
   frequency of this type os session. The sum of all session's
   popularity must be 100 -->
   <!-- ********************************************** -->
-  <session name="http-example" popularity="30" persistent="true" messages_ack="parse" type="ts_http">
+  <session name="http-example" popularity="30" type="ts_http">
     <!-- full url with server name, this overrides the "server" config value -->
     <request> <http url="http://linuxit02/" method="GET" version="1.1"></http> </request>
     <!-- when if_modified_since is defined, it send a GET with If-modified since: Date header -->
@@ -81,6 +81,22 @@
     <!--  start a transaction. This is used to have custom response time statistics -->
     <transaction name="index_request">
     <request> <http url="/index.en.html" method="GET" version="1.1" ></http> </request>
+
+      <!-- Example of a dynamic request (subst=true); %%symbol:new%%
+      will be parsed and the result of symbol:new(Pid) will be put
+      instead in the request (at run time) -->
+      <request subst="true" match="">
+        <http url='http://localhost:8080/axis/servlet/AxisServlet' version='1.0' content_type='text/xml; charset=utf-8' method='POST' 
+          contents='&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+ &lt;SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/"&gt; &lt;SOAP-ENV:Body&gt;
+ &lt;echo:Echo xmlns:echo="EchoService"&gt;
+ &lt;symbol&gt;%%symbol:new%%&lt;/symbol&gt;
+ &lt;/echo:Echo&gt;
+ &lt;/SOAP-ENV:Body&gt;&lt;/SOAP-ENV:Envelope&gt;'>
+          <soap action='EchoService'></soap>
+        </http>
+      </request>
+
   </transaction>
 
     <!-- wait during 60 seconds -->
@@ -102,7 +118,7 @@
   <!--   Jabber session example (see 'type' argument) -->
   <!-- ********************************************** -->
 
- <session popularity="70" name="jabber-example" persistent="true" messages_ack="local" type="ts_jabber">
+ <session popularity="70" name="jabber-example" type="ts_jabber">
     
     <request> <jabber type="connect" ack="no_ack"></jabber> </request>
     <thinktime value="2"></thinktime>
