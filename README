@@ -61,10 +61,11 @@
 
   The traffic can be logged to a file and, after completion of
   all the clients, these files can be analyzed by scripts to get
-  useful measurements of responses time. An small script is furnished
+  useful measurements of responses time. A small script is furnished
   for the Jabber protocol (mean, median, standard variation, and so on
   are computed, for different types of messages: authentication,
   chat, offline messages ...). 
+
   Since v0.2.0, stats can also be computed in real-time, and dumped in
   a text file at regular interval.
 
@@ -100,7 +101,10 @@
 
     1b/ Read the doc/Jabber.txt file for Jabber-specific information.
 
-    1c/ add machines to be used in  ~/.hosts.erlang 
+    1c/ For HTTP, session's descriptions are read from a file, using the
+        same format as httperf. See doc/http_sesslog.txt for an example.
+
+    1d/ add machines to be used in  ~/.hosts.erlang 
 
     2/ use the script "idx-tsunami.pl --start" to launch the simulated clients.
 
@@ -116,7 +120,7 @@
 		  - response_time (response time for each subrequest (~ request for HTTP))
 		  - page_resptime (response time for each 'action' (~ page for HTTP))
 		  - connect (duration of the connection)
-		  - reconnect (number of reconnections)
+		  - reconnect (number of reconnection)
 		  - size (size of responses)
 		  - session (duration of a user's session)
 
