@@ -201,10 +201,10 @@ release:
 	tar zcf tmp.tgz $(SRC) $(SRC_APPFILES) $(INC_FILES) \
 		$(CONTROLLER_SRC) $(CONTROLLER_SRC_APPFILES) \
 		$(RECORDER_SRC) $(RECORDER_SRC_APPFILES) \
-		 doc/*.txt doc/*.fig doc/*.png CONTRIBUTORS FAQ CHANGES \
-		COPYING README LISEZMOI TODO $(CONFFILES) Makefile \
+		 doc/*.txt doc/*.fig doc/*.png doc/Makefile doc/*.sgml \
+		COPYING README LISEZMOI TODO $(CONFFILES) FAQ Makefile \
 		priv/builder.erl idx-tsunami.sh.in vsn.mk  idx-tsunami.xml \
-		debian
+		debian src/analyse_msg.pl.src CONTRIBUTORS CHANGES
 	tar -C $(PACKAGE)-$(VERSION) -zxf tmp.tgz
 	mkdir $(PACKAGE)-$(VERSION)/ebin
 	tar zvcf  $(PACKAGE)-$(VERSION).tar.gz $(PACKAGE)-$(VERSION)
