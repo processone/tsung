@@ -51,6 +51,7 @@
         code_change/3]).
 
 -record(state, {log,          % log filename
+                dumpfile,     % file used when dumptrafic is set light or full
 				client=0,     % number of clients currently running
 				maxclient=0,  % max of simultaneous clients 
 				stats,        % dict keeping stats info
@@ -143,8 +144,22 @@ init([]) ->
 handle_call({start_clients, Machines, Monitoring}, From, State) ->
     timer:apply_interval(?config(dumpstats_interval), ?MODULE, dumpstats, [] ),
     start_launchers(Machines),
-	{reply, ok, State#state{type=Monitoring}};
-
+    case Monitoring of 
+        none ->
+            {reply, ok, State#state{type=Monitoring}};
+        _ ->
+            Filename = ?config(log_file) ++ ".dump",
+            case file:open(Filename,write) of 
+                {ok, Stream} ->
+                    ?LOG("dump file openedstarting monitor~n",?INFO),
+                    {reply, ok, State#state{dumpfile=Stream, type=Monitoring}};
+                {error, Reason} ->
+                    ?LOGF("Can't open mon dump file! ~p~n",[Reason], ?ERR),
+                    {reply, ok, State#state{type=none}}
+            end
+    end;
+                
+            
 handle_call(Request, From, State) ->
 	Reply = ok,
 	{reply, Reply, State}.
@@ -158,11 +173,11 @@ handle_call(Request, From, State) ->
 handle_cast({sendmsg, Who, When, What}, State = #state{type = none}) ->
 	{noreply, State};
 
-handle_cast({sendmsg, Who, When, What}, State = #state{type=light,log=Log}) ->
+handle_cast({sendmsg, Who, When, What}, State = #state{type=light,dumpfile=Log}) ->
 	io:format(Log,"Send:~w:~w:~-44s~n",[When,Who, binary_to_list(What)]),
 	{noreply, State};
 
-handle_cast({sendmsg, Who, When, What}, State=#state{log=Log}) ->
+handle_cast({sendmsg, Who, When, What}, State=#state{dumpfile=Log}) ->
 	io:format(Log,"Send:~w:~w:~s~n",[When,Who,binary_to_list(What)]),
 	{noreply, State};
 
@@ -182,11 +197,11 @@ handle_cast({dumpstats}, State) ->
 handle_cast({rcvmsg, Who, When, What}, State = #state{type=none}) ->
 	{noreply, State};
 
-handle_cast({rcvmsg, Who, When, What}, State = #state{type=light, log=Log}) ->
+handle_cast({rcvmsg, Who, When, What}, State = #state{type=light, dumpfile=Log}) ->
 	io:format(Log,"Recv:~w:~w:~-44s~n",[When,Who, binary_to_list(What)]),
 	{noreply, State};
 
-handle_cast({rcvmsg, Who, When, What}, State=#state{log=Log}) ->
+handle_cast({rcvmsg, Who, When, What}, State=#state{dumpfile=Log}) ->
 	io:format(Log, "Recv:~w:~w:~s~n",[When,Who,binary_to_list(What)]),
 	{noreply, State};
 
@@ -204,8 +219,8 @@ handle_cast({newclient, Who, When, Connect}, State) ->
 	case State#state.type of 
 		none -> ok;
 		_ ->
-			io:format(State#state.log,"NewClient:~w:~w~n",[When, Who]),
-			io:format(State#state.log,"load:~w~n",[Clients])
+			io:format(State#state.dumpfile,"NewClient:~w:~w~n",[When, Who]),
+			io:format(State#state.dumpfile,"load:~w~n",[Clients])
 	end,
 	{noreply, State#state{client = Clients, maxclient=Max, stats=NewTab}};
 
@@ -223,8 +238,8 @@ handle_cast({endclient, Who, When, Elapsed}, State) ->
 		none ->
 			skip;
 		_Type ->
-			io:format(State#state.log,"EndClient:~w:~w~n",[When, Who]),
-			io:format(State#state.log,"load:~w~n",[Clients])
+			io:format(State#state.dumpfile,"EndClient:~w:~w~n",[When, Who]),
+			io:format(State#state.dumpfile,"load:~w~n",[Clients])
 	end,
 	case {Clients, State#state.stop} of 
 		{0, true} -> 
