@@ -1,11 +1,11 @@
-0.1.1 -> 0.2.0:  Major Feature Enhancements (not yet released) 
+0.1.1 -> 0.2.0:  Major Feature Enhancements (Aug 2003) 
 	- add 'realtime' stats
 	- add new 'parse' type of protocol
 	- add reconnection support (persistent client)
 	- add basic HTTP and HTTPS support
 	- split the application in two parts: a single controller (tsunami_controller),
       and the clients (tsunami)
-	- switch to R9B
+	- switch to R9C
 
 0.1.0 -> 0.1.1:  Bugfix realease (Aug 2002)  
 	- fix config file
