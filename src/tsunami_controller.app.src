@@ -6,7 +6,6 @@
 					   ts_controller_sup,
 					   ts_mon,
 					   ts_timer,
-					   ts_req_server,
 					   ts_user_server,
 					   ts_config_server,
 					   ts_msg_server,
