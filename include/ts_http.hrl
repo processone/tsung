@@ -31,7 +31,9 @@
           content_type=[],
           headers=[],
           body=[],
-          id = 0
+          id = 0,
+          userid, % for www_authentication
+          passwd  % for www_authentication
          }).
 
 -record(url,
