@@ -65,7 +65,7 @@
 -define(OTP_TIMEOUT, infinity).
 -define(TIMEOUT, 30000).
 -define(OPTIONS, [{timeout,?TIMEOUT}]).
--define(INTERVAL, 5000).
+-define(INTERVAL, 10000).
 
 
 %% SNMP definitions
