@@ -46,7 +46,12 @@ start(Type, _StartArgs) ->
     end.
 
 start_phase(load_config, StartType, PhaseArgs) ->
-    ts_config_server:read_config(?config(config_file));
+	case ts_config_server:read_config(?config(config_file)) of 
+		{error,Reason}->
+			erlang:display(["Config Error, aborting ! ", Reason]),
+			init:stop();
+		ok -> ok
+	end;
 start_phase(start_os_monitoring, StartType, PhaseArgs) ->
     ts_os_mon:activate();
 start_phase(start_clients, StartType, PhaseArgs) ->
@@ -64,10 +69,5 @@ stop(State) ->
 %% Func: stop_all/0
 %% Returns: any 
 %%----------------------------------------------------------------------
-stop_all([Host]) ->
-    List= net_adm:world_list([Host]),
-    global:sync(),
-    Pid = global:whereis_name('ts_mon'),
-    Controller_Node = node(Pid),
-    slave:stop(Controller_Node).
-
+stop_all(Arg) ->
+	ts_utils:stop_all(Arg,'ts_mon').

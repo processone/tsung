@@ -27,7 +27,7 @@
 -export([debug/3, debug/4, get_val/1, init_seed/0, chop/1, elapsed/2,
          now_sec/0, inet_setopts/4, node_to_hostname/1, add_time/2,
          level2int/1, mkey1search/2, close_socket/2, datestr/0, datestr/1,
-		 erl_system_args/0, setsubdir/1]).
+		 erl_system_args/0, setsubdir/1, stop_all/2, stop_all/3]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -216,4 +216,22 @@ setsubdir(FileName) ->
             ?LOGF("Can't create directory ~s (~p)!~n",[Dir, Err],?EMERG),
             {error, Err}
     end.
+
+stop_all(Host, Name) ->
+	stop_all(Host, Name, "IDX-Tsunami").
+
+stop_all([Host],Name,MsgName) when atom(Host) ->
+    List= net_adm:world_list([Host]),
+    global:sync(),
+	case global:whereis_name('ts_mon') of 
+		undefined ->
+			Msg = MsgName ++" is not running on " ++ atom_to_list(Host),
+			erlang:display(Msg);
+		Pid ->
+			Controller_Node = node(Pid),
+			slave:stop(Controller_Node)
+	end;
+stop_all(_,_,_)->
+	erlang:display("Bad Hostname").
+
 

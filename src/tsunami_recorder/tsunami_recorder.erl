@@ -62,9 +62,5 @@ stop(State) ->
 %% Func: stop_all/0
 %% Returns: any 
 %%----------------------------------------------------------------------
-stop_all([Host]) ->
-    List= net_adm:world_list([Host]),
-    global:sync(),
-    Pid = global:whereis_name('ts_proxy_listener'),
-    Controller_Node = node(Pid),
-    slave:stop(Controller_Node).
+stop_all(Arg) ->
+	ts_utils:stop_all(Arg,'ts_proxy_listener', "IDX-Tsunami recorder").
