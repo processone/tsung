@@ -11,15 +11,15 @@ table       {font-size:90%;}
 dl,ul,ol    {margin-top: 2pt; margin-bottom: 2pt;}
 u.diff      {color:#0000ff; background-color:#ffffff;}strike.diff {color:#ff0000; background-color:#ffffff;}
 tt, pre     {font-family:monospace; color:#666666; background-color:#ffffff;} /* margin-bottom: 0;}*/
-pre.code {
-    margin-top: 8pt;
-    margin-bottom: 8pt;
+pre {
+/*     margin-top: 2pt; */
+/*     margin-bottom: 2pt; */
     background-color: #ffffee;
     white-space:pre;
     border-style:solid;
     border-width:thin;
     border-color:#999999;    color:#333333;
-    padding:10px;
+    padding:3px;
     width:100%;
 }
 
