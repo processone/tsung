@@ -24,7 +24,7 @@
 
   1.  Introduction
 
-  1.1.  General
+1.1.  General
 
   This document gives pointers for information on this package which is
   distributed under the GNU General Public License version 2 (see file
@@ -48,10 +48,8 @@
   other simple models (deterministics).
 
   In this context, a client's session is characterize by:
-      - the mean time elapsed between requests ("think time")
-      - a list of requests during a session
-      - the type and parameters of requests (including, for example,
-        'chat' message size for Jabber)
+      - a set of actions: an action can be a request ('GET' or 'POST')
+      or a thinktime
 
   At the end of a session, the client stops.
 
@@ -63,19 +61,11 @@
   (therefore, the arrival process is a Poisson process). The thinktime
   can also be fixed (determinist).
 
-  The traffic can be logged to a file and, after completion of
-  all the clients, these files can be analyzed by scripts to get
-  useful measurements of responses time. A small script is furnished
-  for the Jabber protocol (mean, median, standard variation, and so on
-  are computed, for different types of messages: authentication,
-  chat, offline messages ...) and generic statistics. 
+  The traffic can be logged to a file andthis file can be analyzed by
+  scripts to get useful measurements of responses time. 
 
-  Since v0.2.0, stats are also be computed in real-time, and dumped in
-  a text file at regular interval. A script is provided to print
-  graphics using gnuplot.
-
-  This software is currently under development and can be enhanced
-  in many ways (see TODO file). 
+  Since v0.2.0, these stats are also be computed in real-time. A
+  script is provided to print  graphics using gnuplot.
 
   2.  Getting Things Installed
 
@@ -89,7 +79,7 @@
   - gnuplot and perl5 (optional; for graphical output with analyse_msg.pl script)
 
   - for distributed test, you need an ssh access to remote machines
-    without passwd (use a RSA key without passphrase)
+    without passwd (use a RSA/DSA key without passphrase or ssh-agent)
 
   2.2.  Compilation and Installation
 
@@ -115,7 +105,7 @@
        statistical results from the logfiles. 
 
 	   Since v0.2.0, you can have 'realtime' stats using with the
-	   --stats and --plot option (no monitoring needed). It will
+	   --stats and --plot option. It will
 	   generate graphics in postscript using gnuplot. For HTTP, you
 	   MUST use --stats. This option requires a logfile, by default it
 	   is named 'idx-tsunami.log-YYYY:MM:DD-HH:mm'
@@ -134,7 +124,6 @@
        HTTP specific stats:
 		  - counter for each response status (200, 404, etc.)
 		  - http_bad_content_length (Body is larger than expected)
-		  - http_no_content_length
   
         Since v0.3.0, you can customize statistics using
         "transactions" in session definition.

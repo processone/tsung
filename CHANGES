@@ -1,4 +1,4 @@
-0.2.1 -> 0.3.0:  Major Feature Enhancements 
+0.2.1 -> 1.0.beta1:  Major Feature Enhancements 
     - rewrite the configuration engine. Now use an XML file.
     - add recording application: use as a HTTP proxy to record session into XML
       format

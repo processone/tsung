@@ -1,57 +1,142 @@
 <?xml version="1.0"?>
 
+<!-- set dumptraffic="true" to dump all received and sent packets -->
+<!-- set loglevel="debug" for maximum verbosity -->
 <idx-tsunami loglevel="notice" dumptraffic="false">
 
-  <!-- controller is not used (yet ?). -->
-  <controller host="schultze"></controller>
-  
+ 
   <!-- Client side setup -->
   <clients>
     <!-- maxusers is the max number of simultaneous clients. Don't set
     it too high because you can run out of file descriptors. Remember
     that ssl_esock use 2 fds by connection. -->
 
-    <client host="linuxit01" weight="3" maxusers="500">
-      <!-- Several virtual IP can be used.-->
-      <ip value="192.168.2.225"></ip>
-      <ip value="192.168.2.223"></ip>
+    <client host="localhost" weight="2" maxusers="500">
+      <!-- Several virtual IP can be used to simulate more
+      machines. Very useful when a load-balancer use the client's IP to
+      distribute the traffic amoung a cluster of servers-->
+      <ip value="192.168.2.223"></ip> 
+      <ip value="127.0.0.1"></ip>
     </client>
-<!--     <client host="speed4" weight="1" maxusers="250"> -->
-<!--       <ip value="192.168.2.224"></ip> -->
-<!--     </client> -->
+
+    <!-- a second machine is used, with a higher weight, and 2 cpus
+    (erlang does is not SMP aware, so we starts 2 beams to use all the
+    CPUs -->
+    <client host="speed4" weight="3" maxusers="250" cpu="2">
+      <ip value="192.168.2.224"></ip>
+    </client>
   </clients>
   
   <!-- Server side setup -->
-  <server host="linuxit02" port="80" type="tcp"></server> -->
+  <server host="localhost" port="7" type="tcp"></server> -->
   
   <!-- several arrival phases can be set: for each phase, you can set
   the mean inter-arrival time between new clients -->
   <!-- unit is not yet implemented. by default, the unit of time is seconds -->
 
-  <arrivalphase phase="1" duration="3600" unit="seconds">
-    <users interarrival="0.144" unit="seconds"> </users>
+  <arrivalphase phase="1" duration="3600" unit="second">
+    <users maxnumber="5" interarrival="2" unit="second"> </users>
   </arrivalphase>
 
   <!-- default values. These values overrides those set in the session
-  nodes -->
-  <default name="thinktime" value="30" random="false"> </default>
+  nodes. If random is true -->
+  <default name="thinktime" value="3" random="false"> </default>
+
+  <!-- HTTP parameters -->
   <!-- set Host header (server_name) value for HTTP/1.1 -->
-  <default type="ts_http" name="server_name" value="static"> </default>
+  <default type="ts_http" name="server_name" value="idealx.org"> </default>
 
+  <!-- JABBER parameters -->
+  <!-- to synchronise users,  use a global acknoledgement -->
+  <default type="ts_jabber" name="global_number" value="5"> </default>
+  <default type="ts_jabber" name="userid_max" value="100"> </default>
+  <default type="ts_jabber" name="domain" value="jabber.org"> </default>
+  <default type="ts_jabber" name="username" value="glop"> </default>
+  <default type="ts_jabber" name="passwd" value="glop"> </default>
 
-  <session name="test1" popularity="85.0" persistent="true" messages_ack="parse" type="ts_http">
-      <request> <http url="/" method="GET" version="1.1"></http> </request>
-      <request> <http url="http://linuxit02/images/accueil2/home-txtdeclar-2.gif" method="GETIMS" version="1.1" date="Fri, 14 Nov 2003 02:43:31 GMT"></http> </request>
-      <request> <http url="/" method="POST" version="1.1" contents="bla=blu"></http> </request>
+  <!-- ********************************************** -->
+  <!-- start a session for a http user. the popularity is the
+  frequency of this type os session. The sum of all session's
+  popularity must be 100 -->
+  <!-- ********************************************** -->
+  <session name="http-example" popularity="30" persistent="true" messages_ack="parse" type="ts_http">
+    <!-- full url with server name, this overrides the "server" config value -->
+    <request> <http url="http://linuxit02/" method="GET" version="1.1"></http> </request>
+    <!-- with GETIMS method, it send a GET with If-modified since: Date header -->
+    <!-- relative URL, use the latest server config -->
+    <request> <http url="/images/accueil2/home-txtdeclar-2.gif" method="GETIMS" version="1.1" date="Fri, 14 Nov 2003 02:43:31 GMT"></http> </request>
 
+    <thinktime value="20" random="true"></thinktime>
+    
+    <!--  after a thinktime, a new page begins. -->
+    <!--  start a transaction. This is used to have custom response time statistics -->
+    <transaction name="index_request">
+    <request> <http url="/index.en.html" method="GET" version="1.1" ></http> </request>
+  </transaction>
+
+    <!-- wait during 60 seconds -->
       <thinktime value="60" random="true"></thinktime>
 
-      <request> <http url="/" method="POST" version="1.0" contents="bla=blu"></http> </request>
-      
+      <request> <http url="/" method="POST" version="1.1" contents="bla=blu"></http> </request>
+
+    <!-- GET request with Basic authentication -->
+      <request> <http url="/bla" method="GET" version="1.1" contents="bla=blu&amp;name=glop">
+          <www_authenticate userid="Aladdin" passwd="open sesame"/>
+        </http>
+      </request>
   </session>
 
-  <session popularity="15.0" name="test2" persistent="true" messages_ack="parse" type="ts_http">
-    <request> <http url="/" method="GET" version="1.1"></http> </request>
+
+
+
+  <!-- ********************************************** -->
+  <!--   Jabber session example (see 'type' argument) -->
+  <!-- ********************************************** -->
+
+ <session popularity="70" name="jabber-example" persistent="true" messages_ack="local" type="ts_jabber">
+    
+    <request> <jabber type="connect" ack="no_ack"></jabber> </request>
+    <thinktime value="2"></thinktime>
+    <transaction name="authenticate">
+      <request> <jabber type="authenticate" ack="local"></jabber> </request>
+    </transaction>
+
+    <request> <jabber type="presence" ack="no_ack"/> </request>
+    <thinktime value="2"></thinktime>
+
+    <request> <jabber type="register" ack="no_ack" id="new"></jabber> </request>
+    
+    <transaction name="roster">
+      <request> <jabber type="iq:roster:set" ack="no_ack" destination="offline"></jabber> </request>
+      <request> <jabber type="presence:roster" ack="no_ack" destination="previous"></jabber> </request>
+      <request> <jabber type="iq:roster:set" ack="no_ack" destination="online"></jabber> </request>
+      <request> <jabber type="iq:roster:get" ack="no_ack"></jabber> </request>
+    </transaction>
+    <thinktime value="2"></thinktime>
+
+    <request> <jabber type="chat" ack="no_ack" size="56"></jabber> </request>
+    <thinktime value="30"></thinktime>
+
+    <transaction name="global_msg">
+    <request> <jabber type="chat" ack="global" size="56" destination="random"></jabber> </request>
+    </transaction>
+
+    <thinktime value="30"></thinktime>
+
+    <transaction name="online">
+    <request> <jabber type="chat" ack="no_ack" size="16" destination="online"></jabber> </request>
+    </transaction>
+    <thinktime value="30"></thinktime>
+
+    <transaction name="offline">
+    <request> <jabber type="chat" ack="no_ack" size="56" destination="offline"></jabber> </request>
+    </transaction>
+
+    <thinktime value="30"></thinktime>
+    
+    <transaction name="close">
+      <request> <jabber type="close" ack="local"></jabber> </request>
+    </transaction>
+
   </session>
-  
 </idx-tsunami>
