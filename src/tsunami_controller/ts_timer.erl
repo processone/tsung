@@ -68,7 +68,7 @@ connected(Pid) ->
 %%          ignore                              |
 %%          {stop, StopReason}                   
 %%----------------------------------------------------------------------
-init(Args) ->
+init(_Args) ->
 	?LOG("starting timer",?INFO),
 	{ok, initialize, #state{}}.
 
@@ -84,7 +84,7 @@ initialize({config, Val}, State) ->
 
 %% now all the clients are connected, let's start to ack them
 receiver({connected, Pid}, #state{pidlist=List, nclient=0}) ->
-	{next_state, ack, #state{pidlist=List}, 1};
+	{next_state, ack, #state{pidlist=[Pid|List]}, 1};
 
 %% receive a new connected mes
 receiver({connected, Pid}, #state{pidlist=List, nclient=N}) ->
