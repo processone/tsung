@@ -160,6 +160,9 @@ terminate(Reason, State) ->
 
 %%----------------------------------------------------------------------
 %% Func: handle_data_msg/2
+%% Args: Data (binary), State ('state_rcv' record)
+%% Returns: NewState ('state_rcv' record)
+%% Purpose: handle data received from a socket
 %%----------------------------------------------------------------------
 handle_data_msg(Data, State) ->
 	ts_mon:rcvmes({State#state_rcv.monitor, self(), now(), Data}),
