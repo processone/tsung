@@ -314,7 +314,10 @@ add_stats_data({count, Type}, Stats)  ->
 %% cumulative counter
 add_stats_data({sum, Type, Val}, Stats)  ->
 	Add = fun (OldVal) -> OldVal+Val end,
-	dict:update(Type, Add, Val, Stats).
+	dict:update(Type, Add, Val, Stats);
+add_stats_data(Data, Stats) ->
+    ?LOGF("Wrong stats data ! ~p~n",[Data], ?WARN),
+    Stats.
 
 %%----------------------------------------------------------------------
 %% Func: print_stats/2
@@ -333,11 +336,11 @@ print_stats(State) ->
 
 print_dist_list([], Last, Logfile) ->
 	done;
-print_dist_list([{Key, [Mean, 0, Max, Min, Count]} | Tail], LastRes, Logfile) ->
+print_dist_list([{Key, [Mean, 0, Max, Min, Count| _]} | Tail], LastRes, Logfile) ->
 	io:format(Logfile, "stats: ~s ~p ~p ~p ~p ~p ~p ~n", 
 			  [Key, Count, Mean, 0, Max, Min, Count ]),
 	print_dist_list(Tail, LastRes, Logfile);
-print_dist_list([{Key, [Mean, Var, Max, Min, Count]} | Tail], LastRes, Logfile) ->
+print_dist_list([{Key, [Mean, Var, Max, Min, Count | _]} | Tail], LastRes, Logfile) ->
 	StdVar = math:sqrt(Var/Count),
 	io:format(Logfile, "stats: ~s ~p ~p ~p ~p ~p ~p ~n",
 			  [Key, Count, Mean, StdVar, Max, Min, Count ]),
@@ -375,13 +378,16 @@ update_stats(Args, New) -> % ???
 %% Returns: List  = [Mean, Variance, Max, Min, Count, LastValue]
 %%----------------------------------------------------------------------
 update_stats_counter([], New) -> %% first call, store the initial value
-	[0, New];
-update_stats_counter([0, First], New) ->%%second call
-    Sample=New-First,
-	[Sample, New];
-update_stats_counter([PrevVal, Last], New) ->
-    Sample=New-Last,
-	[Sample, New].
+	[0, 0, 0, 0, 0, New];
+update_stats_counter([0, 0, 0, 0, 0, Last], Value) ->
+    New = Value-Last,
+	[New, 0, New, New, 1, Value];
+update_stats_counter([Mean, Var, Max, Min, Count, Last], Value) ->
+	{NewMean, NewVar, _} = ts_stats:meanvar(Mean, Var, [Value-Last], Count),
+	NewMax = lists:max([Max, Value]),
+	NewMin = lists:min([Min, Value]),
+	[NewMean, NewVar, NewMax, NewMin, Count+1, Value].
+
 %%
 reset_all_stats(Dict)->
 	MyFun = fun (Key, OldVal) -> reset_stats(OldVal) end,
@@ -393,6 +399,8 @@ reset_all_stats(Dict)->
 %%----------------------------------------------------------------------
 reset_stats([]) ->
 	[0, 0, 0, 0, 0];
+reset_stats([Mean, Var, Max, Min, Count, Last]) ->
+	[0, 0, Max, Min, 0, Last];
 reset_stats([Mean, Var, Max, Min, Count]) ->
 	[0, 0, Max, Min, 0];
 reset_stats([Sample, LastValue]) -> %% counter

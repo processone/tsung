@@ -79,7 +79,7 @@
 <div id="os_mon">
  <h3 id="os_mon">Server monitoring</h3> 
  <table class="stats">
-  <tr><th class="stats">Name</th> <th class="stats">highest mean value</th><th class="stats">lowset mean value</th> <th class="stats">Highest Rate</th>
+  <tr><th class="stats">Name</th> <th class="stats">highest mean value</th><th class="stats">lowset mean value</th>
   </tr>
  [% FOREACH key = data.rate.keys.sort %]
    [% IF cat_data.$key == "os_mon_cpu" %]
@@ -87,7 +87,6 @@
 		<td class="stats">$key</td>
 		<td class="stats">[%  data.mean.$key %] %</td>
 		<td class="stats">[%  data.minmean.$key %] %</td>
-		<td class="stats"></td>
      </tr>
    [% END %]
    [% IF cat_data.$key == "os_mon_free" %]
@@ -95,15 +94,13 @@
 		<td class="stats">$key</td>
 		<td class="stats">[%  data.mean.$key %] MB</td>
 		<td class="stats">[%  data.minmean.$key %] MB</td>
-		<td class="stats"></td>
      </tr>
    [% END %]
    [% IF cat_data.$key == "os_mon_packets" %]
      <tr>
 		<td class="stats">$key</td>
-		<td class="stats"></td>
-		<td class="stats"></td>
-		<td class="stats">[%  data.rate.$key %] / sec</td>
+		<td class="stats">[%  data.mean.$key %] / sec</td>
+		<td class="stats">[%  data.minmean.$key %] / sec</td>
      </tr>
    [% END %]
  [% END %]
