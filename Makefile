@@ -32,7 +32,7 @@ show:
 
 tarball: 
 	mkdir -p $(TARDIR)
-	tar zcf tmp.tgz src/*.erl src/*.src include/*.hrl doc/*.txt doc/*.fig doc/*.png LISEZMOI README CONTRIBUTORS COPYING src/idx-tsunami.pl.src idx-tsunamirc TODO Makefile vsn.mk src/analyse_msg.pl.src FAQ CHANGES
+	tar zcf tmp.tgz src/*.erl src/*.src include/*.hrl doc/*.txt doc/*.fig doc/*.png LISEZMOI README CONTRIBUTORS COPYING  idx-tsunamirc TODO Makefile vsn.mk src/analyse_msg.pl.src FAQ CHANGES
 	tar -C $(TARDIR) -zxf tmp.tgz
 	mkdir $(TARDIR)/ebin
 	tar zvcf  idx-tsunami-$(VSN).tar.gz $(TARDIR)
@@ -41,12 +41,11 @@ tarball:
 
 
 clean:
-	rm -f $(ALLBEAMS) tsunami.boot tsunami.script ebin/tsunami*.app ebin/tsunami*.rel ebin/idx-tsunami.pl ebin/analyse_msg.pl
+	rm -f $(ALLBEAMS) tsunami.boot tsunami.script ebin/tsunami*.app ebin/tsunami*.rel  ebin/analyse_msg.pl
 
-tsunami.boot:	 ebin $(ALLBEAMS) $(UTILS) src/tsunami.rel.src src/tsunami.app.src src/analyse_msg.pl.src src/idx-tsunami.pl.src Makefile
+tsunami.boot:	 ebin $(ALLBEAMS) $(UTILS) src/tsunami.rel.src src/tsunami.app.src src/analyse_msg.pl.src  Makefile
 	sed -e 's@%VSN%@$(VSN)@;s@%prefix%@$(prefix)@' ./src/tsunami.app.src > ./ebin/tsunami.app
 	sed -e 's;%VSN%;$(VSN);' ./src/tsunami.rel.src > ./ebin/tsunami.rel
-	sed -e 's@%VSN%@$(VSN)@;s@%prefix%@$(prefix)@' ./src/idx-tsunami.pl.src > ./ebin/idx-tsunami.pl
 	sed -e 's;%VSN%;$(VSN);' ./src/analyse_msg.pl.src > ./ebin/analyse_msg.pl
 	erl -noshell $(PA) ./src -s make_boot make_boot tsunami
 
