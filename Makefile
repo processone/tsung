@@ -9,34 +9,17 @@ PA = -pa ./ebin -pa ./src -pa . -pa ./system -pa ../ebin -pa .. -pa ../system -p
 
 prefix = /usr/local/idx-tsunami
 
-ERLC = erlc
+DEBUGINFO:=+debug_info
+ERLC = erlc $(DEBUGINFO)
 OUTDIR = ebin
-OBJS = \
-	$(OUTDIR)/tsunami.beam \
-	$(OUTDIR)/ts_launcher.beam \
-	$(OUTDIR)/ts_client.beam \
-	$(OUTDIR)/ts_mon.beam \
-	$(OUTDIR)/ts_client_rcv.beam \
-	$(OUTDIR)/ts_utils.beam \
-	$(OUTDIR)/ts_profile.beam \
-	$(OUTDIR)/ts_stats.beam \
-	$(OUTDIR)/ts_user_server.beam \
-	$(OUTDIR)/ts_msg_server.beam  \
-	$(OUTDIR)/ts_req_server.beam \
-	$(OUTDIR)/ts_timer.beam \
-	$(OUTDIR)/ts_client_sup.beam \
-	$(OUTDIR)/ts_sup.beam \
-	$(OUTDIR)/jabber_common.beam \
-	$(OUTDIR)/jabber_dynamic.beam \
-	$(OUTDIR)/jabber_roster.beam \
-	$(OUTDIR)/jabber_online.beam \
-	$(OUTDIR)/jabber_offline.beam \
-	$(OUTDIR)/jabber_auth.beam \
-	$(OUTDIR)/jabber_unique.beam \
-	$(OUTDIR)/jabber_register.beam \
-	$(OUTDIR)/make_boot.beam 
+ALLERLS:= $(wildcard src/*.erl)
+ALLBEAMS:=$(patsubst src/%.erl,$(OUTDIR)/%.beam, $(ALLERLS))
 
 all:	tsunami.boot
+
+show:
+	@echo "sources: $(ALLERLS)"
+	@echo "beam: $(ALLBEAMS)"
 
 tarball: 
 	mkdir -p $(TARDIR)
@@ -49,9 +32,9 @@ tarball:
 
 
 clean:
-	rm -f $(OBJS) tsunami.boot tsunami.script ebin/tsunami.app ebin/tsunami.rel ebin/idx-tsunami.pl ebin/analyse_msg.pl
+	rm -f $(ALLBEAMS) tsunami.boot tsunami.script ebin/tsunami.app ebin/tsunami.rel ebin/idx-tsunami.pl ebin/analyse_msg.pl
 
-tsunami.boot:	 ebin $(OBJS) $(UTILS) src/tsunami.rel.src src/tsunami.app.src src/analyse_msg.pl.src src/idx-tsunami.pl.src
+tsunami.boot:	 ebin $(ALLBEAMS) $(UTILS) src/tsunami.rel.src src/tsunami.app.src src/analyse_msg.pl.src src/idx-tsunami.pl.src
 	sed -e 's;%VSN%;$(VSN);' ./src/tsunami.app.src > ./ebin/tsunami.app
 	sed -e 's;%VSN%;$(VSN);' ./src/tsunami.rel.src > ./ebin/tsunami.rel
 	sed -e 's;%VSN%;$(VSN);' ./src/idx-tsunami.pl.src > ./ebin/idx-tsunami.pl
@@ -74,12 +57,12 @@ install: tsunami.boot
 	mkdir -p $(DESTDIR)/$(prefix)/etc
 	mkdir -p $(DESTDIR)/$(prefix)/bin
 	install -m 0644 tsunami.boot $(DESTDIR)/$(prefix)/bin
-	install -m 0644 idx-tsunamirc $(DESTDIR)/$(prefix)/etc
+	install -m 0644 idx-tsunamirc $(DESTDIR)/$(prefix)/etc/idx-tsunamirc.default
 	install ebin/idx-tsunami.pl $(DESTDIR)/${prefix}/bin
 	install ebin/analyse_msg.pl $(DESTDIR)/${prefix}/bin
 	mkdir -p $(DESTDIR)/$(prefix)
 	mkdir -p $(DESTDIR)/$(prefix)/erlang
 	mkdir -p $(DESTDIR)/$(prefix)/erlang/tsunami-$(VSN)
 	mkdir -p $(DESTDIR)/$(prefix)/erlang/tsunami-$(VSN)/ebin
-	install $(OBJS) $(DESTDIR)/$(prefix)/erlang/tsunami-$(VSN)/ebin
+	install $(ALLBEAMS) $(DESTDIR)/$(prefix)/erlang/tsunami-$(VSN)/ebin
 
