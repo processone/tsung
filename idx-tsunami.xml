@@ -5,6 +5,7 @@
 <idx-tsunami loglevel="notice" dumptraffic="false">
 
  
+  
   <!-- Client side setup -->
   <clients>
     <!-- maxusers is the max number of simultaneous clients. Don't set
@@ -28,14 +29,18 @@
   </clients>
   
   <!-- Server side setup -->
-  <server host="localhost" port="7" type="tcp"></server> -->
+  <server host="myserver" port="7" type="tcp"></server> -->
+
+  <!-- to start os monitoring (cpu, network, memory). Use an erlang
+  agent on the remote machine --> 
+  <monitor host="myserver"></monitoring>
   
   <!-- several arrival phases can be set: for each phase, you can set
-  the mean inter-arrival time between new clients -->
-  <!-- unit is not yet implemented. by default, the unit of time is seconds -->
+  the mean inter-arrival time between new clients and the phase
+  duration -->
 
   <arrivalphase phase="1" duration="3600" unit="second">
-    <users maxnumber="5" interarrival="2" unit="second"> </users>
+    <users interarrival="2" unit="second"> </users>
   </arrivalphase>
 
   <!-- default values. These values overrides those set in the session
@@ -129,7 +134,7 @@
     <thinktime value="30"></thinktime>
 
     <transaction name="offline">
-    <request> <jabber type="chat" ack="no_ack" size="56" destination="offline"></jabber> </request>
+      <request> <jabber type="chat" ack="no_ack" size="56" destination="offline"></jabber> </request>
     </transaction>
 
     <thinktime value="30"></thinktime>
