@@ -341,14 +341,21 @@ handle_next_request(Profile, State) ->
                                                            timestamp= Now }};
                 {error, closed} -> 
                     ?LOG("connection close while sending message !~n", ?WARN),
-                    handle_close_while_sending(State);
+                    handle_close_while_sending(State#state_rcv{socket=NewSocket,
+                                                               protocol=Protocol,
+                                                               host=Host,
+                                                               port=Port});
                 {error, Reason} -> 
                     ?LOGF("Error: Unable to send data, reason: ~p~n",[Reason],?ERR),
                     CountName="error_send_"++atom_to_list(Reason),
                     ts_mon:add({ count, list_to_atom(CountName) }),
                     {stop, normal, State};
                 {'EXIT', {noproc, _Rest}} ->
-                    handle_close_while_sending(State);
+                    ?LOG("EXIT from ssl app while sending message !~n", ?WARN),
+                    handle_close_while_sending(State#state_rcv{socket=NewSocket,
+                                                               protocol=Protocol,
+                                                               host=Host,
+                                                               port=Port});
                 Exit ->
                     ?LOGF("EXIT Error: Unable to send data, reason: ~p~n",
                           [Exit], ?ERR),
@@ -375,12 +382,13 @@ finish_session(State) ->
 %%          send a message, restart in a few moment (this time we will
 %%          reconnect before sending)
 %%----------------------------------------------------------------------
-handle_close_while_sending(State=#state_rcv{persistent=true}) ->
+handle_close_while_sending(State=#state_rcv{persistent=true,protocol=Proto})->
+    ts_utils:close_socket(Proto, State#state_rcv.socket),
     Think = ?config(client_retry_timeout),
     set_thinktime(Think),
     ?LOGF("Server must have closed connection upon us, waiting ~p msec~n",
           [Think], ?NOTICE),
-    {next_state, think, State};
+    {next_state, think, State#state_rcv{socket=none}};
 handle_close_while_sending(State) ->
     {stop, error, State}.
     
