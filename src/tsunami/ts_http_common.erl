@@ -141,7 +141,7 @@ matchdomain_url(Cookie, Host, URL) -> % return a cookie only if domain match
 %%  about the response if State#state_rcv.session
 %%----------------------------------------------------------------------
 parse(closed, State) ->
-    {State#state_rcv{session= #http{}, ack_done = true }, [], true};
+    {State#state_rcv{session= #http{}, ack_done = true}, [], true};
     
 parse(Data, State=#state_rcv{session=HTTP}) when HTTP#http.status == none;
 												 HTTP#http.partial == true ->
@@ -166,7 +166,7 @@ parse(Data, State=#state_rcv{session=HTTP}) when HTTP#http.status == none;
 		{ok, Http=#http{content_length=0, close=true}, Tail} ->
 			DynData = concat_cookies(Http#http.cookie, State#state_rcv.dyndata),
 			{State#state_rcv{session= Http,
-							 datasize = TotalSize, acc = [],
+							 datasize = TotalSize,
 							 dyndata= DynData}, [], true};
 		{ok, Http=#http{content_length=CLength}, Tail} ->
 			DynData = concat_cookies(Http#http.cookie, State#state_rcv.dyndata),

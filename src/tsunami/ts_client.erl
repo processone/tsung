@@ -496,8 +496,10 @@ handle_data_msg(Data, State=#state_rcv{request=Req, clienttype=Type}) when Req#t
 	ts_mon:rcvmes({State#state_rcv.monitor, self(), Data}),
 	
     {NewState, Opts, Close} = Type:parse(Data, State),
-    NewBuffer = case {Req#ts_request.match,Req#ts_request.dynvar_specs} of 
-                    {undefined,undefined} -> << >>;
+    NewBuffer = case {Req#ts_request.match,Req#ts_request.dynvar_specs, Data} of 
+                    {undefined,undefined,_} -> << >>;
+                    {_,_,closed} -> 
+                        State#state_rcv.buffer;
                     _ ->
                         ?Debug("Bufferize response~n"),
                         OldBuffer = State#state_rcv.buffer,
