@@ -37,9 +37,9 @@ sample (F, Param, N) ->
     sample(F, [], Param, N-1).
 
 sample (F, X, Param, 0) ->
-    [F(Param)] ++ X ;
+    [F(Param) | X] ;
 sample (F, X, Param, N) ->
-    sample(F, X ++ [F(Param)], Param, N-1 ).
+    sample(F, [F(Param)|X], Param, N-1 ).
     
 %% random sample from an exponential distribution
 exponential(Param) ->
