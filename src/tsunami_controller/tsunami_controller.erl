@@ -21,7 +21,7 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
--export([start/2, start_phase/3, stop/1, stop_all/1]).
+-export([start/2, start_phase/3, stop/1, stop_all/1, status/1]).
 -behaviour(application).
 
 -include("ts_profile.hrl").
@@ -65,7 +65,25 @@ start_phase(start_clients, StartType, PhaseArgs) ->
     ts_mon:start_clients({?config(clients),
                           ?config(dump),
                           ?config(stats_backend)}).
-    
+%%----------------------------------------------------------------------
+%% Func: status/1
+%% Returns: any 
+%%----------------------------------------------------------------------
+status([Host]) when is_atom(Host)->
+    List= net_adm:world_list([Host]),
+    global:sync(),
+    Msg = case catch gen_server:call({global, ts_mon}, {status}) of 
+              {Clients, {ok, {sample,[Mean, Var, Max, Min, Count]}},Interval}->
+                  io_lib:format("IDX-Tsunami is running [OK]~n" ++
+                                " Current request rate: ~p req/sec~n" ++
+                                " Current users:        ~p",
+                                [Count/Interval, Clients]);
+              {Clients,  error, _} ->
+                  "IDX-Tsunami is initializing, please wait ...";
+              {'EXIT', {noproc, _}} ->
+                  "IDX-Tsunami is not started [ERROR]"
+          end,
+    io:format("~s~n",[Msg]).  
 
 %%----------------------------------------------------------------------
 %% Func: stop/1

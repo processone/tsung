@@ -61,6 +61,7 @@
 				stats,        % dict keeping stats info
 				stop = false, % true if we should stop
 				laststats,    % values of last printed stats
+				lastdate,     % date of last printed stats
 				type          % type of logging (none, light, full)
 			   }).
 
@@ -81,7 +82,6 @@ start(LogDir) ->
 start_clients({Machines, Dump, BackEnd}) ->
     gen_server:call({global, ?MODULE}, {start_logger, Machines, Dump, BackEnd},
                     infinity).
-
 stop() ->
 	gen_server:cast({global, ?MODULE}, {stop}).
 
@@ -134,6 +134,7 @@ init([LogDir]) ->
                          dump_interval = ?config(dumpstats_interval),
                          log_dir = LogDir,
                          stats   = Tab,
+                         lastdate  = now(),
                          laststats = Tab
 					   }};
 		{error, Reason} ->
@@ -162,7 +163,15 @@ handle_call({start_logger, Machines, DumpType, rrdtool}, From, State) ->
 handle_call({start_logger, Machines, DumpType, text}, From, State) ->
     start_logger({Machines, DumpType, text}, From, State);
             
+%%% get status
+handle_call({status}, From, State ) ->
+    Request = dict:find(request, State#state.stats),
+    Interval = ts_utils:elapsed(State#state.lastdate, now()) / 1000,
+    Reply = { State#state.client, Request, Interval},
+	{reply, Reply, State};
+
 handle_call(Request, From, State) ->
+    ?LOGF("Unknown call ~p !~n",[Request],?ERR),
 	Reply = ok,
 	{reply, Reply, State}.
 
@@ -194,7 +203,7 @@ handle_cast({add, Data}, State) when is_tuple(Data) ->
 handle_cast({dumpstats}, State) ->
 	export_stats(State),
 	NewStats = reset_all_stats(State#state.stats),
-	{noreply, State#state{laststats = NewStats, stats= NewStats}};
+	{noreply, State#state{laststats = NewStats, stats=NewStats,lastdate=now()}};
 
 handle_cast({rcvmsg, Who, When, What}, State = #state{type=none}) ->
 	{noreply, State};

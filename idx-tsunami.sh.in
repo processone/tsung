@@ -79,8 +79,7 @@ logdir() {
 }
 
 status() {
-    echo "status: not yet implemented"
-
+    erl -noshell -sname tsunami_status -setcookie $COOKIE -pa $TSUNAMIPATH -pa $CONTROLLERPATH -s tsunami_controller status $HOST -s init stop
 }
 
 usage() {
