@@ -138,7 +138,6 @@ init([]) ->
 	{{Y,M,D},{H,Min,S}} = erlang:universaltime(),
 	Date = io_lib:format("-~w:~w:~w-~w:~w",[Y,M,D,H,Min]),
     Filename = ?config(log_file) ++ Date,
-    erlang:display(?config(log_file)),
     case file:open(Filename,write) of 
 		{ok, Stream} ->
 			?LOG("starting monitor~n",?NOTICE),
@@ -268,7 +267,6 @@ handle_cast({endclient, Who, When, Elapsed}, State) ->
 	end,
 	case {Clients, State#state.stop} of 
 		{0, true} -> 
-			io:format(State#state.log,"EndMonitor:~w~n",[now()]),
 			{stop, normal, State};
 		_ -> 
 			{noreply, State#state{client = Clients, stats=NewTab}}
@@ -297,6 +295,7 @@ handle_info(Info, State) ->
 terminate(Reason, State) ->
 	?LOGF("stoping monitor (~p)~n",[Reason],?NOTICE),
 	print_stats(State),
+    io:format(State#state.log,"EndMonitor:~w~n",[now()]),
 	file:close(State#state.log),
     slave:stop(node()),
 	ok.
