@@ -321,19 +321,20 @@ ets_iterator_next(Ets, undefined, Key) ->
         '$end_of_table' ->
             {error, empty_ets};
         Key ->
-            {error, empty_ets_other};
+            case ets:next(Ets,Key) of 
+                '$end_of_table' ->
+                    {error, empty_ets};
+                Iter ->
+                    {ok, Iter}
+            end;
         NewIter ->
             {ok, NewIter}
     end;
 ets_iterator_next(Ets, Iterator, Key) ->
     case ets:next(Ets,Iterator) of 
-        '$end_of_table' ->
-            case ets:first(Ets) of 
-                '$end_of_table' ->
-                    {error, empty_ets};
-                NewIter ->
-                    {ok, NewIter}
-            end;
+        '$end_of_table' -> 
+            %% start again from the beginnig
+            ets_iterator_next(Ets, undefined, Key);
         Key -> % not this one, try again
             ets_iterator_next(Ets, Key, Key);
         Next ->
