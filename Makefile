@@ -16,7 +16,7 @@ else
   endif	
 endif
 INC = ./include
-CC  = $(ERL)c
+CC  = $(ERLC)
 SED = $(shell which sed)
 
 ESRC = ./src
