@@ -39,7 +39,7 @@
 
 %% External exports
 -export([start/1, stop/0, newclient/1, endclient/1, newclient/1, sendmes/1,
-         start_clients/1, abort/0,
+         start_clients/1, abort/0, status/0,
          rcvmes/1, add/1, dumpstats/0
 		]).
 
@@ -84,6 +84,9 @@ start_clients({Machines, Dump, BackEnd}) ->
                     infinity).
 stop() ->
 	gen_server:cast({global, ?MODULE}, {stop}).
+
+status() ->
+	gen_server:call({global, ?MODULE}, {status}).
 
 abort() ->
 	gen_server:cast({global, ?MODULE}, {abort}).
@@ -167,7 +170,8 @@ handle_call({start_logger, Machines, DumpType, text}, From, State) ->
 handle_call({status}, From, State ) ->
     Request = dict:find(request, State#state.stats),
     Interval = ts_utils:elapsed(State#state.lastdate, now()) / 1000,
-    Reply = { State#state.client, Request, Interval},
+    Phase = dict:find(newphase, State#state.stats),
+    Reply = { State#state.client, Request, Interval, Phase},
 	{reply, Reply, State};
 
 handle_call(Request, From, State) ->

@@ -131,6 +131,7 @@ wait({launch, {[{Intensity, Users}| Rest], Max}}, State) ->
 
 launcher(Event, State=#state{nusers = 0, phases = [] }) ->
 	?LOG("no more clients to start, wait  ~n",?INFO),
+    ts_config_server:endlaunching(node()),
     {next_state, finish, #state{}, ?check_noclient_timeout};
 
 launcher(timeout, State=#state{nusers    = Users,

@@ -45,7 +45,8 @@
 %% External exports
 -export([start_link/1, read_config/1, get_req/2, get_next_session/1,
          get_client_config/1, newbeam/1, newbeam/2, get_server_config/0,
-		 get_monitor_hosts/0, encode_filename/1, decode_filename/1]).
+		 get_monitor_hosts/0, encode_filename/1, decode_filename/1,
+         endlaunching/1, status/0]).
 
 %%debug
 -export([choose_client_ip/2, choose_session/1]).
@@ -58,6 +59,7 @@
                 logdir,
                 start_date,       % 
                 last_beam_id = 0, % last tsunami beam id (used to set nodenames)
+                ending_beams = 0, % number of beams with no new users to start
                 lastips,          % store next ip to choose for each client host
                 total_weight      % total weight of client machines
                }).
@@ -71,6 +73,9 @@
 %%--------------------------------------------------------------------
 start_link(LogDir) ->
     gen_server:start_link({global, ?MODULE}, ?MODULE, [LogDir], []).
+
+status() ->
+	gen_server:call({global, ?MODULE}, {status}).
 
 %%--------------------------------------------------------------------
 %% Function: newbeam/1
@@ -130,6 +135,10 @@ get_monitor_hosts()->
 %%--------------------------------------------------------------------
 get_next_session(Host)->
 	gen_server:call({global, ?MODULE},{get_next_session, Host}).
+
+endlaunching(Node) ->
+	gen_server:cast({global, ?MODULE},{end_launching, Node}).
+    
 
 %%====================================================================
 %% Server functions
@@ -244,7 +253,14 @@ handle_call({get_monitor_hosts}, From, State) ->
     Config = State#state.config,
     {reply, Config#config.monitor_hosts, State};
 
+% get status: send the number of actives nodes
+handle_call({status}, From, State) ->
+    Config = State#state.config,
+    Reply = {ok, length(Config#config.clients), State#state.ending_beams},
+    {reply, Reply, State};
+
 handle_call(Request, From, State) ->
+    ?LOGF("Unknown call ~p !~n",[Request],?ERR),
     Reply = ok,
     {reply, Reply, State}.
 
@@ -292,7 +308,11 @@ handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
             {stop, normal}
     end;
 
+handle_cast({end_launching, Node}, State=#state{ending_beams=Beams}) ->
+    {noreply, State#state{ending_beams = Beams+1}};
+
 handle_cast(Msg, State) ->
+    ?LOGF("Unknown cast ~p ! ~n",[Msg],?WARN),
     {noreply, State}.
 
 %%--------------------------------------------------------------------
