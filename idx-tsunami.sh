@@ -9,11 +9,11 @@ stop() {
 }
 
 start() {
-    erl -rsh ssh -detached -sname $CONTROLLER -setcookie 'tsunami' -boot_var TSUNAMIPATH /usr/local/idx-tsunami/erlang -boot /usr/local/idx-tsunami/bin/tsunami_controller +A 1 -tsunami_controller config_file \"/usr/local/idx-tsunami/etc/idx-tsunami_teleir.xml\" -shared +Mea r10b
+    erl -rsh ssh -detached -sname $CONTROLLER -setcookie 'tsunami' -boot_var TSUNAMIPATH /usr/local/idx-tsunami/erlang -boot /usr/local/idx-tsunami/bin/tsunami_controller +A 1 -tsunami_controller config_file \"/usr/local/idx-tsunami/etc/idx-tsunami.xml\" -shared +Mea r10b
 }
 
 debug() {
-    erl -rsh ssh  -sname $CONTROLLER -setcookie 'tsunami' -boot_var TSUNAMIPATH /usr/local/idx-tsunami/erlang -boot /usr/local/idx-tsunami/bin/tsunami_controller +A 1 -tsunami_controller config_file \"/usr/local/idx-tsunami/etc/idx-tsunami_teleir.xml\" -shared +Mea r10b
+    erl -rsh ssh  -sname $CONTROLLER -setcookie 'tsunami' -boot_var TSUNAMIPATH /usr/local/idx-tsunami/erlang -boot /usr/local/idx-tsunami/bin/tsunami_controller +A 1 -tsunami_controller config_file \"/usr/local/idx-tsunami/etc/idx-tsunami.xml\" -shared +Mea r10b
 }
 
 case "$1" in
