@@ -170,11 +170,6 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 	Close   = Http#http.close,
 	Cookie  = lists:append([Http#http.cookie, State#state_rcv.dyndata]),
 	if 
-		CLength == 0, Http#http.status== 304 ->
-			?Debug("HTTP Not modified~n"),
-			{State#state_rcv{session= #http{}, ack_done = true,
-							 datasize = TotalSize,
-							 dyndata  = Cookie}, [], Close};
 		CLength == 0, Http#http.chunk_toread == 0 ->
 			case parse_chunked(Tail, State#state_rcv{session=Http}) of
 				{NewState=#state_rcv{ack_done=false}, Opts} ->
@@ -431,6 +426,10 @@ parse_line("HTTP/1.1 " ++ TailLine, Http )->
 parse_line("HTTP/1.0 " ++ TailLine, Http )->
 	parse_status(TailLine, Http#http{close=true});
 
+parse_line("Content-length: "++Tail, Http)->
+	CL=list_to_integer(Tail),
+	?DebugF("HTTP Content-Length ~p~n",[CL]),
+	Http#http{content_length=CL};
 parse_line("Content-Length: "++Tail, Http)->
 	CL=list_to_integer(Tail),
 	?DebugF("HTTP Content-Length ~p~n",[CL]),
