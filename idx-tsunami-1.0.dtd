@@ -49,8 +49,9 @@
 <!ATTLIST session popularity NMTOKEN #REQUIRED >
 <!ATTLIST session type NMTOKEN #REQUIRED >
 
-<!ELEMENT request ( http | jabber )* >
+<!ELEMENT request ( http | jabber ) >
 <!ATTLIST request subst (true|false) #IMPLIED >
+<!ATTLIST request match CDATA #IMPLIED >
 
 <!ELEMENT thinktime EMPTY >
 <!ATTLIST thinktime random (true|false) #IMPLIED >
@@ -59,12 +60,16 @@
 <!ELEMENT transaction ( request+ ) >
 <!ATTLIST transaction name NMTOKEN #REQUIRED >
 
-<!ELEMENT http ( www_authenticate? ) >
+<!ELEMENT http ( www_authenticate?, soap? ) >
 <!ATTLIST http contents CDATA #IMPLIED >
+<!ATTLIST http content_type CDATA #IMPLIED >
 <!ATTLIST http if_modified_since CDATA #IMPLIED >
 <!ATTLIST http method (GET | POST) #REQUIRED >
 <!ATTLIST http url CDATA #REQUIRED >
 <!ATTLIST http version (1.0 | 1.1) #REQUIRED >
+
+<!ELEMENT soap EMPTY >
+<!ATTLIST soap action CDATA #REQUIRED >
 
 <!ELEMENT www_authenticate EMPTY >
 <!ATTLIST www_authenticate passwd CDATA #REQUIRED >
