@@ -51,8 +51,8 @@ debug(From, Message, Args, Level) ->
 
 %% print elapsed time in microseconds
 elapsed({Before1, Before2, Before3}, {After1, After2, After3}) ->
-    After  = After1  * 1000000000000  + After2  * 1000000 + After3,
-    Before = Before1 * 1000000000000  + Before2 * 1000000 + Before3,
+    After  = After1  * 1000000000  + After2  * 1000 + After3/1000,
+    Before = Before1 * 1000000000  + Before2 * 1000 + Before3/1000,
     After - Before.
 
 % remove trailing "\n"
