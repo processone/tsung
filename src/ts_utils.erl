@@ -21,12 +21,12 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
--include("../include/ts_profile.hrl").
+-include("ts_profile.hrl").
 
 %% user interface
 -export([debug/3, debug/4, get_val/1, init_seed/0, chop/1, elapsed/2,
          now_sec/0, inet_setopts/4, node_to_hostname/1, add_time/2,
-        level2int/1]).
+        level2int/1, mkey1search/2 ]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -142,3 +142,25 @@ inet_setopts(gen_udp, Socket,  Opts, Pid)->
 node_to_hostname(Node) ->
     [Nodename, Hostname] = string:tokens( atom_to_list(Node), "@"),
     {ok, Hostname}.
+
+%%----------------------------------------------------------------------
+%% Func: mkey1search/2
+%% Purpose: multiple key1search:
+%% Take as input list of {Key, Value} tuples (length 2).
+%% Return the list of values corresponding to a given key
+%% It is assumed here that there might be several identical keys in the list
+%% unlike the lists:key... functions.
+%%----------------------------------------------------------------------
+mkey1search(List, Key) ->
+    Results = lists:foldl(
+		fun({MatchKey, Value}, Acc) when MatchKey == Key ->
+			[Value | Acc];
+		   ({_OtherKey, _Value}, Acc) ->
+			Acc 
+		end,
+		[],
+		List),
+    case Results of 
+	[] -> undefined;
+	Results -> lists:reverse(Results)
+    end.

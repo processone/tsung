@@ -40,7 +40,6 @@
 		 parse_URL/1,
          parse_config/2
 		]).
-
 %%----------------------------------------------------------------------
 %% Func: http_get/1
 %% Args: #http_request
@@ -90,11 +89,12 @@ http_post(Req=#http_request{url=URL, version=Version, cookie=Cookie, body=Conten
 user_agent() ->
 	["User-Agent: ", ?USER_AGENT, ?CRLF].
 
-get_cookie([])   -> [];
-get_cookie(none) -> [];
-get_cookie(Cookie) ->
-	["Cookie: ", Cookie, ?CRLF].
+get_cookie(none)    -> [];
+get_cookie(Cookies) -> get_cookie(Cookies, []).
 
+get_cookie([], Acc )   -> lists:reverse(Acc);
+get_cookie([Cookie|Cookies], Acc) ->
+    get_cookie(Cookies, [["Cookie: ", Cookie, ?CRLF]|Acc]).
 
 %%----------------------------------------------------------------------
 %% Func: parse_config/2
@@ -338,7 +338,7 @@ read_chunk_data(Data, State, Cookie,Int, Acc) -> % not enough data in buffer
 %% Purpose: parse HTTP's Cookie Header and returns cookie code
 %%----------------------------------------------------------------------
 parse_cookie(ParsedHeader) ->
-	case httpd_util:key1search(ParsedHeader,"set-cookie") of
+	case ts_utils:mkey1search(ParsedHeader,"set-cookie") of
 		undefined ->
 			[];
 		Cookie ->
@@ -351,6 +351,8 @@ parse_cookie(ParsedHeader) ->
 					[]
 			end
 	end.
+
+	    
 
 %%----------------------------------------------------------------------
 %% Func: parse_URL/1
