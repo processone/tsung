@@ -213,6 +213,7 @@ sub parse_stats_file {
 	my @tps;
 	my @code;
     my %extra_info = ();
+	my @session;
 	my @connect;
 	my @size;
 	my @users;
@@ -243,15 +244,15 @@ sub parse_stats_file {
 			}
 			print TYPE $data ."\n";
 		}
-		if ($key eq "session" or $key eq "reconnect" or $key eq "connect") {
-			push @connect, "$key.txt";
+		if ($key eq "session") {
+			push @session, "$key.txt";
 		} elsif ($key eq "size") {
 			push @size, "$key.txt";
 		} elsif ($key =~ /^users$/) {
 			push @users, "$key.txt";
 		} elsif ($key =~ /users/) {
 			push @users_rate, "$key.txt";
-		} elsif ($key =~ /request$/) {
+		} elsif ($key =~ /request$/ or $key eq "connect") {
 			push @tps, "$key.txt";
 		} elsif ($key =~ /^tr_/ or $key eq "page") {
 			push @transactions, "$key.txt";
@@ -266,7 +267,7 @@ sub parse_stats_file {
 		}
 		close TYPE;
 	}
-	plot_stats(\@col,"Session",undef,\@connect,["sessions/sec"]) if $plot;
+	plot_stats(\@col,"Session",undef,\@session,["sessions/sec"]) if $plot;
 	plot_stats(\@colcount,"HTTP_CODE",undef,\@code,["number/sec","total"]) if $plot;
 	plot_stats(\@col,"Perfs",undef,\@tps,["rate/sec","msec"]) if $plot;
 	plot_stats(\@col,"Transactions",undef,\@transactions,["rate/sec","msec"]) if $plot;

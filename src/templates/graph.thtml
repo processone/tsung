@@ -6,7 +6,7 @@
 <div id="response_time">
 <h3  id="response_time">Response Time</h3> 
 <table>
-<tr><th>Transactions</th><th>Requests</th></tr>
+<tr><th>Transactions</th><th>Requests and connection establishment</th></tr>
 <tr>
  <td>
  <a href="images/graphes-Transactions-mean.ps">
