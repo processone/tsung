@@ -36,7 +36,7 @@
 -include("ts_http.hrl").
 -include("ts_config.hrl").
 
--include_lib("xmerl/inc/xmerl.hrl").
+-include("xmerl.hrl").
 
 %%----------------------------------------------------------------------
 %% Func: parse_config/2

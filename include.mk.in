@@ -3,9 +3,13 @@ ERLC_EMULATOR=@ERL@
 export ERLC_EMULATOR
 ERL=@ERL@
 ERLC=@ERLC@
+SED=@SED@
+ERL_OPTS=@ERL_OPTS@
 
 ERLDIR=@ERLDIR@
 export ERLDIR
+
+ERLANG_XMERL_DIR=@ERLANG_XMERL_DIR@
 
 raw_erlang_prefix=@libdir@/erlang/
 

@@ -34,7 +34,7 @@
 -include("ts_jabber.hrl").
 -include("ts_config.hrl").
 
--include_lib("xmerl/inc/xmerl.hrl").
+-include("xmerl.hrl").
 
 
 %%----------------------------------------------------------------------

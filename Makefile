@@ -9,15 +9,14 @@ export ERL_COMPILER_OPTIONS
 ifeq ($(TYPE),debug)
 OPT =+debug_info -DDEBUG
 else 
- ifeq ($(TYPE),test)
-   OPT:=+export_all
+ ifeq ($(TYPE),native)
+   OPT:=+native
   else
    OPT =
   endif	
 endif
 INC = ./include
 CC  = $(ERLC)
-SED = $(shell which sed)
 
 ESRC = ./src
 EBIN = ./ebin
@@ -101,8 +100,8 @@ emake:
 debug:
 	$(MAKE) TYPE=debug
 
-test:
-	$(MAKE) TYPE=test
+native:
+	$(MAKE) TYPE=native
 
 rpm:	release idx-tsunami.spec
 	rpmbuild -ta $(PACKAGE)-$(VERSION).tar.gz
@@ -113,7 +112,7 @@ deb:
 	fakeroot debian/rules binary
 
 clean:
-	-cd priv && rm -f $(shell ls priv | grep -v builder\.erl) && cd ..
+	-cd priv && rm -f $(shell ls priv | grep -v builder\.erl| grep -v CVS) && cd ..
 	-rm -f $(TARGET) $(TMP) $(BUILD_OPTIONS_FILE) builder.beam
 	-rm -f $(TGT_APPFILES) idx-tsunami.sh $(PERL_SCRIPTS)
 	-rm -f ebin/*.beam 
@@ -262,13 +261,13 @@ builder.beam: priv/builder.erl
 	$(CC) $(OPT) -I $(INC) $<
 
 ebin/%.beam: src/$(APPLICATION)/%.erl $(INC_FILES)
-	$(CC) $(OPT) -I $(INC) -o ebin $<
+	$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -o ebin $<
 
 ebin/%.beam: src/$(RECORDER_APPLICATION)/%.erl  $(INC_FILES)
-	$(CC) $(OPT) -I $(INC) -o ebin $<
+	$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -o ebin $<
 
 ebin/%.beam: src/$(CONTROLLER_APPLICATION)/%.erl  $(INC_FILES)
-	$(CC) $(OPT) -I $(INC) -o ebin $<
+	$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -o ebin $<
 
 %.pl: src/%.pl.src Makefile
 	@$(SED) -e 's;%VERSION%;$(VERSION);g' \
@@ -278,6 +277,8 @@ idx-tsunami.sh: idx-tsunami.sh.in include.mk Makefile
 	@$(SED) \
 		-e 's;%INSTALL_DIR%;${raw_erlang_prefix};g' \
 		-e 's;${DESTDIR};;g' \
+		-e 's;%ERL_OPTS%;$(ERL_OPTS);g' \
+		-e 's;%ERL%;$(ERL);g' \
 		-e 's;CONFIG_DIR%;${CONFIG_DIR};g' \
 		-e 's;%VERSION%;${VERSION};g' < $< > $@
 

@@ -182,7 +182,7 @@ datestr()->
 %%----------------------------------------------------------------------
 %% datestr/1
 %%----------------------------------------------------------------------
-datestr({{Y,M,D},{H,Min,S}})->
+datestr({{Y,M,D},{H,Min,_S}})->
 	io_lib:format("~w~2.10.0b~2.10.0b-~2.10.0b:~2.10.0b",[Y,M,D,H,Min]).
 
 %%----------------------------------------------------------------------
@@ -193,8 +193,17 @@ erl_system_args()->
                  error     -> " ";
                  {ok,[[]]} -> " -shared "
              end,
-    lists:append(["-rsh ssh -detached -setcookie  ",atom_to_list(erlang:get_cookie()),
-				  Shared," +Mea r10b "]).
+	Mea = case  erlang:system_info(version) of 
+              "5.3" ++ _Tail     -> " +Mea r10b ";
+              _ -> " "
+          end,
+	Rsh = case  init:get_argument(rsh) of 
+              {ok,[["ssh"]]}  -> " -rsh ssh ";
+              _ -> " "
+          end,
+    lists:append([Rsh, " -detached -setcookie  ",
+                  atom_to_list(erlang:get_cookie()),
+				  Shared, Mea]).
 
 %%----------------------------------------------------------------------
 %% setsubdir/1

@@ -272,7 +272,7 @@ PACKAGE_STRING=
 PACKAGE_BUGREPORT=
 
 ac_unique_file="Makefile"
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os ERL ERLC ac_prefix_program ERLDIR SET_MAKE INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os SED ERLC ac_pt_ERLC ERL ac_pt_ERL ac_prefix_program ERL_OPTS ERLANG_XMERL_DIR ERLDIR SET_MAKE INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -785,6 +785,11 @@ if test -n "$ac_init_help"; then
 
   cat <<\_ACEOF
 
+Optional Packages:
+  --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
+  --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-erlang=PREFIX    path to erlc and erl
+
 _ACEOF
 fi
 
@@ -873,7 +878,7 @@ esac
     else
       echo "$as_me: WARNING: no configuration information is in $ac_dir" >&2
     fi
-    cd "$ac_popdir"
+    cd $ac_popdir
   done
 fi
 
@@ -1317,16 +1322,16 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-# Extract the first word of "erl", so it can be a program name with args.
-set dummy erl; ac_word=$2
+# Extract the first word of "sed", so it can be a program name with args.
+set dummy sed; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_ERL+set}" = set; then
+if test "${ac_cv_path_SED+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
-  case $ERL in
+  case $SED in
   [\\/]* | ?:[\\/]*)
-  ac_cv_path_ERL="$ERL" # Let the user override the test with a path.
+  ac_cv_path_SED="$SED" # Let the user override the test with a path.
   ;;
   *)
   as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
@@ -1336,7 +1341,7 @@ do
   test -z "$as_dir" && as_dir=.
   for ac_exec_ext in '' $ac_executable_extensions; do
   if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_ERL="$as_dir/$ac_word$ac_exec_ext"
+    ac_cv_path_SED="$as_dir/$ac_word$ac_exec_ext"
     echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
     break 2
   fi
@@ -1346,18 +1351,26 @@ done
   ;;
 esac
 fi
-ERL=$ac_cv_path_ERL
+SED=$ac_cv_path_SED
 
-if test -n "$ERL"; then
-  echo "$as_me:$LINENO: result: $ERL" >&5
-echo "${ECHO_T}$ERL" >&6
+if test -n "$SED"; then
+  echo "$as_me:$LINENO: result: $SED" >&5
+echo "${ECHO_T}$SED" >&6
 else
   echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6
 fi
 
-# Extract the first word of "erlc", so it can be a program name with args.
-set dummy erlc; ac_word=$2
+
+
+# Check whether --with-erlang or --without-erlang was given.
+if test "${with_erlang+set}" = set; then
+  withval="$with_erlang"
+
+fi;
+if test -n "$ac_tool_prefix"; then
+  # Extract the first word of "${ac_tool_prefix}erlc", so it can be a program name with args.
+set dummy ${ac_tool_prefix}erlc; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
 if test "${ac_cv_path_ERLC+set}" = set; then
@@ -1369,7 +1382,8 @@ else
   ;;
   *)
   as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
+as_dummy="$with_erlang:$with_erlang/bin:$PATH"
+for as_dir in $as_dummy
 do
   IFS=$as_save_IFS
   test -z "$as_dir" && as_dir=.
@@ -1395,6 +1409,149 @@ else
 echo "${ECHO_T}no" >&6
 fi
 
+fi
+if test -z "$ac_cv_path_ERLC"; then
+  ac_pt_ERLC=$ERLC
+  # Extract the first word of "erlc", so it can be a program name with args.
+set dummy erlc; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_path_ac_pt_ERLC+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $ac_pt_ERLC in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_ac_pt_ERLC="$ac_pt_ERLC" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+as_dummy="$with_erlang:$with_erlang/bin:$PATH"
+for as_dir in $as_dummy
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_ac_pt_ERLC="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+  ;;
+esac
+fi
+ac_pt_ERLC=$ac_cv_path_ac_pt_ERLC
+
+if test -n "$ac_pt_ERLC"; then
+  echo "$as_me:$LINENO: result: $ac_pt_ERLC" >&5
+echo "${ECHO_T}$ac_pt_ERLC" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
+
+  ERLC=$ac_pt_ERLC
+else
+  ERLC="$ac_cv_path_ERLC"
+fi
+
+if test -n "$ac_tool_prefix"; then
+  # Extract the first word of "${ac_tool_prefix}erl", so it can be a program name with args.
+set dummy ${ac_tool_prefix}erl; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_path_ERL+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $ERL in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_ERL="$ERL" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+as_dummy="$with_erlang:$with_erlang/bin:$PATH"
+for as_dir in $as_dummy
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_ERL="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+  ;;
+esac
+fi
+ERL=$ac_cv_path_ERL
+
+if test -n "$ERL"; then
+  echo "$as_me:$LINENO: result: $ERL" >&5
+echo "${ECHO_T}$ERL" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
+
+fi
+if test -z "$ac_cv_path_ERL"; then
+  ac_pt_ERL=$ERL
+  # Extract the first word of "erl", so it can be a program name with args.
+set dummy erl; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_path_ac_pt_ERL+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $ac_pt_ERL in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_ac_pt_ERL="$ac_pt_ERL" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+as_dummy="$with_erlang:$with_erlang/bin:$PATH"
+for as_dir in $as_dummy
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_ac_pt_ERL="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+  ;;
+esac
+fi
+ac_pt_ERL=$ac_cv_path_ac_pt_ERL
+
+if test -n "$ac_pt_ERL"; then
+  echo "$as_me:$LINENO: result: $ac_pt_ERL" >&5
+echo "${ECHO_T}$ac_pt_ERL" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
+
+  ERL=$ac_pt_ERL
+else
+  ERL="$ac_cv_path_ERL"
+fi
+
+
+if test "z$ERLC" == "z" || test "z$ERL" == "z"; then
+ { { echo "$as_me:$LINENO: error: erlang not found" >&5
+echo "$as_me: error: erlang not found" >&2;}
+   { (exit 1); exit 1; }; }
+fi
 
 ERLDIR=`echo "${ERL}" | sed 's/\/bin\/*erl.*//'`
 if test "x$prefix" = xNONE; then
@@ -1465,6 +1622,76 @@ echo X"$prefix" |
   	  s/.*/./; q'`
   fi
 fi
+
+
+echo "$as_me:$LINENO: checking xmerl.hrl" >&5
+echo $ECHO_N "checking xmerl.hrl... $ECHO_C" >&6
+
+cat >>conftest.erl <<_EOF
+
+-module(conftest).
+-author('nicolas@niclux.org').
+
+-export([start/0]).
+
+start() ->
+        case code:lib_dir("xmerl") of
+          {error,bad_name} ->
+            file:write_file("conftest.out", "notfound\n");
+          XMerlDirS ->
+            file:write_file("conftest.out", XMerlDirS)
+        end,
+        halt().
+
+_EOF
+
+if ! $ERLC conftest.erl; then
+ { { echo "$as_me:$LINENO: error: could not compile sample program" >&5
+echo "$as_me: error: could not compile sample program" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+if ! $ERL -s conftest -noshell ; then
+      { { echo "$as_me:$LINENO: error: could not run sample program" >&5
+echo "$as_me: error: could not run sample program" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+if ! test -f conftest.out; then
+       { { echo "$as_me:$LINENO: error: erlang program was not properly executed, (conftest.out was
+ not produced)" >&5
+echo "$as_me: error: erlang program was not properly executed, (conftest.out was
+ not produced)" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+ERLANG_XMERL_DIR=`cat conftest.out|head -1`
+if test -f "$ERLANG_XMERL_DIR/inc/xmerl.hrl"; then
+  ERLANG_XMERL_DIR="$ERLANG_XMERL_DIR/inc/"
+  echo "$as_me:$LINENO: result: $ERLANG_XMERL_DIR" >&5
+echo "${ECHO_T}$ERLANG_XMERL_DIR" >&6
+elif test -f "$ERLANG_XMERL_DIR/include/xmerl.hrl"; then
+  ERLANG_XMERL_DIR="$ERLANG_XMERL_DIR/include/"
+  echo "$as_me:$LINENO: result: $ERLANG_XMERL_DIR" >&5
+echo "${ECHO_T}$ERLANG_XMERL_DIR" >&6
+else
+  { { echo "$as_me:$LINENO: error: xmerl not found" >&5
+echo "$as_me: error: xmerl not found" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+echo "$as_me:$LINENO: checking for '+Mea r10b' option" >&5
+echo $ECHO_N "checking for '+Mea r10b' option... $ECHO_C" >&6
+if ! $ERL -noshell +Mea r10b -s init stop 2> /dev/null; then
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+  ERL_OPTS=""
+else
+  echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+  ERL_OPTS="+Mea r10b"
+fi
+
+
 
 
 
@@ -2228,9 +2455,14 @@ s,@target@,$target,;t t
 s,@target_cpu@,$target_cpu,;t t
 s,@target_vendor@,$target_vendor,;t t
 s,@target_os@,$target_os,;t t
-s,@ERL@,$ERL,;t t
+s,@SED@,$SED,;t t
 s,@ERLC@,$ERLC,;t t
+s,@ac_pt_ERLC@,$ac_pt_ERLC,;t t
+s,@ERL@,$ERL,;t t
+s,@ac_pt_ERL@,$ac_pt_ERL,;t t
 s,@ac_prefix_program@,$ac_prefix_program,;t t
+s,@ERL_OPTS@,$ERL_OPTS,;t t
+s,@ERLANG_XMERL_DIR@,$ERLANG_XMERL_DIR,;t t
 s,@ERLDIR@,$ERLDIR,;t t
 s,@SET_MAKE@,$SET_MAKE,;t t
 s,@INSTALL_PROGRAM@,$INSTALL_PROGRAM,;t t
@@ -2404,6 +2636,11 @@ esac
   *) ac_INSTALL=$ac_top_builddir$INSTALL ;;
   esac
 
+  if test x"$ac_file" != x-; then
+    { echo "$as_me:$LINENO: creating $ac_file" >&5
+echo "$as_me: creating $ac_file" >&6;}
+    rm -f "$ac_file"
+  fi
   # Let's still pretend it is `configure' which instantiates (i.e., don't
   # use $as_me), people would be surprised to read:
   #    /* config.h.  Generated by config.status.  */
@@ -2442,12 +2679,6 @@ echo "$as_me: error: cannot find input file: $f" >&2;}
 	 fi;;
       esac
     done` || { (exit 1); exit 1; }
-
-  if test x"$ac_file" != x-; then
-    { echo "$as_me:$LINENO: creating $ac_file" >&5
-echo "$as_me: creating $ac_file" >&6;}
-    rm -f "$ac_file"
-  fi
 _ACEOF
 cat >>$CONFIG_STATUS <<_ACEOF
   sed "$ac_vpsub

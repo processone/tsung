@@ -7,12 +7,75 @@ dnl work out who the cpu, vendor and OS are
 AC_CANONICAL_SYSTEM
 AC_DEFINE_UNQUOTED(CPU_VENDOR_OS, "$target")
 
-AC_PATH_PROG(ERL, erl)
-AC_PATH_PROG(ERLC, erlc)
+AC_PATH_PROG(SED, sed)
+
+AC_ARG_WITH(erlang, [  --with-erlang=PREFIX    path to erlc and erl ])
+AC_PATH_TOOL(ERLC, erlc, , $with_erlang:$with_erlang/bin:$PATH)
+AC_PATH_TOOL(ERL, erl, , $with_erlang:$with_erlang/bin:$PATH)
+   
+if test "z$ERLC" == "z" || test "z$ERL" == "z"; then
+ AC_MSG_ERROR([erlang not found])
+fi
 
 ERLDIR=`echo "${ERL}" | sed 's/\/bin\/*erl.*//'`
 AC_PREFIX_PROGRAM(erl)
 
+dnl check for xmerl include path
+AC_MSG_CHECKING(xmerl.hrl)
+
+cat >>conftest.erl <<_EOF
+   
+-module(conftest).
+-author('nicolas@niclux.org').
+   
+-export([[start/0]]).
+   
+start() ->
+        case code:lib_dir("xmerl") of
+          {error,bad_name} ->
+            file:write_file("conftest.out", "notfound\n");
+          XMerlDirS ->
+            file:write_file("conftest.out", XMerlDirS)
+        end,
+        halt().
+           
+_EOF
+   
+if ! $ERLC conftest.erl; then
+ AC_MSG_ERROR([could not compile sample program])
+fi
+   
+if ! $ERL -s conftest -noshell ; then
+      AC_MSG_ERROR([could not run sample program])
+fi
+   
+if ! test -f conftest.out; then
+       AC_MSG_ERROR([erlang program was not properly executed, (conftest.out was
+ not produced)])
+fi
+ERLANG_XMERL_DIR=`cat conftest.out|head -1`
+if test -f "$ERLANG_XMERL_DIR/inc/xmerl.hrl"; then
+  ERLANG_XMERL_DIR="$ERLANG_XMERL_DIR/inc/"
+  AC_MSG_RESULT($ERLANG_XMERL_DIR)
+elif test -f "$ERLANG_XMERL_DIR/include/xmerl.hrl"; then
+  ERLANG_XMERL_DIR="$ERLANG_XMERL_DIR/include/"
+  AC_MSG_RESULT($ERLANG_XMERL_DIR)
+else
+  AC_MSG_ERROR([xmerl not found])
+fi
+
+AC_MSG_CHECKING(for '+Mea r10b' option)
+if ! $ERL -noshell +Mea r10b -s init stop 2> /dev/null; then
+  AC_MSG_RESULT(no)
+  ERL_OPTS=""
+else 
+  AC_MSG_RESULT(yes)
+  ERL_OPTS="+Mea r10b"
+fi
+
+AC_SUBST(ERL_OPTS)
+AC_SUBST(ERLANG_XMERL_DIR)
+AC_SUBST(SED)
 AC_SUBST(ERL)
 AC_SUBST(ERLC)
 AC_SUBST(ERLDIR)
