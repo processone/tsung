@@ -77,7 +77,7 @@ handle_call({get_req, Id, N}, From, State) ->
 		[{Key, Session}] -> 
             Hit = State#state.hit+1,
             ?LOGF("ok, found in cache for ~p~n",[From],?DEB),
-            ?LOGF("hitrate is ~.3f~n",[100.0*Hit/Total],?INFO),
+%            ?LOGF("hitrate is ~.3f~n",[100.0*Hit/Total],?DEB),
 			{reply, Session, State#state{hit= Hit, total = Total}};
 		[] -> %% no match, ask the config_server
             ?LOGF("not found in cache (~p th request in session ~p for ~p)~n",[N,Id,From],?DEB),
