@@ -37,9 +37,9 @@
 %%          {ok, Pid, State} |
 %%          {error, Reason}   
 %%----------------------------------------------------------------------
-start(Type, _StartArgs) ->
+start(_Type, _StartArgs) ->
 	error_logger:tty(false),
-    {ok, {LogDir, Name}} = ts_utils:setsubdir(?config(log_file)),
+    {ok, {LogDir, _Name}} = ts_utils:setsubdir(?config(log_file)),
     LogFile = filename:join(LogDir, atom_to_list(node()) ++ ".log"),
     case  error_logger:logfile({open, LogFile }) of 
         ok ->
@@ -57,16 +57,16 @@ start(Type, _StartArgs) ->
             {error, Reason}
     end.
 
-start_phase(load_config, StartType, PhaseArgs) ->
+start_phase(load_config, StartType, _PhaseArgs) ->
 	case ts_config_server:read_config(?config(config_file)) of 
 		{error,Reason}->
 			erlang:display(["Config Error, aborting ! ", Reason]),
 			init:stop();
 		ok -> ok
 	end;
-start_phase(start_os_monitoring, StartType, PhaseArgs) ->
+start_phase(start_os_monitoring, StartType, _PhaseArgs) ->
     ts_os_mon:activate();
-start_phase(start_clients, StartType, PhaseArgs) ->
+start_phase(start_clients, StartType, _PhaseArgs) ->
     ts_mon:start_clients({?config(clients),
                           ?config(dump),
                           ?config(stats_backend)}).
@@ -75,7 +75,7 @@ start_phase(start_clients, StartType, PhaseArgs) ->
 %% Returns: any 
 %%----------------------------------------------------------------------
 status([Host]) when is_atom(Host)->
-    List= net_adm:world_list([Host]),
+    _List = net_adm:world_list([Host]),
     global:sync(),
     Msg = case catch ts_mon:status() of 
               {Clients, {ok, {sample,[Mean, Var, Max, Min, Count]}},Interval, Phase}->
@@ -87,13 +87,13 @@ status([Host]) when is_atom(Host)->
                   case {Phase, Nodes == Ended_Beams} of 
                       {error,_} -> %no newphase, first phase
                           S1 ++ " Current phase:        1";
-                      { {ok,{count, P}} , true} ->
+                      { {ok,{count, _}} , true} ->
                           S1 ++ " Current phase:        last, waiting for pending clients";
                       { {ok,{count, P}} , _} ->
                           NPhases = (P div Nodes) + 1,
                           io_lib:format("~s Current phase:        ~p",[S1,NPhases])
                   end;
-              {Clients,  error, _,_} ->
+              {_,  error, _,_} ->
                   "IDX-Tsunami is initializing, please wait ...";
               {'EXIT', {noproc, _}} ->
                   "IDX-Tsunami is not started [ERROR]"
@@ -104,7 +104,7 @@ status([Host]) when is_atom(Host)->
 %% Func: stop/1
 %% Returns: any 
 %%----------------------------------------------------------------------
-stop(State) ->
+stop(_State) ->
     stop.
 
 %%----------------------------------------------------------------------

@@ -173,7 +173,7 @@ init(_Args) ->
 %%--------------------------------------------------------------------
 handle_call({stop}, _From, State) ->
     {stop, normal, State};
-handle_call(Request, _From, State) ->
+handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
 
@@ -247,7 +247,7 @@ handle_info(Info, State) ->
 terminate(normal, #state{erlang_pids=Nodes}) ->
     stop_beam(Nodes),    
     ok;
-terminate(_Reason, State) ->
+terminate(_Reason, _State) ->
     ok.
 
 %%--------------------------------------------------------------------
@@ -311,7 +311,7 @@ get_os_data(freemem, _OS) ->
 get_os_data(packets, {unix, linux}) ->
 	%% FIXME: handle more than one ethernet interface
     Result = os:cmd("cat /proc/net/dev | grep eth0"), 
-    [_, RecvBytes, RecvPackets, _, _, _, _, _, _, SentBytes, SentPackets, _, _, _, _, _,_] = 
+    [_, _RecvBytes, RecvPackets, _, _, _, _, _, _, _SentBytes, SentPackets, _, _, _, _, _,_] = 
         string:tokens(Result, " \n:"),
     {list_to_integer(RecvPackets), list_to_integer(SentPackets)};
 

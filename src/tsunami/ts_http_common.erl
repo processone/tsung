@@ -45,9 +45,9 @@
 %% Func: http_get/1
 %% Args: #http_request
 %%----------------------------------------------------------------------
-http_get(Req=#http_request{url=URL, version=Version, cookie=Cookie, 
-                           get_ims_date=undefined, soap_action=SOAPAction,
-                           server_name=Host, userid=UserId, passwd=Passwd})->
+http_get(#http_request{url=URL, version=Version, cookie=Cookie, 
+                       get_ims_date=undefined, soap_action=SOAPAction,
+                       server_name=Host, userid=UserId, passwd=Passwd})->
 	list_to_binary([?GET, " ", URL," ", "HTTP/", Version, ?CRLF, 
                     "Host: ", Host, ?CRLF,
                     user_agent(),
@@ -56,9 +56,9 @@ http_get(Req=#http_request{url=URL, version=Version, cookie=Cookie,
                     set_cookie_header({Cookie, Host, URL}),
                     ?CRLF]);
 
-http_get(Req=#http_request{url=URL, version=Version, cookie=Cookie,
-                           get_ims_date=Date, soap_action=SOAPAction,
-			   server_name=Host, userid=UserId, passwd=Passwd}) ->
+http_get(#http_request{url=URL, version=Version, cookie=Cookie,
+                       get_ims_date=Date, soap_action=SOAPAction,
+                       server_name=Host, userid=UserId, passwd=Passwd}) ->
 	list_to_binary([?GET, " ", URL," ", "HTTP/", Version, ?CRLF,
                     ["If-Modified-Since: ", Date, ?CRLF],
                     "Host: ", Host, ?CRLF,
@@ -72,10 +72,10 @@ http_get(Req=#http_request{url=URL, version=Version, cookie=Cookie,
 %% Func: http_post/1
 %% Args: #http_request
 %%----------------------------------------------------------------------
-http_post(Req=#http_request{url=URL, version=Version, cookie=Cookie,
-			    soap_action=SOAPAction, content_type=ContentType,
-			    body=Content, server_name=Host,
-			    userid=UserId, passwd=Passwd}) ->
+http_post(#http_request{url=URL, version=Version, cookie=Cookie,
+                        soap_action=SOAPAction, content_type=ContentType,
+                        body=Content, server_name=Host,
+                        userid=UserId, passwd=Passwd}) ->
 	ContentLength=integer_to_list(size(Content)),
 	?DebugF("Content Length of POST: ~p~n.", [ContentLength]),
 	Headers = [?POST, " ", URL," ", "HTTP/", Version, ?CRLF,
@@ -118,7 +118,7 @@ set_cookie_header({Cookies, Host, URL})->
     CurCookies = lists:filter(MatchDomain, Cookies),
     set_cookie_header(CurCookies, Host, []).
 
-set_cookie_header([], Host, Acc)   -> [lists:reverse(Acc), ?CRLF];
+set_cookie_header([], _Host, Acc)   -> [lists:reverse(Acc), ?CRLF];
 set_cookie_header([Cookie|Cookies], Host, []) ->
     set_cookie_header(Cookies, Host, [["Cookie: ", cookie_rec2str(Cookie)]]);
 set_cookie_header([Cookie|Cookies], Host, Acc) ->
@@ -166,16 +166,15 @@ parse(Data, State=#state_rcv{session=HTTP}) when HTTP#http.status == none;
 				{NewState, Opts} ->
 					{NewState#state_rcv{acc=[],dyndata=DynData}, Opts, Http#http.close}
 			end;
-		{ok, Http=#http{content_length=0, close=true}, Tail} ->
+		{ok, Http=#http{content_length=0, close=true}, _} ->
             %% no content length, close=true: the server will close the connection
 			DynData = concat_cookies(Http#http.cookie, State#state_rcv.dyndata),
 			{State#state_rcv{session= Http, ack_done = false, 
 							 datasize = TotalSize,
 							 dyndata= DynData}, [], true};
-		{ok, Http=#http{content_length=CLength}, Tail} ->
+		{ok, Http, Tail} ->
 			DynData = concat_cookies(Http#http.cookie, State#state_rcv.dyndata),
-			check_resp_size(Http, length(Tail), DynData, Tail, 
-                            State#state_rcv{acc=[]}, TotalSize)
+			check_resp_size(Http, length(Tail), DynData, State#state_rcv{acc=[]}, TotalSize)
 	end;
 
 %% continued chunked tranfer
@@ -206,25 +205,25 @@ parse(Data, State) ->
 	end.
 
 %%----------------------------------------------------------------------
-%% Func: check_resp_size/2
+%% Func: check_resp_size/5
 %% Purpose: Check response size
 %% Returns: {NewState= record(state_rcv), SockOpts, Close}
 %%----------------------------------------------------------------------
-check_resp_size(Http=#http{content_length=CLength, close=Close}, CLength, 
-				DynData, Tail, State, DataSize) ->
+check_resp_size(#http{content_length=CLength, close=Close}, CLength, 
+				DynData, State, DataSize) ->
 	%% end of response
 	{State#state_rcv{session= #http{}, ack_done = true,
 					 datasize = DataSize,
 					 dyndata= DynData}, [], Close};
-check_resp_size(Http=#http{content_length=CLength, close = Close}, 
-				BodySize, DynData, Tail, State, DataSize) when BodySize > CLength ->
+check_resp_size(#http{content_length=CLength, close = Close}, 
+				BodySize, DynData, State, DataSize) when BodySize > CLength ->
 	?LOGF("Error: HTTP Body (~p)> Content-Length (~p) !~n",
 		  [BodySize, CLength], ?ERR),
 	ts_mon:add({ count, http_bad_content_length }),
 	{State#state_rcv{session= #http{}, ack_done = true,
 					 datasize = DataSize,
 					 dyndata= DynData}, [], Close};
-check_resp_size(Http, BodySize, DynData, Tail, State, DataSize) -> 
+check_resp_size(Http, BodySize, DynData, State, DataSize) -> 
     %% need to read more data
 	{State#state_rcv{session  = Http#http{ body_size=BodySize},
 					 ack_done = false,
@@ -294,7 +293,7 @@ read_chunk_data(Data, State=#state_rcv{acc=[]}, Int, Acc) -> % not enough data i
     {State#state_rcv{session  = NewHttp,
 					 ack_done = false, % continue to read data
                      datasize = BodySize + Acc},[]};
-read_chunk_data(Data, State=#state_rcv{acc=Acc}, Int, AccSize) ->
+read_chunk_data(Data, State=#state_rcv{acc=Acc}, _Int, AccSize) ->
     ?DebugF("Accumulated data = [~p]~n", [Acc]),
     NewData = <<Acc/binary, Data/binary>>,
     read_chunk(NewData, State#state_rcv{acc=[]}, 0, AccSize).
@@ -331,7 +330,7 @@ concat_cookies([],  DynData) -> DynData;
 concat_cookies(New, []) -> New;
 concat_cookies([New=#cookie{}|Rest], OldCookies)->
     case lists:keysearch(New#cookie.key, #cookie.key, OldCookies) of
-        {value, OldVal} ->
+        {value, _OldVal} ->
             ?DebugF("Reset key ~p with new value ~p~n",[New#cookie.key,
                                                         New#cookie.value]),
             NewList = lists:keyreplace(New#cookie.key, #cookie.key, OldCookies, New),
@@ -401,44 +400,44 @@ parse_headers(H, Tail, Host) ->
 %% Purpose: Parse HTTP status
 %% Returns: #http
 %%--------------------------------------------------------------------
-parse_status([A,B,C|Tail],  Http) ->
+parse_status([A,B,C|_],  Http) ->
 	Status=list_to_integer([A,B,C]),
 	?DebugF("HTTP Status ~p~n",[Status]),
 	ts_mon:add({ count, Status }),
 	Http#http{status=Status}.
 
 %%--------------------------------------------------------------------
-%% Func: parse_line/2
+%% Func: parse_line/3
 %% Purpose: Parse a HTTP header
 %% Returns: #http
 %%--------------------------------------------------------------------
-parse_line("http/1.1 " ++ TailLine, Http, Host )->
+parse_line("http/1.1 " ++ TailLine, Http, _Host )->
 	parse_status(TailLine, Http);
-parse_line("http/1.0 " ++ TailLine, Http, Host)->
+parse_line("http/1.0 " ++ TailLine, Http, _Host)->
 	parse_status(TailLine, Http#http{close=true});
 
-parse_line("content-length: "++Tail, Http, Host)->
+parse_line("content-length: "++Tail, Http, _Host)->
 	CL=list_to_integer(Tail),
 	?DebugF("HTTP Content-Length ~p~n",[CL]),
 	Http#http{content_length=CL};
-parse_line("connection: close"++Tail, Http, Host)->
+parse_line("connection: close"++Tail, Http, _Host)->
 	?Debug("Connection Closed in Header ~n"),
 	Http#http{close=true};
-parse_line("transfer-encoding: chunked"++Tail, Http, Host)->
+parse_line("transfer-encoding: chunked"++Tail, Http, _Host)->
 	?LOG("Chunked transfer encoding~n",?DEB),
 	Http#http{chunk_toread=0};
-parse_line("transfer-encoding: Chunked"++Tail, Http, Host)->
+parse_line("transfer-encoding: Chunked"++Tail, Http, _Host)->
 	?LOG("Chunked transfer encoding~n",?DEB),
 	Http#http{chunk_toread=0};
-parse_line("transfer-encoding:"++Tail, Http, Host)->
+parse_line("transfer-encoding:"++Tail, Http, _Host)->
 	?LOGF("Unknown tranfer encoding ~p~n",[Tail],?NOTICE),
 	Http;
 parse_line("set-cookie: "++Tail, Http=#http{cookie=PrevCookies}, Host)->
 	Cookie = add_new_cookie(Tail, Host, PrevCookies),
 	?DebugF("HTTP New cookie val ~p~n",[Cookie]),
 	Http#http{cookie=Cookie};
-parse_line(Line,Http, Host) ->
-	?DebugF("Skip header ~p (Http record is ~p)~n",[Line,Http]),
+parse_line(Line, Http, _Host) ->
+	?DebugF("Skip header ~p (Http record is ~p)~n", [Line, Http]),
 	Http.
 
 %% code taken from yaws
@@ -447,9 +446,9 @@ is_nb_space(X) ->
 % ret: {line, Line, Trail} | {lastline, Line, Trail}
 get_line(L) ->
     get_line(L, true, []).
-get_line("\r\n\r\n" ++ Tail, Cap, Cur) ->
+get_line("\r\n\r\n" ++ Tail, _Cap, Cur) ->
     {lastline, lists:reverse(Cur), Tail};
-get_line("\r\n", Cap, Cur) ->
+get_line("\r\n", _, _) ->
     {more};
 get_line("\r\n" ++ Tail, Cap, Cur) ->
     case is_nb_space(hd(Tail)) of
@@ -466,5 +465,5 @@ get_line([Char|T], true, Cur) when Char >= $A, Char =< $Z ->
     get_line(T, true, [Char + 32|Cur]);
 get_line([H|T], true, Cur) ->
     get_line(T, true, [H|Cur]);
-get_line([], _, Cur) -> %% Headers are fragmented ... We need more data
+get_line([], _, _) -> %% Headers are fragmented ... We need more data
     {more}.

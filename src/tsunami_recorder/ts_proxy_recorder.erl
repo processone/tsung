@@ -124,12 +124,12 @@ init(Filename) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-handle_call({stop}, From, State) ->
+handle_call({stop}, _From, State) ->
     io:format(State#state.logfd,"</session>~n",[]),
     file:close(State#state.logfd),
     {stop, normal, ok, State};
 
-handle_call(Request, From, State) ->
+handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
 
@@ -166,7 +166,7 @@ handle_cast({record, {HTTPRequest}}, State) ->
     {ok, NewState} = record_http_request(State, HTTPRequest),
     {noreply, NewState#state{timestamp=TimeStamp}};
 
-handle_cast(Msg, State) ->
+handle_cast(_Msg, State) ->
     {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -176,7 +176,7 @@ handle_cast(Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-handle_info(Info, State) ->
+handle_info(_Info, State) ->
     {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -184,7 +184,7 @@ handle_info(Info, State) ->
 %% Description: Shutdown the server
 %% Returns: any (ignored by gen_server)
 %%--------------------------------------------------------------------
-terminate(Reason, State) ->
+terminate(_Reason, _State) ->
     ok.
 
 %%--------------------------------------------------------------------
@@ -192,7 +192,7 @@ terminate(Reason, State) ->
 %% Purpose: Convert process state when code is changed
 %% Returns: {ok, NewState}
 %%--------------------------------------------------------------------
-code_change(OldVsn, State, Extra) ->
+code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 %%--------------------------------------------------------------------
@@ -205,10 +205,10 @@ code_change(OldVsn, State, Extra) ->
 %% Returns: {ok, NewState}
 %%--------------------------------------------------------------------
 record_http_request(State=#state{prev_host=Host, prev_port=Port},
-                    Request=#http_request{method  = Method, url = RequestURI,
-                                          version = "HTTP/" ++ HTTPVersion,
-                                          headers = ParsedHeader,body=Body}) ->
-
+                    #http_request{method  = Method, url = RequestURI,
+                                  version = "HTTP/" ++ HTTPVersion,
+                                  headers = ParsedHeader,body=Body}) ->
+    
     FullURL = ts_utils:to_https({url, RequestURI}),
 
     {URL,NewPort,NewHost} = 

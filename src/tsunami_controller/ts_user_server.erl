@@ -117,7 +117,7 @@ stop()->
 %%          ignore               |
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
-init(Args) ->
+init(_Args) ->
     ts_utils:init_seed(),
 	?LOG("ok, started unconfigured~n", ?INFO),
     {ok, #state{}}.
@@ -134,12 +134,12 @@ init(Args) ->
 %%----------------------------------------------------------------------
 
 %%Get one id in the full list of potential users
-handle_call(get_id, From, State) ->
+handle_call(get_id, _From, State) ->
     Key = random:uniform( State#state.userid_max ) +1,
     {reply, Key, State};
 
 %%Get one id in the users whos have to be connected
-handle_call(get_idle, From, State=#state{offline=Offline,online=Online}) ->
+handle_call(get_idle, _From, State=#state{offline=Offline,online=Online}) ->
     case ets:first(Offline) of 
         '$end_of_table' ->
 			?LOG("No more free users !~n", ?WARN),
@@ -152,7 +152,7 @@ handle_call(get_idle, From, State=#state{offline=Offline,online=Online}) ->
                 undefined ->
                     {reply, Key, State#state{first_client=Key,last_online=Key,
                                             last_offline=NextOffline}};
-                Id ->
+                _Id ->
                     {reply, Key, State#state{last_online=Key, 
                                              last_offline=NextOffline}}
             end;
@@ -162,19 +162,19 @@ handle_call(get_idle, From, State=#state{offline=Offline,online=Online}) ->
     end;
 
 %%Get one offline id 
-handle_call(get_offline, From, State=#state{offline=Offline,last_offline=Prev}) ->
+handle_call(get_offline, _From, State=#state{offline=Offline,last_offline=Prev}) ->
     case ets_iterator_next(Offline, Prev) of
-        {error, Reason} ->
+        {error, _Reason} ->
             {reply, {error, no_offline}, State};
         {ok, Next} ->
             ?DebugF("Choose offline user ~p~n",[Next]),
             {reply, {ok, Next}, State#state{last_offline=Next}}
     end;
 
-handle_call(get_first, From, State) ->
+handle_call(get_first, _From, State) ->
     {reply, State#state.first_client, State};
 
-handle_call({reset, NFin}, From, State) ->
+handle_call({reset, NFin}, _From, _State) ->
     Offline = ets:new(offline,[set, private]),
     Online  = ets:new(online, [set, private]),
 
@@ -188,10 +188,10 @@ handle_call({reset, NFin}, From, State) ->
     {reply, ok, State2};
 
 %%% Get a connected id different from 'Id'
-handle_call( {get_one_connected, Id}, From, State=#state{ online     = Online,
+handle_call( {get_one_connected, Id}, _From, State=#state{ online     = Online,
                                                           last_online= Prev}) ->
     case ets_iterator_next(Online, Prev, Id) of
-        {error, Reason} ->
+        {error, _Reason} ->
             ?DebugF("No online users (~p,~p), ets table was ~p ~n",[Id, Prev,ets:info(Online)]),
             {reply, {error, no_online}, State};
         {ok, Next} ->
@@ -199,7 +199,7 @@ handle_call( {get_one_connected, Id}, From, State=#state{ online     = Online,
             {reply, {ok, Next}, State#state{last_online=Next}}
     end;
     
-handle_call(stop, From, State)->
+handle_call(stop, _From, State)->
     {stop, normal, ok, State}.
 
 
@@ -221,7 +221,7 @@ handle_cast({remove_connected, Id}, State=#state{offline=Offline,online=Online})
             {noreply, State}
     end;
 
-handle_cast(Msg, State) ->
+handle_cast(_Msg, State) ->
     {noreply, State}.
 
 %%----------------------------------------------------------------------
@@ -230,7 +230,7 @@ handle_cast(Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_info(Info, State) ->
+handle_info(_Info, State) ->
     {noreply, State}.
 
 %%----------------------------------------------------------------------
@@ -238,7 +238,7 @@ handle_info(Info, State) ->
 %% Purpose: Shutdown the server
 %% Returns: any (ignored by gen_server)
 %%----------------------------------------------------------------------
-terminate(Reason, State) ->
+terminate(_Reason, _State) ->
     ok.
 
 %%----------------------------------------------------------------------
@@ -246,13 +246,13 @@ terminate(Reason, State) ->
 %% Purpose: Convert process state when code is changed
 %% Returns: {ok, NewState}
 %%----------------------------------------------------------------------
-code_change(OldVsn, State, Extra) ->
+code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 %%%----------------------------------------------------------------------
 %%% Internal functions
 %%%----------------------------------------------------------------------
-fill_offline(0, Tab)->
+fill_offline(0, _)->
     ok;
 fill_offline(N, Tab) when is_integer(N) ->
     ets:insert(Tab,{N, 0}),
@@ -271,7 +271,7 @@ list_to_id([Id|Tail], Sum, Mult, Base) when is_list(Id)->
 list_to_id([Id|Tail], Sum, Mult, Base) when is_integer(Id),Id < Base->
     list_to_id(Tail, Sum+Mult*Id, Mult*Base, Base);
 
-list_to_id([Id|Tail], Sum, Mult, Base) when is_integer(Id),Id >= Base ->
+list_to_id([Id|_], _, _, Base) when is_integer(Id),Id >= Base ->
     {error, integertoohigh};
 list_to_id(Val,_,_,_) ->
     {error, {badinput, Val}}.

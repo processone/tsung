@@ -90,7 +90,7 @@ get_message(#jabber{type = 'iq:roster:set',dest = offline,username=User,domain=D
             ts_mon:add({ count, error_no_offline }),
             << >>
     end;
-get_message(Jabber=#jabber{type = 'iq:roster:get', id = Id,username=User,domain=Domain}) ->
+get_message(#jabber{type = 'iq:roster:get', id = Id,username=User,domain=Domain}) ->
     request(roster_get, User, Domain, Id);
 
 
@@ -101,7 +101,7 @@ get_message(Jabber=#jabber{username = Name, passwd= Passwd, id=Id}) ->
 
 get_message2(Jabber=#jabber{type = 'register'}) ->
     registration(Jabber);
-get_message2(Jabber=#jabber{type = 'authenticate', id = Id}) ->
+get_message2(Jabber=#jabber{type = 'authenticate'}) ->
     auth(Jabber).
 
 
@@ -196,7 +196,7 @@ request(roster_set, UserName, Domain, Id)->
 		"' type='set'>","<query xmlns='jabber:iq:roster'><item jid='",
 		Name,"@",Domain,
 		"' name='gg1000'/></query></iq>"]);
-request(roster_get, UserName, Domain, Id)->
+request(roster_get, _UserName, _Domain, _Id)->
 	list_to_binary([
 	  "<iq id='" ,ts_msg_server:get_id(list),
 	  "' type='get'><query xmlns='jabber:iq:roster'></query></iq>"]).
@@ -204,7 +204,7 @@ request(roster_get, UserName, Domain, Id)->
 %% In : Intensity : inverse of the mean of inter arrival of messages
 %%      N         : number of messages
 %% Out: 
-get_random_params(Intensity, 1, Size, Type, L) -> 
+get_random_params(_Intensity, 1, Size, Type, L) -> 
     L ++ [#ts_request{ ack = no_ack, 
 		    thinktime = ?config(messages_last_time),
 		    param = #jabber {size=Size, type=Type}}];

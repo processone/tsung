@@ -105,13 +105,13 @@ newclient({Who, When}) ->
 endclient({Who, When, Elapsed}) ->
 	gen_server:cast({global, ?MODULE}, {endclient, Who, When, Elapsed}).
 
-sendmes({none, Who, What}) ->
+sendmes({none, _, _}) ->
 	skip;
 sendmes({_Type, Who, What}) ->
 	gen_server:cast({global, ?MODULE}, {sendmsg, Who, now(), What}).
 
-rcvmes({none, Who, What})-> skip;
-rcvmes({_, Who, closed}) -> skip;
+rcvmes({none, _, _})-> skip;
+rcvmes({_, _, closed}) -> skip;
 rcvmes({_Type, Who, What})  ->
 	gen_server:cast({global, ?MODULE}, {rcvmsg, Who, now(), What}).
 
@@ -172,14 +172,14 @@ handle_call({start_logger, Machines, DumpType, text}, From, State) ->
     start_logger({Machines, DumpType, text}, From, State);
             
 %%% get status
-handle_call({status}, From, State ) ->
+handle_call({status}, _From, State ) ->
     Request = dict:find(request, State#state.stats),
     Interval = ts_utils:elapsed(State#state.lastdate, now()) / 1000,
     Phase = dict:find(newphase, State#state.stats),
     Reply = { State#state.client, Request, Interval, Phase},
 	{reply, Reply, State};
 
-handle_call(Request, From, State) ->
+handle_call(Request, _From, State) ->
     ?LOGF("Unknown call ~p !~n",[Request],?ERR),
 	Reply = ok,
 	{reply, Reply, State}.
@@ -190,7 +190,7 @@ handle_call(Request, From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_cast({sendmsg, Who, When, What}, State = #state{type = none}) ->
+handle_cast({sendmsg, Who, When, _What}, State = #state{type = none}) ->
 	{noreply, State};
 
 handle_cast({sendmsg, Who, When, What}, State = #state{type=light,dumpfile=Log}) ->
@@ -214,7 +214,7 @@ handle_cast({dumpstats}, State) ->
 	NewStats = reset_all_stats(State#state.stats),
 	{noreply, State#state{laststats = NewStats, stats=NewStats,lastdate=now()}};
 
-handle_cast({rcvmsg, Who, When, What}, State = #state{type=none}) ->
+handle_cast({rcvmsg, _, _, _}, State = #state{type=none}) ->
 	{noreply, State};
 
 handle_cast({rcvmsg, Who, When, What}, State = #state{type=light, dumpfile=Log}) ->
@@ -286,7 +286,7 @@ handle_cast(Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_info(Info, State) ->
+handle_info(_Info, State) ->
 	{noreply, State}.
 
 %%----------------------------------------------------------------------
@@ -307,7 +307,7 @@ terminate(Reason, State) ->
 %% Purpose: Convert process state when code is changed
 %% Returns: {ok, NewState, NewStateData}
 %%--------------------------------------------------------------------
-code_change(OldVsn, StateData, Extra) ->
+code_change(_OldVsn, StateData, _Extra) ->
     {ok, StateData}.
 
 %%%----------------------------------------------------------------------
@@ -319,7 +319,7 @@ code_change(OldVsn, StateData, Extra) ->
 %% Purpose: open log files and start timer
 %% Returns: {reply, ok, State} | {stop, Reason, State}
 %%----------------------------------------------------------------------
-start_logger({Machines, DumpType, BackEnd}, From, State) ->
+start_logger({Machines, DumpType, BackEnd}, _From, State) ->
     ?LOGF("Activate clients with ~p backend~n",[BackEnd],?NOTICE),
     timer:apply_interval(State#state.dump_interval, ?MODULE, dumpstats, [] ),
     start_launchers(Machines),
@@ -383,21 +383,25 @@ export_stats(State=#state{backend=text}) ->
 													 State#state.maxclient]),
 	print_dist_list(Res, State#state.laststats , State#state.log).
 
-print_dist_list([], Last, Logfile) ->
+%%----------------------------------------------------------------------
+%% Func: export_stats/2
+%% Args: Stats, Last, Logfile
+%%----------------------------------------------------------------------
+print_dist_list([], _, _) ->
 	done;
-print_dist_list([{Key,{Type,[Mean,0,Max,Min,Count|_]}}|Tail],LastRes,Logfile)->
+print_dist_list([{Key,{_Type,[Mean,0,Max,Min,Count|_]}}|Tail],LastRes,Logfile)->
 	io:format(Logfile, "stats: ~s ~p ~p ~p ~p ~p~n", 
 			  [Key, Count, Mean, 0, Max, Min ]),
 	print_dist_list(Tail, LastRes, Logfile);
-print_dist_list([{Key,{Type,[Mean,Var,Max,Min,Count|_]}}|Tail],LastRes,Logfile)->
+print_dist_list([{Key,{_Type,[Mean,Var,Max,Min,Count|_]}}|Tail],LastRes,Logfile)->
 	StdVar = math:sqrt(Var/Count),
 	io:format(Logfile, "stats: ~s ~p ~p ~p ~p ~p~n",
 			  [Key, Count, Mean, StdVar, Max, Min ]),
 	print_dist_list(Tail, LastRes, Logfile);
-print_dist_list([{Key, {Type, [Sample,Last]}} | Tail], LastRes, Logfile) ->
+print_dist_list([{Key, {_Type, [Sample,Last]}} | Tail], LastRes, Logfile) ->
 	io:format(Logfile, "stats: ~s ~p ~p~n", [Key, Sample, Last ]),
     print_dist_list(Tail, LastRes, Logfile);
-print_dist_list([{Key, {Type, Value}} | Tail], LastRes, Logfile) ->
+print_dist_list([{Key, {_Type, Value}} | Tail], LastRes, Logfile) ->
 	case dict:find(Key, LastRes) of 
 		{ok,  {_, OldVal}} ->
 			PrevVal = OldVal ;
@@ -443,11 +447,11 @@ reset_all_stats(Dict)->
 %%----------------------------------------------------------------------
 reset_stats({Type,[]}) ->
 	{Type, [0, 0, 0, 0, 0]};
-reset_stats({Type, [Mean, Var, Max, Min, Count, Last]}) ->
+reset_stats({Type, [Mean, Var, Max, Min, _Count, Last]}) ->
 	{Type, [0, 0, Max, Min, 0, Last]};
-reset_stats({Type, [Mean, Var, Max, Min, Count]}) ->
+reset_stats({Type, [Mean, Var, Max, Min, _Count]}) ->
 	{Type, [0, 0, Max, Min, 0]};
-reset_stats({Type, [Sample, LastValue]}) ->
+reset_stats({Type, [_Sample, LastValue]}) ->
 	{Type, [0, LastValue]};
 reset_stats({Type, LastValue}) ->
 	{Type, LastValue};
@@ -478,9 +482,10 @@ backup_config(Dir, Config) ->
 
 %%----------------------------------------------------------------------
 %% Func: rrd_create/2
+%% Args: LogDir, List of Names, Interval
 %% FIXME: Not yet operationnal
 %%----------------------------------------------------------------------
-rrd_create(LogDir, [], Interval) -> ok;
+rrd_create(_, [], _) -> ok;
 rrd_create(LogDir, [NameI|Rest], Interval) when is_integer(NameI)->
     Name=integer_to_list(NameI),
     rrd_create(LogDir, [Name|Rest], Interval);
@@ -500,21 +505,22 @@ rrd_create(LogDir, [Name|Rest], Interval) when is_list(Name)->
 
 %%----------------------------------------------------------------------
 %% Func: rrd_update/2
+%% Args: LogDir, Stats
 %% FIXME: Not yet operationnal
 %%----------------------------------------------------------------------
-rrd_update(LogDir,[]) -> ok;
+rrd_update(_,[]) -> ok;
 rrd_update(LogDir,[{Key, Val} | Tail]) when is_integer(Key)->
     KeyStr = integer_to_list(Key),
     rrd_update(LogDir,[{KeyStr, Val} | Tail]);
 rrd_update(LogDir,[{Key, Val} | Tail]) when is_atom(Key)->
     KeyStr = atom_to_list(Key),
     rrd_update(LogDir,[{KeyStr, Val} | Tail]);
-rrd_update(LogDir,[{Key,{Type, [Mean,Var,Max,Min,Count|_]}} | Tail]) when is_list(Key),is_integer(Mean) or is_float(Mean)->
+rrd_update(LogDir,[{Key,{Type, [Mean,Var,Max,Min,_Count|_]}} | Tail]) when is_list(Key),is_integer(Mean) or is_float(Mean)->
     File=filename:join(LogDir, Key  ++ ".rrd"),
     rrdtool:update(#rrd_update{filename=File,
                                updates=[#rrd_supdate{values=[Mean]}]}),
     rrd_update(LogDir, Tail);
-rrd_update(LogDir,[{Key,{Type, Val}} | Tail]) when is_list(Key),
+rrd_update(LogDir,[{Key,{_Type, Val}} | Tail]) when is_list(Key),
                                                    is_integer(Val) or is_float(Val)->
     File=filename:join(LogDir, Key  ++ ".rrd"),
     rrdtool:update(#rrd_update{filename=File,

@@ -37,7 +37,7 @@
 %%          {ok, Pid, State} |
 %%          {error, Reason}   
 %%----------------------------------------------------------------------
-start(Type, _StartArgs) ->
+start(_Type, _StartArgs) ->
 %	error_logger:tty(false),
     ?LOG("open logfile  ~n",?DEB),
     LogFileEnc = ts_config_server:decode_filename(?config(log_file)),
@@ -59,7 +59,7 @@ start(Type, _StartArgs) ->
 %% Func: stop/1
 %% Returns: any 
 %%----------------------------------------------------------------------
-stop(State) ->
+stop(_State) ->
     stop.
 			
 			

@@ -108,7 +108,7 @@ wait({launch, []}, State) ->
 	Warm_timeout=case ts_utils:elapsed(now(), StartDate) of 
 					 WaitBeforeStart when WaitBeforeStart>0 -> 
 						 round(ts_stats:exponential(Intensity) + WaitBeforeStart);
-					 Neg -> 
+					 _Neg -> 
 						 ?LOG("Negative Warm timeout !!! Check if client "++
 							  " machines are synchronized (ntp ?)~n"++
 							  "Anyway, start launcher NOW! ~n", ?WARN),
@@ -134,7 +134,7 @@ wait({launch, {[{Intensity, Users}| Rest], Max}}, State) ->
                                        intensity = Intensity, maxusers=Max},
      ?short_timeout}.
 
-launcher(Event, State=#state{nusers = 0, phases = [] }) ->
+launcher(_Event, #state{nusers = 0, phases = [] }) ->
 	?LOG("no more clients to start, wait  ~n",?INFO),
     ts_config_server:endlaunching(node()),
     {next_state, finish, #state{}, ?check_noclient_timeout};
@@ -195,7 +195,7 @@ finish(timeout, State) ->
 %%          {next_state, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}                         
 %%----------------------------------------------------------------------
-handle_event(Event, StateName, StateData) ->
+handle_event(_Event, StateName, StateData) ->
 	{next_state, StateName, StateData}.
 
 %%----------------------------------------------------------------------
@@ -207,7 +207,7 @@ handle_event(Event, StateName, StateData) ->
 %%          {stop, Reason, NewStateData}                          |
 %%          {stop, Reason, Reply, NewStateData}                    
 %%----------------------------------------------------------------------
-handle_sync_event(Event, From, StateName, StateData) ->
+handle_sync_event(_Event, _From, StateName, StateData) ->
 	Reply = ok,
 	{reply, Reply, StateName, StateData}.
 
@@ -217,7 +217,7 @@ handle_sync_event(Event, From, StateName, StateData) ->
 %%          {next_state, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}                         
 %%----------------------------------------------------------------------
-handle_info(Info, StateName, StateData) ->
+handle_info(_Info, StateName, StateData) ->
 	{next_state, StateName, StateData}.
 
 %%----------------------------------------------------------------------
@@ -225,7 +225,7 @@ handle_info(Info, StateName, StateData) ->
 %% Purpose: Shutdown the fsm
 %% Returns: any
 %%----------------------------------------------------------------------
-terminate(Reason, StateName, StatData) ->
+terminate(Reason, _StateName, _StateData) ->
 	?LOGF("launcher terminating for reason~p~n",[Reason], ?INFO),
 	ok.
 
@@ -234,7 +234,7 @@ terminate(Reason, StateName, StatData) ->
 %% Purpose: Convert process state when code is changed
 %% Returns: {ok, NewState, NewStateData}
 %%--------------------------------------------------------------------
-code_change(OldVsn, StateName, StateData, Extra) ->
+code_change(_OldVsn, StateName, StateData, _Extra) ->
     {ok, StateName, StateData}.
 
 %%%----------------------------------------------------------------------
@@ -252,7 +252,7 @@ change_phase(N,[{NewIntensity,NewUsers}|Rest],Current,Total) when Current>Total 
     ?LOGF("Phase duration exceeded, but not all users were launched (~p users)~n",
           [N],?WARN),
     {change, NewUsers, NewIntensity, Rest};
-change_phase(_, _, Current_Duration, Total) ->
+change_phase(_, _, _Current_Duration, _Total) ->
     {continue}.
 
 %%%----------------------------------------------------------------------

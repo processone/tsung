@@ -98,7 +98,7 @@ init([Socket]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-handle_call(Request, From, State) ->
+handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
 
@@ -109,7 +109,7 @@ handle_call(Request, From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-handle_cast(Msg, State) ->
+handle_cast(_Msg, State) ->
     {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -149,10 +149,10 @@ handle_info({Msg,Socket},State=#state{http_version = HTTPVersion,
             {noreply, State#state{serversock=undefined}, ?lifetime}
     end;
 
-handle_info({Msg, Socket}, State) when Msg == tcp_closed;
+handle_info({Msg, _Socket}, State) when Msg == tcp_closed;
                                        Msg == ssl_closed->
     ?LOG("socket closed by client~n",?INFO),
-    {stop, normal, ?lifetime};
+    {stop, normal, State};
 
 % Log properly who caused an error, and exit.
 handle_info({Msg, Socket, Reason}, State) when Msg == tcp_error;
@@ -163,7 +163,7 @@ handle_info({Msg, Socket, Reason}, State) when Msg == tcp_error;
 handle_info(timeout, State) ->
     {stop, timeout, State};
 
-handle_info(Info, State) ->
+handle_info(_Info, State) ->
     {stop, unknown, State}.
 
 %%--------------------------------------------------------------------
@@ -171,7 +171,7 @@ handle_info(Info, State) ->
 %% Description: Shutdown the server
 %% Returns: any (ignored by gen_server)
 %%--------------------------------------------------------------------
-terminate(Reason, State) ->
+terminate(_Reason, _State) ->
 %    ts_proxy_recorder:dorecord(endsession),
     ok.
 
@@ -180,7 +180,7 @@ terminate(Reason, State) ->
 %% Purpose: Convert process state when code is changed
 %% Returns: {ok, NewState}
 %%--------------------------------------------------------------------
-code_change(OldVsn, State, Extra) ->
+code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 %%--------------------------------------------------------------------
@@ -196,9 +196,9 @@ code_change(OldVsn, State, Extra) ->
 %% Types:   Sockname -> server | client | unknown
 %%          State -> state_record()
 
-sockname(Socket,State=#state{serversock=Socket})-> server;
-sockname(Socket,State=#state{clientsock=Socket})-> client;
-sockname(Socket,State)-> unknown.
+sockname(Socket,#state{serversock=Socket})-> server;
+sockname(Socket,#state{clientsock=Socket})-> client;
+sockname(_Socket,_State)-> unknown.
 
 
 %%--------------------------------------------------------------------
@@ -206,7 +206,7 @@ sockname(Socket,State)-> unknown.
 %% Purpose: parse HTTP request
 %% Returns: {ok, NewState}
 %%--------------------------------------------------------------------
-parse(State=#state{parse_status=Status},ClientSock,ServerSocket,String) when Status==new ->
+parse(State=#state{parse_status=Status},_,ServerSocket,String) when Status==new ->
     NewString = lists:append(State#state.buffer,String),
     StartHeaders = string:str(NewString,"\r\n\r\n"),
     ?LOGF("StartHeaders = ~p ~n",[StartHeaders],?DEB),
@@ -217,7 +217,7 @@ parse(State=#state{parse_status=Status},ClientSock,ServerSocket,String) when Sta
         _ -> 
             Headers = string:substr(NewString, 1, StartHeaders-1),
             ?LOGF("Headers ~p ~n",[Headers],?DEB),
-            {ok,[Method, RequestURI, HTTPVersion, RequestLine, ParsedHeader]} =
+            {ok,[Method, RequestURI, HTTPVersion, _RequestLine, ParsedHeader]} =
                 httpd_parse:request_header(Headers),
             TotalSize= length(NewString),
             ?LOGF("StartHeaders = ~p, totalsize =~p~n",[StartHeaders, TotalSize],?DEB),
@@ -237,7 +237,7 @@ parse(State=#state{parse_status=Status},ClientSock,ServerSocket,String) when Sta
                     {ok, State#state{http_version=HTTPVersion,
 			             parse_status = new, buffer=[],
                                      serversock=NewSocket}};
-                {undefined, Diff} ->
+                {undefined, _} ->
                     {error, undefined};
                 {Length, _} ->
                     CLength = list_to_integer(Length)+4,
@@ -281,7 +281,7 @@ parse(State=#state{parse_status=Status},ClientSock,ServerSocket,String) when Sta
             end
     end;
 
-parse(State=#state{parse_status=Status, buffer=Http},ClientSock,ServerSocket,String) 
+parse(State=#state{parse_status=Status, buffer=Http},_,ServerSocket,String) 
   when Status == body ->
 	DataSize = length(String),
 	?LOGF("HTTP Body size=~p ~n",[DataSize], ?DEB),
@@ -335,7 +335,7 @@ check_serversocket(Socket, URL=#url{port=Port,host=Host}) ->
             ?LOGF("New server configuration  (~p:~p, was ~p) on URL ~p~n", 
                   [RealIP, RealPort, Other, URL],?DEB),
             case Socket of 
-                {sslsocket, A, B} -> ssl:close(Socket);
+                {sslsocket, _, _} -> ssl:close(Socket);
                 _             -> gen_tcp:close(Socket)
             end,
             {ok, NewSocket} = connect(URL#url.scheme, Host,RealPort),
@@ -359,14 +359,14 @@ send(Socket,String) ->
 connect(Scheme, Host, Port)->
     case Scheme of 
         https -> 
-            {ok, Socket} = ssl:connect(Host,Port,
-                                       [{active, once}]);
+            {ok, _} = ssl:connect(Host,Port,
+                                  [{active, once}]);
         http  -> 
-            {ok, Socket} = gen_tcp:connect(Host,Port,
-                                           [{active, once},
-                                            {recbuf, ?tcp_buffer},
-                                            {sndbuf, ?tcp_buffer}
-                                           ])
+            {ok, _} = gen_tcp:connect(Host,Port,
+                                      [{active, once},
+                                       {recbuf, ?tcp_buffer},
+                                       {sndbuf, ?tcp_buffer}
+                                      ])
     end.
 
 relative_url(NewString,RequestURI,RelURL)->

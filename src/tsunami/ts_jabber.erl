@@ -75,7 +75,7 @@ get_message(Req=#jabber{}) ->
 %% Returns: NewState (record)
 %%----------------------------------------------------------------------
 %% no parsing in jabber. use only ack
-parse(Data, State) ->
+parse(_Data, State) ->
 	State.
 
 %%
@@ -86,9 +86,9 @@ parse_config(Element, Conf) ->
 %% Function: add_dynparams/4
 %% Purpose: add dynamic parameters to build the message
 %%----------------------------------------------------------------------
-add_dynparams(Subst,[], Param, Host) ->
+add_dynparams(_Subst,[], Param, _Host) ->
 	Param;
-add_dynparams(Subst,DynData, Param, Host) ->
+add_dynparams(_Subst,DynData, Param, _Host) ->
 	Param#jabber{id=DynData}.
 
 init_dynparams() ->

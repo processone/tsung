@@ -89,7 +89,7 @@ start()->
 %%          ignore               |
 %%          {stop, Reason}
 %%--------------------------------------------------------------------
-init(Config) ->
+init(_Config) ->
     State=#state{},
     activate(State),
     {ok, State}.
@@ -109,7 +109,7 @@ init(Config) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-handle_call(stop, From, State) ->
+handle_call(stop, _From, State) ->
     case State#state.acceptsock of 
         undefined -> nothing;
         Socket -> ssl:close(Socket)
@@ -117,7 +117,7 @@ handle_call(stop, From, State) ->
     NewState=State#state{acceptsock=undefined},
     {stop, normal, ok, NewState};
 
-handle_call({accepted, Tag, ClientSock}, From, State) ->
+handle_call({accepted, _Tag, ClientSock}, _From, State) ->
     case ts_client_proxy_sup:start_child(ClientSock) of
         {ok, Pid} ->
             ?LOGF("New connection from~p~n", [inet:peername(ClientSock)],?INFO),
@@ -129,7 +129,7 @@ handle_call({accepted, Tag, ClientSock}, From, State) ->
     NumCnx = State#state.accept_count,
     {reply, continue, State#state{accept_count=NumCnx+1}};
 
-handle_call({accept_error, Tag, Error}, From, State) ->
+handle_call({accept_error, _Tag, Error}, _From, State) ->
     ?LOGF("accept() failed ~p~n",[Error],?ERR),
 	case Error of
 		{error, esslaccept} ->
@@ -140,7 +140,7 @@ handle_call({accept_error, Tag, Error}, From, State) ->
 			{stop, Error, stop, State}
 	end;
 
-handle_call(_, From, State) ->
+handle_call(_, _From, State) ->
     {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -159,7 +159,7 @@ handle_cast(_, State) -> {noreply, State}.
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-handle_info(Info, State) ->
+handle_info(_Info, State) ->
     {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -167,7 +167,7 @@ handle_info(Info, State) ->
 %% Description: Shutdown the server
 %% Returns: any (ignored by gen_server)
 %%--------------------------------------------------------------------
-terminate(Reason, State) ->
+terminate(_Reason, State) ->
     case State#state.acceptsock of 
         undefined -> nothing;
         Socket -> gen_tcp:close(Socket)
@@ -179,7 +179,7 @@ terminate(Reason, State) ->
 %% Purpose: Convert process state when code is changed
 %% Returns: {ok, NewState}
 %%--------------------------------------------------------------------
-code_change(OldVsn, State, Extra) ->
+code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 

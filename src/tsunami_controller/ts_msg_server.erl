@@ -88,7 +88,7 @@ handle_call(get_id, _From, State) ->
     {reply, Element, State2};
 
 handle_call(reset, _From, State) ->
-    {reply, ok, #state{number = 0}};
+    {reply, ok, State#state{number = 0}};
 
 handle_call(stop, _From, State)->
     {stop, normal, ok, State}.
@@ -117,7 +117,7 @@ handle_info(_Info, State) ->
 %% Purpose: Shutdown the server
 %% Returns: any (ignored by gen_server)
 %%----------------------------------------------------------------------
-terminate(Reason, State) ->
+terminate(Reason, _State) ->
 	?LOGF("terminate ~n (reason ~p)",[Reason],?INFO),
     ok.
 

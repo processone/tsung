@@ -43,14 +43,14 @@
 %%          Pid of the client The substitution tag are intended to
 %%          be used in idx-tsunami.xml scenarii files.
 %% ----------------------------------------------------------------------
-subst(Atom, DynVar) when atom(Atom) ->
+subst(Atom, _DynVar) when atom(Atom) ->
     Atom;
 subst(Binary, DynVar) when binary(Binary) ->
     list_to_binary(subst(binary_to_list(Binary), DynVar));
 subst(String, DynVar) ->
     subst(String, DynVar, []).
 
-subst([], DynVar, Acc) ->
+subst([], _DynVar, Acc) ->
     lists:reverse(Acc);
 subst([$%,$%,$_|Rest], DynVar, Acc) ->
     extract_variable(Rest, DynVar, Acc, []);
@@ -60,18 +60,18 @@ subst([H|Tail], DynVar, Acc) ->
     subst(Tail, DynVar, [H|Acc]).
 
 %% Search for the module string in the subst markup
-extract_module([],DynVar, Acc,Mod) ->
+extract_module([],_DynVar, Acc,_) ->
     lists:reverse(Acc);
-extract_module([$:|Tail],DynVar, Acc,Mod) ->
+extract_module([$:|Tail],DynVar, Acc, Mod) ->
     ?DebugF("found module name: ~p~n",[lists:reverse(Mod)]),
     extract_function(Tail,DynVar, Acc,lists:reverse(Mod),[]);
-extract_module([H|Tail],DynVar, Acc,Mod) ->
+extract_module([H|Tail],DynVar, Acc, Mod) ->
     extract_module(Tail,DynVar, Acc,[H|Mod]).
 
 %% Search for the module string in the subst markup
-extract_variable([],DynVar,Acc,Var) ->
+extract_variable([],_DynVar,Acc,_) ->
     lists:reverse(Acc);
-extract_variable([$%,$%|Tail], undefined, Acc, Var) ->
+extract_variable([$%,$%|Tail], undefined, Acc, _Var) ->
     subst(Tail, undefined, lists:reverse("undefined") ++ Acc);
 extract_variable([$%,$%|Tail], DynVar, Acc, Var) ->
     VarName = list_to_atom(lists:reverse(Var)),
@@ -89,7 +89,7 @@ extract_variable([H|Tail],DynVar,Acc,Mod) ->
 
 %% Search for the function string and do the real substitution before
 %% keeping on the parsing
-extract_function([], DynVar, Acc, Mod, Fun) ->
+extract_function([], _DynVar, Acc, _Mod, _Fun) ->
     lists:reverse(Acc);    
 extract_function([$%,$%|Tail], DynVar, Acc, Mod, Fun) ->
     ?DebugF("found function name: ~p~n",[lists:reverse(Fun)]),
@@ -111,46 +111,48 @@ extract_function([H|Tail],DynVar,  Acc, Mod, Fun) ->
 
 %%----------------------------------------------------------------------
 %% Func: match/2 
-%% Args: 
-%% Purpose: 
+%% Args: RegExp, Data
+%% Returns: ok
+%% Purpose: search for regexp in Data; send result to ts_mon
 %%----------------------------------------------------------------------
-match(undefined, Data) -> ok;
+match(undefined, _Data) -> ok;
 match(RegExp, Data)  when is_binary(Data)->
     ?DebugF("Matching Data size ~p~n",[size(Data)]),
     match(RegExp, binary_to_list(Data));
 match(RegExp, String) ->
     case regexp:first_match(String, RegExp) of
-        {match,Start,Length} ->
+        {match,_, _} ->
             ?LOGF("Ok Match (regexp=~p) ~n",[RegExp], ?INFO),
             ts_mon:add({count, match}),
             ok;
         nomatch ->
             ?LOGF("Bad Match (regexp=~p), ~n",[RegExp], ?NOTICE),
             ts_mon:add({count, nomatch});
-        {error,Error} ->
+        {error,_Error} ->
             ?LOGF("Error while matching: bad REGEXP (~p)~n", [RegExp], ?WARN),
             ts_mon:add({count, badregexp})
     end.
 
 %%----------------------------------------------------------------------
 %% Func: parse_dynvar/2 
-%% Args: 
-%% Purpose: 
+%% Args: DynVar, Data
+%% Purpose: look for dynamic variables in Data
+%% Returns: List 
 %%----------------------------------------------------------------------
-parse_dynvar(undefined, Data) -> [];
+parse_dynvar(undefined, _Data) -> [];
 parse_dynvar(DynVar, Data)  when is_binary(Data) ->
     String = binary_to_list(Data),
     ?DebugF("Parsing Dyn Variable; data is ~p~n",[String]),
     parse_dynvar(DynVar, String,[]);
-parse_dynvar(DynVar, Data)  ->
+parse_dynvar(DynVar, _Data)  ->
     ?LOGF("Error while Parsing dyn Variable(~p) ~p~n",[DynVar],?WARN),
     [].
     
 
-parse_dynvar([], String, ValuesList) -> ValuesList;
+parse_dynvar([], _String, ValuesList) -> ValuesList;
 parse_dynvar([{VarName, RegExp}| DynVars], String, ValuesList) ->
     case gregexp:groups(String, RegExp) of
-        {match,[Value| Rest]} ->
+        {match,[Value|_]} ->
             ?LOGF("Ok Match (~p=~p) ~n",[VarName, Value], ?DEB),
             parse_dynvar(DynVars, String, [{VarName, Value}| ValuesList]);
         nomatch ->
@@ -160,7 +162,7 @@ parse_dynvar([{VarName, RegExp}| DynVars], String, ValuesList) ->
             ?LOGF("Error while parsing dyn var: bad REGEXP (~p)~n", [Error], ?ERR),
             parse_dynvar(DynVars, String, ValuesList)
     end;
-parse_dynvar(Args, String, Values) ->
+parse_dynvar(Args, _String, _Values) ->
     ?LOGF("Bad args while parsing dyn var (~p)~n", [Args], ?ERR),
     [].
     

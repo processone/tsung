@@ -126,7 +126,7 @@ init_seed()->
 %% Purpose: returns unix like elapsed time in sec
 %%----------------------------------------------------------------------
 now_sec() ->
-	{MSec, Seconds, MicroSec} = now(),
+	{MSec, Seconds, _} = now(),
 	Seconds+1000000*MSec.
 
 %%----------------------------------------------------------------------
@@ -141,7 +141,7 @@ add_time({MSec, Seconds, MicroSec}, SecToAdd) ->
     end.
 
 node_to_hostname(Node) ->
-    [Nodename, Hostname] = string:tokens( atom_to_list(Node), "@"),
+    [_Nodename, Hostname] = string:tokens( atom_to_list(Node), "@"),
     {ok, Hostname}.
 
 %%----------------------------------------------------------------------
@@ -167,7 +167,7 @@ mkey1search(List, Key) ->
     end.
 
 %% close socket if it exists
-close_socket(Protocol, none) -> ok;
+close_socket(_Protocol, none) -> ok;
 close_socket(gen_tcp, Socket)-> gen_tcp:close(Socket);
 close_socket(ssl, Socket)    -> ssl:close(Socket);
 close_socket(gen_udp, Socket)-> gen_udp:close(Socket).
@@ -253,7 +253,7 @@ stop_all([Host],Name,MsgName)  ->
     stop_all([Host],Name,MsgName, VoidFun ).
 
 stop_all([Host],Name,MsgName,Fun) when atom(Host) ->
-    List= net_adm:world_list([Host]),
+    _List= net_adm:world_list([Host]),
     global:sync(),
 	case global:whereis_name(Name) of 
 		undefined ->
@@ -281,7 +281,7 @@ make_dir_rec(DirName) when list(DirName) ->
             {error,Reason}
     end.
 
-make_dir_rec(Path, []) ->
+make_dir_rec(_Path, []) ->
     ok;
 make_dir_rec(Path, [Parent|Childs]) ->
     CurrentDir=filename:join([Path,Parent]),
@@ -304,7 +304,7 @@ is_ip(String) when list(String) ->
     EightBit="(2[0-4][0-9]|25[0-5]|1[0-9][0-9]|[0-9][0-9]|[0-9])",
     RegExp = lists:append(["^",EightBit,"\.",EightBit,"\.",EightBit,"\.",EightBit,"$"]), %"
     case regexp:first_match(String, RegExp) of 
-       {match,Start,Length} -> true;
+       {match,_,_} -> true;
        _ -> false
     end;                            
 is_ip(_) -> false.
@@ -316,8 +316,8 @@ is_ip(_) -> false.
 to_https({url, "http://{"++Rest})-> "https://" ++ Rest;
 to_https({url, URL})-> URL;
 to_https({request, String}) when is_list(String) ->
-    {ok,NewString,RepCount} = regexp:gsub(String,"http://{","https://"),
-    {ok,RealString,RepCount2} = regexp:gsub(NewString,"Host: {","Host: "),
+    {ok,NewString,_} = regexp:gsub(String,"http://{","https://"),
+    {ok,RealString,_} = regexp:gsub(NewString,"Host: {","Host: "),
     {ok, RealString};
 to_https(_) -> {error, bad_input}.
 
@@ -333,7 +333,7 @@ from_https(_) -> {error, bad_input}.
 
 %% A Perl-style join --- concatenates all strings in Strings,
 %% separated by Sep.
-join(Sep, []) -> [];
+join(_Sep, []) -> [];
 join(Sep, List) when is_list(List)->
     join2(Sep, lists:reverse(List)).
 join2(Sep, [First | List]) when is_integer(First)->

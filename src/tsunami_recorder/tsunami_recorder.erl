@@ -45,7 +45,7 @@
 %%          {ok, Pid, State} |
 %%          {error, Reason}   
 %%----------------------------------------------------------------------
-start(Type, _StartArgs) ->
+start(_Type, _StartArgs) ->
 	error_logger:tty(false),
 	error_logger:logfile({open, ?config(log_file) ++ "-" ++ atom_to_list(node())}),
     case ts_recorder_sup:start_link() of
@@ -60,7 +60,7 @@ start(Type, _StartArgs) ->
 %% Func: stop/1
 %% Returns: any 
 %%----------------------------------------------------------------------
-stop(State) ->
+stop(_State) ->
     stop.
 
 %%----------------------------------------------------------------------

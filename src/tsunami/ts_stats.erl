@@ -90,7 +90,7 @@ meanvar(Esp, Var, [X|H], I) ->
 %% compute the variance of a list
 variance([]) -> 0;
 variance(H) ->
-    {Mean, Var, I} = meanvar(0, 0, H, 0),
+    {_Mean, Var, I} = meanvar(0, 0, H, 0),
 	Var/I.
 
 stdvar(H) ->
