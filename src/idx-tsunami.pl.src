@@ -151,8 +151,8 @@ if ($config or $start or $restart) {
 			}
 		}
 		$j += $nbeams;
-		sleep (1);
 	}
+	sleep (5);
 	if (($start or $restart) and not $config and not $controller_up) {
 		&start_controller();
 		$controller_up = 1;
