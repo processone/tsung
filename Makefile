@@ -16,8 +16,7 @@ else
   endif	
 endif
 INC = ./include
-CC  = erlc
-ERL = erl
+CC  = $(ERL)c
 SED = $(shell which sed)
 
 ESRC = ./src
@@ -200,7 +199,7 @@ priv/tsunami.boot: builder.beam  $(SRC_APPFILES)
 	@ln -sf $(PWD) temp/lib/$(APPLICATION)-$(VERSION)
 	@(cd temp/lib/$(APPLICATION)-$(VERSION) \
 	 && echo $(BUILD_OPTIONS) > $(BUILD_OPTIONS_FILE) \
-	 && erl -s builder go -s init stop \
+	 && $(ERL) -s builder go -s init stop \
 	)
 	@rm -rf temp
 
@@ -215,7 +214,7 @@ priv/tsunami_controller.boot: builder.beam $(CONTROLLER_SRC_APPFILES)
 	@ln -sf $(PWD)/builder.beam temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/
 	@(cd temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION) \
 	 && echo $(BUILD_OPTIONS) > $(BUILD_OPTIONS_FILE) \
-	 && erl -s builder go -s init stop \
+	 && $(ERL) -s builder go -s init stop \
 	)
 	@rm -rf temp
 
@@ -230,7 +229,7 @@ priv/tsunami_recorder.boot: builder.beam $(RECORDER_SRC_APPFILES)
 	@ln -sf $(PWD)/builder.beam temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/
 	@(cd temp/lib/$(RECORDER_APPLICATION)-$(VERSION) \
 	 && echo $(BUILD_OPTIONS) > $(BUILD_OPTIONS_FILE) \
-	 && erl -noshell -s builder go -s init stop \
+	 && $(ERL) -noshell -s builder go -s init stop \
 	)
 	@rm -rf temp
 
