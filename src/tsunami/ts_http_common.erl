@@ -54,7 +54,7 @@ http_get(Req=#http_request{url=URL, version=Version, cookie=Cookie,
                     "Host: ", Host, ?CRLF,
                     user_agent(),
                     authenticate(UserId,Passwd),
-                    set_cookie_header(Cookie, Host),
+                    set_cookie_header({Cookie, Host, URL}),
                     ?CRLF]);
 
 http_get(Req=#http_request{url=URL, version=Version, cookie=Cookie,
@@ -65,7 +65,7 @@ http_get(Req=#http_request{url=URL, version=Version, cookie=Cookie,
                     "Host: ", Host, ?CRLF,
                     user_agent(),
                     authenticate(UserId,Passwd),
-                    set_cookie_header(Cookie, Host),
+                    set_cookie_header({Cookie, Host, URL}),
                     ?CRLF]).
 
 %%----------------------------------------------------------------------
@@ -81,7 +81,7 @@ http_post(Req=#http_request{url=URL, version=Version, cookie=Cookie,
                "Host: ", Host, ?CRLF,
                user_agent(),
                authenticate(UserId,Passwd),
-               set_cookie_header(Cookie, Host),
+               set_cookie_header({Cookie, Host, URL}),
                "Content-Type: ", ContentType, ?CRLF,
                "Content-Length: ",ContentLength, ?CRLF,
                ?CRLF
@@ -101,14 +101,14 @@ user_agent() ->
 	["User-Agent: ", ?USER_AGENT, ?CRLF].
 
 %%----------------------------------------------------------------------
-%% Function: set_cookie_header/2*
-%% Args: Cookies (list), Hostname (string)
+%% Function: set_cookie_header/1
+%% Args: Cookies (list), Hostname (string), URL
 %% Purpose: set Cookie: Header
 %%----------------------------------------------------------------------
-set_cookie_header(none, Host) -> []; % is it useful ?
-set_cookie_header([], Host) -> [];
-set_cookie_header(Cookies, Host) -> 
-    MatchDomain = fun (A) -> matchdomain(A,Host) end,
+set_cookie_header({none, _, _}) -> []; % is it useful ?
+set_cookie_header({[], _, _})   -> [];
+set_cookie_header({Cookies, Host, URL})-> 
+    MatchDomain = fun (A) -> matchdomain_url(A,Host,URL) end,
     CurCookies = lists:filter(MatchDomain, Cookies),
     set_cookie_header(CurCookies, Host, []).
 
@@ -121,10 +121,12 @@ set_cookie_header([Cookie|Cookies], Host, Acc) ->
 cookie_rec2str(#cookie{key=Key, value=Val}) ->
     lists:append([Key,"=",Val]).
                        
-matchdomain(Cookie, Host) -> % return a cookie only if domain match
-    case string:str(Host, Cookie#cookie.domain) of %% should use regexp:match
-        0 -> false;
-        _ -> true
+matchdomain_url(Cookie, Host, URL) -> % return a cookie only if domain match
+    case {string:str(Host,Cookie#cookie.domain), % should use regexp:match
+          string:str(URL,Cookie#cookie.path)} of
+        {0,_} -> false;
+        {_,1} -> true;
+        {_,_} -> false
     end.
 
 %%----------------------------------------------------------------------
@@ -145,8 +147,8 @@ parse_config(Element = #xmlElement{name=http},
     Date     = ts_config:getAttr(Element#xmlElement.attributes, 
                                  'if_modified_since', undefined),
     Method = case ts_config:getAttr(Element#xmlElement.attributes, method) of 
-                 "GET"    -> get;
-                 "POST"   -> post;
+                 "GET" -> get;
+                 "POST"-> post;
                  Other ->
                      ?LOGF("Bad method ! ~p ~n",[Other],?ERR),
                      get
@@ -335,7 +337,7 @@ read_chunk_data(Data, State, Int, Acc) -> % not enough data in buffer
 %%----------------------------------------------------------------------
 add_new_cookie(Cookie, Host, OldCookies) ->
     Fields = splitcookie(Cookie),
-    New = parse_set_cookie(Fields, #cookie{domain=Host}),
+    New = parse_set_cookie(Fields, #cookie{domain=Host,path="/"}),
     concat_cookies([New],OldCookies).
 
 %%----------------------------------------------------------------------
@@ -365,8 +367,9 @@ concat_cookies([New=#cookie{}| Rest], OldCookies) ->
         false ->
             concat_cookies(Rest, [New | OldCookies])
     end.
-    
-    
+
+
+%% cf RFC 2965 
 parse_set_cookie([], Cookie) -> Cookie;
 parse_set_cookie([Field| Rest], Cookie=#cookie{}) ->
     {Key,Val} = get_cookie_key(Field,[]),
@@ -389,6 +392,10 @@ set_cookie_key([L|"iscard"],Val,Cookie) when L == $D; L==$d ->
     Cookie#cookie{discard=true};
 set_cookie_key([L|"ecure"],Val,Cookie) when L == $S; L==$s ->
     Cookie#cookie{secure=true};
+set_cookie_key([L|"ommenturl"],Val,Cookie) when L == $C; L==$c ->
+    Cookie; %don't care about comment
+set_cookie_key([L|"omment"],Val,Cookie) when L == $C; L==$c ->
+    Cookie; %don't care about comment
 set_cookie_key(Key,Val,Cookie) ->
     Cookie#cookie{key=Key,value=Val}.
     
