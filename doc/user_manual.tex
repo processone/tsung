@@ -54,9 +54,9 @@ inherits several characteristics from Erlang:
 
 \begin{itemize}
 \item \emph{Performance}: Erlang has been made to support hundred thousands
-of lightweight processus in a single virtual machine. 
-\item \emph{Scalability}: Erlang development environnement is naturally
-distributed, promoting the idea of processus location transparence. 
+of lightweight processes in a single virtual machine. 
+\item \emph{Scalability}: Erlang development environment is naturally
+distributed, promoting the idea of process's location transparency. 
 \item \emph{Fault-tolerance}:Erlang has been built to develop robust,
 fault-tolerant systems. As such, wrong answer sent from the server
 to \program{IDX-Tsunami} does not make the whole running benchmark crash. 
@@ -70,7 +70,7 @@ More informations on Erlang on \url{http://www.erlang.org} and
 
 History:
 \begin{itemize}
-\item \program{IDX-Tsunami} is being developped since 2001 
+\item \program{IDX-Tsunami} is being developed since 2001 
 \item It is an industrial implementation of a \emph{stochastic model}
 for real users simulation. User events distribution is based on a
 Poisson Process. More information on this topic in:
@@ -113,23 +113,23 @@ for Petroleum
 \begin{itemize}
 \item \emph{High Performance}: \program{IDX-Tsunami} can simulate a huge number
 of simultaneous users par physical computer: It can simulates up to
-10000 users on a single CPU. Traditionnal injection tools can hardly
+10000 users on a single CPU. Traditional injection tools can hardly
 go further than 200 users. 
 \item \emph{Distributed}: the load can be distributed on a cluster of
 client machines 
-\item \emph{Multi-Protocols} using a plugin system: HTTP (both standard
+\item \emph{Multi-Protocols} using a plug-in system: HTTP (both standard
 web traffic and SOAP) and Jabber are currently supported. LDAP and
 SMTP are on the TODO list. 
 \item \emph{SSL} support 
 \item \emph{Several IP addresses} can be used on a single machine using
 the underlying OS IP Aliasing 
-\item \emph{OS monitoring} (CPU, memory and network trafic) using Erlang
+\item \emph{OS monitoring} (CPU, memory and network traffic) using Erlang
 agents on remote servers or \emph{SNMP}
 \item \emph{XML configuration system}
 \item \emph{Mixed behaviours}: several sessions can be used to simulate
-differents type of users during the same benchmark. You can define
+different type of users during the same benchmark. You can define
 the proportion of the various behaviours in the benchmark scenario. 
-\item \emph{Stochastic processes}: in order to generate a realistic trafic,
+\item \emph{Stochastic processes}: in order to generate a realistic traffic,
 user thinktimes and the arrival rate can be randomize using a probability
 distribution (exponential currently) 
 \end{itemize}
@@ -160,7 +160,7 @@ distribution (exponential currently)
 
 \subsection{Complete reports set}
 
-Mesures and statistics produced by Tsunami are extremely featurefull.
+Measures and statistics produced by Tsunami are extremely feature-full.
 They are all represented as a graphic. \program{IDX-Tsumami} produces
 statistics regarding:
 
@@ -187,13 +187,13 @@ are gathered in real-time.
 \begin{itemize}
 \item \emph{Outstanding performance} and \emph{distributed benchmark}
 \item \emph{Ease of use}: The hard work is already done for all supported
-protocol. No need to write complex scripts. Dynamic scenarii only
+protocol. No need to write complex scripts. Dynamic scenarios only
 requires small trivial piece of code.
 % Tsunami scenarii realisation is mostly based on 
 \item \emph{Multi-protocol support}: \program{IDX-Tsunami} is for example one of
 the only tool to benchmark SOAP applications 
 \item \emph{Monitoring} of the target cluster to analyse the behaviour
-and find bottlenecks. For exemple, I did use it to analyse cluster
+and find bottlenecks. For example, I did use it to analyse cluster
 symmetry (is the load properly balanced ?) and to determine the best
 combination of machines on the three cluster tiers (Web engine, EJB
 engine and database) 
@@ -221,13 +221,13 @@ supported platforms (Solaris, *BSD,  Win32 and MacOS-X).
     \command{analyse\_msg.pl} script).  The Template Toolkit is used for HTML
     reports (see \url{http://template-toolkit.org/})
   \item for distributed tests, you need an ssh access to remote
-    machines without passwd (use a RSA/DSA key without passphrase or
+    machines without password (use a RSA/DSA key without pass-phrase or
     ssh-agent)
 \end{itemize}
 \subsection{Compilation}
 
 \begin{Verbatim}
-./configure (this will detect your erlang installation path)
+./configure (this will detect your Erlang installation path)
  make
  make install
 \end{Verbatim}
@@ -272,7 +272,7 @@ the number of simultaneous users for each given phase.
 
 \subsection{File structure}
 
- Scenarii are enclosed into idx-tsunami tags:
+ Scenarios are enclosed into idx-tsunami tags:
 
  \begin{Verbatim}
 <?xml version="1.0"?>
@@ -285,7 +285,7 @@ the number of simultaneous users for each given phase.
 
 \subsection{Clients and server}
 
- Scenarii start with a clients (Tsunami cluster) and server definition:
+ Scenarios start with a clients (Tsunami cluster) and server definition:
 
 \begin{Verbatim}
   <clients>
@@ -304,7 +304,7 @@ the number of simultaneous users for each given phase.
  
  Several virtual IP can be used to simulate more machines. This is
  very useful when a load-balancer use the client\verb|'|s IP to
- distribute the traffic amoung a cluster of servers. 
+ distribute the traffic among a cluster of servers. 
  
  In this example, a second machine is used in the Tsunami cluster,
  with a higher weight, and 2 cpus. Two Erlang virtual machines will be
@@ -316,7 +316,7 @@ the number of simultaneous users for each given phase.
 
 \subsection{Monitoring}
 
-\par Scenarii can contain optional monitoring informations. For example,
+\par Scenarios can contain optional monitoring informations. For example,
 here is a cluster monitoring definition based on Erlang agents, for
 a cluster of 6 computers:
 
@@ -332,7 +332,7 @@ a cluster of 6 computers:
 \end{Verbatim}
 
 The type keyword snmp can replace the erlang keyword, if SNMP monitoring
-is prefered. They can be mixed. erlang is the default value for monitoring.
+is preferred. They can be mixed. erlang is the default value for monitoring.
 
 \par Note: For Erlang monitoring, monitored computers need to be
 accessible through the network. SSH needs to be configured to allow
@@ -558,7 +558,7 @@ response later in the session, and this value is \strong{dynamically
 generated} by the server for each user. For this, you can use
 \userinput{<dyn\_variable>} in the scenario
 
-Let's take an exemple with HTTP. You can easily grab a value in a HTML
+Let's take an example with HTTP. You can easily grab a value in a HTML
 form like:
 \begin{Verbatim}
 <form action="go.cgi" method="POST">
@@ -600,7 +600,7 @@ hand, for example to get the title of a HTML page:
 
 \section{Statistics and reports}
 
-Availables stats:
+Available stats:
 \begin{itemize}
 \item  request (response time for each request)
 \item  page (response time for each set of requests)
@@ -678,7 +678,7 @@ Web benchmarking workshop in April 2004 (more info at
 
 \subsection{IDX-tsunami crash when I start it }
 
-Does your erlang system has ssl support enabled ?
+Does your Erlang system has ssl support enabled ?
 
 to test it:
 \begin{Verbatim}
@@ -688,7 +688,84 @@ to test it:
   you should see 'ok' 
 \end{Verbatim}
 
-\subsection{IDX-tsunami still crash  when I start it}
+\subsection{IDX-tsunami still doesn't start ...}
+
+Most of the time, when a crash happened at startup without any traffic  
+generated, the problem arise because the main Erlang controller node cannot  
+create a "slave" Erlang virtual machine. The message looks like:
+
+\begin{Verbatim}
+===============================================
+=ERROR REPORT==== 4-May-2004::22:38:26 ===
+** Generic server ts_config_server terminating
+** Last message in was {'$gen_cast',{newbeam,myshortname,[]}}
+** When Server state == {state,{config,
+                                     undefined,
+                                     5,
+                                     full,
+                                     undefined,
+                                     [{client,
+                                          "myshortname",
+                                          2.00000,
+                                          5,
+                                          [{10,68,133,140}]}],
+                                     {server,"foo.net",80,gen_tcp},
+                                     [],
+                                     [{arrivalphase,
+                                          1,
+                                          60,
+                                          undefined,
+                                          undefined,
+                                          5.00000e-5,
+                                          infinity}],
+                                     undefined,
+                                     [{session,
+                                          1,
+                                          100,
+                                          ts_http,
+                                          parse,
+                                          true,
+                                          undefined}],
+                                     14,
+                                     3,
+                                     7,
+                                     6,
+                                     "negociate"},
+  "/home/username/.idx-tsunami/log/20040204-18:32",
+                               undefined,
+                               0,
+                               undefined,
+                               2.00000}
+** Reason for termination ==
+** {{badmatch,{error,timeout}},
+    [{ts_config_server,handle_cast,2},
+     {gen_server,handle_msg,6},
+     {proc_lib,init_p,5}]}
+\end{Verbatim} 
+%%%$
+
+IDX-Tsunami launches a new erl virtual machine to do the actual
+injection even when you have only one machine in the injection
+cluster. This is because it need to by-pass some limit with the number
+of open socket from a single process (1024 most of the time). The idea
+is to have several system processes (Erl beam) that can handle only a
+small part of the network connection from the given computer. When the
+\varname{maxclient} limit (simultaneous) is reach, a new Erlang beam is launched
+and the newest connexion can be handle by the new beam).
+
+The problem is that the Erlang slave module cannot start a local slave
+node. It tries to start it with the short node name
+\varname{"myshortname"} (\command{erl -sname myshortname}).
+ If this fails the injection process cannot
+start. Most of the time, adding the short name with the correct IP
+address in the \file{/etc/hosts} file is sufficient to make it work.
+
+Note that you do not need to use the 127.0.0.1 address in the config file.  
+It will not work if you use it as the injection interface. The shortname  
+of your client machine should not refer to this address.
+
+
+\subsection{IDX-tsunami still crash/fails  when I start it !}
 First look at the log file
 \file{~/.idx-tsunami/log/XXX/tsunami_controller@yourhostname'} to see
 if there is a problem. 
