@@ -184,7 +184,7 @@ handle_data_msg(Data, State) ->
 			if 
 				NewState#state_rcv.ack_done == true ->
 					?PRINTDEBUG("Response done:~p~n", [NewState#state_rcv.datasize], ?DEB),
-					PageTimeStamp = update_stats(State),
+					PageTimeStamp = update_stats(NewState),
 					{NewState#state_rcv{endpage = false, page_timestamp= PageTimeStamp}, Opts} ; % reinit in case of 
 				true ->
 					?PRINTDEBUG("Response: continue:~p~n",[NewState#state_rcv.datasize], ?DEB),
@@ -214,22 +214,22 @@ update_stats(State) ->
 		true -> % end of a page, compute page reponse time 
 			PageElapsed = ts_utils:elapsed(State#state_rcv.page_timestamp, Now),
 			ts_mon:addsample({page_resptime, PageElapsed}),
-			doack(State#state_rcv.ack, State#state_rcv.ppid),
+			doack(State#state_rcv.ack, State#state_rcv.ppid, State#state_rcv.dyndata),
 			0;
 		_ ->
-			doack(State#state_rcv.ack, State#state_rcv.ppid),
+			doack(State#state_rcv.ack, State#state_rcv.ppid, State#state_rcv.dyndata),
 			State#state_rcv.page_timestamp
 	end.
 
 %%----------------------------------------------------------------------
-%% Func: doack/2 
-%% Args: parse|local|global, Pid
+%% Func: doack/3 
+%% Args: parse|local|global, Pid, DynData
 %% Purpose: warn the sending process that the request is over
 %%----------------------------------------------------------------------
-doack(parse, Pid) ->
-	ts_client:next(Pid);
-doack(local, Pid) ->
-	ts_client:next(Pid);
-doack(global, Pid) ->
+doack(parse, Pid, DynData) ->
+	ts_client:next({Pid, DynData});
+doack(local, Pid, DynData) ->
+	ts_client:next({Pid, DynData});
+doack(global, Pid, DynData) ->
 	ts_timer:connected(Pid).
 

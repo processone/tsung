@@ -25,7 +25,8 @@
 -include("../include/ts_profile.hrl").
 -include("../include/ts_http.hrl").
 
--export([get_client/2, get_random_message/1, parse/2, new_session/0]).
+-export([get_client/2, add_dynparams/2,
+		 get_random_message/1, parse/2, new_session/0]).
 
 
 %%
@@ -35,11 +36,10 @@ new_session() ->
 get_random_message(#http_request{url = URL, method=get, cookie=Cookie}) ->
 	list_to_binary(ts_http_common:http_get(URL, ?http_version, Cookie));
 
-get_random_message(#http_request{url = URL, method=method, cookie=Cookie, body= Body}) ->
-	list_to_binary(ts_http_common:http_post(URL, ?http_version, Cookie, Body));
+get_random_message(#http_request{url = URL, method=post, cookie=Cookie, body= Body}) ->
+	list_to_binary(ts_http_common:http_post(URL, ?http_version, Cookie, Body)).
 
-get_random_message(#http_request{url = URL}) ->
-	list_to_binary(ts_http_common:http_get(URL, ?http_version, none)).
+
 
 %%
 get_client(N, Id) ->
@@ -48,5 +48,11 @@ get_client(N, Id) ->
 %%
 parse(Data, State) ->
 	ts_http_common:parse(Data, State).
+
+%%----------------------------------------------------------------------
+%% Func: add_dynparams/2
+%%----------------------------------------------------------------------
+add_dynparams(Param, DynData) ->
+	Param#http_request{cookie=DynData}.
 
 

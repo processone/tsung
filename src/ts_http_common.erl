@@ -144,6 +144,8 @@ http_post(URL, Version, Cookie, Content) ->
 user_agent() ->
 	lists:append(["User-Agent: ", ?USER_AGENT, ?CR]).
 
+get_cookie([]) ->
+	[];
 get_cookie(none) ->
 	[];
 get_cookie(Cookie) ->
@@ -276,6 +278,8 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 	StartHeaders = string:str(List, "\r\n\r\n"),
 	Headers = string:substr(List, 1, StartHeaders-1),
 	[Status, ParsedHeader] = request_header(Headers),
+	?PRINTDEBUG("HTTP Headers: ~p ~n", [ParsedHeader], ?DEB),
+	Cookie = parse_cookie(ParsedHeader),
 	ts_mon:addcount({ Status }),
 	case httpd_util:key1search(ParsedHeader,"content-length") of
 		undefined ->
@@ -288,12 +292,12 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 			BodySize = size(Data)-HeaderSize,
 			case BodySize of 
 				CLength ->  % end of response
-					{State#state_rcv{session= #http{}, ack_done = true, datasize = BodySize}, []};
+					{State#state_rcv{session= #http{}, ack_done = true, datasize = BodySize, dyndata= Cookie}, []};
 				_ ->
 					Http = #http{content_length = CLength,
 								 status         = Status,
 								 body_size      = BodySize},
-					{State#state_rcv{session = Http, ack_done = false, datasize = BodySize},[]}
+					{State#state_rcv{session = Http, ack_done = false, datasize = BodySize, dyndata=Cookie},[]}
 			end
 	end;
 
@@ -335,6 +339,24 @@ get_status(Line) ->
 	Status = string:substr(Line, StartStatus+1, 3),
 	list_to_integer(Status).
 
+%%----------------------------------------------------------------------
+%% Func: parse_cookie/1
+%% Purpose: returns HTTP cookie code
+%%----------------------------------------------------------------------
+parse_cookie(ParsedHeader) ->
+	case httpd_util:key1search(ParsedHeader,"set-cookie") of
+		undefined ->
+			[];
+		Cookie ->
+				case string:tokens( Cookie, "; ") of 
+					[CookieVal |CookieOtherAttrib] ->
+						% TODO handle path attribute
+						% several cookies can be set with a different path attribute
+						CookieVal ;
+					_Other -> % something wrong
+						[]
+				end
+	end.
 
 
 

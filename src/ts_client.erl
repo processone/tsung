@@ -45,6 +45,7 @@
 				lasttimeout,% value of the last timeout
 				timestamp,  % previous message date
 				starttime,  % date of the beginning of the session
+				dyndata =[],    % dynamic data (only used by parsing clients)
 				count       % number of requests waiting to be sent
 			   }).
 
@@ -65,8 +66,10 @@ close(Pid) ->
 	gen_server:cast(Pid, {closed, Pid}).
 
 %% continue with the next request
-next(Pid) ->
-	gen_server:cast(Pid, {next_msg}).
+next({Pid, []}) ->
+	gen_server:cast(Pid, {next_msg});
+next({Pid, DynData}) ->
+	gen_server:cast(Pid, {next_msg, DynData}).
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from gen_server
@@ -164,6 +167,12 @@ handle_cast({next_msg}, State = #state{lasttimeout = infinity}) ->
 handle_cast({next_msg}, State) ->
 	?PRINTDEBUG2("next_msg (infinite timeout)",?DEB),
 	{noreply, State, State#state.lasttimeout};
+handle_cast({next_msg, DynData}, State = #state{lasttimeout = infinity}) ->
+	?PRINTDEBUG("next_msg, count is ~p~n", [State#state.count], ?DEB),
+	{noreply, State#state{lasttimeout=1, dyndata=DynData}, ?short_timeout};
+handle_cast({next_msg, DynData}, State) ->
+	?PRINTDEBUG2("next_msg (infinite timeout)",?DEB),
+	{noreply, State#state{dyndata=DynData}, State#state.lasttimeout};
 %% more case to handle ?
 
 
@@ -221,8 +230,14 @@ handle_info(timeout, State= #state{ count=0 })  ->
 handle_info(timeout, State ) ->
     {Thinktime, Profile, Pending} = set_profile(State#state.count, State#state.profile),
 	Count = State#state.count-1,
-	Message = ts_profile:get_message(State#state.clienttype,
-                                     Profile#message.param),
+	Type  = State#state.clienttype,
+	case State#state.dyndata of 
+		[] ->
+			Param = Profile#message.param;
+		DynData -> % add dynamic info (cookie for ex.) to request parameters
+			Param = ts_profile:add_dynparams(Type, Profile#message.param, DynData)
+	end,
+	Message = ts_profile:get_message(Type , Param),
 	Now = now(),
 	%% reconnect if needed
 	Protocol = State#state.protocol,
