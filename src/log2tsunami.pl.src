@@ -34,14 +34,14 @@ my %Months=('Jan','0', 'Feb','1', 'Mar','2', 'Apr','3', 'May','4', 'Jun','5',
 my $tagvsn = '%VERSION%';
 
 GetOptions( "help",\$help,
-			"verbose",\$verbose,
-			"tt=i",\$thinktime_threshold,
-			"st=i",\$session_threshold,
-			"visit_timeout=i",\$visit_timeout,
-			"max_pages=i",\$max_pages,
-			"max_duration=i",\$max_duration,
-			"version",\$version
-		  );
+            "verbose",\$verbose,
+            "tt=i",\$thinktime_threshold,
+            "st=i",\$session_threshold,
+            "visit_timeout=i",\$visit_timeout,
+            "max_pages=i",\$max_pages,
+            "max_duration=i",\$max_duration,
+            "version",\$version
+          );
 
 my $dtd ="%DTD%";
 
@@ -72,15 +72,15 @@ my $visit_tot=0;
 &version if $version;
 
 while (<>) {
-	if (m@^([\w\.]+) \S+ \S+ \[(\w+/\w+/\w+:\d+:\d+:\d+)([^\]]+)\] \"(\w+) ([^\"]+)\" (\d+) (\S+) \"([^\"]*)\" \"([^\"]*)\"$@) {
-		my $ip      = $1;
-		my $date    = $2;
-		my $code    = $6;
-		my $referer = $8;
-		my $method  = $4;
-		my $user_agent = $9;
-		my $req     = $5;
-		my ($url, $protocole) = split(/\s+/,$req);
+    if (m@^([\w\.]+) \S+ \S+ \[(\w+/\w+/\w+:\d+:\d+:\d+)([^\]]+)\] \"(\w+) ([^\"]+)\" (\d+) (\S+) \"([^\"]*)\" \"([^\"]*)\"$@) {
+        my $ip      = $1;
+        my $date    = $2;
+        my $code    = $6;
+        my $referer = $8;
+        my $method  = $4;
+        my $user_agent = $9;
+        my $req     = $5;
+        my ($url, $protocole) = split(/\s+/,$req);
         $url = &replace_entities($url);
         my $version;
         if ($protocole =~ /HTTP\/(\d\.\d)/) {
@@ -88,29 +88,28 @@ while (<>) {
         } else {
             $version="1.0";
         }
-
-		$date =~ m'(\d+)/(\w+)/(\d+):(\d+):(\d+):(\d+)';
-		$mday =  $1;
-		$mon = $Months{$2};
-		$year = $3 - 1900;
-		$hour = $4;
-		$min = $5;
-		$sec = $6;
-		$time = timelocal($sec,$min,$hour,$mday,$mon,$year);
+        $date =~ m'(\d+)/(\w+)/(\d+):(\d+):(\d+):(\d+)';
+        $mday =  $1;
+        $mon = $Months{$2};
+        $year = $3 - 1900;
+        $hour = $4;
+        $min = $5;
+        $sec = $6;
+        $time = timelocal($sec,$min,$hour,$mday,$mon,$year);
         $user = "$ip-$user_agent";
-		if ($visite->{$user}) {
-			if ($time - $visite->{$user}->{'last_visit'} > $visit_timeout) {
-				# new visit
+        if ($visite->{$user}) {
+            if ($time - $visite->{$user}->{'last_visit'} > $visit_timeout) {
+                # new visit
                 $visit_tot ++;
-				$visite->{$user}->{'id'}++;
-				$id = $visite->{$user}->{'id'};
-				$visite->{$user}->{'last_visit'}=$time;
-				$visite->{$user}->{'last_referer'}=$referer;
-				$visite->{$user}->{$id}->{'started'}=$time;
-				$visite->{$user}->{$id}->{'last_request'}=$time;
-				$visite->{$user}->{$id}->{'page'}=1;
-				$visite->{$user}->{$id}->{'hit'}=1;
-				$visite->{$user}->{$id}->{'duration'}=0;
+                $visite->{$user}->{'id'}++;
+                $id = $visite->{$user}->{'id'};
+                $visite->{$user}->{'last_visit'}=$time;
+                $visite->{$user}->{'last_referer'}=$referer;
+                $visite->{$user}->{$id}->{'started'}=$time;
+                $visite->{$user}->{$id}->{'last_request'}=$time;
+                $visite->{$user}->{$id}->{'page'}=1;
+                $visite->{$user}->{$id}->{'hit'}=1;
+                $visite->{$user}->{$id}->{'duration'}=0;
                 $visite->{$user}->{$id}->{'tsunami'} = '<session name="'.$ip."-".$id.'" type="ts_http">'."\n";
                 $visite->{$user}->{$id}->{'tsunami'} .= "\t".'<request><http url="'.$url.'" version="'.$version.'" method="'.$method.'"';
                 if ($code  == 304) {
@@ -119,46 +118,44 @@ while (<>) {
                     $visite->{$user}->{$id}->{'tsunami'} .= '>';
                 }
                 $visite->{$user}->{$id}->{'tsunami'} .= "</http></request>\n";
-			} else {
-				# same visit
-				$id = $visite->{$user}->{'id'};
-				$visite->{$user}->{$id}->{'hit'}++;
-				my $thinktime = $time - $visite->{$user}->{$id}->{'last_request'};
-				$visite->{$user}->{'last_visit'}=$time;
-				$visite->{$user}->{$id}->{'last_request'}=$time;
+            } else {
+                # same visit
+                $id = $visite->{$user}->{'id'};
+                $visite->{$user}->{$id}->{'hit'}++;
+                my $thinktime = $time - $visite->{$user}->{$id}->{'last_request'};
+                $visite->{$user}->{'last_visit'}=$time;
+                $visite->{$user}->{$id}->{'last_request'}=$time;
                 $visite->{$user}->{$id}->{'tsunami'} .= "\t".'<thinktime value="'.$thinktime.'"/>'."\n\n" if $thinktime > $thinktime_threshold;
                 $visite->{$user}->{$id}->{'tsunami'} .= "\t".'<request><http url="'.$url.'" version="'.$version.'" method="'.$method.'"></http></request>'."\n";
-				# update duration
-				$visite->{$user}->{$id}->{'duration'} = $time - $visite->{$user}->{$id}->{'started'} ;
-				if ($visite->{$user}->{'last_referer'} eq $referer) {
-					# same page/frame
-				} else {
-					# new frame/page
-					$visite->{$user}->{$id}->{'page'}++;
-					$visite->{$user}->{'last_referer'}=$referer;
-				}
-				
-			}
-			
-		} else {# new visitor
+                # update duration
+                $visite->{$user}->{$id}->{'duration'} = $time - $visite->{$user}->{$id}->{'started'} ;
+                if ($visite->{$user}->{'last_referer'} eq $referer) {
+                    # same page/frame
+                } else {
+                    # new frame/page
+                    $visite->{$user}->{$id}->{'page'}++;
+                    $visite->{$user}->{'last_referer'}=$referer;
+                }
+            }
+        } else {# new visitor
             $visit_tot ++;
-			$visite->{$user}->{'id'}=1;
+            $visite->{$user}->{'id'}=1;
             $id = 1;
-			$visite->{$user}->{'last_visit'}=$time;
-			$visite->{$user}->{'last_referer'}=$referer;
-			$visite->{$user}->{$id}->{'started'}=$time;
+            $visite->{$user}->{'last_visit'}=$time;
+            $visite->{$user}->{'last_referer'}=$referer;
+            $visite->{$user}->{$id}->{'started'}=$time;
             $visite->{$user}->{$id}->{'last_request'}=$time;
-			$visite->{$user}->{$id}->{'hit'}=1;
-			$visite->{$user}->{$id}->{'page'}=1;
-			$visite->{$user}->{$id}->{'duration'}=0;
+            $visite->{$user}->{$id}->{'hit'}=1;
+            $visite->{$user}->{$id}->{'page'}=1;
+            $visite->{$user}->{$id}->{'duration'}=0;
             $visite->{$user}->{$id}->{'tsunami'} = '<session name="'.$ip."-".$id.'" type="ts_http">'."\n";
             $visite->{$user}->{$id}->{'tsunami'} .= "\t".'<request><http url="'.$url.'" version="'.$version.'" method="'.$method.'"></http></request>'."\n";
-		}
-		$total ++;
-	} else {
-#		print STDERR "$_\n";
-		$bad ++;
-	}
+        }
+        $total ++;
+    } else {
+#       print STDERR "$_\n";
+        $bad ++;
+    }
 }
 my $users_tot=scalar %{$visite};
 my $page_tot=0;
@@ -185,36 +182,36 @@ print '<idx-tsunami loglevel="notice" dumptraffic="false" version="1.0">
 ';
 my $real_visit = 0;
 foreach my $key (keys %$visite) {
-	foreach my $id (1..$visite->{$key}->{'id'}) {
-		my $page = $visite->{$key}->{$id}->{'page'};
-		my $hit = $visite->{$key}->{$id}->{'hit'};
+    foreach my $id (1..$visite->{$key}->{'id'}) {
+        my $page = $visite->{$key}->{$id}->{'page'};
+        my $hit = $visite->{$key}->{$id}->{'hit'};
         $real_visit ++ if $hit > $session_threshold;
     }
 }
 foreach my $key (sort {$visite->{$a}->{'id'} cmp $visite->{$b}->{'id'}} keys %$visite) {
-	my $tot_id = $visite->{$key}->{'id'};
-	print STDERR "number of visit for $key is $tot_id\n" if $verbose;
-	foreach my $id (1..$tot_id) {
-		my $page = $visite->{$key}->{$id}->{'page'};
-		my $hit = $visite->{$key}->{$id}->{'hit'};
-		my $duration = $visite->{$key}->{$id}->{'duration'};
-		if ($page < $max_pages and $duration < $max_duration) {
-			$page_tot += $page;
-			$hit_tot += $hit;
-			print STDERR " page=$page hit=$hit duration=$duration\n" if $verbose;
-		} else {
-			$bad_visit++;
-			$bad_pages +=$page;
+    my $tot_id = $visite->{$key}->{'id'};
+    print STDERR "number of visit for $key is $tot_id\n" if $verbose;
+    foreach my $id (1..$tot_id) {
+        my $page = $visite->{$key}->{$id}->{'page'};
+        my $hit = $visite->{$key}->{$id}->{'hit'};
+        my $duration = $visite->{$key}->{$id}->{'duration'};
+        if ($page < $max_pages and $duration < $max_duration) {
+            $page_tot += $page;
+            $hit_tot += $hit;
+            print STDERR " page=$page hit=$hit duration=$duration\n" if $verbose;
+        } else {
+            $bad_visit++;
+            $bad_pages +=$page;
 
-			print STDERR "# page=$page hit=$hit duration=$duration\n" if $verbose;
-			
-		}
+            print STDERR "# page=$page hit=$hit duration=$duration\n" if $verbose;
+
+        }
         next unless $hit > $session_threshold;
         my $pop=sprintf "%.3f",100/$real_visit;
         my $tsunami = $visite->{$key}->{$id}->{'tsunami'};
         $tsunami =~ s/\<session/<session popularity=\"$pop\"/;
         print "$tsunami</session>\n";
-	}
+    }
 }
 print '</idx-tsunami>';
 if ($verbose) {
@@ -238,9 +235,9 @@ sub replace_entities {
 }
 sub usage {
     print "log2tsunami.pl:  create a config file for IDX-Tsunami from a Combined Log file\n\n";
-	print "This script is part of IDX-TSUNAMI version $tagvsn,
+    print "This script is part of IDX-TSUNAMI version $tagvsn,
 Copyright (C) 2004 Nicolas Niclausse\n\n";
-	print "IDX-TSUNAMI comes with ABSOLUTELY NO WARRANTY; This is free software, and
+    print "IDX-TSUNAMI comes with ABSOLUTELY NO WARRANTY; This is free software, and
 ou are welcome to redistribute it under certain conditions
 type `log2tsunami.pl --version` for details.\n\n";
 
@@ -251,8 +248,8 @@ type `log2tsunami.pl --version` for details.\n\n";
     "[--st <integer>] (session threshold : min number of requests (def=2))\n\t",
     "[--max_duration <integer>] (maximum session duration in sec. (3600))\n\t",
     "[--max_pages <integer>] (maximum number of pages winthin a session. (100))\n\t";
-	exit;
-	}
+    exit;
+    }
 
 sub version {
 print "this script is part of IDX-TSUNAMI version $tagvsn
