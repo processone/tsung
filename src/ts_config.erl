@@ -238,7 +238,7 @@ parse(Element = #xmlElement{name=request},
 
     Type  = CurSess#session.type,
 
-    lists:foldl( {Type, parse_config},
+    lists:foldl( fun(A,B) ->Type:parse_config(A,B) end,
                  Conf#config{curid=Id+1, cur_req_id=Id+1},
                  Element#xmlElement.content);
 

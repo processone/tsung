@@ -135,7 +135,7 @@ parse_config(Element = #xmlElement{name=http},
 								content_type= ContentType,
                                 body        = list_to_binary(Contents)}, 0),
     ets:insert(Tab,{{CurS#session.id, Id}, Msg}),
-    lists:foldl( {ts_config, parse},
+    lists:foldl( fun(A,B)->ts_config:parse(A,B) end,
                  Config#config{},
                  Element#xmlElement.content);
 %% Parsing default values
@@ -145,10 +145,10 @@ parse_config(Element = #xmlElement{name=default}, Conf = #config{session_tab = T
             Val = ts_config:getAttr(Element#xmlElement.attributes, value),
             ets:insert(Tab,{{http_server_name, value}, Val})
     end,
-    lists:foldl( {ts_config, parse}, Conf, Element#xmlElement.content);
+    lists:foldl( fun(A,B)->ts_config:parse(A,B) end, Conf, Element#xmlElement.content);
 %% Parsing other elements
 parse_config(Element = #xmlElement{}, Conf = #config{}) ->
-    lists:foldl( {ts_config, parse}, Conf, Element#xmlElement.content);
+    lists:foldl( fun(A,B)->ts_config:parse(A,B) end, Conf, Element#xmlElement.content);
 %% Parsing non #xmlElement elements
 parse_config(Element, Conf = #config{}) ->
     Conf.

@@ -90,7 +90,7 @@ ack(timeout, #state{pidlist=[]}) ->
 
 %% ack all pids
 ack(timeout, #state{pidlist=L}) ->
-	lists:foreach({ts_client, next}, L),
+	lists:foreach(fun(A)->ts_client:next(A) end, L),
 	{next_state, receiver, #state{pidlist=[]}}.
 												
 
