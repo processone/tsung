@@ -142,7 +142,8 @@ handle_cast({record, {HTTPRequest}}, State) ->
             ?LOGF("skip too low thinktime, assuming it's an embedded object (~p)~n",
                   [Elapsed],?INFO);
         false ->
-            io:format(State#state.logfd,"~n<thinktime value='~p'></thinktime>~n~n",
+            io:format(State#state.logfd,
+                      "~n<thinktime random='true' value='~p'/>~n~n",
                       [round(Elapsed/1000)])
     end,
     {ok, NewState} = record_http_request(State, HTTPRequest),
