@@ -562,6 +562,9 @@ handle_data_msg(Data, State=#state_rcv{request=Req, clienttype=Type}) when Req#t
             {NewState#state_rcv{buffer=NewBuffer}, Opts}
     end;
 
+handle_data_msg(closed,State=#state_rcv{request=Req,datasize=OldSize}) ->
+    {State,[]};
+
 %% ack = global
 handle_data_msg(Data,State=#state_rcv{request=Req,datasize=OldSize}) 
   when Req#ts_request.ack==global ->
