@@ -2,6 +2,7 @@
 P2 add SNMP support to remote monitoring of servers
 P2 test updated jabber modules with a real jabber server
 P2 improve documentation
+P2 create a DTD for the configuration file
 
 P3 better report/graphics generation 
 P3 other useful protocols: ftp, smtp, ldap, sql ... ?
