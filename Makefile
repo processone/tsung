@@ -58,7 +58,7 @@ CONTROLLER_TARGET   = $(addsuffix .beam, $(basename \
 RECORDER_TARGET   = $(addsuffix .beam, $(basename \
              $(addprefix $(EBIN)/, $(notdir $(RECORDER_SRC)))))
 EMAKE    = $(addsuffix \'., $(addprefix \'../, $(SRC)))
-DEBIAN    = debian/changelog debian/control debian/compat debian/copyright debian/docs debian/idx-tsunami.dirs debian/ruls
+DEBIAN    = debian/changelog debian/control debian/compat debian/copyright debian/docs debian/idx-tsunami.dirs debian/rules
 
 SRC_APPFILES   = $(ESRC)/$(APPLICATION)/$(APPLICATION).app.src $(ESRC)/$(APPLICATION)/$(APPLICATION).rel.src
 CONTROLLER_SRC_APPFILES   = $(ESRC)/$(CONTROLLER_APPLICATION)/$(CONTROLLER_APPLICATION).app.src $(ESRC)/$(CONTROLLER_APPLICATION)/$(CONTROLLER_APPLICATION).rel.src
