@@ -213,6 +213,7 @@ handle_data_msg(Data, State=#state_rcv{ack=parse, clienttype=Type}) ->
 	ts_mon:rcvmes({State#state_rcv.monitor, self(), Data}),
 	
     {NewState, Opts, Close} = Type:parse(Data, State),
+    ?DebugF("Dyndata is now ~p~n",[NewState#state_rcv.dyndata]),
     case NewState#state_rcv.ack_done of
         true ->
             ?DebugF("Response done:~p~n", [NewState#state_rcv.datasize]),
