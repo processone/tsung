@@ -76,6 +76,10 @@
 
   Voir également le site  http://tsunami.idealx.org/
 
+  NEW: Un manuel utilisateur est maintenant disponible:
+  http://tsunami.idealx.org/user_manual.htm (en anglais seulement pour
+  le moment)
+
   2.  Installation
 
   2.1.  Dépendances
@@ -89,6 +93,12 @@
     xmerl-0.15 devrait fonctionner, mais la notation <tag/> n'est pas
     supporté par cette version de xmerl (il faut utiliser à la place
     la notation <tag></tag> )
+
+  - le module extended regexp est utilisé pour les variables
+    dynamiques: gregexp.erl est disponible à
+     http://www.cellicium.com/erlang/contribs/ . Ce module est
+     inclus dans les distributions sources et binaires de
+     IDX-Tsunami. Ce module est diffusé en license EPL .
 
   - gnuplot et perl5 (optionel, utilisé pour les sorties graphiques du script 
     analyse_msg.pl). Le Template Toolkit est utilisé pour les rapports en HTML
@@ -167,6 +177,9 @@
  
     Envoyez vos questions/rapports de bugs à nicolas.niclausse@IDEALX.com
  
+    Ou bien abonnez vous à la liste de diffusion
+       http://lists.idealx.org/info/idx-tsunami
+
   2.4.  Portabilité
 
     Ce logiciel n'a été testé que sous Linux. Il devrait néanmoins
