@@ -369,7 +369,8 @@ reconnect(none, ServerName, Port, Protocol, Pid) ->
 			{ok, Socket};
 		{error, Reason} ->
 			?LOGF("Error: ~p~n",[Reason],?ERR),
-			ts_mon:addcount({ failedreconnect }),
+            CountName="error_reconnect_"++atom_to_list(Reason),
+			ts_mon:addcount({ list_to_atom(CountName) }),
 			{stop, connfailed}
     end;
 reconnect(Socket, Server, Port, Protocol, Pid) ->
