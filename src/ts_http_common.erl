@@ -28,7 +28,8 @@
 -include("ts_http.hrl").
 
 -include("ts_config.hrl").
--include("xmerl.hrl").
+
+-include_lib("xmerl/inc/xmerl.hrl").
 
 -export([
 		 http_get/1,

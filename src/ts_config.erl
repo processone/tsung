@@ -32,7 +32,7 @@
 -include("ts_profile.hrl").
 -include("ts_config.hrl").
 
--include("xmerl.hrl").
+-include_lib("xmerl/inc/xmerl.hrl").
 
 -export([read/1,
          getAttr/2,

@@ -39,7 +39,7 @@
 -include("ts_profile.hrl").
 -include("ts_config.hrl").
 
--include("xmerl.hrl").
+-include_lib("xmerl/inc/xmerl.hrl").
 
 %%--------------------------------------------------------------------
 %% External exports
