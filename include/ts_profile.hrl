@@ -39,6 +39,7 @@
 		 endpage=false,  % if true, a page is ending 
 		 session,    % record of session status; depends on 'clienttype'
 		 datasize=0,
+		 dyndata=[],
 		 ppid,		 % pid of send process
 		 clienttype, % module name (jabber, etc.)
 		 monitor     % type of monitoring (full, light, none)
