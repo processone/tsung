@@ -349,7 +349,7 @@ load_code(Nodes) ->
 
     Res3 = rpc:multicall(Nodes, ?MODULE, client_start, [], infinity),
     %% first value of load call is garbage
-    ?DebugF("load_code - ~p ~p~n", [Res1, Res2, Res3]),
+    ?DebugF("load_code - ~p ~p ~p~n", [Res1, Res2, Res3]),
     ok.
 
 %%--------------------------------------------------------------------
