@@ -82,15 +82,15 @@ init([]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_call(get_id, From, State) ->
+handle_call(get_id, _From, State) ->
     Element = State#state.number + 1,
     State2 = State#state{number = Element},
     {reply, Element, State2};
 
-handle_call(reset, From, State) ->
+handle_call(reset, _From, State) ->
     {reply, ok, #state{number = 0}};
 
-handle_call(stop, From, State)->
+handle_call(stop, _From, State)->
     {stop, normal, ok, State}.
 
 
@@ -100,7 +100,7 @@ handle_call(stop, From, State)->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_cast(Msg, State) ->
+handle_cast(_Msg, State) ->
     {noreply, State}.
 
 %%----------------------------------------------------------------------
@@ -109,7 +109,7 @@ handle_cast(Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_info(Info, State) ->
+handle_info(_Info, State) ->
     {noreply, State}.
 
 %%----------------------------------------------------------------------
@@ -118,7 +118,7 @@ handle_info(Info, State) ->
 %% Returns: any (ignored by gen_server)
 %%----------------------------------------------------------------------
 terminate(Reason, State) ->
-	?LOG("terminate ~n",?INFO),
+	?LOGF("terminate ~n (reason ~p)",[Reason],?INFO),
     ok.
 
 %%----------------------------------------------------------------------
@@ -126,7 +126,7 @@ terminate(Reason, State) ->
 %% Purpose: Convert process state when code is changed
 %% Returns: {ok, NewState}
 %%----------------------------------------------------------------------
-code_change(OldVsn, State, Extra) ->
+code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 %%%----------------------------------------------------------------------
