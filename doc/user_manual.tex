@@ -32,21 +32,21 @@
 
 \subsection{What is IDX-Tsunami ?}
 
-IDX-tsunami is a distributed load testing tool. It is
+\program{IDX-Tsunami} is a distributed load testing tool. It is
 protocol-independent and can currently be used to stress HTTP, SOAP
 and Jabber servers.
 
-
+It is distributed under the GNU General Public License version 2.
 
 \subsection{What is Erlang and why is it important for IDX-Tsunami ?}
 
-\par IDX-Tsunami main strength is its ability to simulate a huge
-number a simultaneous user from a single CPU. When used on cluster
-you can generate a really impressive load on a server with a modest
-cluster, easy to set-up and to maintain.
+\program{IDX-Tsunami} main strength is its ability to simulate a huge number a
+simultaneous user from a single CPU. When used on cluster you can
+generate a really impressive load on a server with a modest cluster,
+easy to set-up and to maintain.
 
-\par IDX-Tsunami is developed in Erlang and this is where the power
-of IDX-Tsunami relies.
+\program{IDX-Tsunami} is developed in Erlang and this is where the power
+of \program{IDX-Tsunami} relies.
 
 \par Erlang is a \emph{concurrency-oriented} programming language.
 Tsunami is based on the Erlang OTP (Open Transaction Platform) and
@@ -59,7 +59,7 @@ of lightweight processus in a single virtual machine.
 distributed, promoting the idea of processus location transparence. 
 \item \emph{Fault-tolerance}:Erlang has been built to develop robust,
 fault-tolerant systems. As such, wrong answer sent from the server
-to IDX-Tsunami does not make the whole running benchmark crash. 
+to \program{IDX-Tsunami} does not make the whole running benchmark crash. 
 \end{itemize}
 
 More informations on Erlang on \url{http://www.erlang.org} and
@@ -70,7 +70,7 @@ More informations on Erlang on \url{http://www.erlang.org} and
 
 History:
 \begin{itemize}
-\item IDX-Tsunami is being developped since 2001 
+\item \program{IDX-Tsunami} is being developped since 2001 
 \item It is an industrial implementation of a \emph{stochastic model}
 for real users simulation. User events distribution is based on a
 Poisson Process. More information on this topic in:
@@ -86,17 +86,17 @@ Volume 46, Issue 2-3, October 2001}.
 
 \end{itemize}
 
-IDX-Tsunami has been used for very high load tests:
+\program{IDX-Tsunami} has been used for very high load tests:
  
 \begin{itemize}
 \item \emph{Jabber} protocol: 10 000 simultaneous users. Tsunami were
 running on a 3-computers cluster (CPU 800Mhz) 
-\item \emph{HTTP and HTTPS} protocol: 12 000 simultaneous users. IDX-Tsunami
+\item \emph{HTTP and HTTPS} protocol: 12 000 simultaneous users. \program{IDX-Tsunami}
 were running on a 4-computers cluster. The tested platform reached
 3 000 requests per second. 
 \end{itemize}
 
-IDX-Tsunami has been used  at: 
+\program{IDX-Tsunami} has been used  at: 
 
 \begin{itemize}
 \item \emph{DGI} (Direction Générale des impôts): French finance ministry 
@@ -111,7 +111,7 @@ for Petroleum
 \subsection{IDX-Tsunami main features}
 
 \begin{itemize}
-\item \emph{High Performance}: IDX-Tsunami can simulate a huge number
+\item \emph{High Performance}: \program{IDX-Tsunami} can simulate a huge number
 of simultaneous users par physical computer: It can simulates up to
 10000 users on a single CPU. Traditionnal injection tools can hardly
 go further than 200 users. 
@@ -173,7 +173,7 @@ per second
 from the target server(s). Tsunami produce graphs for CPU and memory
 consumption and network traffic. SNMP is also supported. 
 \end{itemize}
-\par Note that IDX-Tsunami take care of the synchronisation process
+\par Note that \program{IDX-Tsunami} take care of the synchronisation process
 by itself. Gathered statistics are «synchronized».
 
 \par It is possible to generate graphs during the benchmark as statistics
@@ -194,7 +194,7 @@ supported platforms (Solaris, *BSD,  Win32 and MacOS-X).
   \item extended regexp module (used for dynamic variables):
     gregexp.erl available at
     \url{http://www.cellicium.com/erlang/contribs/} . The module is
-    included in the source and binary distribution of IDX-Tsunami. It
+    included in the source and binary distribution of \program{IDX-Tsunami}. It
     is released under the EPL Licence.
    \item  gnuplot and perl5 (optional; for graphical output with
     analyse_msg.pl script).  The Template Toolkit is used for HTML
@@ -218,6 +218,15 @@ there is a sample file
 Log files are saved in \file{~/.idx-tsunami/log/} . A new subdirectory
 is created for each test using the current date as name
 (\file{~/.idx-tsunami/log/20040217-09:40} for ex.)
+
+\subsection{Feedback}
+
+Use the idx-tsunami mailing list (see
+\url{http://lists.idealx.org/info/idx-tsunami}) if you have
+suggestions or questions about \program{IDX-Tsunami}.
+
+For any questions concerning commercial support and services, ask
+\url{solutions@idealx.com}.
 
 \section{HTTP benchmark approach}
 
@@ -619,7 +628,7 @@ cd to the log directory of your test (say
 
 \section{Conclusion}
 
-IDX-Tsunami has several advantages over other injection tools: 
+\program{IDX-Tsunami} has several advantages over other injection tools: 
 
 
 \begin{itemize}
@@ -628,7 +637,7 @@ IDX-Tsunami has several advantages over other injection tools:
 protocol. No need to write complex scripts. Dynamic scenarii only
 requires small trivial piece of code.
 % Tsunami scenarii realisation is mostly based on 
-\item \emph{Multi-protocol support}: IDX-Tsunami is for example one of
+\item \emph{Multi-protocol support}: \program{IDX-Tsunami} is for example one of
 the only tool to benchmark SOAP applications 
 \item \emph{Monitoring} of the target cluster to analyse the behaviour
 and find bottlenecks. For exemple, I did use it to analyse cluster
@@ -644,8 +653,8 @@ FIXME
 \subsection{References}
 
 \begin{itemize}
-\item IDX-Tsunami home page: \url{http://tsunami.idealx.org/}
-\item IDX-Tsunami description (French)\footnote{\url{http://www.erlang-projects.org/Members/mremond/events/dossier_de_presentat/block_10766817551485/file}}
+\item \program{IDX-Tsunami} home page: \url{http://tsunami.idealx.org/}
+\item \program{IDX-Tsunami} description (French)\footnote{\url{http://www.erlang-projects.org/Members/mremond/events/dossier_de_presentat/block_10766817551485/file}}
 \item Erlang web site \url{http://www.erlang.org/}
 \item Erlang programmation, Mickaël Rémond, Editions Eyrolles, 2003
   \footnote{\url{http://www.editions-eyrolles.com/php.accueil/Ouvrages/ouvrage.php3?ouv_ean13=9782212110791}}
@@ -689,7 +698,7 @@ If you see nothing wrong, you can compile \program{idx-tsunami} with full
 debugging: set OPTIONS to \userinput{+debug_info -DDEBUG} in the Makefile, and
 don't forget to set the loglevel to "debug" in the XML file.
 
-To start the debugger or see what happen, start IDX-Tsunami with the
+To start the debugger or see what happen, start \program{IDX-Tsunami} with the
 \userinput{debug} argument instead of \userinput{start}. You will have
 an erlang shell on the \varname{tsunami_controller} node. Use
 \command{toolbar:start().} to launch the graphical tools provided by
@@ -725,11 +734,11 @@ Erlang.
 
 \subsection{How can i specify the number of concurrent users ?}
 
-You can't. But it's on purpose: the load generated by IDX-Tsunami is
-dependent on the arrival time between new clients. Indeed, once a
-client has finished his session in \program{idx-tsunami}, it stops. So the
-number of concurrent users is a function of the arrival rate and the
-mean session duration.
+You can't. But it's on purpose: the load generated by
+\program{IDX-Tsunami} is dependent on the arrival time between new
+clients. Indeed, once a client has finished his session in
+\program{idx-tsunami}, it stops. So the number of concurrent users is
+a function of the arrival rate and the mean session duration.
 
 For example, if your web site has $1000$ visits/hour, the arrival rate
 is $1000/3600 = 0.2778$ visits/second. If you want to simulate the same
