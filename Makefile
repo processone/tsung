@@ -215,7 +215,7 @@ release:
 		$(CONTROLLER_SRC) $(CONTROLLER_SRC_APPFILES) \
 		$(RECORDER_SRC) $(RECORDER_SRC_APPFILES) $(TEMPLATES) \
 		 doc/*.txt doc/*.fig doc/*.png doc/Makefile doc/*.sgml \
-		$(USERMANUAL) $(USERMANUAL_SRC) $(USERMANUAL_IMG) \
+		$(USERMANUAL) $(USERMANUAL_SRC) $(USERMANUAL_IMG) $(DTD) \
 		COPYING README LISEZMOI TODO $(CONFFILES) Makefile \
 		priv/builder.erl idx-tsunami.sh.in vsn.mk  idx-tsunami.xml \
 		debian src/analyse_msg.pl.src CONTRIBUTORS CHANGES \
