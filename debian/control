@@ -8,7 +8,7 @@ Standards-Version: 3.6.0
 Package: idx-tsunami
 Architecture: all
 Depends: erlang (>= 9.2-1), libxmerl-erlang (>= 0.19-1)
-Recommends: gnuplot, perl, ssh
+Recommends: gnuplot, perl, ssh, libtemplate-perl
 Description: A distributed multi-protocol load testing tool.
  IDX-Tsunami is a distributed load testing tool.
  It is protocol-independent and can currently be used to stress and 
