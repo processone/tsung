@@ -25,7 +25,7 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
--export([parse_config/2 ]).
+-export([parse_config/2, parse_URL/1, set_port/1]).
 
 -include("ts_profile.hrl").
 -include("ts_http.hrl").

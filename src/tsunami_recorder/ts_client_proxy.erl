@@ -299,11 +299,11 @@ parse(State=#state{parse_status=Status, buffer=Http},ClientSock,ServerSocket,Str
 %% Returns: Socket
 %%--------------------------------------------------------------------            
 check_serversocket(Socket, "http://{" ++ Rest) ->
-    check_serversocket(Socket, ts_http_common:parse_URL("https://"++Rest));
+    check_serversocket(Socket, ts_config_http:parse_URL("https://"++Rest));
 check_serversocket(Socket, URL) when list(URL)->
-    check_serversocket(Socket, ts_http_common:parse_URL(URL));
+    check_serversocket(Socket, ts_config_http:parse_URL(URL));
 check_serversocket(undefined, URL) ->
-    Port = ts_http_common:set_port(URL),
+    Port = ts_config_http:set_port(URL),
     ?LOGF("Connecting to ~p:~p ...~n", [URL#url.host, Port],?DEB),
 
     {ok, Socket} = connect(URL#url.scheme, URL#url.host,Port),
@@ -316,7 +316,7 @@ check_serversocket(undefined, URL) ->
     end;
     
 check_serversocket(Socket, URL=#url{port=Port,host=Host}) ->
-    RealPort = ts_http_common:set_port(URL),
+    RealPort = ts_config_http:set_port(URL),
     {ok, RealIP} = inet:getaddr(Host,inet),
     case peername(Socket) of
         {ok, {RealIP, RealPort}} -> % same as previous URL

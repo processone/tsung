@@ -196,7 +196,7 @@ record_http_request(State=#state{prev_host=Host, prev_port=Port},
     FullURL = ts_utils:to_https({url, RequestURI}),
 
     {URL,NewPort,NewHost} = 
-        case ts_http_common:parse_URL(FullURL) of 
+        case ts_config_http:parse_URL(FullURL) of 
               #url{path=RelURL, host=Host, port=Port,querypart=[]} ->
                 {RelURL, Port, Host};
               #url{path=RelURL, host=Host, port=Port,querypart=Args} ->
