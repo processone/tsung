@@ -206,7 +206,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 record_http_request(State=#state{prev_host=Host, prev_port=Port},
                     #http_request{method  = Method, url = RequestURI,
-                                  version = "HTTP/" ++ HTTPVersion,
+                                  version = HTTPVersion,
                                   headers = ParsedHeader,body=Body}) ->
     
     FullURL = ts_utils:to_https({url, RequestURI}),

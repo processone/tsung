@@ -38,7 +38,9 @@
 -export([
          http_get/1,
          http_post/1,
-         parse/2
+         parse/2,
+         parse_req/1,
+         parse_req/2
 		]).
 
 %%----------------------------------------------------------------------
@@ -381,7 +383,7 @@ get_cookie_key([Char|Rest],Acc)-> get_cookie_key(Rest, [Char|Acc]).
 
 
 %%--------------------------------------------------------------------
-%% Func: parse_headers/2
+%% Func: parse_headers/3
 %% Purpose: Parse HTTP headers line by line
 %% Returns: {ok, #http, Body}
 %%--------------------------------------------------------------------
@@ -395,6 +397,48 @@ parse_headers(H, Tail, Host) ->
 	    {more, H#http{partial=true}, Tail}
     end.
 
+%%--------------------------------------------------------------------
+%% Func: parse_req/1
+%% Purpose: Parse HTTP request
+%% Returns: {ok, #http_request, Body} | {more, Http , Tail}
+%%--------------------------------------------------------------------
+parse_req(Data) ->
+    parse_req([], Data).
+parse_req([], Data) ->
+    FunV = fun("http/"++V)->V;("HTTP/"++V)->V end,
+    case get_line(Data) of
+        {more} -> %% Partial header
+            {more, [], Data};
+        {line, Line, Tail} ->
+            [Method, RequestURI, Version] = string:tokens(Line," "),
+            parse_req(#http_request{method=http_method(Method), 
+                                    url=RequestURI,
+                                    version=FunV(Version)},Tail);
+        {lastline, Line, Tail} ->
+            [Method, RequestURI, Version] = string:tokens(Line," "),
+            {ok, #http_request{method=http_method(Method), 
+                               url=RequestURI,
+                               version=FunV(Version)},Tail}
+    end;
+parse_req(Http=#http_request{headers=H}, Data) ->
+    case get_line(Data) of
+        {line, Line, Tail} ->
+            NewH= [ts_utils:split2(Line,$:,strip) | H],
+            parse_req(Http#http_request{headers=NewH}, Tail);
+        {lastline, Line, Tail} ->
+            NewH= [ts_utils:split2(Line,$:,strip) | H],
+            {ok, Http#http_request{headers=NewH}, Tail};
+        {more} -> %% Partial header
+            {more, Http#http_request{id=partial}, Data} 
+    end.
+
+http_method("get")-> get;
+http_method("post")-> post;
+http_method("head")-> head;
+http_method("put")-> put;
+http_method("delete")-> delete;
+http_method(_) -> not_implemented.
+    
 %%--------------------------------------------------------------------
 %% Func: parse_status/2
 %% Purpose: Parse HTTP status

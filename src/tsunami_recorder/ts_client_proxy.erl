@@ -201,6 +201,7 @@ sockname(Socket,#state{clientsock=Socket})-> client;
 sockname(_Socket,_State)-> unknown.
 
 
+
 %%--------------------------------------------------------------------
 %% Func: parse/4
 %% Purpose: parse HTTP request
@@ -208,72 +209,47 @@ sockname(_Socket,_State)-> unknown.
 %%--------------------------------------------------------------------
 parse(State=#state{parse_status=Status},_,ServerSocket,String) when Status==new ->
     NewString = lists:append(State#state.buffer,String),
-    StartHeaders = string:str(NewString,"\r\n\r\n"),
-    ?LOGF("StartHeaders = ~p ~n",[StartHeaders],?DEB),
-	case StartHeaders of 
-		0 -> 
+	case ts_http_common:parse_req(NewString) of 
+		{more, _Http, _Head} -> 
             ?LOG("Headers incomplete, buffering ~n",?DEB),
-			{ok, State#state{parse_status=new, buffer=NewString}};
-        _ -> 
-            Headers = string:substr(NewString, 1, StartHeaders-1),
-            ?LOGF("Headers ~p ~n",[Headers],?DEB),
-            {ok,[Method, RequestURI, HTTPVersion, _RequestLine, ParsedHeader]} =
-                httpd_parse:request_header(Headers),
-            TotalSize= length(NewString),
-            ?LOGF("StartHeaders = ~p, totalsize =~p~n",[StartHeaders, TotalSize],?DEB),
-            case {httpd_util:key1search(ParsedHeader,"content-length"),
-                  TotalSize-StartHeaders} of
-                {undefined, 3} -> % no body, everything received
-                    ts_proxy_recorder:dorecord({#http_request{method=Method,
-                                                              url=RequestURI,
-                                                              version=HTTPVersion,
-                                                              headers=ParsedHeader}
-                                               }),
+			{ok, State#state{parse_status=new, buffer=NewString}}; %FIXME: not optimal
+        {ok, Http=#http_request{url=RequestURI, version=HTTPVersion}, Body} -> 
+            ?LOGF("Headers ~p ~n",[Http#http_request.headers],?DEB),
+            case httpd_util:key1search(Http#http_request.headers,"content-length") of
+                undefined -> % no body, everything received
+                    ts_proxy_recorder:dorecord({Http }),
                     {NewSocket,RelURL} = check_serversocket(ServerSocket,RequestURI),
                     ?LOGF("Remove server info from url:~p ~p in ~p~n",
                           [RequestURI,RelURL,NewString], ?INFO),
                     {ok, RealString} = relative_url(NewString,RequestURI,RelURL),
                     send(NewSocket,RealString),
                     {ok, State#state{http_version=HTTPVersion,
-			             parse_status = new, buffer=[],
+                                     parse_status = new, buffer=[],
                                      serversock=NewSocket}};
-                {undefined, _} ->
-                    {error, undefined};
-                {Length, _} ->
+                Length ->
                     CLength = list_to_integer(Length)+4,
                     ?LOGF("HTTP Content-Length:~p~n",[CLength], ?DEB),
-                    HeaderSize = length(Headers),
-                    BodySize = TotalSize-HeaderSize,
-                    Body=string:substr(NewString, StartHeaders+4, TotalSize),
+                    BodySize = length(Body),
                     if
                         BodySize == CLength ->  % end of response
                             {NewSocket,RelURL} = check_serversocket(ServerSocket,RequestURI),
-                            {ok,RealString,_Count} = regexp:gsub(NewString,RequestURI,RelURL),
+                            {ok,RealString,_Count} = regexp:gsub(NewString,RequestURI,RelURL),%FIXME: why not use relative_url ?
                             send(NewSocket,RealString),
-                            ts_proxy_recorder:dorecord({#http_request{method=Method,
-                                                                      url=RequestURI,
-                                                                      version=HTTPVersion,
-                                                                      body=Body,
-                                                                      headers=ParsedHeader}
-                                                       }),
-                            {ok, State#state{http_version=HTTPVersion,
+                            ts_proxy_recorder:dorecord({Http#http_request{body=Body}}),
+                            {ok, State#state{http_version = HTTPVersion,
                                              parse_status = new, buffer=[],
                                              serversock=NewSocket}};
                         BodySize > CLength  ->
                             {error, bad_content_length};
                         true ->
                             {NewSocket,RelURL} = check_serversocket(ServerSocket,RequestURI),
-                            {ok,RealString,_Count} = regexp:gsub(NewString,RequestURI,RelURL),
+                            {ok,RealString,_Count} = regexp:gsub(NewString,RequestURI,RelURL), %FIXME: why not use relative_url ?
                             send(NewSocket,RealString),
                             {ok, State#state{http_version=HTTPVersion,
                                              content_length = CLength,
-                                             body_size = TotalSize - HeaderSize,
+                                             body_size = BodySize,
                                              serversock=NewSocket,
-                                             buffer = #http_request{method=Method,
-                                                                    url=RequestURI,
-                                                                    version=HTTPVersion,
-                                                                    body=Body,
-                                                                    headers=ParsedHeader},
+                                             buffer = Http#http_request{body=Body },
                                              parse_status = body
                                             }
                             }
