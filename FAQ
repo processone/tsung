@@ -18,7 +18,7 @@
 
 * SSL works fine, but IDX-tsunami still crash when I start it 
 
-do you have a ~/.erlang.hosts file ?
+do you have a ~/.hosts.erlang file ?
 to test if it works, do the following thing:
 
   > erl -name test
@@ -26,7 +26,7 @@ to test if it works, do the following thing:
   1> net_adm:world()
 
 If you see '** exited: {error,enoent} **', then something is wrong in
-your ~/.erlang.hosts file or in /etc/hosts
+your ~/.hosts.erlang file or in /etc/hosts
 
 
 * IDX-tsunami still crash !
