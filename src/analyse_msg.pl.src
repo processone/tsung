@@ -42,6 +42,16 @@ GetOptions( "help",\$help,
 &usage if $help or $Getopt::Long::error or not $stats;
 &version if $version;
 
+my $datadir = "data"; # all data files are created in this subdirectory
+my $imgdir  = "images"; # all data files are created in this subdirectory
+my $gplotdir = "gnuplot"; # all data files are created in this subdirectory
+
+foreach my $dir ($datadir, $imgdir, $gplotdir) {
+    unless (-d $dir) {
+        print "creating subdirectory $dir \n";
+        mkdir "$dir" or die "can't create directory $dir";
+    }
+}
 
 my $gnuplot = "gnuplot >> gnuplot.log 2>&1";
 
@@ -59,22 +69,23 @@ sub plot_stats {
 	# local var
 	my $style       = "linespoint"; # TODO: can be override in option
 	my $legend_loc  = "key right top"; # TODO: can be override in option
-	my $output_type = "postscript color"; # TODO: can be override in option
+	my $output_type = "png"; # TODO: can be override in option
+#	my $output_type = "postscript color"; # TODO: can be override in option
 	my $filename; # temporary var
 
 	$datatype = "unknown" unless $datatype;
-	open(GP,">graphes-$datatype.gplot") or die "can't open graphes-$datatype.gplot: $!";
+	open(GP,">$gplotdir/graphes-$datatype.gplot") or die "can't open graphes-$datatype.gplot: $!";
 	select GP;
 
 	# gnuplot styles and options
 	print "set data style $style\n";
 	print "set terminal $output_type\n";
-	print "set output \"graphes-$datatype.ps\"\n";
 	print "set grid\n";
 	
 	my $d; # temporary var (title)
 	foreach $d (0..$#{$title}) {
 		# gnuplot headings
+        print "set output \"$imgdir/graphes-$datatype-@{$title}[$d].png\"\n";
 		print "set title \" @{$title}[$d]\"\n";
         if ($timestamp) {
             print "set xlabel \"unit = $timestamp sec \"\n";
@@ -87,7 +98,7 @@ sub plot_stats {
 
 		print "plot ";
 		foreach $filename (@{$files}) {
-			print " \"$filename\" using ";
+			print " \"$datadir/$filename\" using ";
 			# if $timestamp isn't defined, use the first column as timestamp
 			if ($timestamp) {
 				print $d+1 ;
@@ -100,7 +111,7 @@ sub plot_stats {
 		print "\n"; # plot done
 	}
 	close GP;
-	system("$gnuplot graphes-$datatype.gplot");
+	system("$gnuplot $gplotdir/graphes-$datatype.gplot");
 }
 
 sub max {
@@ -142,12 +153,12 @@ sub parse_stats_file {
 	}
 	close FILE;
 	foreach my $key (sort keys %{$maxval->{'rate'}}) {
-		if ($key =~ /\d+/ or $key eq 'size') {
-			printf "Total $key = %7.2f\n", $maxval->{'mean'}->{$key};
-		} else {
-			printf "Mean  $key (max sample) = %7.2f\n", $maxval->{'mean'}->{$key};
-		}
-		printf "Rate  $key (max sample) = %7.2f\n",$maxval->{'rate'}->{$key};
+        if ($key =~ /\d+/ or $key eq 'size') {
+            printf "Total $key = %7.2f\n", $maxval->{'mean'}->{$key};
+        } else {
+            printf "Mean  $key (max sample) = %7.2f\n", $maxval->{'mean'}->{$key};
+        }
+        printf "Rate  $key (max sample) = %7.2f\n",$maxval->{'rate'}->{$key};
 	}
 	my @time;
 	my @tps;
@@ -163,12 +174,12 @@ sub parse_stats_file {
         print "warn, last interval ($interval) not equal to the first, use the first one ($first_interval)\n";
         $interval=$first_interval;
     }
-	my @col = ("rate","mean","stdvar","max sample","min sample");
+	my @col = ("rate","mean","stdvar","max_sample","min_sample");
 	my @colcount = ("rate","total");
-	my @colusers = ("simultaneous","maximum simultaneous");
+	my @colusers = ("simultaneous","maximum_simultaneous");
 	foreach $key (keys %{$data}) {
         $key =~ s/\'//g;
-		open (TYPE, "> $key.txt") or die "$!";
+		open (TYPE, "> $datadir/$key.txt") or die "$!";
 		foreach my $data (@{$data->{$key}}) {
 			if (($key !~ /^users$/ and $key !~ /^size$/) and $interval) {#
 				my @tmp;
