@@ -226,20 +226,25 @@ handle_cast({rcvmsg, Who, When, What}, State) ->
 													binary_to_list(What)]),
 	{noreply, State};
 
-handle_cast({newclient, Who, When}, State = #state{type = none}) ->
-	Clients =  State#state.client+1,
-	Max= lists:max([Clients,State#state.maxclient]),
-	{noreply, State#state{client = Clients, maxclient=Max}};
-
 handle_cast({newclient, Who, When}, State) ->
 	Clients =  State#state.client+1,
 	Max= lists:max([Clients,State#state.maxclient]),
-	io:format(State#state.log,"NewClient:~w:~w~n",[When, Who]),
-	io:format(State#state.log,"load:~w~n",[Clients]),
-	{noreply, State#state{client = Clients, maxclient=Max}};
+	Tab = State#state.stats,
+	Add = fun (OldVal) -> OldVal+1 end,
+	NewTab = dict:update(users_count, Add, 1, Tab),
+	case State#state.type of 
+		none -> ok;
+		_ ->
+			io:format(State#state.log,"NewClient:~w:~w~n",[When, Who]),
+			io:format(State#state.log,"load:~w~n",[Clients])
+	end,
+	{noreply, State#state{client = Clients, maxclient=Max, stats=NewTab}};
 
 handle_cast({endclient, Who, When}, State) ->
 	Clients =  State#state.client-1,
+	Tab = State#state.stats,
+	Add = fun (OldVal) -> OldVal+1 end,
+	NewTab = dict:update(finish_users_count, Add, 1, Tab),
 	case State#state.type of
 		none ->
 			skip;
@@ -252,7 +257,7 @@ handle_cast({endclient, Who, When}, State) ->
 			io:format(State#state.log,"EndMonitor:~w~n",[now()]),
 			{stop, normal, State};
 		_ -> 
-			{noreply, State#state{client = Clients}}
+			{noreply, State#state{client = Clients, stats=NewTab}}
 	end;
 
 handle_cast({stop}, State = #state{client = 0}) ->
