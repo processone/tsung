@@ -117,14 +117,14 @@ handle_info({tcp, Socket, Data}, State) ->
 	{NewState, Opts} = handle_data_msg(Data, State),
 	ts_utils:inet_setopts(State#state_rcv.protocol, Socket, 
 						  Opts ++ [{active, once}], State#state_rcv.ppid),
-	{noreply, NewState};
+	{noreply, NewState, State#state_rcv.timeout};
 
 %% ssl case
 handle_info({ssl, Socket, Data}, State) ->
 	{NewState, Opts}  = handle_data_msg(Data, State),
 	ts_utils:inet_setopts(State#state_rcv.protocol, Socket,
 						  Opts ++ [{active, once}], State#state_rcv.ppid),
-	{noreply, NewState};
+	{noreply, NewState, State#state_rcv.timeout};
 
 handle_info({tcp_closed, Socket}, State) ->
 	?LOG("TCP close: ~n", ?NOTICE),
@@ -148,12 +148,19 @@ handle_info({ssl_error, Socket, Reason}, State) ->
 	ts_client:close({CountName, State#state_rcv.ppid}),
 	{noreply, State};
 
+handle_info(timeout, State) ->
+	?LOG("timeout: ~n", ?WARN),
+    %% FIXME: we should close not on all cases ? if we wait for a
+    %% global sync for example.
+	ts_client:close({timeout, State#state_rcv.ppid}),
+    {noreply, State};
+
 handle_info(Data, State) ->%% test if client implement parse ?
 	{NewState, Opts} = handle_data_msg(Data, State),
 	Socket = State#state_rcv.socket,
 	ts_utils:inet_setopts(State#state_rcv.protocol, Socket,
 						  Opts ++ [{active, once}], State#state_rcv.ppid),
-	{noreply, NewState}.
+	{noreply, NewState, State#state_rcv.timeout}.
 
 %%----------------------------------------------------------------------
 %% Func: terminate/2
