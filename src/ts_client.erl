@@ -264,7 +264,7 @@ handle_info(timeout, State ) ->
 	Now = now(),
 	%% reconnect if needed
 	Protocol = State#state.protocol,
-	Socket = reconnect(State#state.socket, State#state.server, State#state.port,
+	{ok, Socket} = reconnect(State#state.socket, State#state.server, State#state.port,
 					   Protocol, State#state.rcvpid),
 	%% warn the receiving side that we are sending a new request
 	ts_client_rcv:wait_ack({State#state.rcvpid,Profile#message.ack, Now, 
@@ -293,7 +293,7 @@ handle_info(timeout, State ) ->
 				  [self(), Reason], ?ERR),
             CountName="send_err_"++atom_to_list(Reason),
 			ts_mon:addcount({ list_to_atom(CountName) }),
-			{stop, Reason, State}
+			{stop, Reason, State};
 	end.
 
 
@@ -354,7 +354,7 @@ reconnect(none, ServerName, Port, Protocol, Pid) ->
 		{ok, Socket} -> 
 			controlling_process(Protocol, Socket, Pid),
 			ts_mon:addcount({ reconnect }),
-			Socket;
+			{ok, Socket};
 		{error, Reason} ->
 			?LOGF("Error: ~p~n",[Reason],?ERR),
 			ts_mon:addcount({ failedreconnect }),
