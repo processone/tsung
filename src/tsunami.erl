@@ -35,8 +35,6 @@
 start(Type, _StartArgs) ->
 	error_logger:tty(false),
 	error_logger:logfile({open, ?config(log_file) ++ "-" ++ atom_to_list(node())}),
-	Nodes = net_adm:world(),
-	?LOGF("Available nodes : ~p ~n",[Nodes],?NOTICE),
     case ts_sup:start_link() of
 		{ok, Pid} -> 
 			{ok, Pid};
@@ -52,3 +50,6 @@ start(Type, _StartArgs) ->
 %%----------------------------------------------------------------------
 stop(State) ->
     stop.
+			
+			
+	

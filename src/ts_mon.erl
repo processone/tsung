@@ -137,9 +137,7 @@ init([]) ->
 		{ok, Stream} ->
 			?LOG("starting monitor~n",?NOTICE),
 			Tab = dict:new(),
-			TsunamiClients = net_adm:world(), % .hosts.erlang must be set
-			?LOGF("Available nodes : ~p ~n",[TsunamiClients],?NOTICE),
-			start_launchers(TsunamiClients,node()),
+			start_launchers(?config(machines)),
 			timer:apply_interval(?config(dumpstats_interval), ?MODULE, dumpstats, [] ),
 			{ok, #state{type    = ?config(monitoring), 
 						log     = Stream,
@@ -353,10 +351,24 @@ reset_stats(Args) ->
 %% Func: start_launchers/2
 %% start the launcher on clients nodes
 %%----------------------------------------------------------------------
+
+%% list of machines separated by ":". Construct a list of node's atom
+start_launchers(Machines) -> 
+	?LOGF("Need to start tsunami client on ~s~n",[Machines], ?DEB),
+	%% tokenise and remove duplicates with usort
+	Hostnames = lists:usort(string:tokens( Machines, ":")), 
+	Atomize = fun(A) -> list_to_atom(A) end,
+	HostList = lists:map(Atomize, Hostnames),
+	?LOGF("Hostlist is ~p~n",[HostList], ?DEB),
+	Nodes = net_adm:world_list(HostList), %% get list of nodes
+	?LOGF("Connected nodes ~p~n",[Nodes], ?DEB),
+	start_launchers(Nodes, node()).
+
 start_launchers([], Self) ->
+	?LOG("no more nodes~n", ?DEB),
 	ok;
 start_launchers([Self | NodeList], Self) -> % don't launch in controller node
-	?LOG("skip myself ! ~n", ?NOTICE),
+	?LOG("skip myself ! ~n", ?DEB),
 	start_launchers(NodeList, Self);
 start_launchers([Node | NodeList], Self) ->
 	?LOGF("starting launcher on  ~p~n",[Node],?NOTICE),

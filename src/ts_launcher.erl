@@ -75,7 +75,7 @@ init({[Clients, Intensity]}) ->
 %%----------------------------------------------------------------------
 %% no more clients to launch, stop
 wait(launch, State) ->
-	Nodes = net_adm:world(),
+	Nodes = nodes(),
 	?LOGF("Available nodes : ~p ~n",[Nodes],?NOTICE),
 	{next_state, launcher, State, 10000}.
 

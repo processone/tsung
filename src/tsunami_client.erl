@@ -36,7 +36,6 @@ start(Type, _StartArgs) ->
 	error_logger:tty(false),
 	error_logger:logfile({open, ?config(log_file) ++"-debug-" ++ 
 						  atom_to_list(node())}),
-	net_adm:world(),
     case ts_client_sup:start_link() of
 		{ok, Pid} -> 
 			{ok, Pid};
