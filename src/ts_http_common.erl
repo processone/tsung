@@ -129,15 +129,19 @@ http_get(URL, Version, Cookie) ->
 %% Args: URL, HTTP Version, Cookie, Content
 %% TODO: Content-Type ?
 %%----------------------------------------------------------------------
-http_post(URL, Version, Cookie, Content) ->
-	ContentLength=integer_to_list(length(Content)),
-	lists:append([?POST, " ", URL," ", "HTTP/", Version, ?CR,
+http_post(URL, Version, Cookie, Content)  when binary(Content) ->
+	ContentLength=integer_to_list(size(Content)),
+	?LOGF("Content Length of POST: ~p~n.", [ContentLength], ?DEB),
+	BinHeaders = lists:append([?POST, " ", URL," ", "HTTP/", Version, ?CR,
 				  protocol_headers(Version),
 				  user_agent(),
 				  get_cookie(Cookie),
 				  "Content-Length: ",ContentLength, ?CR,
-				  ?CR,
-				  Content]).
+				  ?CR
+				 ]),
+	concat_binary([BinHeaders, Content ]);
+http_post(URL, Version, Cookie, Content) ->
+	http_post(URL, Version, Cookie, list_to_binary(Content)).
 
 %%----------------------------------------------------------------------
 %% some HTTP headers functions
@@ -292,11 +296,15 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 			?LOGF("HTTP Content-Length:~p~n",[CLength], ?DEB),
 			HeaderSize = length(Headers),
 			BodySize = size(Data)-HeaderSize,
-			case BodySize of 
-				CLength ->  % end of response
+			if
+				BodySize == CLength ->  % end of response
 					{State#state_rcv{session= #http{}, ack_done = true, 
 									 datasize = BodySize, dyndata= Cookie}, []};
-				_ ->
+				BodySize > CLength  ->
+					?LOGF("Error: HTTP Body > Content-Length !:~p~n",[CLength], ?ERR),
+					{State#state_rcv{session= #http{}, ack_done = true, 
+									 datasize = BodySize, dyndata= Cookie}, []};
+				true ->
 					Http = #http{content_length = CLength,
 								 status         = Status,
 								 body_size      = BodySize},
