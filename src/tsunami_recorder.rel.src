@@ -1,0 +1,7 @@
+{release, {"tsunami_recorder", "%VSN%"}, {erts, "5.3"},
+ [
+  {tsunami,"%VSN%"},
+  {tsunami_recorder,"%VSN%"},
+  {kernel,"2.9"},
+  {ssl,"3.0.1"},
+  {stdlib,"1.12"}]}.

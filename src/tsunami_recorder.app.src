@@ -1,0 +1,25 @@
+{application, tsunami_recorder,
+      [{description,  "IDX-TSUNAMI recorder"},
+       {vsn,          "%VSN%"},
+       {modules,      [
+					   tsunami_recorder,
+					   ts_recorder_sup,
+					   ts_client_proxy_sup,
+					   ts_proxy_recorder,
+					   ts_proxy_listener
+					  ]},
+       {registered,   [
+                       ts_proxy_recorder,
+                       ts_proxy_listener
+					  ]},
+	   {env,		[        
+					 {debug_level, 6},
+					 {ts_cookie, "humhum"},
+					 {config_file, "%prefix%/etc/idx-tsunami.xml"},
+					 {log_file, "%prefix%/log/idx-tsunami.log"},
+					 {proxy_log_file, "%prefix%/log/idx-tsunami_recorder.log"},
+					 {proxy_listen_port, 8090}
+					]},        
+	   {applications, [kernel, stdlib, ssl]},
+       {mod,          {tsunami_recorder, []}}
+	  ]}.

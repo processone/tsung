@@ -24,7 +24,7 @@ OUTDIR = ebin
 ALLERLS:= $(wildcard src/*.erl)
 ALLBEAMS:=$(patsubst src/%.erl,$(OUTDIR)/%.beam, $(ALLERLS))
 
-all:	tsunami.boot tsunami_controller.boot
+all:	tsunami.boot tsunami_controller.boot tsunami_recorder.boot
 
 show:
 	@echo "sources: $(ALLERLS)"
@@ -55,6 +55,11 @@ tsunami_controller.boot:	 ebin $(ALLBEAMS) $(UTILS) src/tsunami_controller.rel.s
 	erl -noshell $(PA) ./src -s make_boot make_boot tsunami_controller
 	sed -e 's@%VSN%@$(VSN)@;s@%prefix%@$(prefix)@g' ./idx-tsunami.sh > ./ebin/idx-tsunami
 
+tsunami_recorder.boot:	 ebin $(ALLBEAMS) $(UTILS) src/tsunami_recorder.rel.src src/tsunami_recorder.app.src Makefile idx-tsunami.sh
+	sed -e 's@%VSN%@$(VSN)@;s@%prefix%@$(prefix)@' ./src/tsunami_recorder.app.src > ./ebin/tsunami_recorder.app
+	sed -e 's;%VSN%;$(VSN);' ./src/tsunami_recorder.rel.src > ./ebin/tsunami_recorder.rel
+	erl -noshell $(PA) ./src -s make_boot make_boot tsunami_recorder
+
 ebin:
 	mkdir ebin
 
@@ -64,7 +69,7 @@ $(OUTDIR)/%.beam: ebin/%.erl
 $(OUTDIR)/%.beam: src/%.erl include/*.hrl
 	$(ERLC) -o $(OUTDIR) $<
 
-install: tsunami.boot tsunami_controller.boot
+install: tsunami.boot tsunami_controller.boot tsunami_recorder.boot
 	mkdir -p $(prefix)
 	mkdir -p $(prefix)/bin
 	mkdir -p $(prefix)/log
@@ -72,6 +77,7 @@ install: tsunami.boot tsunami_controller.boot
 	mkdir -p $(prefix)/erlang/tsunami-$(VSN)/src
 	install -m 0644 tsunami.boot $(prefix)/bin
 	install -m 0644 tsunami_controller.boot $(prefix)/bin
+	install -m 0644 tsunami_recorder.boot $(prefix)/bin
 	install -m 0644 idx-tsunami.xml $(prefix)/etc/idx-tsunami_default.xml
 	install ebin/analyse_msg.pl ${prefix}/bin
 	install ebin/idx-tsunami ${prefix}/bin

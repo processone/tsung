@@ -3,9 +3,11 @@
 HOST=`hostname -s`
 NAME=idx-tsunami
 CONTROLLER=tsunami_controller
+RECORDER=tsunami_recorder
 TSUNAMIPATH=%prefix%/erlang/tsunami-%VSN%/ebin
 CONF_OPT="-tsunami_controller config_file \"%prefix%/etc/idx-tsunami.xml\""
 BOOT_OPT="-boot_var TSUNAMIPATH %prefix%/erlang -boot %prefix%/bin/tsunami_controller"
+REC_BOOT_OPT="-boot_var TSUNAMIPATH %prefix%/erlang -boot %prefix%/bin/tsunami_recorder"
 ERL_OPTS="-rsh ssh +A 1 +Mea r10b -shared"
 COOKIE='tsunami'
 
@@ -13,8 +15,16 @@ stop() {
     erl $ERL_OPTS -noshell  -sname killer -setcookie $COOKIE -pa $TSUNAMIPATH -s tsunami_controller stop_all $HOST -s init stop
 }
 
+stop_recorder() {
+    erl $ERL_OPTS -noshell  -sname killer -setcookie $COOKIE -pa $TSUNAMIPATH -s tsunami_recorder stop_all $HOST -s init stop
+}
+
 start() {
     erl $ERL_OPTS -detached -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT $CONF_OPT
+}
+
+recorder() {
+    erl $ERL_OPTS -detached -sname $RECORDER -setcookie $COOKIE  $REC_BOOT_OPT $CONF_OPT
 }
 
 debug() {
@@ -27,7 +37,7 @@ status() {
 
 usage() {
     prog=`basename $1`
-    echo "$prog start|stop|restart|debug|status"
+    echo "$prog start|stop|restart|debug|status|recorder|stop_recorder"
 }
 
 while getopts ":f:" Option
@@ -44,12 +54,19 @@ case $1 in
         start
         ;;
 
+    recorder)
+        recorder
+        ;;
+
     debug)
         debug
         ;;
 
     stop)
         stop
+        ;;
+    stop_recorder)
+        stop_recorder
         ;;
 
     status)
