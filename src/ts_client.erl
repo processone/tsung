@@ -150,7 +150,7 @@ init({Session=#session{id            = Profile,
 			?LOGF("Connect Error: ~p~n",[Reason],?ERR),
             CountName="conn_err_" ++ atom_to_list(Reason),
 			ts_mon:addcount({ list_to_atom(CountName) }),
-			{stop, connfailed}
+			{stop, normal}
     end.
     
 
@@ -265,7 +265,7 @@ handle_info({timeout, Ref, end_thinktime}, State ) ->
                                     Profile#message.endpage, NewSocket,
                                     Protocol}),
             Timeout = new_timeout(Profile#message.ack, Count, Thinktime),
-            case send(Protocol, NewSocket, Message) of
+            case catch send(Protocol, NewSocket, Message) of
                 ok -> 
                     ts_mon:sendmes({State#state.monitor, self(), Message}),
                     set_thinktime(Timeout),
@@ -276,43 +276,55 @@ handle_info({timeout, Ref, end_thinktime}, State ) ->
                                           lasttimeout = Thinktime} }; 
                 {error, closed} -> 
                     ?LOG("connection close while sending message !~n", ?WARN),
-                    case State#state.persistent of 
-                        true ->
-                            RetryTimeout = ?config(client_retry_timeout),
-                            set_thinktime(RetryTimeout),
-                            {noreply, State#state{lasttimeout=RetryTimeout,
-                                                  protocol=Protocol,
-                                                  server=Host, port=Port}};
-                        _ ->
-                            {stop, closed, State}
-                    end;
+                    handle_close_while_sending(State);
                 {error, Reason} -> 
-                    ?LOGF("Error: Unable to send data from process ~p, reason: ~p~n",
-                          [self(), Reason], ?ERR),
+                    ?LOGF("Error: Unable to send data, reason: ~p~n",
+                          [Reason], ?ERR),
                     CountName="send_err_"++atom_to_list(Reason),
                     ts_mon:addcount({ list_to_atom(CountName) }),
-                    {stop, Reason, State}
+                    {stop, normal, State};
+                {'EXIT', {noproc, _Rest}} ->
+                    ?LOG("Server must have closed connection upon us~n", ?NOTICE),
+                    handle_close_while_sending(State);
+                Exit ->
+                    ?LOGF("EXIT Error: Unable to send data, reason: ~p~n",
+                          [Exit], ?ERR),
+                    {stop, senderror, State}
             end;
 		_Error ->
-			{stop, reconnect, State}
+			{stop, normal, State}
 	end;
 handle_info(timeout, State ) ->
     ?LOG("Error: timeout receive~n", ?ERR),
     ts_mon:addcount({ timeout }),
-    {stop, error, State};
+    {stop, normal, State};
 handle_info(Msg, State ) ->
     ?LOGF("Error: Unkonwn msg receive, stop ~p~n", [Msg], ?ERR),
     ts_mon:addcount({ unknown_msg }),
-    {stop, error, State}.
+    {stop, normal, State}.
 
 %%----------------------------------------------------------------------
 %% Func: terminate/2
 %% Purpose: Shutdown the server
 %% Returns: any (ignored by gen_server)
 %%----------------------------------------------------------------------
+terminate(normal, State) ->
+    finish_session(State);
 terminate(Reason, State) ->
-    %% FIXME : check Reason and report anormal return values to ts_mon
 	?LOGF("Stop, reason= ~p~n",[Reason],?INFO),
+    ts_mon:addcount({ error_unknown }),
+    finish_session(State).
+
+
+%%%----------------------------------------------------------------------
+%%% Internal functions
+%%%----------------------------------------------------------------------
+
+%%----------------------------------------------------------------------
+%% Func: finish_session/1
+%% Args: State
+%%----------------------------------------------------------------------
+finish_session(State) ->
 	Now = now(),
 	Elapsed = ts_utils:elapsed(State#state.starttime, Now),
 	ts_mon:endclient({self(), Now, Elapsed}),
@@ -320,9 +332,20 @@ terminate(Reason, State) ->
 %	fprof:stop(),
 	ok.
 
-%%%----------------------------------------------------------------------
-%%% Internal functions
-%%%----------------------------------------------------------------------
+%%----------------------------------------------------------------------
+%% Func: handle_close_while_sending/1
+%% Args: State
+%% Purpose: the connection has just be closed a few msec before we
+%%          send a message, restart in a few moment (this time we will
+%%          reconnect before sending)
+%%----------------------------------------------------------------------
+handle_close_while_sending(State=#state{persistent=true}) ->
+    RetryTimeout = ?config(client_retry_timeout),
+    set_thinktime(RetryTimeout),
+    {noreply, State#state{lasttimeout=RetryTimeout}};
+handle_close_while_sending(State) ->
+    {stop, error, State}.
+    
 
 %%----------------------------------------------------------------------
 %% Func: set_profile/2
