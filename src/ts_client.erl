@@ -305,6 +305,9 @@ code_change(OldVsn, StateName, StateData, Extra) ->
 %% Purpose: handle next action: thinktime, transaction or #message
 %% Args: State
 %%----------------------------------------------------------------------
+handle_next_action(State=#state{count=0}) ->
+    ?LOG("Session ending ~n", ?INFO),
+    {stop, normal, State};
 handle_next_action(State) ->
 	Count = State#state.count-1,
     case set_profile(State#state.maxcount,State#state.count,State#state.profile) of
@@ -329,7 +332,10 @@ handle_next_action(State) ->
                                    count=Count}, 
             handle_next_action(NewState);
         Profile=#message{} ->                                        
-            handle_next_request(Profile, State)
+            handle_next_request(Profile, State);
+        Other ->
+            ?LOGF("Error: set profile return value is ~p (count=~p)~n",[Other,Count],?ERR),
+            {stop, set_profile_error, State}
     end.
 
 
