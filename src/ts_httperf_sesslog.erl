@@ -30,7 +30,7 @@
 -export([get_client/2,
 		 get_client/3,
 		 get_simple_client/2,
-         build_session/1
+         build_session/3
 		]).
 
 %%----------------------------------------------------------------------
@@ -63,58 +63,64 @@ get_simple_client(N, Id) ->
 %% Func: build_session/1
 %% Purpose: build a session; a session is a list of Pages where a Page 
 %% is a list of 'URL'. Put a fixed Id
-%% Returns: List
+%% Returns: Count (integer)
 %%----------------------------------------------------------------------
-build_session(Session) ->
-	build_session([], Session, 1). 
+build_session(Session, SessionId, Table) ->
+	build_session([], Session, SessionId, Table). 
 
 %%----------------------------------------------------------------------
 %% Func: build_session/3
 %% Purpose: build a session; a session is a list of Pages where a Page 
 %% is a list of 'URL'
-%% Returns: List
+%% Returns: Count (integer)
 %%----------------------------------------------------------------------
-build_session(N, [FirstPage | Session] , Id) ->
-	build_session(N, Session, FirstPage, [], Id).
+build_session(N, [FirstPage | Session] , Id, Table) ->
+	build_session(N, Session, FirstPage, 1, Id, Table).
 
 %%----------------------------------------------------------------------
 %% Func: build_session/5
 %% Args: Thinktime (integer), Session, Page, FinalSession, Id
-%% rem: crash if parse_requestline returns an error
+%%       rem: crash if parse_requestline returns an error
 %%----------------------------------------------------------------------
-build_session([], [], [Line], Session, Id) ->
+build_session([], [], [Line], Count, Id, Tab) ->
 	{ok, Req, Think} = parse_requestline(Line),
-	lists:reverse([ set_msg(Req, Think) | Session ]); %% should we set think to 0 ?
+    ets:insert(Tab, { {Id, Count}, set_msg(Req, Think)} ),
+    {ok, Count};
+%% should we set think to 0 ?
 
-build_session(Think, [], [Line], Session, Id) ->
-	%% the "efficiency guide" said that doing the reverse at the end
-	%% is faster than using '++' during recursion
+build_session(Think, [], [Line], Count, Id, Tab) ->
 	{ok, Req, _Think} = parse_requestline(Line),
-	lists:reverse([ set_msg(Req, Think) | Session ]) ;
+    ets:insert(Tab, { {Id, Count}, set_msg(Req, Think)} ),
+    {ok, Count};
 
 %% single URL in a page, wait during thinktime
-build_session([], [Next| PendingSession], [Line], Session, Id) ->
+build_session([], [Next| PendingSession], [Line], Count, Id, Tab) ->
 	{ok, Req, Think} = parse_requestline(Line),
-	build_session([], PendingSession, Next, [set_msg(Req, Think) | Session], Id);
+    ets:insert(Tab, { {Id, Count}, set_msg(Req, Think)} ),
+	build_session([], PendingSession, Next, Count+1, Id, Tab);
 
 %% Last URL in a page, wait during thinktime
-build_session(Think, [Next| PendingSession], [Line], Session, Id) ->
+build_session(Think, [Next| PendingSession], [Line], Count, Id, Tab) ->
 	{ok, Req, _Think} = parse_requestline(Line),
-	build_session([], PendingSession, Next, [set_msg(Req, Think) | Session], Id);
+    ets:insert(Tab, { {Id, Count}, set_msg(Req, Think)} ),
+	build_session([], PendingSession, Next, Count+1, Id, Tab);
 
 %% First URL in a page, don't wait (wait 1ms in reality).
-build_session([], PendingSession, [Line | Page ], Session, Id) ->
+build_session([], PendingSession, [Line | Page ], Count, Id, Tab) ->
 	{ok, Req, Think} = parse_requestline(Line),
-	build_session(Think, PendingSession, Page, [ set_msg(Req, 0) | Session ], Id);
+    ets:insert(Tab, { {Id, Count}, set_msg(Req, 0)} ),
+	build_session(Think, PendingSession, Page, Count+1, Id, Tab);
 
-build_session(Think, PendingSession, [Line | Page ], Session, Id) ->
+build_session(Think, PendingSession, [Line | Page ], Count, Id, Tab) ->
 	{ok, Req, _Think} = parse_requestline(Line),
-	build_session(Think, PendingSession, Page, [ set_msg(Req, 0) | Session ], Id).
+    ets:insert(Tab, { {Id, Count}, set_msg(Req, 0)} ),
+	build_session(Think, PendingSession, Page, Count+1, Id, Tab).
 
 
 %%----------------------------------------------------------------------
 %% Func: build_simplesession/3
 %% This type of session is just a list of URL, no page (~burst).
+%% FIXME: not tested; obsoleted ?
 %%----------------------------------------------------------------------
 build_simplesession(0, Session, Id) ->
 	Session;
@@ -205,34 +211,28 @@ set_msg(HTTP=#http_request{url="http" ++ URL}, ThinkTime) -> % full URL
     URLrec = ts_http_common:parse_URL("http" ++ URL),
     Path = URLrec#url.path ++ URLrec#url.querypart,
     case URLrec of
-        #url{port = undefined, scheme= https} ->
-            set_msg(HTTP#http_request{url=Path },
-                    ThinkTime,
-                    #message{ack  = parse,
-                             host = URLrec#url.host,
-                             scheme = ssl,
-                             port = 443});
-        #url{port = undefined, scheme= http} ->
+        #url{scheme= http, port = P} ->
+            case P of 
+                undefined ->  Port = 80;
+                Val ->        Port = Val
+            end,
             set_msg(HTTP#http_request{url=Path},
                     ThinkTime,
                     #message{ack  = parse,
                              host = URLrec#url.host,
                              scheme = gen_tcp,
-                             port = 80});
-        #url{scheme= http} ->
-            set_msg(HTTP#http_request{url=Path},
-                    ThinkTime,
-                    #message{ack  = parse,
-                             host = URLrec#url.host,
-                             scheme = gen_tcp,
-                             port = URLrec#url.port});
-        #url{scheme= https} ->
+                             port = Port});
+        #url{scheme= https, port = P} ->
+            case P of 
+                undefined ->  Port = 443;
+                Val ->        Port = Val
+            end,
             set_msg(HTTP#http_request{url=Path},
                     ThinkTime,
                     #message{ack  = parse,
                              host = URLrec#url.host,
                              scheme = ssl,
-                             port = URLrec#url.port})
+                             port = Port})
     end;
 %
 set_msg(HTTPRequest, Think) -> % relative URL, use global host, port and scheme

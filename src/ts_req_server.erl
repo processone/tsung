@@ -23,7 +23,7 @@
 
 %% External exports
 -export([start/0, get_random_req/0, get_all_req/0, stop/0, read/1]).
--export([read_sesslog/1, get_next_session/0]).
+-export([read_sesslog/1, get_next_session/0, get_req/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
@@ -31,7 +31,8 @@
 -record(state, {items,    %% lists of messages read from a file
 				open = 0,
 				table,    %% ets table
-				current='$end_of_table' %% position in ets table
+				current=1,
+				total  =0 %% number of sessions in ets table
 			   }).
 
 -include("../include/ts_profile.hrl").
@@ -54,6 +55,9 @@ start() ->
 get_next_session()->
 	gen_server:call({global, ?MODULE},get_next_session).
 
+get_req(Id, Count)->
+	gen_server:call({global, ?MODULE},{get_req, Id, Count}).
+
 get_random_req()->
 	gen_server:call({global, ?MODULE},get_random_req).
 
@@ -75,7 +79,7 @@ stop()->
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
 init([]) ->
-	Table = ets:new(sessiontable, [ordered_set, private]),
+	Table = ets:new(sessiontable, [set, private]),
 	{ok, #state{table=Table}}.
 
 
@@ -92,21 +96,34 @@ handle_call(get_all_req, From, State) ->
 	Reply = {ok, State#state.items},
 	{reply, Reply, State};
 
-%% get a new session, ie. a list of pages, each page can contain several requests
+%% get a new session id
 handle_call(get_next_session, From, State) ->
 	Tab = State#state.table,
+    Total=State#state.total, 
 	case State#state.current of 
-		'$end_of_table' ->
-			Current = ets:first(Tab);
+		Total ->
+            Next = 1;
 		_ ->
-			Current = State#state.current
+            Next = State#state.current+1
 	end,
-	Next = ets:next(Tab, Current),
-	case ets:lookup(Tab, Current) of 
-		[{Key, Session}] -> 
-			{reply, {ok, Session}, State#state{current=Next}};
+    ?LOGF("get new session for ~p~n",[From],?DEB),
+	case ets:lookup(Tab, {State#state.current, size}) of 
+		[{Key, Size}] -> 
+            {reply, {ok, {State#state.current, Size}}, State#state{current=Next}};
 		Other ->
 			{reply, {error, Other}, State#state{current=Next}}
+	end;
+
+%% get Nth request from given session Id
+handle_call({get_req, Id, N}, From, State) ->
+	Tab = State#state.table,
+    ?LOGF("look for ~p th request in session ~p for ~p~n",[N,Id,From],?DEB),
+	case ets:lookup(Tab, {Id, N}) of 
+		[{Key, Session}] -> 
+            ?LOGF("ok, found ~p for ~p~n",[Session,From],?DEB),
+			{reply, Session, State};
+		Other ->
+			{reply, {error, Other}, State}
 	end;
 			
 
@@ -122,10 +139,12 @@ handle_call({read_sesslog, Filename}, From, State) when State#state.open == 0 ->
         error ->
             {stop, file_not_found, State};
         _ ->
-            read_sesslog(File, State#state.table),
+            {ok, SessionsNumber} = read_sesslog(File, State#state.table),
+            ?LOGF("Read ~p sessions from file~n",[SessionsNumber],?INFO),
             % Close the config file
             file:close(File),
-			{reply, ok, State#state{open= 1}}
+            ?LOG("File closed~n",?DEB),
+			{reply, ok, State#state{open= 1, total=SessionsNumber}}
     end;	
 	
 handle_call({read_sesslog, Filename}, From, State) ->
@@ -185,8 +204,9 @@ terminate(Reason, State) ->
 
 %%----------------------------------------------------------------------
 %% Func: read_sesslog/2
-%% 
-%%----------------------------------------------------------------------
+%% Purpose: Read sessions configuration from File and put it in an ets
+%%          Table
+%% ----------------------------------------------------------------------
 read_sesslog(File, Table)->
 	read_sesslog(io:get_line(File, ""), [], [],  File, Table, 1).
 
@@ -195,19 +215,22 @@ read_sesslog(File, Table)->
 %% 
 %%----------------------------------------------------------------------
 read_sesslog(eof, [], [], File, Table, Id) -> %the end
-	done;
+	{ok, Id-1};
 read_sesslog(eof, Session, Page, File, Table, Id) -> % the end
     SessionList = lists:reverse([lists:reverse(Page) | Session  ]),
-    SessionRecord = ts_httperf_sesslog:build_session(SessionList), % FIXME: not generic
-	ets:insert(Table, {Id, SessionRecord });
+    %% FIXME: not generic :
+    {ok, Count} = ts_httperf_sesslog:build_session(SessionList, Id, Table), 
+	ets:insert(Table, {{Id, size}, Count }),
+    {ok, Id};
 read_sesslog("#" ++ Tail, Session, Page, File, Table, Id) -> % skip comment
 	read_sesslog(io:get_line(File, ""), Session, Page, File, Table, Id);
 read_sesslog("\n", [], [], File, Table, Id)-> % newline again, skip
 	read_sesslog(io:get_line(File, ""), [], [], File, Table, Id);
 read_sesslog("\n", Session, Page, File, Table, Id)-> % end of a session
     SessionList = lists:reverse([lists:reverse(Page) | Session ]),
-    SessionRecord = ts_httperf_sesslog:build_session(SessionList), % FIXME: not generic
-	ets:insert(Table, {Id, SessionRecord }),
+    %% FIXME: not generic
+    {ok, Count} = ts_httperf_sesslog:build_session(SessionList,Id,Table),
+	ets:insert(Table, {{Id, size}, Count }),
 	read_sesslog(io:get_line(File, ""), [], [], File, Table, Id+1);
 read_sesslog(" " ++ Tail, Session, [], File, Table, Id)-> % No current page, error
 	session_formating_error;

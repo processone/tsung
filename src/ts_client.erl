@@ -46,6 +46,7 @@
 				timestamp,  % previous message date
 				starttime,  % date of the beginning of the session
 				dyndata =[],    % dynamic data (only used by parsing clients)
+				maxcount,   % total number of requests to sent
 				count,      % number of requests waiting to be sent
 				monitor     % type of monitoring
 			   }).
@@ -88,18 +89,19 @@ next({Pid, DynData}) ->
 %%          ignore               |
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
-init([Profile, {CType, PType, static, Persistent}]) ->
+init([{Profile, Size}, {CType, PType, static, Persistent}]) ->
 	?LOG("Init ... static~n",?DEB),
-	init([Profile, {CType, PType, static, Persistent}], length(Profile));
+	init([Profile, {CType, PType, static, Persistent}], Size);
 
-init([Profile, {CType, PType, dynamic, Persistent}]) ->
+init([{Profile, Size}, {CType, PType, dynamic, Persistent}]) ->
 	?LOG("Init ... dynamic~n",?DEB),
 	random:seed(),
 	init([Profile, {CType, PType, static, Persistent}],
-		 ?config(messages_number) + length(Profile) - 1);
+		 ?config(messages_number) + Size - 1);
 
 init(Args) ->
-	?LOGF("Init ... with unknown args ~p~n",[Args], ?DEB).
+	?LOGF("Init ... with bad args ~p~n",[Args], ?DEB),
+    ts_mon:addcount({ badprofile }).
 	
 
 init([Profile, {CType, PType, MType, Persistent}], Count) ->
@@ -107,15 +109,20 @@ init([Profile, {CType, PType, MType, Persistent}], Count) ->
 	%%init seed
 %    random:seed(ts_utils:init_seed()),
 %	?LOG("seed OK  ~n",?DEB),
-    case Profile of 
-        [#message{host=undefined, port= undefined, scheme= undefined} | Tail] ->
+    case ts_req_server:get_req(Profile, 1) of 
+        #message{host=undefined, port= undefined, scheme= undefined} ->
+            ?LOG("Server not configured in msg, get global conf ~n",?DEB),
             {ServerName, Port, Protocol} = ts_profile:get_server(); % get global server profile
-        [#message{host=ServerName, port= Port, scheme= Protocol} | Tail] ->
+        #message{host=ServerName, port= Port, scheme= Protocol} ->
             %% server profile can be overriden in the first URL of the session
             %% curently, the following server modifications in the session are not used.
             ?LOGF("Server setup overriden for this client (~p) host=~s port=~p proto=~p ~n",
-                  [self(), ServerName, Port, Protocol], ?INFO)
+                  [self(), ServerName, Port, Protocol], ?INFO);
+        Other ->
+            ?LOGF("ERROR while getting first req [~p]! ~n",[Other],?ERR),
+            {ServerName, Port, Protocol} = ts_profile:get_server() % get global server profile
     end,
+	?LOG("Got first message, connect ...  ~n",?DEB),
     % open connection
 	Opts = protocol_options(Protocol),
 	StartTime= now(),
@@ -142,7 +149,9 @@ init([Profile, {CType, PType, MType, Persistent}], Count) ->
 								persistent = Persistent,
 								starttime = StartTime,
 								monitor = ?config(monitoring),
-								count = Count}, ?short_timeout};
+								count = Count,
+								maxcount = Count
+                               }, ?short_timeout};
 				{error, Reason} ->
 					?LOGF("Can't start rcv process ~p~n",
 								[Reason],?ERR),
@@ -154,6 +163,7 @@ init([Profile, {CType, PType, MType, Persistent}], Count) ->
 			ts_mon:addcount({ list_to_atom(CountName) }),
 			{stop, connfailed}
     end.
+    
 
 
 %%----------------------------------------------------------------------
@@ -189,14 +199,6 @@ handle_cast({next_msg, DynData}, State) ->
 	{noreply, State#state{dyndata=DynData}, State#state.lasttimeout};
 %% more case to handle ?
 
-
-%% FIXME:to be done : what about the current timer ?
-handle_cast({add_messages, Messages}, State) ->
-	OldProfile = State#state.profile,
-	OldCount = State#state.count,
-	{noreply, State#state{profile = Messages ++ OldProfile, 
-						  count = OldCount + length(Messages)},
-	 ?short_timeout};
 
 %% the connexion was closed, but this session is persistent
 handle_cast({closed, Pid}, State = #state{persistent = true}) ->
@@ -257,7 +259,8 @@ handle_info(timeout, State= #state{ count=0 })  ->
 	end;
 
 handle_info(timeout, State ) ->
-    {Thinktime, Profile, Pending} = set_profile(State#state.count, State#state.profile),
+    {Thinktime, Profile} = set_profile(State#state.maxcount, State#state.count,
+                                       State#state.profile),
 	Count = State#state.count-1,
 	Type  = State#state.clienttype,
 	case State#state.dyndata of 
@@ -300,7 +303,6 @@ handle_info(timeout, State ) ->
                     {noreply, State#state{socket= NewSocket, count = Count,
                                           protocol=Protocol, server=Host,
                                           port= Port,
-                                          profile = Pending,
                                           timestamp = Now,
                                           lasttimeout = Thinktime},
                      Timeout}; 
@@ -350,15 +352,14 @@ terminate(Reason, State) ->
 %% Args: Count (integer), Profiles (List)
 %%----------------------------------------------------------------------
 %% static message, get the thinktime from profile
-set_profile(Count, [Profile=#message{type = static} | Pending]) ->
-    {Profile#message.thinktime, Profile, Pending };
+set_profile(MaxCount, Count, ProfileId) when integer(ProfileId) ->
+    set_profile(MaxCount, Count, ts_req_server:get_req(ProfileId, MaxCount-Count+1));
+set_profile(MaxCount, Count, Profile=#message{type = static}) ->
+    {Profile#message.thinktime, Profile };
 %% dynamic message, last message
-set_profile(Count, [Profile | Pending]) when length(Pending)+1 == Count->
-    {ts_profile:thinktime(), Profile, Pending };
-%% dynamic message, keep the same profiles
-set_profile(Count, Profiles) ->
-	[Profile | Pending] = Profiles,
-    {ts_profile:thinktime(), Profile, Profiles }.
+%% FIXME: don't work anymore: when do we stop ?
+set_profile(MaxCount, Count, Profile) ->
+    {ts_profile:thinktime(), Profile }.
      
 %%----------------------------------------------------------------------
 %% Func: new_timeout/3
