@@ -30,6 +30,7 @@
 		 http_get/3,
 		 http_post/4,
 		 parse/2,
+		 protocol_headers/1,
 		 get_simple_client/2
 		]).
 
@@ -129,12 +130,12 @@ http_get(URL, Version, Cookie) ->
 %% TODO: Content-Type ?
 %%----------------------------------------------------------------------
 http_post(URL, Version, Cookie, Content) ->
-	ContentLength=length(Content),
+	ContentLength=integer_to_list(length(Content)),
 	lists:append([?POST, " ", URL," ", "HTTP/", Version, ?CR,
 				  protocol_headers(Version),
 				  user_agent(),
 				  get_cookie(Cookie),
-				  "Content-Length: ",Content, ?CR,
+				  "Content-Length: ",ContentLength, ?CR,
 				  ?CR,
 				  Content]).
 
