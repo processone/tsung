@@ -17,7 +17,7 @@
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 %%% 
 
--module(tsunami).
+-module(tsunami_controller).
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
@@ -34,11 +34,9 @@
 %%----------------------------------------------------------------------
 start(Type, _StartArgs) ->
 	error_logger:tty(false),
-	error_logger:logfile({open, ?log_file ++"-debug-" ++ 
+	error_logger:logfile({open, ?log_file ++"-debug-controller" ++ 
 						  atom_to_list(node())}),
-	Nodes = net_adm:world(),
-	?PRINTDEBUG("Available nodes : ~p ~n",[Nodes],?NOTICE),
-    case ts_sup:start_link() of
+    case ts_controller_sup:start_link() of
 		{ok, Pid} -> 
 			{ok, Pid};
 		Error ->

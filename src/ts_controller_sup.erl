@@ -1,6 +1,6 @@
 %%%  This code was developped by IDEALX (http://IDEALX.org/) and
 %%%  contributors (their names can be found in the CONTRIBUTORS file).
-%%%  Copyright (C) 2000-2001 IDEALX
+%%%  Copyright (C) 2003 IDEALX
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
 %%%  it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 %%% 
 
--module(ts_sup).
+-module(ts_controller_sup).
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
@@ -50,12 +50,19 @@ start_link() ->
 %%----------------------------------------------------------------------
 init([]) ->
 	?PRINTDEBUG2("starting",?DEB),
-    ClientsSup = {ts_client_sup, {ts_client_sup, start_link, []}, transient, 2000, 
-				  supervisor, [ts_client_sup]},
-	Launcher = {ts_launcher, {ts_launcher, 
-								 start, [[?nclients,?clients_intensity]]}, 
-				transient, 2000, worker, [ts_launcher]},
-    {ok,{{one_for_one,?retries,10}, [ClientsSup, Launcher]}}.
+    Monitor = {ts_mon, {ts_mon, start, []}, transient, 2000, 
+			   worker, [ts_mon]},
+    Timer = {ts_timer, {ts_timer, start, [?nclients]}, transient, 2000, 
+			   worker, [ts_timer]},
+    Request = {ts_req_server, {ts_req_server, start, []}, transient, 2000, 
+			   worker, [ts_req_server]},
+    Msg = {ts_msg_server, {ts_msg_server, start, []}, transient, 2000, 
+			   worker, [ts_msg_server]},
+    User = {ts_user_server, {ts_user_server, start, 
+						  [[?nclients_deb, ?nclients_fin, ?nclients]]}, 
+			transient, 2000, worker, [ts_user_server]},
+    {ok,{{one_for_one,?retries,10}, [Monitor, Timer, Request, Msg,
+									 User]}}.
 
 %%%----------------------------------------------------------------------
 %%% Internal functions

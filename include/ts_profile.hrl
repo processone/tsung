@@ -20,16 +20,22 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
--record(message, {thinktime, ack, param, type=static}).
+-record(message, {thinktime, 
+				  ack,
+				  param,
+				  type=static,
+				  endpage=false
+				 }).
 
 % state of ts_client_rcv gen_server
 -record(state_rcv, 
 		{socket,	  %  unused ?
 		 timeout,	  % ?
 		 ack,         % type of ack: no_ack, local, global or parse
-		 parsetype,   % obsolete ?
 		 ack_done=false, % 'true' if the ack was sent, else 'false' (unused if ack=no_ack)
 		 ack_timestamp,  % date when the 'request' was sent 
+		 page_timestamp=0,  % date when the first 'request' of a page was sent 
+		 endpage=false,  % if true, a page is ending 
 		 session,    % record of session status; depends on 'clienttype'
 		 datasize=0,
 		 ppid,		 % pid of send process
@@ -43,6 +49,7 @@
 
 %% retry sending message after this timeout (in microsec.)
 -define(client_retry_timeout, ts_utils:get_val(client_retry_timeout)).
+-define(req_server_timeout, ts_utils:get_val(req_server_timeout)). %% timeout when for reading the session file
 
 -define(restart_try, 3).
 -define(debug_level, ts_utils:get_val(debug_level)).
@@ -70,6 +77,7 @@
 -define(log_file, ts_utils:get_val(log_file)).
 -define(monitoring, ts_utils:get_val(monitoring)).
 -define(monitor_timeout, ts_utils:get_val(monitor_timeout)).
+-define(dumpstats_interval, ts_utils:get_val(dumpstats_interval)).
 -define(clients_timeout, ts_utils:get_val(clients_timeout)).
 
 -define(server_adr, ts_utils:get_val(server_adr)).

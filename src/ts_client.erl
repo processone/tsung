@@ -37,27 +37,34 @@
 				server, % name (or IP) of server
 				port,   % server port
 				protocol,   % gen_tcp, gen_udp or ssl
-				socket,     % 
-				clienttype, %
-				parsetype,  % type of client (parse or noparse)
+				socket,     % Socket descriptor
+				clienttype, % type of client (ts_http11, jabber_online, etc.)
 				mestype,    % type of messages (dynamic or static)
 				profile,    % list of requests parameters
 				persistent, % if true, don't exit when connexion is closed
 				lasttimeout,% value of the last timeout
 				timestamp,  % previous message date
+				starttime,  % date of the beginning of the session
 				count       % number of requests waiting to be sent
 			   }).
 
 %%%----------------------------------------------------------------------
 %%% API
 %%%----------------------------------------------------------------------
+
+%% Start a new session 
 start(Opts) ->
 	?PRINTDEBUG("Starting with opts: ~p~n",[Opts],?DEB),
+%	fprof:start(),
+%	Res = fprof:trace(start, "/tmp/tsunami.fprof"),
+%	?PRINTDEBUG("starting profiler: ~p~n",[Res], ?WARN),
 	gen_server:start(?MODULE, Opts, []).
 
+%% stop the session 
 close(Pid) ->
 	gen_server:cast(Pid, {closed, Pid}).
 
+%% continue with the next request
 next(Pid) ->
 	gen_server:cast(Pid, {next_msg}).
 
@@ -87,14 +94,15 @@ init(Args) ->
 	
 
 init([Profile, {CType, PType, MType, Persistent}], Count) ->
-	%%init seed
 	?PRINTDEBUG("Init ... started with count = ~p  ~n",[Count],?DEB),
+	%%init seed
 %    random:seed(ts_utils:init_seed()),
 %	?PRINTDEBUG2("seed OK  ~n",?DEB),
 
     {ServerName, Port, Protocol} = ts_profile:get_server(), % get server profile
     % open connection
 	Opts = protocol_options(Protocol),
+	StartTime= now(),
     case Protocol:connect(ServerName, Port, Opts) of
 		{ok, Socket} -> 
 	    % start a new process for receiving messages from the server
@@ -106,14 +114,18 @@ init([Profile, {CType, PType, MType, Persistent}], Count) ->
 									?monitoring}) of 
 				{ok, Pid} ->
 					?PRINTDEBUG2("rcv server started ~n",?DEB),
-					ts_mon:newclient({self(), now()}),
-					Protocol:controlling_process(Socket, Pid),
+					controlling_process(Protocol, Socket, Pid),
+					Connected = now(),
+					Elapsed = ts_utils:elapsed(StartTime, Connected),
+					ts_mon:newclient({self(), Connected}), % TODO: avoid if mon=none
+					ts_mon:addsample({connect, Elapsed}), % connection time
 					{ok, #state{rcvpid = Pid, socket = Socket, port = Port,
 								server= ServerName, profile= Profile,
 								protocol = Protocol,
 								clienttype = CType, mestype = MType,
 								persistent = Persistent,
-								count = Count, parsetype = PType}, 1};
+								starttime = StartTime,
+								count = Count}, 1};
 				{error, Reason} ->
 					?PRINTDEBUG("Can't start rcv process ~p~n",
 								[Reason],?ERR),
@@ -121,6 +133,7 @@ init([Profile, {CType, PType, MType, Persistent}], Count) ->
 			end;
 		{error, Reason} ->
 			?PRINTDEBUG("Connect Error: ~p~n",[Reason],?ERR),
+			ts_mon:addcount({ Reason }),
 			{stop, connfailed}
     end.
 
@@ -160,11 +173,18 @@ handle_cast({add_messages, Messages}, State) ->
 	{noreply, State#state{profile = Messages ++ OldProfile, 
 						  count = OldCount + length(Messages)}, 1};
 
+%% the connexion was closed, but  this session is persistent
 handle_cast({closed, Pid}, State) when State#state.persistent == true   ->
 	?PRINTDEBUG2("connection closed, stay alive (persistent)",?DEB),
 	%% TODO: set the timeout correctly ?
-	Elapsed  = ts_utils:elapsed(State#state.timestamp, now()),
-	ThinkTime= round(State#state.lasttimeout-Elapsed/1000),
+	case State#state.lasttimeout of 
+		infinity ->
+			Elapsed = 0,
+			ThinkTime = 0;
+		_ ->
+			Elapsed  = ts_utils:elapsed(State#state.timestamp, now()),
+			ThinkTime= round(State#state.lasttimeout-Elapsed/1000)
+	end,
 	if 
 		ThinkTime > 0 ->
 			?PRINTDEBUG("setting new thinktime to: ~p~n!",[ThinkTime], ?DEB),
@@ -173,6 +193,7 @@ handle_cast({closed, Pid}, State) when State#state.persistent == true   ->
 			?PRINTDEBUG("negative thinktime after connexion closed ~p:~p~n!",[State#state.lasttimeout, Elapsed/1000], ?WARN),
 			{noreply,  State#state{socket = none}, 1}
 	end;
+%% the connexion was closed, stop
 handle_cast({closed, Pid}, State) ->
 	{stop, normal, State};
 
@@ -191,20 +212,21 @@ handle_info(timeout, State) when State#state.count > 0 ->
 	case {Profile#message.type, State#state.count} of 
 		{dynamic, Len } -> % don't forget that Len is already set !
 			%% no dynamic message remaining
-			Thinktime = thinktime(),
+			Thinktime = ts_profile:thinktime(),
 			PendingProfile = Pending;
 		{static, _Len} ->
 			Thinktime = Profile#message.thinktime,
 			PendingProfile = Pending;
 		{dynamic, _} -> %% keep the same profile until all dynamic messages done
-			Thinktime = thinktime(),
+			Thinktime = ts_profile:thinktime(),
 			PendingProfile = State#state.profile
 	end,
 	Count = State#state.count-1,
 	Message = ts_profile:get_message(State#state.clienttype,
 								  Profile#message.param),
 	Now = now(),
-	ts_client_rcv:wait_ack(State#state.rcvpid,Profile#message.ack, Now),
+	%% warn the receiving side that we are sending a new request
+	ts_client_rcv:wait_ack({State#state.rcvpid,Profile#message.ack, Now, Profile#message.endpage}),
 	%% reconnect if needed
 	Protocol = State#state.protocol,
 	Socket = reconnect(State#state.socket, State#state.server, State#state.port,
@@ -220,7 +242,7 @@ handle_info(timeout, State) when State#state.count > 0 ->
 	end,
     case send(Protocol, Socket, Message) of
 		ok -> 
-			ts_mon:sendmes({self(), Now, Message}),
+			ts_mon:sendmes({State#state_rcv.monitor, self(), Now, Message}),
 			{noreply, State#state{socket= Socket, count = Count,
 								  profile = PendingProfile,
 								  timestamp = Now,
@@ -240,6 +262,7 @@ handle_info(timeout, State) when State#state.count > 0 ->
 			?PRINTDEBUG(
 			   "Error: Unable to send data from process ~p, reason: ~p~n.", 
 			   [self(), Reason],?ERR),
+			ts_mon:addcount({ Reason }),
 			{stop, Reason, State}
 	end;
 
@@ -261,7 +284,10 @@ handle_info(timeout, State)  ->
 %%----------------------------------------------------------------------
 terminate(Reason, State) ->
 	?PRINTDEBUG("Stop, reason= ~p~n",[Reason],?INFO),
-	ts_mon:endclient({self(), now()}),
+	Now = now(),
+	Elapsed = ts_utils:elapsed(State#state.starttime, Now),
+	ts_mon:endclient({self(), Now}),
+	ts_mon:addsample({session, Elapsed}), % session duration
 	ts_client_rcv:stop(State#state.rcvpid),
 	ok.
 
@@ -280,24 +306,21 @@ reconnect(none, ServerName, Port, Protocol, Pid) ->
 	Opts = protocol_options(Protocol),
     case Protocol:connect(ServerName, Port, Opts) of
 		{ok, Socket} -> 
-			Protocol:controlling_process(Socket, Pid),
+			controlling_process(Protocol, Socket, Pid),
+			ts_mon:addcount({ reconnect }),
 			Socket;
 		{error, Reason} ->
 			?PRINTDEBUG("Error: ~p~n",[Reason],?ERR),
+			ts_mon:addcount({ failedreconnect }),
 			{stop, connfailed}
     end;
 reconnect(Socket, Server, Port, Protocol, Pid) ->
 	Socket.
 
 %%----------------------------------------------------------------------
-%% Func: thinktime/0
-%%----------------------------------------------------------------------
-thinktime() ->
-	round(ts_stats:exponential(?messages_intensity)).
-
-%%----------------------------------------------------------------------
-%% this fonction is used to avoid the costly M:fun form of function call
-%% see http://www.erlang.org/doc/r9b/doc/efficiency_guide/
+%% Func: send/3
+%% Purpose: this fonction is used to avoid the costly M:fun form of function
+%% call, see http://www.erlang.org/doc/r9b/doc/efficiency_guide/
 %%----------------------------------------------------------------------
 send(gen_tcp,Socket,Message) ->
     gen_tcp:send(Socket,Message);
@@ -305,8 +328,22 @@ send(ssl,Socket,Message) ->
     ssl:send(Socket,Message);
 send(gen_udp,Socket,Message) ->
     gen_udp:send(Socket,Message).
+
+%%----------------------------------------------------------------------
+%% Func: controlling_process/3
+%% Purpose: this fonction is used to avoid the costly M:fun form of function
+%% call, see http://www.erlang.org/doc/r9b/doc/efficiency_guide/
+%%----------------------------------------------------------------------
+controlling_process(gen_tcp,Socket,Pid) ->
+    gen_tcp:controlling_process(Socket,Pid);
+controlling_process(ssl,Socket, Pid) ->
+    ssl:controlling_process(Socket,Pid);
+controlling_process(gen_udp,Socket,Pid) ->
+    gen_udp:controlling_process(Socket,Pid).
+
 %%----------------------------------------------------------------------
 %% Func: protocol_options/1
+%% Purpose: set connection's options for the given protocol
 %%----------------------------------------------------------------------
 protocol_options(ssl) ->
 	[binary, 
@@ -316,11 +353,15 @@ protocol_options(ssl) ->
 protocol_options(gen_tcp) ->
 	[binary, 
 	 {active, true},
+	 {recbuf, ?rcv_size},
+	 {sndbuf, ?snd_size},
 	 {keepalive, true}
 	];
 protocol_options(gen_udp) ->
 	[binary, 
 	 {active, true},
+	 {recbuf, ?rcv_size},
+	 {sndbuf, ?snd_size},
 	 {keepalive, true}
 	].
 	

@@ -27,7 +27,7 @@
 -author('nicolas.niclausse@IDEALX.com').
 
 %% API
--export([get_client/2, get_server/0, get_message/2]).
+-export([get_client/2, get_server/0, get_message/2, parse/3, thinktime/1]).
 
 -include("../include/ts_profile.hrl").
 
@@ -64,3 +64,29 @@ get_message(Module, Param) ->
 	?PRINTDEBUG("get_message called with args ~p ~p ~n",[Module,Param],?DEB),
     Module:get_random_message(Param).
 %%TODO: utiliser le meme nom ? pourquoi ajouter random ?
+
+
+%%----------------------------------------------------------------------
+%% Function: parse/3
+%% Purpose: Parse the given data and return a new state
+%% Args:	Module (term)
+%%			Data (binary)
+%%			State (record)
+%% Returns: NewState (record)
+%%----------------------------------------------------------------------
+parse(Module, Data, State) ->
+	Module:parse(Data, State).
+
+
+%%----------------------------------------------------------------------
+%% Function: thinktime/0
+%% Purpose: get a random sample for thinktime. this is used only by 
+%%          dynamics clients
+%% Args:	Module (term)
+%% Returns: integer
+%%----------------------------------------------------------------------
+thinktime(Module) ->
+	round(ts_stats:exponential(?messages_intensity)). % hardcoded for now
+%	Module:thinktime().
+
+

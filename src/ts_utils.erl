@@ -24,7 +24,8 @@
 -include("../include/ts_profile.hrl").
 
 %% user interface
--export([debug/3, debug/4, get_val/1, init_seed/0, chop/1, elapsed/2]).
+-export([debug/3, debug/4, get_val/1, init_seed/0, chop/1, elapsed/2,
+		now_sec/0]).
 
 get_val(Var) ->
 	case application:get_env(Var) of 
@@ -61,6 +62,7 @@ chop(String) ->
 init_seed()->
     now().
 
-
-	 
-
+now_sec() ->
+	{MSec, Seconds, MicroSec} = now(),
+	Seconds+1000000*MSec.
+	

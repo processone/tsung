@@ -29,13 +29,13 @@
 
 -include("../include/ts_profile.hrl").
 
--behaviour(gen_fsm). %% a primitive gen_fsm with a single state ! 
+-behaviour(gen_fsm). %% a primitive gen_fsm with two state: launcher and wait
 
 %% External exports
--export([start/1]).
+-export([start/1, launch/1]).
 
 %% gen_fsm callbacks
--export([init/1, launcher/2,  handle_event/3,
+-export([init/1, launcher/2,  wait/2, handle_event/3,
 		 handle_sync_event/4, handle_info/3, terminate/3]).
 
 -record(state, {interarrival=[]}).
@@ -46,6 +46,10 @@
 start(Opts) ->
 	?PRINTDEBUG("starting ~p~n",[[Opts]],?DEB),
 	gen_fsm:start_link({local, ?MODULE}, ?MODULE, {Opts}, []).
+
+launch(Node) ->
+	?PRINTDEBUG("starting on node ~p~n",[[Node]],?DEB),
+	gen_fsm:send_event({?MODULE, Node}, launch).
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from gen_fsm
@@ -59,10 +63,10 @@ start(Opts) ->
 %%          {stop, StopReason}                   
 %%----------------------------------------------------------------------
 init({[Clients, Intensity]}) ->
-	?PRINTDEBUG2("starting ~n",?DEB),
+	?PRINTDEBUG("starting with timeout ~p~n",[?req_server_timeout],?DEB),
     {Msec, Sec, Nsec} = ts_utils:init_seed(),
     random:seed(Msec,Sec,Nsec),
-	{ok, launcher, #state{interarrival=ts_stats:exponential(Intensity,Clients)},1}.
+	{ok, wait, #state{interarrival=ts_stats:exponential(Intensity,Clients)}}.
 
 %%----------------------------------------------------------------------
 %% Func: StateName/2
@@ -71,12 +75,19 @@ init({[Clients, Intensity]}) ->
 %%          {stop, Reason, NewStateData}                         
 %%----------------------------------------------------------------------
 %% no more clients to launch, stop
+wait(launch, State) ->
+	Nodes = net_adm:world(),
+	?PRINTDEBUG("Available nodes : ~p ~n",[Nodes],?NOTICE),
+	{next_state, launcher, State, 10000}.
+
 launcher(Event, #state{interarrival = []}) ->
+	?PRINTDEBUG2("no more clients to start, stop ~n",?DEB),
+	ts_mon:stop(),
 	{stop, normal, #state{}};
 
 launcher(timeout, #state{interarrival = [X |List]}) ->
     %Get one client
-    Id = ts_user_server:get_idle(),
+    Id = ts_user_server:get_idle(),%% some bench shows that this is not a bottleneck
     %set the profile of the client
     Profile = ts_profile:get_client(?client_type, Id),
 	ts_client_sup:start_child([Profile, {?client_type, ?parse_type, ?mes_type, ?persistent}]),

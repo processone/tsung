@@ -44,10 +44,10 @@
 %%%----------------------------------------------------------------------
 start(NClients) ->
 	?PRINTDEBUG2("starting fsm timer",?DEB),
-	gen_fsm:start_link({local, ?MODULE}, ?MODULE, [NClients], []).
+	gen_fsm:start_link({global, ?MODULE}, ?MODULE, [NClients], []).
 
 connected(Pid) ->
-	gen_fsm:send_event(?MODULE, {connected, Pid}).
+	gen_fsm:send_event({global, ?MODULE}, {connected, Pid}).
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from gen_fsm

@@ -23,12 +23,15 @@
 
 %% External exports
 -export([start/0, get_random_req/0, get_all_req/0, stop/0, read/1]).
+-export([read_sesslog/1, get_next_session/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
 
 -record(state, {items, %%lists of messages read from a file
-				open=0
+				open=0,
+				table,  %% ets  table
+				current='$end_of_table' %% position in ets table
 			   }).
 
 -include("../include/ts_profile.hrl").
@@ -37,20 +40,26 @@
 %%% API
 %%%----------------------------------------------------------------------
 read(Filename) ->
-	gen_server:call(?MODULE, {read, Filename}).
+	gen_server:call({global, ?MODULE}, {read, Filename}, ?req_server_timeout).
+
+read_sesslog(Filename) ->
+	gen_server:call({global, ?MODULE}, {read_sesslog, Filename}, ?req_server_timeout).
 
 start() ->
 	?PRINTDEBUG2("Starting~n",?DEB),
-	gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+	gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
+
+get_next_session()->
+	gen_server:call({global, ?MODULE},get_next_session).
 
 get_random_req()->
-	gen_server:call(?MODULE,get_random_req).
+	gen_server:call({global, ?MODULE},get_random_req).
 
 get_all_req()->
-	gen_server:call(?MODULE,get_all_req).
+	gen_server:call({global, ?MODULE},get_all_req).
 
 stop()->
-    gen_server:call(?MODULE, stop).
+    gen_server:call({global, ?MODULE}, stop).
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from gen_server
@@ -64,7 +73,8 @@ stop()->
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
 init([]) ->
-	{ok, #state{}}.
+	Table = ets:new(sessiontable, [ordered_set, private]),
+	{ok, #state{table=Table}}.
 
 
 %%----------------------------------------------------------------------
@@ -80,12 +90,47 @@ handle_call(get_all_req, From, State) ->
 	Reply = {ok, State#state.items},
 	{reply, Reply, State};
 
+%% get a new session, ie. a list of pages, each page can contain several requests
+handle_call(get_next_session, From, State) ->
+	Tab = State#state.table,
+	case State#state.current of 
+		'$end_of_table' ->
+			Current = ets:first(Tab);
+		_ ->
+			Current = State#state.current
+	end,
+	Next = ets:next(Tab, Current),
+	case ets:lookup(Tab, Current) of 
+		[{Key, Session}] -> 
+			{reply, {ok, Session}, State#state{current=Next}};
+		Other ->
+			{reply, {error, Other}, State#state{current=Next}}
+	end;
+			
+
 handle_call(get_random_req, From, State) ->
 	I = random:uniform(length(State#state.items)),
 	Reply = {ok,  lists:nth(I, State#state.items)},
 	{reply, Reply, State};
 
-handle_call({read, Filename}, From, State) when State#state.open == 0->
+%% read Httperf's style of sessions
+handle_call({read_sesslog, Filename}, From, State) when State#state.open == 0 ->
+    {Status, File} = file:open(Filename, read),
+    case Status of
+        error ->
+            {stop, file_not_found, State};
+        _ ->
+            read_sesslog(File, State#state.table),
+            % Close the config file
+            file:close(File),
+			{reply, ok, State#state{open= 1}}
+    end;	
+	
+handle_call({read_sesslog, Filename}, From, State) ->
+	?PRINTDEBUG("~p already opened~n",[Filename],?INFO),
+	{reply, ok, State};
+
+handle_call({read, Filename}, From, State) when State#state.open == 0 ->
 	?PRINTDEBUG("Opening file ~p~n",[Filename],?INFO),
     {Status, File} = file:open(Filename, read),
     case Status of
@@ -96,7 +141,7 @@ handle_call({read, Filename}, From, State) when State#state.open == 0->
             List_items = read_item(File, []),
             % Close the config file
             file:close(File),
-			{reply, ok, #state{items = List_items, open= 1}}
+			{reply, ok, State#state{items = List_items, open= 1}}
     end;
 handle_call({read, Filename}, From, State) ->
 	?PRINTDEBUG("~p already opened~n",[Filename],?INFO),
@@ -129,13 +174,55 @@ handle_info(Info, State) ->
 %% Returns: any (ignored by gen_server)
 %%----------------------------------------------------------------------
 terminate(Reason, State) ->
+	ets:delete(State#state.table),
 	ok.
 
 %%%----------------------------------------------------------------------
 %%% Internal functions
 %%%----------------------------------------------------------------------
 
+%%----------------------------------------------------------------------
+%% Func: read_sesslog/2
+%% 
+%%----------------------------------------------------------------------
+read_sesslog(File, Table)->
+	read_sesslog(io:get_line(File, ""), [], [],  File, Table, 1).
+
+%%----------------------------------------------------------------------
+%% Func: read_sesslog/6
+%% 
+%%----------------------------------------------------------------------
+read_sesslog(eof, [], [], File, Table, Id) -> %the end
+	done;
+read_sesslog(eof, Session, Page, File, Table, Id) -> % the end
+	ets:insert(Table, {Id, lists:reverse([lists:reverse(Page) | Session  ])});
+read_sesslog("#" ++ Tail, Session, Page, File, Table, Id) -> % skip comment
+	read_sesslog(io:get_line(File, ""), Session, Page, File, Table, Id);
+read_sesslog("\n", [], [], File, Table, Id)-> % newline again, skip
+	read_sesslog(io:get_line(File, ""), [], [], File, Table, Id);
+read_sesslog("\n", Session, Page, File, Table, Id)-> % end of a session
+	ets:insert(Table, {Id, lists:reverse([lists:reverse(Page) | Session ]) }),
+	read_sesslog(io:get_line(File, ""), [], [], File, Table, Id+1);
+read_sesslog(" " ++ Tail, Session, [], File, Table, Id)-> % No current page, error
+	session_formating_error;
+read_sesslog("\t" ++ Tail, Session, [], File, Table, Id)-> % No current page, error
+	session_formating_error;
+read_sesslog(" " ++ Tail, Session, Page, File, Table, Id)-> % new item in a Page
+	Object = ts_utils:chop(string:strip(Tail)),
+	read_sesslog(io:get_line(File, ""), Session, [Object | Page], File, Table, Id);
+read_sesslog("\t" ++ Tail, Session, Page, File, Table, Id)-> % new item in a Page
+	Object = ts_utils:chop(string:strip(Tail)),
+	read_sesslog(io:get_line(File, ""), Session, [Object | Page], File, Table, Id);
+read_sesslog(Line, [], [], File, Table, Id)-> % new Session
+	Object = ts_utils:chop(Line),
+	read_sesslog(io:get_line(File, ""),  [ ], [Object], File, Table, Id);
+read_sesslog(Line, Session, Page, File, Table, Id)-> % new Page ?
+	Object = ts_utils:chop(Line),
+	read_sesslog(io:get_line(File, ""),  [lists:reverse(Page) | Session ], [Object], File, Table, Id).
+
+%%----------------------------------------------------------------------
 %% Treate one line of the file
+%%----------------------------------------------------------------------
 read_item(File, L)->
     % Read one line
     Line = io:get_line(File, ""),

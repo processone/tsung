@@ -17,39 +17,32 @@
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 %%% 
 
--module(tsunami).
+
+-module(ts_http).
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
--export([start/2, stop/1]).
--behaviour(application).
-
 -include("../include/ts_profile.hrl").
+-include("../include/ts_http.hrl").
 
-%%----------------------------------------------------------------------
-%% Func: start/2
-%% Returns: {ok, Pid}        |
-%%          {ok, Pid, State} |
-%%          {error, Reason}   
-%%----------------------------------------------------------------------
-start(Type, _StartArgs) ->
-	error_logger:tty(false),
-	error_logger:logfile({open, ?log_file ++"-debug-" ++ 
-						  atom_to_list(node())}),
-	Nodes = net_adm:world(),
-	?PRINTDEBUG("Available nodes : ~p ~n",[Nodes],?NOTICE),
-    case ts_sup:start_link() of
-		{ok, Pid} -> 
-			{ok, Pid};
-		Error ->
-			?PRINTDEBUG("Can't start ! ~p ~n",[Error],?ERR),
-			Error
-    end.
+-export([get_client/2, get_random_message/1, parse/2]).
+
+%%
+get_random_message(#http_request{url = URL, method=get, cookie=Cookie}) ->
+	list_to_binary(ts_http_common:http_get(URL, ?http_version, Cookie));
+
+get_random_message(#http_request{url = URL, method=method, cookie=Cookie, body= Body}) ->
+	list_to_binary(ts_http_common:http_post(URL, ?http_version, Cookie, Body));
+
+get_random_message(#http_request{url = URL}) ->
+	list_to_binary(ts_http_common:http_get(URL, ?http_version, none)).
+
+%%
+get_client(N, Id) ->
+	ts_http_common:get_client(N, Id).
+
+%%
+parse(Data, State) ->
+	ts_http_common:parse(Data, State).
 
 
-%%----------------------------------------------------------------------
-%% Func: stop/1
-%% Returns: any 
-%%----------------------------------------------------------------------
-stop(State) ->
-    stop.

@@ -26,7 +26,7 @@
 -include("../include/ts_profile.hrl").
 
 %% External exports
--export([start/1, stop/1, wait_ack/3]).
+-export([start/1, stop/1, wait_ack/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
@@ -42,8 +42,8 @@ start(Opts) ->
 stop(Pid) ->
 	gen_server:cast(Pid, {stop}).
 
-wait_ack(Pid, Ack, When) ->
-	gen_server:cast(Pid, {wait_ack, Ack, When}).
+wait_ack({Pid, Ack, When, EndPage}) ->
+	gen_server:cast(Pid, {wait_ack, Ack, When, EndPage}).
 
 
 %%%----------------------------------------------------------------------
@@ -59,7 +59,7 @@ wait_ack(Pid, Ack, When) ->
 %%----------------------------------------------------------------------
 init([{PType, CType, PPid, Socket, Timeout, Ack, Monitor}]) ->
 	{ok, #state_rcv{socket = Socket, timeout= Timeout, ack = Ack,
-				ppid= PPid, parsetype = PType, clienttype = CType,
+				ppid= PPid, clienttype = CType,
 				monitor = Monitor }}.
 
 %%----------------------------------------------------------------------
@@ -83,13 +83,20 @@ handle_call(Request, From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
 
-%% parse the response
-%%if not complete ? or several responses in a single packet ?)
-
 %% ack value -> wait
-handle_cast({wait_ack, Ack, When}, State) ->
-	?PRINTDEBUG("receive wait_ack: ~p~n",[Ack], ?DEB),
-	{noreply, State#state_rcv{ack=Ack, ack_done=false, ack_timestamp= When}};
+handle_cast({wait_ack, Ack, When, EndPage}, State) ->
+	?PRINTDEBUG("receive wait_ack: ~p ~p~n",[Ack, EndPage], ?DEB),
+	case State#state_rcv.page_timestamp of 
+		0 -> %first request of a page
+			NewPageTimestamp = When;
+		_ -> %page already started
+			NewPageTimestamp = State#state_rcv.page_timestamp
+	end,
+	{noreply, State#state_rcv{ack=Ack,
+							  ack_done=false,
+							  endpage=EndPage,
+							  ack_timestamp= When,
+							  page_timestamp = NewPageTimestamp}};
 
 handle_cast({stop}, State) ->
 	{stop, normal, State};
@@ -120,6 +127,7 @@ handle_info({tcp_closed, Socket}, State) ->
 
 handle_info({tcp_error, Socket, Reason}, State) ->
 	?PRINTDEBUG("TCP error: ~p~n",[Reason], ?WARN),
+	ts_mon:addcount({ Reason }),
 	ts_client:close(State#state_rcv.ppid),
 	{noreply, State};
 
@@ -130,6 +138,7 @@ handle_info({ssl_closed, Socket}, State) ->
 
 handle_info({ssl_error, Socket, Reason}, State) ->
 	?PRINTDEBUG("SSL error: ~p~n",[Reason], ?WARN),
+	ts_mon:addcount({ Reason }),
 	ts_client:close(State#state_rcv.ppid),
 	{noreply, State};
 
@@ -153,46 +162,57 @@ terminate(Reason, State) ->
 %% Func: handle_data_msg/2
 %%----------------------------------------------------------------------
 handle_data_msg(Data, State) ->
-	case State#state_rcv.monitor of
-		none ->
-			skip;
-		_ ->
-			ts_mon:rcvmes({self(), now(), Data})
-	end,
+	ts_mon:rcvmes({State#state_rcv.monitor, self(), now(), Data}),
 	DataSize = size(Data),
 	case {State#state_rcv.ack, State#state_rcv.ack_done} of
 		{no_ack, _} ->
 			State;
 		{parse, _} ->
-			Module = State#state_rcv.clienttype,
-			NewState = Module:parse(Data, State),
+			NewState = ts_profile:parse(State#state_rcv.clienttype, Data, State),
 			if 
 				NewState#state_rcv.ack_done == true ->
 					?PRINTDEBUG("Response done:~p~n", [NewState#state_rcv.datasize], ?DEB),
-					update_stats(NewState);
+					PageTimeStamp = update_stats(State),
+					NewState#state_rcv{endpage = false, page_timestamp= PageTimeStamp }; % reinit in case of 
 				true ->
 					?PRINTDEBUG("Response: continue:~p~n",[NewState#state_rcv.datasize], ?DEB),
-					nothing
-			end,
-			NewState;
+					NewState
+			end;
 		{AckType, true} ->
 			% still same message, increase size
 			OldSize = State#state_rcv.datasize,
 			State#state_rcv{datasize = OldSize+DataSize};
 		{AckType, false} ->
-			update_stats(State),
-			State#state_rcv{datasize= DataSize, ack_done = true} % ack for a new message, init size
+			PageTimeStamp = update_stats(State),
+			State#state_rcv{datasize= DataSize, ack_done = true, endpage=false, page_timestamp= PageTimeStamp} % ack for a new message, init size
 	end.
 
+%%----------------------------------------------------------------------
+%% Func: update_stats/1
+%% Args: State
+%% Returns: State (state_rcv record)
+%% Purpose: update the statistics
+%%----------------------------------------------------------------------
 update_stats(State) ->
 	Now = now(),
 	Elapsed = ts_utils:elapsed(State#state_rcv.ack_timestamp, Now),
-	ts_mon:addsample({self(), Now, response_time, Elapsed}), % response time
-	ts_mon:addsample({self(), Now, size, State#state_rcv.datasize}),
-	doack(State#state_rcv.ack, State#state_rcv.ppid).
+	ts_mon:addsample({ response_time, Elapsed}), % response time
+	ts_mon:addsum({ size, State#state_rcv.datasize}),
+	case State#state_rcv.endpage of
+		true -> % end of a page, compute page reponse time 
+			PageElapsed = ts_utils:elapsed(State#state_rcv.page_timestamp, Now),
+			ts_mon:addsample({page_resptime, PageElapsed}),
+			doack(State#state_rcv.ack, State#state_rcv.ppid),
+			0;
+		_ ->
+			doack(State#state_rcv.ack, State#state_rcv.ppid),
+			State#state_rcv.page_timestamp
+	end.
 
 %%----------------------------------------------------------------------
-%% Func: doack/2
+%% Func: doack/2 
+%% Args: parse|local|global, Pid
+%% Purpose: warn the sending process that the request is over
 %%----------------------------------------------------------------------
 doack(parse, Pid) ->
 	ts_client:next(Pid);

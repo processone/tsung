@@ -40,20 +40,20 @@
 %%%----------------------------------------------------------------------
 start_link() ->
 	?PRINTDEBUG2("Starting ~n",?DEB),
-    gen_server:start_link({local,?MODULE}, ?MODULE, [], []).
+    gen_server:start_link({global,?MODULE}, ?MODULE, [], []).
 
 start() ->
 	?PRINTDEBUG2("Starting ~n",?DEB),
-    gen_server:start({local, ?MODULE}, ?MODULE, [], []).
+    gen_server:start({global, ?MODULE}, ?MODULE, [], []).
 
 get_id()->
-   gen_server:call(?MODULE, get_id).
+   gen_server:call({global, ?MODULE}, get_id).
 
 reset()->
-    gen_server:call(?MODULE, reset).
+    gen_server:call({global, ?MODULE}, reset).
 
 stop()->
-    gen_server:call(?MODULE, stop).
+    gen_server:call({global, ?MODULE}, stop).
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from gen_server

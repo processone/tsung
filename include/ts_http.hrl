@@ -17,39 +17,26 @@
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 %%% 
 
--module(tsunami).
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
--export([start/2, stop/1]).
--behaviour(application).
+%% use by the client to create the request
+-record(http_request, {url, cookie=none, method=get, body=[], id = 0 }).
 
--include("../include/ts_profile.hrl").
+%% use by the client process to store information about the current request during 
+%% the  parsing of the response
+-record(http, {content_length= 0, % HTTP header: content length
+			   body_size     = 0, % current size of body,
+			   status     = none  % HTTP resp. status :200, etc. 'none' if no current cnx.
+			  }).
 
-%%----------------------------------------------------------------------
-%% Func: start/2
-%% Returns: {ok, Pid}        |
-%%          {ok, Pid, State} |
-%%          {error, Reason}   
-%%----------------------------------------------------------------------
-start(Type, _StartArgs) ->
-	error_logger:tty(false),
-	error_logger:logfile({open, ?log_file ++"-debug-" ++ 
-						  atom_to_list(node())}),
-	Nodes = net_adm:world(),
-	?PRINTDEBUG("Available nodes : ~p ~n",[Nodes],?NOTICE),
-    case ts_sup:start_link() of
-		{ok, Pid} -> 
-			{ok, Pid};
-		Error ->
-			?PRINTDEBUG("Can't start ! ~p ~n",[Error],?ERR),
-			Error
-    end.
+-define(server_name, ts_utils:get_val(server_name)).
+-define(http_req_filename, ts_utils:get_val(http_req_filename)).
+-define(http_version, ts_utils:get_val(http_version)).
 
+%% HTTP Protocol
+-define(GET, "GET").
+-define(POST, "POST").
+-define(HTTP10, "HTTP/1.0").
+-define(HTTP11, "HTTP/1.1").
 
-%%----------------------------------------------------------------------
-%% Func: stop/1
-%% Returns: any 
-%%----------------------------------------------------------------------
-stop(State) ->
-    stop.

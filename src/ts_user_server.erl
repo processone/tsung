@@ -52,48 +52,48 @@
 %%%----------------------------------------------------------------------
 start_link([NDeb, NFin, NClients]) ->
 	?PRINTDEBUG("Starting with args ~p ~n",[[NDeb, NFin, NClients]],?DEB),
-    gen_server:start_link({local, ?MODULE}, ?MODULE, {NDeb, NFin, NClients}, []).
+    gen_server:start_link({global, ?MODULE}, ?MODULE, {NDeb, NFin, NClients}, []).
 
 start([NDeb, NFin, NClients]) ->
 	?PRINTDEBUG("Starting with args ~p ~n",[[NDeb, NFin, NClients]],?DEB),
-    gen_server:start({local, ?MODULE}, ?MODULE, {NDeb, NFin, NClients}, []).
+    gen_server:start({global, ?MODULE}, ?MODULE, {NDeb, NFin, NClients}, []).
 
 reset(NDeb, NFin, NClients)->
-    gen_server:call(?MODULE, {reset, NDeb, NFin, NClients}).
+    gen_server:call({global, ?MODULE}, {reset, NDeb, NFin, NClients}).
 
 get_id()->
-    gen_server:call(?MODULE, get_id).
+    gen_server:call({global, ?MODULE }, get_id).
 
 get_idle()->
-    gen_server:call(?MODULE, get_idle).
+    gen_server:call({global, ?MODULE}, get_idle).
 
 
 get_one_connected(Id)->
-    gen_server:call(?MODULE, {get_one_connected, Id}). 
+    gen_server:call({global, ?MODULE}, {get_one_connected, Id}). 
 
 get_offline()->
-    gen_server:call(?MODULE, get_offline).
+    gen_server:call({global, ?MODULE}, get_offline).
 
 
 add_to_connected(Id)->
-    gen_server:call(?MODULE, {add_to_connected, Id}). 
+    gen_server:call({global, ?MODULE}, {add_to_connected, Id}). 
 
 
 connect_first()->
-    gen_server:call(?MODULE, connect_first).
+    gen_server:call({global, ?MODULE}, connect_first).
 
 disconnect_first()->
-    gen_server:call(?MODULE, disconnect_first).
+    gen_server:call({global, ?MODULE}, disconnect_first).
 
 
 get_first()->
-    gen_server:call(?MODULE, get_first).
+    gen_server:call({global, ?MODULE}, get_first).
 
 remove_connected(Id)->
-    gen_server:call(?MODULE, {remove_connected, Id}). 
+    gen_server:call({global, ?MODULE}, {remove_connected, Id}). 
 
 stop()->
-    gen_server:call(?MODULE, stop).
+    gen_server:call({global, ?MODULE}, stop).
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from gen_server

@@ -1,19 +1,17 @@
-{application, tsunami,
+{application, tsunami_controller,
       [{description,  "IDX-TSUNAMI, a bench tool for TCP/UDP servers"},
        {vsn,          "%VSN%"},
        {modules,      [
-					   tsunami,
-					   ts_launcher,
-					   ts_client,
-					   ts_client_rcv,
-					   ts_client_sup,
-					   ts_sup,
-					   ts_stats,
-					   ts_utils,
-					   ts_profile
+					   tsunami_controller,
+					   ts_controller_sup,
+					   ts_mon,
+					   ts_timer,
+					   ts_req_server,
+					   ts_user_server,
+					   ts_msg_server
 					  ]},
        {registered,   [
-					   ts_launcher
+					   ts_mon
 					  ]},
 	   {env,		[        
 					 {debug_level, 2},
@@ -22,21 +20,11 @@
 					 {server_adr, "127.0.0.1"}, %% server IP or name
 					 {server_port, 80},		    %% server port
 					 {server_protocol, gen_tcp},%% gen_tcp, gen_udp or ssl
-					 {snd_size, 32768}, %% send buffer size
-					 {rcv_size, 32768}, %% receive buffer size
 					 {tcp_timeout, 3600000},
 					 {clients_timeout, 60000}, %% timeout en cas de synchro globale
 					 {dumpstats_interval, 60000}, % 
 					 {monitoring, full},     %% full or light
 
-					 {client_type, jabber_dynamic},	%% Type de client:tsun
-									%%     		jabber_online, 
-									%%			jabber_unique, 
-									%%			jabber_offline
-									%%			jabber_auth
-									%%			jabber_roster
-
-			  		 {persistent, true}, %% persistent connection: true or false
 					 {mes_type, dynamic}, %% dynamic or static
 					 {nclients, 10},      %% Nombre de clients à connecter
 					 {nclients_deb, 1}, 	%% Debut de la plage de clients pour cette beam
@@ -53,24 +41,8 @@
 					 {req_filename, "requests.txt"},	%% Fichiers de requetes
 					 {req_server_timeout, 120000},	%% Fichiers de requetes
 					 {http_req_filename, "http.txt"},	%% Fichiers de requetes HTTP
-					 {http_version, 1.1},	%% 
-					 {client_retry_timeout, 10},	    %% retry sending (in microsec.)
-					 {ssl_ciphers, "EXP1024-RC4-SHA,EDH-RSA-DES-CBC3-SHA"},	
-
-%%% -------- JABBER OPTIONS
-					 {presence_delay, 10000}, %% temps d'attente apres l'envoie d'un presence
-					 {n_roster_clients, 6},
-					 {setroster, 60}, %% Intervalle de temps entre 2 messages de roster et autres (pour la phase remplissage)
-					 {boucle1_percent, 63},	
-					 {boucle2_percent, 31},	
-					 {boucle3_percent, 3},	
-					 
-					 {jabber_users, 2000000},
-					 {jabber_username, "c"},
-                     {jabber_password, "pas"},
-                     {jabber_domain, "mydomain.com"}
-
+					 {client_retry_timeout, 10}	    %% retry sending (in microsec.)
 					]},        
 	   {applications, [kernel, stdlib, ssl]},
-       {mod,          {tsunami, []}}
+       {mod,          {tsunami_controller, []}}
 	  ]}.
