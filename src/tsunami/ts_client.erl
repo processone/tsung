@@ -62,41 +62,28 @@ init({Session=#session{id            = Profile,
                         type         = CType}, Count, IP}) ->
 	?DebugF("Init ... started with count = ~p  ~n",[Count]),
 	ts_utils:init_seed(),
+
     {ServerName, Port, Protocol} = get_server_cfg({Profile,1}),
 	?DebugF("Get dynparams for ~p  ~n",[CType]),
 	DynData = CType:init_dynparams(),
-    % open connection
-	Opts = protocol_options(Protocol) ++ [{ip, IP}],
-	?DebugF("Got first message, connect to ~p with options ~p ~n",
-         [{ServerName, Port, Protocol},Opts]),
 	StartTime= now(),
-    case Protocol:connect(ServerName, Port, Opts, ?config(connect_timeout)) of
-		{ok, Socket} -> 
-            Connected = now(),
-            Elapsed = ts_utils:elapsed(StartTime, Connected),
-            ts_mon:newclient({self(), Connected, Elapsed}),
-            set_thinktime(?short_timeout),
-            {ok, think, #state_rcv{ socket=Socket, port=Port,
-                                    host     = ServerName,
-                                    profile    = Profile,
-                                    protocol   = Protocol,
-                                    clienttype = CType,
-                                    session = CType:new_session(),
-                                    persistent = Persistent,
-                                    starttime  = StartTime,
-                                    timeout    = ?config(tcp_timeout),
-                                    monitor    = ?config(monitoring),
-                                    count      = Count,
-                                    ip         = IP,
-                                    maxcount   = Count,
-                                    dyndata    = DynData
-                                   }};
-		{error, Reason} ->
-			?LOGF("Connect Error: ~p~n",[Reason], ?ERR),
-            CountName="conn_err_" ++ atom_to_list(Reason),
-			ts_mon:add({ count, list_to_atom(CountName) }),
-			{stop, normal}
-    end.
+    ts_mon:newclient({self(), StartTime}),
+    set_thinktime(?short_timeout),
+    {ok, think, #state_rcv{ port      =Port,
+                            host     = ServerName,
+                            profile    = Profile,
+                            protocol   = Protocol,
+                            clienttype = CType,
+                            session = CType:new_session(),
+                            persistent = Persistent,
+                            starttime  = StartTime,
+                            timeout    = ?config(tcp_timeout),
+                            monitor    = ?config(monitoring),
+                            count      = Count,
+                            ip         = IP,
+                            maxcount   = Count,
+                            dyndata    = DynData
+                           }}.
 
 %%--------------------------------------------------------------------
 %% Func: handle_event/3
@@ -407,16 +394,19 @@ set_profile(MaxCount, Count, ProfileId) when is_integer(ProfileId) ->
 %% purpose: try to reconnect if this is needed (when the socket is set to none)
 %%----------------------------------------------------------------------
 reconnect(none, ServerName, Port, Protocol, IP) ->
-	?DebugF("Try to reconnect to: ~p:~p using protocol ~p~n",[ServerName,Port,Protocol]),
+	?DebugF("Try to (re)connect to: ~p:~p using protocol ~p~n",
+            [ServerName,Port,Protocol]),
 	Opts = protocol_options(Protocol)  ++ [{ip, IP}],
+    Before= now(),
     case Protocol:connect(ServerName, Port, Opts) of
 		{ok, Socket} -> 
-			ts_mon:add({ count, reconnect }),
-			?Debug("Reconnected~n"),
+            Elapsed = ts_utils:elapsed(Before, now()),
+			ts_mon:add({ sample, connect, Elapsed }),
+			?Debug("(Re)connected~n"),
 			{ok, Socket};
 		{error, Reason} ->
-			?LOGF("Reconnect Error: ~p~n",[Reason],?ERR),
-            CountName="error_reconnect_"++atom_to_list(Reason),
+			?LOGF("(Re)connect Error: ~p~n",[Reason],?ERR),
+            CountName="error_connect_"++atom_to_list(Reason),
 			ts_mon:add({ count, list_to_atom(CountName) }),
 			{stop, normal}
     end;

@@ -89,8 +89,8 @@ abort() ->
 dumpstats() ->
 	gen_server:cast({global, ?MODULE}, {dumpstats}).
 
-newclient({Who, When, Connect}) ->
-	gen_server:cast({global, ?MODULE}, {newclient, Who, When, Connect}).
+newclient({Who, When}) ->
+	gen_server:cast({global, ?MODULE}, {newclient, Who, When}).
 
 endclient({Who, When, Elapsed}) ->
 	gen_server:cast({global, ?MODULE}, {endclient, Who, When, Elapsed}).
@@ -215,16 +215,12 @@ handle_cast({rcvmsg, Who, When, What}, State=#state{dumpfile=Log}) ->
 	io:format(Log, "Recv:~w:~w:~s~n",[When,Who,binary_to_list(What)]),
 	{noreply, State};
 
-handle_cast({newclient, Who, When, Connect}, State) ->
+handle_cast({newclient, Who, When}, State) ->
 	Clients =  State#state.client+1,
 	Max= lists:max([Clients,State#state.maxclient]),
 	Tab = State#state.stats,
 	Add = fun (OldVal) -> OldVal+1 end,
-	New1Tab = dict:update(users_count, Add, 1, Tab),
-
-	%% update connect sample
-	MyFun = fun (OldV) -> update_stats(OldV, Connect) end,
-	NewTab = dict:update(connect, MyFun, update_stats([],Connect), New1Tab),
+	NewTab = dict:update(users_count, Add, 1, Tab),
 
 	case State#state.type of 
 		none -> ok;
@@ -267,7 +263,11 @@ handle_cast({stop}, State) -> % we should stop, wait until no more clients are a
 handle_cast({abort}, State) -> % stop now !
     ?LOG("Aborting by request !~n", ?EMERG),
     ts_os_mon:stop(),
-	{stop, abort, State}.
+	{stop, abort, State};
+
+handle_cast(Msg, State) ->
+    ?LOGF("Unknown msg ~p !~n",[Msg], ?WARN),
+	{noreply, State}.
 
 
 %%----------------------------------------------------------------------
