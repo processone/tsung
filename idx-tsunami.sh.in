@@ -68,11 +68,12 @@ usage() {
     echo "$prog start|stop|restart|debug|status|recorder|stop_recorder"
 }
 
-while getopts ":f:l:" Option
+while getopts ":f:l:d:" Option
 do
     case $Option in
         f) CONF_OPT="-tsunami_controller config_file \"$OPTARG\" ";;
         l) LOG_OPT="log_file \"$OPTARG\" ";;
+        d) REC_DEBUG_LEVEL=$OPTARG;;
         *) usage ;;
     esac
 done	
