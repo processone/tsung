@@ -38,7 +38,8 @@
 -export([init/1, launcher/2,  wait/2, finish/2, handle_event/3,
 		 handle_sync_event/4, handle_info/3, terminate/3]).
 
--record(state, {interarrival=[],
+-record(state, {nusers,
+                phases =[],
                 intensity,
                 maxusers %% if maxusers are currently active, launch a
                          %% new beam to handle the new users
@@ -96,40 +97,35 @@ wait({launch, []}, State) ->
     WaitBeforeStart = ts_utils:elapsed(now(), StartDate),
     Warm_timeout = round(ts_stats:exponential(Intensity) + WaitBeforeStart),
 	?LOGF("Activate launcher (~p users) in ~p msec ~n",[Users, Warm_timeout], ?NOTICE),
-	{next_state, launcher, State#state{interarrival = 
-                                       ts_stats:exponential(Intensity, Users),
-                                       intensity = Rest, maxusers= Max },  Warm_timeout};
-wait({launch, {Arrivals, Max}}, State) ->
-    ?LOGF("Starting with  ~p users todo (max is ~p)~n",
-          [length(Arrivals), Max],?DEB),
-	{next_state, launcher, State#state{interarrival = Arrivals, maxusers=Max}, 1}.
+	{next_state, launcher, State#state{phases = Rest, nusers = Users, 
+                                       intensity = Intensity, maxusers= Max },  Warm_timeout};
 
-launcher(Event, State=#state{interarrival = []}) ->
+wait({launch, {[{Intensity, Users}| Rest], Max}}, State) ->
+    ?LOGF("Starting with  ~p users todo in the current phase (max is ~p)~n",
+          [Users, Max],?DEB),
+	{next_state, launcher, State#state{phases = Rest, nusers = Users, 
+                                       intensity = Intensity, maxusers= Max }, ?short_timeout}.
+
+launcher(Event, State=#state{nusers = 0, phases = [] }) ->
 	?LOG("no more clients to start, wait  ~n",?DEB),
     {next_state, finish, #state{}, ?check_noclient_timeout};
 
-launcher(timeout, State=#state{interarrival = [X |List]}) ->
-    ActiveClients =  ts_client_sup:active_clients(),
-    case ActiveClients >= State#state.maxusers of
-       true -> %% max users reached, must start a new beam
-            ?LOGF("Max number of clients reached, must start a new beam (~p users)~n",
-                  [length(List)],?NOTICE),
-            {ok, MyHostName} = ts_utils:node_to_hostname(node()),
-            ts_config_server:newbeam(list_to_atom(MyHostName),
-                                     {List, State#state.maxusers}),
-            NewList = [];
-        false ->
-            ?LOGF("Current clients on beam: ~p~n", [ActiveClients],?DEB),
-            NewList = List
-    end,
-    %%Get one client
-    %% Id = ts_user_server:get_idle(),%% FIXME: make it work again with new config server
-    %%set the profile of the client
-    {ok, Profile} = ts_config_server:get_next_session(),
-    ts_client_sup:start_child(Profile),
-    ?LOGF("client launched, waiting ~p msec before launching next client",
-          [X],?DEB),
-    {next_state, launcher, State#state{interarrival= NewList}, round(X)}.
+launcher(timeout, State=#state{nusers    = Users,
+                               phases    = [{NewIntensity, NewUsers}|Rest],
+                               intensity = Intensity}) ->
+    Wait = do_launch(Intensity),
+    case check_max_raised(State) of
+        true ->
+            {next_state, finish, State, ?check_noclient_timeout};
+        false->
+            case Users of 
+                0 -> {next_state,launcher,State#state{phases = Rest, 
+                                                      nusers = NewUsers,
+                                                      intensity = NewIntensity},
+                      Wait};
+                _  ->{next_state,launcher,State#state{nusers = Users-1} , Wait}
+            end
+    end.
     
 finish(timeout, State) ->
     case ts_client_sup:active_clients() of
@@ -198,5 +194,31 @@ terminate(Reason, StateName, StatData) ->
 %%% Internal functions
 %%%----------------------------------------------------------------------
 
+check_max_raised(#state{phases=Phases,maxusers=Max,nusers=Users,
+                        intensity=Intensity})->
+    ActiveClients =  ts_client_sup:active_clients(),
+    case ActiveClients >= Max of
+        true -> %% max users reached, must start a new beam
+            ?LOG("Max number of clients reached, must start a new beam~n", ?NOTICE),
+            {ok, MyHostName} = ts_utils:node_to_hostname(node()),
+            Args = case Users of 
+                       0 ->  Phases;
+                       _ -> [{Intensity,Users-1}|Phases]
+                   end,
+            ts_config_server:newbeam(list_to_atom(MyHostName), {Args, Max}),
+            true;
+        false ->
+            ?LOGF("Current clients on beam: ~p~n", [ActiveClients],?DEB),
+            false
+    end.
 
-
+do_launch(Intensity)->
+    %%Get one client
+    %% Id = ts_user_server:get_idle(),%% FIXME: make it work again with new config server
+    %%set the profile of the client
+    {ok, Profile} = ts_config_server:get_next_session(),
+    ts_client_sup:start_child(Profile),
+    X = round(ts_stats:exponential(Intensity)),
+    ?LOGF("client launched, waiting ~p msec before launching next client",
+          [X],?DEB),
+    X.
