@@ -37,7 +37,7 @@
 
 %% External exports
 -export([start/0, stop/0, newclient/1, endclient/1, newclient/1, sendmes/1,
-		rcvmes/1, error/1, newclientrcv/1, addsample/1]).
+		rcvmes/1, error/1, newclientrcv/1, addsample/1, get_sample/1]).
 
 -export([update_stats/2]).
 
@@ -87,6 +87,10 @@ addsample({Who, When, Type, Value}) ->
 error({Who, When, What}) ->
 	gen_server:cast(?MODULE, {error, Who, When, What}).
 
+get_sample(Type) ->
+	gen_server:call(?MODULE, {get_sample, Type}).
+
+
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from gen_server
@@ -123,6 +127,10 @@ init([]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
+handle_call({get_sample, Type}, From, State) ->
+	Reply = dict:find(Type, State#state.stats),
+	{reply, Reply, State};
+	
 handle_call(Request, From, State) ->
 	Reply = ok,
 	{reply, Reply, State}.
@@ -183,6 +191,7 @@ handle_cast({endclient, Who, When}, State) ->
 	io:format(State#state.log,"load:~w~n",[Clients]),
 	{noreply, State#state{client = Clients}, State#state.timeout}.
 
+
 %%----------------------------------------------------------------------
 %% Func: handle_info/2
 %% Returns: {noreply, State}          |
@@ -227,6 +236,10 @@ print_stats(State) ->
 
 print_dist_list([], Logfile) ->
 	done;
+print_dist_list([{Key, [Mean, Var, Max, Min, Count]} | Tail], Logfile) ->
+	StdVar = math:sqrt(Var/Count),
+	io:format(Logfile, "stats: ~p~p~n", [Key, [Mean, StdVar, Max, Min, Count]]),
+	print_dist_list(Tail, Logfile);
 print_dist_list([{Key, Value} | Tail], Logfile) ->
 	io:format(Logfile, "stats: ~p~p~n", [Key, Value]),
 	print_dist_list(Tail, Logfile).
