@@ -218,6 +218,7 @@ parse_config(Element = #xmlElement{name=jabber},
 	Passwd  =ts_config:get_default(Tab, jabber_passwd, jabber_passwd),
 
 	Msg=#message{ack   = Ack,
+				 endpage = true,
 				 param = #jabber{domain = Domain,
 								username = UserName,
 								passwd = Passwd,
@@ -226,6 +227,7 @@ parse_config(Element = #xmlElement{name=jabber},
 								size   = Size
 							   }
 				},
+    ts_config:mark_prev_req(Id-1, Tab, CurS),
     ets:insert(Tab,{{CurS#session.id, Id}, Msg}),
     lists:foldl( fun(A,B) -> ts_config:parse(A,B) end,
                  Config#config{},

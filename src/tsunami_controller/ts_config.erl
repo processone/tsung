@@ -38,7 +38,8 @@
          getAttr/2,
          getAttr/3,
          parse/2,
-         get_default/3
+         get_default/3,
+		 mark_prev_req/3
         ]).
 
 %%%----------------------------------------------------------------------
@@ -46,7 +47,7 @@
 %%% Purpose:  read the xml config file
 %%%----------------------------------------------------------------------
 read(Filename) ->
-    case xmerl_scan:file(Filename) of
+    case catch xmerl_scan:file(Filename) of
         {ok, Root = #xmlElement{}} ->  % xmerl-0.15
             ?LOGF("Reading config file: ~s~n", [Filename], ?NOTICE),
             Table = ets:new(sessiontable, [ordered_set, protected]),
@@ -56,6 +57,8 @@ read(Filename) ->
             Table = ets:new(sessiontable, [ordered_set, protected]),
             {ok, parse(Root, #config{session_tab = Table})};
         {error,Reason} ->
+            {error, Reason};
+		{'EXIT',Reason} ->
             {error, Reason}
     end.
 
@@ -302,7 +305,7 @@ parse(Element = #xmlElement{name=thinktime},
           ?INFO),
     ets:insert(Tab,{{CurS#session.id, Id+1}, {thinktime, RealThink}}),
     [{Key, Msg}] = ets:lookup(Tab,{CurS#session.id, ReqId}),
-    ets:insert(Tab,{Key, Msg#message{thinktime=RealThink, endpage=true}}),
+    ets:insert(Tab,{Key, Msg#message{thinktime=RealThink}}),
     
     lists:foldl( fun parse/2, Conf#config{curthink=Think,curid=Id+1}, 
                  Element#xmlElement.content);
@@ -365,4 +368,24 @@ get_default(Tab, Key,ConfigName) ->
 			?config(ConfigName);
 		[{_Key, SName}] ->
 			SName
+	end.
+
+%%%----------------------------------------------------------------------
+%%% Function: mark_prev_req/3
+%%% Purpose: use to set page marks in requests during parsing ; by
+%%%   default, a new request is mark as an endpage; if a new request is
+%%%   parse, then the previous one must be set to false, unless there is
+%%%   a thinktime between them
+%%%----------------------------------------------------------------------
+mark_prev_req(0, Tab, _)  ->
+	ok;
+mark_prev_req(Id, Tab, CurS) ->
+    %% if the previous msg is a #message request, set endpage to
+    %% false, we are the current last request of the page
+	case ets:lookup(Tab,{CurS#session.id, Id}) of 
+		[{Key, Msg=#message{}}] ->
+			ets:insert(Tab,{Key, Msg#message{endpage=false}});
+		[{Key, {transaction,_,_}}] ->% transaction, continue to search back
+			mark_prev_req(Id-1, Tab, CurS);
+		_ -> ok
 	end.

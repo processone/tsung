@@ -172,8 +172,8 @@ parse_config(Element = #xmlElement{name=http},
               _Data -> 
                   set_msg(Request, 0)
           end,
-    
-    ets:insert(Tab,{{CurS#session.id, Id}, Msg}),
+    ts_config:mark_prev_req(Id-1, Tab, CurS),
+    ets:insert(Tab,{{CurS#session.id, Id}, Msg#message{endpage=true}}),
     lists:foldl( fun(A,B)->ts_config:parse(A,B) end,
                  Config#config{},
                  Element#xmlElement.content);
@@ -216,6 +216,10 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 				{NewState, Opts} ->
 					{NewState, Opts, Close}
 			end;
+		CLength == 0, Close == true -> % no body, but close connection
+			{State#state_rcv{session= #http{}, ack_done = true,
+							 datasize = 0,
+							 dyndata= Cookie}, [], Close};
 		BodySize == CLength ->  % end of response
 			{State#state_rcv{session= #http{}, ack_done = true,
 							 datasize = BodySize,
