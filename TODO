@@ -1,10 +1,11 @@
 
-P2 test updated jabber modules with a real jabber server
 P2 improve documentation
+P2 fix confusion with ack type and sync/async proto
 
+P3 more test with jabber (roster)
 P3 make SNMP customizable
 P3 better report/graphics generation 
-P3 other useful protocols: ftp, smtp, ldap, sql ... 
+P3 other useful protocols: smtp, ldap, sql, ssh ...
 P3 add XML backend for stats
 P3 finish rrdtool backend for stats
 P3 add comments for edoc 

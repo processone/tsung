@@ -1,3 +1,9 @@
+idx-tsunami (1.0.1-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Nicolas Niclausse <nicolas.niclausse@niclux.org>  Thu, 18 Nov 2004 08:34:05 +0200
+
 idx-tsunami (1.0-1) unstable; urgency=low
 
   * New upstream release

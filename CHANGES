@@ -1,6 +1,19 @@
+1.0 -> 1.0.1: Major bugfixes (18 Nov 2004)
+    - fix: broken free mem on non linux arch (Matthew Schulkind)
+    - add script to convert apache log file (combined) to idx-tsunami XML
+    - improved configure: add --with-erlang option and xmerl PATH detection
+       idx-tsunami now compiles both with R9C and R10B
+    - small fixes to the DTD
+    Thx to Jonathan Bresler for testing and bug reporting :
+    - fix: broken 'global', 'local' and 'no_ack' requests and size computation
+    - fix: broken ids in jabber messages
+    - fix: broken online/offline in user_server
+    - default thinktime can now be overriden
+    - many improvements/fixes in analyse_msg.pl
+
 1.0.beta7 -> 1.0:  Minor bugfixes (13 Aug 2004)
     - fix: broken path when building debian package
-    - add rpm arget in makefile
+    - add rpm target in makefile
     - implement status
     - add 'match' in graph and doc
     - fix add_dynparams for jabber
