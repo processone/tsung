@@ -85,14 +85,20 @@ dorecord(Args) ->
 %%          {stop, Reason}
 %%--------------------------------------------------------------------
 init(Filename) ->
-    case file:open(Filename,write) of 
+    Date = ts_utils:datestr(),
+    %% add date to filename
+    File= case regexp:gsub(Filename,"\.xml$", Date ++ ".xml") of %% "
+        {ok, RealName, _ } -> RealName;
+        _ ->  Date ++ "-" ++ Filename         
+    end,    
+    case file:open(File,write) of 
 		{ok, Stream} ->
 			?LOG("starting recorder~n",?NOTICE),
-			{ok, #state{ log_file = Filename,
+			{ok, #state{ log_file = File,
                          logfd    = Stream
 					   }};
 		{error, Reason} ->
-			?LOGF("Can't open log file ~p! ~p~n",[Filename,Reason], ?ERR),
+			?LOGF("Can't open log file ~p! ~p~n",[File,Reason], ?ERR),
 			{stop, Reason}
     end.
 
@@ -200,8 +206,13 @@ record_http_request(State=#state{prev_host=Host, prev_port=Port},
                 {FullURL,Port2,Host2 }
         end,
     Fd=State#state.logfd,
+    URL2 = case regexp:gsub(URL,"&","&amp;") of  % FIXME: what if already &amp; ?
+        {ok,NewURL,RepCount} -> NewURL;
+        _ -> URL
+    end,
+
     io:format(Fd,"<request><http url='~s' version='~s' ",
-              [URL, HTTPVersion]),
+              [URL2, HTTPVersion]),
     case Body of 
         [] -> ok;
         _  -> io:format(Fd," contents='~s' ", [Body]) % must be a POST method
