@@ -22,27 +22,28 @@ CONF_OPT_FILE="$HOME/.idx-tsunami/idx-tsunami.xml"
 BOOT_OPT="-boot %INSTALL_DIR%/lib/tsunami_controller-$VERSION/priv/tsunami_controller -boot_var TSUNAMIPATH  %INSTALL_DIR% "
 REC_BOOT_OPT="-boot %INSTALL_DIR%/lib/tsunami_recorder-$VERSION/priv/tsunami_recorder -boot_var TSUNAMIPATH  %INSTALL_DIR% "
 REC_DEBUG_LEVEL=5
-ERL_OPTS="-rsh ssh +A 1 %ERL_OPTS% -shared "
+ERL_RSH=" -rsh ssh "
+ERL_OPTS=" +A 1 %ERL_OPTS% -shared "
 COOKIE='tsunami'
 
 stop() {
-    erl $ERL_OPTS -noshell  -sname killer -setcookie $COOKIE -pa $TSUNAMIPATH -pa $CONTROLLERPATH -s tsunami_controller stop_all $HOST -s init stop
+    erl $ERL_OPTS $ERL_RSH -noshell  -sname killer -setcookie $COOKIE -pa $TSUNAMIPATH -pa $CONTROLLERPATH -s tsunami_controller stop_all $HOST -s init stop
 }
 
 stop_recorder() {
-    erl $ERL_OPTS -noshell  -sname killer -setcookie $COOKIE -pa $TSUNAMIPATH -pa $RECORDERPATH -s tsunami_recorder stop_all $HOST -s init stop
+    erl $ERL_OPTS $ERL_RSH -noshell  -sname killer -setcookie $COOKIE -pa $TSUNAMIPATH -pa $RECORDERPATH -s tsunami_recorder stop_all $HOST -s init stop
 }
 
 start() {
     echo "Starting IDX-Tsunami"	
-    $ERL $ERL_OPTS -detached -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT \
+    $ERL $ERL_OPTS $ERL_RSH -detached -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT \
     -pa $TSUNAMIPATH -pa $CONTROLLERPATH \
     -tsunami_controller config_file \"$CONF_OPT_FILE\" -tsunami_controller $LOG_OPT
 }
 
 recorder() {
     echo "Starting IDX-Tsunami recorder on port $LISTEN_PORT"
-    $ERL $ERL_OPTS -detached -sname $RECORDER -setcookie $COOKIE  $REC_BOOT_OPT \
+    $ERL $ERL_OPTS $ERL_RSH -detached -sname $RECORDER -setcookie $COOKIE  $REC_BOOT_OPT \
     -pa $TSUNAMIPATH -pa $RECORDERPATH \
     -tsunami_recorder debug_level $REC_DEBUG_LEVEL \
     -tsunami_recorder $LOG_OPT \
@@ -51,8 +52,10 @@ recorder() {
 }
 
 debug() {
-    $ERL $ERL_OPTS -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT -pa $TSUNAMIPATH -pa $CONTROLLERPATH \
-    -tsunami_controller config_file \"$CONF_OPT_FILE\"  -tsunami_controller $LOG_OPT
+    $ERL $ERL_OPTS $ERL_RSH -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT \
+     -pa $TSUNAMIPATH -pa $CONTROLLERPATH \
+     -tsunami_controller config_file \"$CONF_OPT_FILE\" \
+     -tsunami_controller $LOG_OPT
 }
 
 checkconfig() {
@@ -88,12 +91,13 @@ usage() {
     echo "$prog start|stop|restart|debug|status|recorder|stop_recorder"
 }
 
-while getopts ":f:l:d:" Option
+while getopts ":f:l:d:r:" Option
 do
     case $Option in
         f) CONF_OPT_FILE=$OPTARG;;
         l) LOG_OPT="log_file \"$OPTARG\" ";;
         d) REC_DEBUG_LEVEL=$OPTARG;;
+        r) ERL_RSH=" -rsh $OPTARG ";;
         *) usage ;;
     esac
 done	

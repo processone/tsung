@@ -32,6 +32,7 @@ A distributed multi-protocol load testing tool.
       <command>idx-tsunami</command>
       <arg><option>-f</option> configuration file</arg>
       <arg><option>-l</option> log file</arg>
+      <arg><option>-r</option> command</arg>
       <arg>start|stop|restart|debug|status|recorder|stop_recorder</arg>
     </cmdsynopsis>
   </refsynopsisdiv>
@@ -108,6 +109,13 @@ A distributed multi-protocol load testing tool.
 	<term><option>-l</option></term>
 	<listitem>
           <para>specifies the log file to use. The default log file name is <filename>~/idx-tsunami/log/idx-tsunami.log</filename></para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+      <varlistentry>
+	<term><option>-r</option></term>
+	<listitem>
+          <para> Specifies an alternative to ssh (rsh for ex.) for starting a slave node on a remote host</para>
 	</listitem>
       </varlistentry>
     </variablelist>
