@@ -28,7 +28,7 @@ show:
 
 tarball: 
 	mkdir -p $(TARDIR)
-	tar zcf tmp.tgz src/*.erl src/*.src include/*.hrl doc/*.txt doc/*.fig doc/*.png LISEZMOI README CONTRIBUTORS COPYING src/idx-tsunami.pl.src idx-tsunamirc TODO Makefile vsn.mk src/analyse_msg.pl.src
+	tar zcf tmp.tgz src/*.erl src/*.src include/*.hrl doc/*.txt doc/*.fig doc/*.png LISEZMOI README CONTRIBUTORS COPYING src/idx-tsunami.pl.src idx-tsunamirc TODO Makefile vsn.mk src/analyse_msg.pl.src FAQ
 	tar -C $(TARDIR) -zxf tmp.tgz
 	mkdir $(TARDIR)/ebin
 	tar zvcf  idx-tsunami-$(VSN).tar.gz $(TARDIR)
