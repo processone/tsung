@@ -354,7 +354,7 @@ load_code(Nodes) ->
 
     Res3 = rpc:multicall(Nodes, ?MODULE, client_start, [], infinity),
     %% first value of load call is garbage
-    ?DebugF("load_code - ~p ~p ~p~n", [Res1, Res2, Res3]),
+    ?LOGF("load_code - ~p ~p ~p~n", [Res1, Res2, Res3],?DEB),
     ok.
 
 %%--------------------------------------------------------------------
@@ -366,7 +366,7 @@ active_host([], State) ->
 %% monitoring using snmp
 active_host([{HostStr, snmp} | HostList], State=#state{snmp_pids=PidList}) ->
     {ok, Host} = inet:getaddr(HostStr, inet),
-    ?DebugF("Starting SNMP mgr on ~p~n", [Host]),
+    ?LOGF("Starting SNMP mgr on ~p~n", [Host], ?DEB),
     {ok, Pid} = snmp_mgr:start_link([{agent, Host},
                                      {agent_udp, ?SNMP_PORT},
 %%%                                     {community, ?SNMP_COMMUNITY},

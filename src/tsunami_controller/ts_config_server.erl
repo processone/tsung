@@ -300,7 +300,7 @@ handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
         " -tsunami log_file ", LogDir,
         " -tsunami controller ", atom_to_list(node())
         ]),
-    ?LOGF("starting newbeam on host ~p with Args ~p~n", [Host, Args], ?DEB), 
+    ?LOGF("starting newbeam on host ~p with Args ~p~n", [Host, Args], ?INFO), 
     case slave:start_link(Host, Name, Args) of
         {ok, Node} ->
             ?LOGF("started newbeam on node ~p ~n", [Node], ?NOTICE), 
