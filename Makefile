@@ -102,6 +102,9 @@ debug:
 test:
 	$(MAKE) TYPE=test
 
+rpm:	release idx-tsunami.spec
+	rpmbuild -ta $(PACKAGE)-$(VERSION).tar.gz
+
 clean:
 	-cd priv && rm -f $(shell ls priv | grep -v builder\.erl) && cd ..
 	-rm -f $(TARGET) $(TMP) $(BUILD_OPTIONS_FILE) builder.beam
@@ -240,7 +243,7 @@ release:
 		priv/builder.erl idx-tsunami.sh.in vsn.mk  idx-tsunami.xml \
 		$(DEBIAN) src/analyse_msg.pl.src CONTRIBUTORS CHANGES \
 		configure configure.in config.guess config.sub include.mk.in \
-		install-sh
+		install-sh idx-tsunami.spec
 	tar -C $(PACKAGE)-$(VERSION) -zxf tmp.tgz
 	mkdir $(PACKAGE)-$(VERSION)/ebin
 	tar zvcf  $(PACKAGE)-$(VERSION).tar.gz $(PACKAGE)-$(VERSION)
