@@ -19,8 +19,7 @@
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 %%% 
 
-%%% common functions used by http clients to:
-%%%  - parse response from HTTP server
+%%% common functions used by http clients to parse config
 
 -module(ts_config_http).
 -vc('$Id$ ').
