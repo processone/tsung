@@ -39,7 +39,7 @@ start() {
 }
 
 recorder() {
-    echo "Starting IDX-Tsunami recorder"
+    echo "Starting IDX-Tsunami recorder on port $LISTEN_PORT"
     erl $ERL_OPTS -detached -sname $RECORDER -setcookie $COOKIE  $REC_BOOT_OPT \
     -tsunami_recorder debug_level $REC_DEBUG_LEVEL \
     -tsunami_recorder $LOG_OPT \
