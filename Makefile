@@ -51,12 +51,15 @@ tarball:
 clean:
 	rm -f $(OBJS) tsunami.boot tsunami.script ebin/tsunami.app ebin/tsunami.rel ebin/idx-tsunami.pl ebin/analyse_msg.pl
 
-tsunami.boot:	 $(OBJS) $(UTILS) src/tsunami.rel.src src/tsunami.app.src src/analyse_msg.pl.src src/idx-tsunami.pl.src
+tsunami.boot:	 ebin $(OBJS) $(UTILS) src/tsunami.rel.src src/tsunami.app.src src/analyse_msg.pl.src src/idx-tsunami.pl.src
 	sed -e 's;%VSN%;$(VSN);' ./src/tsunami.app.src > ./ebin/tsunami.app
 	sed -e 's;%VSN%;$(VSN);' ./src/tsunami.rel.src > ./ebin/tsunami.rel
 	sed -e 's;%VSN%;$(VSN);' ./src/idx-tsunami.pl.src > ./ebin/idx-tsunami.pl
 	sed -e 's;%VSN%;$(VSN);' ./src/analyse_msg.pl.src > ./ebin/analyse_msg.pl
 	erl -noshell $(PA) ./src -s make_boot make_boot tsunami
+
+ebin:
+	mkdir ebin
 
 $(OUTDIR)/%.beam: ebin/%.erl
 	$(ERLC) -o $(OUTDIR) $<
