@@ -85,7 +85,7 @@
       <!-- Example of a dynamic request (subst=true); %%symbol:new%%
       will be parsed and the result of symbol:new(Pid) will be put
       instead in the request (at run time) -->
-      <request subst="true" match="">
+      <request subst="true">
         <http url='http://localhost:8080/axis/servlet/AxisServlet' version='1.0' content_type='text/xml; charset=utf-8' method='POST' 
           contents='&lt;?xml version="1.0" encoding="UTF-8"?&gt;
  &lt;SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/"&gt; &lt;SOAP-ENV:Body&gt;
