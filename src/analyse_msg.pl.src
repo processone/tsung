@@ -91,7 +91,6 @@ sub plot_stats {
 	$datatype = "unknown" unless $datatype;
 	open(GP,">$gplotdir/graphes-$datatype.gplot") or die "can't open graphes-$datatype.gplot: $!";
 	select GP;
-
     foreach my $output_ext ("ps", "png") {
         if ($output_ext eq "png") {
             $output_type = "png";
@@ -166,7 +165,6 @@ sub parse_stats_file {
 			my $values = $2;
 			$type =~ s/page_resptime/page/g;
 			$type =~ s/response_time/request/g;
-       			$type =~ s/os_mon@//g;
 			my ($rate,$mean) = split(/\s+/,$values);
 			if ($interval) {
 				$rate /= $interval;
@@ -272,13 +270,14 @@ sub parse_stats_file {
 	plot_stats(\@colcount,"HTTP_CODE",undef,\@code,["number/sec","total"]) if $plot;
 	plot_stats(\@col,"Perfs",undef,\@tps,["rate/sec","msec"]) if $plot;
 	plot_stats(\@col,"Transactions",undef,\@transactions,["rate/sec","msec"]) if $plot;
-	plot_stats(\@col,"Event",undef,\@time,["rate/sec","msec"]) if $plot;
+	plot_stats(\@colcount,"Event",undef,\@time,["rate/sec","msec"]) if $plot;
 	plot_stats(\@colusers,"Users",undef,\@users,["connected users", "total"]) if $plot;
 	plot_stats(\@colcount,"Users_Arrival",undef,\@users_rate,["number of users/sec", "total"]) if $plot;
 	plot_stats(\@colcount,"Size",undef,\@size,["Kbits/sec","total Kbits"]) if $plot;
 
     # Generate graphes for extra indicators (os_mon for example)
 	if ($plot and $extra) {
+        print STDOUT "Generation os_mon graphs\n" if $verbose;
  	  foreach my $key (sort keys %extra_info) {
           my $pos = index($key,":");
           plot_stats(\@col, $key, undef, \@{$extra_info{$key}}, [$key]);
