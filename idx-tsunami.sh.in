@@ -27,11 +27,11 @@ ERL_OPTS=" +A 1 %ERL_OPTS% -shared "
 COOKIE='tsunami'
 
 stop() {
-    erl $ERL_OPTS $ERL_RSH -noshell  -sname killer -setcookie $COOKIE -pa $TSUNAMIPATH -pa $CONTROLLERPATH -s tsunami_controller stop_all $HOST -s init stop
+    $ERL $ERL_OPTS $ERL_RSH -noshell  -sname killer -setcookie $COOKIE -pa $TSUNAMIPATH -pa $CONTROLLERPATH -s tsunami_controller stop_all $HOST -s init stop
 }
 
 stop_recorder() {
-    erl $ERL_OPTS $ERL_RSH -noshell  -sname killer -setcookie $COOKIE -pa $TSUNAMIPATH -pa $RECORDERPATH -s tsunami_recorder stop_all $HOST -s init stop
+    $ERL $ERL_OPTS $ERL_RSH -noshell  -sname killer -setcookie $COOKIE -pa $TSUNAMIPATH -pa $RECORDERPATH -s tsunami_recorder stop_all $HOST -s init stop
 }
 
 start() {
@@ -44,7 +44,7 @@ start() {
 recorder() {
     echo "Starting IDX-Tsunami recorder on port $LISTEN_PORT"
     $ERL $ERL_OPTS $ERL_RSH -detached -sname $RECORDER -setcookie $COOKIE  $REC_BOOT_OPT \
-    -pa $TSUNAMIPATH -pa $RECORDERPATH \
+    -pa $TSUNAMIPATH -pa $RECORDERPATH -pa $CONTROLLERPATH \
     -tsunami_recorder debug_level $REC_DEBUG_LEVEL \
     -tsunami_recorder $LOG_OPT \
     -tsunami_recorder proxy_log_file \"$MAIN_DIR/idx-tsunami_recorder.xml\" \
