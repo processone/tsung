@@ -129,8 +129,7 @@ handle_info({ssl, Socket, Data}, State) ->
 
 handle_info({tcp_closed, Socket}, State) ->
 	?LOG("TCP close: ~n", ?INFO),
-    Protocol = State#state_rcv.protocol,
-    Protocol:close(Socket),% is it necessary for tcp ?
+    ts_utils:close_socket(State#state_rcv.protocol, Socket),% is it necessary for tcp ?
 	ts_client:close(State#state_rcv.ppid),
 	{noreply, State};
 
@@ -142,8 +141,7 @@ handle_info({tcp_error, Socket, Reason}, State) ->
 
 handle_info({ssl_closed, Socket}, State) ->
 	?LOG("SSL close: ~n", ?INFO),
-    Protocol = State#state_rcv.protocol,
-    Protocol:close(Socket), % mandatory (see ssl man page)
+    ts_utils:close_socket(State#state_rcv.protocol, Socket),% mandatory (see ssl man page)
 	ts_client:close(State#state_rcv.ppid),
 	{noreply, State};
 
@@ -185,50 +183,48 @@ terminate(Reason, State) ->
 %% Returns: {NewState ('state_rcv' record), Socket options (list)}
 %% Purpose: handle data received from a socket
 %%----------------------------------------------------------------------
-handle_data_msg(Data, State) ->
+handle_data_msg(Data, State=#state_rcv{ack=no_ack}) ->
+	ts_mon:rcvmes({State#state_rcv.monitor, self(), Data}),
+    {State, []};
+
+handle_data_msg(Data, State=#state_rcv{ack=parse}) ->
+	ts_mon:rcvmes({State#state_rcv.monitor, self(), Data}),
+    {NewState, Opts, Close} =
+        ts_profile:parse(State#state_rcv.clienttype, Data, State),
+    case NewState#state_rcv.ack_done of
+        true ->
+            ?LOGF("Response done:~p~n", [NewState#state_rcv.datasize], ?DEB),
+            PageTimeStamp = update_stats(NewState, Close),
+            case Close of
+                true ->
+                    ?LOG("Close connection required protocol~n", ?DEB),
+                    ts_utils:close_socket(State#state_rcv.protocol,State#state_rcv.socket),
+                    {NewState#state_rcv{endpage = false, % reinit in case of
+                                        page_timestamp = PageTimeStamp,
+                                        socket  = undefined}, Opts};
+                false -> 
+                    {NewState#state_rcv{endpage = false, % reinit in case of
+                                        page_timestamp = PageTimeStamp}, Opts}
+            end;
+        _ ->
+            ?LOGF("Response: continue:~p~n",[NewState#state_rcv.datasize],?DEB),
+            {NewState, Opts}
+    end;
+
+handle_data_msg(Data, State=#state_rcv{ack_done=true}) ->
+    %% still same message, increase size
 	ts_mon:rcvmes({State#state_rcv.monitor, self(), Data}),
 	DataSize = size(Data),
+    OldSize = State#state_rcv.datasize,
+    {State#state_rcv{datasize = OldSize+DataSize}, []};
 
-	case {State#state_rcv.ack, State#state_rcv.ack_done} of
-		{no_ack, _} ->
-			{State, []};
-		{parse, _} ->
-			{NewState, Opts, Close} =
-                ts_profile:parse(State#state_rcv.clienttype, Data, State),
-			if 
-				NewState#state_rcv.ack_done == true ->
-					?LOGF("Response done:~p~n", [NewState#state_rcv.datasize],
-						  ?DEB),
-					PageTimeStamp = update_stats(NewState, Close),
-                    case Close of
-                        true ->
-                            ?LOG("Close connection required protocol~n", ?DEB),
-                            
-                            Protocol = State#state_rcv.protocol,
-                            Protocol:close(State#state_rcv.socket),
-                            {NewState#state_rcv{endpage = false, % reinit in case of
-                                                page_timestamp= PageTimeStamp,
-                                                socket=undefined},
-                             Opts};
-                        false -> 
-                            {NewState#state_rcv{endpage = false, % reinit in case of
-                                                page_timestamp= PageTimeStamp}, Opts}
-                    end;
-				true ->
-					?LOGF("Response: continue:~p~n",
-						  [NewState#state_rcv.datasize], ?DEB),
-					{NewState, Opts}
-			end;
-		{AckType, true} ->
-			% still same message, increase size
-			OldSize = State#state_rcv.datasize,
-			{State#state_rcv{datasize = OldSize+DataSize}, []};
-		{AckType, false} ->
-			PageTimeStamp = update_stats(State, false),
-			{State#state_rcv{datasize=DataSize,%ack for a new message, init size
-							 ack_done = true, endpage=false,
-							 page_timestamp= PageTimeStamp},[]}
-	end.
+handle_data_msg(Data, State=#state_rcv{ack_done=false}) ->
+	ts_mon:rcvmes({State#state_rcv.monitor, self(), Data}),
+	DataSize = size(Data),
+    PageTimeStamp = update_stats(State, false),
+    {State#state_rcv{datasize=DataSize,%ack for a new message, init size
+                     ack_done = true, endpage=false,
+                     page_timestamp= PageTimeStamp},[]}.
 
 %%----------------------------------------------------------------------
 %% Func: update_stats/1

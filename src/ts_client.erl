@@ -389,7 +389,7 @@ handle_next_request(Profile, State) ->
 					Socket = State#state.socket;
 				_ ->
 					?LOG("Change server configuration inside a session ~n",?DEB),
-					close_socket(State#state.protocol, State#state.socket),
+					ts_utils:close_socket(State#state.protocol, State#state.socket),
 					Socket = none
 			end
     end,
@@ -495,12 +495,6 @@ reconnect(none, ServerName, Port, Protocol, IP, Pid) ->
 reconnect(Socket, Server, Port, Protocol, IP, Pid) ->
 	{ok, Socket}.
 
-%% close socket if it exists
-close_socket(Protocol, none) -> ok;
-close_socket(gen_tcp, Socket)-> gen_tcp:close(Socket);
-close_socket(ssl, Socket)    -> ssl:close(Socket);
-close_socket(gen_udp, Socket)-> gen_udp:close(Socket).
-	
 %%----------------------------------------------------------------------
 %% Func: send/3
 %% Purpose: this fonction is used to avoid the costly M:fun form of function
