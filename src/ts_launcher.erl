@@ -120,6 +120,8 @@ launcher(timeout, State=#state{nusers    = Users,
         false->
             case {Users, Phases} of 
                 {0, [{NewIntensity, NewUsers}|Rest]} -> % new phase
+                    ?LOGF("Start a new arrival phase (~p ~p) ~n",
+                         [NewUsers, NewIntensity], ?NOTICE),
                     {next_state,launcher,State#state{phases = Rest, 
                                                      nusers = NewUsers,
                                                      intensity = NewIntensity},
