@@ -26,7 +26,7 @@
 -include("ts_http.hrl").
 
 -export([init_dynparams/0,
-		 add_dynparams/2,
+		 add_dynparams/3,
 		 get_message/1,
          parse/2,
          parse_config/2,
@@ -70,12 +70,14 @@ parse_config(Element, Conf) ->
 	ts_http_common:parse_config(Element, Conf).
 
 %%----------------------------------------------------------------------
-%% Function: add_dynparams/2
+%% Function: add_dynparams/3
 %% Purpose: add dynamic parameters to build the message
 %%          this is used for ex. for Cookies in HTTP
 %%----------------------------------------------------------------------
-add_dynparams(Param, DynData) ->
-	Param#http_request{cookie=DynData}.
+add_dynparams([],Param, Host) ->
+	Param#http_request{server_name=Host};
+add_dynparams(DynData, Param, Host) ->
+	Param#http_request{cookie=DynData,server_name=Host}.
 
 init_dynparams() ->
 	[].

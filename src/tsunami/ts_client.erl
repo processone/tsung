@@ -122,6 +122,7 @@ init({Session=#session{id            = Profile,
 			case ts_client_rcv:start({ CType, self(),
                                        Socket,
                                        Protocol,
+                                       ServerName,
                                        ?config(tcp_timeout), 
                                        PType,
                                        ?config(monitoring)}) of 
@@ -380,14 +381,6 @@ get_server_cfg(Other,P,Id) ->
 handle_next_request(Profile, State) ->
     Count = State#state.count-1,
 	Type  = State#state.clienttype,
-	case State#state.dyndata of 
-		[] ->
-			Param = Profile#message.param;
-		DynData -> % add dynamic info (cookie for ex.) to request parameters
-			Param = Type:add_dynparams(Profile#message.param, DynData)
-	end,
-	Message = Type:get_message(Param),
-	Now = now(),
 
 	%% does the next message change the server setup ?
     case Profile of 
@@ -406,13 +399,17 @@ handle_next_request(Profile, State) ->
 			end
     end,
 
+    Param = Type:add_dynparams(State#state.dyndata,Profile#message.param,Host),
+	Message = Type:get_message(Param),
+	Now = now(),
+
 	%% reconnect if needed
 	case reconnect(Socket,Host,Port,Protocol,State#state.ip,State#state.rcvpid) of
 		{ok, NewSocket} ->
             %% warn the receiving side that we are sending a new request
             ts_client_rcv:wait_ack({State#state.rcvpid,Profile#message.ack,Now,
                                     Profile#message.endpage, NewSocket,
-                                    Protocol}),
+                                    Protocol, Host}),
             case catch send(Protocol, NewSocket, Message) of
                 ok -> 
                     ts_mon:sendmes({State#state.monitor, self(), Message}),

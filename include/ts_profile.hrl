@@ -33,6 +33,7 @@
 -record(state_rcv, 
 		{socket,	  %  
 		 timeout,	  % ?
+		 host,	      % hostname (or IP) of remote server
 		 protocol,	  % gen_udp, gen_tcp or ssl
 		 ack,         % type of ack: no_ack, local, global or parse
 		 ack_done=false, % 'true' if the ack was sent, else 'false' (unused if ack=no_ack)

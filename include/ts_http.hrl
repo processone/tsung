@@ -51,9 +51,25 @@
 			   status        = none, % HTTP resp. status :200, etc. 'none' 
                                      % if no current cnx.
 			   close         = false, % true if HTTP/1.0 or 'connection: close'
-                                     % has benne received
+                                     % has been received
 			   cookie=[]
 			  }).
+
+
+-record(cookie,{
+	    key,           
+	    value,         
+	    quoted,        
+	    comment,
+	    comment_url,
+	    discard,
+	    domain,
+	    max_age,
+	    expires,
+	    path,
+	    port,
+	    secure,
+	    version}).
 
 %% HTTP Protocol
 -define(GET, "GET").

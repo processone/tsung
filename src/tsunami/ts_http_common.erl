@@ -54,7 +54,7 @@ http_get(Req=#http_request{url=URL, version=Version, cookie=Cookie,
                     "Host: ", Host, ?CRLF,
                     user_agent(),
                     authenticate(UserId,Passwd),
-                    get_cookie(Cookie),
+                    set_cookie_header(Cookie, Host),
                     ?CRLF]);
 
 http_get(Req=#http_request{url=URL, version=Version, cookie=Cookie,
@@ -65,7 +65,7 @@ http_get(Req=#http_request{url=URL, version=Version, cookie=Cookie,
                     "Host: ", Host, ?CRLF,
                     user_agent(),
                     authenticate(UserId,Passwd),
-                    get_cookie(Cookie),
+                    set_cookie_header(Cookie, Host),
                     ?CRLF]).
 
 %%----------------------------------------------------------------------
@@ -81,7 +81,7 @@ http_post(Req=#http_request{url=URL, version=Version, cookie=Cookie,
                "Host: ", Host, ?CRLF,
                user_agent(),
                authenticate(UserId,Passwd),
-               get_cookie(Cookie),
+               set_cookie_header(Cookie, Host),
                "Content-Type: ", ContentType, ?CRLF,
                "Content-Length: ",ContentLength, ?CRLF,
                ?CRLF
@@ -100,14 +100,32 @@ authenticate(UserId,Passwd)->
 user_agent() ->
 	["User-Agent: ", ?USER_AGENT, ?CRLF].
 
-get_cookie(none)    -> [];
-get_cookie(Cookies) -> get_cookie(Cookies, []).
+%%----------------------------------------------------------------------
+%% Function: set_cookie_header/2*
+%% Args: Cookies (list), Hostname (string)
+%% Purpose: set Cookie: Header
+%%----------------------------------------------------------------------
+set_cookie_header(none, Host) -> []; % is it useful ?
+set_cookie_header([], Host) -> [];
+set_cookie_header(Cookies, Host) -> 
+    MatchDomain = fun (A) -> matchdomain(A,Host) end,
+    CurCookies = lists:filter(MatchDomain, Cookies),
+    set_cookie_header(CurCookies, Host, []). %% TODO: check for domain
 
-get_cookie([], Acc )   -> [lists:reverse(Acc), ?CRLF];
-get_cookie([Cookie|Cookies], []) ->
-    get_cookie(Cookies, [["Cookie: ", Cookie]]);
-get_cookie([Cookie|Cookies], Acc) ->
-    get_cookie(Cookies, [["; ", Cookie]|Acc]).
+set_cookie_header([], Host, Acc)   -> [lists:reverse(Acc), ?CRLF];
+set_cookie_header([Cookie|Cookies], Host, []) ->
+    set_cookie_header(Cookies, Host, [["Cookie: ", cookie_rec2str(Cookie)]]);
+set_cookie_header([Cookie|Cookies], Host, Acc) ->
+    set_cookie_header(Cookies, Host, [["; ", cookie_rec2str(Cookie)]|Acc]).
+
+cookie_rec2str(#cookie{key=Key, value=Val}) ->
+    lists:append([Key,"=",Val]).
+                       
+matchdomain(Cookie, Host) -> % return a cookie only if domain match
+    case string:str(Host, Cookie#cookie.domain) of %% should use regexp:match
+        0 -> false;
+        _ -> true
+    end.
 
 %%----------------------------------------------------------------------
 %% Func: parse_config/2
@@ -182,12 +200,12 @@ parse_config(Element, Conf = #config{}) ->
 parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 	List = binary_to_list(Data),
 	TotalSize = size(Data),
-	{ok, Http, Tail} = parse_headers(#http{},List),
+	{ok, Http, Tail} = parse_headers(#http{},List, State#state_rcv.host),
 	ts_mon:add({ count, Http#http.status }),
 	BodySize= length(Tail),
 	CLength = Http#http.content_length,
 	Close   = Http#http.close,
-	Cookie  = lists:append([Http#http.cookie, State#state_rcv.dyndata]),
+	Cookie  = concat_cookies(Http#http.cookie, State#state_rcv.dyndata),
 	if 
 		CLength == 0, Http#http.chunk_toread == 0 ->
 			case parse_chunked(Tail, State#state_rcv{session=Http}) of
@@ -276,8 +294,8 @@ read_chunk(<<Char:1/binary, Data/binary>>, State, Int, Acc) ->
 	<<?CR>> when Int>0 ->
 	    read_chunk_data(Data, State, Int+3, Acc+1);
 	<<?CR>> when Int==0 -> %% should be the end of tranfer
-			Cookie=lists:append([(State#state_rcv.session)#http.cookie,
-                                 State#state_rcv.dyndata]),
+            Cookie  = concat_cookies((State#state_rcv.session)#http.cookie,
+                                     State#state_rcv.dyndata),
             ?DebugF("Finish tranfer chunk ~p~n", [binary_to_list(Data)]),
             {State#state_rcv{session= #http{}, ack_done = true,
                              datasize = Acc, %% FIXME: is it the correct size?
@@ -312,19 +330,62 @@ read_chunk_data(Data, State, Int, Acc) -> % not enough data in buffer
                      dyndata  = Cookie},[]}.
 
 %%----------------------------------------------------------------------
-%% Func: get_cookie_val/1
+%% Func: add_new_cookie/3
 %% Purpose: Separate cookie values from attributes
 %%----------------------------------------------------------------------
-get_cookie_val(Cookie) ->
-    case string:tokens( Cookie, "; ") of 
-        [CookieVal |CookieOtherAttrib] ->
-            %% FIXME: handle path attribute
-            %% several cookies can be set with a different path attribute
-            CookieVal ;
-        _Other -> % something wrong
-            []
+add_new_cookie(Cookie, Host, OldCookies) ->
+    {ok, Fields} = regexp:split( Cookie, "; "),
+    New = parse_set_cookie(Fields, #cookie{domain=Host}),
+    concat_cookies([New],OldCookies).
+
+%%----------------------------------------------------------------------
+%% Func: concat_cookie/2
+%% Purpose: add new cookies to a list of old ones. If the keys already
+%%          exists, replace with the new ones
+%%----------------------------------------------------------------------
+concat_cookies([],  CookiesList) -> CookiesList;
+concat_cookies(New, []) -> New;
+concat_cookies([New=#cookie{}| Rest], OldCookies) ->
+    case lists:keysearch(New#cookie.key, #cookie.key, OldCookies) of
+        {value, OldVal} ->
+            ?DebugF("Reset key ~p with new value ~p~n",[New#cookie.key,
+                                                        New#cookie.value]),
+            NewList = lists:keyreplace(New#cookie.key, #cookie.key, OldCookies, New),
+            concat_cookies(Rest, NewList);
+        false ->
+            concat_cookies(Rest, [New | OldCookies])
     end.
-     	    
+    
+    
+parse_set_cookie([], Cookie) -> Cookie;
+parse_set_cookie([Field| Rest], Cookie=#cookie{}) ->
+    {Key,Val} = get_cookie_key(Field,[]),
+    ?DebugF("Parse cookie key ~p with value ~p~n",[Key, Val]),
+    parse_set_cookie(Rest, set_cookie_key(Key, Val, Cookie)).
+
+set_cookie_key([L|"ersion"],Val,Cookie) when L == $V; L==$v ->
+    Cookie#cookie{version=Val};
+set_cookie_key([L|"omain"],Val,Cookie) when L == $D; L==$d ->
+    Cookie#cookie{domain=Val};
+set_cookie_key([L|"ath"],Val,Cookie) when L == $P; L==$p ->
+    Cookie#cookie{path=Val};
+set_cookie_key([L|"ax-Age"],Val,Cookie) when L == $M; L==$m ->
+    Cookie#cookie{max_age=Val};
+set_cookie_key([L|"xpires"],Val,Cookie) when L == $E; L==$e ->
+    Cookie#cookie{expires=Val};
+set_cookie_key([L|"ort"],Val,Cookie) when L == $P; L==$p ->
+    Cookie#cookie{port=Val};
+set_cookie_key([L|"iscard"],Val,Cookie) when L == $D; L==$d ->
+    Cookie#cookie{discard=true};
+set_cookie_key([L|"ecure"],Val,Cookie) when L == $S; L==$s ->
+    Cookie#cookie{secure=true};
+set_cookie_key(Key,Val,Cookie) ->
+    Cookie#cookie{key=Key,value=Val}.
+    
+get_cookie_key([],Acc)         -> bad_cookie_format;
+get_cookie_key([$=|Rest],Acc)  -> {lists:reverse(Acc), Rest};
+get_cookie_key([Char|Rest],Acc)-> get_cookie_key(Rest, [Char|Acc]).
+
 %%----------------------------------------------------------------------
 %% Func: parse_URL/1
 %% Returns: #url
@@ -417,12 +478,12 @@ set_port(#url{port=Port}) -> integer_to_list(Port).
 %% Purpose: Parse HTTP headers line by line
 %% Returns: {ok, #http, Body}
 %%--------------------------------------------------------------------
-parse_headers(H, Tail) ->
+parse_headers(H, Tail, Host) ->
     case get_line(Tail) of
 	{line, Line, Tail2} ->
-	    parse_headers(parse_line(Line, H), Tail2);
+	    parse_headers(parse_line(Line, H, Host), Tail2, Host);
 	{lastline, Line, Tail2} ->
-	    {ok, parse_line(Line, H), Tail2}
+	    {ok, parse_line(Line, H, Host), Tail2}
     end.
 
 %%--------------------------------------------------------------------
@@ -440,32 +501,32 @@ parse_status([A,B,C|Tail],  Http) ->
 %% Purpose: Parse a HTTP header
 %% Returns: #http
 %%--------------------------------------------------------------------
-parse_line("HTTP/1.1 " ++ TailLine, Http )->
+parse_line("HTTP/1.1 " ++ TailLine, Http, Host )->
 	parse_status(TailLine, Http);
-parse_line("HTTP/1.0 " ++ TailLine, Http )->
+parse_line("HTTP/1.0 " ++ TailLine, Http, Host)->
 	parse_status(TailLine, Http#http{close=true});
 
-parse_line("Content-length: "++Tail, Http)->
+parse_line("Content-length: "++Tail, Http, Host)->
 	CL=list_to_integer(Tail),
 	?DebugF("HTTP Content-Length ~p~n",[CL]),
 	Http#http{content_length=CL};
-parse_line("Content-Length: "++Tail, Http)->
+parse_line("Content-Length: "++Tail, Http, Host)->
 	CL=list_to_integer(Tail),
 	?DebugF("HTTP Content-Length ~p~n",[CL]),
 	Http#http{content_length=CL};
-parse_line("Connection: close"++Tail, Http)->
+parse_line("Connection: close"++Tail, Http, Host)->
 	Http#http{close=true};
-parse_line("Transfer-Encoding: chunked"++Tail, Http)->
+parse_line("Transfer-Encoding: chunked"++Tail, Http, Host)->
 	?LOG("Chunked transfer encoding~n",?DEB),
 	Http#http{chunk_toread=0};
-parse_line("Transfer-Encoding:"++Tail, Http)->
+parse_line("Transfer-Encoding:"++Tail, Http, Host)->
 	?LOGF("Unknown tranfer encoding ~p~n",[Tail],?NOTICE),
 	Http;
-parse_line("Set-Cookie: "++Tail, Http=#http{cookie=PrevCookies})->
-	Cookie = get_cookie_val(Tail), %% FIXME: is it ok ?
+parse_line("Set-Cookie: "++Tail, Http=#http{cookie=PrevCookies}, Host)->
+	Cookie = add_new_cookie(Tail, Host, PrevCookies),
 	?DebugF("HTTP New cookie val ~p~n",[Cookie]),
-	Http#http{cookie=lists:reverse([Cookie|PrevCookies])};
-parse_line(Line,Http) ->
+	Http#http{cookie=Cookie};
+parse_line(Line,Http, Host) ->
 	?DebugF("Skip header ~p (Http record is ~p)~n",[Line,Http]),
 	Http.
 

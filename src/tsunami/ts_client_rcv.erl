@@ -43,8 +43,8 @@ start(Opts) ->
 stop(Pid) ->
 	gen_server:cast(Pid, {stop}).
 
-wait_ack({Pid, Ack, When, EndPage, Socket, Protocol}) ->
-	gen_server:cast(Pid, {wait_ack, Ack, When, EndPage, Socket, Protocol}).
+wait_ack({Pid, Ack, When, EndPage, Socket, Protocol, Host}) ->
+	gen_server:cast(Pid, {wait_ack, Ack, When, EndPage, Socket, Protocol, Host}).
 
 
 %%%----------------------------------------------------------------------
@@ -58,10 +58,10 @@ wait_ack({Pid, Ack, When, EndPage, Socket, Protocol}) ->
 %%          ignore               |
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
-init([{CType, PPid, Socket, Protocol, Timeout, Ack, Monitor}]) ->
+init([{CType, PPid, Socket, Protocol, ServerName, Timeout, Ack, Monitor}]) ->
 	{ok, #state_rcv{socket = Socket, timeout= Timeout, ack = Ack,
 					ppid= PPid, clienttype = CType, protocol= Protocol,
-					session = CType:new_session(),
+					session = CType:new_session(), host=ServerName,
 					monitor = Monitor }}.
 
 %%----------------------------------------------------------------------
@@ -86,7 +86,7 @@ handle_call(Request, From, State) ->
 %%----------------------------------------------------------------------
 
 %% ack value -> wait
-handle_cast({wait_ack, Ack, When, EndPage, Socket, Protocol}, State) ->
+handle_cast({wait_ack, Ack, When, EndPage, Socket, Protocol, Host}, State) ->
 	?DebugF("receive wait_ack: ~p , endpage=~p~n",[Ack, EndPage]),
 	case State#state_rcv.page_timestamp of 
 		0 -> %first request of a page
@@ -111,6 +111,7 @@ handle_cast({wait_ack, Ack, When, EndPage, Socket, Protocol}, State) ->
                                       endpage=EndPage,
                                       ack_timestamp= When,
                                       protocol= Protocol,
+                                      host= Host,
                                       page_timestamp = NewPageTimestamp}}
     end;
         
