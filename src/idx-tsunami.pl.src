@@ -27,7 +27,8 @@ my $tagvsn = '%VSN%';
 use strict;
 use POSIX;
 use Getopt::Long;
-use vars qw /$help $start $restart $config $stop $stopcontrol $version $fqdn/;
+use vars qw /$help $shared $start $restart $config $stop $stopcontrol
+	$stopclients $version $fqdn $r10mem/;
 
 my $erl = "erl";
 my $ssh = "ssh -x";
@@ -58,14 +59,19 @@ GetOptions( "h|help",\$help,
 			"restart",\$restart,
 			"config",\$config,
 			"version",\$version,
+			"shared",\$shared,    # use shared heap
+			"r10mem",\$r10mem,    # use R10B memory allocators
 			"fqdn",\$fqdn,
 			"stop",\$stop,
-			"stopcontrol",\$stopcontrol
+			"stopcontrol",\$stopcontrol,
+			"stopclients",\$stopclients
 		  );
 
 my $sname = ($fqdn) ? "name" : "sname";
 &usage if ($help);
 &version if ($version);
+$erl .= " -shared " if $shared;
+$erl .= " +Mea r10b " if $r10mem;
 
 
 if ($config or $start or $restart) {
@@ -103,6 +109,8 @@ if ($config or $start or $restart) {
 						@servers = split(/:/,$config{$key});
 						print "{$key, \"". $servers[$server_id] . "\"},\n";
 						$server_id = ($server_id + 1) % ($#servers+1) ;
+					} elsif ($key eq "ssl_ciphers" or $key eq "machines") {
+							print "{$key, \"". $config{$key} . "\"},\n";
 					} elsif ($key eq "nclients" and $appname ne "tsunami") {
 						print "{$key, ". $totalclient . "},\n";
 					} else {
@@ -163,9 +171,13 @@ if ($config or $start or $restart) {
 } elsif ($stop) {
 	&read_rc;
 	&stop;
+	&stopcontrol;
 } elsif ($stopcontrol) {
 	&read_rc;
 	&stopcontrol;
+} elsif ($stopclients) {
+	&read_rc;
+	&stop;
 } else {
 	print "Nothing to do ... aborting (try --help)\n";
 }
@@ -176,6 +188,8 @@ sub start_controller {
 	if ($config{"controller"} eq "localhost") {
 		$cmd = "$erl -$sname controller -setcookie \'$config{'cookie'}\' -detached -boot $rootdir/bin/tsunami_controller -boot_var TSUNAMIPATH $rootdir/erlang -config $rootdir/etc/tsunami0\.config";
 	} else {
+		system("$scp $rootdir/etc/tsunami0.config $config{controller}:$rootdir/etc");
+
 		$cmd = "ssh $config{controller} \"$erl -$sname controller -setcookie \'$config{'cookie'}\' -detached -boot $rootdir/bin/tsunami_controller -boot_var TSUNAMIPATH $rootdir/erlang -config $rootdir/etc/tsunami0\.config\"";
 		
 	}
@@ -277,10 +291,19 @@ sub rpc {
 	my $args     = shift;
 	my $stop     = shift;
 	my $verbose  = shift;
-	print "rpc:cast(\'$sname\',$module,$function,\[". $args ."\]).\n" if $verbose;
-	print ERL "rpc:cast(\'$sname\',$module,$function,\[". $args ."\]).\n";
-	print ERL "slave:stop(\'$sname\').\n" if $stop;
-	print "slave:stop(\'$sname\').\n" if $stop;
+	my $cmd = "rpc:cast(\'$sname\',$module,$function,\[". $args ."\]).\n";
+	print $cmd if $verbose;
+	print ERL $cmd;
+	$cmd = "rpc:cast(\'$sname\',ssl,stop,\[\]).\n";
+	print $cmd if $verbose;
+	print ERL $cmd;
+	if ($stop) {
+		$cmd = "rpc:cast(\'$sname\',erlang,halt,\[\]).\n";
+#		$cmd = "rpc:cast(\'$sname\',init,stop,\[\]).\n";
+		#$cmd= "slave:stop(\'$sname\').\n";
+		print $cmd if $verbose;
+		print ERL $cmd;
+	}
 }
 
 sub usage  {
@@ -291,8 +314,9 @@ type `idx-tsunami.pl --version` for details.\n";
 	print "\n";
 	print "options: [--start]  start clients\n";
     print "       : [--restart] start only tsunami controller\n";
-    print "       : [--stop]   stop tsunami clients\n";
+    print "       : [--stop]   stop tsunami\n";
     print "       : [--stopcontrol]   stop tsunami controller only \n";
+    print "       : [--stopclients]   stop tsunami clients only \n";
     print "       : [--config] only generate config files\n";
     print "       : [-h]       help\n";
     exit;
