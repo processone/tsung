@@ -56,7 +56,7 @@
 					 {http_modified_since_date, "Fri, 14 Nov 2003 02:43:31 GMT"}, 
 					 {http_version, "1.1"},	%% 
 					 {client_retry_timeout, 10},	    %% retry sending (in microsec.)
-					 {ssl_ciphers, "EXP1024-RC4-SHA,EDH-RSA-DES-CBC3-SHA"},	
+					 {ssl_ciphers, negociate},	
 
 %%% -------- JABBER OPTIONS
 					 {presence_delay, 10000}, %% waiting time after sending a 'presence' msg

@@ -257,9 +257,15 @@ parse(Element = #xmlElement{name=default},
                     {ok, [{integer,1,IThink}],1} = erl_scan:string(Val),
                     ets:insert(Tab,{{thinktime, value}, IThink}),
                     Random = getAttr(Element#xmlElement.attributes, random),
-                    ets:insert(Tab,{{thinktime, random}, Random})
-            end,
-            lists:foldl( fun parse/2, Conf, Element#xmlElement.content);
+                    ets:insert(Tab,{{thinktime, random}, Random}),
+                    lists:foldl( fun parse/2, Conf, Element#xmlElement.content);
+                "ssl_ciphers" ->
+                    Cipher = getAttr(Element#xmlElement.attributes, value, "negociate"),
+                    lists:foldl( fun parse/2, Conf#config{ssl_ciphers=Cipher},
+                                 Element#xmlElement.content);
+                _ ->                    
+                    lists:foldl( fun parse/2, Conf, Element#xmlElement.content)
+            end;
         Type ->
             {ok, [{atom,1,Module}],1} = erl_scan:string(Type),
             Module:parse_config(Element, Conf)

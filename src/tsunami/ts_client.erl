@@ -525,10 +525,17 @@ controlling_process(gen_udp,Socket,Pid) ->
 %% Purpose: set connection's options for the given protocol
 %%----------------------------------------------------------------------
 protocol_options(ssl) ->
-	[binary, 
-	 {active, once},
-	 {ciphers, ?config(ssl_ciphers)}
-	];
+    case ?config(ssl_ciphers) of
+        negociate ->
+            [binary, {active, once} ];
+        Cipher ->
+            ?DebugF("cipher is ~p~n",[Cipher]),
+            [binary, 
+             {active, once},
+             {ciphers, Cipher}
+            ]
+    end;
+
 protocol_options(gen_tcp) ->
 	[binary, 
 	 {active, once},

@@ -264,6 +264,7 @@ handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
     Args = lists:append([ Sys_Args," -boot ", Boot,
         " -tsunami debug_level ", integer_to_list(?config(debug_level)),
         " -tsunami monitoring ", atom_to_list(?config(monitoring)),
+        " -tsunami ssl_ciphers ", Config#config.ssl_ciphers,
         " -tsunami 'log_file' \\\"", ?config(log_file),"\\\"",
         " -tsunami controller ", atom_to_list(node())
         ]),
