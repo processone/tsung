@@ -307,7 +307,7 @@ freemem_all() ->
      Data = memsup:get_system_memory_data(),
      {value,{free_memory,FreeMem}} = lists:keysearch(free_memory, 1, Data),
      %% We use Megabytes
-     FreeMem/100000.
+     FreeMem/1048576.
 
 freemem_linux() ->
     Result = os:cmd("free | grep '\\-/\\+'"),
