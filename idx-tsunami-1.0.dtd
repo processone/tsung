@@ -39,6 +39,7 @@
 
 <!ELEMENT default EMPTY >
 <!ATTLIST default name NMTOKEN #REQUIRED >
+<!ATTLIST default override (true|false) #IMPLIED >
 <!ATTLIST default random (true | false) #IMPLIED >
 <!ATTLIST default type NMTOKEN #IMPLIED >
 <!ATTLIST default value CDATA #REQUIRED >
@@ -56,7 +57,6 @@
 
 <!ELEMENT thinktime EMPTY >
 <!ATTLIST thinktime random (true|false) #IMPLIED >
-<!ATTLIST thinktime override (true|false) #IMPLIED >
 <!ATTLIST thinktime value NMTOKEN #REQUIRED >
 
 <!ELEMENT transaction ( request+ ) >
