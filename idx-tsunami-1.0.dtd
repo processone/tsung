@@ -49,7 +49,7 @@
 <!ATTLIST session popularity NMTOKEN #REQUIRED >
 <!ATTLIST session type NMTOKEN #REQUIRED >
 
-<!ELEMENT request ( http | jabber ) >
+<!ELEMENT request ( ( http | jabber ), dyn_variable? ) >
 <!ATTLIST request subst (true|false) #IMPLIED >
 <!ATTLIST request match CDATA #IMPLIED >
 
@@ -70,6 +70,10 @@
 
 <!ELEMENT soap EMPTY >
 <!ATTLIST soap action CDATA #REQUIRED >
+
+<!ELEMENT dyn_variable EMPTY >
+<!ATTLIST dyn_variable name CDATA #REQUIRED >
+<!ATTLIST dyn_variable regexp CDATA #REQUIRED >
 
 <!ELEMENT www_authenticate EMPTY >
 <!ATTLIST www_authenticate passwd CDATA #REQUIRED >

@@ -256,6 +256,21 @@ parse(Element = #xmlElement{name=transaction},
     ets:insert(Tab, {{CurS#session.id, NewId+1}, {transaction,stop,Name}}),
     NewConf#config{curid=NewId+1} ;
 
+%%% Parsing the dyn_variable element
+parse(Element = #xmlElement{name=dyn_variable},
+      Conf=#config{sessions=[CurS|SList],dynvar=DynVar}) ->
+    RegExp  = getAttr(Element#xmlElement.attributes, regexp),
+    StrName  = getAttr(Element#xmlElement.attributes, name),
+    {ok, [{atom,1,Name}],1} = erl_scan:string(StrName),
+    {ok, RegExpStr} =regexp:parse(lists:flatten(RegExp)),
+    NewDynVar = case DynVar of 
+                    undefined ->[{Name, RegExpStr}];
+                    _->[{Name, RegExpStr}|DynVar]
+                end,
+    ?LOGF("Add new dyn variable=~p in session ~p~n",
+         [NewDynVar,CurS#session.id],?INFO),
+    Conf#config{ dynvar= NewDynVar };
+
 %%% Parsing the request element
 parse(Element = #xmlElement{name=request},
       Conf = #config{sessions=[CurSess|SList], curid=Id,cur_req_id=ReqId}) ->

@@ -35,6 +35,7 @@
           thinktime,  %% default thinktime specs
           subst = false, %% Substitution should be applied on the request
           match, %% Match regexp in response
+          dynvar,
           sessions=[],
           session_tab,
           curthink, %% temporary var (current request think)

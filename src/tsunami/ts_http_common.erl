@@ -143,9 +143,12 @@ matchdomain_url(Cookie, Host, URL) -> % return a cookie only if domain match
 %% Returns: List
 %% Purpose: parse a request defined in the XML config file
 %%----------------------------------------------------------------------
+%% Parsing other elements
+parse_config(Element = #xmlElement{name=dyn_variable}, Conf = #config{}) ->
+    ts_config:parse(Element,Conf);
 parse_config(Element = #xmlElement{name=http}, 
              Config=#config{curid = Id, session_tab = Tab,
-                            sessions = [CurS |SList],
+                            sessions = [CurS |SList], dynvar=DynVar,
 							subst    = SubstFlag, match=MatchRegExp}) ->
     Version  = ts_config:getAttr(Element#xmlElement.attributes, version),
     URL      = ts_config:getAttr(Element#xmlElement.attributes, url),
@@ -193,9 +196,10 @@ parse_config(Element = #xmlElement{name=http},
                   set_msg(Request2, 0, {SubstFlag, MatchRegExp} )
           end,
     ts_config:mark_prev_req(Id-1, Tab, CurS),
-    ets:insert(Tab,{{CurS#session.id, Id}, Msg#ts_request{endpage=true}}),
+    ets:insert(Tab,{{CurS#session.id, Id},Msg#ts_request{endpage=true,
+                                                         dynvar_specs=DynVar}}),
     lists:foldl( fun(A,B)->ts_config:parse(A,B) end,
-                 Config#config{},
+                 Config#config{dynvar=undefined},
                  Element#xmlElement.content);
 %% Parsing default values
 parse_config(Element = #xmlElement{name=default}, Conf = #config{session_tab = Tab}) ->
@@ -207,7 +211,7 @@ parse_config(Element = #xmlElement{name=default}, Conf = #config{session_tab = T
     lists:foldl( fun(A,B)->ts_config:parse(A,B) end, Conf, Element#xmlElement.content);
 %% Parsing other elements
 parse_config(Element = #xmlElement{}, Conf = #config{}) ->
-    lists:foldl( fun(A,B)->ts_config:parse(A,B) end, Conf, Element#xmlElement.content);
+    ts_config:parse(Element,Conf);
 %% Parsing non #xmlElement elements
 parse_config(Element, Conf = #config{}) ->
     Conf.
@@ -398,9 +402,9 @@ splitcookie([Char|Rest],Cur,Acc)->splitcookie(Rest, [Char|Cur], Acc).
 %% Purpose: add new cookies to a list of old ones. If the keys already
 %%          exists, replace with the new ones
 %%----------------------------------------------------------------------
-concat_cookies(New,  DynData=#http_dyndata{cookies=Cookies}) ->
+concat_cookies(New, DynData=#dyndata{proto=#http_dyndata{cookies=Cookies}}) ->
     NewCookies = concat_cookies(New,  Cookies),
-    DynData#http_dyndata{cookies=NewCookies};
+    DynData#dyndata{proto=#http_dyndata{cookies=NewCookies}};
 concat_cookies([],  DynData) -> DynData;
 concat_cookies(New, []) -> New;
 concat_cookies([New=#cookie{}|Rest], OldCookies)->

@@ -20,11 +20,17 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
+-record(dyndata,
+        {dynvars, % dynamic variables
+         proto    % dynamic data specific to protocole (#http_dyndata for HTTP)
+       }).
+
 -record(ts_request,
-        {thinktime, 
+        {thinktime,
          ack,
          subst=false,
          match=undefined,
+         dynvar_specs=undefined, % undefined | [{VarName, Regexp} |...]
          param,
          endpage=false,
          host,       % override global server hostname
@@ -34,7 +40,7 @@
 
 % state of ts_client_rcv gen_server
 -record(state_rcv, 
-		{socket,	  %  
+		{socket=none, %  
          ip,          % local ip to bind to
 		 timeout,	  % ?
 		 host,	      % hostname (or IP) of remote server

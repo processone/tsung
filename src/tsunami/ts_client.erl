@@ -126,6 +126,7 @@ handle_sync_event(Event, From, StateName, StateData) ->
 %%          {next_state, StateName, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
+%% inet data
 handle_info({NetEvent, Socket, Data}, wait_ack, State) when NetEvent==tcp;
                                                             NetEvent==ssl ->
     case handle_data_msg(Data, State) of 
@@ -140,13 +141,14 @@ handle_info({NetEvent, Socket, Data}, wait_ack, State) when NetEvent==tcp;
                                      [{active, once} | Opts]),
             {next_state, wait_ack, NewState#state_rcv{socket=NewSocket}, NewState#state_rcv.timeout}
     end;
-
+%% inet close messages; persistent session
 handle_info({NetEvent, Socket}, StateName, State = #state_rcv{persistent=true}) 
   when NetEvent==tcp_closed; NetEvent==ssl_closed ->
 	?LOG("connection closed, stay alive (persistent)",?INFO),
     ts_utils:close_socket(State#state_rcv.protocol, Socket), % mandatory for ssl
     {next_state, think, State#state_rcv{socket = none}};
 
+%% inet close messages
 handle_info({NetEvent, Socket}, StateName, State) when NetEvent==tcp_closed;
                                                        NetEvent==ssl_closed ->
 	?LOG("connection closed, abort", ?WARN),
@@ -155,6 +157,7 @@ handle_info({NetEvent, Socket}, StateName, State) when NetEvent==tcp_closed;
     ts_utils:close_socket(State#state_rcv.protocol, Socket), % mandatory for ssl
 	{stop, normal, State};
 
+%% inet errors
 handle_info({NetError, Socket, Reason}, wait_ack, State)  when NetError==tcp_error;
                                                                NetError==ssl_error ->
 	?LOGF("Net error (~p): ~p~n",[NetError, Reason], ?WARN),
@@ -162,7 +165,7 @@ handle_info({NetError, Socket, Reason}, wait_ack, State)  when NetError==tcp_err
 	ts_mon:add({ count, list_to_atom(CountName) }),
 	{stop, normal, State};
 
-%% no more messages to send
+%% timer expires, no more messages to send
 handle_info({timeout, Ref, end_thinktime}, think, State= #state_rcv{ count=0 })  ->
     ?LOG("Session ending ~n", ?INFO),
     {stop, normal, State};
@@ -286,19 +289,22 @@ handle_next_request(Profile, State) ->
                                            State#state_rcv.protocol,State#state_rcv.socket};
         #ts_request{host=Host, port= Port, scheme= Protocol} ->
 			%% need to reconnect if the server/port/scheme has changed
-			case {State#state_rcv.host,State#state_rcv.port, State#state_rcv.protocol} of
-				{Host, Port, Protocol} -> % server setup unchanged
-					Socket = State#state_rcv.socket;
-				_ ->
-					?Debug("Change server configuration inside a session ~n"),
-					ts_utils:close_socket(State#state_rcv.protocol, State#state_rcv.socket),
-					Socket = none
-			end
+			Socket = case {State#state_rcv.host,State#state_rcv.port,
+                           State#state_rcv.protocol} of
+                         {Host, Port, Protocol} -> % server setup unchanged
+                             State#state_rcv.socket;
+                         _ ->
+                             ?Debug("Change server configuration inside a session ~n"),
+                             ts_utils:close_socket(State#state_rcv.protocol,
+                                                   State#state_rcv.socket),
+                             none
+                     end
     end,
 
-    Param = Type:add_dynparams(State#state_rcv.dyndata,Profile#ts_request.param,Host),
-    SubstParam = dyn_substitution(Profile#ts_request.subst, Type, Param),
-    Message = Type:get_message(SubstParam),
+    Param = Type:add_dynparams(Profile#ts_request.subst,
+                               State#state_rcv.dyndata,
+                               Profile#ts_request.param, Host),
+    Message = Type:get_message(Param),
     Now = now(),
 
 	%% reconnect if needed
@@ -382,11 +388,12 @@ set_profile(MaxCount, Count, ProfileId) when is_integer(ProfileId) ->
 %% purpose: try to reconnect if this is needed (when the socket is set to none)
 %%----------------------------------------------------------------------
 reconnect(none, ServerName, Port, Protocol, IP) ->
-	?DebugF("Try to reconnect to: ~p~n",[ServerName]),
+	?DebugF("Try to reconnect to: ~p:~p using protocol ~p~n",[ServerName,Port,Protocol]),
 	Opts = protocol_options(Protocol)  ++ [{ip, IP}],
     case Protocol:connect(ServerName, Port, Opts) of
 		{ok, Socket} -> 
 			ts_mon:add({ count, reconnect }),
+			?Debug("Reconnected~n"),
 			{ok, Socket};
 		{error, Reason} ->
 			?LOGF("Reconnect Error: ~p~n",[Reason],?ERR),
@@ -465,19 +472,6 @@ set_thinktime(Think) ->
 
 
 %%----------------------------------------------------------------------
-%% Func: dyn_substitution/3
-%% Purpose: If the message is parametered for substitution, call the 
-%%          protocole substitution
-%%----------------------------------------------------------------------
-dyn_substitution(false, Type, Request) ->
-    Request;
-%% If the subst request attribute in the config file has been set to
-%% something: We assume we should use substitution
-dyn_substitution(_, Type, Request) ->
-    Type:subst(Request).
-
-
-%%----------------------------------------------------------------------
 %% Func: handle_data_msg/2
 %% Args: Data (binary), State ('state_rcv' record)
 %% Returns: {NewState ('state_rcv' record), Socket options (list)}
@@ -491,10 +485,10 @@ handle_data_msg(Data, State=#state_rcv{request=Req, clienttype=Type}) when Req#t
 	ts_mon:rcvmes({State#state_rcv.monitor, self(), Data}),
 	
     {NewState, Opts, Close} = Type:parse(Data, State),
-    NewBuffer = case Req#ts_request.match of 
-                    undefined -> << >>;
+    NewBuffer = case {Req#ts_request.match,Req#ts_request.dynvar_specs} of 
+                    {undefined,undefined} -> << >>;
                     _ ->
-                        ?Debug("Buffurize response~n"),
+                        ?Debug("Bufferize response~n"),
                         OldBuffer = State#state_rcv.buffer,
                         << OldBuffer/binary, Data/binary >>
                 end,
@@ -502,16 +496,19 @@ handle_data_msg(Data, State=#state_rcv{request=Req, clienttype=Type}) when Req#t
     case NewState#state_rcv.ack_done of
         true ->
             ?DebugF("Response done:~p~n", [NewState#state_rcv.datasize]),
-            PageTimeStamp = update_stats(NewState#state_rcv{buffer=NewBuffer}, Close),
+            {PageTimeStamp, DynVars} = update_stats(NewState#state_rcv{buffer=NewBuffer}, Close),
+            NewDynData = concat_dynvars(DynVars, NewState#state_rcv.dyndata),
             case Close of
                 true ->
                     ?Debug("Close connection required by protocol~n"),
                     ts_utils:close_socket(State#state_rcv.protocol,State#state_rcv.socket),
                     {NewState#state_rcv{ page_timestamp = PageTimeStamp,
-                                         socket = undefined,
+                                         socket = none,
+                                         dyndata = NewDynData,
                                          buffer = <<>>}, Opts};
                 false -> 
                     {NewState#state_rcv{ page_timestamp = PageTimeStamp,
+                                         dyndata = NewDynData,
                                          buffer = <<>>}, Opts}
             end;
         _ ->
@@ -529,7 +526,7 @@ handle_data_msg(Data, State=#state_rcv{ack_done=true}) ->
 handle_data_msg(Data, State=#state_rcv{ack_done=false}) ->
 	ts_mon:rcvmes({State#state_rcv.monitor, self(), Data}),
 	DataSize = size(Data),
-    PageTimeStamp = update_stats(State, false),
+    {PageTimeStamp, _} = update_stats(State, false),
     {State#state_rcv{datasize=DataSize,%ack for a new message, init size
                      ack_done = true, page_timestamp= PageTimeStamp},[]}.
 
@@ -538,7 +535,7 @@ handle_data_msg(Data, State=#state_rcv{ack_done=false}) ->
 %%----------------------------------------------------------------------
 %% Func: update_stats/2
 %% Args: State
-%% Returns: State (state_rcv record)
+%% Returns: Page timestamp
 %% Purpose: update the statistics
 %%----------------------------------------------------------------------
 update_stats(State, Close) ->
@@ -548,42 +545,53 @@ update_stats(State, Close) ->
 			{ sum, size, State#state_rcv.datasize}],
     Profile = State#state_rcv.request,
     ts_search:match(Profile#ts_request.match, State#state_rcv.buffer),
+    DynVars = ts_search:parse_dynvar(Profile#ts_request.dynvar_specs,
+                                     State#state_rcv.buffer),
 	case Profile#ts_request.endpage of
 		true -> % end of a page, compute page reponse time 
 			PageElapsed = ts_utils:elapsed(State#state_rcv.page_timestamp, Now),
 			ts_mon:add(lists:append([Stats,[{sample, page, PageElapsed}]])),
-			0;
+			{0, DynVars};
 		_ ->
 			ts_mon:add(Stats),
-			State#state_rcv.page_timestamp
+			{State#state_rcv.page_timestamp, DynVars}
 	end.
 
+%%----------------------------------------------------------------------
+%% Func: concat_dynvars/2
+%%----------------------------------------------------------------------
+concat_dynvars(undefined, DynData) -> DynData;
+concat_dynvars([], DynData) -> DynData;
+concat_dynvars(DynVars, DynData=#dyndata{dynvars=OldDynVars}) -> 
+    %% FIXME: should we remove duplicate keys ?
+    DynData#dyndata{dynvars=lists:keymerge(1,DynVars,OldDynVars)}.
+    
 %%----------------------------------------------------------------------
 %% Func: inet_setopts/4
 %% Purpose: set inet options depending on the protocol (gen_tcp, gen_udp,
 %%  ssl)
 %%----------------------------------------------------------------------
-inet_setopts(Protocol, undefined, Opts) -> %socket was closed before
-    undefined;
+inet_setopts(Protocol, none, Opts) -> %socket was closed before
+    none;
 inet_setopts(ssl, Socket, Opts) ->
 	case ssl:setopts(Socket, Opts) of
 		ok ->
 			Socket;
 		{error, closed} ->
-			undefined;
+			none;
 		Error ->
 			?LOGF("Error while setting ssl options ~p ~p ~n", [Opts, Error], ?ERR),
-            undefined
+            none
 	end;
 inet_setopts(gen_tcp, Socket,  Opts)->
 	case inet:setopts(Socket, Opts) of
 		ok ->
 			Socket;
 		{error, closed} ->
-			undefined;
+			none;
 		Error ->
 			?LOGF("Error while setting inet options ~p ~p ~n", [Opts, Error], ?ERR),
-            undefined
+            none
 	end;
 %% FIXME: UDP not tested
 inet_setopts(gen_udp, Socket,  Opts)->

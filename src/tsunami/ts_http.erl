@@ -26,10 +26,9 @@
 -include("ts_http.hrl").
 
 -export([init_dynparams/0,
-		 add_dynparams/3,
+		 add_dynparams/4,
 		 get_message/1,
 		 session_defaults/0,
-         subst/1,
          parse/2,
          parse_config/2,
          new_session/0]).
@@ -81,28 +80,34 @@ parse_config(Element, Conf) ->
 	ts_http_common:parse_config(Element, Conf).
 
 %%----------------------------------------------------------------------
-%% Function: add_dynparams/3
+%% Function: add_dynparams/4
 %% Purpose: add dynamic parameters to build the message
 %%          this is used for ex. for Cookies in HTTP
 %%----------------------------------------------------------------------
+add_dynparams(false, DynData, Param, Host) ->
+    add_dynparams(DynData#dyndata.proto, Param, Host);
+add_dynparams(Subst, DynData, Param, Host) ->
+    NewParam = subst(Param, DynData#dyndata.dynvars),
+    add_dynparams(DynData#dyndata.proto,NewParam, Host).
+% Function: add_dynparams/3
 add_dynparams(#http_dyndata{cookies=[]},Param, Host) ->
 	Param#http_request{server_name=Host};
 add_dynparams(#http_dyndata{cookies=DynData}, Param, Host) ->
 	Param#http_request{cookie=DynData,server_name=Host}.
 
 init_dynparams() ->
-	#http_dyndata{}.
+	#dyndata{proto=#http_dyndata{}}.
 
 
 %%----------------------------------------------------------------------
-%% Function: subst/1
+%% Function: subst/2
 %% Purpose: Replace on the fly dynamic element of the HTTP request For
 %%          the moment, we only do dynamic substitution in URL, body,
 %%          userid, passwd, because we see no need for the other HTTP
 %%          request parameters.
 %%----------------------------------------------------------------------
-subst(Req=#http_request{url=URL, body=Body, userid=UserId, passwd=Passwd}) ->
-    Req#http_request{url    = ts_search:subst(URL),
-					 body   = ts_search:subst(Body),
-					 userid = ts_search:subst(UserId),
-					 passwd = ts_search:subst(Passwd)}.
+subst(Req=#http_request{url=URL, body=Body, userid=UserId, passwd=Passwd}, DynData) ->
+    Req#http_request{url    = ts_search:subst(URL, DynData),
+					 body   = ts_search:subst(Body, DynData),
+					 userid = ts_search:subst(UserId, DynData),
+					 passwd = ts_search:subst(Passwd, DynData)}.

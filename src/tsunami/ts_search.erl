@@ -24,30 +24,32 @@
 -module(ts_search).
 -vc('$Id$ ').
 
--export([subst/1, match/2]).
+-export([subst/2, match/2, parse_dynvar/2]).
 
 -include("ts_profile.hrl").
 
 %% ----------------------------------------------------------------------
-%% Function: subst/1
+%% Function: subst/2
 %% Purpose: search into a given string and replace %%Mod:Fun%% strings
 %%          by the result of the call to Mod:Fun(Pid) where Pid is the
 %%          Pid of the client The substitution tag are intended to
 %%          be used in idx-tsunami.xml scenarii files.
 %% ----------------------------------------------------------------------
-subst(Atom) when atom(Atom) ->
+subst(Atom, DynVar) when atom(Atom) ->
     Atom;
-subst(Binary) when binary(Binary) ->
-    list_to_binary(subst(binary_to_list(Binary)));
-subst(String) ->
-    subst(String, []).
+subst(Binary, DynVar) when binary(Binary) ->
+    list_to_binary(subst(binary_to_list(Binary), DynVar));
+subst(String, DynVar) ->
+    subst(String, DynVar, []).
 
-subst([], Acc) ->
+subst([], DynVar, Acc) ->
     lists:reverse(Acc);
-subst([$%,$%|Rest], Acc) ->
+subst([$%,$%,$_|Rest], DynVar, Acc) ->
+    extract_variable(Rest, DynVar, Acc, []);
+subst([$%,$%|Rest], DynVar, Acc) ->
     extract_module(Rest, Acc, []);
-subst([H|Tail], Acc) ->
-    subst(Tail, [H|Acc]).
+subst([H|Tail], DynVar, Acc) ->
+    subst(Tail, DynVar, [H|Acc]).
 
 %% Search for the module string in the subst markup
 extract_module([],Acc,Mod) ->
@@ -56,6 +58,24 @@ extract_module([$:|Tail],Acc,Mod) ->
     extract_function(Tail,Acc,lists:reverse(Mod),[]);
 extract_module([H|Tail],Acc,Mod) ->
     extract_module(Tail,Acc,[H|Mod]).
+
+%% Search for the module string in the subst markup
+extract_variable([],DynVar,Acc,Var) ->
+    lists:reverse(Acc);
+extract_variable([$%,$%|Tail], undefined, Acc, Var) ->
+    subst(Tail, undefined, lists:reverse("undefined") ++ Acc);
+extract_variable([$%,$%|Tail], DynVar, Acc, Var) ->
+    VarName = list_to_atom(lists:reverse(Var)),
+    case lists:keysearch(VarName,1,DynVar) of 
+        {value, {VarName, Result}} ->
+            subst(Tail, DynVar,lists:reverse(Result) ++ Acc);
+        _ ->
+            ?LOGF("DynVar: no value found for var ~p~n",[VarName],?WARN),
+            subst(Tail, DynVar,lists:reverse("undefined") ++ Acc)
+    end;
+            
+extract_variable([H|Tail],DynVar,Acc,Mod) ->
+    extract_variable(Tail,DynVar,Acc,[H|Mod]).
 
 %% Search for the function string and do the real substitution before
 %% keeping on the parsing
@@ -91,3 +111,36 @@ match(RegExp, String) ->
             ?LOGF("Error while matching: bad REGEXP (~p)~n", [RegExp], ?WARN),
             ts_mon:add({count, badregexp})
     end.
+
+%%----------------------------------------------------------------------
+%% Func: parse_dynvar/2 
+%% Args: 
+%% Purpose: 
+%%----------------------------------------------------------------------
+parse_dynvar(undefined, Data) -> [];
+parse_dynvar(DynVar, Data)  when is_binary(Data) ->
+    String = binary_to_list(Data),
+    ?DebugF("Parsing Dyn Variable; data is ~p~n",[String]),
+    parse_dynvar(DynVar, String,[]);
+parse_dynvar(DynVar, Data)  ->
+    ?LOGF("Error while Parsing dyn Variable(~p) ~p~n",[DynVar],?WARN),
+    [].
+    
+
+parse_dynvar([], String, ValuesList) -> ValuesList;
+parse_dynvar([{VarName, RegExp}| DynVars], String, ValuesList) ->
+    case gregexp:groups(String, RegExp) of
+        {match,[Value| Rest]} ->
+            ?LOGF("Ok Match (regexp=~p) ~n",[RegExp], ?DEB),
+            parse_dynvar(DynVars,String, [{VarName, Value}| ValuesList]);
+        nomatch ->
+            ?LOGF("Dyn Var: no Match (regexp=~p), ~n",[RegExp], ?NOTICE),
+            parse_dynvar(DynVars, String, ValuesList);
+        {error,Error} ->
+            ?LOGF("Error while parsing dyn var: bad REGEXP (~p)~n", [RegExp], ?WARN),
+            parse_dynvar(DynVars, String, ValuesList)
+    end;
+parse_dynvar(Args, String, Values) ->
+    ?LOGF("Bad args while parsing dyn var (~p)~n", [Args], ?ERR),
+    undefined.
+    
