@@ -26,8 +26,6 @@ EBIN = ./ebin
 VERSION = $(IDX-TSUNAMI_VSN)
 
 # installation path
-#RAW_INSTALL_DIR = $(ERLDIR)/lib/erlang
-# $DESTDIR is used to build the debian package
 BINDIR    = $(bindir)
 LIBDIR    = $(libdir)/idx-tsunami/bin/
 CONFDIR   = $(datadir)/doc/idx-tsunami/examples
@@ -185,12 +183,12 @@ priv/tsunami.boot: builder.beam  $(SRC_APPFILES)
 # use builder to make boot file
 	@rm -rf temp
 	@mkdir -p temp/lib/$(APPLICATION)-$(VERSION)
-	@ln -sf `pwd`/ebin temp/lib/$(APPLICATION)-$(VERSION)/ebin
-	@ln -sf `pwd`/src/$(APPLICATION) temp/lib/$(APPLICATION)-$(VERSION)/src
-	@ln -sf `pwd`/include temp/lib/$(APPLICATION)-$(VERSION)/include
-	@ln -sf `pwd`/priv temp/lib/$(APPLICATION)-$(VERSION)/priv
-	@ln -sf `pwd`/builder.beam temp/lib/$(APPLICATION)-$(VERSION)/
-	@ln -sf `pwd` temp/lib/$(APPLICATION)-$(VERSION)
+	@ln -sf $(PWD)/ebin temp/lib/$(APPLICATION)-$(VERSION)/ebin
+	@ln -sf $(PWD)/src/$(APPLICATION) temp/lib/$(APPLICATION)-$(VERSION)/src
+	@ln -sf $(PWD)/include temp/lib/$(APPLICATION)-$(VERSION)/include
+	@ln -sf $(PWD)/priv temp/lib/$(APPLICATION)-$(VERSION)/priv
+	@ln -sf $(PWD)/builder.beam temp/lib/$(APPLICATION)-$(VERSION)/
+	@ln -sf $(PWD) temp/lib/$(APPLICATION)-$(VERSION)
 	@(cd temp/lib/$(APPLICATION)-$(VERSION) \
 	 && echo $(BUILD_OPTIONS) > $(BUILD_OPTIONS_FILE) \
 	 && erl -s builder go -s init stop \
@@ -201,11 +199,11 @@ priv/tsunami_controller.boot: builder.beam $(CONTROLLER_SRC_APPFILES)
 # use builder to make boot file
 	@rm -rf temp
 	@mkdir -p temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)
-	@ln -sf `pwd`/ebin temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/ebin
-	@ln -sf `pwd`/src/$(CONTROLLER_APPLICATION) temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/src
-	@ln -sf `pwd`/include temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/include
-	@ln -sf `pwd`/priv temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/priv
-	@ln -sf `pwd`/builder.beam temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/
+	@ln -sf $(PWD)/ebin temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/ebin
+	@ln -sf $(PWD)/src/$(CONTROLLER_APPLICATION) temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/src
+	@ln -sf $(PWD)/include temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/include
+	@ln -sf $(PWD)/priv temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/priv
+	@ln -sf $(PWD)/builder.beam temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/
 	@(cd temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION) \
 	 && echo $(BUILD_OPTIONS) > $(BUILD_OPTIONS_FILE) \
 	 && erl -s builder go -s init stop \
@@ -216,11 +214,11 @@ priv/tsunami_recorder.boot: builder.beam $(RECORDER_SRC_APPFILES)
 # use builder to make boot file
 	@rm -rf temp
 	@mkdir -p temp/lib/$(RECORDER_APPLICATION)-$(VERSION)
-	@ln -sf `pwd`/ebin temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/ebin
-	@ln -sf `pwd`/src/$(RECORDER_APPLICATION) temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/src
-	@ln -sf `pwd`/include temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/include
-	@ln -sf `pwd`/priv temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/priv
-	@ln -sf `pwd`/builder.beam temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/
+	@ln -sf $(PWD)/ebin temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/ebin
+	@ln -sf $(PWD)/src/$(RECORDER_APPLICATION) temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/src
+	@ln -sf $(PWD)/include temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/include
+	@ln -sf $(PWD)/priv temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/priv
+	@ln -sf $(PWD)/builder.beam temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/
 	@(cd temp/lib/$(RECORDER_APPLICATION)-$(VERSION) \
 	 && echo $(BUILD_OPTIONS) > $(BUILD_OPTIONS_FILE) \
 	 && erl -noshell -s builder go -s init stop \
