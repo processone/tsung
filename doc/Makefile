@@ -1,6 +1,7 @@
 # $Id$
 
-MANPAGE  = idx-tsunami.1.sgml
+MANPAGE_SRC  = idx-tsunami.1.sgml
+MANPAGE  = idx-tsunami.1
 
 TOPDIR=$(HOME)/cvs/projetdoc/common/
 IMG_TOPDIR=.
@@ -101,9 +102,9 @@ VPATH = $(TEXINPUTS)
 all: man
 
 man: $(MANPAGE)
+
+%.1: %.1.sgml
 	docbook2man $< >/dev/null 2>&1
-
-
 
 
 psimages: $(FIGURES_EPS) $(IMAGES_EPS) $(LOGOS_EPS)

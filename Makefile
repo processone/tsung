@@ -111,7 +111,7 @@ clean:
 	-rm -f ebin/*.beam 
 #	-make -C doc clean
 
-install: doc build idx-tsunami.sh analyse_msg.pl install_recorder install_controller
+install: doc boot  idx-tsunami.sh analyse_msg.pl install_recorder install_controller
 	-rm -f $(TMP)
 
 	install -d $(TARGETDIR)/priv
@@ -179,7 +179,9 @@ install_controller:
 uninstall:
 	rm -rf $(TARGETDIR) $(SCRIPT)
 
-build: idx-tsunami builder.beam build_controller build_recorder $(SRC_APPFILES)
+boot: idx-tsunami priv/tsunami.boot priv/tsunami_recorder.boot priv/tsunami_controller.boot
+
+priv/tsunami.boot: builder.beam  $(SRC_APPFILES)
 # use builder to make boot file
 	@rm -rf temp
 	@mkdir -p temp/lib/$(APPLICATION)-$(VERSION)
@@ -195,7 +197,7 @@ build: idx-tsunami builder.beam build_controller build_recorder $(SRC_APPFILES)
 	)
 	@rm -rf temp
 
-build_controller: builder.beam $(CONTROLLER_SRC_APPFILES)
+priv/tsunami_controller.boot: builder.beam $(CONTROLLER_SRC_APPFILES)
 # use builder to make boot file
 	@rm -rf temp
 	@mkdir -p temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)
@@ -210,7 +212,7 @@ build_controller: builder.beam $(CONTROLLER_SRC_APPFILES)
 	)
 	@rm -rf temp
 
-build_recorder: builder.beam $(RECORDER_SRC_APPFILES)
+priv/tsunami_recorder.boot: builder.beam $(RECORDER_SRC_APPFILES)
 # use builder to make boot file
 	@rm -rf temp
 	@mkdir -p temp/lib/$(RECORDER_APPLICATION)-$(VERSION)
