@@ -42,8 +42,8 @@ start(Opts) ->
 stop(Pid) ->
 	gen_server:cast(Pid, {stop}).
 
-wait_ack({Pid, Ack, When, EndPage, Socket}) ->
-	gen_server:cast(Pid, {wait_ack, Ack, When, EndPage, Socket}).
+wait_ack({Pid, Ack, When, EndPage, Socket, Protocol}) ->
+	gen_server:cast(Pid, {wait_ack, Ack, When, EndPage, Socket, Protocol}).
 
 
 %%%----------------------------------------------------------------------
@@ -85,7 +85,7 @@ handle_call(Request, From, State) ->
 %%----------------------------------------------------------------------
 
 %% ack value -> wait
-handle_cast({wait_ack, Ack, When, EndPage, Socket}, State) ->
+handle_cast({wait_ack, Ack, When, EndPage, Socket, Protocol}, State) ->
 	?LOGF("receive wait_ack: ~p ~p~n",[Ack, EndPage], ?DEB),
 	case State#state_rcv.page_timestamp of 
 		0 -> %first request of a page
@@ -98,6 +98,7 @@ handle_cast({wait_ack, Ack, When, EndPage, Socket}, State) ->
 							  ack_done=false,
 							  endpage=EndPage,
 							  ack_timestamp= When,
+							  protocol= Protocol,
 							  page_timestamp = NewPageTimestamp}};
 
 handle_cast({stop}, State) ->
@@ -116,14 +117,14 @@ handle_cast(Message, State) ->
 handle_info({tcp, Socket, Data}, State) ->
 	{NewState, Opts} = handle_data_msg(Data, State),
 	ts_utils:inet_setopts(State#state_rcv.protocol, Socket, 
-						  Opts ++ [{active, once}], State#state_rcv.ppid),
+						  [{active, once} | Opts], State#state_rcv.ppid),
 	{noreply, NewState, State#state_rcv.timeout};
 
 %% ssl case
 handle_info({ssl, Socket, Data}, State) ->
 	{NewState, Opts}  = handle_data_msg(Data, State),
 	ts_utils:inet_setopts(State#state_rcv.protocol, Socket,
-						  Opts ++ [{active, once}], State#state_rcv.ppid),
+						  [{active, once} | Opts], State#state_rcv.ppid),
 	{noreply, NewState, State#state_rcv.timeout};
 
 handle_info({tcp_closed, Socket}, State) ->
@@ -159,7 +160,7 @@ handle_info(Data, State) ->%% test if client implement parse ?
 	{NewState, Opts} = handle_data_msg(Data, State),
 	Socket = State#state_rcv.socket,
 	ts_utils:inet_setopts(State#state_rcv.protocol, Socket,
-						  Opts ++ [{active, once}], State#state_rcv.ppid),
+						  [{active, once} | Opts], State#state_rcv.ppid),
 	{noreply, NewState, State#state_rcv.timeout}.
 
 %%----------------------------------------------------------------------
