@@ -34,9 +34,9 @@
 
   Le propos de IDX-TSUNAMI est de simuler des utilisateurs afin de
   tester la montée en charge et les performances d'applications
-  client/serveur (basées sur IP). Actuellement, seul le protocole
-  Jabber est implémenté et testé, mais IDX-TSUNAMI est très facilement
-  extensible (voir le fichier doc/Design_fr.txt pour une description
+  client/serveur (basées sur IP). Actuellement, les protocoles
+  HTTP et Jabber sont implémentés, et IDX-TSUNAMI est très facilement
+  extensible (voir le fichier doc/Design.txt pour une description
   de l'implémentation et des possibilités d'extensions). IDX-TSUNAMI
   utilise le langage Erlang.
 
@@ -50,69 +50,107 @@
   un modèle de type stochastique, ceci afin de reproduire le trafic
   plus fidèlement que peuvent le faire de simple modèles déterministes.
 
-  Un utilisateur est caractérisé par:
-      - le temps écoulé entre chacun de ses messages/requêtes ("think time");
-      - le nombre de requêtes effectuées lors d'une session;
-      - le type et les paramètres paramètres des requêtes  (par exemple
-        le type et la taille du message pour Jabber).
+  Un utilisateur est caractérisé par une une suite d'actions
+  (requetes, thinktime) faites au cours d'une session. Plusieurs
+  sessions peuvent être définies, chacune avec une popularité
+  donnée. De cette façon, lors de l'injection, chaque nouvel
+  utilisateur utilisera un type de session en tirant aléatoirement une
+  session (en fonction de la popularité de chaque session).
 
-  Un autre paramètre est le taux d'arrivée des clients (ie. le nombre
-  de clients arrivant sur le système -- démarrant leur session -- par
-  unité de temps).
+  Un paramètre important est le l'inter-arrivée des clients qui
+  détermine le taux d'arrivée des clients sur le système (ie. le
+  nombre de clients arrivant sur le système -- démarrant leur session -- par
+  unité de temps). Plusieurs phases peuvent être définies pour un
+  tests, chaque phase injectant des utilisateur à un taux donné.
 
   Dans l'implémentation actuelle, la taux d'arrivée des clients et le
   temps entre message d'un même client ("think time") sont modélisés
   par une distribution exponentielle (par conséquent, le processus
   d'arrivée est un processus de Poisson).
 
-  Le trafic peut être "loggué" dans des fichiers, afin de pouvoir
-  effectuer toutes sortes de calculs (temps de réponse) après coup. Un
-  script (calculant notamment les moyennes, écart-type et médiane des
-  temps de réponse) est fourni pour le protocole Jabber.
+  Le trafic peut être "dumpé" dans un fichier, afin de pouvoir
+  effectuer toutes sortes de calculs (temps de réponse) après coup
+  (option 'umptrafic' dans le fichier de configuration XML)
 
   2.  Installation
 
   2.1.  Dépendances
   
-  - nécessite Erlang/OTP R7B-0 ou supérieur (testé avec la version R7B-2)
-    (http://www.erlang.org/download.html)
+  - nécessite Erlang/OTP R9C-0 (http://www.erlang.org/download.html)
 
-  - perl5 (pour utiliser les scripts)
-	
-  - gnuplot (optionnel, utilisé pour les sorties graphiques du script 
+  - xmerl-0.19 (http://sowap.sourceforge.net/download.html)
+
+  - gnuplot et perl5 (optionel, utilisé pour les sorties graphiques du script 
     analyse_msg.pl)
-
+  
+  - les tests distribués utilisent un accès ssh non intéractif pour
+    démarrer Erlang à distance. Il faut donc utiliser une clé RSA/DSA,
+    sans passphrase ou en avec ssh-agent)
+	
   2.2.  Compilation et Installation
 
-  Éditer les fichiers Makefile et idx-tsunami.pl si vous voulez
-  changer le chemin par défaut (/usr/local/idx-tsunami/).
+  Éditer les fichiers Makefile si vous voulez changer le chemin par
+  défaut (/usr/local/idx-tsunami/).
 
-  Éditer src/tsunami.rel.src si votre version d'Erlang n'est pas R7B-2 
-  (les numéros de version des modules erts, kernel et stdlib sont
+  Éditer src/tsunami.rel.src si votre version d'Erlang n'est pas R9C-0 
+  (les numéros de version des modules erts, kernel, stdlib et ssl sont
   différents d'une version d'Erlang à l'autre).
 
   make
   make install
 
   Comment l'utiliser:
-    1a/ Éditer le fichier etc/idx-tsunamirc (toutes les options sont
-    décrites en commentaires).
+    1a/ Éditer le fichier etc/idx-tsunami.xml (toutes les options sont
+    décrites en commentaires dans le fichier d'exemple
+    etc/idx-tsunami_default.xml).
 
     1b/ Lire le fichier doc/Jabber.txt pour des informations spécifiques à 
     Jabber.
 
-    2/ utilisez le script "idx-tsunami.pl --start" pour démarrer les
-    clients simulés.
+    2/ utilisez le script "idx-tsunami --start" pour démarrer le 
+    test de charge.
 
-    3/ Lorsque c'est terminé (idx-tsunami.pl --stop pour forcer) Le
-    script analyse_msg.pl génère une synthèse des temps de réponses
-    (nécessite un monitoring full ou light); ce script peut également
-    générer des graphes avec l'option --plot.
+    3/ Lorsque c'est terminé (idx-tsunami --stop pour forcer l'arrêt), le
+    script analyse_msg.pl génère une synthèse des temps de réponses;
+    ce script peut également générer des graphes avec l'option --plot.
+
+ 	   Depuis la version 0.2.0, les statistique peuvent être calculés
+ 	   en temps réel (mise à jour toutes les 10 secondes par défaut)
+ 	   avec les options --stats and --plot option. Le script va
+ 	   générer des graphes au format postscript en utilisant
+ 	   gnuplot. L'option --stats requiert en argement le nomdu fichier
+ 	   de log, par défaut 'idx-tsunami.log-YYYY:MM:DD-HH:mm'
+		   
+	   Les mesures suivantes sont disponibles:
+		- response_time (temps de réponse pour chaque requête (~ requête pour HTTP))
+		- page_resptime (response time pour chaque ensemble de requête (~ page pour HTTP))
+		- connect (durée pour effectuer la connexion)
+		- reconnect (nombre de reconnexion)
+		- size (taille des réponses)
+		- session (durée d'une session)
+		- users (nombre d'utilisateurs simultanés)
+
+       mesures spécifiques à HTTP :
+		  - un compteur pour chaque type de réponse (200, 404, etc.)
   
+        Depuis la version v1.0.beta1, il est possible de customiser
+        les mesures en définissant des "transactions" dans les
+        sessions.
+ 
+
+    4/ Pour utiliser le proxy enregistreur de sessions HTTP depuis un
+    navigateur, il faut d'abord démarrer le proxy avec la commande
+    'idx-tsunami recorder'. Celui-ci démmare le proxy qui écoute sur le
+    port 8090. Il suffit ensuite de paramétrer le navigateur pour
+    utiliser ce proxy. Toutes les requêtes et les 'thinktimes' seront
+    enregistrées dans un fichier directement au format XML. Une fois
+    terminé, lancer la commande 'idx-tsunami stop_recorder'.
+
+
+
   2.3.  Problèmes/Bugs
  
-    Envoyez vos questions/rapports de bugs aux auteurs (cf. fichier
-    CONTRIBUTORS).
+    Envoyez vos questions/rapports de bugs à  nicolas.niclausse@IDEALX.com
  
   2.4.  Portabilité
 

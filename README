@@ -123,12 +123,18 @@
        HTTP specific stats:
 		  - counter for each response status (200, 404, etc.)
   
-        Since v0.3.0, you can customize statistics using
+        Since v1.0.beta1, you can customize statistics using
         "transactions" in session definition.
+
+     4/ To start the proxy recorder for HTTP sessions, use the command
+     'idx-tsunami recorder'. The proxy will start listening to the
+     8090 port. Configure your browser; all the requests will be
+     recorded to a file in XML. To stop the recorder, type
+     'idx-tsunami stop_recorder'
 
   2.3.  Problems/Bugs
  
-  Submit bug reports/ask questions to the nicolas.niclausse@IDEALX.com
+  Submit bug reports/ask questions to  nicolas.niclausse@IDEALX.com
  
   2.4.  Platform Issues
 
