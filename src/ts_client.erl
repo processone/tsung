@@ -114,7 +114,7 @@ init([Profile, {CType, PType, MType, Persistent}], Count) ->
             %% server profile can be overriden in the first URL of the session
             %% curently, the following server modifications in the session are not used.
             ?LOGF("Server setup overriden for this client (~p) host=~s port=~p proto=~p ~n",
-                  [pid(), ServerName, Port, Protocol], ?INFO)
+                  [self(), ServerName, Port, Protocol], ?INFO)
     end,
     % open connection
 	Opts = protocol_options(Protocol),
