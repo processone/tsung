@@ -10,7 +10,7 @@
   1. Introduction
 
      1.1 Généralités
-     1.2 Qu'est-ce que ce logiciel fait
+     1.2 Qu'est-ce que ce logiciel fait?
 
   2. Installation
 
@@ -29,7 +29,7 @@
 
   Les information de Copyright sont disponibles dans le fichier "COPYING."
 
-  1.2.  Qu'est-ce que ce logiciel fait
+  1.2.  Qu'est-ce que ce logiciel fait?
 
   Le propos de IDX-TSUNAMI est de simuler des utilisateurs afin de
   tester la montée en charge et les performances d'applications
@@ -50,22 +50,22 @@
   plus fidèlement que peuvent le faire de simple modèles déterministes.
 
   Un utilisateur est caractérisé par:
-      - le temps écoulé entre chacun de ses messages/requêtes ("think time")
-      - le nombre de requêtes effectuées lors d'une session
+      - le temps écoulé entre chacun de ses messages/requêtes ("think time");
+      - le nombre de requêtes effectuées lors d'une session;
       - le type et les paramètres paramètres des requêtes  (par exemple
-        le type et la taille du message pour Jabber)
+        le type et la taille du message pour Jabber).
 
-  Un autre paramètre est le taux d'arrivés des clients (ie. le nombre
+  Un autre paramètre est le taux d'arrivée des clients (ie. le nombre
   de clients arrivant sur le système -- démarrant leur session -- par
   unité de temps).
 
-  Dans l'implémentation actuelle, la taux d'arrivé des clients et le
+  Dans l'implémentation actuelle, la taux d'arrivée des clients et le
   temps entre message d'un même client ("think time") sont modélisés
   par une distribution exponentielle (par conséquent, le processus
-  d'arrivé est un processus de Poisson).
+  d'arrivée est un processus de Poisson).
 
   La trafic peut être "loggué" dans des fichiers, afin de pouvoir
-  calculer toutes sorte de mesures (temps de réponse) après coup. Un
+  calculer toutes sortes de mesures (temps de réponse) après coup. Un
   script (calculant notamment les moyennes, écart-type et médiane des
   temps de réponse) est fourni pour le protocole Jabber.
 
@@ -88,17 +88,17 @@
 
   Éditer src/tsunami.rel.src si votre version d'Erlang n'est pas R7B-2 
   (les numéros de version des modules erts, kernel et stdlib sont
-  différents d'une version d'Erlang à l'autre)
+  différents d'une version d'Erlang à l'autre).
 
   make
   make install
 
   Comment l'utiliser:
     1a/ Éditer le fichier etc/idx-tsunamirc (toutes les options sont
-    décrites en commentaires)
+    décrites en commentaires).
 
     1b/ Lire le fichier doc/Jabber.txt pour des informations spécifiques à 
-    Jabber
+    Jabber.
 
     2/ utilisez le script "idx-tsunami.pl --start" pour démarrer les
     clients simulés.
@@ -116,8 +116,8 @@
   2.4.  Portabilité
 
     Ce logiciel n'a été testé que sous Linux. Il devrait néanmoins
-    fonctionner sus toute plateforme supporté par Erlang (Solaris et
-    FreeBSD en particulier)
+    fonctionner sous toute plate-forme supporté par Erlang (Solaris et
+    FreeBSD en particulier).
 
 
 
