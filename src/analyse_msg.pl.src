@@ -3,7 +3,7 @@
 #
 #  This code was developped by IDEALX (http://IDEALX.org/) and
 #  contributors (their names can be found in the CONTRIBUTORS file).
-#  Copyright (C) 2000-2001 IDEALX
+#  Copyright (C) 2000-2004 IDEALX
 #
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@
 
 use strict;
 use Getopt::Long;
-use vars qw ($help @files $verbose $debug $plot $version $stats);
+use vars qw ($help @files $verbose $debug $plot $extra $version $stats);
 my $tagvsn = '%VSN%';
 
 GetOptions( "help",\$help,
@@ -43,7 +43,8 @@ GetOptions( "help",\$help,
 			"debug",\$debug,
 			"stats=s",\$stats,
 			"version",\$version,
-			"plot",\$plot
+			"plot",\$plot,
+			"extra",\$extra
 		  );
 
 &usage if $help || $Getopt::Long::error;
@@ -273,7 +274,7 @@ sub parse_stats_file {
 	my $maxval ;
 	open (FILE,"<$file") or die "Can't open $file $!";
 	while (<FILE>) {
-		if (/^stats: (\w+)\s+(.*)$/) {
+		if (/^stats: (\S+)\s+(.*)$/) {
 			my $type = $1;
 			my $values = $2;
 			my ($rate,$mean) = split(/\s+/,$values);
@@ -302,6 +303,7 @@ sub parse_stats_file {
 	}
 	my @time;
 	my @code;
+    my %extra_info = ();
 	my @connect;
 	my @size;
 	my @users;
@@ -315,6 +317,7 @@ sub parse_stats_file {
 	my @colcount = ("rate","total");
 	my @colusers = ("simultaneous","maximum simultaneous");
 	foreach $key (keys %{$data}) {
+        $key =~ s/\'//g;
 		open (TYPE, "> $key.txt") or die "$!";
 		foreach my $data (@{$data->{$key}}) {
 			if (($key !~ /^users$/ and $key !~ /^size$/) and $interval) {#
@@ -340,6 +343,9 @@ sub parse_stats_file {
 			push @users_rate, "$key.txt";
 		} elsif ($key =~ /^\d+$/) {
 			push @code, "$key.txt";
+		} elsif ($key =~ /^(\S+)?:\S+?@\S+$/) {
+            my $key_short_name = $1;
+            push(@{$extra_info{$key_short_name}}, "$key.txt");
 		} else {
 			push @time, "$key.txt";
 		}
@@ -351,6 +357,14 @@ sub parse_stats_file {
 	plot_stats(\@colusers,"Users",undef,\@users,["connected users", "total"]) if $plot;
 	plot_stats(\@col,"Users_Arrival",undef,\@users_rate,["number of users/sec", "total"]) if $plot;
 	plot_stats(\@colcount,"Size",undef,\@size,["Kbits/sec","total Kbits"]) if $plot;
+
+    # Generate graphes for extra indicators (os_mon for example)
+	if ($plot and $extra) {
+ 	  foreach my $key (sort keys %extra_info) {
+          my $pos = index($key,":");
+          plot_stats(\@col, $key, undef, \@{$extra_info{$key}}, [$key]);
+      }
+  }
 }
 
 # parse jabber log file
@@ -543,6 +557,7 @@ type `idx-tsunami.pl --version` for details.\n\n";
     "[--debug] (print receive without send messages)\n\t",
     "[--stats <filename>] (use the new stats framework)\n\t",
     "[--plot]  (make postcripts graphics using gnuplot)\n\t",
+    "[--extra  (generate graphics from extra cluster data (os monitor, etc)\n\t",
     "[file1 [file2 [...]]] (log files to analyse)\n\t";
 	exit;
 	}

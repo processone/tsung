@@ -47,6 +47,7 @@
 read(Filename) ->
     case xmerl_scan:file(Filename) of
         {ok, Root = #xmlElement{}} ->
+	    ?LOGF("Reading config file: ~s~n", [Filename], ?NOTICE),
             Table = ets:new(sessiontable, [ordered_set, protected]),
             {ok, parse(Root, #config{session_tab = Table})};
 	Error ->
@@ -88,6 +89,16 @@ parse(Element = #xmlElement{name=server}, Conf = #config{server=SList}) ->
 					       type=Type
 					      }},
 		Element#xmlElement.content);
+
+%% Parsing the cluster monitoring element (monitor)
+parse(Element = #xmlElement{name=monitor}, Conf = #config{monitor_hosts=MHList}) ->
+    Host = getAttr(Element#xmlElement.attributes, host),
+    %% TODO:
+    %% Type = getAttr(Element#xmlElement.attributes, type), % os_mon | snmp
+    lists:foldl(fun parse/2,
+		Conf#config{monitor_hosts = lists:append(MHList, [Host])},
+		Element#xmlElement.content);
+
 
 %% Parsing the Client element
 parse(Element = #xmlElement{name=client},
@@ -248,7 +259,7 @@ parse(Element = #xmlElement{name=default},
             
             
 
-%%% Parsing the thinktim element
+%%% Parsing the thinktime element
 parse(Element = #xmlElement{name=thinktime},
       Conf = #config{cur_req_id=ReqId, curid=Id, session_tab = Tab, 
                      sessions = [CurS |SList]}) ->

@@ -53,8 +53,10 @@ init([]) ->
     Config = {ts_config_server, {ts_config_server, start_link, 
                                  []}, transient, 2000,
               worker, [ts_config_server]},
-    Monitor = {ts_mon, {ts_mon, start, []}, transient, 2000, 
-			   worker, [ts_mon]},
+    Stats_Mon = {ts_mon, {ts_mon, start, []}, transient, 2000, 
+                 worker, [ts_mon]},
+    Os_Mon = {ts_os_mon, {ts_os_mon, start, []}, transient, 2000, 
+			   worker, [ts_os_mon]},
     Timer = {ts_timer, {ts_timer, start, [?config(nclients)]}, transient, 2000, 
 			   worker, [ts_timer]},
     Request = {ts_req_server, {ts_req_server, start, []}, transient, 2000, 
@@ -66,7 +68,7 @@ init([]) ->
 							?config(nclients)]]}, 
 			transient, 2000, worker, [ts_user_server]},
     {ok,{{one_for_one,?retries,10},
-		 [Config, Monitor, Timer, Request, Msg, User]}}.
+		 [Config, Stats_Mon, Timer, Request, Msg, User, Os_Mon]}}.
 
 %%%----------------------------------------------------------------------
 %%% Internal functions

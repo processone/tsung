@@ -30,7 +30,8 @@
           clients=[], %% client machines
 
           server, %% server to test
-          arrivalphases =[],      %% arrival process specs
+          monitor_hosts = [], %% Cluster host to monitor (for CPU, MEM usage)
+          arrivalphases = [], %% arrival process specs
           thinktime,  %% default thinktime specs
           sessions=[],
           session_tab,

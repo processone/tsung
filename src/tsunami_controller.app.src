@@ -9,11 +9,13 @@
 					   ts_req_server,
 					   ts_user_server,
 					   ts_config_server,
-					   ts_msg_server
+					   ts_msg_server,
+					   ts_os_mon
 					  ]},
        {registered,   [
 					   ts_mon,
-					   ts_config_server
+					   ts_config_server,
+					   ts_os_mon
 					  ]},
 	   {env,		[        
 					 {debug_level, 6},
@@ -33,6 +35,7 @@
 					 {log_file, "%prefix%/log/idx-tsunami.log"}
 					]},        
 	   {applications, [kernel, stdlib, ssl]},
-       {start_phases, [{load_config, []},{start_clients,[]}]},
+       {start_phases, [{load_config, []},{start_os_monitoring,[{timeout,30000}]},
+                       {start_clients,[]}]},
        {mod,          {tsunami_controller, []}}
 	  ]}.

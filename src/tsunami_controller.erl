@@ -45,6 +45,8 @@ start(Type, _StartArgs) ->
 
 start_phase(load_config, StartType, PhaseArgs) ->
     ts_config_server:read_config(?config(config_file));
+start_phase(start_os_monitoring, StartType, PhaseArgs) ->
+    ts_os_mon:activate();
 start_phase(start_clients, StartType, PhaseArgs) ->
     ts_mon:start_clients({?config(clients),?config(monitoring)}).
     

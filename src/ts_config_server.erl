@@ -44,7 +44,8 @@
 %%--------------------------------------------------------------------
 %% External exports
 -export([start_link/0, read_config/1, get_req/2, get_next_session/0,
-         get_client_config/1, newbeam/1, newbeam/2, get_server_config/0]).
+         get_client_config/1, newbeam/1, newbeam/2, get_server_config/0,
+	 get_monitor_hosts/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
@@ -109,6 +110,13 @@ get_client_config(Host)->
 %%--------------------------------------------------------------------
 get_server_config()->
 	gen_server:call({global,?MODULE},{get_server_config}).
+
+%%--------------------------------------------------------------------
+%% Function: get_monitor_hosts/0
+%% Returns: [Hosts]
+%%--------------------------------------------------------------------
+get_monitor_hosts()->
+        gen_server:call({global,?MODULE},{get_monitor_hosts}).
 
 %%--------------------------------------------------------------------
 %% Function: get_next_session/0
@@ -224,6 +232,11 @@ handle_call({get_client_config, Host}, From, State) ->
             {reply, {error, notfound}, State}
     end;
             
+%%
+handle_call({get_monitor_hosts}, From, State) ->
+    Config = State#state.config,
+    {reply, Config#config.monitor_hosts, State};
+
 handle_call(Request, From, State) ->
     Reply = ok,
     {reply, Reply, State}.

@@ -43,7 +43,7 @@
 		 addsample/1, get_sample/1,
 		 addcount/1,  get_count/1,
 		 addsum/1,    get_sum/1,
-		 dumpstats/0
+		 dumpstats/0, addsample_counter/1
 		]).
 
 -export([update_stats/2]).
@@ -75,7 +75,7 @@ start() ->
 	gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
 
 start_clients({Machines, Monitoring}) ->
-	gen_server:call({global, ?MODULE}, {start_clients, Machines, Monitoring}).
+    gen_server:call({global, ?MODULE}, {start_clients, Machines, Monitoring}, infinity).
 
 stop() ->
 	gen_server:cast({global, ?MODULE}, {stop}).
@@ -104,19 +104,20 @@ addsample({Type, Value}) ->
 
 get_sample(Type) ->
 	gen_server:call({global, ?MODULE}, {get_sample, Type}).
+get_counter(Type) -> get_sample(Type).
+get_count(Type)   -> get_sample(Type).
+get_sum(Type)     -> get_sample(Type).
 
 addcount({Type}) ->
 	gen_server:cast({global, ?MODULE}, {count, Type}).
 
-get_count(Type) ->
-	gen_server:call({global, ?MODULE}, {get_sample, Type}).
+%% for continuous incrementing counter
+addsample_counter({Type, Value}) -> 
+	gen_server:cast({global, ?MODULE}, {sample_counter, Type, Value}).
 
 %% accumulator type of data
 addsum({Type, Val}) ->
 	gen_server:cast({global, ?MODULE}, {sum, Type, Val}).
-
-get_sum(Type) ->
-	gen_server:call({global, ?MODULE}, {get_sample, Type}).
 
 error({Who, When, What}) ->
 	gen_server:cast({global, ?MODULE}, {error, Who, When, What}).
@@ -197,12 +198,21 @@ handle_cast({sample, Type, Value}, State)  ->
 	NewTab = dict:update(Type, MyFun, update_stats([],Value), Tab),
 	{noreply, State#state{stats=NewTab}};
 
+%% increase by one when called
 handle_cast({count, Type}, State)  ->
 	Tab = State#state.stats,
 	Add = fun (OldVal) -> OldVal+1 end,
 	NewTab = dict:update(Type, Add, 1, Tab),
 	{noreply, State#state{stats=NewTab}};
 
+%% continuous incrementing counters 
+handle_cast({sample_counter, Type, Value}, State)  ->
+	Tab = State#state.stats,
+	MyFun = fun (OldVal) -> update_stats_counter(OldVal, Value) end,
+	NewTab = dict:update(Type, MyFun, update_stats_counter([],Value), Tab),
+	{noreply, State#state{stats=NewTab}};
+
+%% cumulative counter
 handle_cast({sum, Type, Val}, State)  ->
 	Tab = State#state.stats,
 	Add = fun (OldVal) -> OldVal+Val end,
@@ -271,6 +281,7 @@ handle_cast({endclient, Who, When, Elapsed}, State) ->
 	end;
 
 handle_cast({stop}, State = #state{client = 0}) ->
+    ts_os_mon:stop(),
 	{stop, normal, State};
 handle_cast({stop}, State) -> % we should stop, wait until no more clients are alive
 	{noreply, State#state{stop = true}}.
@@ -313,18 +324,23 @@ print_stats(State) ->
 	%% print number of simultaneous users
 	io:format(State#state.log, "stats: ~p ~p ~p~n", [users, State#state.client, State#state.maxclient]),
 	print_dist_list(Res, State#state.laststats , State#state.log).
+%% Print os_mon figures
+%%ts_os_mon:print(State#state.log).
 
 print_dist_list([], Last, Logfile) ->
 	done;
 print_dist_list([{Key, [Mean, 0, Max, Min, Count]} | Tail], LastRes, Logfile) ->
-	io:format(Logfile, "stats: ~p ~p ~p ~p ~p ~p ~p ~n", 
+	io:format(Logfile, "stats: ~s ~p ~p ~p ~p ~p ~p ~n", 
 			  [Key, Count, Mean, 0, Max, Min, Count ]),
 	print_dist_list(Tail, LastRes, Logfile);
 print_dist_list([{Key, [Mean, Var, Max, Min, Count]} | Tail], LastRes, Logfile) ->
 	StdVar = math:sqrt(Var/Count),
-	io:format(Logfile, "stats: ~p ~p ~p ~p ~p ~p ~p ~n",
+	io:format(Logfile, "stats: ~s ~p ~p ~p ~p ~p ~p ~n",
 			  [Key, Count, Mean, StdVar, Max, Min, Count ]),
 	print_dist_list(Tail, LastRes, Logfile);
+print_dist_list([{Key, [Sample,Last]} | Tail], LastRes, Logfile) ->
+	io:format(Logfile, "stats: ~s ~p ~p~n", [Key, Sample, Last ]),
+    print_dist_list(Tail, LastRes, Logfile);
 print_dist_list([{Key, Value} | Tail], LastRes, Logfile) ->
 	case dict:find(Key, LastRes) of 
 		{ok,  _Count} ->
@@ -350,6 +366,18 @@ update_stats([Mean, Var, Max, Min, Count], Value) ->
 update_stats(Args, New) -> % ???
 	[New, 0, New, New, 1]. 
 
+%%----------------------------------------------------------------------
+%% Func: update_stats_counter/2
+%% Returns: List  = [Mean, Variance, Max, Min, Count, LastValue]
+%%----------------------------------------------------------------------
+update_stats_counter([], New) -> %% first call, store the initial value
+	[0, New];
+update_stats_counter([0, First], New) ->%%second call
+    Sample=New-First,
+	[Sample, New];
+update_stats_counter([PrevVal, Last], New) ->
+    Sample=New-Last,
+	[Sample, New].
 %%
 reset_all_stats(Dict)->
 	MyFun = fun (Key, OldVal) -> reset_stats(OldVal) end,
@@ -363,6 +391,8 @@ reset_stats([]) ->
 	[0, 0, 0, 0, 0];
 reset_stats([Mean, Var, Max, Min, Count]) ->
 	[0, 0, Max, Min, 0];
+reset_stats([Sample, LastValue]) -> %% counter
+	[0, LastValue];
 reset_stats(Args) ->
 	Args.
 	
