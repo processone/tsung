@@ -15,7 +15,6 @@ OBJS = \
 	$(OUTDIR)/tsunami.beam \
 	$(OUTDIR)/ts_launcher.beam \
 	$(OUTDIR)/ts_client.beam \
-	$(OUTDIR)/ts_client.beam \
 	$(OUTDIR)/ts_mon.beam \
 	$(OUTDIR)/ts_client_rcv.beam \
 	$(OUTDIR)/ts_utils.beam \
