@@ -49,10 +49,11 @@
 %% Args: #http_request
 %%----------------------------------------------------------------------
 http_get(Req=#http_request{url=URL, version=Version, cookie=Cookie,
-                           server_name = Host}) ->
+                           server_name = Host, userid=UserId, passwd=Passwd}) ->
 	list_to_binary([?GET, " ", URL," ", "HTTP/", Version, ?CRLF, 
                     "Host: ", Host, ?CRLF,
                     user_agent(),
+                    authenticate(UserId,Passwd),
                     get_cookie(Cookie),
                     ?CRLF]).
 
@@ -61,11 +62,13 @@ http_get(Req=#http_request{url=URL, version=Version, cookie=Cookie,
 %% Args: #http_request
 %%----------------------------------------------------------------------
 http_get_ifmodsince(Req=#http_request{url=URL, version=Version, cookie=Cookie,
-                                      get_ims_date=Date, server_name=Host}) ->
+                                      get_ims_date=Date, server_name=Host,
+                                      userid=UserId, passwd=Passwd}) ->
 	list_to_binary([?GET, " ", URL," ", "HTTP/", Version, ?CRLF,
                     ["If-Modified-Since: ", Date, ?CRLF],
                     "Host: ", Host, ?CRLF,
                     user_agent(),
+                    authenticate(UserId,Passwd),
                     get_cookie(Cookie),
                     ?CRLF]).
 
@@ -74,12 +77,14 @@ http_get_ifmodsince(Req=#http_request{url=URL, version=Version, cookie=Cookie,
 %% Args: #http_request
 %%----------------------------------------------------------------------
 http_post(Req=#http_request{url=URL, version=Version, cookie=Cookie,
-			    content_type=ContentType, body=Content, server_name=Host}) ->
+			    content_type=ContentType, body=Content, server_name=Host,
+                           userid=UserId, passwd=Passwd}) ->
 	ContentLength=integer_to_list(size(Content)),
 	?DebugF("Content Length of POST: ~p~n.", [ContentLength]),
 	Headers = [?POST, " ", URL," ", "HTTP/", Version, ?CRLF,
                "Host: ", Host, ?CRLF,
                user_agent(),
+               authenticate(UserId,Passwd),
                get_cookie(Cookie),
                "Content-Type: ", ContentType, ?CRLF,
                "Content-Length: ",ContentLength, ?CRLF,
@@ -90,6 +95,12 @@ http_post(Req=#http_request{url=URL, version=Version, cookie=Cookie,
 %%----------------------------------------------------------------------
 %% some HTTP headers functions
 %%----------------------------------------------------------------------
+authenticate(undefined,_)-> [];
+authenticate(_,undefined)-> [];
+authenticate(UserId,Passwd)->
+    AuthStr = httpd_util:encode_base64(lists:append([UserId,":",Passwd])),
+    ["Authorization: Basic ",AuthStr,?CRLF].
+
 user_agent() ->
 	["User-Agent: ", ?USER_AGENT, ?CRLF].
 
@@ -127,13 +138,25 @@ parse_config(Element = #xmlElement{name=http},
                      get
              end,
     ServerName = ts_config:get_default(Tab,http_server_name, server_name),
-    Msg = set_msg(#http_request{url         = URL,
-                                method      = Method,
-                                version     = Version,
-                                get_ims_date= Date,
-                                server_name = ServerName,
+    Request = #http_request{url         = URL,
+                            method      = Method,
+                            version     = Version,
+                            get_ims_date= Date,
+                            server_name = ServerName,
 								content_type= ContentType,
-                                body        = list_to_binary(Contents)}, 0),
+                            body        = list_to_binary(Contents)},
+    Msg = case lists:keysearch(www_authenticate,#xmlElement.name,
+                               Element#xmlElement.content) of
+              {value, AuthEl=#xmlElement{} } ->
+                  UserId  = ts_config:getAttr(AuthEl#xmlElement.attributes,
+                                              userid, undefined),
+                  Passwd  = ts_config:getAttr(AuthEl#xmlElement.attributes, 
+                                              passwd, undefined),
+                  set_msg(Request#http_request{userid=UserId, passwd=Passwd}, 0);
+              _Data -> 
+                  set_msg(Request, 0)
+          end,
+    
     ets:insert(Tab,{{CurS#session.id, Id}, Msg}),
     lists:foldl( fun(A,B)->ts_config:parse(A,B) end,
                  Config#config{},
