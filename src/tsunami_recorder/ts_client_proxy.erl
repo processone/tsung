@@ -121,35 +121,20 @@ handle_info({tcp, ClientSock, String}, State)
     {noreply, NewState, ?lifetime};
 
 % server data, send it to the client
-handle_info({tcp, ServerSock, String}, State) 
-  when ServerSock == State#state.serversock ->
+handle_info({Type, ServerSock, String}, State) 
+  when ServerSock == State#state.serversock, ((Type == tcp) or (Type == ssl)) ->
     ok=inet:setopts(ServerSock,[{active, once}]),
-    ?LOGF("Received data from server: ~p~n",[String],?DEB),
-    {ok,NewString,RepCount} = regexp:gsub(String,"https://","http://{"),
-    case RepCount of 
-        0    -> ok;
-        Count-> ?LOGF("substitute https: ~p times~n",[Count],?DEB)
-    end,
-    send(State#state.clientsock, NewString),
-    {noreply, State, ?lifetime};
-
-% ssl server data, send it to the client
-handle_info({ssl, ServerSock, String}, State) 
-  when ServerSock == State#state.serversock ->
-    ?LOGF("Received data from server: ~p~n",[String],?DEB),
-    ok=ssl:setopts(ServerSock,[{active, once}]),
-    {ok,NewString,RepCount} = regexp:gsub(String,"https://","http://{"),
-    case RepCount of 
-        0    -> ok;
-        Count-> ?LOGF("substitute https: ~p times~n",[Count],?DEB)
-    end,
+    ?LOGF("Received data from server: ~s~n",[String],?DEB),
+    {ok,NewString} = ts_utils:from_https(String),
     send(State#state.clientsock, NewString),
     {noreply, State, ?lifetime};
 
 %%%%%%%%%%%% Errors and termination %%%%%%%%%%%%%%%%%%%
 
 % Log who did close the connection, and exit.
-handle_info({tcp_closed, Socket}, State=#state{serversock=Socket,http_version=HTTPVersion})->
+handle_info({Msg,Socket},State=#state{http_version = HTTPVersion,
+                                      serversock = Socket
+                                     }) when Msg==tcp_close; Msg==ssl_closed ->
     ?LOG("socket closed by server~n",?INFO),
     case HTTPVersion of
         "HTTP/1.0" ->
@@ -158,30 +143,15 @@ handle_info({tcp_closed, Socket}, State=#state{serversock=Socket,http_version=HT
             {noreply, State#state{serversock=undefined}, ?lifetime}
     end;
 
-handle_info({ssl_closed, Socket}, State=#state{serversock=Socket,http_version=HTTPVersion})->
-    ?LOG("ssl socket closed by server~n",?INFO),
-    case HTTPVersion of
-        "HTTP/1.0" ->
-            {stop, normal, ?lifetime};%Disconnect client if it requires HTTP/1.0
-        _ ->
-            {noreply, State#state{serversock=undefined}, ?lifetime}
-    end;
-
-handle_info({tcp_closed, Socket}, State) ->
-    ?LOG("socket closed by client~n",?INFO),
-    {stop, normal, ?lifetime};
-
-handle_info({ssl_closed, Socket}, State) ->
+handle_info({Msg, Socket}, State) when Msg == tcp_closed;
+                                       Msg == ssl_closed->
     ?LOG("socket closed by client~n",?INFO),
     {stop, normal, ?lifetime};
 
 % Log properly who caused an error, and exit.
-handle_info({tcp_error, Socket, Reason}, State) ->
+handle_info({Msg, Socket, Reason}, State) when Msg == tcp_error;
+                                               Msg == ssl_error ->
     ?LOGF("error on socket ~p ~p~n",[Socket,Reason],?ERR),
-    {stop, {error, sockname(Socket,State), Reason}, State};
-
-handle_info({ssl_error, Socket, Reason}, State) ->
-    ?LOGF("error on ssl socket ~p ~p~n",[Socket,Reason],?ERR),
     {stop, {error, sockname(Socket,State), Reason}, State};
 
 handle_info(timeout, State) ->
@@ -220,12 +190,10 @@ code_change(OldVsn, State, Extra) ->
 %% Types:   Sockname -> server | client | unknown
 %%          State -> state_record()
 
-sockname(Socket,State)->
-    if 
-        (Socket == State#state.serversock) -> server;
-        (Socket == State#state.clientsock) -> client;
-        true -> unknown
-    end.
+sockname(Socket,State=#state{serversock=Socket})-> server;
+sockname(Socket,State=#state{clientsock=Socket})-> client;
+sockname(Socket,State)-> unknown.
+
 
 %%--------------------------------------------------------------------
 %% Func: parse/4
@@ -283,7 +251,7 @@ parse(State=#state{parse_status=Status},ClientSock,ServerSocket,String) when Sta
                                                                       headers=ParsedHeader}
                                                        }),
                             {ok, State#state{http_version=HTTPVersion,
-				             parse_status = new, buffer=[],
+                                             parse_status = new, buffer=[],
                                              serversock=NewSocket}};
                         BodySize > CLength  ->
                             {error, bad_content_length};
@@ -292,8 +260,8 @@ parse(State=#state{parse_status=Status},ClientSock,ServerSocket,String) when Sta
                             {ok,RealString,_Count} = regexp:gsub(NewString,RequestURI,RelURL),
                             send(NewSocket,RealString),
                             {ok, State#state{http_version=HTTPVersion,
-				             content_length = CLength,
-                                             body_size = TotalSize - HeaderSize, %% mremond fix
+                                             content_length = CLength,
+                                             body_size = TotalSize - HeaderSize,
                                              serversock=NewSocket,
                                              buffer = #http_request{method=Method,
                                                                     url=RequestURI,
@@ -376,8 +344,7 @@ peername(Socket)         -> prim_inet:peername(Socket).
 
 
 send({sslsocket,A,B},String) ->
-    {ok,NewString,RepCount} = regexp:gsub(String,"http://{","https://"),
-    {ok,RealString,RepCount2} = regexp:gsub(NewString,"Host: {","Host: "),
+    {ok, RealString } = ts_utils:to_https({request,String}),
     ?LOGF("Sending data to ssl socket ~p ~p (~p)~n", [A, B, RealString],?DEB),
     ssl:send({sslsocket,A,B}, RealString);
 send(Socket,String) ->

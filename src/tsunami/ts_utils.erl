@@ -31,7 +31,7 @@
          now_sec/0, node_to_hostname/1, add_time/2,
          level2int/1, mkey1search/2, close_socket/2, datestr/0, datestr/1,
 		 erl_system_args/0, setsubdir/1, stop_all/2, stop_all/3, export_text/1,
-         make_dir_rec/1, is_ip/1]).
+         make_dir_rec/1, is_ip/1, from_https/1, to_https/1]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -40,6 +40,12 @@ level2int("warning")   -> ?WARN;
 level2int("error")     -> ?ERR;
 level2int("critical")  -> ?CRIT;
 level2int("emergency") -> ?EMERG.
+
+-define(QUOT,"&quot;").
+-define(APOS,"&apos;").
+-define(AMP,"&amp;").
+-define(GT,"&gt;").
+-define(LT,"&lt;").
 
 %%----------------------------------------------------------------------
 %% Func: get_val/1
@@ -205,30 +211,30 @@ setsubdir(FileName) ->
             {error, Err}
     end.
 
-%% Escape special characters `<', `&', `'' and `"' flattening the text.
+%%----------------------------------------------------------------------
+%% export_text/1
+%% Purpose: Escape special characters `<', `&', `'' and `"' flattening
+%%          the text.
+%%----------------------------------------------------------------------
 export_text(T) ->
     export_text(T, []).
 
+export_text(Bin, Cont) when is_binary(Bin) ->
+    export_text(binary_to_list(Bin), Cont);
+export_text([], Exported) -> 
+    lists:flatten(lists:reverse(Exported));
 export_text([$< | T], Cont) ->
-    "&lt;" ++ export_text(T, Cont);
+    export_text(T, [?LT | Cont]);
 export_text([$> | T], Cont) ->
-    "&gt;" ++ export_text(T, Cont);
+    export_text(T, [?GT | Cont]);
 export_text([$& | T], Cont) ->
-    "&amp;" ++ export_text(T, Cont);
+    export_text(T, [?AMP | Cont]);
 export_text([$' | T], Cont) ->
-    "&quot;" ++ export_text(T, Cont);
+    export_text(T, [?APOS | Cont]);
 export_text([$" | T], Cont) ->
-    "&quot;" ++ export_text(T, Cont);
-export_text([C | T], Cont) when integer(C) ->
-    [C | export_text(T, Cont)];
-export_text([T | T1], Cont) ->
-    export_text(T, [T1 | Cont]);
-export_text([], [T | Cont]) ->
-    export_text(T, Cont);
-export_text([], []) ->
-    [];
-export_text(Bin, Cont) ->
-    export_text(binary_to_list(Bin), Cont).
+    export_text(T, [?QUOT | Cont]);
+export_text([C | T], Cont) ->
+    export_text(T, [C | Cont]).
 
 stop_all(Host, Name) ->
 	stop_all(Host, Name, "IDX-Tsunami").
@@ -247,9 +253,10 @@ stop_all([Host],Name,MsgName) when atom(Host) ->
 stop_all(_,_,_)->
 	erlang:display("Bad Hostname").
 
-%%%
-%%% Purpose: create directory. Missing parent directories ARE created
-%%%
+%%----------------------------------------------------------------------
+%% make_dir_rec/1
+%% Purpose: create directory. Missing parent directories ARE created
+%%----------------------------------------------------------------------
 make_dir_rec(DirName) when list(DirName) ->
     case  file:read_file_info(DirName) of 
         {ok, #file_info{type=directory}} ->
@@ -287,3 +294,25 @@ is_ip(String) when list(String) ->
        _ -> false
     end;                            
 is_ip(_) -> false.
+
+%%----------------------------------------------------------------------
+%% to_https/1
+%% Purpose: rewrite https URL, to act as a pure non ssl proxy
+%%----------------------------------------------------------------------
+to_https({url, "http://{"++Rest})-> "https://" ++ Rest;
+to_https({url, URL})-> URL;
+to_https({request, String}) when is_list(String) ->
+    {ok,NewString,RepCount} = regexp:gsub(String,"http://{","https://"),
+    {ok,RealString,RepCount2} = regexp:gsub(NewString,"Host: {","Host: "),
+    {ok, RealString};
+to_https(_) -> {error, bad_input}.
+
+from_https(String) when is_list(String)->
+    {ok,NewString,RepCount} = regexp:gsub(String,"https://","http://{"),
+    case RepCount of 
+        0    -> ok;
+        Count-> ?LOGF("substitute https: ~p times~n",[Count],?DEB)
+    end,
+    {ok, NewString};
+from_https(_) -> {error, bad_input}.
+    

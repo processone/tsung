@@ -129,20 +129,20 @@ handle_cast({record, endsession}, State) ->
 
 handle_cast({record, {HTTPRequest}}, State=#state{timestamp=0}) -> % first record
     Name= ts_utils:datestr(),
-    io:format(State#state.logfd,"<session name='~s' popularity='1' "++
-              " persistent='true' messages_ack='parse' type='ts_http'>~n",["rec"++Name]),
+    io:format(State#state.logfd,"<session name='~s' popularity='100' "++
+              " type='ts_http'>~n",["rec"++Name]),
     {ok, NewState} = record_http_request(State, HTTPRequest),
     {noreply, NewState#state{timestamp=now()}};
 
 handle_cast({record, {HTTPRequest}}, State) ->
     TimeStamp=now(),
     Elapsed = ts_utils:elapsed(State#state.timestamp,TimeStamp),
-    if
-        Elapsed < State#state.thinktime_low ->
+    case Elapsed < State#state.thinktime_low of
+        true ->
             ?LOGF("skip too low thinktime, assuming it's an embedded object (~p)~n",
                   [Elapsed],?INFO);
-        true ->
-            io:format(State#state.logfd,"<thinktime value='~p'></thinktime>~n",
+        false ->
+            io:format(State#state.logfd,"~n<thinktime value='~p'></thinktime>~n~n",
                       [round(Elapsed/1000)])
     end,
     {ok, NewState} = record_http_request(State, HTTPRequest),
@@ -168,6 +168,7 @@ handle_info(Info, State) ->
 %%--------------------------------------------------------------------
 terminate(Reason, State) ->
     io:format(State#state.logfd,"</session>~n",[]),
+    file:close(State#state.logfd),
     ok.
 
 %%--------------------------------------------------------------------
@@ -191,11 +192,9 @@ record_http_request(State=#state{prev_host=Host, prev_port=Port},
                     Request=#http_request{method  = Method, url = RequestURI,
                                           version = "HTTP/" ++ HTTPVersion,
                                           headers = ParsedHeader,body=Body}) ->
-    FullURL = case RequestURI of 
-                  "http://{"++Rest -> "https://" ++ Rest;
-                  _ -> RequestURI
-              end,
-                  
+
+    FullURL = ts_utils:to_https({url, RequestURI}),
+
     {URL,NewPort,NewHost} = 
         case ts_http_common:parse_URL(FullURL) of 
               #url{path=RelURL, host=Host, port=Port,querypart=[]} ->
@@ -205,45 +204,29 @@ record_http_request(State=#state{prev_host=Host, prev_port=Port},
               #url{path=RelURL, host=Host2,port=Port2,querypart=Args } ->
                 {FullURL,Port2,Host2 }
         end,
-    Fd=State#state.logfd,
-    URL2 = case regexp:gsub(URL,"&","&amp;") of  % FIXME: what if already &amp; ?
-        {ok,NewURL,RepCount} -> NewURL;
-        _ -> URL
-    end,
-
-    io:format(Fd,"<request><http url='~s' version='~s' ",
-              [URL2, HTTPVersion]),
+    Fd = State#state.logfd,
+    URL2 = ts_utils:export_text(URL),
+    io:format(Fd,"<request><http url='~s' version='~s' ", [URL2, HTTPVersion]),
     case Body of 
         [] -> ok;
         _  -> 
             Body2 = ts_utils:export_text(Body),
             io:format(Fd," contents='~s' ", [Body2]) % must be a POST method
     end,
+
     %% Content-type recording (This is usefull for SOAP post for example):
-    case httpd_util:key1search(ParsedHeader,"content-type") of
-        undefined -> ok;
-        ContentType ->
-            io:format(Fd,"content_type='~s' ",[ContentType])
-    end,
-    case httpd_util:key1search(ParsedHeader,"if-modified-since") of 
-        undefined ->
-            io:format(Fd,"method='~s'>", [ Method]);
-        Date ->
-            io:format(Fd,"method='~s' if_modified_since='~s'>",[Method, Date])
-    end,
-    case httpd_util:key1search(ParsedHeader,"authorization") of 
-        "Basic "++Base64 ->
-			{User,Passwd}=decode_basic_auth(Base64),
-            io:format(Fd,"~n  <www_authenticate userid=~p passwd=~p></www_authenticate>",[User,Passwd]);
-		_ -> ok
-    end,
+    record_header(Fd,ParsedHeader,"content-type", "content_type='~s' "),
+    record_header(Fd,ParsedHeader,"if_modified_since", "if_modified_since='~s' "),
+
+    io:format(Fd,"method='~s'>", [Method]),
+
+    record_header(Fd,ParsedHeader,"authorization",
+                  "~n  <www_authenticate userid=~p passwd=~p> </www_authenticate>"),
     %% SOAP Support: Need to record use of the SOAPAction header
-    case httpd_util:key1search(ParsedHeader,"soapaction") of
-        undefined -> ok;
-        QuotedSOAPAction ->
-            SOAPAction = string:strip(QuotedSOAPAction, both, $"),
-            io:format(Fd,"~n  <soap action='~s'></soap>~n",[SOAPAction])
-    end,
+    record_header(Fd,ParsedHeader,"soapaction",
+                  "~n  <soap action='~s'></soap>~n",
+                  fun(A) -> string:strip(A,both,$") end ),
+
 	io:format(Fd,"</http></request>~n",[]),
 
     {ok, State#state{prev_port=NewPort,prev_host=NewHost}}.
@@ -258,3 +241,24 @@ decode_basic_auth(Base64)->
 	Sep = string:chr(AuthStr,$:),
 	{string:substr(AuthStr,1,Sep-1),string:substr(AuthStr,Sep+1)}.
 	
+%%--------------------------------------------------------------------
+%% Func: record_header/3
+%%--------------------------------------------------------------------
+record_header(Fd, Headers, "authorization", Msg)->
+    %% special case for authorization
+    case httpd_util:key1search(Headers,"authorization") of
+        "Basic " ++ Base64 ->
+            {User,Passwd} = decode_basic_auth(Base64),
+            io:format(Fd, Msg, [User,Passwd]);
+		_ -> ok
+    end;
+record_header(Fd, Headers, HeaderName, Msg)->
+    %% record Msg as it is given
+    record_header(Fd, Headers,HeaderName, Msg, fun(A)->A end). 
+%%--------------------------------------------------------------------
+record_header(Fd, Headers,HeaderName, Msg, Fun)->
+    case httpd_util:key1search(Headers,HeaderName) of
+        undefined -> ok;
+        Value     -> io:format(Fd,Msg,[Fun(Value)])
+    end.
+
