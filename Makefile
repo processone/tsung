@@ -9,6 +9,7 @@ ERL_COMPILER_OPTIONS="[warn_unused_vars]"
 export ERL_COMPILER_OPTIONS
 
 #OPT =+debug_info -DDEBUG
+#OPT:=+export_all
 OPT = 
 INC = ./include
 CC  = erlc
@@ -215,17 +216,17 @@ release:
 builder.beam: priv/builder.erl 
 	$(CC) $(OPT) -I $(INC) $<
 
-ebin/%.beam: src/$(APPLICATION)/%.erl
+ebin/%.beam: src/$(APPLICATION)/%.erl $(INC_FILES)
 	$(CC) $(OPT) -I $(INC) -o ebin $<
 
-ebin/%.beam: src/$(RECORDER_APPLICATION)/%.erl
+ebin/%.beam: src/$(RECORDER_APPLICATION)/%.erl  $(INC_FILES)
 	$(CC) $(OPT) -I $(INC) -o ebin $<
 
-ebin/%.beam: src/$(CONTROLLER_APPLICATION)/%.erl
+ebin/%.beam: src/$(CONTROLLER_APPLICATION)/%.erl  $(INC_FILES)
 	$(CC) $(OPT) -I $(INC) -o ebin $<
 
 analyse_msg.pl: src/analyse_msg.pl.src Makefile
-	$(SED) -e 's;%VERSION;$(VERSION);g' < $<  > $@
+	$(SED) -e 's;%VERSION%;$(VERSION);g' < $<  > $@
 
 idx-tsunami.sh: idx-tsunami.sh.in Makefile
 	@$(SED) \
