@@ -261,21 +261,29 @@ sub parse_stats_file {
 		}
 	}
 	close FILE;
-	
-	foreach my $key (keys %{$data}) {
-		my $col;
-		my @col; # temporary var
+	my @time;
+	my @code;
+	my @connect;
+	my $key;
+	my @col = ("rate","mean","stdvar","max","min","rate");
+	foreach $key (keys %{$data}) {
 		open (TYPE, "> $key.txt") or die "$!";
 		foreach my $data (@{$data->{$key}}) {
-			@col = split(/\s+/, $data);
 			print TYPE $data ."\n";
 		}
-		foreach my $i (0..$#col) {
-			$col->[$i] = $i;
+		if ($key eq "session" or $key eq "reconnect" ) {
+			push @connect, "$key.txt";
+		} elsif ($key eq "size") {
+		} elsif ($key =~ /^\d+$/) {
+			push @code, "$key.txt";
+		} else {
+			push @time, "$key.txt";
 		}
 		close TYPE;
-		plot_stats($col,$key,"",["$key.txt"]) if $plot;
 	}
+	plot_stats(\@col,"Session","",\@connect) if $plot;
+	plot_stats(\@col,"HTTP_CODE","",\@code) if $plot;
+	plot_stats(\@col,"Perfs","",\@time) if $plot;
 }
 
 # 
