@@ -141,7 +141,6 @@ print:	$(PSFILES)
 
 %.html:	%.tex $(INCLUDES) $(FIGURES_PNG) $(IMAGES_PNG) $(HEVEA_INC) $(LOGOS_EPS) $(PLOT_PNG)
 	@echo Generating $@...
-	@ ln -sf $(STYLE)/$(CSS) .
 	@$(HEVEA) $(HEVEAOPTS) $(LANGUAGE) $(HEVEA_INC) $<
 ifeq ($(strip $(IMAGES_PNG)),)
 	@echo no images
