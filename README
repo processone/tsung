@@ -104,8 +104,6 @@
     1c/ For HTTP, session's descriptions are read from a file, using the
         same format as httperf. See doc/http_sesslog.txt for an example.
 
-    1d/ add machines to be used in  ~/.hosts.erlang 
-
     2/ use the script "idx-tsunami.pl --start" to launch the simulated clients.
 
      2a/ use "idx-tsunami.pl --config" to create only the
@@ -135,6 +133,9 @@
 
        HTTP specific stats:
 		  - counter for each response status (200, 404, etc.)
+		  - parse_error (error while parsing HTTP Headers and body)
+		  - http_bad_content_length (Body is larger than expected)
+		  - http_no_content_length
   
   2.3.  Problems/Bugs
  

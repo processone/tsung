@@ -16,20 +16,7 @@
  cd obj
  make
 
-* SSL works fine, but IDX-tsunami still crash when I start it 
-
-do you have a ~/.hosts.erlang file ?
-to test if it works, do the following thing:
-
-  > erl -sname test
-  Eshell V5.2  (abort with ^G)
-  1> net_adm:world()
-
-If you see '** exited: {error,enoent} **', then something is wrong in
-your ~/.hosts.erlang file or in /etc/hosts
-
-
-* IDX-tsunami still crash !
+* IDX-tsunami still crash
 
  to see what happen, start IDX-Tsunami by hand (replace $prefix by the
  directory where IDX-Tsunami is installed, /usr/local/idx-tsunami by
