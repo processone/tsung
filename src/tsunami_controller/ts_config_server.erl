@@ -267,7 +267,6 @@ handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
     Args = lists:append([ Sys_Args," -boot ", Boot,
         " -tsunami debug_level ", integer_to_list(?config(debug_level)),
         " -tsunami monitoring ", atom_to_list(?config(monitoring)),
-        " -tsunami ssl_ciphers ", Config#config.ssl_ciphers,
         " -tsunami log_file ", LogDir,
         " -tsunami controller ", atom_to_list(node())
         ]),
@@ -412,20 +411,20 @@ check_popularity(Sessions) ->
 %%   in strings when setting up environnement variables for application,
 %%   so we encode these characters ! 
 %%----------------------------------------------------------------------
-encode_filename(String)->
-    {ok, String2,_} = regexp:gsub("ts_encoded" ++ String,"\/","_47"),
-    {ok, String3,_} = regexp:gsub(String2,"\-","_45"),
-    {ok, String4,_} = regexp:gsub(String3,"\:","_58"),
-    String4.
+encode_filename(String) when is_list(String)->
+    Transform=[{"\/","_47"},{"\-","_45"}, {"\:","_58"}, {",","_44"}],
+    lists:foldl(fun replace_str/2, "ts_encoded" ++ String, Transform);
+encode_filename(Term) -> Term.
+    
 
 %%----------------------------------------------------------------------
 %% Func: decode_filename/1
 %%----------------------------------------------------------------------
 decode_filename("ts_encoded" ++ String)->
-    {ok, String2,_} = regexp:gsub(String,"_47","\/"), 
-    {ok, String3,_} = regexp:gsub(String2,"_45","\-"),
-    {ok, String4,_} = regexp:gsub(String3,"_58","\:"),
-    String4.
+    Transform=[{"_47","\/"},{"_45","\-"}, {"_58","\:"}, {"_44",","}],
+    lists:foldl(fun replace_str/2, String, Transform).
 
-
+replace_str({A,B},X) ->
+    {ok, Str, _} = regexp:gsub(X,A,B),
+    Str.
     
