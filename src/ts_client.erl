@@ -361,7 +361,7 @@ reconnect(none, ServerName, Port, Protocol, Pid) ->
 			{stop, connfailed}
     end;
 reconnect(Socket, Server, Port, Protocol, Pid) ->
-	Socket.
+	{ok, Socket}.
 
 %%----------------------------------------------------------------------
 %% Func: send/3
