@@ -71,11 +71,9 @@ install: tsunami.boot tsunami_controller.boot
 	mkdir -p $(prefix)/etc
 	mkdir -p $(prefix)/erlang/tsunami-$(VSN)/src
 	install -m 0644 tsunami.boot $(prefix)/bin
-	install -m 0644 tsunami.boot $(prefix)/bin
-	install -m 0644 idx-tsunami.xml $(prefix)/etc/idx-tsunami_default.xml
 	install -m 0644 tsunami_controller.boot $(prefix)/bin
-	sed -e 's;%prefix%;$(prefix);' idx-tsunamirc > $(prefix)/etc/idx-tsunamirc.default
-	install ebin/idx-tsunami.pl ${prefix}/bin
+	install -m 0644 idx-tsunami.xml $(prefix)/etc/idx-tsunami_default.xml
+	install idx-tsunami.sh ${prefix}/bin
 	install ebin/analyse_msg.pl ${prefix}/bin
 	mkdir -p $(prefix)
 	mkdir -p $(prefix)/erlang
@@ -85,3 +83,5 @@ install: tsunami.boot tsunami_controller.boot
 	install ebin/*.app $(prefix)/erlang/tsunami-$(VSN)/ebin
 	install src/*.erl $(prefix)/erlang/tsunami-$(VSN)/src
 
+%:%.sh
+# Override makefile default implicit rule
