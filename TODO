@@ -1,12 +1,14 @@
 
 P2 add SNMP support to remote monitoring of servers
 P2 make jabber work again with new configuration system
-P2 handle WWW-authentication
+P2 better report/graphics generation
 
 P3 improve documentation
 P3 other useful protocols: ftp, smtp, ldap, sql ... ?
 P3 handle all cookies attributes
 
+P4 use xmerl correctly
+P4 add a web interface ?
 P4 add custom http headers ?
 P4 add multiple tcp connections per client (for http) ?
 P4 clients may do a checksum to control integrity of responses ?
