@@ -175,7 +175,7 @@ sub parse_stats_file {
             if ($type =~ /^cpu:/ ) {
                 $category->{$type} = "os_mon_cpu";
             } elsif ($type =~ /^freemem:/) {
-                $category->{$type} = "free";
+                $category->{$type} = "os_mon_free";
             } elsif ($type =~ /^\w{4}packets:/) {
                 $category->{$type} = "os_mon_packets";
             } elsif ($type =~ /^\d+$/) {
@@ -347,6 +347,7 @@ type `idx-tsunami.pl --version` for details.\n\n";
     "[--verbose] (print all messages)\n\t",
     "[--debug] (print receive without send messages)\n\t",
     "[--plot]  (make postcripts graphics using gnuplot)\n\t",
+    "[--html]  (create nice HTML reports)\n\t",
     "[--extra  (generate graphics from extra cluster data (os monitor, etc)\n\t",
     "[--stats <file>] (stats file to analyse)\n\t";
 	exit;
