@@ -27,7 +27,7 @@ my $tagvsn = '%VSN%';
 use strict;
 use POSIX;
 use Getopt::Long;
-use vars qw /$help $start $restart $config $stop $stopcontrol $version/;
+use vars qw /$help $start $restart $config $stop $stopcontrol $version $fqdn/;
 
 my $erl = "erl";
 my $ssh = "ssh -x";
@@ -58,10 +58,12 @@ GetOptions( "h|help",\$help,
 			"restart",\$restart,
 			"config",\$config,
 			"version",\$version,
+			"fqdn",\$fqdn,
 			"stop",\$stop,
 			"stopcontrol",\$stopcontrol
 		  );
 
+my $sname = ($fqdn) ? "name" : "sname";
 &usage if ($help);
 &version if ($version);
 
@@ -141,12 +143,12 @@ if ($config or $start or $restart) {
 					system("$scp $appfile $host:$appfile");
 				}
 				if ($host eq "localhost") {
-					print "$erl -name $nodename -setcookie \'$config{'cookie'}\' -detached -boot $rootdir/bin/tsunami -boot_var TSUNAMIPATH $rootdir/erlang -config $rootdir/etc/tsunami$i\.config\n" ;
-					system("$erl -name $nodename -setcookie \'$config{'cookie'}\' -detached -boot $rootdir/bin/tsunami -boot_var TSUNAMIPATH $rootdir/erlang -config $rootdir/etc/tsunami$i\.config" ) ;#and die "system failed: $?" ;
+					print "$erl -$sname $nodename -setcookie \'$config{'cookie'}\' -detached -boot $rootdir/bin/tsunami -boot_var TSUNAMIPATH $rootdir/erlang -config $rootdir/etc/tsunami$i\.config\n" ;
+					system("$erl -$sname $nodename -setcookie \'$config{'cookie'}\' -detached -boot $rootdir/bin/tsunami -boot_var TSUNAMIPATH $rootdir/erlang -config $rootdir/etc/tsunami$i\.config" ) ;#and die "system failed: $?" ;
 				}
 				else {
-					print "$ssh $host \" $erl -name $nodename -setcookie \'$config{'cookie'}\' -detached -boot $rootdir/bin/tsunami -boot_var TSUNAMIPATH $rootdir/erlang -config $rootdir/etc/tsunami$i\.config\"\n" ;
-					system("$ssh $host \" $erl -name $nodename -setcookie \'$config{'cookie'}\' -detached -boot $rootdir/bin/tsunami -boot_var TSUNAMIPATH $rootdir/erlang -config $rootdir/etc/tsunami$i\.config\"" ); # and die "system failed: $?" ;
+					print "$ssh $host \" $erl -$sname $nodename -setcookie \'$config{'cookie'}\' -detached -boot $rootdir/bin/tsunami -boot_var TSUNAMIPATH $rootdir/erlang -config $rootdir/etc/tsunami$i\.config\"\n" ;
+					system("$ssh $host \" $erl -$sname $nodename -setcookie \'$config{'cookie'}\' -detached -boot $rootdir/bin/tsunami -boot_var TSUNAMIPATH $rootdir/erlang -config $rootdir/etc/tsunami$i\.config\"" ); # and die "system failed: $?" ;
 				}
 			}
 		}
@@ -172,9 +174,9 @@ sub start_controller {
 	# start the controller on the current host
 	my $cmd;
 	if ($config{"controller"} eq "localhost") {
-		$cmd = "$erl -name controller -setcookie \'$config{'cookie'}\' -detached -boot $rootdir/bin/tsunami_controller -boot_var TSUNAMIPATH $rootdir/erlang -config $rootdir/etc/tsunami0\.config";
+		$cmd = "$erl -$sname controller -setcookie \'$config{'cookie'}\' -detached -boot $rootdir/bin/tsunami_controller -boot_var TSUNAMIPATH $rootdir/erlang -config $rootdir/etc/tsunami0\.config";
 	} else {
-		$cmd = "ssh $config{controller} \"$erl -name controller -setcookie \'$config{'cookie'}\' -detached -boot $rootdir/bin/tsunami_controller -boot_var TSUNAMIPATH $rootdir/erlang -config $rootdir/etc/tsunami0\.config\"";
+		$cmd = "ssh $config{controller} \"$erl -$sname controller -setcookie \'$config{'cookie'}\' -detached -boot $rootdir/bin/tsunami_controller -boot_var TSUNAMIPATH $rootdir/erlang -config $rootdir/etc/tsunami0\.config\"";
 		
 	}
 	print "$cmd\n" ;
@@ -242,25 +244,25 @@ sub rpc_node {
 	my $hostnames = shift;
 	my $nodename  = shift;
 	my $verbose   = 1;
-	my ($j,$sname);
+	my ($j,$myname);
 
-	open(ERL,"| $erl -name rpcnode -setcookie $config{'cookie'} > /dev/null") or die "can't exec erl";
+	open(ERL,"| $erl -$sname rpcnode -setcookie $config{'cookie'} > /dev/null") or die "can't exec erl";
 	print ERL "net_adm:world_list(\['". join("','", @$hostnames) . "'\]).\n";
 	print "net_adm:world_list(\['". join("','", @$hostnames) . "'\]).\n" if $verbose;
 	$j = 0;
 	foreach my $host (@$hostnames) {
 		if ($nodename) {
-			$sname="$nodename\@$host";
+			$myname="$nodename\@$host";
 				my $args = join(",
 ", @$args);
-			&rpc($sname, $module, $function, $args, $stop, $verbose)
+			&rpc($myname, $module, $function, $args, $stop, $verbose)
 		} else {
 			foreach my $i ($j..$j+$nbeams-1)  {
 				$nodename = "tsunami$i";
-				$sname="$nodename\@$host";
+				$myname="$nodename\@$host";
 				my $args = join(",
 ", @$args);
-				&rpc($sname, $module, $function, $args, $stop, $verbose)
+				&rpc($myname, $module, $function, $args, $stop, $verbose)
 			}
 			$j += $nbeams;
 		}
