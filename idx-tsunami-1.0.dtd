@@ -1,91 +1,102 @@
-<!ELEMENT idx-tsunami ( #PCDATA | arrivalphase | clients | default | monitoring | server | session )* >
-<!ATTLIST idx-tsunami dumptraffic (true | false) #REQUIRED >
-<!ATTLIST idx-tsunami backend (text | rrdtool) #IMPLIED >
-<!ATTLIST idx-tsunami loglevel (emergency | critical | error | warning | notice| info | debug) #REQUIRED >
-<!ATTLIST idx-tsunami version NMTOKEN #IMPLIED >
+<?xml version="1.0" encoding="utf-8" ?>
+<!ELEMENT idx-tsunami (clients, server, monitoring, arrivalphase+, default*, session+)>
 
-<!ELEMENT server EMPTY >
-<!ATTLIST server host NMTOKEN #REQUIRED >
-<!ATTLIST server port NMTOKEN #REQUIRED >
-<!ATTLIST server type (ssl | tcp | udp) #REQUIRED >
+<!ATTLIST idx-tsunami 
+     dumptraffic (true|false) #REQUIRED
+     backend     (text|rrdtool) #IMPLIED
+     loglevel    (emergency|critical|error|warning|notice|info|debug) #REQUIRED
+     version     NMTOKEN #IMPLIED>
 
-<!ELEMENT clients ( client+ ) >
+<!ELEMENT server EMPTY>
+<!ATTLIST server
+     host NMTOKEN #REQUIRED
+     port NMTOKEN #REQUIRED
+     type (ssl | tcp | udp) #REQUIRED>
 
-<!ELEMENT client ( ip+ ) >
-<!ATTLIST client cpu NMTOKEN #IMPLIED >
-<!ATTLIST client host NMTOKEN #REQUIRED >
-<!ATTLIST client maxusers NMTOKEN #REQUIRED >
-<!ATTLIST client weight NMTOKEN #IMPLIED >
+<!ELEMENT clients (client+)>
+<!ELEMENT client (ip+) >
+<!ATTLIST client 
+     cpu      NMTOKEN #IMPLIED
+     host     NMTOKEN #REQUIRED
+     maxusers NMTOKEN #REQUIRED
+     weight   NMTOKEN #IMPLIED>
 
-<!ELEMENT ip EMPTY >
-<!ATTLIST ip value NMTOKEN #REQUIRED >
+<!ELEMENT ip EMPTY>
+<!ATTLIST ip value NMTOKEN #REQUIRED>
 
-<!ELEMENT monitoring ( monitor+ ) >
+<!ELEMENT monitoring ( monitor+ )>
+<!ELEMENT monitor EMPTY>
+<!ATTLIST monitor
+     host NMTOKEN #REQUIRED
+     type (snmp | erlang) "erlang">
 
-<!ELEMENT monitor EMPTY >
-<!ATTLIST monitor host NMTOKEN #REQUIRED >
-<!ATTLIST monitor type (snmp | erlang) "erlang" >
+<!ELEMENT arrivalphase (users)>
+<!ATTLIST arrivalphase
+     duration NMTOKEN #REQUIRED
+     phase    NMTOKEN #REQUIRED
+     unit     (hour | minute | second) #REQUIRED>
 
-<!ELEMENT arrivalphase ( users ) >
-<!ATTLIST arrivalphase duration NMTOKEN #REQUIRED >
-<!ATTLIST arrivalphase phase NMTOKEN #REQUIRED >
-<!ATTLIST arrivalphase unit (hour | minute | second) #REQUIRED >
+<!ELEMENT users EMPTY>
+<!ATTLIST users
+     interarrival NMTOKEN #REQUIRED
+     unit (hour | minute | second) #REQUIRED
+     maxnumber NMTOKEN #IMPLIED>
 
-<!ELEMENT users EMPTY >
-<!ATTLIST users interarrival NMTOKEN #REQUIRED >
-<!ATTLIST users unit (hour | minute | second) #REQUIRED >
-<!ATTLIST users maxnumber NMTOKEN #IMPLIED >
+<!ELEMENT default EMPTY>
+<!ATTLIST default
+    name     NMTOKEN #REQUIRED
+    override (true|false) #IMPLIED
+    random   (true | false) #IMPLIED
+    type     NMTOKEN #IMPLIED
+    value    CDATA #REQUIRED>
 
+<!ELEMENT session ( request | thinktime | transaction )*>
+<!ATTLIST session
+    messages_ack (parse | local | global | no_ack) #IMPLIED
+    name         CDATA #REQUIRED
+    persistent   (true | false) #IMPLIED
+    popularity   NMTOKEN #REQUIRED
+    type         NMTOKEN #REQUIRED>
 
-<!ELEMENT default EMPTY >
-<!ATTLIST default name NMTOKEN #REQUIRED >
-<!ATTLIST default override (true|false) #IMPLIED >
-<!ATTLIST default random (true | false) #IMPLIED >
-<!ATTLIST default type NMTOKEN #IMPLIED >
-<!ATTLIST default value CDATA #REQUIRED >
+<!ELEMENT request ( ( http | jabber ), dyn_variable? )>
+<!ATTLIST request
+    subst (true|false) #IMPLIED
+    match CDATA #IMPLIED>
 
-<!ELEMENT session ( request | thinktime | transaction )* >
-<!ATTLIST session messages_ack (parse | local | global | no_ack) #IMPLIED >
-<!ATTLIST session name NMTOKEN #REQUIRED >
-<!ATTLIST session persistent (true | false) #IMPLIED >
-<!ATTLIST session popularity NMTOKEN #REQUIRED >
-<!ATTLIST session type NMTOKEN #REQUIRED >
+<!ELEMENT thinktime EMPTY>
+<!ATTLIST thinktime
+    random (true|false) #IMPLIED
+    value  NMTOKEN #REQUIRED>
 
-<!ELEMENT request ( ( http | jabber ), dyn_variable? ) >
-<!ATTLIST request subst (true|false) #IMPLIED >
-<!ATTLIST request match CDATA #IMPLIED >
+<!ELEMENT transaction (request+)>
+<!ATTLIST transaction name NMTOKEN #REQUIRED>
 
-<!ELEMENT thinktime EMPTY >
-<!ATTLIST thinktime random (true|false) #IMPLIED >
-<!ATTLIST thinktime value NMTOKEN #REQUIRED >
-
-<!ELEMENT transaction ( request+ ) >
-<!ATTLIST transaction name NMTOKEN #REQUIRED >
-
-<!ELEMENT http ( www_authenticate?, soap? ) >
-<!ATTLIST http contents CDATA #IMPLIED >
-<!ATTLIST http content_type CDATA #IMPLIED >
-<!ATTLIST http if_modified_since CDATA #IMPLIED >
-<!ATTLIST http method (GET | POST) #REQUIRED >
-<!ATTLIST http url CDATA #REQUIRED >
-<!ATTLIST http version (1.0 | 1.1) #REQUIRED >
+<!ELEMENT http ( www_authenticate?, soap? )>
+<!ATTLIST http
+    contents          CDATA #IMPLIED
+    content_type      CDATA #IMPLIED
+    if_modified_since CDATA #IMPLIED
+    method            (GET | POST) #REQUIRED
+    url               CDATA #REQUIRED
+    version           (1.0|1.1) #REQUIRED>
 
 <!ELEMENT soap EMPTY >
 <!ATTLIST soap action CDATA #REQUIRED >
 
 <!ELEMENT dyn_variable EMPTY >
-<!ATTLIST dyn_variable name CDATA #REQUIRED >
-<!ATTLIST dyn_variable regexp CDATA #IMPLIED >
+<!ATTLIST dyn_variable
+    name CDATA #REQUIRED
+    regexp CDATA #IMPLIED >
 
 <!ELEMENT www_authenticate EMPTY >
-<!ATTLIST www_authenticate passwd CDATA #REQUIRED >
-<!ATTLIST www_authenticate userid CDATA #REQUIRED >
+<!ATTLIST www_authenticate
+    passwd CDATA #REQUIRED
+    userid CDATA #REQUIRED >
 
 <!ELEMENT jabber EMPTY >
-<!ATTLIST jabber ack ( global | local | no_ack ) #REQUIRED >
-<!ATTLIST jabber destination NMTOKEN #IMPLIED >
-<!ATTLIST jabber id NMTOKEN #IMPLIED >
-<!ATTLIST jabber size NMTOKEN #IMPLIED >
-<!ATTLIST jabber type NMTOKEN #REQUIRED >
-
-
+<!ATTLIST jabber
+    ack         (global|local|no_ack) #REQUIRED
+    destination NMTOKEN #IMPLIED
+    id          NMTOKEN #IMPLIED
+    size        NMTOKEN #IMPLIED
+    type        NMTOKEN #REQUIRED>
