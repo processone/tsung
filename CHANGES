@@ -1,5 +1,5 @@
 0.2.0 -> 0.2.1:  Minor bugfixes and small enhancements (9 Dec 2003) 
-    - optizime session memory consumption: use an ets table to store session setup
+    - optimize session memory consumption: use an ets table to store session setup
     - HTTP: fix crash when content-length is not set in headers
     - HTTP: fix POST method
     - HTTP: preliminary chunked-encoding support in HTTP/1.1
