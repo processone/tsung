@@ -39,8 +39,8 @@
 -export([start/0, stop/0, newclient/1, endclient/1, newclient/1, sendmes/1,
 		rcvmes/1, error/1,
 		 addsample/1, get_sample/1,
-		 addcount/1, get_count/1,
-		 addsum/1, get_sum/1,
+		 addcount/1,  get_count/1,
+		 addsum/1,    get_sum/1,
 		 dumpstats/0
 		]).
 
@@ -51,9 +51,10 @@
 
 -record(state, {log,          % log filename
 				client=0,     % number of clients currently running
+				maxclient=0,  % max of simultaneous clients 
 				stats,        % dict keeping stats info
 				stop = false, % true if we should stop
-				laststats,   % values of last printed stats
+				laststats,    % values of last printed stats
 				type          % type of logging (none, light, full)
 			   }).
 
@@ -129,7 +130,9 @@ error({Who, When, What}) ->
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
 init([]) ->
-    Filename = ?log_file ++ integer_to_list(?nclients_deb),
+	{{Y,M,D},{H,Min,S}} = erlang:universaltime(),
+	Date = io_lib:format("-~w:~w:~w-~w:~w",[Y,M,D,H,Min]),
+    Filename = ?log_file ++ Date,
     case file:open(Filename,write) of 
 		{ok, Stream} ->
 			?PRINTDEBUG2("starting monitor~n",?NOTICE),
@@ -225,13 +228,15 @@ handle_cast({rcvmsg, Who, When, What}, State) ->
 
 handle_cast({newclient, Who, When}, State = #state{type = none}) ->
 	Clients =  State#state.client+1,
-	{noreply, State#state{client = Clients}};
+	Max= lists:max([Clients,State#state.maxclient]),
+	{noreply, State#state{client = Clients, maxclient=Max}};
 
 handle_cast({newclient, Who, When}, State) ->
 	Clients =  State#state.client+1,
+	Max= lists:max([Clients,State#state.maxclient]),
 	io:format(State#state.log,"NewClient:~w:~w~n",[When, Who]),
 	io:format(State#state.log,"load:~w~n",[Clients]),
-	{noreply, State#state{client = Clients}};
+	{noreply, State#state{client = Clients, maxclient=Max}};
 
 handle_cast({endclient, Who, When}, State) ->
 	Clients =  State#state.client-1,
@@ -286,6 +291,8 @@ terminate(Reason, State) ->
 %% TODO: add a function to print stats for gnuplot ?
 print_stats(State) ->
 	Res = dict:to_list(State#state.stats),
+	%% print number of simultaneous users
+	io:format(State#state.log, "stats: ~p ~p ~p~n", [users, State#state.client, State#state.maxclient]),
 	print_dist_list(Res, State#state.laststats , State#state.log).
 
 print_dist_list([], Last, Logfile) ->
