@@ -552,6 +552,8 @@ protocol_options(gen_udp) ->
 %% Purpose: set a timer for thinktime if it is not infinite
 %%----------------------------------------------------------------------
 set_thinktime(infinity) -> ok;
+set_thinktime({random, Think}) -> 
+	set_thinktime(round(ts_stats:exponential(1/Think)));
 set_thinktime(Think) -> 
 %% dot not use timer:send_after because it does not scale well:
 %% http://www.erlang.org/ml-archive/erlang-questions/200202/msg00024.html

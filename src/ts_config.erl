@@ -137,34 +137,31 @@ parse(Element = #xmlElement{name=arrivalphase},
 
     Phase     = getAttr(Element#xmlElement.attributes, phase),
     Duration  = getAttr(Element#xmlElement.attributes, duration),
+    Unit  = getAttr(Element#xmlElement.attributes, duration, "seconds"),
     {ok, [{integer,1,IDuration}],1} = erl_scan:string(Duration),
-
+	D = to_seconds(Unit, IDuration),
     lists:foldl(fun parse/2,
 		Conf#config{arrivalphases = [#arrivalphase{phase=Phase,
-                                                   duration=IDuration
+                                                   duration=D
                                                   }
-                               |AList]},
+									 |AList]},
                 Element#xmlElement.content);
 
 %% Parsing the users element
 parse(Element = #xmlElement{name=users},
       Conf = #config{arrivalphases=[CurA | AList]}) ->
     
-    MaxNumber     = 
-        case getAttr(Element#xmlElement.attributes, maxnumber) of
-            "" -> infinity;
-            Val -> 
-                ?LOGF("Maximum number of users ~p~n",[Val],?INFO),
-                {ok, [{integer,1,IMaxN}],1} = erl_scan:string(Val),
-                IMaxN
-        end,
+    MaxVal = getAttr(Element#xmlElement.attributes, maxnumber, infinity),
+	?LOGF("Maximum number of users ~p~n",[MaxVal],?INFO),
+	{ok, [{integer,1,MaxNumber}],1} = erl_scan:string(MaxVal),
 
     InterArrival  =    
         case erl_scan:string(getAttr(Element#xmlElement.attributes, interarrival)) of
             {ok, [{integer,1,I}],1} -> I;
             {ok, [{float,1,F}],1} -> F
         end,
-    Intensity= 1/(1000 * InterArrival),
+    Unit  = getAttr(Element#xmlElement.attributes, duration, "seconds"),
+    Intensity= 1/(1000 * to_seconds(Unit,InterArrival)),
 
     lists:foldl(fun parse/2,
 		Conf#config{arrivalphases = [CurA#arrivalphase{maxnumber = MaxNumber,
@@ -265,12 +262,8 @@ parse(Element = #xmlElement{name=thinktime},
                      sessions = [CurS |SList]}) ->
     case ets:lookup(Tab,{thinktime, value}) of 
         [] -> % no default value
-            Think = case getAttr(Element#xmlElement.attributes, value) of
-                        "" -> 0;
-                        Val -> 
-                            {ok, [{integer,1,IThink}],1} = erl_scan:string(Val),
-                            IThink
-                    end,
+            StrThink = getAttr(Element#xmlElement.attributes, value,"0"),
+			{ok, [{integer,1,Think}],1} = erl_scan:string(StrThink),
             Randomize = case getAttr(Element#xmlElement.attributes, random) of
                             "true" -> true;
                             _      -> false
@@ -283,7 +276,8 @@ parse(Element = #xmlElement{name=thinktime},
     end,
     RealThink = case Randomize of
                     true ->
-                        round(ts_stats:exponential(1/(Think*1000)));
+						{random, Think * 1000};
+%                        round(ts_stats:exponential(1/(Think*1000)));
                     false ->
                         round(Think * 1000)
                 end,
@@ -333,6 +327,14 @@ getText([Text = #xmlText{value=Value}|Tail]) -> build_list(
 						  string:strip(Value, both));
 getText(_Other)                              -> "".
 
+%%%----------------------------------------------------------------------
+%%% Function: to_seconds/2
+%%% Purpose: get the real duration in seconds
+%%%----------------------------------------------------------------------
+to_seconds("second", Val)-> Val;
+to_seconds("minute", Val)-> Val*60;
+to_seconds("hour",   Val)-> Val*3600;
+to_seconds("millisecond", Val)-> Val/1000.
 
 %% Default separator is '%'
 build_list(String) -> build_list(String, "%").
