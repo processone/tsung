@@ -1,12 +1,20 @@
 0.2.1 -> 0.3.0:  Major Feature Enhancements 
-    - rewrite the configuration engine. now use an XML file.
-    - can now use several client IPs per machine
-    - several arrival phases can be set with different arrival rates and duration
+    - rewrite the configuration engine. Now use an XML file.
+    - add recording application: use as a HTTP proxy to record session into XML
+      format
+    - add support to OS monitoring (cpu, memory, network). Currently, use an
+      erlang agent on the remote nodes; SNMP is on the TODO list.
+      (mickael.remond@erlang-fr.org)
+    - can now use several IPs per client host
+    - several arrival phases can be set with different arrival rates and 
+      duration
     - can set test duration instead of number of users
     - add user defined statistics using a 'transaction' tag
-    - fix cookies handling in http (mickael.remond@erlang-fr.org)
+    - HTTP: fix cookies and POST handling (mickael.remond@erlang-fr.org)
+    - HTTP: rewrite the parser (faster and cleaner)
     - fix bad timeout computation when close occur for persistent client
-    - fix very slow implemetation ts_stats.erl:sample
+    - bugfixes and other enhancements.
+    - fix memory leak with ssl (half-closed connections)
 
 0.2.0 -> 0.2.1:  Minor bugfixes and small enhancements (9 Dec 2003) 
     - optimize session memory consumption: use an ets table to store session setup

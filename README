@@ -32,9 +32,9 @@
 
   1.2.  What This Package Is
 
-  The purpose of this package is to simulate users in order to test
+  The purpose of IDX-TSUNAMI is to simulate users in order to test
   the scalability and performances of IP based client/server
-  applications. Currently, only the Jabber protocol has been
+  applications. Currently, HTTP and Jabber protocol have been
   implemented and tested, but it can be easily extended (see
   doc/Design.txt). IDX-TSUNAMI use the Erlang language.
 
@@ -47,18 +47,21 @@
   stochastic model, in order to achieve a more realistic traffic than
   other simple models (deterministics).
 
-  In this context, a client is characterize by:
-      - the mean time elapsed between each request ("think time")
-      - the number of requests during a session
+  In this context, a client's session is characterize by:
+      - the mean time elapsed between requests ("think time")
+      - a list of requests during a session
       - the type and parameters of requests (including, for example,
         'chat' message size for Jabber)
 
-  Another key parameter is the arrival rate of clients.
+  At the end of a session, the client stops.
+
+  Another key parameters are the mean time between clients arrival,
+  and the duration of the test.
 
   In the current implementation, the client arrival rate and the user
   "think time" are represented by an exponential distribution
   (therefore, the arrival process is a Poisson process). The thinktime
-  can also be non random.
+  can also be fixed (determinist).
 
   The traffic can be logged to a file and, after completion of
   all the clients, these files can be analyzed by scripts to get
@@ -67,8 +70,9 @@
   are computed, for different types of messages: authentication,
   chat, offline messages ...) and generic statistics. 
 
-  Since v0.2.0, stats can also be computed in real-time, and dumped in
-  a text file at regular interval.
+  Since v0.2.0, stats are also be computed in real-time, and dumped in
+  a text file at regular interval. A script is provided to print
+  graphics using gnuplot.
 
   This software is currently under development and can be enhanced
   in many ways (see TODO file). 
@@ -84,6 +88,9 @@
 
   - gnuplot and perl5 (optional; for graphical output with analyse_msg.pl script)
 
+  - for distributed test, you need an ssh access to remote machines
+    without passwd (use a RSA key without passphrase)
+
   2.2.  Compilation and Installation
 
   Edit Makefile if you want to change the install path (prefix)
@@ -97,28 +104,27 @@
   make install
 
   How to use it:
-    1a/ Edit etc/idx-tsunami.xml file (read the comments for explanation on
-        the parameters, there is a sample file etc/idx-tsunami_default.xml) 
+    1a/ Edit $prefix/etc/idx-tsunami.xml file (read the comments for explanation
+        on the parameters, there is a sample file etc/idx-tsunami_default.xml) 
 
     1b/ Read the doc/Jabber.txt file for Jabber-specific information.
 
     2/ use "idx-tsunami start" to launch the simulated clients.
 
     3/ When it's finished, you can use analyse_msg.pl to get
-       statistical results from the logfiles (require at least 'light'
-       monitoring for Jabber, see comments in 'idx-tsunami.xml' ). 
+       statistical results from the logfiles. 
 
 	   Since v0.2.0, you can have 'realtime' stats using with the
 	   --stats and --plot option (no monitoring needed). It will
 	   generate graphics in postscript using gnuplot. For HTTP, you
 	   MUST use --stats. This option requires a logfile, by default it
-	   is named 'idx-tsunami.log0'
+	   is named 'idx-tsunami.log-YYYY:MM:DD-HH:mm'
        Every 10sec (default value), stats are dump in the log file,
        and the script can create graphics about the current activity.
 		   
 	   Availables stats:
-		- response_time (response time for each subrequest (~ request for HTTP))
-		- page_resptime (response time for each 'action' (~ page for HTTP))
+		- response_time (response time for each request (~ request for HTTP))
+		- page_resptime (response time for each set of requests (~ page for HTTP))
 		- connect (duration of the connection)
 		- reconnect (number of reconnection)
 		- size (size of responses)
@@ -127,7 +133,6 @@
 
        HTTP specific stats:
 		  - counter for each response status (200, 404, etc.)
-		  - parse_error (error while parsing HTTP Headers and body)
 		  - http_bad_content_length (Body is larger than expected)
 		  - http_no_content_length
   

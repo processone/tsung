@@ -1,8 +1,13 @@
 $Id$
 
-AUTHORS OF IDX-TSUNAMI:
+AUTHOR:
 ======================
 
-o Nicolas Niclausse <nicolas.niclausse@IDEALX.com>: Maintainer; design
-  and initial implementation; OTP redesign.
-o Jean François Lecomte <jflecomte@IDEALX.com>: several enhancements.
+o Nicolas Niclausse <nicolas.niclausse@IDEALX.com>: Maintainer;
+
+CONTRIBUTORS:
+======================
+o Jean François Lecomte <jflecomte@IDEALX.com>: several enhancements for Jabber
+
+o Mickael Rémond <mickael.remond@erlang-fr.org>: server monitoring;
+  HTTP tests and fixes for POST and Cookies,

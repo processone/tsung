@@ -14,10 +14,13 @@ ERLC_EMULATOR=/usr/bin/erl
 export ERLC_EMULATOR
 ERL_COMPILER_OPTIONS="[warn_unused_vars]"
 export ERL_COMPILER_OPTIONS
-OPTIONS:=+debug_info
+## for debugging
+#OPTIONS:=+debug_info -DDEBUG
+## To enable HIPE
 #OPTIONS:=+native +\{hipe,\[o3\]\}
+## To export all functions
 #OPTIONS:=+export_all
-#OPTIONS:=
+OPTIONS:=
 INC = ./include
 ERLC = erlc $(OPTIONS) -I $(INC)
 OUTDIR = ebin
@@ -32,7 +35,7 @@ show:
 
 tarball: 
 	mkdir -p $(TARDIR)
-	tar zcf tmp.tgz src/*.erl src/*.src include/*.hrl doc/*.txt doc/*.fig doc/*.png LISEZMOI README CONTRIBUTORS COPYING  idx-tsunamirc TODO Makefile vsn.mk src/analyse_msg.pl.src FAQ CHANGES
+	tar zcf tmp.tgz src/*.erl src/*.src include/*.hrl doc/*.txt doc/*.fig doc/*.png LISEZMOI README CONTRIBUTORS COPYING  idx-tsunami.sh idx-tsunami.xml TODO Makefile vsn.mk src/analyse_msg.pl.src FAQ CHANGES
 	tar -C $(TARDIR) -zxf tmp.tgz
 	mkdir $(TARDIR)/ebin
 	tar zvcf  idx-tsunami-$(VSN).tar.gz $(TARDIR)
