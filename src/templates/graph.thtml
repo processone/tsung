@@ -58,16 +58,22 @@
 <div id="users">
 <h3 id="users">Simultaneous Users</h3> 
 <table>
-<tr><th>Simultaneous Users</th><th>Matching responses</th></tr>
+<tr><th>Simultaneous Users</th>
+[% IF match %]
+    <th>Matching responses</th>
+[% END %]
+</tr>
 <tr>
  <td> <a href="images/graphes-Users-simultaneous.ps">
   <img class="graph" src="images/graphes-Users-simultaneous.png" alt="Users"/> 
  </a>
  </td>
+[% IF match %]
  <td> <a href="images/graphes-Match-rate.ps">
   <img class="graph" src="images/graphes-Match-rate.png" alt="Match"/> 
  </a>
  </td>
+[% END %]
  </tr>
 </table>
 </div>

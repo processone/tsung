@@ -27,23 +27,27 @@
 
 use strict;
 use Getopt::Long;
-use vars qw ($help @files $verbose $debug $plot $extra $version $stats $template_dir $html $template_dir);
+use vars qw ($help @files $verbose $debug $plot $extra $version $stats
+             $template_dir $html $template_dir $gnuplot $logy);
 my $tagvsn = '%VERSION%';
 
 GetOptions( "help",\$help,
 			"verbose",\$verbose,
 			"debug",\$debug,
 			"stats=s",\$stats,
+			"gnuplot=s",\$gnuplot,
 			"version",\$version,
+			"logy",\$logy,
 			"plot",\$plot,
 			"tdir",\$template_dir,
 			"html",\$html,
 			"extra",\$extra
 		  );
 
-&usage if $help or $Getopt::Long::error or not $stats;
+&usage if $help or $Getopt::Long::error;
 &version if $version;
 
+my $match =0;
 my $maxval;
 my $category;
 
@@ -59,6 +63,9 @@ unless ($template_dir) {
     }
 }
 
+$stats = "idx-tsunami.log" unless $stats;
+die "The stats file ($stats) does not exist, abort !" unless -e $stats;
+
 my $datadir = "data"; # all data files are created in this subdirectory
 my $imgdir  = "images"; # all data files are created in this subdirectory
 my $gplotdir = "gnuplot"; # all data files are created in this subdirectory
@@ -71,7 +78,9 @@ foreach my $dir ($datadir, $imgdir, $gplotdir) {
     }
 }
 
-my $gnuplot = "gnuplot >> gnuplot.log 2>&1";
+$gnuplot = "gnuplot" unless $gnuplot;
+die "$gnuplot is not executable !" unless -x $gnuplot;
+$gnuplot .= " >> gnuplot.log 2>&1";
 
 &parse_stats_file($stats);
 &html_report() if $html;
@@ -84,6 +93,7 @@ sub plot_stats {
 	my $timestamp = shift;
 	my $files     = shift; # arrayref contaning data files
 	my $ylabel    = shift;
+	my $logy      = shift; # if true use logarithmic scale for Y axis
 
 	# local var
 	my $style       = "linespoint"; # TODO: can be override in option
@@ -91,6 +101,11 @@ sub plot_stats {
 	my $output_type;
 	my $filename; # temporary var
 	my $thumbnail_size = 0.5;
+
+    if  (scalar @{$files} == 0 ) {
+        warn "No data for $datatype\n";
+        return;
+    }
 
 	$datatype = "unknown" unless $datatype;
 	open(GP,">$gplotdir/graphes-$datatype.gplot") or die "can't open graphes-$datatype.gplot: $!";
@@ -119,6 +134,7 @@ sub plot_stats {
             print "set ylabel \"".$ylabel->[$d]."\"\n" if $ylabel->[$d];
             print "show title\n";
             print "set $legend_loc\n";
+            print "set logscale y\n" if $logy;
             print "plot ";
             foreach $filename (@{$files}) {
                 print " \"$datadir/$filename\" using ";
@@ -194,6 +210,7 @@ sub parse_stats_file {
             } elsif ($type eq "size") {
                 $category->{$type} = "network";
             } elsif ($type =~ /match/) {
+                $match = 1;
                 $category->{$type} = "match";
             } elsif ($type ne "users") {
                 $category->{$type} = "count";
@@ -279,24 +296,25 @@ sub parse_stats_file {
 		}
 		close TYPE;
 	}
-	plot_stats(\@col,"Session",undef,\@session,["sessions/sec"]) if $plot;
-	plot_stats(\@colcount,"HTTP_CODE",undef,\@code,["number/sec","total"]) if $plot;
-	plot_stats(\@col,"Perfs",undef,\@tps,["rate/sec","msec"]) if $plot;
-	plot_stats(\@col,"Transactions",undef,\@transactions,["rate/sec","msec"]) if $plot;
-	plot_stats(\@colcount,"Match",undef,\@match,["rate/sec","rate/sec"]) if $plot;
-	plot_stats(\@colcount,"Event",undef,\@time,["rate/sec","msec"]) if $plot;
-	plot_stats(\@colusers,"Users",undef,\@users,["connected users", "total"]) if $plot;
-	plot_stats(\@colcount,"Users_Arrival",undef,\@users_rate,["number of users/sec", "total"]) if $plot;
-	plot_stats(\@colcount,"Size",undef,\@size,["Kbits/sec","total Kbits"]) if $plot;
+	plot_stats(\@col,"Session",undef,\@session,["sessions/sec"],$logy) if $plot;
+	plot_stats(\@colcount,"HTTP_CODE",undef,\@code,["number/sec","total"],$logy) if $plot and @code;
+	plot_stats(\@col,"Perfs",undef,\@tps,["rate/sec","msec"],$logy) if $plot;
+	plot_stats(\@col,"Transactions",undef,\@transactions,["rate/sec","msec"],$logy) if $plot;
+	plot_stats(\@colcount,"Match",undef,\@match,["rate/sec","rate/sec"],$logy) if $plot;
+	plot_stats(\@colcount,"Event",undef,\@time,["rate/sec","msec"],$logy) if $plot;
+	plot_stats(\@colusers,"Users",undef,\@users,["connected users", "total"],$logy) if $plot;
+	plot_stats(\@colcount,"Users_Arrival",undef,\@users_rate,["number of users/sec", "total"],$logy) if $plot;
+	plot_stats(\@colcount,"Size",undef,\@size,["Kbits/sec","total Kbits"],$logy) if $plot;
 
     # Generate graphes for extra indicators (os_mon for example)
-	if ($plot and $extra) {
+	if ($plot and $extra and (scalar keys %extra_info) != 0 ) {
         print STDOUT "Generation os_mon graphs\n" if $verbose;
- 	  foreach my $key (sort keys %extra_info) {
-          my $pos = index($key,":");
-          plot_stats(\@col, $key, undef, \@{$extra_info{$key}}, [$key]);
-      }
-  }
+        foreach my $key (sort keys %extra_info) {
+            my $pos = index($key,":");
+            plot_stats(\@col, $key, undef, \@{$extra_info{$key}}, [$key],$logy);
+        }
+    }
+    $extra=0 if (scalar keys %extra_info == 0 ); # no extra information available
 }
 
 sub html_report {
@@ -318,8 +336,13 @@ sub html_report {
             $xml_conf= $file;
         }
     }
-    $maxval->{rate}->{size} = sprintf("%.2f",$maxval->{rate}->{size}*8/1024);
-    $maxval->{mean}->{size} = sprintf("%.2f",$maxval->{mean}->{size}/(1024*1024));
+    if ($maxval->{rate}->{size}) {
+        $maxval->{rate}->{size} = sprintf("%.2f",$maxval->{rate}->{size}*8/1024);
+        $maxval->{mean}->{size} = sprintf("%.2f",$maxval->{mean}->{size}/(1024*1024));
+    } else {
+        warn "Size is equal to 0 !\n";
+    }
+
     my $vars =
         {
          version     => $version,
@@ -339,6 +362,7 @@ sub html_report {
          version     => $version,
          os_mon      => $extra,
          http        => $http,
+         match       => $match,
          title       => $titre,
          stats_subtitle => "Stats Report ",
          graph_subtitle => "Graphs Report ",
@@ -351,19 +375,21 @@ sub html_report {
 
 sub usage {
 	print "this script is part of IDX-TSUNAMI version $tagvsn,
-Copyright (C) 2001 IDEALX (http://IDEALX.org/)\n\n";
+Copyright (C) 2001-2004 IDEALX (http://IDEALX.org/)\n\n";
 	print "IDX-TSUNAMI comes with ABSOLUTELY NO WARRANTY; This is free software, and
 ou are welcome to redistribute it under certain conditions
-type `idx-tsunami.pl --version` for details.\n\n";
+type `analyse_msg.pl --version` for details.\n\n";
 
     print "Usage: $0 [<options>]\n","Available options:\n\t",
     "[--help] (this help text)\n\t",
     "[--verbose] (print all messages)\n\t",
     "[--debug] (print receive without send messages)\n\t",
-    "[--plot]  (make postcripts graphics using gnuplot)\n\t",
+    "[--plot]  (make graphics using gnuplot)\n\t",
+    "[--gnuplot <command>]  (path to the gnuplot binary)\n\t",
     "[--html]  (create nice HTML reports)\n\t",
+    "[--logy]  (logarithmic scale for Y axis)\n\t",
     "[--extra  (generate graphics from extra cluster data (os monitor, etc)\n\t",
-    "[--stats <file>] (stats file to analyse)\n\t";
+    "[--stats <file>] (stats file to analyse, default=idx-tsunami.log)\n\t";
 	exit;
 	}
 
