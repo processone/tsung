@@ -50,7 +50,7 @@ GetOptions( "help",\$help,
 &version if $version;
 
 
-my $gnuplot = "gnuplot > gnuplot.log 2>&1";
+my $gnuplot = "gnuplot >> gnuplot.log 2>&1";
 my $debut = 0;
 my $fin = 0;
 my $online = 0;
