@@ -47,6 +47,9 @@ CONTROLLER_SRC  = $(wildcard $(ESRC)/$(CONTROLLER_APPLICATION)/*.erl)
 RECORDER_SRC    = $(wildcard $(ESRC)/$(RECORDER_APPLICATION)/*.erl)
 CONFFILES = idx-tsunami.xml
 DTD = idx-tsunami-1.0.dtd
+USERMANUAL = doc/user_manual.html  doc/IDXDOC.css
+USERMANUAL_IMG = $(wildcard doc/images/*.png)
+USERMANUAL_SRC = doc/user_manual.tex
 
 TARGET   = $(addsuffix .beam, $(basename \
              $(addprefix $(EBIN)/, $(notdir $(SRC)))))
@@ -106,9 +109,12 @@ install: doc build idx-tsunami.sh analyse_msg.pl install_recorder install_contro
 
 	cp $(SRC) $(SRC_APPFILES) $(TARGETDIR)/src
 
-# install the man page
+# install the man page & user's manual
 	install -d $(DESTDIR)/usr/share/man/man1
 	install doc/idx-tsunami.1 $(DESTDIR)/usr/share/man/man1
+	install -d $(DESTDIR)/usr/share/doc/idx-tsunami/images
+	install $(USERMANUAL) $(DESTDIR)/usr/share/doc/idx-tsunami/
+	install $(USERMANUAL_IMG) $(DESTDIR)/usr/share/doc/idx-tsunami/images
 
 # create startup script
 	cp idx-tsunami.sh $(SCRIPT)
@@ -195,7 +201,7 @@ build_recorder: builder.beam $(RECORDER_SRC_APPFILES)
 	@ln -sf `pwd`/builder.beam temp/$(RECORDER_APPLICATION)-$(VERSION)/
 	@(cd temp/$(RECORDER_APPLICATION)-$(VERSION) \
 	 && echo $(BUILD_OPTIONS) > $(BUILD_OPTIONS_FILE) \
-	 && erl -s builder go -s init stop \
+	 && erl -noshell -s builder go -s init stop \
 	)
 	@rm -rf temp
 
@@ -209,7 +215,8 @@ release:
 		$(CONTROLLER_SRC) $(CONTROLLER_SRC_APPFILES) \
 		$(RECORDER_SRC) $(RECORDER_SRC_APPFILES) $(TEMPLATES) \
 		 doc/*.txt doc/*.fig doc/*.png doc/Makefile doc/*.sgml \
-		COPYING README LISEZMOI TODO $(CONFFILES) FAQ Makefile \
+		$(USERMANUAL) $(USERMANUAL_SRC) \
+		COPYING README LISEZMOI TODO $(CONFFILES) Makefile \
 		priv/builder.erl idx-tsunami.sh.in vsn.mk  idx-tsunami.xml \
 		debian src/analyse_msg.pl.src CONTRIBUTORS CHANGES \
 		configure configure.in config.guess config.sub include.mk.in \
