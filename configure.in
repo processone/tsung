@@ -11,6 +11,7 @@ AC_PATH_PROG(ERL, erl)
 AC_PATH_PROG(ERLC, erlc)
 
 ERLDIR=`echo "${ERL}" | sed 's/\/bin\/*erl.*//'`
+AC_PREFIX_PROGRAM(erl)
 
 AC_SUBST(ERL)
 AC_SUBST(ERLC)

@@ -1,3 +1,9 @@
+1.0.beta6 ->
+    - better handling of configure (--prefix is working)
+    - add different types of output backend (currently, only 'text'
+      works; 'rrdtool' is started but unfinished)
+    - fix: ssl_ciphers option is working again
+
 1.0.beta5 -> 1.0.beta6:  Minor feature enhancements (5 May 2004)
     - add a DTD for the configuration file
     - add dynamic request substitution (mickael.remond@erlang-fr)

@@ -26,24 +26,26 @@ EBIN = ./ebin
 VERSION = $(IDX-TSUNAMI_VSN)
 
 # installation path
-RAW_INSTALL_DIR = $(ERLDIR)/lib/erlang
+#RAW_INSTALL_DIR = $(ERLDIR)/lib/erlang
 # $DESTDIR is used to build the debian package
-ERLANG_INSTALL_DIR = $(DESTDIR)/$(RAW_INSTALL_DIR)/lib
-BINDIR    = $(INSTALLPREFIX)/bin
-LIBDIR    = $(INSTALLPREFIX)/lib/idx-tsunami/bin/
-CONFDIR   = $(INSTALLPREFIX)/share/doc/idx-tsunami/examples
-SHARE_DIR = $(INSTALLPREFIX)/share/idx-tsunami/
+BINDIR    = $(bindir)
+LIBDIR    = $(libdir)/idx-tsunami/bin/
+CONFDIR   = $(datadir)/doc/idx-tsunami/examples
+SHARE_DIR = $(datadir)/idx-tsunami/
 TEMPLATES_DIR = $(SHARE_DIR)/templates
+MAN_DIR   = $(datadir)/man/man1/
+DOC_DIR   = $(datadir)/doc/idx-tsunami
 
+ERLANG_LIB_DIR = $(libdir)/erlang/lib
 
 PACKAGE = idx-tsunami
 APPLICATION = tsunami
 CONTROLLER_APPLICATION = tsunami_controller
 RECORDER_APPLICATION = tsunami_recorder
 
-RECORDER_TARGETDIR = $(ERLANG_INSTALL_DIR)/$(RECORDER_APPLICATION)-$(VERSION)
-CONTROLLER_TARGETDIR = $(ERLANG_INSTALL_DIR)/$(CONTROLLER_APPLICATION)-$(VERSION)
-TARGETDIR = $(ERLANG_INSTALL_DIR)/$(APPLICATION)-$(VERSION)
+RECORDER_TARGETDIR = $(ERLANG_LIB_DIR)/$(RECORDER_APPLICATION)-$(VERSION)
+CONTROLLER_TARGETDIR = $(ERLANG_LIB_DIR)/$(CONTROLLER_APPLICATION)-$(VERSION)
+TARGETDIR = $(ERLANG_LIB_DIR)/$(APPLICATION)-$(VERSION)
 
 TEMPLATES = $(wildcard $(ESRC)/templates/*.thtml)
 TMP       = $(wildcard *~) $(wildcard src/*~) $(wildcard inc/*~)
@@ -77,7 +79,11 @@ RECORDER_TGT_APPFILES_P = priv/$(RECORDER_APPLICATION)*
 CONTROLLER_TGT_APPFILES_P = priv/$(CONTROLLER_APPLICATION)*
 
 SCRIPT   = $(BINDIR)/idx-tsunami
-BUILD_OPTIONS =	'[{systools, [{variables,[{"ROOT","$(RAW_INSTALL_DIR)"}]}]}, \
+PWD = $(shell pwd)
+BUILD_OPTIONS =	'[{systools, \
+        [{variables,[ \
+         {"TSUNAMIPATH", "$(PWD)/temp/"}] \
+        }]}, \
 	    {sh_script, none}, \
         {make_app, true }, {make_rel, true}].'
 BUILD_OPTIONS_FILE = ./BUILD_OPTIONS 
@@ -101,7 +107,7 @@ test:
 clean:
 	-cd priv && rm -f $(shell ls priv | grep -v builder\.erl) && cd ..
 	-rm -f $(TARGET) $(TMP) $(BUILD_OPTIONS_FILE) builder.beam
-	-rm -f $(TGT_APPFILES)
+	-rm -f $(TGT_APPFILES) idx-tsunami.sh analyse_msg.pl
 	-rm -f ebin/*.beam 
 #	-make -C doc clean
 
@@ -124,11 +130,11 @@ install: doc build idx-tsunami.sh analyse_msg.pl install_recorder install_contro
 	cp $(SRC) $(SRC_APPFILES) $(TARGETDIR)/src
 
 # install the man page & user's manual
-	install -d $(INSTALLPREFIX)/share/man/man1
-	install doc/idx-tsunami.1 $(INSTALLPREFIX)/share/man/man1
-	install -d $(INSTALLPREFIX)/share/doc/idx-tsunami/images
-	install $(USERMANUAL) $(INSTALLPREFIX)/share/doc/idx-tsunami/
-	install $(USERMANUAL_IMG) $(INSTALLPREFIX)/share/doc/idx-tsunami/images
+	install -d $(MAN_DIR)
+	install doc/idx-tsunami.1 $(MAN_DIR)
+	install -d $(DOC_DIR)/images
+	install $(USERMANUAL) $(DOC_DIR)
+	install $(USERMANUAL_IMG) $(DOC_DIR)/images
 
 # create startup script
 	cp idx-tsunami.sh $(SCRIPT)
@@ -176,14 +182,14 @@ uninstall:
 build: idx-tsunami builder.beam build_controller build_recorder $(SRC_APPFILES)
 # use builder to make boot file
 	@rm -rf temp
-	@mkdir -p temp/$(APPLICATION)-$(VERSION)
-	@ln -sf `pwd`/ebin temp/$(APPLICATION)-$(VERSION)/ebin
-	@ln -sf `pwd`/src/$(APPLICATION) temp/$(APPLICATION)-$(VERSION)/src
-	@ln -sf `pwd`/include temp/$(APPLICATION)-$(VERSION)/include
-	@ln -sf `pwd`/priv temp/$(APPLICATION)-$(VERSION)/priv
-	@ln -sf `pwd`/builder.beam temp/$(APPLICATION)-$(VERSION)/
-	@ln -sf `pwd` temp/$(APPLICATION)-$(VERSION)
-	@(cd temp/$(APPLICATION)-$(VERSION) \
+	@mkdir -p temp/lib/$(APPLICATION)-$(VERSION)
+	@ln -sf `pwd`/ebin temp/lib/$(APPLICATION)-$(VERSION)/ebin
+	@ln -sf `pwd`/src/$(APPLICATION) temp/lib/$(APPLICATION)-$(VERSION)/src
+	@ln -sf `pwd`/include temp/lib/$(APPLICATION)-$(VERSION)/include
+	@ln -sf `pwd`/priv temp/lib/$(APPLICATION)-$(VERSION)/priv
+	@ln -sf `pwd`/builder.beam temp/lib/$(APPLICATION)-$(VERSION)/
+	@ln -sf `pwd` temp/lib/$(APPLICATION)-$(VERSION)
+	@(cd temp/lib/$(APPLICATION)-$(VERSION) \
 	 && echo $(BUILD_OPTIONS) > $(BUILD_OPTIONS_FILE) \
 	 && erl -s builder go -s init stop \
 	)
@@ -192,13 +198,13 @@ build: idx-tsunami builder.beam build_controller build_recorder $(SRC_APPFILES)
 build_controller: builder.beam $(CONTROLLER_SRC_APPFILES)
 # use builder to make boot file
 	@rm -rf temp
-	@mkdir -p temp/$(CONTROLLER_APPLICATION)-$(VERSION)
-	@ln -sf `pwd`/ebin temp/$(CONTROLLER_APPLICATION)-$(VERSION)/ebin
-	@ln -sf `pwd`/src/$(CONTROLLER_APPLICATION) temp/$(CONTROLLER_APPLICATION)-$(VERSION)/src
-	@ln -sf `pwd`/include temp/$(CONTROLLER_APPLICATION)-$(VERSION)/include
-	@ln -sf `pwd`/priv temp/$(CONTROLLER_APPLICATION)-$(VERSION)/priv
-	@ln -sf `pwd`/builder.beam temp/$(CONTROLLER_APPLICATION)-$(VERSION)/
-	@(cd temp/$(CONTROLLER_APPLICATION)-$(VERSION) \
+	@mkdir -p temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)
+	@ln -sf `pwd`/ebin temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/ebin
+	@ln -sf `pwd`/src/$(CONTROLLER_APPLICATION) temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/src
+	@ln -sf `pwd`/include temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/include
+	@ln -sf `pwd`/priv temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/priv
+	@ln -sf `pwd`/builder.beam temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/
+	@(cd temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION) \
 	 && echo $(BUILD_OPTIONS) > $(BUILD_OPTIONS_FILE) \
 	 && erl -s builder go -s init stop \
 	)
@@ -207,13 +213,13 @@ build_controller: builder.beam $(CONTROLLER_SRC_APPFILES)
 build_recorder: builder.beam $(RECORDER_SRC_APPFILES)
 # use builder to make boot file
 	@rm -rf temp
-	@mkdir -p temp/$(RECORDER_APPLICATION)-$(VERSION)
-	@ln -sf `pwd`/ebin temp/$(RECORDER_APPLICATION)-$(VERSION)/ebin
-	@ln -sf `pwd`/src/$(RECORDER_APPLICATION) temp/$(RECORDER_APPLICATION)-$(VERSION)/src
-	@ln -sf `pwd`/include temp/$(RECORDER_APPLICATION)-$(VERSION)/include
-	@ln -sf `pwd`/priv temp/$(RECORDER_APPLICATION)-$(VERSION)/priv
-	@ln -sf `pwd`/builder.beam temp/$(RECORDER_APPLICATION)-$(VERSION)/
-	@(cd temp/$(RECORDER_APPLICATION)-$(VERSION) \
+	@mkdir -p temp/lib/$(RECORDER_APPLICATION)-$(VERSION)
+	@ln -sf `pwd`/ebin temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/ebin
+	@ln -sf `pwd`/src/$(RECORDER_APPLICATION) temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/src
+	@ln -sf `pwd`/include temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/include
+	@ln -sf `pwd`/priv temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/priv
+	@ln -sf `pwd`/builder.beam temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/
+	@(cd temp/lib/$(RECORDER_APPLICATION)-$(VERSION) \
 	 && echo $(BUILD_OPTIONS) > $(BUILD_OPTIONS_FILE) \
 	 && erl -noshell -s builder go -s init stop \
 	)
@@ -257,9 +263,10 @@ ebin/%.beam: src/$(CONTROLLER_APPLICATION)/%.erl  $(INC_FILES)
 analyse_msg.pl: src/analyse_msg.pl.src Makefile
 	$(SED) -e 's;%VERSION%;$(VERSION);g' < $<  > $@
 
-idx-tsunami.sh: idx-tsunami.sh.in Makefile
+idx-tsunami.sh: idx-tsunami.sh.in include.mk Makefile
 	@$(SED) \
-		-e 's;%INSTALL_DIR%;${RAW_INSTALL_DIR};g' \
+		-e 's;%INSTALL_DIR%;${raw_erlang_prefix};g' \
+		-e 's;$DESTDIR%;;g' \
 		-e 's;CONFIG_DIR%;${CONFIG_DIR};g' \
 		-e 's;%VERSION%;${VERSION};g' < $< > $@
 

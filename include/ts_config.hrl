@@ -22,6 +22,8 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
+-define(TSUNAMIPATH, "TSUNAMIPATH").
+
 -record(config,	{
           name,
           loglevel = ?WARN,

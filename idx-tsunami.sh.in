@@ -18,8 +18,8 @@ CONTROLLERPATH=%INSTALL_DIR%/lib/tsunami_controller-$VERSION/ebin
 RECORDERPATH=%INSTALL_DIR%/lib/tsunami_recorder-$VERSION/ebin
 
 CONF_OPT_FILE="$HOME/.idx-tsunami/idx-tsunami.xml"
-BOOT_OPT="-boot %INSTALL_DIR%/lib/tsunami_controller-$VERSION/priv/tsunami_controller"
-REC_BOOT_OPT="-boot %INSTALL_DIR%/lib/tsunami_recorder-$VERSION/priv/tsunami_recorder"
+BOOT_OPT="-boot %INSTALL_DIR%/lib/tsunami_controller-$VERSION/priv/tsunami_controller -boot_var TSUNAMIPATH  %INSTALL_DIR% "
+REC_BOOT_OPT="-boot %INSTALL_DIR%/lib/tsunami_recorder-$VERSION/priv/tsunami_recorder -boot_var TSUNAMIPATH  %INSTALL_DIR% "
 REC_DEBUG_LEVEL=5
 ERL_OPTS="-rsh ssh +A 1 +Mea r10b -shared "
 COOKIE='tsunami'
@@ -35,12 +35,14 @@ stop_recorder() {
 start() {
     echo "Starting IDX-Tsunami"	
     erl $ERL_OPTS -detached -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT \
+    -pa $TSUNAMIPATH -pa $CONTROLLERPATH \
     -tsunami_controller config_file \"$CONF_OPT_FILE\" -tsunami_controller $LOG_OPT
 }
 
 recorder() {
     echo "Starting IDX-Tsunami recorder on port $LISTEN_PORT"
     erl $ERL_OPTS -detached -sname $RECORDER -setcookie $COOKIE  $REC_BOOT_OPT \
+    -pa $TSUNAMIPATH -pa $RECORDERPATH \
     -tsunami_recorder debug_level $REC_DEBUG_LEVEL \
     -tsunami_recorder $LOG_OPT \
     -tsunami_recorder proxy_log_file \"$MAIN_DIR/idx-tsunami_recorder.xml\" \
@@ -48,7 +50,7 @@ recorder() {
 }
 
 debug() {
-    erl $ERL_OPTS -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT  \
+    erl $ERL_OPTS -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT -pa $TSUNAMIPATH -pa $CONTROLLERPATH \
     -tsunami_controller config_file \"$CONF_OPT_FILE\"  -tsunami_controller $LOG_OPT
 }
 
