@@ -173,7 +173,7 @@ handle_cast({add_messages, Messages}, State) ->
 	{noreply, State#state{profile = Messages ++ OldProfile, 
 						  count = OldCount + length(Messages)}, 1};
 
-%% the connexion was closed, but  this session is persistent
+%% the connexion was closed, but this session is persistent
 handle_cast({closed, Pid}, State = #state{persistent = true}) ->
 	?PRINTDEBUG2("connection closed, stay alive (persistent)",?DEB),
 	%% TODO: set the timeout correctly ?
@@ -206,24 +206,22 @@ handle_cast({timeout, Pid}, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_info(timeout, State ) when State#state.count > 0 ->
-	Len = length(State#state.profile), % length is O(n), maybe we should do it differently
-	[Profile | Pending] = State#state.profile,
-	case {Profile#message.type, State#state.count} of 
-		{dynamic, Len } -> % don't forget that Len is already set !
-			%% no dynamic message remaining
-			Thinktime = ts_profile:thinktime(),
-			PendingProfile = Pending;
-		{static, _Len} ->
-			Thinktime = Profile#message.thinktime,
-			PendingProfile = Pending;
-		{dynamic, _} -> %% keep the same profile until all dynamic messages done
-			Thinktime = ts_profile:thinktime(),
-			PendingProfile = State#state.profile
-	end,
+%% no more messages to send
+handle_info(timeout, State= #state{ count=0 })  ->
+	Protocol = State#state.protocol,
+	case State#state.socket of 
+		none ->
+			{stop, normal, State};
+		Else ->
+			Protocol:close(State#state.socket),
+			{stop, normal, State}
+	end;
+
+handle_info(timeout, State ) ->
+    {Thinktime, Profile, Pending} = set_profile(State#state.count, State#state.profile),
 	Count = State#state.count-1,
 	Message = ts_profile:get_message(State#state.clienttype,
-								  Profile#message.param),
+                                     Profile#message.param),
 	Now = now(),
 	%% warn the receiving side that we are sending a new request
 	ts_client_rcv:wait_ack({State#state.rcvpid,Profile#message.ack, Now, Profile#message.endpage}),
@@ -231,20 +229,12 @@ handle_info(timeout, State ) when State#state.count > 0 ->
 	Protocol = State#state.protocol,
 	Socket = reconnect(State#state.socket, State#state.server, State#state.port,
 					   Protocol, State#state.rcvpid),
-	case {Profile#message.ack, Count} of 
-		{no_ack, _} ->
-			Timeout = Thinktime;
-		{Else, 0} ->
-			?PRINTDEBUG("Last Message, setting Thinktime to: ~p~n.", [Thinktime], ?DEB),
-			Timeout = Thinktime;
-		{Else, _} ->
-			Timeout = infinity
-	end,
+    Timeout = new_timeout(Profile#message.ack, Count, Thinktime),
     case send(Protocol, Socket, Message) of
 		ok -> 
-			ts_mon:sendmes({State#state_rcv.monitor, self(), Now, Message}),
+			ts_mon:sendmes({State#state_rcv.monitor, self(), Message}),
 			{noreply, State#state{socket= Socket, count = Count,
-								  profile = PendingProfile,
+								  profile = Pending,
 								  timestamp = Now,
 								  lasttimeout = Thinktime},
 			 Timeout}; 
@@ -264,18 +254,8 @@ handle_info(timeout, State ) when State#state.count > 0 ->
 			   [self(), Reason],?ERR),
 			ts_mon:addcount({ Reason }),
 			{stop, Reason, State}
-	end;
-
-%% no more messages to send
-handle_info(timeout, State)  ->
-	Protocol = State#state.protocol,
-	case State#state.socket of 
-		none ->
-			{stop, normal, State};
-		Else ->
-			Protocol:close(State#state.socket),
-			{stop, normal, State}
 	end.
+
 
 %%----------------------------------------------------------------------
 %% Func: terminate/2
@@ -294,6 +274,31 @@ terminate(Reason, State) ->
 %%%----------------------------------------------------------------------
 %%% Internal functions
 %%%----------------------------------------------------------------------
+
+%%----------------------------------------------------------------------
+%% Func: set_profile/2
+%% Args: Count (integer), Profiles (List)
+%%----------------------------------------------------------------------
+%% static message, get the thinktime from profile
+set_profile(Count, [Profile=#message{type = static} | Pending]) ->
+    {Profile#message.thinktime, Profile, Pending };
+%% dynamic message, last message
+set_profile(Count, [Profile | Pending]) when length(Pending)+1 == Count->
+    {ts_profile:thinktime(), Profile, Pending };
+%% dynamic message, keep the same profiles
+set_profile(Count, Profiles) ->
+	[Profile | Pending] = Profiles,
+    {ts_profile:thinktime(), Profile, Profiles }.
+     
+%%----------------------------------------------------------------------
+%% Func: new_timeout/3
+%% Args: Type, Count, Thinktime
+%% Puropose: If we need to ack the message, we have to wait first the
+%% acknoledgement from the receiving process, therefore, set infinite timeout
+%% ----------------------------------------------------------------------
+new_timeout(no_ack, Count, Thinktime) -> Thinktime;
+new_timeout(_Else,  0,     Thinktime) -> Thinktime; % last message, don't wait
+new_timeout(_Else, _Count, Thinktime) -> infinity.
 
 %%----------------------------------------------------------------------
 %% Func: reconnect/4
