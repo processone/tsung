@@ -75,7 +75,7 @@ parse(Data, State) ->
 
 %%
 parse_config(Element, Conf) ->
-	ts_jabber_common:parse_config(Element, Conf).
+	ts_config_jabber:parse_config(Element, Conf).
 
 %%----------------------------------------------------------------------
 %% Function: add_dynparams/2

@@ -21,16 +21,12 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
--export([parse_config/2,
-		 get_random_params/4,  
-		 get_message/1
-		]). 
+-export([ get_random_params/4,  
+          get_message/1
+         ]). 
 
 -include("ts_profile.hrl").
 -include("ts_jabber.hrl").
-
--include("ts_config.hrl").
--include_lib("xmerl/inc/xmerl.hrl").
 
 %get_random_message (#jabber{type = connect, size = Size, dest = Dest}) ->
 get_message(Jabber=#jabber{type = 'connect'}) ->
@@ -195,73 +191,6 @@ get_random_params(Intensity, N, Size, Type, L)  ->
 get_random_params(Intensity, N, Size, Type) when is_integer(N), N >= 0 ->
     get_random_params(Intensity, N, Size, Type, []).
 
-%%----------------------------------------------------------------------
-%% Func: parse_config/2
-%% Args: Element, Config
-%% Returns: List
-%% Purpose: parse a request defined in the XML config file
-%%----------------------------------------------------------------------
-parse_config(Element = #xmlElement{name=jabber}, 
-             Config=#config{curid= Id, session_tab = Tab,
-                            sessions = [CurS |SList]}) ->
-    TypeStr  = ts_config:getAttr(Element#xmlElement.attributes, type, "chat"),
-    AckStr  = ts_config:getAttr(Element#xmlElement.attributes, ack, "no_ack"),
-    DestStr= ts_config:getAttr(Element#xmlElement.attributes, destination,"random"),
-    SizeStr= ts_config:getAttr(Element#xmlElement.attributes, size,"0"),
-    Type= list_to_atom(TypeStr),
-    Size= list_to_integer(SizeStr),
-    Dest= list_to_atom(DestStr),
-    Ack = list_to_atom(AckStr),
-
-	Domain  =ts_config:get_default(Tab, jabber_domain_name, jabber_domain),
-	UserName=ts_config:get_default(Tab, jabber_username, jabber_username),
-	Passwd  =ts_config:get_default(Tab, jabber_passwd, jabber_passwd),
-
-	Msg=#ts_request{ack   = Ack,
-                    endpage = true,
-                    param = #jabber{domain = Domain,
-                                    username = UserName,
-                                    passwd = Passwd,
-                                    type   = Type,
-                                    dest   = Dest,
-                                    size   = Size
-							   }
-				},
-    ts_config:mark_prev_req(Id-1, Tab, CurS),
-    ets:insert(Tab,{{CurS#session.id, Id}, Msg}),
-    lists:foldl( fun(A,B) -> ts_config:parse(A,B) end,
-                 Config#config{},
-                 Element#xmlElement.content);
-%% Parsing default values
-parse_config(Element = #xmlElement{name=default}, Conf = #config{session_tab = Tab}) ->
-    case ts_config:getAttr(Element#xmlElement.attributes, name) of
-        "username" ->
-            Val = ts_config:getAttr(Element#xmlElement.attributes, value),
-            ets:insert(Tab,{{jabber_username,value}, Val});
-        "passwd" ->
-            Val = ts_config:getAttr(Element#xmlElement.attributes, value),
-            ets:insert(Tab,{{jabber_passwd,value}, Val});
-        "domain" ->
-            Val = ts_config:getAttr(Element#xmlElement.attributes, value),
-            ets:insert(Tab,{{jabber_domain_name,value}, Val});
-        "global_number" ->
-            Val = ts_config:getAttr(Element#xmlElement.attributes, value),
-            {ok, [{integer,1,N}],1} = erl_scan:string(Val),
-            ts_timer:config(N),
-            ets:insert(Tab,{{jabber_global_number, value}, N});
-        "userid_max" ->
-            Val = ts_config:getAttr(Element#xmlElement.attributes, value),
-            {ok, [{integer,1,N}],1} = erl_scan:string(Val),
-            ts_user_server:reset(N),
-            ets:insert(Tab,{{jabber_userid_max,value}, N})
-    end,
-    lists:foldl( fun(A,B) -> ts_config:parse(A,B) end, Conf, Element#xmlElement.content);
-%% Parsing other elements
-parse_config(Element = #xmlElement{}, Conf = #config{}) ->
-    lists:foldl( fun(A,B) -> ts_config:parse(A,B) end, Conf, Element#xmlElement.content);
-%% Parsing non #xmlElement elements
-parse_config(Element, Conf = #config{}) ->
-    Conf.
 
 
 

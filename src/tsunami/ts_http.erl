@@ -77,7 +77,7 @@ parse(Data, State) ->
 %% Function: parse_config/2
 %%----------------------------------------------------------------------
 parse_config(Element, Conf) ->
-	ts_http_common:parse_config(Element, Conf).
+	ts_config_http:parse_config(Element, Conf).
 
 %%----------------------------------------------------------------------
 %% Function: add_dynparams/4
