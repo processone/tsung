@@ -53,7 +53,7 @@
 					 {req_filename, "requests.txt"},	%% Fichiers de requetes
 					 {req_server_timeout, 120000},	%% Fichiers de requetes
 					 {http_req_filename, "http.txt"},	%% Fichiers de requetes HTTP
-					 {http_version, 1.1},	%% 
+					 {http_version, "1.1"},	%% 
 					 {client_retry_timeout, 10},	    %% retry sending (in microsec.)
 					 {ssl_ciphers, "EXP1024-RC4-SHA,EDH-RSA-DES-CBC3-SHA"},	
 

@@ -24,10 +24,10 @@
 -record(http_request, {url, cookie=none, method=get, body=[], id = 0 }).
 
 %% use by the client process to store information about the current request during 
-%% the  parsing of the response
+%% the parsing of the response
 -record(http, {content_length= 0, % HTTP header: content length
 			   body_size     = 0, % current size of body,
-			   status     = none  % HTTP resp. status :200, etc. 'none' if no current cnx.
+			   status        = none  % HTTP resp. status :200, etc. 'none' if no current cnx.
 			  }).
 
 -define(server_name, ts_utils:get_val(server_name)).
@@ -37,6 +37,6 @@
 %% HTTP Protocol
 -define(GET, "GET").
 -define(POST, "POST").
--define(HTTP10, "HTTP/1.0").
--define(HTTP11, "HTTP/1.1").
+
+-define(USER_AGENT, "IDX-Tsunami").
 

@@ -49,6 +49,8 @@
 -define(short_timeout, 1).
 -define(retries, 4).
 
+-define(CR, "\n").
+
 %% retry sending message after this timeout (in microsec.)
 -define(client_retry_timeout, ts_utils:get_val(client_retry_timeout)).
 -define(req_server_timeout, ts_utils:get_val(req_server_timeout)). %% timeout when for reading the session file

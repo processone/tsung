@@ -1,13 +1,13 @@
 
 - add cookie support
-- add POST support
-- full support of httperf sesslog file
+- test POST support
 - cache ssl session ID
 - handle http/1.1 pipelining ?
 - add multiple tcp connections per client (for http) ?
 - improve documentation
 - add custom http headers
 - change sequence for loading sesslog file
+- add capability to send several samples at once to ts_mon
 
 - groupchat for Jabber
 - clients may do a checksum to control integrity of responses ?

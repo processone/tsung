@@ -28,7 +28,7 @@
 -export([get_client/2,
 		 get_client/3,
 		 http_get/3,
-		 http_post/3,
+		 http_post/4,
 		 parse/2,
 		 get_simple_client/2
 		]).
@@ -115,45 +115,48 @@ build_simplesession(N, Session, Id) ->
 %%----------------------------------------------------------------------
 %% Func: http_get/3
 %% Args: URL, HTTP Version, Cookie
-%% Are we caching this string ? We should !
 %%----------------------------------------------------------------------
-http_get(URL, 1.0, none) ->
-	CR=io_lib:nl(),
-	?GET ++ " " ++ URL ++" " ++ ?HTTP10 ++ CR ++ user_agent() ++ CR++CR;
-http_get(URL, 1.0, Cookie) -> %%TODO 
-	CR=io_lib:nl(),
-	?GET ++ " " ++ URL ++" " ++ ?HTTP10 ++ CR ++ user_agent() ++ CR++CR;
-http_get(URL, 1.1, none) ->
-	CR=io_lib:nl(),
-	?GET ++ " " ++ URL ++" " ++ ?HTTP11 ++ CR++ host() ++ CR++ user_agent() ++ CR++CR;
-http_get(URL, 1.1, Cookie) -> %% TODO
-	CR=io_lib:nl(),
-	?GET ++ " " ++ URL ++" " ++ ?HTTP11 ++ CR++ host() ++ CR++ user_agent() ++ CR++CR.
+http_get(URL, Version, Cookie) ->
+	lists:append([?GET, " ", URL," ", "HTTP/", Version, ?CR, 
+				  protocol_headers(Version),
+				  user_agent(),
+				  get_cookie(Cookie),
+				  ?CR]).
 
 %%----------------------------------------------------------------------
-%% Func: http_post/3
-%% Args: URL, HTTP Version, Cookie
+%% Func: http_post/4
+%% Args: URL, HTTP Version, Cookie, Content
+%% TODO: Content-Type ?
 %%----------------------------------------------------------------------
-http_post(URL, 1.0, none) ->
-	CR=io_lib:nl(),
-	?POST ++ " " ++ URL ++" " ++ ?HTTP10 ++ CR ++ user_agent() ++ CR++CR;
-http_post(URL, 1.0, Cookie) -> %%TODO 
-	CR=io_lib:nl(),
-	?POST ++ " " ++ URL ++" " ++ ?HTTP10 ++ CR ++ user_agent() ++ CR++CR;
-http_post(URL, 1.1, none) ->
-	CR=io_lib:nl(),
-	?POST ++ " " ++ URL ++" " ++ ?HTTP11 ++ CR++ host() ++ CR++ user_agent() ++ CR++CR;
-http_post(URL, 1.1, Cookie) -> %% TODO
-	CR=io_lib:nl(),
-	?POST ++ " " ++ URL ++" " ++ ?HTTP11 ++ CR++ host() ++ CR++ user_agent() ++ CR++CR.
+http_post(URL, Version, Cookie, Content) ->
+	ContentLength=length(Content),
+	lists:append([?POST, " ", URL," ", "HTTP/", Version, ?CR,
+				  protocol_headers(Version),
+				  user_agent(),
+				  get_cookie(Cookie),
+				  "Content-Length: ",Content,?CR,
+				  ?CR,
+				  Content]).
 
 %%----------------------------------------------------------------------
 %% some HTTP headers functions
 %%----------------------------------------------------------------------
 user_agent() ->
-	"User-Agent: IDX-Tsunami".
-host() ->
-	"Host:" ++ ?server_name.
+	lists:append(["User-Agent: ", ?USER_AGENT, ?CR]).
+
+get_cookie(none) ->
+	[];
+get_cookie(Cookie) ->
+	lists:append(["Cookie: ", Cookie, ?CR]).
+
+%%----------------------------------------------------------------------
+%% set HTTP headers specific to the protocol version
+%%----------------------------------------------------------------------
+protocol_headers("1.1") ->
+	lists:append(["Host: ", ?server_name, ?CR]);
+protocol_headers("1.0") ->
+	[].
+	
 
 %%----------------------------------------------------------------------
 %% Func: parse_requestline/1
@@ -298,7 +301,7 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 %% current connection
 parse(Data, State) ->
 	DataSize = size(Data),
-	?PRINTDEBUG("HTTP Body ~p~n",[DataSize], ?DEB),
+	?PRINTDEBUG("HTTP Body size=~p ~n",[DataSize], ?DEB),
 	Size = (State#state_rcv.session)#http.body_size + DataSize,
 	CLength = (State#state_rcv.session)#http.content_length,
 	case Size of 

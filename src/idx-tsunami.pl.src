@@ -106,7 +106,7 @@ if ($config or $start or $restart) {
 					} else {
 						# if contains  ':' ,'.' or '-' , put quotes, otherwise,
 						# Erlang is not happy
-						if (($config{$key} =~ /[:|-|\.]/) and ($config{$key} !~ /^\d+\.\d+$/)){
+						if (($config{$key} =~ /[:|-|\.]/) and ($config{$key} !~ /^\d+\.\d+$/) or $key eq "http_version"){
 							print "{$key, \"". $config{$key} . "\"},\n";
 						}
 						else {
