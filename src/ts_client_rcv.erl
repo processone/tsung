@@ -115,13 +115,15 @@ handle_cast(Message, State) ->
 %%----------------------------------------------------------------------
 handle_info({tcp, Socket, Data}, State) ->
 	{NewState, Opts} = handle_data_msg(Data, State),
-	ts_utils:inet_setopts(State#state_rcv.protocol, Socket, Opts ++ [{active, once}]),
+	ts_utils:inet_setopts(State#state_rcv.protocol, Socket, 
+						  Opts ++ [{active, once}], State#state_rcv.ppid),
 	{noreply, NewState};
 
 %% ssl case
 handle_info({ssl, Socket, Data}, State) ->
 	{NewState, Opts}  = handle_data_msg(Data, State),
-	ts_utils:inet_setopts(State#state_rcv.protocol, Socket, Opts ++ [{active, once}]),
+	ts_utils:inet_setopts(State#state_rcv.protocol, Socket,
+						  Opts ++ [{active, once}], State#state_rcv.ppid),
 	{noreply, NewState};
 
 handle_info({tcp_closed, Socket}, State) ->
@@ -149,7 +151,8 @@ handle_info({ssl_error, Socket, Reason}, State) ->
 handle_info(Data, State) ->%% test if client implement parse ?
 	{NewState, Opts} = handle_data_msg(Data, State),
 	Socket = State#state_rcv.socket,
-	ts_utils:inet_setopts(State#state_rcv.protocol, Socket, Opts ++ [{active, once}]),
+	ts_utils:inet_setopts(State#state_rcv.protocol, Socket,
+						  Opts ++ [{active, once}], State#state_rcv.ppid),
 	{noreply, NewState}.
 
 %%----------------------------------------------------------------------

@@ -25,7 +25,7 @@
 
 %% user interface
 -export([debug/3, debug/4, get_val/1, init_seed/0, chop/1, elapsed/2,
-		now_sec/0, inet_setopts/3]).
+		now_sec/0, inet_setopts/4]).
 
 get_val(Var) ->
 	case application:get_env(Var) of 
@@ -69,19 +69,23 @@ now_sec() ->
 	Seconds+1000000*MSec.
 
 %%
-inet_setopts(ssl, Socket, Opts) ->
+inet_setopts(ssl, Socket, Opts, Pid) ->
 	case ssl:setopts(Socket, Opts) of
 		ok ->
-			?PRINTDEBUG("Setting inet options to : ~p ~n", [Opts], ?DEB);
+			?PRINTDEBUG("Setting ssl options to : ~p ~n", [Opts], ?DEB);
+		{error, closed} ->
+			ts_client:close(Pid);
 		Error ->
-			?PRINTDEBUG("Error while setting inet options ~p ~p ~n", [Opts, Error], ?ERR)
+			?PRINTDEBUG("Error while setting ssl options ~p ~p ~n", [Opts, Error], ?ERR)
 	end;
-inet_setopts(gen_tcp, Socket,  Opts)->
+inet_setopts(gen_tcp, Socket,  Opts, Pid)->
 	case inet:setopts(Socket, Opts) of
 		ok ->
 			?PRINTDEBUG("Setting inet options to : ~p ~n", [Opts], ?DEB);
+		{error, closed} ->
+			ts_client:close(Pid);
 		Error ->
 			?PRINTDEBUG("Error while setting inet options ~p ~p ~n", [Opts, Error], ?ERR)
 	end;
-inet_setopts(gen_udp, Socket,  Opts)->
+inet_setopts(gen_udp, Socket,  Opts, Pid)->
 	ok = inet:setopts(Socket, Opts).
