@@ -116,14 +116,14 @@ handle_cast(Message, State) ->
 %%----------------------------------------------------------------------
 handle_info({tcp, Socket, Data}, State) ->
 	{NewState, Opts} = handle_data_msg(Data, State),
-	ts_utils:inet_setopts(State#state_rcv.protocol, Socket, 
+	ts_utils:inet_setopts(State#state_rcv.protocol, NewState#state_rcv.socket,
 						  [{active, once} | Opts], State#state_rcv.ppid),
 	{noreply, NewState, State#state_rcv.timeout};
 
 %% ssl case
 handle_info({ssl, Socket, Data}, State) ->
 	{NewState, Opts}  = handle_data_msg(Data, State),
-	ts_utils:inet_setopts(State#state_rcv.protocol, Socket,
+	ts_utils:inet_setopts(State#state_rcv.protocol, NewState#state_rcv.socket,
 						  [{active, once} | Opts], State#state_rcv.ppid),
 	{noreply, NewState, State#state_rcv.timeout};
 
@@ -162,7 +162,7 @@ handle_info(timeout, State) ->
 
 handle_info(Data, State) ->%% test if client implement parse ?
 	{NewState, Opts} = handle_data_msg(Data, State),
-	Socket = State#state_rcv.socket,
+	Socket = NewState#state_rcv.socket,
 	ts_utils:inet_setopts(State#state_rcv.protocol, Socket,
 						  [{active, once} | Opts], State#state_rcv.ppid),
 	{noreply, NewState, State#state_rcv.timeout}.
@@ -188,19 +188,32 @@ terminate(Reason, State) ->
 handle_data_msg(Data, State) ->
 	ts_mon:rcvmes({State#state_rcv.monitor, self(), Data}),
 	DataSize = size(Data),
+
 	case {State#state_rcv.ack, State#state_rcv.ack_done} of
 		{no_ack, _} ->
 			{State, []};
 		{parse, _} ->
-			{NewState, Opts} = ts_profile:parse(State#state_rcv.clienttype, Data, State),
+			{NewState, Opts, Close} =
+                ts_profile:parse(State#state_rcv.clienttype, Data, State),
 			if 
 				NewState#state_rcv.ack_done == true ->
 					?LOGF("Response done:~p~n", [NewState#state_rcv.datasize],
 						  ?DEB),
-					PageTimeStamp = update_stats(NewState),
-					{NewState#state_rcv{endpage = false, % reinit in case of
-										page_timestamp= PageTimeStamp},
-					 Opts} ; 
+					PageTimeStamp = update_stats(NewState, Close),
+                    case Close of
+                        true ->
+                            ?LOG("Close connection required protocol~n", ?DEB),
+                            
+                            Protocol = State#state_rcv.protocol,
+                            Protocol:close(State#state_rcv.socket),
+                            {NewState#state_rcv{endpage = false, % reinit in case of
+                                                page_timestamp= PageTimeStamp,
+                                                socket=undefined},
+                             Opts};
+                        false -> 
+                            {NewState#state_rcv{endpage = false, % reinit in case of
+                                                page_timestamp= PageTimeStamp}, Opts}
+                    end;
 				true ->
 					?LOGF("Response: continue:~p~n",
 						  [NewState#state_rcv.datasize], ?DEB),
@@ -211,7 +224,7 @@ handle_data_msg(Data, State) ->
 			OldSize = State#state_rcv.datasize,
 			{State#state_rcv{datasize = OldSize+DataSize}, []};
 		{AckType, false} ->
-			PageTimeStamp = update_stats(State),
+			PageTimeStamp = update_stats(State, false),
 			{State#state_rcv{datasize=DataSize,%ack for a new message, init size
 							 ack_done = true, endpage=false,
 							 page_timestamp= PageTimeStamp},[]}
@@ -223,7 +236,7 @@ handle_data_msg(Data, State) ->
 %% Returns: State (state_rcv record)
 %% Purpose: update the statistics
 %%----------------------------------------------------------------------
-update_stats(State) ->
+update_stats(State, Close) ->
 	Now = now(),
 	Elapsed = ts_utils:elapsed(State#state_rcv.ack_timestamp, Now),
 	ts_mon:addsample({ response_time, Elapsed}), % response time
@@ -232,10 +245,12 @@ update_stats(State) ->
 		true -> % end of a page, compute page reponse time 
 			PageElapsed = ts_utils:elapsed(State#state_rcv.page_timestamp, Now),
 			ts_mon:addsample({page_resptime, PageElapsed}),
-			doack(State#state_rcv.ack, State#state_rcv.ppid, State#state_rcv.dyndata),
+			doack(State#state_rcv.ack, State#state_rcv.ppid, 
+                  State#state_rcv.dyndata, Close),
 			0;
 		_ ->
-			doack(State#state_rcv.ack, State#state_rcv.ppid, State#state_rcv.dyndata),
+			doack(State#state_rcv.ack, State#state_rcv.ppid,
+                  State#state_rcv.dyndata, Close),
 			State#state_rcv.page_timestamp
 	end.
 
@@ -244,10 +259,10 @@ update_stats(State) ->
 %% Args: parse|local|global, Pid, DynData
 %% Purpose: warn the sending process that the request is over
 %%----------------------------------------------------------------------
-doack(parse, Pid, DynData) ->
+doack(parse, Pid, DynData, Close) ->
+	ts_client:next({Pid, DynData, Close});
+doack(local, Pid, DynData,Close) ->
 	ts_client:next({Pid, DynData});
-doack(local, Pid, DynData) ->
-	ts_client:next({Pid, DynData});
-doack(global, Pid, DynData) ->
+doack(global, Pid, DynData,Close) ->
 	ts_timer:connected(Pid).
 

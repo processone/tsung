@@ -78,7 +78,10 @@ close(Pid) -> % normal close
 
 %% continue with the next request
 next({Pid, DynData}) ->
-	gen_fsm:send_event(Pid, {next_msg, DynData}).
+	gen_fsm:send_event(Pid, {next_msg, DynData});
+%% continue with the next request
+next({Pid, DynData, Close}) ->
+	gen_fsm:send_event(Pid, {next_msg, DynData, Close}).
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from gen_server
@@ -152,7 +155,7 @@ init({Session=#session{id            = Profile,
 %%--------------------------------------------------------------------
 handle_event({closed, Reason, Pid}, StateName, State) ->
 	?LOGF("Closed reason =~p (in state ~p) after an error while pending count is: ~p~n!",
-		  [StateName, Reason, State#state.count], ?WARN),
+		  [Reason, StateName, State#state.count], ?WARN),
 	ts_mon:addcount({ Reason }),
 	{stop, normal, State};
 handle_event(Event, StateName, StateData) ->
@@ -181,6 +184,15 @@ handle_sync_event(Event, From, StateName, StateData) ->
 wait_ack({next_msg, DynData}, State) ->
 	?LOGF("next_msg, count is ~p~n", [State#state.count], ?DEB),
     NewState = State#state{dyndata=DynData},
+    handle_info({timeout, next, end_thinktime}, think, NewState);
+wait_ack({next_msg, DynData, Close}, State) ->
+	?LOGF("next_msg, count is ~p, close is ~p~n", [State#state.count, Close], ?DEB),
+    case Close of 
+        true ->
+            NewState = State#state{dyndata=DynData, socket=none};
+        false ->
+            NewState = State#state{dyndata=DynData}
+    end,
     handle_info({timeout, next, end_thinktime}, think, NewState);
 
 %% We should not received closed event in this state, but it was the

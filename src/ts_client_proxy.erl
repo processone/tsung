@@ -195,6 +195,7 @@ parse(State=#state{parse_status=Status},ClientSock,ServerSocket,String)
     {ok,[Method, RequestURI, HTTPVersion, RequestLine, ParsedHeader]} =
         httpd_parse:request_header(Headers),
     TotalSize= length(String),
+    ?LOGF("Headers =~p~n",[Headers],?INFO),
     ?LOGF("StartHeaders = ~p, totalsize =~p~n",[StartHeaders, TotalSize],?DEB),
     case {httpd_util:key1search(ParsedHeader,"content-length"), TotalSize-StartHeaders} of
         {undefined, 3} -> % no body, everything received
@@ -261,7 +262,7 @@ parse(State=#state{parse_status=Status},ClientSock,ServerSocket,String)
 check_serversocket(Socket, URL) when list(URL)->
     check_serversocket(Socket, ts_http_common:parse_URL(URL));
 check_serversocket(undefined, URL) ->
-    Port = set_port(URL),
+    Port = ts_http_common:set_port(URL),
     ?LOGF("Connecting to ~p:~p ...~n", [URL#url.host, Port],?DEB),
     {ok, Socket} = gen_tcp:connect(URL#url.host,Port,
                                    [{active, once}]),
@@ -270,7 +271,7 @@ check_serversocket(undefined, URL) ->
     Socket;
     
 check_serversocket(Socket, URL=#url{port=Port,host=Host}) ->
-    RealPort = set_port(URL),
+    RealPort = ts_http_common:set_port(URL),
     {ok, RealIP} = inet:getaddr(Host,inet),
     case inet:peername(Socket) of
         {ok, {RealIP, RealPort}} -> % same as previous URL
@@ -284,13 +285,3 @@ check_serversocket(Socket, URL=#url{port=Port,host=Host}) ->
             NewSocket
     end.
 
-%%--------------------------------------------------------------------
-%% Func: set_port/1
-%% Purpose: Returns port according to scheme if not already defined
-%% Returns: PortNumber (integer)
-%%--------------------------------------------------------------------
-set_port(#url{scheme=https,port=undefined})  -> 443;
-set_port(#url{scheme=http,port=undefined})   -> 80;
-set_port(#url{port=Port}) when integer(Port) -> Port;
-set_port(#url{port=Port}) -> integer_to_list(Port).
-                

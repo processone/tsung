@@ -1,10 +1,3 @@
-%%%----------------------------------------------------------------------
-%%% File    : config.erl
-%%% Author  : Nicolas Niclausse <nicolas.niclausse@IDEALX.com>
-%%% Purpose : Read the IDX-Tsunami XML config file
-%%% Created : 3 Dec 2003 by Nicolas Niclausse <nniclausse@idealx.com>
-%%%----------------------------------------------------------------------
-%%%
 %%%  This code was developped by IDEALX (http://IDEALX.org/) and
 %%%  contributors (their names can be found in the CONTRIBUTORS file).
 %%%  Copyright (C) 2000-2003 IDEALX
@@ -23,6 +16,13 @@
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 %%% 
+%%%----------------------------------------------------------------------
+%%% File    : config.erl
+%%% Author  : Nicolas Niclausse <nicolas.niclausse@IDEALX.com>
+%%% Purpose : Read the IDX-Tsunami XML config file. Currently, it
+%%%           work by parsing the #xmlElement record by hand ! 
+%%%           TODO: learn how to use xmerl correctly
+%%% Created : 3 Dec 2003 by Nicolas Niclausse <nniclausse@idealx.com>
 %%%----------------------------------------------------------------------
 
 -module(ts_config).

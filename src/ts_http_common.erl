@@ -38,7 +38,8 @@
 		 set_msg/1, set_msg/2,
 		 parse/2,
 		 parse_URL/1,
-         parse_config/2
+         parse_config/2,
+         set_port/1
 		]).
 %%----------------------------------------------------------------------
 %% Func: http_get/1
@@ -167,25 +168,35 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 		0 -> 
 			ts_mon:addcount({ parse_error }),
 			{State#state_rcv{session= #http{}, ack_done = true, 
-							 datasize = size(Data)}, []};
+							 datasize = size(Data)}, [], true};
 		_ -> 
 			Headers = string:substr(List, 1, StartHeaders-1),
-			[Status, ParsedHeader] = request_header(Headers),
+			[{Version, Status}, ParsedHeader] = request_header(Headers),
 			?LOGF("HTTP (status=~p) Headers: ~p ~n", [Status, ParsedHeader], ?DEB),
 			Cookie = parse_cookie(ParsedHeader),
 			ts_mon:addcount({ Status }),
+            Close = check_close(Version,
+                                httpd_util:key1search(ParsedHeader,"connection")),
 			case {httpd_util:key1search(ParsedHeader,"content-length"), Status} of
 				{undefined, 304} -> % Not modified, no body
 					?LOG("HTTP Not modified~n", ?DEB),
                     {State#state_rcv{session= #http{}, ack_done = true,
                                      datasize = size(Data),
-                                     dyndata= Cookie}, []};
+                                     dyndata= Cookie}, [], Close};
 				{undefined, _} -> % no content-length, must be chunked
 					HeaderSize = length(Headers),
                     << BinHead:HeaderSize/binary, Body/binary >> = Data,
-                    parse_chunked(httpd_util:key1search(ParsedHeader,
-                                                        "transfer-encoding"),
-                                  Body, State, Cookie);
+                    {NewState, Opts} =parse_chunked(
+                                        httpd_util:key1search(ParsedHeader,
+                                                              "transfer-encoding"),
+                                        Body, State, Cookie),
+                    case NewState#state_rcv.ack_done of 
+                        true ->
+                            {NewState, Opts, Close};
+                        false ->
+                            Http=NewState#state_rcv.session,
+                            {NewState#state_rcv{session=Http#http{close=Close}}, Opts, false}
+                    end;
 				{Length, _} ->
 					CLength = list_to_integer(Length)+4,
 					?LOGF("HTTP Content-Length:~p~n",[CLength], ?DEB),
@@ -196,21 +207,22 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 						BodySize == CLength ->  % end of response
 							{State#state_rcv{session= #http{}, ack_done = true,
 											 datasize = BodySize,
-											 dyndata= Cookie}, []};
+											 dyndata= Cookie}, [], Close};
 						BodySize > CLength  ->
 							?LOGF("Error: HTTP Body > Content-Length !:~p~n",
 								  [CLength], ?ERR),
 							ts_mon:addcount({ http_bad_content_length }),
 							{State#state_rcv{session= #http{}, ack_done = true,
-											 datasize = TotalSize, 
-											 dyndata= Cookie}, []};
+											 datasize = TotalSize,
+											 dyndata= Cookie}, [], Close};
 						true ->
 							Http = #http{content_length = CLength,
+                                         close          = Close,
 										 status         = Status,
 										 body_size      = BodySize},
 							{State#state_rcv{session = Http, ack_done = false,
 											 datasize = TotalSize,
-											 dyndata=Cookie},[]}
+											 dyndata=Cookie},[],false}
 					end
 			end
 	end;
@@ -221,22 +233,31 @@ parse(Data, State) when (State#state_rcv.session)#http.chunk_toread >=0 ->
     Http = State#state_rcv.session,
     ChunkSizePending = Http#http.chunk_toread,
     BodySize = Http#http.body_size,
+    Close = Http#http.close,
     Cookie = State#state_rcv.dyndata,
-    read_chunk_data(Data, State, Cookie, ChunkSizePending , BodySize);
+    {NewState, NewOpts} = read_chunk_data(Data, State, Cookie, ChunkSizePending , BodySize),
+    case NewState#state_rcv.ack_done of 
+        true ->
+            {NewState, NewOpts, Close};
+        false ->
+            Http=NewState#state_rcv.session,
+            {NewState#state_rcv{session=Http#http{close=Close}}, NewOpts, false}
+    end;
 parse(Data, State) ->
     PreviousSize = State#state_rcv.datasize,
 	DataSize = size(Data),
 	?LOGF("HTTP Body size=~p ~n",[DataSize], ?DEB),
-	Size = (State#state_rcv.session)#http.body_size + DataSize,
-	CLength = (State#state_rcv.session)#http.content_length,
+    Http = State#state_rcv.session,
+	Size = Http#http.body_size + DataSize,
+	CLength = Http#http.content_length,
 	case Size of 
 		CLength -> % end of response
 			{State#state_rcv{session= #http{}, ack_done = true, datasize = Size},
-			 []};
+			 [], Http#http.close};
 		_ ->
-			Http = (State#state_rcv.session)#http{body_size = Size},
-			{State#state_rcv{session= Http, ack_done = false, 
-                             datasize = DataSize+PreviousSize}, []}
+			NewHttp = (State#state_rcv.session)#http{body_size = Size},
+			{State#state_rcv{session= NewHttp, ack_done = false, 
+                             datasize = DataSize+PreviousSize}, [], false}
 	end.
 												 
 %%----------------------------------------------------------------------
@@ -251,12 +272,24 @@ request_header(Header)->
 
 %%----------------------------------------------------------------------
 %% Func: get_status/1
-%% Purpose: returns HTTP status code = integer()
+%% Purpose: get the protocol version and HTTP response status from the 
+%%          first line of the response
+%% Returns: {Version (string), Status (integer)} 
 %%----------------------------------------------------------------------
 get_status(Line) ->
-	StartStatus = string:str(Line, " "),
-	Status = string:substr(Line, StartStatus+1, 3),
-	list_to_integer(Status).
+	[Version, Status| Rest] = string:tokens(Line, " "),
+	{Version, list_to_integer(Status)}.
+
+%%----------------------------------------------------------------------
+%% Func: check_close/2
+%% Purpose: returns true if connection has to be closed 
+%%          (HTTP connection:close received for ex.)
+%%----------------------------------------------------------------------
+check_close(_,"keep-alive")-> false;
+check_close(_,"close")     -> true;
+check_close("HTTP/1.0",undefined)   -> true; % no keepalive by default
+check_close("HTTP/1.1",undefined)   -> false;
+check_close(_,Else)        -> false.
 
 %%----------------------------------------------------------------------
 %% Func: parse_chunked/4
@@ -415,37 +448,22 @@ parse_URL(path,[H|T], Acc, URL) ->
 set_msg(HTTPRequest) ->
 	set_msg(HTTPRequest, round(ts_stats:exponential(?messages_intensity))).
 
-
 %% if the URL is full (http://...), we parse it and get server host,
 %% port and scheme from the URL and override the global setup of the
 %% server. These informations are stored in the #message record.
 set_msg(HTTP=#http_request{url="http" ++ URL}, ThinkTime) -> % full URL
     URLrec = parse_URL("http" ++ URL),
     Path = URLrec#url.path ++ URLrec#url.querypart,
-    case URLrec of
-        #url{scheme= http, port = P} ->
-            case P of 
-                undefined ->  Port = 80;
-                Val ->        Port = Val
-            end,
-            set_msg(HTTP#http_request{url=Path},
-                    ThinkTime,
-                    #message{ack  = parse,
-                             host = URLrec#url.host,
-                             scheme = gen_tcp,
-                             port = Port});
-        #url{scheme= https, port = P} ->
-            case P of 
-                undefined ->  Port = 443;
-                Val ->        Port = Val
-            end,
-            set_msg(HTTP#http_request{url=Path},
-                    ThinkTime,
-                    #message{ack  = parse,
-                             host = URLrec#url.host,
-                             scheme = ssl,
-                             port = Port})
-    end;
+    Port = set_port(URLrec),
+    Scheme = case URLrec#url.scheme of
+                 http  -> gen_tcp;
+                 https -> ssl
+             end,
+    set_msg(HTTP#http_request{url=Path}, ThinkTime,
+            #message{ack  = parse,
+                     host = URLrec#url.host,
+                     scheme = Scheme,
+                     port = Port});
 %
 set_msg(HTTPRequest, Think) -> % relative URL, use global host, port and scheme
     set_msg(HTTPRequest, Think, #message{ack = parse}).
@@ -457,3 +475,13 @@ set_msg(HTTPRequest, Think, Msg) -> % end of a page, wait before the next one
 	Msg#message{ endpage   = true,
                  thinktime = Think,
                  param = HTTPRequest }.
+
+%%--------------------------------------------------------------------
+%% Func: set_port/1
+%% Purpose: Returns port according to scheme if not already defined
+%% Returns: PortNumber (integer)
+%%--------------------------------------------------------------------
+set_port(#url{scheme=https,port=undefined})  -> 443;
+set_port(#url{scheme=http,port=undefined})   -> 80;
+set_port(#url{port=Port}) when integer(Port) -> Port;
+set_port(#url{port=Port}) -> integer_to_list(Port).

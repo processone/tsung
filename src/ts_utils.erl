@@ -26,7 +26,7 @@
 %% user interface
 -export([debug/3, debug/4, get_val/1, init_seed/0, chop/1, elapsed/2,
          now_sec/0, inet_setopts/4, node_to_hostname/1, add_time/2,
-        level2int/1, mkey1search/2 ]).
+         level2int/1, mkey1search/2]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -114,6 +114,8 @@ add_time({MSec, Seconds, MicroSec}, SecToAdd) ->
 %% Purpose: set inet options depending on the protocol (gen_tcp, gen_udp,
 %%  ssl)
 %%----------------------------------------------------------------------
+inet_setopts(Protocol, undefined, Opts, Pid) -> %socket was closed before
+    ok;
 inet_setopts(ssl, Socket, Opts, Pid) ->
 	case ssl:setopts(Socket, Opts) of
 		ok ->
@@ -164,3 +166,4 @@ mkey1search(List, Key) ->
 	[] -> undefined;
 	Results -> lists:reverse(Results)
     end.
+
