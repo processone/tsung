@@ -58,6 +58,7 @@ CONTROLLER_TARGET   = $(addsuffix .beam, $(basename \
 RECORDER_TARGET   = $(addsuffix .beam, $(basename \
              $(addprefix $(EBIN)/, $(notdir $(RECORDER_SRC)))))
 EMAKE    = $(addsuffix \'., $(addprefix \'../, $(SRC)))
+DEBIAN    = debian/changelog debian/control debian/compat debian/copyright debian/docs debian/idx-tsunami.dirs debian/ruls
 
 SRC_APPFILES   = $(ESRC)/$(APPLICATION)/$(APPLICATION).app.src $(ESRC)/$(APPLICATION)/$(APPLICATION).rel.src
 CONTROLLER_SRC_APPFILES   = $(ESRC)/$(CONTROLLER_APPLICATION)/$(CONTROLLER_APPLICATION).app.src $(ESRC)/$(CONTROLLER_APPLICATION)/$(CONTROLLER_APPLICATION).rel.src
@@ -218,7 +219,7 @@ release:
 		$(USERMANUAL) $(USERMANUAL_SRC) $(USERMANUAL_IMG) $(DTD) \
 		COPYING README LISEZMOI TODO $(CONFFILES) Makefile \
 		priv/builder.erl idx-tsunami.sh.in vsn.mk  idx-tsunami.xml \
-		debian src/analyse_msg.pl.src CONTRIBUTORS CHANGES \
+		$(DEBIAN) src/analyse_msg.pl.src CONTRIBUTORS CHANGES \
 		configure configure.in config.guess config.sub include.mk.in \
 		install-sh
 	tar -C $(PACKAGE)-$(VERSION) -zxf tmp.tgz
