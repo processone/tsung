@@ -12,13 +12,15 @@ The application is now split in two (see tsunami-inside.png for an overview):
  * ts_mon (gen_server). Each client send reports of stats to this
    server. Several types of messages are handled by ts_mon.
 
+ * ts_os_mon (gen_server). Use to monitor remote node activity (cpu,
+   memory, network traffic). Currently, use an erlang agent on remote nodes.
+
  * ts_timer  (used by ts_client_rcv when ack is global) (gen_fsm)
 
    servers used to construct messages:
 
- * ts_req_server (gen_server) can generate messages extracted from an external file 
  * ts_msg_server (gen_server) 
- * ts_user_server (gen_server) used by ts_launcher and jabber_* for unicity of users id
+ * ts_user_server (gen_server) used by jabber_* for unicity of users id
 
 ** several clients (tsunami) Several nodes can be used simultaneously
 
@@ -40,7 +42,7 @@ Main modules:
    1.1/ client processes: at each simulated client correspond 2 erlang
         process: 
 
-           a/one that will initiate TCP (UDP) connection and will send
+           a/one that will initiate TCP|UDP|SSL connection and will send
            messages (ts_client module). These processes are spawns by
            ts_launcher (using an sleeping time between two clients
            following an exponential distribution).
@@ -48,33 +50,45 @@ Main modules:
            b/ Each of these process will spawn a new process to handle
            incoming data from the server (ts_client_rcv module).
 
-      Important parameters for Jabber :
-         1/ chat messages size, in bytes (250 by default) 
-
-         2/ mean time elapsed between two consecutives messages sent by a user
-
-         3/ number of messages sent by a user during a session
-
    1.2/ monitoring process (ts_mon)
 
    2/ statistical module (ts_stats)
 
-   3/ a generic module for building user sessions (ts_profile)
+   3/ protocol-specific modules (ts_jabber and ts_http, for
+   example).
 
-   4/ protocol-specific modules (jabber_online or ts_http, for example).
+      IDX-TSUNAMI use different types of acknoledgements to determine
+      when a the response of a request is over. For each requests, 4
+      options are possible:
+
+      * parse -> the receiving process parse the response from the
+        server dans can warn the sending process when the response is
+        finish (function parse/2). This is used for HTTP.
+
+      * no_ack: as soon as the request has been sent, the next one is
+        executed (it can be a thinktime)
+
+      * local: the request is acknoledge once a packet is received
+
+      * global: the request is acknoledge once all clients has
+        received an acknoledgement. This has been introduced for
+        Jabber: with that, you can set that users starts talking when
+        everyone is connected.
+
 
 How to add a new protocol, or extend an existing one: 
 ====================================================
 
-    A protocol has to implement the API defined in profile.erl, ie.
-    must implement these functions:
-	 - get_client/2
-	 - get_random_message/1
+ To add a new protocol, you have to create a module that implement and
+ exports:
 
-    If you have to parse the responses from the server, two other
-    functions has to be implemented:
-	 - parse/2
-	 - new_session/0
+    init_dynparams/0, 	
+    add_dynparams/2,
+	get_message/1,
+	parse/2,
+    parse_config/2,
+    new_session/0
+
 
 References:
 ==========
@@ -94,7 +108,7 @@ References:
   - Stochastics models:
 
   For more details on stochastics models and application to Web
-  workload generators, take a look at:
+  workload generators, have a look at:
 
     Nicolas Niclausse. Modélisation, analyse de performance et
     dimensionnement du World Wide Web. Thèse de Doctorat (PhD), Université

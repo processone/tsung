@@ -10,11 +10,10 @@ where XX is a integer between 1 and the maximum number of users (say 1000000).
 
 or you can use jabber_register (see below).
 
-optional parameters: (can be set in idx-tsunamirc file)
+optional parameters: (can be set in idx-tsunami.xml file)
 ==================
 
-JABBER_DOMAIN=mydomain.com
-N_ROSTER_CLIENTS=6 (see below)
+jabber_domain=mydomain.com
 
 modules implemented for the Jabber protocol:
 ============================================
@@ -22,30 +21,8 @@ modules implemented for the Jabber protocol:
 - jabber_common: module regrouping common functions for building
   messages
 
-- jabber_online: simulate users sending 'chat' messages to online clients only.
+NOTE: currently, no XML parsing is done by the receiving process (it
+would be very time consuming to parse thousands of simultaneous XML
+flows). It use acknoledgements instead based on the first packet
+received after the request has been sent.
 
-- jabber_unique: simulate users sending 'chat' messages to a single user.
-  %% REM: work with one beam. Not tested with several beams.
-
-- jabber_offline: simulate users sending 'chat' messages to offline clients		
-  only.
-
-- jabber_auth: simulate users that connects to ther server and then
-  leave without sending messages.
-
-- jabber_roster: simulate users sending presence, roster:set and
-  roster:get messages. 
-  Each client send N_ROSTER_CLIENTS type='subscribed' messages, and
-  after upload their roster MESSAGES_NUMBER times.
-  the variable N_ROSTER_CLIENTS (6 by default) can be changed in the
-  config file.
-
-- jabber_register: each simultated user send a jabber:iq:register,
-  type=set message to the server.
-
-- jabber_dynamic: simulate users sending "dynamic" chat messages
-  (messages are build on the fly by the process, and not at the startup
-  time like other messages. This allow you to use a really big value for
-  MESSAGES_NUMBER without taking too much memory).
-
-NOTE: currently, no XML parsing is done by the receiving process.
