@@ -1,13 +1,14 @@
 
 - test more carefully cookie support
-- cache ssl session ID [ssl application don't support this]
+- cache ssl session ID => NOT SUPPORTED BY SSL APPLICATION
 - handle http/1.1 pipelining ?
 - add multiple tcp connections per client (for http) ?
 - improve documentation
 - add custom http headers
-- XML configuration file, with custom transaction statistics
-- change sequence for loading sesslog file
+- custom transaction statistics
 - add capability to send several samples at once to ts_mon
+- add remote monitoring of servers via SNMP
+- add proxy mode to build session file
 
 - groupchat for Jabber
 - clients may do a checksum to control integrity of responses ?
