@@ -18,6 +18,11 @@
 %%% 
 %%%  Created : 15 Feb 2001 by Nicolas Niclausse <nniclausse@IDEALX.com>
 
+%%%  In addition, as a special exception, you have the permission to
+%%%  link the code of this program with any library released under
+%%%  the EPL license and distribute linked combinations including
+%%%  the two.
+
 -module(ts_client).
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').

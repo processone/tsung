@@ -16,6 +16,10 @@
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 %%% 
+%%%  In addition, as a special exception, you have the permission to
+%%%  link the code of this program with any library released under
+%%%  the EPL license and distribute linked combinations including
+%%%  the two.
 
 -module(ts_timer).
 -vc('$Id$ ').

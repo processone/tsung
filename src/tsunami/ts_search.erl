@@ -12,6 +12,12 @@
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 %%%
+
+%%%  In addition, as a special exception, you have the permission to
+%%%  link the code of this program with any library released under
+%%%  the EPL license and distribute linked combinations including
+%%%  the two.
+
 %%% File    : ts_search.erl
 %%% Author  : Mickael Remond <mickael.remond@erlang-fr.org>
 %%% Description : Add dynamic / Differenciated parameters in Tsunami
@@ -20,6 +26,8 @@
 %%%               relevant field in ts_protocol implementation.
 %%%               TODO: Insert exemple
 %%% Created : 22 Mar 2004 by Mickael Remond <mickael.remond@erlang-fr.org>
+
+%%% Nicolas Niclausse: add dynamic variable and matching
 
 -module(ts_search).
 -vc('$Id$ ').

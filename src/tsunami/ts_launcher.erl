@@ -16,11 +16,16 @@
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 %%% 
+%%%  In addition, as a special exception, you have the permission to
+%%%  link the code of this program with any library released under
+%%%  the EPL license and distribute linked combinations including
+%%%  the two.
 
 %%% This module launch clients (ts_client module) given a number of
 %%% clients and the intensity of the arrival process (intensity =
 %%% inverse of the mean of inter arrival). The arrival process is a
 %%% Poisson Process (ie, inter-arrivals are independant and exponential)
+
 
 -module(ts_launcher).
 -created('Date: 2000/10/23 12:09:57 nniclausse ').

@@ -28,6 +28,11 @@
 %% DESCRIPTION
 %%   TODO ...
 %%----------------------------------------------------------------------
+%%%  In addition, as a special exception, you have the permission to
+%%%  link the code of this program with any library released under
+%%%  the EPL license and distribute linked combinations including
+%%% the two.
+
 -module(ts_os_mon).
 -author('mickael.remond@erlang-fr.org').
 -modifiedby('nniclausse@IDEALX.com').
