@@ -23,11 +23,15 @@
 
 -include("ts_profile.hrl").
 
+%% to get file_info record definition
+-include_lib("kernel/include/file.hrl").
+
 %% user interface
 -export([debug/3, debug/4, get_val/1, init_seed/0, chop/1, elapsed/2,
          now_sec/0, inet_setopts/4, node_to_hostname/1, add_time/2,
          level2int/1, mkey1search/2, close_socket/2, datestr/0, datestr/1,
-		 erl_system_args/0, setsubdir/1, stop_all/2, stop_all/3, export_text/1]).
+		 erl_system_args/0, setsubdir/1, stop_all/2, stop_all/3, export_text/1,
+         make_dir_rec/1]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -272,4 +276,33 @@ stop_all([Host],Name,MsgName) when atom(Host) ->
 stop_all(_,_,_)->
 	erlang:display("Bad Hostname").
 
+%%%
+%%% Purpose: create directory. Missing parent directories ARE created
+%%%
+make_dir_rec(DirName) when list(DirName) ->
+    case  file:read_file_info(DirName) of 
+        {ok, #file_info{type=directory}} ->
+            ok;
+        {error,enoent} ->
+            make_dir_rec("", filename:split(DirName));
+        {error, Reason}  ->
+            {error,Reason}
+    end.
 
+make_dir_rec(Path, []) ->
+    ok;
+make_dir_rec(Path, [Parent|Childs]) ->
+    CurrentDir=filename:join([Path,Parent]),
+    case  file:read_file_info(CurrentDir) of 
+        {ok, #file_info{type=directory}} ->
+            make_dir_rec(CurrentDir, Childs);
+        {error,enoent} ->
+            case file:make_dir(CurrentDir) of
+                ok ->
+                    make_dir_rec(CurrentDir, Childs);
+                Error ->
+                    Error
+            end;
+        {error, Reason}  ->
+            {error,Reason}
+    end.

@@ -45,7 +45,7 @@
 %% External exports
 -export([start_link/1, read_config/1, get_req/2, get_next_session/1,
          get_client_config/1, newbeam/1, newbeam/2, get_server_config/0,
-		 get_monitor_hosts/0]).
+		 get_monitor_hosts/0, encode_filename/1, decode_filename/1]).
 
 %%debug
 -export([choose_client_ip/2, choose_session/1]).
@@ -263,11 +263,12 @@ handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
     {ok, Boot, _} = regexp:gsub(BootController,"tsunami_controller","tsunami"),
     ?DebugF("Boot ~p~n", [Boot]), 
 	Sys_Args= ts_utils:erl_system_args(),
+    LogDir = encode_filename(State#state.logdir),
     Args = lists:append([ Sys_Args," -boot ", Boot,
         " -tsunami debug_level ", integer_to_list(?config(debug_level)),
         " -tsunami monitoring ", atom_to_list(?config(monitoring)),
         " -tsunami ssl_ciphers ", Config#config.ssl_ciphers,
-        " -tsunami 'log_file' \\\"", State#state.logdir,"\\\"",
+        " -tsunami log_file ", LogDir,
         " -tsunami controller ", atom_to_list(node())
         ]),
     ?LOGF("starting newbeam on host ~p with Args ~p~n", [Host, Args], ?DEB), 
@@ -398,4 +399,27 @@ check_popularity(Sessions) ->
             ?LOGF("*** Total sum of popularity is not 100 (~p) !",[Sum],?ERR),
 			throw({error,bad_popularity_sum})
     end.
+
+%%----------------------------------------------------------------------
+%% Func: encode_filename/1
+%% Purpose: kludge: the command line erl doesn't like special characters 
+%%   in strings when setting up environnement variables for application,
+%%   so we encode these characters ! 
+%%----------------------------------------------------------------------
+encode_filename(String)->
+    {ok, String2,_} = regexp:gsub("ts_encoded" ++ String,"\/","_47"),
+    {ok, String3,_} = regexp:gsub(String2,"\-","_45"),
+    {ok, String4,_} = regexp:gsub(String3,"\:","_58"),
+    String4.
+
+%%----------------------------------------------------------------------
+%% Func: decode_filename/1
+%%----------------------------------------------------------------------
+decode_filename("ts_encoded" ++ String)->
+    {ok, String2,_} = regexp:gsub(String,"_47","\/"), 
+    {ok, String3,_} = regexp:gsub(String2,"_45","\-"),
+    {ok, String4,_} = regexp:gsub(String3,"_58","\:"),
+    String4.
+
+
     

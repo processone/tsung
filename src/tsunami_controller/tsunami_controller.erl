@@ -36,13 +36,20 @@ start(Type, _StartArgs) ->
 	error_logger:tty(false),
     {ok, {LogDir, Name}} = ts_utils:setsubdir(?config(log_file)),
     LogFile = filename:join(LogDir, atom_to_list(node()) ++ ".log"),
-	error_logger:logfile({open, LogFile }),
-    case ts_controller_sup:start_link(LogDir) of
-		{ok, Pid} -> 
-			{ok, Pid};
-		Error ->
-			?LOGF("Can't start ! ~p ~n",[Error], ?ERR),
-			Error
+    case  error_logger:logfile({open, LogFile }) of 
+        ok ->
+            case ts_controller_sup:start_link(LogDir) of
+                {ok, Pid} -> 
+                    {ok, Pid};
+                Error ->
+                    ?LOGF("Can't start ! ~p ~n",[Error], ?ERR),
+                    Error
+            end;
+        {error, Reason} ->
+            Msg = "Error while opening log file: " ,
+            ?LOGF(Msg ++ " ~p ~n",[Reason], ?ERR),
+            erlang:display(Msg ++ Reason),
+            {error, Reason}
     end.
 
 start_phase(load_config, StartType, PhaseArgs) ->
