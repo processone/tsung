@@ -302,12 +302,14 @@ sub parse_stats_file {
 		printf "Rate  $key (max sample) = %7.2f\n",$maxval->{'rate'}->{$key};
 	}
 	my @time;
+	my @tps;
 	my @code;
     my %extra_info = ();
 	my @connect;
 	my @size;
 	my @users;
 	my @users_rate;
+	my @transactions;
 	my $key;
     if ($interval != $first_interval) {
         print "warn, last interval ($interval) not equal to the first, use the first one ($first_interval)\n";
@@ -333,7 +335,7 @@ sub parse_stats_file {
 			}
 			print TYPE $data ."\n";
 		}
-		if ($key eq "session" or $key eq "reconnect" ) {
+		if ($key eq "session" or $key eq "reconnect" or $key eq "connect") {
 			push @connect, "$key.txt";
 		} elsif ($key eq "size") {
 			push @size, "$key.txt";
@@ -341,6 +343,10 @@ sub parse_stats_file {
 			push @users, "$key.txt";
 		} elsif ($key =~ /users/) {
 			push @users_rate, "$key.txt";
+		} elsif ($key =~ /response_time$/) {
+			push @tps, "$key.txt";
+		} elsif ($key =~ /^tr_/ or $key eq "page_resptime") {
+			push @transactions, "$key.txt";
 		} elsif ($key =~ /^\d+$/) {
 			push @code, "$key.txt";
 		} elsif ($key =~ /^(\S+)?:\S+?@\S+$/) {
@@ -353,7 +359,9 @@ sub parse_stats_file {
 	}
 	plot_stats(\@col,"Session",undef,\@connect,["sessions/sec"]) if $plot;
 	plot_stats(\@colcount,"HTTP_CODE",undef,\@code,["number/sec","total"]) if $plot;
-	plot_stats(\@col,"Perfs",undef,\@time,["rate/sec","msec"]) if $plot;
+	plot_stats(\@col,"Perfs",undef,\@tps,["rate/sec","msec"]) if $plot;
+	plot_stats(\@col,"Transactions",undef,\@transactions,["rate/sec","msec"]) if $plot;
+	plot_stats(\@col,"Event",undef,\@time,["rate/sec","msec"]) if $plot;
 	plot_stats(\@colusers,"Users",undef,\@users,["connected users", "total"]) if $plot;
 	plot_stats(\@col,"Users_Arrival",undef,\@users_rate,["number of users/sec", "total"]) if $plot;
 	plot_stats(\@colcount,"Size",undef,\@size,["Kbits/sec","total Kbits"]) if $plot;
