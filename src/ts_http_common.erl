@@ -168,7 +168,7 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 	BodySize= length(Tail),
 	CLength = Http#http.content_length,
 	Close   = Http#http.close,
-	Cookie  = Http#http.cookie,
+	Cookie  = lists:append([Http#http.cookie, State#state_rcv.dyndata]),
 	if 
 		CLength == undefined, Http#http.status== 304 ->
 			?Debug("HTTP Not modified~n"),
@@ -268,7 +268,8 @@ read_chunk(<<Char:1/binary, Data/binary>>, State, Int, Acc) ->
 	<<?CR>> when Int>0 ->
 	    read_chunk_data(Data, State, Int+3, Acc+1);
 	<<?CR>> when Int==0 -> %% should be the end of tranfer
-			Cookie=(State#state_rcv.session)#http.cookie,
+			Cookie=lists:append([(State#state_rcv.session)#http.cookie,
+                                 State#state_rcv.dyndata]),
             ?DebugF("Finish tranfer chunk ~p~n", [binary_to_list(Data)]),
             {State#state_rcv{session= #http{}, ack_done = true,
                              datasize = Acc, %% FIXME: is it the correct size?
