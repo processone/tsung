@@ -64,8 +64,8 @@
   par une distribution exponentielle (par conséquent, le processus
   d'arrivée est un processus de Poisson).
 
-  La trafic peut être "loggué" dans des fichiers, afin de pouvoir
-  calculer toutes sortes de mesures (temps de réponse) après coup. Un
+  Le trafic peut être "loggué" dans des fichiers, afin de pouvoir
+  effectuer toutes sortes de calculs (temps de réponse) après coup. Un
   script (calculant notamment les moyennes, écart-type et médiane des
   temps de réponse) est fourni pour le protocole Jabber.
 
