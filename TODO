@@ -1,11 +1,12 @@
 
-- add cookie support
-- test POST support
+- test more carefully cookie support
+- test more carefully POST support
 - cache ssl session ID
 - handle http/1.1 pipelining ?
 - add multiple tcp connections per client (for http) ?
 - improve documentation
 - add custom http headers
+- XML configuration file, with custom transaction statistics
 - change sequence for loading sesslog file
 - add capability to send several samples at once to ts_mon
 

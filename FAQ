@@ -21,7 +21,7 @@
 do you have a ~/.hosts.erlang file ?
 to test if it works, do the following thing:
 
-  > erl -name test
+  > erl -sname test
   Eshell V5.2  (abort with ^G)
   1> net_adm:world()
 
@@ -40,7 +40,7 @@ your ~/.hosts.erlang file or in /etc/hosts
  2. cd to the ebin directory ($prefix/erlang/tsunami-0.2.0/ebin)
 
  3. start the tsunami application in a first node:
- erl -name tsunami0 -setcookie 'tsunami'   -config $prefix/etc/tsunami0.config
+ erl -sname tsunami0 -setcookie 'tsunami'   -config $prefix/etc/tsunami0.config
  Eshell V5.2  (abort with ^G)
  1> ssl:start().
  ok
@@ -49,7 +49,7 @@ your ~/.hosts.erlang file or in /etc/hosts
 
  4. in another shell, in the same directory, start the
  tsunami_controller application in a second node:
- erl -name controller -setcookie 'tsunami'   -config $prefix/etc/tsunami0.config
+ erl -sname controller -setcookie 'tsunami'   -config $prefix/etc/tsunami0.config
  Erlang (BEAM) emulator version 5.2 [source] [hipe] [threads:0]
  Eshell V5.2  (abort with ^G)
  1> ssl:start().
@@ -57,7 +57,7 @@ your ~/.hosts.erlang file or in /etc/hosts
  2> application:start(tsunami_controller).
  you should see 'ok' 
 
- If something is wrong, start sasl (application:start(sasl) first to
+ If something is wrong, start sasl ( application:start(sasl) ) first to
  have more logs about what happens
 
 * What is the format of the stats file idx-tsunami.log0 ?
