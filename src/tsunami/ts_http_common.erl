@@ -382,7 +382,7 @@ set_cookie_key([L|"ecure"],Val,Cookie) when L == $S; L==$s ->
 set_cookie_key(Key,Val,Cookie) ->
     Cookie#cookie{key=Key,value=Val}.
     
-get_cookie_key([],Acc)         -> bad_cookie_format;
+get_cookie_key([],Acc)         -> {lists:reverse(Acc), []};
 get_cookie_key([$=|Rest],Acc)  -> {lists:reverse(Acc), Rest};
 get_cookie_key([Char|Rest],Acc)-> get_cookie_key(Rest, [Char|Acc]).
 
@@ -501,28 +501,27 @@ parse_status([A,B,C|Tail],  Http) ->
 %% Purpose: Parse a HTTP header
 %% Returns: #http
 %%--------------------------------------------------------------------
-parse_line("HTTP/1.1 " ++ TailLine, Http, Host )->
+parse_line("http/1.1 " ++ TailLine, Http, Host )->
 	parse_status(TailLine, Http);
-parse_line("HTTP/1.0 " ++ TailLine, Http, Host)->
+parse_line("http/1.0 " ++ TailLine, Http, Host)->
 	parse_status(TailLine, Http#http{close=true});
 
-parse_line("Content-length: "++Tail, Http, Host)->
+parse_line("content-length: "++Tail, Http, Host)->
 	CL=list_to_integer(Tail),
 	?DebugF("HTTP Content-Length ~p~n",[CL]),
 	Http#http{content_length=CL};
-parse_line("Content-Length: "++Tail, Http, Host)->
-	CL=list_to_integer(Tail),
-	?DebugF("HTTP Content-Length ~p~n",[CL]),
-	Http#http{content_length=CL};
-parse_line("Connection: close"++Tail, Http, Host)->
+parse_line("connection: close"++Tail, Http, Host)->
 	Http#http{close=true};
-parse_line("Transfer-Encoding: chunked"++Tail, Http, Host)->
+parse_line("transfer-encoding: chunked"++Tail, Http, Host)->
 	?LOG("Chunked transfer encoding~n",?DEB),
 	Http#http{chunk_toread=0};
-parse_line("Transfer-Encoding:"++Tail, Http, Host)->
+parse_line("transfer-encoding: Chunked"++Tail, Http, Host)->
+	?LOG("Chunked transfer encoding~n",?DEB),
+	Http#http{chunk_toread=0};
+parse_line("transfer-encoding:"++Tail, Http, Host)->
 	?LOGF("Unknown tranfer encoding ~p~n",[Tail],?NOTICE),
 	Http;
-parse_line("Set-Cookie: "++Tail, Http=#http{cookie=PrevCookies}, Host)->
+parse_line("set-cookie: "++Tail, Http=#http{cookie=PrevCookies}, Host)->
 	Cookie = add_new_cookie(Tail, Host, PrevCookies),
 	?DebugF("HTTP New cookie val ~p~n",[Cookie]),
 	Http#http{cookie=Cookie};
@@ -535,15 +534,21 @@ is_nb_space(X) ->
     lists:member(X, [$\s, $\t]).
 % ret: {line, Line, Trail} | {lastline, Line, Trail}
 get_line(L) ->    
-    get_line(L, []).
-get_line("\r\n\r\n" ++ Tail, Cur) ->
+    get_line(L, true, []).
+get_line("\r\n\r\n" ++ Tail, Cap, Cur) ->
     {lastline, lists:reverse(Cur), Tail};
-get_line("\r\n" ++ Tail, Cur) ->
+get_line("\r\n" ++ Tail, Cap, Cur) ->
     case is_nb_space(hd(Tail)) of
-	true ->  %% multiline ... continue 
-	    get_line(Tail, [$\n, $\r | Cur]);
-	false ->
-	    {line, lists:reverse(Cur), Tail}
+        true ->  %% multiline ... continue 
+            get_line(Tail, Cap,[$\n, $\r | Cur]);
+        false ->
+            {line, lists:reverse(Cur), Tail}
     end;
-get_line([H|T], Cur) ->
-    get_line(T, [H|Cur]).
+get_line([$:|T], true, Cur) -> % ':' separator
+    get_line(T, false, [$:|Cur]);%the rest of the header isn't set to lower char
+get_line([H|T], false, Cur) ->
+    get_line(T, false, [H|Cur]);
+get_line([Char|T], true, Cur) when Char >= $A, Char =< $Z ->
+    get_line(T, true, [Char + 32|Cur]);
+get_line([H|T], true, Cur) ->
+    get_line(T, true, [H|Cur]).
