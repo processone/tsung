@@ -121,7 +121,24 @@ handle_info({tcp, ClientSock, String}, State)
 handle_info({tcp, ServerSock, String}, State) 
   when ServerSock == State#state.serversock ->
     ok=inet:setopts(ServerSock,[{active, once}]),
-    gen_tcp:send(State#state.clientsock, String),
+    {ok,NewString,RepCount} = regexp:gsub(String,"https://","http://{"),
+    case RepCount of 
+        0    -> ok;
+        Count-> ?LOGF("substitute https: ~p times~n",[Count],?NOTICE)
+    end,
+    gen_tcp:send(State#state.clientsock, NewString),
+    {noreply, State, ?lifetime};
+
+% ssl server data, send it to the client
+handle_info({ssl, ServerSock, String}, State) 
+  when ServerSock == State#state.serversock ->
+    ok=ssl:setopts(ServerSock,[{active, once}]),
+    {ok,NewString,RepCount} = regexp:gsub(String,"https://","http://{"),
+    case RepCount of 
+        0    -> ok;
+        Count-> ?LOGF("substitute https: ~p times~n",[Count],?DEB)
+    end,
+    gen_tcp:send(State#state.clientsock, NewString),
     {noreply, State, ?lifetime};
 
 %%%%%%%%%%%% Errors and termination %%%%%%%%%%%%%%%%%%%
@@ -131,7 +148,15 @@ handle_info({tcp_closed, Socket}, State=#state{serversock=Socket})->
     ?LOG("socket closed by server~n",?INFO),
     {noreply, State#state{serversock=undefined}, ?lifetime};
 
+handle_info({ssl_closed, Socket}, State=#state{serversock=Socket})->
+    ?LOG("ssl socket closed by server~n",?INFO),
+    {noreply, State#state{serversock=undefined}, ?lifetime};
+
 handle_info({tcp_closed, Socket}, State) ->
+    ?LOG("socket closed by client~n",?INFO),
+    {stop, normal, ?lifetime};
+
+handle_info({ssl_closed, Socket}, State) ->
     ?LOG("socket closed by client~n",?INFO),
     {stop, normal, ?lifetime};
 
@@ -139,6 +164,10 @@ handle_info({tcp_closed, Socket}, State) ->
 % Log properly who caused an error, and exit.
 handle_info({tcp_error, Socket, Reason}, State) ->
     ?LOGF("error on socket ~p ~p~n",[Socket,Reason],?ERR),
+    {stop, {error, sockname(Socket,State), Reason}, State};
+
+handle_info({ssl_error, Socket, Reason}, State) ->
+    ?LOGF("error on ssl socket ~p ~p~n",[Socket,Reason],?ERR),
     {stop, {error, sockname(Socket,State), Reason}, State};
 
 handle_info(timeout, State) ->
@@ -203,7 +232,6 @@ parse(State=#state{parse_status=Status},ClientSock,ServerSocket,String) when Sta
             {ok,[Method, RequestURI, HTTPVersion, RequestLine, ParsedHeader]} =
                 httpd_parse:request_header(Headers),
             TotalSize= length(NewString),
-            ?LOGF("Headers =~p~n",[Headers],?INFO),
             ?LOGF("StartHeaders = ~p, totalsize =~p~n",[StartHeaders, TotalSize],?DEB),
             case {httpd_util:key1search(ParsedHeader,"content-length"),
                   TotalSize-StartHeaders} of
@@ -213,8 +241,11 @@ parse(State=#state{parse_status=Status},ClientSock,ServerSocket,String) when Sta
                                                               version=HTTPVersion,
                                                               headers=ParsedHeader}
                                                }),
-                    NewSocket = check_serversocket(ServerSocket,RequestURI),
-                    gen_tcp:send(NewSocket,NewString),
+                    {NewSocket,RelURL} = check_serversocket(ServerSocket,RequestURI),
+                    ?LOGF("Remove server info from url:~p ~p in ~p~n",
+                          [RequestURI,RelURL,NewString], ?INFO),
+                    {ok, RealString} = relative_url(NewString,RequestURI,RelURL),
+                    send(NewSocket,RealString),
                     {ok, State#state{parse_status = new, buffer=[],
                                      serversock=NewSocket}};
                 {undefined, Diff} ->
@@ -227,8 +258,9 @@ parse(State=#state{parse_status=Status},ClientSock,ServerSocket,String) when Sta
                     Body=string:substr(NewString, StartHeaders+4, TotalSize),
                     if
                         BodySize == CLength ->  % end of response
-                            NewSocket = check_serversocket(ServerSocket,RequestURI),
-                            gen_tcp:send(NewSocket,NewString),
+                            {NewSocket,RelURL} = check_serversocket(ServerSocket,RequestURI),
+                            {ok,RealString,_Count} = regexp:gsub(NewString,RequestURI,RelURL),
+                            send(NewSocket,RealString),
                             ts_proxy_recorder:dorecord({#http_request{method=Method,
                                                                       url=RequestURI,
                                                                       version=HTTPVersion,
@@ -240,10 +272,12 @@ parse(State=#state{parse_status=Status},ClientSock,ServerSocket,String) when Sta
                         BodySize > CLength  ->
                             {error, bad_content_length};
                         true ->
-                            NewSocket = check_serversocket(ServerSocket,RequestURI),
-                            gen_tcp:send(NewSocket,NewString),
+                            {NewSocket,RelURL} = check_serversocket(ServerSocket,RequestURI),
+                            {ok,RealString,_Count} = regexp:gsub(NewString,RequestURI,RelURL),
+                            send(NewSocket,RealString),
                             {ok, State#state{content_length = CLength,
                                              body_size = TotalSize,
+                                             serversock=NewSocket,
                                              buffer = #http_request{method=Method,
                                                                     url=RequestURI,
                                                                     version=HTTPVersion,
@@ -262,14 +296,14 @@ parse(State=#state{parse_status=Status, buffer=Http},ClientSock,ServerSocket,Str
 	?LOGF("HTTP Body size=~p ~n",[DataSize], ?DEB),
 	Size = State#state.body_size + DataSize,
 	CLength = State#state.content_length,
-    gen_tcp:send(ServerSocket, String),
+    send(ServerSocket, String),
     Buffer=lists:append(Http#http_request.body,String),
 	case Size of 
 		CLength -> % end of response
             ts_proxy_recorder:dorecord(Http#http_request{ body=Buffer} ),
-			State#state{body_size=0,parse_status=new, content_length=0,buffer=[]};
+			{ok, State#state{body_size=0,parse_status=new, content_length=0,buffer=[]}};
 		_ ->
-			State#state{body_size = Size, buffer = Http#http_request{body=Buffer}}
+			{ok, State#state{body_size = Size, buffer = Http#http_request{body=Buffer}}}
 	end.
 
 %%--------------------------------------------------------------------
@@ -278,29 +312,77 @@ parse(State=#state{parse_status=Status, buffer=Http},ClientSock,ServerSocket,Str
 %%          same, connect to the server as specified in URL
 %% Returns: Socket
 %%--------------------------------------------------------------------            
+check_serversocket(Socket, "http://{" ++ Rest) ->
+    check_serversocket(Socket, ts_http_common:parse_URL("https://"++Rest));
 check_serversocket(Socket, URL) when list(URL)->
     check_serversocket(Socket, ts_http_common:parse_URL(URL));
 check_serversocket(undefined, URL) ->
     Port = ts_http_common:set_port(URL),
     ?LOGF("Connecting to ~p:~p ...~n", [URL#url.host, Port],?DEB),
-    {ok, Socket} = gen_tcp:connect(URL#url.host,Port,
-                                   [{active, once}]),
+
+
+    {ok, Socket} = connect(URL#url.scheme, URL#url.host,Port),
+
     ?LOGF("Connected to server ~p on port ~p (socket is ~p)~n",
           [URL#url.host,Port,Socket],?INFO),
-    Socket;
+    case URL#url.querypart of 
+        []    -> {Socket, URL#url.path};
+        Query -> {Socket, URL#url.path++"?"++Query}
+    end;
     
 check_serversocket(Socket, URL=#url{port=Port,host=Host}) ->
     RealPort = ts_http_common:set_port(URL),
     {ok, RealIP} = inet:getaddr(Host,inet),
-    case inet:peername(Socket) of
+    case peername(Socket) of
         {ok, {RealIP, RealPort}} -> % same as previous URL
             ?LOGF("Reuse socket ~p on URL ~p~n", [Socket, URL],?INFO),
-            Socket;
+            case URL#url.querypart of 
+                []    -> {Socket, URL#url.path};
+                Query -> {Socket, URL#url.path++"?"++Query}
+            end;
         Other ->
-            gen_tcp:close(Socket),
             ?LOGF("New server configuration  (~p:~p, was ~p) on URL ~p~n", 
                   [RealIP, RealPort, Other, URL],?NOTICE),
-            {ok, NewSocket} = gen_tcp:connect(Host,RealPort, [{active, once}]),
-            NewSocket
+            case Socket of 
+                {sslsocket, A, B} -> ssl:close(Socket);
+                _             -> gen_tcp:close(Socket)
+            end,
+            {ok, NewSocket} = connect(URL#url.scheme, Host,RealPort),
+            case URL#url.querypart of 
+                []    -> {NewSocket, URL#url.path};
+                Query -> {NewSocket, URL#url.path++"?"++Query}
+            end
     end.
 
+peername({sslsocket,A,B})-> ssl:peername({sslsocket,A,B});
+peername(Socket)         -> prim_inet:peername(Socket).
+
+
+send({sslsocket,A,B},String) ->
+    {ok,NewString,RepCount} = regexp:gsub(String,"http://{","https://"),
+    {ok,RealString,RepCount2} = regexp:gsub(NewString,"Host: {","Host: "),
+    ?LOGF("Sending data to ssl socket ~p ~p (~p)~n", [A, B, RealString],?NOTICE),
+    ssl:send({sslsocket,A,B}, RealString);
+send(Socket,String) ->
+    gen_tcp:send(Socket,String).
+
+connect(Scheme, Host, Port)->
+    case Scheme of 
+        https -> 
+            {ok, Socket} = ssl:connect(Host,Port,
+                                       [{active, once}]);
+        http  -> 
+            {ok, Socket} = gen_tcp:connect(Host,Port,
+                                           [{active, once},
+                                            {recbuf, 65536},
+                                            {sndbuf, 65536}
+                                           ])
+    end.
+
+relative_url(NewString,RequestURI,RelURL)->
+    [FullURL_noargs|_] = string:tokens(RequestURI,"?"),
+    [RelURL_noargs|_]  = string:tokens(RelURL,"?"),
+    {ok,RealString,_Count} = regexp:gsub(NewString,FullURL_noargs,RelURL_noargs),
+    {ok, RealString}.
+
+    

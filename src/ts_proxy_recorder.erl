@@ -160,7 +160,7 @@ handle_info(Info, State) ->
 %% Returns: any (ignored by gen_server)
 %%--------------------------------------------------------------------
 terminate(Reason, State) ->
-    io:format(State#state.logfd,"</session>"),
+    io:format(State#state.logfd,"</session>~n",[]),
     ok.
 
 %%--------------------------------------------------------------------
@@ -185,21 +185,23 @@ record_http_request(State=#state{prev_host=Host, prev_port=Port},
                     Request=#http_request{method  = Method, url = RequestURI,
                                           version = "HTTP/" ++ HTTPVersion,
                                           headers = ParsedHeader,body=Body}) ->
+    FullURL = case RequestURI of 
+                  "http://{"++Rest -> "https://" ++ Rest;
+                  _ -> RequestURI
+              end,
+                  
     {URL,NewPort,NewHost} = 
-        case ts_http_common:parse_URL(RequestURI) of 
-              #url{path=RelURL, host=Host, port=Port,querypart=Args} -> {RelURL, Port, Host};
-              #url{path=RelURL, host=Host2,port=Port2,querypart=Args } -> {RequestURI,Port2,Host2 }
+        case ts_http_common:parse_URL(FullURL) of 
+              #url{path=RelURL, host=Host, port=Port,querypart=[]} ->
+                {RelURL, Port, Host};
+              #url{path=RelURL, host=Host, port=Port,querypart=Args} ->
+                {RelURL++"?"++Args, Port, Host};
+              #url{path=RelURL, host=Host2,port=Port2,querypart=Args } ->
+                {FullURL,Port2,Host2 }
         end,
     Fd=State#state.logfd,
-    ?LOGF("Query is ~p~n",[Args],?NOTICE),
-    case Args of 
-        [] ->
-            io:format(Fd,"<request><http url='~s' version='~s' ",
-                      [URL, HTTPVersion]);
-        _ ->
-            io:format(Fd,"<request><http url='~s' version='~s' ",
-                      [lists:append(URL,"?",Args), HTTPVersion])
-    end,
+    io:format(Fd,"<request><http url='~s' version='~s' ",
+              [URL, HTTPVersion]),
     case Body of 
         [] -> ok;
         _  -> io:format(Fd," contents='~s' ", [Body]) % must be a POST method
