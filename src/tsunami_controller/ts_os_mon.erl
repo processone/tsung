@@ -202,7 +202,7 @@ handle_info({snmp_msg, Msg, Ip, Udp}, State) ->
     PDU = snmp_mgr_misc:get_pdu(Msg),
     case PDU#pdu.type of 
         'get-response' ->
-            ?LOGF("Got SNMP PDU ~p from ~p~n",[PDU, Ip],?WARN),
+            ?LOGF("Got SNMP PDU ~p from ~p~n",[PDU, Ip],?DEB),
             {ok,{hostent,Hostname,_,inet,_,_}} =inet:gethostbyaddr(Ip),
             analyse_snmp_data(PDU#pdu.varbinds, Hostname);
         _ ->
