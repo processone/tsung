@@ -289,7 +289,7 @@ sub html_report {
     require Template;
     my $titre     = 'IDX-Tsunami ';
     my $version   = $tagvsn;
-    my $contact   = "nicolas.niclausse\@IDEALX.com";
+    my $contact   = "idx-tsunami\@IDEALX.com";
     my $output   = 'index.html';
 
     my $tt = Template->new({
