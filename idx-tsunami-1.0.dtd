@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!ELEMENT idx-tsunami (clients, server, monitoring, arrivalphase+, default*, session+)>
+<!ELEMENT idx-tsunami (clients, server, monitoring?, arrivalphase+, default*, session+)>
 
 <!ATTLIST idx-tsunami 
      dumptraffic (true|false) #REQUIRED
