@@ -34,20 +34,32 @@
 % state of ts_client_rcv gen_server
 -record(state_rcv, 
 		{socket,	  %  
+         ip,          % local ip to bind to
 		 timeout,	  % ?
 		 host,	      % hostname (or IP) of remote server
+         port,        % server port
 		 protocol,	  % gen_udp, gen_tcp or ssl
+         profile,     % requests parameters
+         persistent,  % if true, don't exit when connexion is closed
+         timestamp,   % previous message date
+         starttime,   % date of the beginning of the session
+         count,       % number of requests waiting to be sent
+         maxcount,       % number of requests waiting to be sent
 		 ack,         % type of ack: no_ack, local, global or parse
 		 ack_done=false, % 'true' if the ack was sent, else 'false' (unused if ack=no_ack)
-		 ack_timestamp,  % date when the 'request' was sent 
+		 send_timestamp,  % date when the 'request' was sent 
 		 page_timestamp=0,  % date when the first 'request' of a page was sent 
 		 endpage=false,  % if true, a page is ending 
-		 acc=[],     % Accumulator to store temporary unparsable data (Waiting for more data)
+		 acc=[],     % Accumulator to store temporary unparsable data
+                     % (Waiting for more data)
+		 buffer,     % buffer when we have to keep the response (we need
+                     % all the response to do pattern matching)
 		 session,    % record of session status; depends on 'clienttype'
 		 datasize=0,
-		 dyndata=[],
-		 ppid,		 % pid of send process
-		 clienttype, % module name (jabber, etc.)
+		 dyndata=[], % persistent data dynamically added during the
+                     % session (Cookies for examples)
+		 clienttype, % module name (ts_jabber, etc.)
+         transactions=[], % current transactions
 		 monitor     % type of monitoring (full, light, none)
 		}).
 

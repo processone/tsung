@@ -29,29 +29,12 @@
 -include("ts_config.hrl").
 
 %% External exports
--export([start/1, next/1, close/1]).
+-export([start/1]).
 
 %% gen_server callbacks
--export([init/1, wait_ack/2, think/2, handle_sync_event/4, handle_event/3,
-         handle_info/3, terminate/3, code_change/4]).
 
--record(state, {rcvpid, % pid of receiving process
-				server, % name (or IP) of server
-				port,   % server port
-				protocol,   % gen_tcp, gen_udp or ssl
-				socket,     % Socket descriptor
-				ip,         % local ip to bind to
-				clienttype, % type of client (ts_http, jabber_online, etc.)
-				profile,    % list of requests parameters
-				persistent, % if true, don't exit when connexion is closed
-				timestamp,  % previous message date
-				starttime,  % date of the beginning of the session
-				dyndata =[],    % dynamic data (only used by parsing clients)
-				maxcount,   % total number of requests to sent
-				count,      % number of requests waiting to be sent
-				monitor,    % type of monitoring
-				transactions=[]% current transactions
-			   }).
+-export([init/1, handle_sync_event/4, handle_event/3, handle_info/3,
+         terminate/3, code_change/4]).
 
 %%%----------------------------------------------------------------------
 %%% API
@@ -61,35 +44,6 @@
 start(Opts) ->
 	?DebugF("Starting with opts: ~p~n",[Opts]),
 	gen_fsm:start_link(?MODULE, Opts, []).
-
-%%----------------------------------------------------------------------
-%% Func: close/1
-%% Purpose: the connection was closed by the server
-%%----------------------------------------------------------------------
-%% close after an error, send_all_state
-close({Reason, Pid}) when is_atom(Reason) ->
-	gen_fsm:send_all_state_event(Pid, {closed, Reason, Pid});
-close({Reason, Pid}) when is_list(Reason) ->
-	gen_fsm:send_all_state_event(Pid, {closed, list_to_atom(Reason), Pid});
-close({Reason, Pid}) ->
-	gen_fsm:send_all_state_event(Pid, {closed, close_unknown, Pid});
-%% normal close, handle by each state of the fsm
-close(Pid) ->
-	gen_fsm:send_event(Pid, {closed, Pid}).
-
-
-%%----------------------------------------------------------------------
-%% Func: next/1
-%% Purpose: continue with the next request
-%%----------------------------------------------------------------------
-next({Pid}) ->
-	gen_fsm:send_event(Pid, {next_msg});
-
-next({Pid, DynData}) ->
-	gen_fsm:send_event(Pid, {next_msg, DynData});
-
-next({Pid, DynData, Close}) ->
-	gen_fsm:send_event(Pid, {next_msg, DynData, Close}).
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from gen_server
@@ -118,39 +72,26 @@ init({Session=#session{id            = Profile,
 	StartTime= now(),
     case Protocol:connect(ServerName, Port, Opts, ?config(connect_timeout)) of
 		{ok, Socket} -> 
-            %% start a new process for receiving messages from the server
-			case ts_client_rcv:start({ CType, self(),
-                                       Socket,
-                                       Protocol,
-                                       ServerName,
-                                       ?config(tcp_timeout), 
-                                       PType,
-                                       ?config(monitoring),
-                                       DynData }) of 
-				{ok, Pid} ->
-					?Debug("rcv server started ~n"),
-					controlling_process(Protocol, Socket, Pid),
-					Connected = now(),
-					Elapsed = ts_utils:elapsed(StartTime, Connected),
-					ts_mon:newclient({self(), Connected, Elapsed}),
-                    set_thinktime(?short_timeout),
-					{ok, think, #state{rcvpid=Pid, socket=Socket, port=Port,
-								server     = ServerName,
-                                profile    = Profile,
-								protocol   = Protocol,
-								clienttype = CType,
-								persistent = Persistent,
-								starttime  = StartTime,
-								monitor    = ?config(monitoring),
-								count      = Count,
-								ip         = IP,
-								maxcount   = Count,
-								dyndata    = DynData
-                               }};
-				{error, Reason} ->
-					?LOGF("Can't start rcv process ~p~n", [Reason],?ERR),
-					{stop, Reason}
-			end;
+            Connected = now(),
+            Elapsed = ts_utils:elapsed(StartTime, Connected),
+            ts_mon:newclient({self(), Connected, Elapsed}),
+            set_thinktime(?short_timeout),
+            {ok, think, #state_rcv{ socket=Socket, port=Port,
+                                    host     = ServerName,
+                                    profile    = Profile,
+                                    protocol   = Protocol,
+                                    clienttype = CType,
+                                    ack 	   = PType,
+                                    session = CType:new_session(),
+                                    persistent = Persistent,
+                                    starttime  = StartTime,
+                                    timeout    = ?config(tcp_timeout),
+                                    monitor    = ?config(monitoring),
+                                    count      = Count,
+                                    ip         = IP,
+                                    maxcount   = Count,
+                                    dyndata    = DynData
+                                   }};
 		{error, Reason} ->
 			?LOGF("Connect Error: ~p~n",[Reason], ?ERR),
             CountName="conn_err_" ++ atom_to_list(Reason),
@@ -164,15 +105,9 @@ init({Session=#session{id            = Profile,
 %%          {next_state, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}                         
 %%--------------------------------------------------------------------
-handle_event({closed, Reason, Pid}, StateName, State) ->
-	?LOGF("Closed reason =~p (in state ~p) after an error while pending count is: ~p~n!",
-		  [Reason, StateName, State#state.count], ?WARN),
-	ts_mon:add({ count, Reason }),
-	{stop, normal, State};
 handle_event(Event, StateName, StateData) ->
     {next_state, StateName, StateData}.
 
-    
 %%--------------------------------------------------------------------
 %% Func: handle_sync_event/4
 %% Returns: {next_state, NextStateName, NextStateData}            |
@@ -187,87 +122,49 @@ handle_sync_event(Event, From, StateName, StateData) ->
     {reply, Reply, StateName, StateData}.
 
 %%----------------------------------------------------------------------
-%% Func: wait_ack/2
-%% Returns: {next_state, NextStateName, State}          |
-%%          {next_state, NextStateName, State, Timeout} |
-%%          {stop, Reason, State}            (terminate/2 is called)
-%%----------------------------------------------------------------------
-wait_ack({next_msg}, State) ->
-	?DebugF("next_msg, count is ~p~n", [State#state.count]),
-    handle_next_action(State);
-wait_ack({next_msg, DynData}, State) ->
-	?DebugF("next_msg, count is ~p~n", [State#state.count]),
-    NewState = State#state{dyndata=DynData},
-    handle_next_action(NewState);
-wait_ack({next_msg, DynData, Close}, State) ->
-	?DebugF("next_msg, count is ~p, close is ~p~n", [State#state.count, Close]),
-    case Close of 
-        true ->
-            NewState = State#state{dyndata=DynData, socket=none};
-        false ->
-            NewState = State#state{dyndata=DynData}
-    end,
-    handle_next_action(NewState);
-
-%% We should not received a closed event in this state, but it was the
-%% last request, quit quietly
-wait_ack({closed, Pid}, State= #state{ count=0 }) ->
-	{stop, normal, State};
-%% Oh oh. Received close when state is wait_ack !
-wait_ack({closed, Pid}, State) ->
-    %% this may happen in ssl when a server close happen
-    %% simultaneously with the send; the send call return value is ok,
-    %% but the ssl driver has been receiving close in the same
-    %% time. To reproduce this case with HTTP, set the timeout equal to 
-    %% the KeepAlive timeout in the HTTP server.
-    %% FIXME: maybe we should retry instead of stopping ?
-	?LOGF("Closed when state is wait_ack (count was ~p)!~n!",[State#state.count], ?WARN),
-	ts_mon:add({ count, closed_when_send }),
-	{stop, normal, State};
-
-wait_ack(Event, State) ->
-	?LOGF("Unknown event ~p in state wait_ack~n", [Event], ?ERR),
-    {stop, unknown_event, State}.
-
-%%----------------------------------------------------------------------
-%% Func: think/2
-%% Returns: {next_state, NextStateName, State}          |
-%%          {next_state, NextStateName, State, Timeout} |
-%%          {stop, Reason, State}            (terminate/2 is called)
-%%----------------------------------------------------------------------
-%% the connexion was closed, but this session is persistent
-think({closed, Pid}, State = #state{persistent = true}) ->
-	?LOG("connection closed, stay alive (persistent)",?INFO),
-    {next_state, think, State#state{socket = none}};
-
-%% the connexion was closed after the last msg was sent, stop quietly
-think({closed, Pid}, State= #state{ count=0 }) ->
-	{stop, normal, State};
-
-%% the connexion was closed before the last msg was sent, log this event
-think({closed, Pid}, State) ->
-	?LOGF("Closed by server while pending count is: ~p~n!",
-		  [State#state.count], ?NOTICE),
-	ts_mon:add({ count, closed_by_server }),
-	{stop, normal, State};
-
-think({timeout, Pid}, State) ->
-	{stop, timeoutrcv, State};
-
-think(Event, State) ->
-	?LOGF("Unknown event ~p in state think~n", [Event], ?ERR),
-    {stop, unknown_event, State}.
-
-
-
-%%----------------------------------------------------------------------
 %% Func: handle_info/2
 %% Returns: {next_state, StateName, State}          |
 %%          {next_state, StateName, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
+handle_info({NetEvent, Socket, Data}, wait_ack, State) when NetEvent==tcp;
+                                                            NetEvent==ssl ->
+    case handle_data_msg(Data, State) of 
+        {NewState=#state_rcv{ack_done=true}, Opts} ->
+            NewSocket = inet_setopts(State#state_rcv.protocol, 
+                                     NewState#state_rcv.socket,
+                                     [{active, once} | Opts]),
+            handle_next_action(NewState#state_rcv{socket=NewSocket});
+        {NewState, Opts} ->
+            NewSocket = inet_setopts(State#state_rcv.protocol,
+                                     NewState#state_rcv.socket,
+                                     [{active, once} | Opts]),
+            {next_state, wait_ack, NewState#state_rcv{socket=NewSocket}, NewState#state_rcv.timeout}
+    end;
+
+handle_info({NetEvent, Socket}, StateName, State = #state_rcv{persistent=true}) 
+  when NetEvent==tcp_closed; NetEvent==ssl_closed ->
+	?LOG("connection closed, stay alive (persistent)",?INFO),
+    ts_utils:close_socket(State#state_rcv.protocol, Socket), % mandatory for ssl
+    {next_state, think, State#state_rcv{socket = none}};
+
+handle_info({NetEvent, Socket}, StateName, State) when NetEvent==tcp_closed;
+                                                       NetEvent==ssl_closed ->
+	?LOG("connection closed, abort", ?WARN),
+    %% the connexion was closed after the last msg was sent, stop quietly
+	ts_mon:add({ count, error_closed }),
+    ts_utils:close_socket(State#state_rcv.protocol, Socket), % mandatory for ssl
+	{stop, normal, State};
+
+handle_info({NetError, Socket, Reason}, wait_ack, State)  when NetError==tcp_error;
+                                                               NetError==ssl_error ->
+	?LOGF("Net error (~p): ~p~n",[NetError, Reason], ?WARN),
+    CountName="inet_err_"++atom_to_list(Reason),
+	ts_mon:add({ count, list_to_atom(CountName) }),
+	{stop, normal, State};
+
 %% no more messages to send
-handle_info({timeout, Ref, end_thinktime}, think, State= #state{ count=0 })  ->
+handle_info({timeout, Ref, end_thinktime}, think, State= #state_rcv{ count=0 })  ->
     ?LOG("Session ending ~n", ?INFO),
     {stop, normal, State};
 
@@ -313,30 +210,30 @@ code_change(OldVsn, StateName, StateData, Extra) ->
 %% Purpose: handle next action: thinktime, transaction or #ts_request
 %% Args: State
 %%----------------------------------------------------------------------
-handle_next_action(State=#state{count=0}) ->
+handle_next_action(State=#state_rcv{count=0}) ->
     ?LOG("Session ending ~n", ?INFO),
     {stop, normal, State};
 handle_next_action(State) ->
-	Count = State#state.count-1,
-    case set_profile(State#state.maxcount,State#state.count,State#state.profile) of
+	Count = State#state_rcv.count-1,
+    case set_profile(State#state_rcv.maxcount,State#state_rcv.count,State#state_rcv.profile) of
         {thinktime, Think} ->
             ?DebugF("Starting new thinktime ~p~n", [Think]),
             set_thinktime(Think),
-            {next_state, think, State#state{count=Count}};
+            {next_state, think, State#state_rcv{count=Count}};
         {transaction, start, Tname} ->
             ?LOGF("Starting new transaction ~p~n", [Tname], ?INFO),
-            TrList = State#state.transactions,
-            NewState = State#state{transactions=[{Tname,now()}|TrList],
+            TrList = State#state_rcv.transactions,
+            NewState = State#state_rcv{transactions=[{Tname,now()}|TrList],
                                    count=Count}, 
             handle_next_action(NewState);
         {transaction, stop, Tname} ->      
             ?LOGF("Stopping transaction ~p~n", [Tname], ?INFO),
-            TrList = State#state.transactions,
+            TrList = State#state_rcv.transactions,
             {value, {Key, Tr}} = lists:keysearch(Tname, 1, TrList),
             Now = now(),
             Elapsed = ts_utils:elapsed(Tr, Now),
             ts_mon:add({sample, Tname, Elapsed}),
-            NewState = State#state{transactions=lists:keydelete(Tname,1,TrList),
+            NewState = State#state_rcv{transactions=lists:keydelete(Tname,1,TrList),
                                    count=Count}, 
             handle_next_action(NewState);
         Profile=#ts_request{} ->                                        
@@ -380,47 +277,53 @@ get_server_cfg(Other,P,Id) ->
 %% Args: Profile, State
 %%----------------------------------------------------------------------
 handle_next_request(Profile, State) ->
-    Count = State#state.count-1,
-	Type  = State#state.clienttype,
+    Count = State#state_rcv.count-1,
+	Type  = State#state_rcv.clienttype,
 
 	%% does the next message change the server setup ?
     case Profile of 
         #ts_request{host=undefined, port= undefined, scheme= undefined} ->
-            {Host,Port,Protocol,Socket} = {State#state.server,State#state.port,
-                                           State#state.protocol,State#state.socket};
+            {Host,Port,Protocol,Socket} = {State#state_rcv.host,State#state_rcv.port,
+                                           State#state_rcv.protocol,State#state_rcv.socket};
         #ts_request{host=Host, port= Port, scheme= Protocol} ->
 			%% need to reconnect if the server/port/scheme has changed
-			case {State#state.server,State#state.port, State#state.protocol} of
+			case {State#state_rcv.host,State#state_rcv.port, State#state_rcv.protocol} of
 				{Host, Port, Protocol} -> % server setup unchanged
-					Socket = State#state.socket;
+					Socket = State#state_rcv.socket;
 				_ ->
 					?Debug("Change server configuration inside a session ~n"),
-					ts_utils:close_socket(State#state.protocol, State#state.socket),
+					ts_utils:close_socket(State#state_rcv.protocol, State#state_rcv.socket),
 					Socket = none
 			end
     end,
 
-    Param = Type:add_dynparams(State#state.dyndata,Profile#ts_request.param,Host),
+    Param = Type:add_dynparams(State#state_rcv.dyndata,Profile#ts_request.param,Host),
     SubstParam = dyn_substitution(Profile#ts_request.subst, Type, Param),
     Message = Type:get_message(SubstParam),
     Now = now(),
 
 	%% reconnect if needed
-	case reconnect(Socket,Host,Port,Protocol,State#state.ip,State#state.rcvpid) of
+	case reconnect(Socket,Host,Port,Protocol,State#state_rcv.ip) of
 		{ok, NewSocket} ->
-            %% warn the receiving side that we are sending a new request
-            ts_client_rcv:wait_ack({State#state.rcvpid,Profile#ts_request.ack,Now,
-                                    Profile#ts_request.endpage, NewSocket,
-                                    Protocol, Host}),
             case catch send(Protocol, NewSocket, Message) of
                 ok -> 
-                    ts_mon:sendmes({State#state.monitor, self(), Message}),
-                    {next_state, wait_ack, State#state{socket   = NewSocket,
-                                                       count    = Count,
-                                                       protocol = Protocol,
-                                                       server   = Host,
-                                                       port     = Port,
-                                                       timestamp= Now }};
+                    PageTimeStamp = case State#state_rcv.page_timestamp of 
+                                        0 -> Now; %first request of a page
+                                        _ -> %page already started
+                                            State#state_rcv.page_timestamp
+                                    end,
+                    ts_mon:sendmes({State#state_rcv.monitor, self(), Message}),
+                    %%FIXME: need to set ack_done to true if ack=no_ack ?
+                    {next_state, wait_ack, State#state_rcv{socket   = NewSocket,
+                                                           count    = Count,
+                                                           protocol = Protocol,
+                                                           host   = Host,
+                                                           ack    = Profile#ts_request.ack,
+                                                           port     = Port,
+                                                           endpage = Profile#ts_request.endpage,
+                                                           page_timestamp= PageTimeStamp,
+                                                           send_timestamp = Now,
+                                                           timestamp= Now }};
                 {error, closed} -> 
                     ?LOG("connection close while sending message !~n", ?WARN),
                     handle_close_while_sending(State);
@@ -447,7 +350,7 @@ handle_next_request(Profile, State) ->
 %%----------------------------------------------------------------------
 finish_session(State) ->
 	Now = now(),
-	Elapsed = ts_utils:elapsed(State#state.starttime, Now),
+	Elapsed = ts_utils:elapsed(State#state_rcv.starttime, Now),
 	ts_mon:endclient({self(), Now, Elapsed}).
 
 %%----------------------------------------------------------------------
@@ -457,7 +360,7 @@ finish_session(State) ->
 %%          send a message, restart in a few moment (this time we will
 %%          reconnect before sending)
 %%----------------------------------------------------------------------
-handle_close_while_sending(State=#state{persistent=true}) ->
+handle_close_while_sending(State=#state_rcv{persistent=true}) ->
     Think = ?config(client_retry_timeout),
     set_thinktime(Think),
     ?LOGF("Server must have closed connection upon us, waiting ~p msec~n",
@@ -480,12 +383,11 @@ set_profile(MaxCount, Count, ProfileId) when is_integer(ProfileId) ->
 %%          {stop, Reason}
 %% purpose: try to reconnect if this is needed (when the socket is set to none)
 %%----------------------------------------------------------------------
-reconnect(none, ServerName, Port, Protocol, IP, Pid) ->
-	?DebugF("Try to reconnect to: ~p (~p)~n",[ServerName, Pid]),
+reconnect(none, ServerName, Port, Protocol, IP) ->
+	?DebugF("Try to reconnect to: ~p~n",[ServerName]),
 	Opts = protocol_options(Protocol)  ++ [{ip, IP}],
     case Protocol:connect(ServerName, Port, Opts) of
 		{ok, Socket} -> 
-			controlling_process(Protocol, Socket, Pid),
 			ts_mon:add({ count, reconnect }),
 			{ok, Socket};
 		{error, Reason} ->
@@ -494,7 +396,7 @@ reconnect(none, ServerName, Port, Protocol, IP, Pid) ->
 			ts_mon:add({ count, list_to_atom(CountName) }),
 			{stop, normal}
     end;
-reconnect(Socket, Server, Port, Protocol, IP, Pid) ->
+reconnect(Socket, Server, Port, Protocol, IP) ->
 	{ok, Socket}.
 
 %%----------------------------------------------------------------------
@@ -575,3 +477,110 @@ dyn_substitution(false, Type, Request) ->
 %% something: We assume we should use substitution
 dyn_substitution(_, Type, Request) ->
     Type:subst(Request).
+
+
+%%----------------------------------------------------------------------
+%% Func: handle_data_msg/2
+%% Args: Data (binary), State ('state_rcv' record)
+%% Returns: {NewState ('state_rcv' record), Socket options (list)}
+%% Purpose: handle data received from a socket
+%%----------------------------------------------------------------------
+handle_data_msg(Data, State=#state_rcv{ack=no_ack}) ->
+	ts_mon:rcvmes({State#state_rcv.monitor, self(), Data}),
+    {State, []};
+
+handle_data_msg(Data, State=#state_rcv{ack=parse, clienttype=Type}) ->
+	ts_mon:rcvmes({State#state_rcv.monitor, self(), Data}),
+	
+    {NewState, Opts, Close} = Type:parse(Data, State),
+    ?DebugF("Dyndata is now ~p~n",[NewState#state_rcv.dyndata]),
+    case NewState#state_rcv.ack_done of
+        true ->
+            ?DebugF("Response done:~p~n", [NewState#state_rcv.datasize]),
+            PageTimeStamp = update_stats(NewState, Close),
+            case Close of
+                true ->
+                    ?Debug("Close connection required by protocol~n"),
+                    ts_utils:close_socket(State#state_rcv.protocol,State#state_rcv.socket),
+                    {NewState#state_rcv{endpage = false, % reinit in case of
+                                        page_timestamp = PageTimeStamp,
+                                        socket  = undefined}, Opts};
+                false -> 
+                    {NewState#state_rcv{endpage = false, % reinit in case of
+                                        page_timestamp = PageTimeStamp}, Opts}
+            end;
+        _ ->
+            ?DebugF("Response: continue:~p~n",[NewState#state_rcv.datasize]),
+            {NewState, Opts}
+    end;
+
+handle_data_msg(Data, State=#state_rcv{ack_done=true}) ->
+    %% still same message, increase size
+	ts_mon:rcvmes({State#state_rcv.monitor, self(), Data}),
+	DataSize = size(Data),
+    OldSize = State#state_rcv.datasize,
+    {State#state_rcv{datasize = OldSize+DataSize}, []};
+
+handle_data_msg(Data, State=#state_rcv{ack_done=false}) ->
+	ts_mon:rcvmes({State#state_rcv.monitor, self(), Data}),
+	DataSize = size(Data),
+    PageTimeStamp = update_stats(State, false),
+    {State#state_rcv{datasize=DataSize,%ack for a new message, init size
+                     ack_done = true, endpage=false,
+                     page_timestamp= PageTimeStamp},[]}.
+
+
+
+%%----------------------------------------------------------------------
+%% Func: update_stats/2
+%% Args: State
+%% Returns: State (state_rcv record)
+%% Purpose: update the statistics
+%%----------------------------------------------------------------------
+update_stats(State, Close) ->
+	Now = now(),
+	Elapsed = ts_utils:elapsed(State#state_rcv.send_timestamp, Now),
+	Stats= [{ sample, request, Elapsed},
+			{ sum, size, State#state_rcv.datasize}],
+%    ts_search:match(State#state_rcv.buffer,),
+	case State#state_rcv.endpage of
+		true -> % end of a page, compute page reponse time 
+			PageElapsed = ts_utils:elapsed(State#state_rcv.page_timestamp, Now),
+			ts_mon:add(lists:append([Stats,[{sample, page, PageElapsed}]])),
+			0;
+		_ ->
+			ts_mon:add(Stats),
+			State#state_rcv.page_timestamp
+	end.
+
+%%----------------------------------------------------------------------
+%% Func: inet_setopts/4
+%% Purpose: set inet options depending on the protocol (gen_tcp, gen_udp,
+%%  ssl)
+%%----------------------------------------------------------------------
+inet_setopts(Protocol, undefined, Opts) -> %socket was closed before
+    undefined;
+inet_setopts(ssl, Socket, Opts) ->
+	case ssl:setopts(Socket, Opts) of
+		ok ->
+			Socket;
+		{error, closed} ->
+			undefined;
+		Error ->
+			?LOGF("Error while setting ssl options ~p ~p ~n", [Opts, Error], ?ERR),
+            undefined
+	end;
+inet_setopts(gen_tcp, Socket,  Opts)->
+	case inet:setopts(Socket, Opts) of
+		ok ->
+			Socket;
+		{error, closed} ->
+			undefined;
+		Error ->
+			?LOGF("Error while setting inet options ~p ~p ~n", [Opts, Error], ?ERR),
+            undefined
+	end;
+%% FIXME: UDP not tested
+inet_setopts(gen_udp, Socket,  Opts)->
+	ok = inet:setopts(Socket, Opts),
+    Socket.
