@@ -216,7 +216,7 @@ xpdf:	pdf
 
 clean:
 	@echo -n Cleaning intermediate files...
-	@rm -f *.{aux,log,toc,bak,haux,lof,out,htoc,ps} $(LOGOS_EPS)
+	@rm -f *.{aux,log,toc,bak,haux,lof,out,htoc,ps,links,refs,1} $(LOGOS_EPS)
 	@echo "  done."
 
 $(PLOT_DIR)/%.ps:	$(PLOT_DIR)/*.gplot

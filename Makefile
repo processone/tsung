@@ -113,6 +113,7 @@ install: doc build idx-tsunami.sh analyse_msg.pl install_recorder install_contro
 	install -d $(TARGETDIR)/src
 	install -d $(TARGETDIR)/include
 	install -d $(LIBDIR)/
+	install -d $(BINDIR)/
 
 	cp $(INC_FILES) $(TARGETDIR)/include
 	cp $(TARGET) $(TARGETDIR)/ebin
