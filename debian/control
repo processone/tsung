@@ -2,7 +2,7 @@ Source: idx-tsunami
 Section: net
 Priority: optional
 Maintainer: Nicolas Niclausse <nicolas.niclausse@IDEALX.com>
-Build-Depends: debhelper (>= 4.0.0), erlang (>= 9.2-1)
+Build-Depends: debhelper (>= 4.0.0), erlang (>= 9.2-1), docbook-utils
 Standards-Version: 3.6.0
 
 Package: idx-tsunami

@@ -1,10 +1,8 @@
 # Build the .beam erlang VM files
 
 include vsn.mk
+include include.mk
 
-# export ERLC_EMULATOR to fix a bug in R9B with native compilation
-ERLC_EMULATOR=/usr/bin/erl
-export ERLC_EMULATOR
 ERL_COMPILER_OPTIONS="[warn_unused_vars]"
 export ERL_COMPILER_OPTIONS
 
@@ -22,7 +20,7 @@ EBIN = ./ebin
 VERSION = $(IDX-TSUNAMI_VSN)
 
 # installation path
-RAW_INSTALL_DIR = /usr/lib/erlang
+RAW_INSTALL_DIR = $(ERLDIR)/lib/erlang
 # $DESTDIR is used to build the debian package
 ERLANG_INSTALL_DIR = $(DESTDIR)/$(RAW_INSTALL_DIR)/lib
 BINDIR    = $(DESTDIR)/usr/bin

@@ -1,0 +1,6 @@
+# export ERLC_EMULATOR to fix a bug in R9B with native compilation
+ERLC_EMULATOR=@ERL@
+export ERLC_EMULATOR
+
+ERLDIR=@ERLDIR@
+export ERLDIR

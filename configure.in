@@ -1,0 +1,22 @@
+DNA define([AC_CACHE_LOAD], )dnl
+dnl define([AC_CACHE_SAVE], )dnl
+
+AC_INIT(Makefile)
+
+dnl work out who the cpu, vendor and OS are
+AC_CANONICAL_SYSTEM
+AC_DEFINE_UNQUOTED(CPU_VENDOR_OS, "$target")
+
+AC_PATH_PROG(ERL, erl)
+AC_PATH_PROG(ERLC, erlc)
+
+ERLDIR=`echo "${ERL}" | sed 's/\/bin\/*erl.*//'`
+
+AC_SUBST(ERL)
+AC_SUBST(ERLC)
+AC_SUBST(ERLDIR)
+
+AC_PROG_MAKE_SET
+AC_PROG_INSTALL
+
+AC_OUTPUT(include.mk)

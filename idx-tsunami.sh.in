@@ -33,12 +33,13 @@ stop_recorder() {
 }
 
 start() {
+    echo "Starting IDX-Tsunami"	
     erl $ERL_OPTS -detached -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT $CONF_OPT \
     -tsunami_controller $LOG_OPT
 }
 
 recorder() {
-    echo "Starting tsunami recorder"
+    echo "Starting IDX-Tsunami recorder"
     erl $ERL_OPTS -detached -sname $RECORDER -setcookie $COOKIE  $REC_BOOT_OPT \
     -tsunami_recorder debug_level $REC_DEBUG_LEVEL \
     -tsunami_recorder $LOG_OPT \
@@ -46,6 +47,13 @@ recorder() {
     -tsunami_recorder proxy_listen_port $LISTEN_PORT
 }
 
+maindir() {
+	if [ ! -d $MAIN_DIR ]
+	then
+		echo "Creating local tsunami directory $MAIN_DIR"
+		mkdir $MAIN_DIR
+	fi
+}
 logdir() {
         if [ ! -d $LOG_DIR ]
         then
@@ -81,16 +89,19 @@ shift $(($OPTIND - 1))
 
 case $1 in
     start)
+        maindir
         logdir
         start
         ;;
 
     recorder)
+        maindir
         logdir
         recorder
         ;;
 
     debug)
+        maindir
         logdir
         debug
         ;;
