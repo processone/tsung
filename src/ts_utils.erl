@@ -25,7 +25,8 @@
 
 %% user interface
 -export([debug/3, debug/4, get_val/1, init_seed/0, chop/1, elapsed/2,
-		now_sec/0, inet_setopts/4]).
+         now_sec/0, inet_setopts/4,
+         split_chr/2]).
 
 get_val(Var) ->
 	case application:get_env(Var) of 
@@ -92,3 +93,22 @@ inet_setopts(gen_tcp, Socket,  Opts, Pid)->
 	end;
 inet_setopts(gen_udp, Socket,  Opts, Pid)->
 	ok = inet:setopts(Socket, Opts).
+
+%% Split string according to a given character
+%% Only the first occurence of the character is taken into account
+%% This mean that will have only one (no match) or two part in the
+%% result list
+%% split(String, Character) -> Tokens
+%%  String = string()
+%%  Character = char()
+%%  Tokens = [string()]
+split_chr(String, Character) ->
+    case string:chr(String, Character) of
+	%% No occurence
+	0     ->
+	    [String];
+	Index ->
+	    Part1 = string:substr(String, 1, Index -1),
+	    Part2 = string:substr(String, Index + 1),
+	    [Part1, Part2]
+    end.
