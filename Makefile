@@ -206,7 +206,7 @@ release:
 	mkdir -p $(PACKAGE)-$(VERSION)
 	tar zcf tmp.tgz $(SRC) $(SRC_APPFILES) $(INC_FILES) \
 		$(CONTROLLER_SRC) $(CONTROLLER_SRC_APPFILES) \
-		$(RECORDER_SRC) $(RECORDER_SRC_APPFILES) \
+		$(RECORDER_SRC) $(RECORDER_SRC_APPFILES) $(TEMPLATES) \
 		 doc/*.txt doc/*.fig doc/*.png doc/Makefile doc/*.sgml \
 		COPYING README LISEZMOI TODO $(CONFFILES) FAQ Makefile \
 		priv/builder.erl idx-tsunami.sh.in vsn.mk  idx-tsunami.xml \
