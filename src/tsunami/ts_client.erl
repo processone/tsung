@@ -156,7 +156,7 @@ handle_info({NetEvent, Socket}, think,
             State = #state_rcv{persistent=true}) when NetEvent==tcp_closed;
                                                       NetEvent==ssl_closed ->
 	?LOG("connection closed, stay alive (persistent)",?INFO),
-    ts_utils:close_socket(State#state_rcv.protocol, Socket), % mandatory for ssl
+    catch ts_utils:close_socket(State#state_rcv.protocol, Socket), % mandatory for ssl
     {next_state, think, State#state_rcv{socket = none}};
 
 %% inet close messages
@@ -385,9 +385,9 @@ finish_session(State) ->
 handle_close_while_sending(State=#state_rcv{persistent=true,protocol=Proto})->
     ts_utils:close_socket(Proto, State#state_rcv.socket),
     Think = ?config(client_retry_timeout),
-    set_thinktime(Think),
     ?LOGF("Server must have closed connection upon us, waiting ~p msec~n",
           [Think], ?NOTICE),
+    set_thinktime(Think),
     {next_state, think, State#state_rcv{socket=none}};
 handle_close_while_sending(State) ->
     {stop, error, State}.
