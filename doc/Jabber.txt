@@ -25,7 +25,7 @@ modules implemented for the Jabber protocol:
 - jabber_online: simulate users sending 'chat' messages to online clients only.
 
 - jabber_unique: simulate users sending 'chat' messages to a single user.
-  %% REM: kesquisepasse avec plusieurs beams ???
+  %% REM: work with one beam. Not tested with several beams.
 
 - jabber_offline: simulate users sending 'chat' messages to offline clients		
   only.

@@ -84,7 +84,7 @@ Références:
   http://www.erlang.org/
 
   Design principles: 
-		  http://www.erlang.org/doc/r7b/doc/design_principles/part_first.html
+	http://www.erlang.org/doc/r7b/doc/design_principles/part_frame.html
 
   - Jabber
 
