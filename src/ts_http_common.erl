@@ -182,12 +182,6 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 				{NewState, Opts} ->
 					{NewState, Opts, Close}
 			end;
-		CLength == 0->
-			?LOG("ERROR no content length !~n", ?INFO),
-			ts_mon:add({ count, no_content_length }),
-			{State#state_rcv{session= #http{}, ack_done = true,
-							 datasize = TotalSize,
-							 dyndata= Cookie}, [], Close};
 		BodySize == CLength ->  % end of response
 			{State#state_rcv{session= #http{}, ack_done = true,
 							 datasize = BodySize,
