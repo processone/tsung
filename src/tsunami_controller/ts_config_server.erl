@@ -183,6 +183,7 @@ handle_call({read_config, ConfigFile}, _From, State) ->
             Sum = lists:foldl(SumWeights, 0, Config#config.clients),
             %% we only know now the size of last session from the file: add it
             %% in the table
+            print_info(),
             ets:insert(Tab, {{LastSess#session.id, size}, LastReqId}),
             {reply, ok, State#state{config=Config, total_weight = Sum}};
         {error, Reason} -> 
@@ -462,4 +463,12 @@ decode_filename("ts_encoded" ++ String)->
 replace_str({A,B},X) ->
     {ok, Str, _} = regexp:gsub(X,A,B),
     Str.
+    
+%%----------------------------------------------------------------------
+%% Func: print_info/0 Print system info
+%%----------------------------------------------------------------------
+print_info() ->
+    ?LOGF("SYSINFO:Erlang version: ~s~n",[erlang:system_info(system_version)],?NOTICE),
+    ?LOGF("SYSINFO:system architecture ~s~n",[erlang:system_info(system_architecture)],?NOTICE),
+    ?LOGF("SYSINFO:Current path: ~s~n",[code:where_is_file("tsunami.app")],?NOTICE).
     
