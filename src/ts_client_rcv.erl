@@ -31,16 +31,6 @@
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
 
--record(state, {socket,		% unused ?
-				timeout,	% ?
-				ack,        % 
-				ack_timestamp,
-				datasize=0,
-				ppid,		% pid of send process
-				clienttype, % module name (jabber, etc.)
-				parsetype,  % parse|noparse
-				monitor     % type of monitoring (full, light, none)
-			   }).
 
 %%%----------------------------------------------------------------------
 %%% API
@@ -69,7 +59,7 @@ wait_ack(Pid, Ack, When) ->
 %%----------------------------------------------------------------------
 init([{PType, CType, PPid, Socket, Timeout, Ack, Monitor}]) ->
 	ts_mon:newclientrcv({self(), now()}),
-	{ok, #state{socket = Socket, timeout= Timeout, ack = Ack,
+	{ok, #state_rcv{socket = Socket, timeout= Timeout, ack = Ack,
 				ppid= PPid, parsetype = PType, clienttype = CType,
 				monitor = Monitor }}.
 
@@ -100,7 +90,7 @@ handle_call(Request, From, State) ->
 %% ack value -> wait
 handle_cast({wait_ack, Ack, When}, State) ->
 	?PRINTDEBUG("receive wait_ack: ~p~n",[Ack], ?DEB),
-	{noreply, State#state{ack=Ack, ack_timestamp= When}};
+	{noreply, State#state_rcv{ack=Ack, ack_done=false, ack_timestamp= When}};
 
 handle_cast({stop}, State) ->
 	{stop, normal, State};
@@ -115,53 +105,33 @@ handle_cast(Message, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_info({tcp, Socket, Data}, State) when State#state.parsetype == parse ->
-	case State#state.monitor of
-		none ->
-			skip;
-		_ ->
-			ts_mon:rcvmes({self(), now(), Data})
-	end,
-	Module = State#state.clienttype,
-	Module:parse(Data, State#state.ack),
-	case State#state.ack of
-		local ->
-			ts_client:next(State#state.ppid);
-		global ->
-			ts_timer:connected(State#state.ppid);
-		_Other ->
-			continue
-	end,
-	{noreply, State#state{ack=no_ack}};
-
-%% no parsing
 handle_info({tcp, Socket, Data}, State) ->
-	Size = handle_data_msg(Data, State),
-	{noreply, State#state{ack=no_ack, datasize = Size}};
+	NewState = handle_data_msg(Data, State),
+	{noreply, NewState};
 
-% ssl case, same code; make a function to factorize code ?
+%% ssl case
 handle_info({ssl, Socket, Data}, State) ->
-	Size = handle_data_msg(Data, State),
-	{noreply, State#state{ack=no_ack, datasize = Size}};
+	NewState = handle_data_msg(Data, State),
+	{noreply, NewState};
 
 handle_info({tcp_closed, Socket}, State) ->
 	?PRINTDEBUG2("TCP close: ~n", ?NOTICE),
-	ts_client:close(State#state.ppid),
+	ts_client:close(State#state_rcv.ppid),
 	{noreply, State};
 
 handle_info({tcp_error, Socket, Reason}, State) ->
 	?PRINTDEBUG("TCP error: ~p~n",[Reason], ?WARN),
-	ts_client:close(State#state.ppid),
+	ts_client:close(State#state_rcv.ppid),
 	{noreply, State};
 
 handle_info({ssl_closed, Socket}, State) ->
 	?PRINTDEBUG2("SSL close: ~n", ?NOTICE),
-	ts_client:close(State#state.ppid),
+	ts_client:close(State#state_rcv.ppid),
 	{noreply, State};
 
 handle_info({ssl_error, Socket, Reason}, State) ->
 	?PRINTDEBUG("SSL error: ~p~n",[Reason], ?WARN),
-	ts_client:close(State#state.ppid),
+	ts_client:close(State#state_rcv.ppid),
 	{noreply, State};
 
 handle_info(Info, State) ->
@@ -184,28 +154,49 @@ terminate(Reason, State) ->
 %% Func: handle_data_msg/2
 %%----------------------------------------------------------------------
 handle_data_msg(Data, State) ->
-	case State#state.monitor of
+	case State#state_rcv.monitor of
 		none ->
 			skip;
 		_ ->
 			ts_mon:rcvmes({self(), now(), Data})
 	end,
 	DataSize = size(Data),
-	case State#state.ack of
-		no_ack ->
-			DataSize+State#state.datasize; % still same message, increase size
-		AckType -> % should be local or global
-			Now = now(),
-			Elapsed = ts_utils:elapsed(State#state.ack_timestamp, Now),
-			ts_mon:addsample({self(), Now, latency, Elapsed}),
-			ts_mon:addsample({self(), Now, size, State#state.datasize}),
-			doack(AckType, State#state.ppid),
-			DataSize % ack for a new message, init size
+	case {State#state_rcv.ack, State#state_rcv.ack_done} of
+		{no_ack, _} ->
+			State;
+		{parse, _} ->
+			Module = State#state_rcv.clienttype,
+			NewState = Module:parse(Data, State),
+			if 
+				NewState#state_rcv.ack_done == true ->
+					?PRINTDEBUG("Response done:~p~n", [NewState#state_rcv.datasize], ?DEB),
+					update_stats(NewState);
+				true ->
+					?PRINTDEBUG("Response: continue:~p~n",[NewState#state_rcv.datasize], ?DEB),
+					nothing
+			end,
+			NewState;
+		{AckType, true} ->
+			% still same message, increase size
+			OldSize = State#state_rcv.datasize,
+			State#state_rcv{datasize = OldSize+DataSize};
+		{AckType, false} ->
+			update_stats(State),
+			State#state_rcv{datasize= DataSize, ack_done = true} % ack for a new message, init size
 	end.
+
+update_stats(State) ->
+	Now = now(),
+	Elapsed = ts_utils:elapsed(State#state_rcv.ack_timestamp, Now),
+	ts_mon:addsample({self(), Now, response_time, Elapsed}), % response time
+	ts_mon:addsample({self(), Now, size, State#state_rcv.datasize}),
+	doack(State#state_rcv.ack, State#state_rcv.ppid).
 
 %%----------------------------------------------------------------------
 %% Func: doack/2
 %%----------------------------------------------------------------------
+doack(parse, Pid) ->
+	ts_client:next(Pid);
 doack(local, Pid) ->
 	ts_client:next(Pid);
 doack(global, Pid) ->

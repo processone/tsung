@@ -36,7 +36,7 @@
 -record(state, {rcvpid, % pid of receiving process
 				server, % name (or IP) of server
 				port,   % server port
-				protocol,   % tcp, udp or ssl
+				protocol,   % gen_tcp, gen_udp or ssl
 				socket,     % 
 				clienttype, %
 				parsetype,  % type of client (parse or noparse)
@@ -44,6 +44,7 @@
 				profile,    % list of requests parameters
 				persistent, % if true, don't exit when connexion is closed
 				lasttimeout,% value of the last timeout
+				timestamp,  % previous message date
 				count       % number of requests waiting to be sent
 			   }).
 
@@ -143,9 +144,13 @@ handle_call(Request, From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
+handle_cast({next_msg}, State) when State#state.lasttimeout == infinity ->
+	?PRINTDEBUG("next_msg, count is ~p~n", [State#state.count], ?DEB),
+	{noreply, State#state{lasttimeout=1}, 1};
 handle_cast({next_msg}, State) ->
-	?PRINTDEBUG2("next_msg",?DEB),
-	{noreply, State, 1};
+	?PRINTDEBUG2("next_msg (infinite timeout)",?DEB),
+	{noreply, State, State#state.lasttimeout};
+%% more case to handle ?
 
 
 %% to be done : what about the current timer ?
@@ -158,7 +163,16 @@ handle_cast({add_messages, Messages}, State) ->
 handle_cast({closed, Pid}, State) when State#state.persistent == true   ->
 	?PRINTDEBUG2("connection closed, stay alive (persistent)",?DEB),
 	%% TODO: set the timeout correctly ?
-	{noreply,  State#state{socket = none}, State#state.lasttimeout};
+	Elapsed  = ts_utils:elapsed(State#state.timestamp, now()),
+	ThinkTime= round(State#state.lasttimeout-Elapsed/1000),
+	if 
+		ThinkTime > 0 ->
+			?PRINTDEBUG("setting new thinktime to: ~p~n!",[ThinkTime], ?DEB),
+			{noreply,  State#state{socket = none}, ThinkTime};
+		true ->
+			?PRINTDEBUG("negative thinktime after connexion closed ~p:~p~n!",[State#state.lasttimeout, Elapsed/1000], ?WARN),
+			{noreply,  State#state{socket = none}, 1}
+	end;
 handle_cast({closed, Pid}, State) ->
 	{stop, normal, State};
 
@@ -194,20 +208,31 @@ handle_info(timeout, State) when State#state.count > 0 ->
 	%% reconnect if needed
 	Protocol = State#state.protocol,
 	Socket = reconnect(State#state.socket, State#state.server, State#state.port,
-					   Protocol, State#state.rcvpid), 
-	%% the use of the form M:fun is costly :(
-	%% see http://www.erlang.org/doc/r9b/doc/efficiency_guide/
-    case Protocol:send(Socket, Message) of
+					   Protocol, State#state.rcvpid),
+	case {Profile#message.ack, Count} of 
+		{no_ack, _} ->
+			Timeout = Thinktime;
+		{Else, 0} ->
+			?PRINTDEBUG("Last Message, setting Thinktime to: ~p~n.", [Thinktime], ?DEB),
+			Timeout = Thinktime;
+		{Else, _} ->
+			Timeout = infinity
+	end,
+    case send(Protocol, Socket, Message) of
 		ok -> 
 			ts_mon:sendmes({self(), Now, Message}),
 			{noreply, State#state{socket= Socket, count = Count,
 								  profile = PendingProfile,
+								  timestamp = Now,
 								  lasttimeout = Thinktime},
-			 Thinktime}; 
+			 Timeout}; 
 		{error, closed} -> 
+			?PRINTDEBUG2("connection close while sending message !~n.",  ?WARN),
 			case State#state.persistent of 
 				true ->
-					{noreply, State, 10}; % try again in 10ms
+					RetryTimeout = ?client_retry_timeout,
+					{noreply, State#state{lasttimeout=RetryTimeout}, 
+					 RetryTimeout}; % try again in 10ms
 				_ ->
 					{stop, closed, State}
 			end;
@@ -270,6 +295,16 @@ reconnect(Socket, Server, Port, Protocol, Pid) ->
 thinktime() ->
 	round(ts_stats:exponential(?messages_intensity)).
 
+%%----------------------------------------------------------------------
+%% this fonction is used to avoid the costly M:fun form of function call
+%% see http://www.erlang.org/doc/r9b/doc/efficiency_guide/
+%%----------------------------------------------------------------------
+send(gen_tcp,Socket,Message) ->
+    gen_tcp:send(Socket,Message);
+send(ssl,Socket,Message) ->
+    ssl:send(Socket,Message);
+send(gen_udp,Socket,Message) ->
+    gen_udp:send(Socket,Message).
 %%----------------------------------------------------------------------
 %% Func: protocol_options/1
 %%----------------------------------------------------------------------

@@ -22,9 +22,27 @@
 
 -record(message, {thinktime, ack, param, type=static}).
 
+% state of ts_client_rcv gen_server
+-record(state_rcv, 
+		{socket,	  %  unused ?
+		 timeout,	  % ?
+		 ack,         % type of ack: no_ack, local, global or parse
+		 parsetype,   % obsolete ?
+		 ack_done=false, % 'true' if the ack was sent, else 'false' (unused if ack=no_ack)
+		 ack_timestamp,  % date when the 'request' was sent 
+		 session,    % record of session status; depends on 'clienttype'
+		 datasize=0,
+		 ppid,		 % pid of send process
+		 clienttype, % module name (jabber, etc.)
+		 monitor     % type of monitoring (full, light, none)
+		}).
+
 -define(restart_sleep, 2000).
 -define(infinity_timeout, 15000).
 -define(retries, 4).
+
+%% retry sending message after this timeout (in microsec.)
+-define(client_retry_timeout, ts_utils:get_val(client_retry_timeout)).
 
 -define(restart_try, 3).
 -define(debug_level, ts_utils:get_val(debug_level)).
@@ -43,7 +61,7 @@
 -define(client_type, ts_utils:get_val(client_type)).
 -define(parse_type, ts_utils:get_val(parse_type)).
 -define(mes_type, ts_utils:get_val(mes_type)).
--define(conn_type, ts_utils:get_val(conn_type)).
+-define(persistent, ts_utils:get_val(persistent)).
 
 -define(snd_size, ts_utils:get_val(snd_size)).
 -define(rcv_size, ts_utils:get_val(rcv_size)).
@@ -56,7 +74,9 @@
 
 -define(server_adr, ts_utils:get_val(server_adr)).
 -define(server_port, ts_utils:get_val(server_port)).
+-define(server_protocol, ts_utils:get_val(server_protocol)).
 
+-define(ssl_ciphers, ts_utils:get_val(ssl_ciphers)).
 
 %% errors messages
 -define(DEBUG, TRUE).
