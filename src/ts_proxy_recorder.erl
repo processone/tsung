@@ -130,7 +130,7 @@ handle_cast({record, endsession}, State) ->
 handle_cast({record, {HTTPRequest}}, State=#state{timestamp=0}) -> % first record
     Name= ts_utils:datestr(),
     io:format(State#state.logfd,"<session name='~s' popularity='1' "++
-              " persistent='true' messages_ack='parse' type='ts_http'>~n",[Name]),
+              " persistent='true' messages_ack='parse' type='ts_http'>~n",["rec"++Name]),
     {ok, NewState} = record_http_request(State, HTTPRequest),
     {noreply, NewState#state{timestamp=now()}};
 
@@ -140,7 +140,7 @@ handle_cast({record, {HTTPRequest}}, State) ->
     if
         Elapsed < State#state.thinktime_low ->
             ?LOGF("skip too low thinktime, assuming it's an embedded object (~p)~n",
-                  [Elapsed],?NOTICE);
+                  [Elapsed],?INFO);
         true ->
             io:format(State#state.logfd,"<thinktime value='~p'></thinktime>~n",
                       [round(Elapsed/1000)])
