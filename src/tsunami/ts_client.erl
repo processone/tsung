@@ -562,7 +562,9 @@ update_stats(State, Close) ->
 %%----------------------------------------------------------------------
 concat_dynvars(DynData, undefined)  -> #dyndata{dynvars=DynData};
 concat_dynvars([], DynData) -> DynData;
-concat_dynvars(DynVars, DynData=#dyndata{dynvars=OldDynVars}) -> 
+concat_dynvars(DynVars, DynData=#dyndata{dynvars=undefined}) ->
+    DynData#dyndata{dynvars=DynVars};
+concat_dynvars(DynVars, DynData=#dyndata{dynvars=OldDynVars}) ->
     %% FIXME: should we remove duplicate keys ?
     DynData#dyndata{dynvars=lists:keymerge(1,DynVars,OldDynVars)}.
     
