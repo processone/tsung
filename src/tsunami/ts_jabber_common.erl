@@ -43,45 +43,46 @@ get_message(#jabber{type = 'presence'}) ->
 
 get_message(Jabber=#jabber{id=Id}) when is_integer(Id)->
     get_message(Jabber#jabber{id=integer_to_list(Id)});
+get_message(Jabber=#jabber{type = 'presence:roster',dest=previous,id=Id}) ->
+    presence(roster, Jabber#jabber{dest=Id}); %% ??? FIXME
+get_message(Jabber=#jabber{type = 'presence:roster'}) ->
+    presence(roster, Jabber);
+get_message(Jabber=#jabber{type = 'chat', id=Id, dest=online, domain=Domain})->
+	Dest = ts_user_server:get_one_connected(Id),
+    message(Dest, Jabber, Domain);
+get_message(Jabber=#jabber{type = 'chat', domain = Domain, dest=offline}) ->
+    Dest = ts_user_server:get_offline(),
+    message(Dest, Jabber, Domain);
+get_message(Jabber=#jabber{type = 'chat', dest=random, domain=Domain}) ->
+    Dest = ts_user_server:get_id(),
+    message(Dest, Jabber, Domain);
+get_message(Jabber=#jabber{type = 'chat', dest=unique, domain=Domain})->
+    {Dest, _} = ts_user_server:get_first(),
+    message(Dest, Jabber, Domain);
+get_message(Jabber=#jabber{type = 'chat', id =Id, dest = Dest, domain=Domain}) ->
+    ?DebugF("~w -> ~w ~n", [Id,  Dest]),
+    message(Dest, Jabber, Domain);
+get_message(#jabber{type = 'iq:roster:set', id=Id, dest = online,username=User,domain=Domain}) ->
+	Dest = ts_user_server:get_one_connected(Id),
+    request(roster_set, User, Domain, Dest);
+get_message(#jabber{type = 'iq:roster:set',dest = offline,username=User,domain=Domain})->
+	Dest = ts_user_server:get_offline(),
+    request(roster_set, User, Domain, Dest);
+get_message(Jabber=#jabber{type = 'iq:roster:get', id = Id,username=User,domain=Domain}) ->
+    request(roster_get, User, Domain, Id);
+
+
 get_message(Jabber=#jabber{username = Name, passwd= Passwd, id=Id}) ->
     FullName = Name ++ Id,
     FullPasswd = Passwd ++ Id,
 	get_message2(Jabber#jabber{username=FullName,passwd=FullPasswd}).
+
 get_message2(Jabber=#jabber{type = 'register'}) ->
     registration(Jabber);
-get_message2(Jabber=#jabber{type = 'presence:roster',dest=previous,id=Id}) ->
-    presence(roster, Jabber#jabber{dest=Id}); %% ??? FIXME
-get_message2(Jabber=#jabber{type = 'presence:roster'}) ->
-    presence(roster, Jabber);
 get_message2(Jabber=#jabber{type = 'authenticate', id = Id}) ->
-    auth(Jabber);
-
-get_message2(Jabber=#jabber{type = 'chat', id=Id, dest=online, domain=Domain})->
-	Dest = ts_user_server:get_one_connected(Id),
-    message(Dest, Jabber, Domain);
-get_message2(Jabber=#jabber{type = 'chat', domain = Domain, dest=offline}) ->
-    Dest = ts_user_server:get_offline(),
-    message(Dest, Jabber, Domain);
-get_message2(Jabber=#jabber{type = 'chat', dest=random, domain=Domain}) ->
-    Dest = ts_user_server:get_id(),
-    message(Dest, Jabber, Domain);
-get_message2(Jabber=#jabber{type = 'chat', dest=unique, domain=Domain})->
-    {Dest, _} = ts_user_server:get_first(),
-    message(Dest, Jabber, Domain);
-get_message2(Jabber=#jabber{type = 'chat', id =Id, dest = Dest, domain=Domain}) ->
-    ?DebugF("~w -> ~w ~n", [Id,  Dest]),
-    message(Dest, Jabber, Domain);
+    auth(Jabber).
 
 
-
-get_message2(#jabber{type = 'iq:roster:set', id=Id, dest = online,username=User,domain=Domain}) ->
-	Dest = ts_user_server:get_one_connected(Id),
-    request(roster_set, User, Domain, Dest);
-get_message2(#jabber{type = 'iq:roster:set',dest = offline,username=User,domain=Domain})->
-	Dest = ts_user_server:get_offline(),
-    request(roster_set, User, Domain, Dest);
-get_message2(Jabber=#jabber{type = 'iq:roster:get', id = Id,username=User,domain=Domain}) ->
-    request(roster_get, User, Domain, Id).
 
 
 %%%%%%%%%%%
