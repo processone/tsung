@@ -123,6 +123,7 @@ handle_info({tcp, ClientSock, String}, State)
 handle_info({tcp, ServerSock, String}, State) 
   when ServerSock == State#state.serversock ->
     ok=inet:setopts(ServerSock,[{active, once}]),
+    ?LOGF("Received data from server: ~p~n",[String],?DEB),
     {ok,NewString,RepCount} = regexp:gsub(String,"https://","http://{"),
     case RepCount of 
         0    -> ok;
@@ -134,6 +135,7 @@ handle_info({tcp, ServerSock, String}, State)
 % ssl server data, send it to the client
 handle_info({ssl, ServerSock, String}, State) 
   when ServerSock == State#state.serversock ->
+    ?LOGF("Received data from server: ~p~n",[String],?DEB),
     ok=ssl:setopts(ServerSock,[{active, once}]),
     {ok,NewString,RepCount} = regexp:gsub(String,"https://","http://{"),
     case RepCount of 
