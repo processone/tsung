@@ -35,8 +35,6 @@
 
 -include("ts_config.hrl").
 
--include_lib("xmerl/inc/xmerl.hrl").
-
 -export([
          http_get/1,
          http_post/1,
