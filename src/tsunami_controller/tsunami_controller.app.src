@@ -30,8 +30,8 @@
 					 {nclients, 10},        %% number of clients
 					 {nclients_deb, 1}, 	%% beginning of interval
 					 {nclients_fin, 2000}, 	%% end of interval 
-					 {config_file, "%prefix%/etc/idx-tsunami.xml"},
-					 {log_file, "%prefix%/log/idx-tsunami.log"}
+					 {config_file, "./idx-tsunami.xml"},
+					 {log_file, "./idx-tsunami.log"}
 					]},        
 	   {applications, [kernel, stdlib, ssl]},
        {start_phases, [{load_config, []},{start_os_monitoring,[{timeout,30000}]},

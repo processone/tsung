@@ -220,18 +220,3 @@ fill_offline(0, Tab)->
 fill_offline(N, Tab) when is_integer(N) ->
     ets:insert(Tab,{N, 0}),
     fill_offline(N-1, Tab).
-%%%----------------------------------------------------------------------
-%%% Return two lists:
-%%% A list of N id's between NDeb and Nfin
-%%% A list of (Nfin - NDeb +1) - N  offline Id's (between NDeb and Nfin)
-%%%----------------------------------------------------------------------
-build_clients({NDeb, NFin}, N)->
-	build_clients(lists:seq(NDeb, NFin), N, []).
-
-build_clients(List, 0, L)->
-    {List, L};
-build_clients(List, N, L)->
-    Indice = random:uniform( length(List) ) , %% length is not efficient !
-    Element = lists:nth(Indice, List),
-    List2 = lists:delete(Element, List),
-    build_clients(List2, N-1, [Element|L]).

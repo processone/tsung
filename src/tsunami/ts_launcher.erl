@@ -36,7 +36,7 @@
 
 %% gen_fsm callbacks
 -export([init/1, launcher/2,  wait/2, finish/2, handle_event/3,
-		 handle_sync_event/4, handle_info/3, terminate/3]).
+		 handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
 
 -record(state, {nusers,
                 phases =[],
@@ -203,6 +203,14 @@ handle_info(Info, StateName, StateData) ->
 terminate(Reason, StateName, StatData) ->
 	?LOGF("launcher terminating for reason~p~n",[Reason], ?INFO),
 	ok.
+
+%%--------------------------------------------------------------------
+%% Func: code_change/4
+%% Purpose: Convert process state when code is changed
+%% Returns: {ok, NewState, NewStateData}
+%%--------------------------------------------------------------------
+code_change(OldVsn, StateName, StateData, Extra) ->
+    {ok, StateName, StateData}.
 
 %%%----------------------------------------------------------------------
 %%% Internal functions

@@ -47,7 +47,8 @@
 -export([update_stats/2]).
 
 %% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
+        code_change/3]).
 
 -record(state, {log,          % log filename
 				client=0,     % number of clients currently running
@@ -260,6 +261,14 @@ terminate(Reason, State) ->
 	file:close(State#state.log),
     slave:stop(node()),
 	ok.
+
+%%--------------------------------------------------------------------
+%% Func: code_change/3
+%% Purpose: Convert process state when code is changed
+%% Returns: {ok, NewState, NewStateData}
+%%--------------------------------------------------------------------
+code_change(OldVsn, StateData, Extra) ->
+    {ok, StateData}.
 
 %%%----------------------------------------------------------------------
 %%% Internal functions

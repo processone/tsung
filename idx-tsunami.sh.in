@@ -1,0 +1,114 @@
+#!/bin/sh
+
+HOST=`hostname -s`
+
+INSTALL_DIR=%INSTALL_DIR%
+LOG_DIR=$HOME/.idx-tsunami/log
+LOG_OPT="log_file \"$LOG_DIR/idx-tsunami.log\""
+VERSION=%VERSION%
+
+LISTEN_PORT=8090
+NAME=idx-tsunami
+CONTROLLER=tsunami_controller
+RECORDER=tsunami_recorder
+
+TSUNAMIPATH=%INSTALL_DIR%/lib/tsunami-$VERSION/ebin
+CONTROLLERPATH=%INSTALL_DIR%/lib/tsunami_controller-$VERSION/ebin
+RECORDERPATH=%INSTALL_DIR%/lib/tsunami_recorder-$VERSION/ebin
+
+CONF_OPT="-tsunami_controller config_file \"$HOME/.idx-tsunami/idx-tsunami.xml\""
+BOOT_OPT="-boot %INSTALL_DIR%/lib/tsunami_controller-$VERSION/priv/tsunami_controller"
+REC_BOOT_OPT="-boot %INSTALL_DIR%/lib/tsunami_recorder-$VERSION/priv/tsunami_recorder"
+REC_DEBUG_LEVEL=5
+ERL_OPTS="-rsh ssh +A 1 +Mea r10b -shared "
+COOKIE='tsunami'
+
+stop() {
+    erl $ERL_OPTS -noshell  -sname killer -setcookie $COOKIE -pa $TSUNAMIPATH -pa $CONTROLLERPATH -s tsunami_controller stop_all $HOST -s init stop
+}
+
+stop_recorder() {
+    erl $ERL_OPTS -noshell  -sname killer -setcookie $COOKIE -pa $TSUNAMIPATH -pa $RECORDERPATH -s tsunami_recorder stop_all $HOST -s init stop
+}
+
+start() {
+    erl $ERL_OPTS -detached -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT $CONF_OPT \
+    -tsunami_controller $LOG_OPT
+}
+
+recorder() {
+    erl $ERL_OPTS -detached -sname $RECORDER -setcookie $COOKIE  $REC_BOOT_OPT \
+    -tsunami_recorder debug_level $REC_DEBUG_LEVEL \
+    -tsunami_recorder -tsunami_controller $LOG_OPT
+    -tsunami_recorder proxy_log_file \"$LOG_DIR/idx-tsunami_recorder.xml\" \
+    -tsunami_recorder proxy_listen_port $LISTEN_PORT
+}
+
+logdir() {
+        if [ ! -d $LOG_DIR ]
+        then
+                echo "Creating idx-tsunami log directory $LOG_DIR"
+                mkdir $LOG_DIR
+        fi
+}
+debug() {
+    erl $ERL_OPTS -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT $CONF_OPT \
+        -tsunami_controller $LOG_OPT
+}
+
+status() {
+    echo "status: not yet implemented"
+
+}
+
+usage() {
+    prog=`basename $1`
+    echo "$prog start|stop|restart|debug|status|recorder|stop_recorder"
+}
+
+while getopts ":f:l:" Option
+do
+    case $Option in
+        f) CONF_OPT="-tsunami_controller config_file \"$OPTARG\" ";;
+        l) LOG_OPT="log_file \"$OPTARG\" ";;
+		*) usage ;;
+    esac
+done	
+shift $(($OPTIND - 1))
+
+case $1 in
+    start)
+        logdir
+        start
+        ;;
+
+    recorder)
+        logdir
+        recorder
+        ;;
+
+    debug)
+        logdir
+        debug
+        ;;
+
+    stop)
+        stop
+        ;;
+    stop_recorder)
+        stop_recorder
+        ;;
+
+    status)
+        status
+        ;;
+
+    restart)
+        stop
+        start
+        ;;
+
+    *)
+        usage $0
+        ;;
+esac

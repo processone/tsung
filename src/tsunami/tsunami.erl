@@ -33,8 +33,10 @@
 %%          {error, Reason}   
 %%----------------------------------------------------------------------
 start(Type, _StartArgs) ->
-	error_logger:tty(false),
+%	error_logger:tty(false),
+    ?LOG("open logfile  ~n",?DEB),
 	error_logger:logfile({open, ?config(log_file) ++ "-" ++ atom_to_list(node())}),
+    ?LOG("ok  ~n",?DEB),
     case ts_sup:start_link() of
 		{ok, Pid} -> 
 			{ok, Pid};

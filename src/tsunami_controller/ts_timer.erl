@@ -35,9 +35,9 @@
 
 %% gen_fsm callbacks
 -export([init/1, initialize/2, receiver/2, ack/2, handle_event/3,
-		 handle_sync_event/4, handle_info/3, terminate/3]).
+		 handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
 
--record(state, {nclient, pidlist = []}).
+-record(state, {nclient=0, pidlist = []}).
 
 %%%----------------------------------------------------------------------
 %%% API
@@ -74,7 +74,6 @@ init(Args) ->
 %%          {next_state, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}                         
 %%----------------------------------------------------------------------
-%% now all the clients are connected, let's start to ack them
 initialize({config, Val}, State) ->
 	{next_state, receiver, State#state{nclient=Val}}.
 
@@ -152,6 +151,14 @@ handle_info(Info, StateName, StateData) ->
 terminate(Reason, StateName, StatData) ->
 	?LOG("terminate timer",?INFO),
 	ok.
+
+%%--------------------------------------------------------------------
+%% Func: code_change/4
+%% Purpose: Convert process state when code is changed
+%% Returns: {ok, NewState, NewStateData}
+%%--------------------------------------------------------------------
+code_change(OldVsn, StateName, StateData, Extra) ->
+    {ok, StateName, StateData}.
 
 %%%----------------------------------------------------------------------
 %%% Internal functions

@@ -25,7 +25,7 @@
           url,
           version="1.1", % default is HTTP/1.1
           server_name,   % use for the 'Host:' header
-          get_ims_date = none, % used when the method is getims
+          get_ims_date, % used when the method is getims
           cookie=none,
           method=get,
           content_type=[],

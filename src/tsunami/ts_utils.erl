@@ -189,11 +189,6 @@ erl_system_args()->
                  error     -> " ";
                  {ok,[[]]} -> " -shared "
              end,
-%	Connected = "-connect_all false ", 
-%	Connected = case init:get_argument(connect_all) of 
-%					{ok,[["false"]]} -> " -connect_all false ";
-%					_ -> ""
-%				end,
-    lists:append(["-rsh ssh -setcookie ",atom_to_list(erlang:get_cookie()),
+    lists:append(["-rsh ssh -detached -setcookie  ",atom_to_list(erlang:get_cookie()),
 				  Shared," +Mea r10b "]).
 

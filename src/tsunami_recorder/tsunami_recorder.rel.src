@@ -1,0 +1,4 @@
+{release, {"tsunami_recorder", "&tsunami_recorder_vsn&"}, {erts, "&erts_vsn&"},
+ [
+  {kernel,"&kernel_vsn&"},
+  {stdlib,"&stdlib_vsn&"}]}.

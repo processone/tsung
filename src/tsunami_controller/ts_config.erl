@@ -47,7 +47,11 @@
 %%%----------------------------------------------------------------------
 read(Filename) ->
     case xmerl_scan:file(Filename) of
-        {Root = #xmlElement{}, Tail} ->
+        {ok, Root = #xmlElement{}} ->  % xmerl-0.15
+            ?LOGF("Reading config file: ~s~n", [Filename], ?NOTICE),
+            Table = ets:new(sessiontable, [ordered_set, protected]),
+            {ok, parse(Root, #config{session_tab = Table})};
+        {Root = #xmlElement{}, Tail} ->  % xmerl-0.19
             ?LOGF("Reading config file: ~s~n", [Filename], ?NOTICE),
             Table = ets:new(sessiontable, [ordered_set, protected]),
             {ok, parse(Root, #config{session_tab = Table})};

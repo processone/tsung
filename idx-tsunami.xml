@@ -33,13 +33,13 @@
 
   <!-- to start os monitoring (cpu, network, memory). Use an erlang
   agent on the remote machine --> 
-  <monitor host="myserver"></monitoring>
+  <monitor host="myserver"></monitor>
   
   <!-- several arrival phases can be set: for each phase, you can set
   the mean inter-arrival time between new clients and the phase
   duration -->
 
-  <arrivalphase phase="1" duration="3600" unit="second">
+  <arrivalphase phase="1" duration="1" unit="hour">
     <users interarrival="2" unit="second"> </users>
   </arrivalphase>
 
@@ -67,9 +67,9 @@
   <session name="http-example" popularity="30" persistent="true" messages_ack="parse" type="ts_http">
     <!-- full url with server name, this overrides the "server" config value -->
     <request> <http url="http://linuxit02/" method="GET" version="1.1"></http> </request>
-    <!-- with GETIMS method, it send a GET with If-modified since: Date header -->
+    <!-- when if_modified_since is defined, it send a GET with If-modified since: Date header -->
     <!-- relative URL, use the latest server config -->
-    <request> <http url="/images/accueil2/home-txtdeclar-2.gif" method="GETIMS" version="1.1" date="Fri, 14 Nov 2003 02:43:31 GMT"></http> </request>
+    <request> <http url="/images/accueil2/home-txtdeclar-2.gif" method="GET" version="1.1" if_modified_since="Fri, 14 Nov 2003 02:43:31 GMT"></http> </request>
 
     <thinktime value="20" random="true"></thinktime>
     

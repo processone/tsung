@@ -35,7 +35,6 @@
 
 -export([
          http_get/1,
-         http_get_ifmodsince/1,
          http_post/1,
          set_msg/1, set_msg/2,
          parse/2,
@@ -48,22 +47,19 @@
 %% Func: http_get/1
 %% Args: #http_request
 %%----------------------------------------------------------------------
-http_get(Req=#http_request{url=URL, version=Version, cookie=Cookie,
-                           server_name = Host, userid=UserId, passwd=Passwd}) ->
+http_get(Req=#http_request{url=URL, version=Version, cookie=Cookie, 
+                           get_ims_date=undefined,
+                           server_name = Host, userid=UserId, passwd=Passwd})->
 	list_to_binary([?GET, " ", URL," ", "HTTP/", Version, ?CRLF, 
                     "Host: ", Host, ?CRLF,
                     user_agent(),
                     authenticate(UserId,Passwd),
                     get_cookie(Cookie),
-                    ?CRLF]).
+                    ?CRLF]);
 
-%%----------------------------------------------------------------------
-%% Func: http_get_ifmodsince/1
-%% Args: #http_request
-%%----------------------------------------------------------------------
-http_get_ifmodsince(Req=#http_request{url=URL, version=Version, cookie=Cookie,
-                                      get_ims_date=Date, server_name=Host,
-                                      userid=UserId, passwd=Passwd}) ->
+http_get(Req=#http_request{url=URL, version=Version, cookie=Cookie,
+                           get_ims_date=Date, server_name=Host,
+                           userid=UserId, passwd=Passwd}) ->
 	list_to_binary([?GET, " ", URL," ", "HTTP/", Version, ?CRLF,
                     ["If-Modified-Since: ", Date, ?CRLF],
                     "Host: ", Host, ?CRLF,
@@ -128,10 +124,10 @@ parse_config(Element = #xmlElement{name=http},
     %% Apache Tomcat applications need content-type informations to read post forms
     ContentType = ts_config:getAttr(Element#xmlElement.attributes,
                             content_type, "application/x-www-form-urlencoded"),
-    Date     = ts_config:getAttr(Element#xmlElement.attributes, date),
+    Date     = ts_config:getAttr(Element#xmlElement.attributes, 
+                                 'if_modified_since', undefined),
     Method = case ts_config:getAttr(Element#xmlElement.attributes, method) of 
                  "GET"    -> get;
-                 "GETIMS" -> getims;
                  "POST"   -> post;
                  Other ->
                      ?LOGF("Bad method ! ~p ~n",[Other],?ERR),
@@ -143,7 +139,7 @@ parse_config(Element = #xmlElement{name=http},
                             version     = Version,
                             get_ims_date= Date,
                             server_name = ServerName,
-								content_type= ContentType,
+							content_type= ContentType,
                             body        = list_to_binary(Contents)},
     Msg = case lists:keysearch(www_authenticate,#xmlElement.name,
                                Element#xmlElement.content) of

@@ -50,9 +50,6 @@ new_session() ->
 get_message(Req=#http_request{method=get}) ->
 	ts_http_common:http_get(Req);
 
-get_message(Req=#http_request{method=getims}) ->
-	ts_http_common:http_get_ifmodsince(Req);
-
 get_message(Req=#http_request{method=post}) ->
 	ts_http_common:http_post(Req).
 

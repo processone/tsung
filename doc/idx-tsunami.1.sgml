@@ -1,0 +1,92 @@
+<!doctype refentry PUBLIC "-//OASIS//DTD DocBook V4.1//EN">
+<refentry>
+  <refentryinfo>
+    <address>
+      <email>nicolas.niclausse@IDEALX.com</email>
+    </address>
+    <author>
+      <firstname>Nicolas</firstname>
+      <surname>Niclausse</surname>
+    </author>
+    <date>January 2004</date>
+    <copyright>
+      <year>2004</year>
+      <holder>Nicolas Niclausse</holder>
+    </copyright>
+  </refentryinfo>
+
+  <refmeta>
+    <refentrytitle>idx-tsunami</refentrytitle>
+    <manvolnum>1</manvolnum>
+  </refmeta>
+
+  <refnamediv>
+    <refname>idx-tsunami</refname>
+    <refpurpose>
+A distributed multi-protocol load testing tool.
+    </refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis>
+      <command>idx-tsunami</command>
+      <arg><option>-f</option> configuration file</arg>
+      <arg><option>-l</option> log file</arg>
+      <arg>start|stop|restart|debug|status|recorder|stop_recorder</arg>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>description</title>
+    <para>
+      <command>IDX-Tsunami</command> is a distributed load testing
+      tool.  It is protocol-independent and can currently be used to
+      stress and benchmark HTTP and Jabber servers.</para>
+
+    <para> It simulates user behaviour using an XML description file,
+    reports many measurements in real time (statistics can be
+    customized with transactions, and graphics generated using
+    gnuplot).  </para>
+
+    <para>For HTTP, it supports 1.0 and 1.1, has a proxy mode to
+    record sessions, supports GET and POST methods, Cookies, and Basic
+    WWW-authentication. It also has support for SSL.  </para>
+
+    <para>
+      An example config file can be found in
+      <filename>/usr/share/doc/idx-tsunami/examples/idx-tsunami.xml</filename>.
+      </para>
+
+  <refsect1>
+    <title>options</title>
+    <variablelist>
+      <varlistentry>
+        <term><option>-f</option></term>
+        <listitem>
+          <para>specifies the configuration file to use. The default file name is <filename>~/.idx-tsunami/idx-tsunami.xml</filename></para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><option>-l</option></term>
+	<listitem>
+          <para>specifies the log file to use. The default log file name is <filename>~/idx-tsunami/log/idx-tsunami.log</filename></para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+  </refsect1>
+
+  <refsect1>
+    <title>Bugs</title>
+    <para> ...
+    </para>
+  </refsect1>
+
+  <refsect1>
+    <title>Authors</title>
+    <para>
+      <command>IDX-Tsunami</command> was writen by Nicolas Niclausse
+      <email>nicolas.niclausse@IDEALX.com</email>.  . Contributors
+      list is available in <filename>/usr/share/doc/idx-tsunami/CONTRIBUTORS</filename>
+  </refsect1>
+  
+</refentry>
