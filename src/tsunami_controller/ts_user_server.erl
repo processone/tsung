@@ -46,7 +46,6 @@
 -record(state, {offline,        %ets table 
                 online,         %ets table
                 first_client,   % id (integer)
-                last_unique_id=0, % can be used to get an id in 'subst' requests
                 userid_max      % max number of ids (starts at 1)
                 }).
 
@@ -64,8 +63,17 @@ reset(NFin)->
 get_id()->
     gen_server:call({global, ?MODULE }, get_id).
 
+%% return a unique id. use the pid and the node name to set an id.
 get_unique_id(Pid)->
-    gen_server:call({global, ?MODULE }, {get_unique_id, Pid}).
+    ID = pid_to_list(Pid),
+    [ID1,ID2,ID3] = string:tokens(ID, [$<,$.,$>]),
+    %% here we assume that the node name is tsunamiXX@whatever
+    [_, NodeId|_] = string:tokens(atom_to_list(node()),[$@,$i]),
+    %% all ID's must be < 65536 !
+    ?DebugF("got unique id from ~p",[[ID1, ID3, NodeId, ID2]]),
+    {ok, Int} = list_to_id([ID1, ID3, NodeId, ID2],65536),
+    ?DebugF("id=~p",[Int]),
+    Int.
 
 %% get an idle id, and add it to the connected table
 get_idle()->
@@ -113,11 +121,6 @@ init(Args) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-
-%%return a unique id
-handle_call({get_unique_id, Pid}, From, State=#state{last_unique_id=Current}) ->
-    New = Current+1,
-    {reply, New, State#state{last_unique_id=New}};
 
 %%Get one id in the full list of potential users
 handle_call(get_id, From, State) ->
@@ -230,3 +233,21 @@ fill_offline(0, Tab)->
 fill_offline(N, Tab) when is_integer(N) ->
     ets:insert(Tab,{N, 0}),
     fill_offline(N-1, Tab).
+
+%%%----------------------------------------------------------------------
+%%% Func: list_to_id/2
+%%% Purpose: get integer value of it's list representation in given base
+%%%----------------------------------------------------------------------
+list_to_id(L, Base) ->
+    list_to_id(lists:reverse(L), 0, 1, Base).
+                
+list_to_id([], Sum, _, _) -> {ok, Sum};
+list_to_id([Id|Tail], Sum, Mult, Base) when is_list(Id)->
+    list_to_id([list_to_integer(Id)|Tail], Sum, Mult, Base);
+list_to_id([Id|Tail], Sum, Mult, Base) when is_integer(Id),Id < Base->
+    list_to_id(Tail, Sum+Mult*Id, Mult*Base, Base);
+
+list_to_id([Id|Tail], Sum, Mult, Base) when is_integer(Id),Id >= Base ->
+    {error, integertoohigh};
+list_to_id(Val,_,_,_) ->
+    {error, {badinput, Val}}.
