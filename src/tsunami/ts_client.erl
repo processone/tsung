@@ -34,12 +34,12 @@
 -include("ts_config.hrl").
 
 %% External exports
--export([start/1]).
+-export([start/1, next/1]).
 
 %% gen_server callbacks
 
--export([init/1, handle_sync_event/4, handle_event/3, handle_info/3,
-         terminate/3, code_change/4]).
+-export([init/1, wait_ack/2, handle_sync_event/4, handle_event/3,
+         handle_info/3, terminate/3, code_change/4]).
 
 %%%----------------------------------------------------------------------
 %%% API
@@ -49,6 +49,13 @@
 start(Opts) ->
 	?DebugF("Starting with opts: ~p~n",[Opts]),
 	gen_fsm:start_link(?MODULE, Opts, []).
+
+%%---------------------------------------------------------------------- 	 
+%% Func: next/1 	 
+%% Purpose: continue with the next request (use for global ack)
+%%---------------------------------------------------------------------- 	 
+next({Pid}) ->
+    gen_fsm:send_event(Pid, next_msg).
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from gen_server
@@ -61,11 +68,11 @@ start(Opts) ->
 %%          ignore               |
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
-init({Session=#session{id           = Profile,
-                       persistent   = Persistent,
-                       messages_ack = PType,
-                       ssl_ciphers  = Ciphers,
-                       type         = CType}, Count, IP}) ->
+init({#session{id           = Profile,
+               persistent   = Persistent,
+               messages_ack = PType, % FIXME: unused
+               ssl_ciphers  = Ciphers,
+               type         = CType}, Count, IP}) ->
 	?DebugF("Init ... started with count = ~p  ~n",[Count]),
 	ts_utils:init_seed(),
 
@@ -93,13 +100,27 @@ init({Session=#session{id           = Profile,
                            }}.
 
 %%--------------------------------------------------------------------
+%% Func: StateName/2
+%% Returns: {next_state, NextStateName, NextStateData}          |
+%%          {next_state, NextStateName, NextStateData, Timeout} |
+%%          {stop, Reason, NewStateData}                         
+%%--------------------------------------------------------------------
+wait_ack(next_msg,State=#state_rcv{request=R}) when R#ts_request.ack==global->
+    NewSocket = inet_setopts(State#state_rcv.protocol, State#state_rcv.socket,
+                             [{active, once} ]),
+    {PageTimeStamp, _} = update_stats(State, false),
+    handle_next_action(State#state_rcv{socket=NewSocket, 
+                                       page_timestamp=PageTimeStamp}).
+
+%%--------------------------------------------------------------------
 %% Func: handle_event/3
 %% Returns: {next_state, NextStateName, NextStateData}          |
 %%          {next_state, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}                         
 %%--------------------------------------------------------------------
 handle_event(Event, StateName, StateData) ->
-    {next_state, StateName, StateData}.
+	?LOGF("Unknown event (~p) received, abort", [Event], ?ERR),
+    {stop, unknown_event, StateData}.
 
 %%--------------------------------------------------------------------
 %% Func: handle_sync_event/4
@@ -128,7 +149,8 @@ handle_info({NetEvent, Socket, Data}, wait_ack, State) when NetEvent==tcp;
             NewSocket = inet_setopts(State#state_rcv.protocol, 
                                      NewState#state_rcv.socket,
                                      [{active, once} | Opts]),
-            handle_next_action(NewState#state_rcv{socket=NewSocket});
+            handle_next_action(NewState#state_rcv{socket=NewSocket, 
+                                                  ack_done=false});
         {NewState, Opts} ->
             NewSocket = inet_setopts(State#state_rcv.protocol,
                                      NewState#state_rcv.socket,
@@ -137,11 +159,10 @@ handle_info({NetEvent, Socket, Data}, wait_ack, State) when NetEvent==tcp;
     end;
 %% inet close messages; persistent session, waiting for ack
 handle_info({NetEvent, Socket}, wait_ack, 
-            State = #state_rcv{persistent=true, request=Req,
-                               clienttype=Type}) when NetEvent==tcp_closed;
+            State = #state_rcv{persistent=true}) when NetEvent==tcp_closed;
                                                       NetEvent==ssl_closed ->
 	?LOG("connection closed while waiting for ack",?INFO),
-    {NewState, Opts} = handle_data_msg(closed, State),
+    {NewState, _Opts} = handle_data_msg(closed, State),
     %% socket should be closed in handle_data_msg
     handle_next_action(NewState#state_rcv{socket=none});
 
@@ -154,7 +175,7 @@ handle_info({NetEvent, Socket}, think,
     {next_state, think, State#state_rcv{socket = none}};
 
 %% inet close messages
-handle_info({NetEvent, Socket}, StateName, State) when NetEvent==tcp_closed;
+handle_info({NetEvent, Socket}, _StateName, State) when NetEvent==tcp_closed;
                                                        NetEvent==ssl_closed ->
 	?LOG("connection closed, abort", ?WARN),
     %% the connexion was closed after the last msg was sent, stop quietly
@@ -163,7 +184,7 @@ handle_info({NetEvent, Socket}, StateName, State) when NetEvent==tcp_closed;
 	{stop, normal, State};
 
 %% inet errors
-handle_info({NetError, Socket, Reason}, wait_ack, State)  when NetError==tcp_error;
+handle_info({NetError, _Socket, Reason}, wait_ack, State)  when NetError==tcp_error;
                                                                NetError==ssl_error ->
 	?LOGF("Net error (~p): ~p~n",[NetError, Reason], ?WARN),
     CountName="inet_err_"++atom_to_list(Reason),
@@ -171,12 +192,12 @@ handle_info({NetError, Socket, Reason}, wait_ack, State)  when NetError==tcp_err
 	{stop, normal, State};
 
 %% timer expires, no more messages to send
-handle_info({timeout, Ref, end_thinktime}, think, State= #state_rcv{ count=0 })  ->
+handle_info({timeout, _Ref, end_thinktime}, think, State= #state_rcv{ count=0 })  ->
     ?LOG("Session ending ~n", ?INFO),
     {stop, normal, State};
 
 %% the timer expires
-handle_info({timeout, Ref, end_thinktime}, think, State ) ->
+handle_info({timeout, _Ref, end_thinktime}, think, State ) ->
     handle_next_action(State);
 
 handle_info(timeout, StateName, State ) ->
@@ -207,7 +228,7 @@ handle_info(Msg, StateName, State ) ->
 %% Purpose: Shutdown the fsm
 %% Returns: any
 %%--------------------------------------------------------------------
-terminate(normal, StateName,State) ->
+terminate(normal, _StateName,State) ->
     finish_session(State);
 terminate(Reason, StateName, State) ->
 	?LOGF("Stop in state ~p, reason= ~p~n",[StateName,Reason],?NOTICE),
@@ -219,7 +240,7 @@ terminate(Reason, StateName, State) ->
 %% Purpose: Convert process state when code is changed
 %% Returns: {ok, NewState, NewStateData}
 %%--------------------------------------------------------------------
-code_change(OldVsn, StateName, StateData, Extra) ->
+code_change(_OldVsn, StateName, StateData, _Extra) ->
     {ok, StateName, StateData}.
 
 %%%----------------------------------------------------------------------
@@ -252,7 +273,7 @@ handle_next_action(State) ->
             Now = now(),
             ?LOGF("Stopping transaction ~p (~p)~n", [Tname, Now], ?INFO),
             TrList = State#state_rcv.transactions,
-            {value, {Key, Tr}} = lists:keysearch(Tname, 1, TrList),
+            {value, {_, Tr}} = lists:keysearch(Tname, 1, TrList),
             Elapsed = ts_utils:elapsed(Tr, Now),
             ts_mon:add({sample, Tname, Elapsed}),
             NewState = State#state_rcv{transactions=lists:keydelete(Tname,1,TrList),
@@ -276,21 +297,21 @@ get_server_cfg({Profile, Id}) ->
 %%----------------------------------------------------------------------
 %% Func: get_server_cfg/3
 %%----------------------------------------------------------------------
-get_server_cfg(#ts_request{host=undefined, port=undefined, scheme=undefined},P,_)->
+get_server_cfg(#ts_request{host=undefined, port=undefined, scheme=undefined},_,_)->
     ?Debug("Server not configured in msg, get global conf ~n"),
     %% get global server profile
     ts_config_server:get_server_config();
-get_server_cfg(#ts_request{host=ServerName, port= Port, scheme= Protocol},P,Id) ->
+get_server_cfg(#ts_request{host=ServerName, port=Port, scheme=Protocol},_,_) ->
     %% server profile can be overriden in the first URL of the session
     %% curently, the following server modifications in the session are not used.
     ?LOGF("Server setup overriden for this client host=~s port=~p proto=~p~n",
           [ServerName, Port, Protocol], ?INFO),
     {ServerName, Port, Protocol};
-get_server_cfg({transaction,Type,Name},Profile,Id) ->
+get_server_cfg({transaction,_,_},Profile,Id) ->
     get_server_cfg(ts_session_cache:get_req(Profile, Id+1), Profile, Id+1);
 get_server_cfg({thinktime,_},Profile,Id) ->
     get_server_cfg(ts_session_cache:get_req(Profile, Id+1), Profile, Id+1);
-get_server_cfg(Other,P,Id) ->
+get_server_cfg(Other,_,_) ->
     ?LOGF("ERROR while getting cfg (~p)! ~n",[Other],?ERR),
     ts_config_server:get_server_config().
 
@@ -351,6 +372,9 @@ handle_next_request(Profile, State) ->
                     case Profile#ts_request.ack of 
                         no_ack -> 
                             handle_next_action(NewState#state_rcv{ack_done=true});
+                        global -> 
+                            ts_timer:connected(self()),
+                            {next_state, wait_ack, NewState};
                         _ -> 
                             {next_state, wait_ack, NewState}
                         end;
@@ -438,7 +462,7 @@ reconnect(none, ServerName, Port, {Protocol, Ciphers}, IP) ->
 			ts_mon:add({ count, list_to_atom(CountName) }),
 			{stop, normal}
     end;
-reconnect(Socket, Server, Port, Protocol, IP) ->
+reconnect(Socket, _Server, _Port, _Protocol, _IP) ->
 	{ok, Socket}.
 
 %%----------------------------------------------------------------------
@@ -451,17 +475,6 @@ send(gen_tcp,Socket,Message) -> gen_tcp:send(Socket,Message);
 send(ssl,Socket,Message)     -> ssl:send(Socket,Message);
 send(gen_udp,Socket,Message) -> gen_udp:send(Socket,Message).
 
-%%----------------------------------------------------------------------
-%% Func: controlling_process/3
-%% Purpose: this fonction is used to avoid the costly M:fun form of function
-%% call, see http://www.erlang.org/doc/r9b/doc/efficiency_guide/
-%%----------------------------------------------------------------------
-controlling_process(gen_tcp,Socket,Pid) ->
-    gen_tcp:controlling_process(Socket,Pid);
-controlling_process(ssl,Socket, Pid) ->
-    ssl:controlling_process(Socket,Pid);
-controlling_process(gen_udp,Socket,Pid) ->
-    gen_udp:controlling_process(Socket,Pid).
 
 %%----------------------------------------------------------------------
 %% Func: protocol_options/1
@@ -550,21 +563,20 @@ handle_data_msg(Data, State=#state_rcv{request=Req, clienttype=Type}) when Req#t
             {NewState#state_rcv{buffer=NewBuffer}, Opts}
     end;
 
-%% FIXME: we should reset ack_done to false in handle_info when calling handle_next_action
-handle_data_msg(Data, State=#state_rcv{ack_done=true}) ->
-    %% still same message, increase size
-	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
-	DataSize = size(Data),
-    {PageTimeStamp, _} = update_stats(State#state_rcv{datasize=DataSize}, false),
-    {State#state_rcv{ page_timestamp= PageTimeStamp},[]};
+%% ack = global
+handle_data_msg(Data,State=#state_rcv{request=Req,datasize=OldSize}) 
+  when Req#ts_request.ack==global ->
+    %% FIXME: we do not report size now (but after receiving the
+    %% global ack), the size stats may be not very accurate.
+    DataSize = size(Data), 
+    {State#state_rcv{ datasize = OldSize + DataSize},[]};
 
-%% FIXME: almost same code as previous case. does it matter ? (need to
-%% check the ack=global case)
-handle_data_msg(Data, State=#state_rcv{ack_done=false}) ->
+%% local ack, set ack_done to true
+handle_data_msg(Data, State) ->
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
 	DataSize = size(Data),
     {PageTimeStamp, _} = update_stats(State#state_rcv{datasize=DataSize}, false),
-    {State#state_rcv{ ack_done = true, page_timestamp= PageTimeStamp},[]}.
+    {State#state_rcv{ack_done = true, page_timestamp= PageTimeStamp},[]}.
 
 
 

@@ -47,11 +47,14 @@
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
--record(state, {offline,        %ets table 
-                online,         %ets table
-                first_client,   % id (integer)
-                userid_max      % max number of ids (starts at 1)
-                }).
+-record(state, {
+          offline,        %ets table 
+          last_offline,
+          online,         %ets table
+          last_online,
+          first_client,   % id (integer)
+          userid_max      % max number of ids (starts at 1)
+         }).
 
 
 %%%----------------------------------------------------------------------
@@ -83,7 +86,9 @@ get_unique_id(Pid)->
 get_idle()->
     gen_server:call({global, ?MODULE}, get_idle).
 
-get_one_connected(Id)->
+get_one_connected(Id) when is_list(Id) ->
+    get_one_connected(list_to_integer(Id));
+get_one_connected(Id) when is_integer(Id) ->
     gen_server:call({global, ?MODULE}, {get_one_connected, Id}). 
 
 get_offline()->
@@ -93,7 +98,9 @@ get_offline()->
 get_first()->
     gen_server:call({global, ?MODULE}, get_first).
 
-remove_connected(Id)->
+remove_connected(Id) when  is_list(Id) ->
+    remove_connected(list_to_integer(Id));
+remove_connected(Id) when is_integer(Id)->
     gen_server:cast({global, ?MODULE}, {remove_connected, Id}). 
 
 stop()->
@@ -112,7 +119,7 @@ stop()->
 %%----------------------------------------------------------------------
 init(Args) ->
     ts_utils:init_seed(),
-	?LOG("ok, started with unconfigured~n", ?INFO),
+	?LOG("ok, started unconfigured~n", ?INFO),
     {ok, #state{}}.
 
 
@@ -137,26 +144,32 @@ handle_call(get_idle, From, State=#state{offline=Offline,online=Online}) ->
         '$end_of_table' ->
 			?LOG("No more free users !~n", ?WARN),
             {reply, {error, no_free_userid}, State};
-        Key ->
-            ets:delete(Offline, Key),
+        Key when is_integer(Key) ->
+            {ok,NextOffline} = ets_iterator_del(Offline,Key,State#state.last_offline),
+			?DebugF("New nextoffline is ~p~n",[NextOffline]),
             ets:insert(Online, {Key,1}),
             case State#state.first_client of 
                 undefined ->
-                    {reply, Key, State#state{first_client=Key}};
+                    {reply, Key, State#state{first_client=Key,last_online=Key,
+                                            last_offline=NextOffline}};
                 Id ->
-                    {reply, Key, State}
-            end
+                    {reply, Key, State#state{last_online=Key, 
+                                             last_offline=NextOffline}}
+            end;
+        Error ->
+            ?LOGF("Error when get idle ~p~n",[Error],?ERR),
+            {reply, {error, no_free_userid}, State}
     end;
 
 %%Get one offline id 
-handle_call(get_offline, From, State=#state{offline=Offline,online=Online}) ->
-    case ets:first(Offline) of 
-        '$end_of_table' ->
+handle_call(get_offline, From, State=#state{offline=Offline,last_offline=Prev}) ->
+    case ets_iterator_next(Offline, Prev) of
+        {error, Reason} ->
             {reply, {error, no_offline}, State};
-        Key ->
-            {reply, Key, State}
+        {ok, Next} ->
+            ?DebugF("Choose offline user ~p~n",[Next]),
+            {reply, {ok, Next}, State#state{last_offline=Next}}
     end;
-
 
 handle_call(get_first, From, State) ->
     {reply, State#state.first_client, State};
@@ -165,25 +178,25 @@ handle_call({reset, NFin}, From, State) ->
     Offline = ets:new(offline,[set, private]),
     Online  = ets:new(online, [set, private]),
 
+    ?LOG("Reset offline and online lists ~n",?NOTICE),
     fill_offline(NFin, Offline),
+    First = ets:first(Offline),
     State2 = #state{offline=Offline, first_client = undefined,
+                    last_offline=First,
+                    last_online =undefined,
                     online =Online, userid_max=NFin},
     {reply, ok, State2};
 
 %%% Get a connected id different from 'Id'
-handle_call( {get_one_connected, Id}, From, State=#state{offline=Offline,online=Online}) ->
-    case ets:first(Online) of
-        '$end_of_table' ->
+handle_call( {get_one_connected, Id}, From, State=#state{ online     = Online,
+                                                          last_online= Prev}) ->
+    case ets_iterator_next(Online, Prev, Id) of
+        {error, Reason} ->
+            ?DebugF("No online users (~p,~p), ets table was ~p ~n",[Id, Prev,ets:info(Online)]),
             {reply, {error, no_online}, State};
-        Id ->
-            case ets:next(Online, Id) of
-                '$end_of_table' ->
-                    {reply, {error, no_online}, State};
-                Key ->
-                    {reply, Key, State}
-            end;
-        Key2 ->
-            {reply, Key2, State}
+        {ok, Next} ->
+            ?DebugF("Choose online user ~p for ~p ~n",[Next, Id]),
+            {reply, {ok, Next}, State#state{last_online=Next}}
     end;
     
 handle_call(stop, From, State)->
@@ -197,9 +210,16 @@ handle_call(stop, From, State)->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
 handle_cast({remove_connected, Id}, State=#state{offline=Offline,online=Online}) ->
-    ets:delete(Online, Id),
+    {ok, LastOnline} = ets_iterator_del(Online,Id,State#state.last_online),
     ets:insert(Offline, {Id,2}),
-    {noreply, State};
+    %% reset the last_online entries if it's equal to Id
+    case State#state.last_online of
+        Id ->
+            ?LOGF("Reset last id (~p) because its offline ~n",[Id],?INFO),
+            {noreply, State#state{last_online=LastOnline}};
+        _ ->
+            {noreply, State}
+    end;
 
 handle_cast(Msg, State) ->
     {noreply, State}.
@@ -255,3 +275,67 @@ list_to_id([Id|Tail], Sum, Mult, Base) when is_integer(Id),Id >= Base ->
     {error, integertoohigh};
 list_to_id(Val,_,_,_) ->
     {error, {badinput, Val}}.
+
+%%%----------------------------------------------------------------------
+%%% Func: ets_iterator_del/3 
+%%% Args: Ets, Key, Iterator
+%%% Purpose: delete entry Key from Ets, update iterator if needed
+%%% Returns: {ok, Key} or {ok, undefined}
+%%%----------------------------------------------------------------------
+
+% iterator  equal key:it will no longer be valid 
+ets_iterator_del(Ets, Key, Key) -> 
+    Next = ets:next(Ets,Key),
+    ets:delete(Ets,Key),
+    case Next of 
+        '$end_of_table' ->
+            case ets:first(Ets) of 
+                '$end_of_table' ->
+                    {ok, undefined};
+                NewIter ->
+                    {ok, NewIter}
+            end;
+        NewIter ->
+            {ok, NewIter}
+    end;
+ets_iterator_del(Ets, Key, Iterator) ->
+    ets:delete(Ets,Key),
+    {ok, Iterator}.
+    
+%%%----------------------------------------------------------------------
+%%% Func: ets_iterator_next/2
+%%% Args: Ets, Iterator
+%%% Purpose: get next key; no requirements on value
+%%% Returns: {ok, NextKey} or {error, empty_ets}
+%%%----------------------------------------------------------------------
+ets_iterator_next(Ets, Iterator) ->
+    ets_iterator_next(Ets, Iterator, undefined).
+
+%%%----------------------------------------------------------------------
+%%% Func: ets_iterator_next/3
+%%% Args: Ets, Iterator, Key
+%%% Purpose: get next key, must be different from 'Key'
+%%%----------------------------------------------------------------------
+ets_iterator_next(Ets, undefined, Key) ->
+    case ets:first(Ets) of 
+        '$end_of_table' ->
+            {error, empty_ets};
+        Key ->
+            {error, empty_ets_other};
+        NewIter ->
+            {ok, NewIter}
+    end;
+ets_iterator_next(Ets, Iterator, Key) ->
+    case ets:next(Ets,Iterator) of 
+        '$end_of_table' ->
+            case ets:first(Ets) of 
+                '$end_of_table' ->
+                    {error, empty_ets};
+                NewIter ->
+                    {ok, NewIter}
+            end;
+        Key -> % not this one, try again
+            ets_iterator_next(Ets, Key, Key);
+        Next ->
+            {ok, Next}
+    end.

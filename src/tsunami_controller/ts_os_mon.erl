@@ -171,9 +171,9 @@ init(_Args) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-handle_call({stop}, From, State) ->
+handle_call({stop}, _From, State) ->
     {stop, normal, State};
-handle_call(Request, From, State) ->
+handle_call(Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
 
@@ -188,7 +188,7 @@ handle_cast({activate, Hosts}, State) ->
     NewState = active_host(Hosts,State),
     {noreply, NewState};
 
-handle_cast(Msg, State) ->
+handle_cast(_Msg, State) ->
     {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -198,12 +198,12 @@ handle_cast(Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-handle_info({timeout, Ref, send_snmp_request},  State ) ->
+handle_info({timeout, _Ref, send_snmp_request},  State ) ->
     node_data(snmp, State),
     {noreply, State#state{timer=undefined}};
 
 % response from the SNMP server    
-handle_info({snmp_msg, Msg, Ip, Udp}, State) ->
+handle_info({snmp_msg, Msg, Ip, _Udp}, State) ->
     PDU = snmp_mgr_misc:get_pdu(Msg),
     case PDU#pdu.type of 
         'get-response' ->
@@ -247,7 +247,7 @@ handle_info(Info, State) ->
 terminate(normal, #state{erlang_pids=Nodes}) ->
     stop_beam(Nodes),    
     ok;
-terminate(Reason, State) ->
+terminate(_Reason, State) ->
     ok.
 
 %%--------------------------------------------------------------------
@@ -255,7 +255,7 @@ terminate(Reason, State) ->
 %% Purpose: Convert process state when code is changed
 %% Returns: {ok, NewState}
 %%--------------------------------------------------------------------
-code_change(OldVsn, State, Extra) ->
+code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 %%--------------------------------------------------------------------
@@ -266,8 +266,8 @@ code_change(OldVsn, State, Extra) ->
 %% Func: node_data/0
 %%--------------------------------------------------------------------
 node_data() ->
-    {RecvPackets, SentPackets} = packets(),
-    {cpu(), freemem(), RecvPackets, SentPackets}.
+    {RecvPackets, SentPackets} = get_os_data(packets),
+    {get_os_data(cpu), get_os_data(freemem), RecvPackets, SentPackets}.
 
 %%--------------------------------------------------------------------
 %% Func: node_data/2
@@ -281,46 +281,47 @@ node_data(snmp, [Pid|List]) when is_pid(Pid)->
     node_data(snmp, List).
 
 %%--------------------------------------------------------------------
-%% Purpose: Return node cpu utilisation
+%% Func: get_os_data/1
 %%--------------------------------------------------------------------
-cpu() ->
-    cpu_sup:util().
+%% Return node cpu utilisation
+get_os_data(cpu) -> cpu_sup:util();
 
-%%--------------------------------------------------------------------
-%% Purpose: Return node cpu average load on 1 minute
-%%--------------------------------------------------------------------
-cpu1() -> cpu_sup:avg1()/256.
+%% Return node cpu average load on 1 minute
+get_os_data(cpu1) -> cpu_sup:avg1()/256;
 
+get_os_data(DataName) -> get_os_data(DataName,os:type()).
+        
 %%--------------------------------------------------------------------
-%% Function: freemem/0
-%% Purpose: Return free memory in bytes
-%% Use the result of the free commands on Linux
-%%  and os_mon on all other platforms
+%% Func: get_os_data/2
 %%--------------------------------------------------------------------
-freemem() ->
-    case os:type() of
-	{unix, linux} -> freemem_linux();
-	Other         -> freemem_all()
-    end.
-
-freemem_all() ->
-     Data = memsup:get_system_memory_data(),
-     {value,{free_memory,FreeMem}} = lists:keysearch(free_memory, 1, Data),
-     %% We use Megabytes
-     FreeMem/1048576.
-
-freemem_linux() ->
+%% Return free memory in bytes.
+%% Use the result of the free commands on Linux and os_mon on all
+%% other platforms
+get_os_data(freemem, {unix, linux}) ->
     Result = os:cmd("free | grep '\\-/\\+'"),
     [_, _, _, Free] = string:tokens(Result, " \n"),
-    list_to_integer(Free)/1024.
+    list_to_integer(Free)/1024;
+get_os_data(freemem, _OS) ->
+    Data = memsup:get_system_memory_data(),
+    {value,{free_memory,FreeMem}} = lists:keysearch(free_memory, 1, Data),
+    %% We use Megabytes
+    FreeMem/1048576;
 
-packets() ->
-	%% linux only !
-	%% TODO: handle more than one ethernet interface
+%% Return packets sent/received on network interface
+get_os_data(packets, {unix, linux}) ->
+	%% FIXME: handle more than one ethernet interface
     Result = os:cmd("cat /proc/net/dev | grep eth0"), 
     [_, RecvBytes, RecvPackets, _, _, _, _, _, _, SentBytes, SentPackets, _, _, _, _, _,_] = 
         string:tokens(Result, " \n:"),
-    {list_to_integer(RecvPackets), list_to_integer(SentPackets)}.
+    {list_to_integer(RecvPackets), list_to_integer(SentPackets)};
+
+%{ok, IODev} =file:open("/proc/net/dev",[read]),
+%parse_procnetdev(IODev) ->
+%    parse_procnetdev(io:get_line(IODev,""))
+
+get_os_data(packets, _OS) ->
+    {0, 0 }. % FIXME: not implemented for other arch.
+
 
 %%--------------------------------------------------------------------
 %% Function: start_beam/1
@@ -400,7 +401,7 @@ active_host([{Host, erlang}| HostList], State=#state{erlang_pids=PidList}) ->
 analyse_snmp_data(Args, Host) ->
     analyse_snmp_data(Args, Host, []).
 
-analyse_snmp_data([],Host, Resp) ->
+analyse_snmp_data([], _Host, Resp) ->
     ts_mon:add(Resp);
 
 analyse_snmp_data([#varbind{value='NULL'}| Tail], Host, Stats) ->

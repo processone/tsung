@@ -36,7 +36,8 @@
 %get_random_message (#jabber{type = connect, size = Size, dest = Dest}) ->
 get_message(Jabber=#jabber{type = 'connect'}) ->
     connect(Jabber);
-get_message(#jabber{type = 'close'}) ->
+get_message(#jabber{type = 'close', id=Id}) ->
+    ts_user_server:remove_connected(Id),
     close();
 get_message(#jabber{type = 'presence'}) ->
     presence();
@@ -48,11 +49,22 @@ get_message(Jabber=#jabber{type = 'presence:roster',dest=previous,id=Id}) ->
 get_message(Jabber=#jabber{type = 'presence:roster'}) ->
     presence(roster, Jabber);
 get_message(Jabber=#jabber{type = 'chat', id=Id, dest=online, domain=Domain})->
-	Dest = ts_user_server:get_one_connected(Id),
-    message(Dest, Jabber, Domain);
+    case ts_user_server:get_one_connected(Id) of 
+        {ok, Dest} ->
+            message(Dest, Jabber, Domain);
+        {error, no_online} ->
+            ts_mon:add({ count, error_no_online }),
+            << >>
+    end;
+        
 get_message(Jabber=#jabber{type = 'chat', domain = Domain, dest=offline}) ->
-    Dest = ts_user_server:get_offline(),
-    message(Dest, Jabber, Domain);
+    case ts_user_server:get_offline() of 
+        {ok, Dest} ->
+            message(Dest, Jabber, Domain);
+        {error, no_offline} ->
+            ts_mon:add({ count, error_no_offline }),
+            << >>
+    end;
 get_message(Jabber=#jabber{type = 'chat', dest=random, domain=Domain}) ->
     Dest = ts_user_server:get_id(),
     message(Dest, Jabber, Domain);
@@ -63,11 +75,21 @@ get_message(Jabber=#jabber{type = 'chat', id =Id, dest = Dest, domain=Domain}) -
     ?DebugF("~w -> ~w ~n", [Id,  Dest]),
     message(Dest, Jabber, Domain);
 get_message(#jabber{type = 'iq:roster:set', id=Id, dest = online,username=User,domain=Domain}) ->
-	Dest = ts_user_server:get_one_connected(Id),
-    request(roster_set, User, Domain, Dest);
+    case ts_user_server:get_one_connected(Id) of 
+        {ok, Dest} ->
+            request(roster_set, User, Domain, Dest);
+        {error, no_online} ->
+            ts_mon:add({ count, error_no_online }),
+            << >>
+    end;
 get_message(#jabber{type = 'iq:roster:set',dest = offline,username=User,domain=Domain})->
-	Dest = ts_user_server:get_offline(),
-    request(roster_set, User, Domain, Dest);
+    case ts_user_server:get_offline() of 
+        {ok, Dest} ->
+            request(roster_set, User, Domain, Dest);
+        {error, no_offline} ->
+            ts_mon:add({ count, error_no_offline }),
+            << >>
+    end;
 get_message(Jabber=#jabber{type = 'iq:roster:get', id = Id,username=User,domain=Domain}) ->
     request(roster_get, User, Domain, Id);
 
