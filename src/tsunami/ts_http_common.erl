@@ -140,6 +140,9 @@ matchdomain_url(Cookie, Host, URL) -> % return a cookie only if domain match
 %% Purpose: parse the response from the server and keep information
 %%  about the response if State#state_rcv.session
 %%----------------------------------------------------------------------
+parse(closed, State) ->
+    {State#state_rcv{session= #http{}, ack_done = true }, [], true};
+    
 parse(Data, State=#state_rcv{session=HTTP}) when HTTP#http.status == none;
 												 HTTP#http.partial == true ->
     List = binary_to_list(Data),
@@ -161,11 +164,9 @@ parse(Data, State=#state_rcv{session=HTTP}) when HTTP#http.status == none;
 					{NewState#state_rcv{acc=[],dyndata=DynData}, Opts, Http#http.close}
 			end;
 		{ok, Http=#http{content_length=0, close=true}, Tail} ->
-			%% FIXME: does it means that there is no more data to read?
-			%% TODO: check HTTP/1.0 spec.
 			DynData = concat_cookies(Http#http.cookie, State#state_rcv.dyndata),
-			{State#state_rcv{session= #http{}, ack_done = true,
-							 datasize = 0, acc = [],
+			{State#state_rcv{session= Http,
+							 datasize = TotalSize, acc = [],
 							 dyndata= DynData}, [], true};
 		{ok, Http=#http{content_length=CLength}, Tail} ->
 			DynData = concat_cookies(Http#http.cookie, State#state_rcv.dyndata),
@@ -417,6 +418,7 @@ parse_line("content-length: "++Tail, Http, Host)->
 	?DebugF("HTTP Content-Length ~p~n",[CL]),
 	Http#http{content_length=CL};
 parse_line("connection: close"++Tail, Http, Host)->
+	?Debug("Connection Closed in Header ~n"),
 	Http#http{close=true};
 parse_line("transfer-encoding: chunked"++Tail, Http, Host)->
 	?LOG("Chunked transfer encoding~n",?DEB),

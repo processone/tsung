@@ -141,9 +141,20 @@ handle_info({NetEvent, Socket, Data}, wait_ack, State) when NetEvent==tcp;
                                      [{active, once} | Opts]),
             {next_state, wait_ack, NewState#state_rcv{socket=NewSocket}, NewState#state_rcv.timeout}
     end;
+%% inet close messages; persistent session, waiting for ack
+handle_info({NetEvent, Socket}, wait_ack, 
+            State = #state_rcv{persistent=true, request=Req,
+                               clienttype=Type}) when NetEvent==tcp_closed;
+                                                      NetEvent==ssl_closed ->
+	?LOG("connection closed while waiting for ack",?INFO),
+    {NewState, Opts} = handle_data_msg(closed, State),
+    %% socket should be closed in handle_data_msg
+    handle_next_action(NewState#state_rcv{socket=none});
+
 %% inet close messages; persistent session
-handle_info({NetEvent, Socket}, StateName, State = #state_rcv{persistent=true}) 
-  when NetEvent==tcp_closed; NetEvent==ssl_closed ->
+handle_info({NetEvent, Socket}, think, 
+            State = #state_rcv{persistent=true}) when NetEvent==tcp_closed;
+                                                      NetEvent==ssl_closed ->
 	?LOG("connection closed, stay alive (persistent)",?INFO),
     ts_utils:close_socket(State#state_rcv.protocol, Socket), % mandatory for ssl
     {next_state, think, State#state_rcv{socket = none}};
