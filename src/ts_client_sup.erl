@@ -64,7 +64,7 @@ init([]) ->
     SupFlags = {simple_one_for_one,1, ?restart_sleep},
     ChildSpec = [ 
 				  {ts_client,{ts_client, start, []},
-				   transient,2000,worker,[ts_client]}
+				   temporary,2000,worker,[ts_client]}
 				 ],
     {ok, {SupFlags, ChildSpec}}.
 
