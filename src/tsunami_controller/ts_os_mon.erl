@@ -395,7 +395,7 @@ active_host([{Host, erlang}| HostList], State=#state{erlang_pids=PidList}) ->
 
 %%--------------------------------------------------------------------
 %% Function: analyse_snmp_data/2
-%% Returns:
+%% Returns: any (send msg to ts_mon)
 %%--------------------------------------------------------------------
 analyse_snmp_data(Args, Host) ->
     analyse_snmp_data(Args, Host, []).
@@ -405,7 +405,11 @@ analyse_snmp_data([],Host, Resp) ->
 
 analyse_snmp_data([#varbind{value='NULL'}| Tail], Host, Stats) ->
     analyse_snmp_data(Tail, Host, Stats);
-    
+
+%% FIXME: this may not be accurate: if we lost packets (the server is
+%% overloaded), the value will be inconsistent, since we assume a
+%% constant time across samples ($INTERVAL)
+
 analyse_snmp_data([#varbind{oid=?SNMP_CPU_RAW_SYSTEM, value=Val}| Tail], Host, Stats) ->
     {value, User} = lists:keysearch(?SNMP_CPU_RAW_USER, #varbind.oid, Tail),
     Value = Val + User#varbind.value,
