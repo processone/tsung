@@ -105,6 +105,11 @@ test:
 rpm:	release idx-tsunami.spec
 	rpmbuild -ta $(PACKAGE)-$(VERSION).tar.gz
 
+deb:
+	fakeroot debian/rules clean
+	debian/rules build
+	fakeroot debian/rules binary
+
 clean:
 	-cd priv && rm -f $(shell ls priv | grep -v builder\.erl) && cd ..
 	-rm -f $(TARGET) $(TMP) $(BUILD_OPTIONS_FILE) builder.beam
