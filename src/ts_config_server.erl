@@ -328,7 +328,8 @@ choose_session([S=#session{popularity=P} | SList], Rand, Cur) ->
 %%          | {error, Reason}
 %%----------------------------------------------------------------------
 get_client_cfg(Arrival, Clients, TotalWeight, Host) ->
-    get_client_cfg(Arrival, Clients, TotalWeight,Host, []).
+    SortedPhases=lists:keysort(#arrivalphase.phase, Arrival),
+    get_client_cfg(SortedPhases, Clients, TotalWeight,Host, []).
 
 get_client_cfg([], Clients, TotalWeight, Host, Cur) ->
     {value, Client} = lists:keysearch(Host, #client.host, Clients),
@@ -347,7 +348,7 @@ get_client_cfg([Arrival=#arrivalphase{duration=Duration,
                  Val ->
                      lists:min([MaxNumber, Duration * 1000 * ClientIntensity])
              end,
-    ?LOGF("New arrival phase: will start ~p users~n",[NUsers],?INFO),
+    ?LOGF("New arrival phase: will start ~p users~n",[NUsers],?NOTICE),
     get_client_cfg(AList, Clients, TotalWeight, Host,
                    [{ClientIntensity, round(NUsers)} | Cur]).
 
