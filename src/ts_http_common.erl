@@ -299,8 +299,11 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 			ts_mon:addcount({ Status }),
 			case httpd_util:key1search(ParsedHeader,"content-length") of
 				undefined ->
-					?LOGF("No content length ! ~p~n",[Headers], ?WARN),
-					State#state_rcv{session=#http{}, ack_done=true, datasize=0};
+					?LOGF("No content length ! ~p~n",[Headers], ?DEB),
+                    ts_mon:addcount({ http_no_content_length }),
+					{ State#state_rcv{session=#http{},
+                                      ack_done=true,
+                                      datasize=0 } , [] };
 				Length ->
 					CLength = list_to_integer(Length)+4,
 					?LOGF("HTTP Content-Length:~p~n",[CLength], ?DEB),
@@ -308,7 +311,7 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 					BodySize = size(Data)-HeaderSize,
 					if
 						BodySize == CLength ->  % end of response
-							{State#state_rcv{session= #http{}, ack_done = true, 
+							{State#state_rcv{session= #http{}, ack_done = true,
 											 datasize = BodySize,
 											 dyndata= Cookie}, []};
 						BodySize > CLength  ->
