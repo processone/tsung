@@ -125,8 +125,8 @@ parse(Element = #xmlElement{name=client},
       Conf = #config{clients=CList}) ->
 
     Host     = getAttr(Element#xmlElement.attributes, host),
-    Weight   = getAttr(Element#xmlElement.attributes, weight),
-    MaxUsers = getAttr(Element#xmlElement.attributes, maxusers),
+    Weight   = getAttr(Element#xmlElement.attributes, weight,"1"),
+    MaxUsers = getAttr(Element#xmlElement.attributes, maxusers,"750"),
     CPU = getAttr(Element#xmlElement.attributes, cpu, "1"),
     %% must be hostname and not ip:
     case ts_utils:is_ip(Host) of 
