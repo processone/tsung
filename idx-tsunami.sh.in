@@ -23,7 +23,7 @@ BOOT_OPT="-boot %INSTALL_DIR%/lib/tsunami_controller-$VERSION/priv/tsunami_contr
 REC_BOOT_OPT="-boot %INSTALL_DIR%/lib/tsunami_recorder-$VERSION/priv/tsunami_recorder -boot_var TSUNAMIPATH  %INSTALL_DIR% "
 REC_DEBUG_LEVEL=5
 ERL_RSH=" -rsh ssh "
-ERL_OPTS=" +A 1 %ERL_OPTS% -shared "
+ERL_OPTS=" +A 1 %ERL_OPTS% "
 COOKIE='tsunami'
 
 stop() {

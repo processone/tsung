@@ -1691,6 +1691,17 @@ echo "${ECHO_T}yes" >&6
   ERL_OPTS="+Mea r10b"
 fi
 
+echo "$as_me:$LINENO: checking for '-shared' option" >&5
+echo $ECHO_N "checking for '-shared' option... $ECHO_C" >&6
+if ! $ERL -noshell -shared -s init stop 2> /dev/null; then
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+else
+  echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+  ERL_OPTS="-shared $ERL_OPTS"
+fi
+
 
 
 
