@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
-
+<!DOCTYPE idx-tsunami SYSTEM "idx-tsunami-1.0.dtd" [] >
 <!-- set dumptraffic="true" to dump all received and sent packets -->
 <!-- set loglevel="debug" for maximum verbosity -->
-<idx-tsunami loglevel="notice" dumptraffic="false">
+<idx-tsunami loglevel="notice" dumptraffic="false" version="1.0">
 
  
   
@@ -33,33 +33,35 @@
 
   <!-- to start os monitoring (cpu, network, memory). Use an erlang
   agent on the remote machine or SNMP. erlang is the default --> 
-  <monitor host="myserver" type="snmp"></monitor>
-  <monitor host="myserver2" type="erlang"></monitor>
+  <monitoring>
+    <monitor host="myserver" type="snmp"></monitor>
+    <monitor host="myserver2" type="erlang"></monitor>
+  </monitoring>
   
   <!-- several arrival phases can be set: for each phase, you can set
   the mean inter-arrival time between new clients and the phase
   duration -->
 
   <arrivalphase phase="1" duration="1" unit="hour">
-    <users interarrival="2" unit="second"> </users>
+    <users interarrival="2" unit="second"></users>
   </arrivalphase>
 
   <!-- default values. These values overrides those set in the session
   nodes. If random is true -->
-  <default name="thinktime" value="3" random="false"> </default>
+  <default name="thinktime" value="3" random="false"></default>
   <!-- to set specific ssl_ciphers -->
-  <default name="ssl_ciphers" value="EXP1024-RC4-SHA,EDH-RSA-DES-CBC3-SHA"> </default>
+  <default name="ssl_ciphers" value="EXP1024-RC4-SHA,EDH-RSA-DES-CBC3-SHA"></default>
 
   <!-- HTTP parameters -->
   <!-- none yet -->
   
   <!-- JABBER parameters -->
   <!-- to synchronise users,  use a global acknoledgement -->
-  <default type="ts_jabber" name="global_number" value="5"> </default>
-  <default type="ts_jabber" name="userid_max" value="100"> </default>
-  <default type="ts_jabber" name="domain" value="jabber.org"> </default>
-  <default type="ts_jabber" name="username" value="glop"> </default>
-  <default type="ts_jabber" name="passwd" value="glop"> </default>
+  <default type="ts_jabber" name="global_number" value="5"></default>
+  <default type="ts_jabber" name="userid_max" value="100"></default>
+  <default type="ts_jabber" name="domain" value="jabber.org"></default>
+  <default type="ts_jabber" name="username" value="glop"></default>
+  <default type="ts_jabber" name="passwd" value="glop"></default>
 
   <!-- ********************************************** -->
   <!-- start a session for a http user. the popularity is the
