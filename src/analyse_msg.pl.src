@@ -198,6 +198,7 @@ sub plot {
 }
 
 
+# plot stats from file
 sub plot_stats {
 	# args:
 	my $title     = shift; # arrayref contaning data titles
@@ -299,6 +300,13 @@ sub parse_stats_file {
 	foreach $key (keys %{$data}) {
 		open (TYPE, "> $key.txt") or die "$!";
 		foreach my $data (@{$data->{$key}}) {
+			if ($key =~ /time$/ and $interval) {#
+				my @tmp;
+				my $time;
+				($time, $data, @tmp) = split(/\s/,$data);
+				$data /= $interval;
+				$data = "$time $data @tmp";
+			}
 			print TYPE $data ."\n";
 		}
 		if ($key eq "session" or $key eq "reconnect" ) {
@@ -316,7 +324,7 @@ sub parse_stats_file {
 	plot_stats(\@col,"Perfs","",\@time) if $plot;
 }
 
-# 
+# parse jabber log file
 sub parse_file {
 	my $file = shift; 
 	my ($type,$d1,$d2,$d3,$pid,$message,$date,%recv,%send,%dat,$id,%mes);
