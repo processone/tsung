@@ -1,4 +1,4 @@
-1.0.beta3 -> 1.0XXX:  Minor bugfixes (16 Mar 2004)
+1.0.beta3 -> 1.0.beta4:  Minor bugfixes (16 Mar 2004)
     - fix lost cookie when transfer-encoding:chunked is used
     - fix config parsing (the last request of the last page of a
       sesssion was not marked as endpage)
