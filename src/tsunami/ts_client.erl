@@ -223,16 +223,17 @@ handle_next_action(State) ->
             set_thinktime(Think),
             {next_state, think, State#state_rcv{count=Count}};
         {transaction, start, Tname} ->
-            ?LOGF("Starting new transaction ~p~n", [Tname], ?INFO),
+            Now = now(),
+            ?LOGF("Starting new transaction ~p (now~p)~n", [Tname,Now], ?INFO),
             TrList = State#state_rcv.transactions,
-            NewState = State#state_rcv{transactions=[{Tname,now()}|TrList],
+            NewState = State#state_rcv{transactions=[{Tname,Now}|TrList],
                                    count=Count}, 
             handle_next_action(NewState);
         {transaction, stop, Tname} ->      
-            ?LOGF("Stopping transaction ~p~n", [Tname], ?INFO),
+            Now = now(),
+            ?LOGF("Stopping transaction ~p (~p)~n", [Tname, Now], ?INFO),
             TrList = State#state_rcv.transactions,
             {value, {Key, Tr}} = lists:keysearch(Tname, 1, TrList),
-            Now = now(),
             Elapsed = ts_utils:elapsed(Tr, Now),
             ts_mon:add({sample, Tname, Elapsed}),
             NewState = State#state_rcv{transactions=lists:keydelete(Tname,1,TrList),
