@@ -129,6 +129,8 @@ handle_info({ssl, Socket, Data}, State) ->
 
 handle_info({tcp_closed, Socket}, State) ->
 	?LOG("TCP close: ~n", ?INFO),
+    Protocol = State#state_rcv.protocol,
+    Protocol:close(Socket),
 	ts_client:close(State#state_rcv.ppid),
 	{noreply, State};
 
@@ -140,6 +142,8 @@ handle_info({tcp_error, Socket, Reason}, State) ->
 
 handle_info({ssl_closed, Socket}, State) ->
 	?LOG("SSL close: ~n", ?INFO),
+    Protocol = State#state_rcv.protocol,
+    Protocol:close(Socket),
 	ts_client:close(State#state_rcv.ppid),
 	{noreply, State};
 
