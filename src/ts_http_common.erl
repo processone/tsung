@@ -70,56 +70,36 @@ build_session(N, [FirstPage | Session] , Id) ->
 %%----------------------------------------------------------------------
 %% Func: build_session/5
 %% Args: Thinktime (integer), Session, Page, FinalSession, Id
+%% rem: crash if parse_requestline returns an error
 %%----------------------------------------------------------------------
 build_session([], [], [Line], Session, Id) ->
-	case parse_requestline(Line) of 
-		{error, Reason} ->
-			?PRINTDEBUG("unexpected value while parsing sesslog ~p~n",[Reason],?ERR),
-			abort;
-		{URL, Think} ->
-			lists:reverse([ set_msg(URL, Think) | Session ]) ;%% should we set think to 0 ?
-		Else ->
-			?PRINTDEBUG("unexpected value while parsing sesslog ~p~n",[Else],?ERR),
-			abort
-	end;
-build_session(Think, [], [URL], Session, Id) ->
+	{ok, Req, Think} = parse_requestline(Line),
+	lists:reverse([ set_msg(Req, Think) | Session ]); %% should we set think to 0 ?
+
+build_session(Think, [], [Line], Session, Id) ->
 	%% the "efficiency guide" said that doing the reverse at the end
 	%% is faster than using '++' during recursion
-	lists:reverse([ set_msg(URL, Think) | Session ]) ;
+	{ok, Req, _Think} = parse_requestline(Line),
+	lists:reverse([ set_msg(Req, Think) | Session ]) ;
 
 %% single URL in a page, wait during thinktime
 build_session([], [Next| PendingSession], [Line], Session, Id) ->
-	case parse_requestline(Line) of 
-		{error, Reason} ->
-			?PRINTDEBUG("unexpected value while parsing sesslog ~p~n",[Reason],?ERR),
-			abort;
-		{URL, Think} ->
-			build_session([], PendingSession, Next, [set_msg(URL, Think) | Session], Id);
-		Else ->
-			?PRINTDEBUG("unexpected value while parsing sesslog ~p~n",[Else],?ERR),
-			abort
-	end;
+	{ok, Req, Think} = parse_requestline(Line),
+	build_session([], PendingSession, Next, [set_msg(Req, Think) | Session], Id);
+
 %% Last URL in a page, wait during thinktime
-build_session(Think, [Next| PendingSession], [URL], Session, Id) ->
-	build_session([], PendingSession, Next, [set_msg(URL, Think) | Session], Id);
+build_session(Think, [Next| PendingSession], [Line], Session, Id) ->
+	{ok, Req, _Think} = parse_requestline(Line),
+	build_session([], PendingSession, Next, [set_msg(Req, Think) | Session], Id);
 
 %% First URL in a page, don't wait (wait 1ms in reality).
 build_session([], PendingSession, [Line | Page ], Session, Id) ->
-	case parse_requestline(Line) of 
-		{error, Reason} ->
-			abort;
-		{URL, Think} ->
-			build_session(Think, PendingSession, Page, [ set_msg(URL, 0) | Session ], Id);
-		Else ->
-			?PRINTDEBUG("unexpected value while parsing sesslog ~p~n",[Else],?ERR),
-			abort
-	end;
+	{ok, Req, Think} = parse_requestline(Line),
+	build_session(Think, PendingSession, Page, [ set_msg(Req, 0) | Session ], Id);
 
-build_session(Think, PendingSession, [URL | Page ], Session, Id) ->
-	build_session(Think, PendingSession, Page, [ set_msg(URL, 0) | Session ], Id);
-
-build_session(N, PendingSession, Page, Session, Id) ->
-	this_should_not_happen.
+build_session(Think, PendingSession, [Line | Page ], Session, Id) ->
+	{ok, Req, _Think} = parse_requestline(Line),
+	build_session(Think, PendingSession, Page, [ set_msg(Req, 0) | Session ], Id).
 
 
 %%----------------------------------------------------------------------
@@ -181,38 +161,80 @@ host() ->
 %% Returns: {URL (string), thinktime (integer)} | {error, Reason} 
 %% Purpose: parse a line from sesslog (cf. httperf man page)
 %% Input example:  /foo2.html method=POST contents='Post data'
-%%
-%% TODO: we should return a #http_request record
 %%----------------------------------------------------------------------
 parse_requestline(Line) ->
 	case regexp:split(Line, "(\s|\t)+") of  %% slow ?
 		{ok, [URL | FieldList]} ->
-			%% TODO: parse FieldList
-			{URL, round(ts_stats:exponential(?messages_intensity))};
+			Request = httperf2record(FieldList),
+			{ok, Request#http_request{url=URL} , round(ts_stats:exponential(?messages_intensity)) };
 		{error, Reason} ->
 			?PRINTDEBUG("Error while parsing session ~p~n",[Reason],?ERR),
 			{error, Reason}
 	end.
 
 %%----------------------------------------------------------------------
+%% Func: token2record/2
+%% Args: {Name, Value} , #http_request
+%% Returns: #http_request
+%% Purpose: set the value of record according to {tag, value}
+%%----------------------------------------------------------------------
+token2record({"think", Value}, Record) -> % currently not used 
+	Record;
+token2record({"method", Value}, Record) ->
+	Record#http_request{method = Value};
+token2record({"contents", Value}, Record) ->
+	Record#http_request{body = Value};
+token2record(Unknown, Record) ->
+	?PRINTDEBUG("Unknown ~p~n",[Unknown],?NOTICE),
+	Record.
+
+%%----------------------------------------------------------------------
+%% Func: httperf2record/1
+%% Args: List
+%% Returns: record 
+%% Purpose: parse a list of ["tag=value"] from httperf sesslog file
+%%----------------------------------------------------------------------
+httperf2record([]) ->
+	#http_request{};
+httperf2record(List) ->
+	httperf2record(List,#http_request{}).
+
+%% Func: httperf2record/2 
+httperf2record( [], Record) ->
+	Record;
+httperf2record( [Head | Tail], Record) ->
+	case string:tokens( Head, "=") of 
+		[Name, Value] -> 
+			NewRecord=token2record({httpd_util:to_lower(Name), Value}, Record);
+		[Val] -> 
+			%% we assume (!) that there were some whitespace in the contents tag
+			%% so append this string to it.
+			PrevContents = Record#http_request.body,
+			NewRecord=Record#http_request{body = PrevContents ++ " " ++ Val};
+		[] ->
+			NewRecord = Record
+	end,
+	httperf2record(Tail, NewRecord).
+
+
+
+%%----------------------------------------------------------------------
 %% Func: set_msg/1 or /2
 %% Returns: #message record
 %% Purpose:
 %% unless specified, the thinktime is an exponential random var.
-%% TODO: the given URL should be already a record #http_request 
-%%       (cf parse_requestline)
 %%----------------------------------------------------------------------
-set_msg(URL) ->
-	set_msg(URL, round(ts_stats:exponential(?messages_intensity))).
-set_msg(URL, 0) -> % no thinktime, only wait for response
+set_msg(HTTPRequest) ->
+	set_msg(HTTPRequest, round(ts_stats:exponential(?messages_intensity))).
+set_msg(HTTPRequest, 0) -> % no thinktime, only wait for response
 	#message{ack = parse, 
 			 thinktime=infinity,
-			 param = #http_request {url= URL} };
-set_msg(URL, Think) -> % end of a page, wait before the next one
+			 param = HTTPRequest };
+set_msg(HTTPRequest, Think) -> % end of a page, wait before the next one
 	#message{ack = parse, 
 			 endpage   = true,
 			 thinktime = Think,
-			 param = #http_request {url= URL} }.
+			 param = HTTPRequest }.
 
 
 
