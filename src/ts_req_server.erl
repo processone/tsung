@@ -17,7 +17,7 @@
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
 -module(ts_req_server).
--author('nniclausse@schultze.ird.idealx.com').
+-author('nniclausse@idealx.com').
 
 -behaviour(gen_server).
 
@@ -28,9 +28,9 @@
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
 
--record(state, {items, %%lists of messages read from a file
-				open=0,
-				table,  %% ets  table
+-record(state, {items,    %% lists of messages read from a file
+				open = 0,
+				table,    %% ets table
 				current='$end_of_table' %% position in ets table
 			   }).
 
@@ -40,13 +40,15 @@
 %%% API
 %%%----------------------------------------------------------------------
 read(Filename) ->
-	gen_server:call({global, ?MODULE}, {read, Filename}, ?req_server_timeout).
+	gen_server:call({global, ?MODULE}, {read, Filename}, 
+					?config(req_server_timeout)).
 
 read_sesslog(Filename) ->
-	gen_server:call({global, ?MODULE}, {read_sesslog, Filename}, ?req_server_timeout).
+	gen_server:call({global, ?MODULE}, {read_sesslog, Filename},
+					?config(req_server_timeout)).
 
 start() ->
-	?PRINTDEBUG2("Starting~n",?DEB),
+	?LOG("Starting~n",?DEB),
 	gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
 
 get_next_session()->
@@ -127,11 +129,11 @@ handle_call({read_sesslog, Filename}, From, State) when State#state.open == 0 ->
     end;	
 	
 handle_call({read_sesslog, Filename}, From, State) ->
-	?PRINTDEBUG("~p already opened~n",[Filename],?INFO),
+	?LOGF("~p already opened~n",[Filename],?INFO),
 	{reply, ok, State};
 
 handle_call({read, Filename}, From, State) when State#state.open == 0 ->
-	?PRINTDEBUG("Opening file ~p~n",[Filename],?INFO),
+	?LOGF("Opening file ~p~n",[Filename],?INFO),
     {Status, File} = file:open(Filename, read),
     case Status of
         error ->
@@ -144,7 +146,7 @@ handle_call({read, Filename}, From, State) when State#state.open == 0 ->
 			{reply, ok, State#state{items = List_items, open= 1}}
     end;
 handle_call({read, Filename}, From, State) ->
-	?PRINTDEBUG("~p already opened~n",[Filename],?INFO),
+	?LOGF("~p already opened~n",[Filename],?INFO),
 	{reply, ok, State};
 
 handle_call(stop, From, State)->

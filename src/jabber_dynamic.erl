@@ -34,14 +34,14 @@ get_random_message(Args) ->
 get_client(N, Id)->
     List_Fin = 
 		[#message{ack = no_ack, thinktime=3000, param = #jabber{type = 'connect'}}, 
-		 #message{ack = ?messages_ack, thinktime=infinity, 
+		 #message{ack = ?config(messages_ack), thinktime=infinity, 
 				  param = #jabber {type = 'authenticate', id = Id}},
-		 #message{ack = no_ack, thinktime=2000+random:uniform(?presence_delay),
+		 #message{ack = no_ack, thinktime=2000+random:uniform(?config(presence_delay)),
 				  param = #jabber {type = 'presence'}},
 		 #message{type= dynamic, ack = no_ack, thinktime=
 				  round(ts_stats:exponential(?messages_intensity)),
-				  param = #jabber {type = 'chat', size= ?messages_size, id =Id}},
+				  param = #jabber {type = 'chat', size= ?config(messages_size), id =Id}},
 		 #message{ack=local, thinktime=infinity, param=#jabber{type = 'close'}}
 		],
-    ?PRINTDEBUG("~w~n", [List_Fin], ?DEB),
+    ?LOGF("~w~n", [List_Fin], ?DEB),
     List_Fin.

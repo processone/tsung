@@ -32,5 +32,5 @@ get_random_message (Args) ->
 
 get_client(N, Id) ->
     [#message{ack = no_ack, thinktime=1000, param = #jabber {type = 'connect'}}, 
-     #message{ack = ?messages_ack, thinktime=1000, param = #jabber {type = 'register', id = Id}},
+     #message{ack = ?config(messages_ack), thinktime=1000, param = #jabber {type = 'register', id = Id}},
      #message{ack = local, thinktime= infinity, param = #jabber {type = 'close'}}].

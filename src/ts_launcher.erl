@@ -44,11 +44,11 @@
 %%% API
 %%%----------------------------------------------------------------------
 start(Opts) ->
-	?PRINTDEBUG("starting ~p~n",[[Opts]],?DEB),
+	?LOGF("starting ~p~n",[[Opts]], ?DEB),
 	gen_fsm:start_link({local, ?MODULE}, ?MODULE, {Opts}, []).
 
 launch(Node) ->
-	?PRINTDEBUG("starting on node ~p~n",[[Node]],?DEB),
+	?LOGF("starting on node ~p~n",[[Node]], ?DEB),
 	gen_fsm:send_event({?MODULE, Node}, launch).
 
 %%%----------------------------------------------------------------------
@@ -63,7 +63,6 @@ launch(Node) ->
 %%          {stop, StopReason}                   
 %%----------------------------------------------------------------------
 init({[Clients, Intensity]}) ->
-	?PRINTDEBUG("starting with timeout ~p~n",[?req_server_timeout],?DEB),
     {Msec, Sec, Nsec} = ts_utils:init_seed(),
     random:seed(Msec,Sec,Nsec),
 	{ok, wait, #state{interarrival=ts_stats:exponential(Intensity,Clients)}}.
@@ -77,11 +76,11 @@ init({[Clients, Intensity]}) ->
 %% no more clients to launch, stop
 wait(launch, State) ->
 	Nodes = net_adm:world(),
-	?PRINTDEBUG("Available nodes : ~p ~n",[Nodes],?NOTICE),
+	?LOGF("Available nodes : ~p ~n",[Nodes],?NOTICE),
 	{next_state, launcher, State, 10000}.
 
 launcher(Event, #state{interarrival = []}) ->
-	?PRINTDEBUG2("no more clients to start, stop ~n",?DEB),
+	?LOG("no more clients to start, stop ~n",?DEB),
 	ts_mon:stop(),
 	{stop, normal, #state{}};
 
@@ -89,9 +88,12 @@ launcher(timeout, #state{interarrival = [X |List]}) ->
     %Get one client
     Id = ts_user_server:get_idle(),%% some bench shows that this is not a bottleneck
     %set the profile of the client
-    Profile = ts_profile:get_client(?client_type, Id),
-	ts_client_sup:start_child([Profile, {?client_type, ?parse_type, ?mes_type, ?persistent}]),
-	?PRINTDEBUG("client launched, waiting ~p msec before launching next client",
+    Profile = ts_profile:get_client(?config(client_type), Id),
+	ts_client_sup:start_child([Profile, {?config(client_type),
+										 ?config(parse_type),
+										 ?config(mes_type), 
+										 ?config(persistent)}]),
+	?LOGF("client launched, waiting ~p msec before launching next client",
 				[X],?DEB),
 	{next_state, launcher, #state{interarrival= List}, round(X)}.
 

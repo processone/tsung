@@ -30,10 +30,6 @@
 			   status        = none  % HTTP resp. status :200, etc. 'none' if no current cnx.
 			  }).
 
--define(server_name, ts_utils:get_val(server_name)).
--define(http_req_filename, ts_utils:get_val(http_req_filename)).
--define(http_version, ts_utils:get_val(http_version)).
-
 %% HTTP Protocol
 -define(GET, "GET").
 -define(POST, "POST").

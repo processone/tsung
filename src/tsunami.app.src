@@ -25,10 +25,8 @@
 					 {snd_size, 32768}, %% send buffer size
 					 {rcv_size, 32768}, %% receive buffer size
 					 {tcp_timeout, 3600000},
-					 {clients_timeout, 60000}, %% timeout en cas de synchro globale
-					 {dumpstats_interval, 60000}, % 
 					 {monitoring, full},     %% full or light
-
+					 {parse_type, noparse},
 					 {client_type, jabber_dynamic},	%% Type de client:tsun
 									%%     		jabber_online, 
 									%%			jabber_unique, 
@@ -39,8 +37,6 @@
 			  		 {persistent, true}, %% persistent connection: true or false
 					 {mes_type, dynamic}, %% dynamic or static
 					 {nclients, 10},      %% Nombre de clients à connecter
-					 {nclients_deb, 1}, 	%% Debut de la plage de clients pour cette beam
-					 {nclients_fin, 2000}, 	%% Fin de la plage de clients
 					 {interarrival, 2},  	%% Intervalle de temps entre l'arrivée de 2 clients (en sec)
 					 {log_file, "/home/idx-tsunami/log/idx-tsunami.log"},	%% Base du fichier de log
 
@@ -51,14 +47,14 @@
 					 {messages_ack, local}, 		%% no_ack, local, global, or parse
 
 					 {req_filename, "requests.txt"},	%% Fichiers de requetes
-					 {req_server_timeout, 120000},	%% Fichiers de requetes
+					 {req_server_timeout, 120000},	    %% 
 					 {http_req_filename, "http.txt"},	%% Fichiers de requetes HTTP
 					 {http_version, "1.1"},	%% 
 					 {client_retry_timeout, 10},	    %% retry sending (in microsec.)
 					 {ssl_ciphers, "EXP1024-RC4-SHA,EDH-RSA-DES-CBC3-SHA"},	
 
 %%% -------- JABBER OPTIONS
-					 {presence_delay, 10000}, %% temps d'attente apres l'envoie d'un presence
+					 {presence_delay, 10000}, %% waiting time after sending a 'presence' msg
 					 {n_roster_clients, 6},
 					 {setroster, 60}, %% Intervalle de temps entre 2 messages de roster et autres (pour la phase remplissage)
 					 {boucle1_percent, 63},	

@@ -38,7 +38,7 @@
 %% Returns: tuple
 %%----------------------------------------------------------------------
 get_server() ->
-    {?server_adr, ?server_port, ?server_protocol}.
+    {?config(server_adr), ?config(server_port), ?config(server_protocol)}.
 
 %%----------------------------------------------------------------------
 %% Function: new_session/2
@@ -58,8 +58,8 @@ new_session(Module, _) ->
 %%----------------------------------------------------------------------
 
 get_client(Module, Id)->
-	?PRINTDEBUG("get_client called with args ~p ~p ~n",[Module,Id],?DEB),
-    Module:get_client(?messages_number, Id).
+	?LOGF("get_client called with args ~p ~p ~n",[Module,Id],?DEB),
+    Module:get_client(?config(messages_number), Id).
 
 %%----------------------------------------------------------------------
 %% Function: get_message/2
@@ -71,7 +71,7 @@ get_client(Module, Id)->
 %%----------------------------------------------------------------------
 
 get_message(Module, Param) ->
-	?PRINTDEBUG("get_message called with args ~p ~p ~n",[Module,Param],?DEB),
+	?LOGF("get_message called with args ~p ~p ~n",[Module,Param],?DEB),
     Module:get_random_message(Param).
 %%TODO: utiliser le meme nom ? pourquoi ajouter random ?
 

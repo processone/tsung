@@ -37,7 +37,7 @@ jabber_first()->
     {Id, _} = ts_user_server:get_first(),
 	    io:format("First client ~w~n", [Id]),
     List_Fin = [#message{ack = no_ack, thinktime=3000, param = #jabber {type = 'connect'}}, 
-		#message{ack = ?messages_ack, thinktime=infinity, param = #jabber {type = 'authenticate', id = Id}},
+		#message{ack = ?config(messages_ack), thinktime=infinity, param = #jabber {type = 'authenticate', id = Id}},
 		#message{ack = no_ack, thinktime=infinity, param = #jabber {type = 'presence'}}],
     List_Fin.
 
@@ -55,11 +55,11 @@ get_client(N, Id)->
 %%Create a client session where all messages will be sent to an unique client connected with first_jabber_client
 get_client2(N, Id)->
     List_Fin = [#message{ack = no_ack, thinktime=3000, param = #jabber {type = 'connect'}}, 
-		#message{ack = ?messages_ack, thinktime=infinity, param = #jabber {type = 'authenticate', id = Id}},
+		#message{ack = ?config(messages_ack), thinktime=infinity, param = #jabber {type = 'authenticate', id = Id}},
 		#message{ack = no_ack, thinktime=random:uniform(2000), param = #jabber {type = 'presence'}}] ++
 		get_unique_params(?messages_intensity,
 										 N,
-										 ?messages_size,'chat', Id) ++
+										 ?config(messages_size),'chat', Id) ++
 	[ #message{ack = local, thinktime = infinity, param = #jabber {type = 'close'}}],
     List_Fin.
 
@@ -67,7 +67,7 @@ get_client2(N, Id)->
 get_unique_params(Intensity, 1, Size, Type, Id, L) -> 
     {Fid, _} = ts_user_server:get_first(),
     L ++ [#message{ ack = no_ack, 
-		    thinktime = ?messages_last_time,
+		    thinktime = ?config(messages_last_time),
 		    param = #jabber {size=Size, 
 				     type=Type,
 				     id =Id,

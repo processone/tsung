@@ -73,7 +73,7 @@ init([{PType, CType, PPid, Socket, Protocol, Timeout, Ack, Monitor}]) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
 handle_call(Request, From, State) ->
-	?PRINTDEBUG("Unknown call ! ~p~n",[Request], ?ERR),
+	?LOGF("Unknown call ! ~p~n",[Request], ?ERR),
 	Reply = ok,
 	{reply, Reply, State}.
 
@@ -86,7 +86,7 @@ handle_call(Request, From, State) ->
 
 %% ack value -> wait
 handle_cast({wait_ack, Ack, When, EndPage, Socket}, State) ->
-	?PRINTDEBUG("receive wait_ack: ~p ~p~n",[Ack, EndPage], ?DEB),
+	?LOGF("receive wait_ack: ~p ~p~n",[Ack, EndPage], ?DEB),
 	case State#state_rcv.page_timestamp of 
 		0 -> %first request of a page
 			NewPageTimestamp = When;
@@ -104,7 +104,7 @@ handle_cast({stop}, State) ->
 	{stop, normal, State};
 
 handle_cast(Message, State) -> 
-	?PRINTDEBUG("Unknown message !: ~p~n",[Message], ?ERR),
+	?LOGF("Unknown message !: ~p~n",[Message], ?ERR),
 	{noreply, State}.
 
 %%----------------------------------------------------------------------
@@ -127,23 +127,23 @@ handle_info({ssl, Socket, Data}, State) ->
 	{noreply, NewState};
 
 handle_info({tcp_closed, Socket}, State) ->
-	?PRINTDEBUG2("TCP close: ~n", ?NOTICE),
+	?LOG("TCP close: ~n", ?NOTICE),
 	ts_client:close(State#state_rcv.ppid),
 	{noreply, State};
 
 handle_info({tcp_error, Socket, Reason}, State) ->
-	?PRINTDEBUG("TCP error: ~p~n",[Reason], ?WARN),
+	?LOGF("TCP error: ~p~n",[Reason], ?WARN),
 	ts_mon:addcount({ Reason }),
 	ts_client:close(State#state_rcv.ppid),
 	{noreply, State};
 
 handle_info({ssl_closed, Socket}, State) ->
-	?PRINTDEBUG2("SSL close: ~n", ?NOTICE),
+	?LOG("SSL close: ~n", ?NOTICE),
 	ts_client:close(State#state_rcv.ppid),
 	{noreply, State};
 
 handle_info({ssl_error, Socket, Reason}, State) ->
-	?PRINTDEBUG("SSL error: ~p~n",[Reason], ?WARN),
+	?LOGF("SSL error: ~p~n",[Reason], ?WARN),
 	ts_mon:addcount({ Reason }),
 	ts_client:close(State#state_rcv.ppid),
 	{noreply, State};
@@ -183,11 +183,15 @@ handle_data_msg(Data, State) ->
 			{NewState, Opts} = ts_profile:parse(State#state_rcv.clienttype, Data, State),
 			if 
 				NewState#state_rcv.ack_done == true ->
-					?PRINTDEBUG("Response done:~p~n", [NewState#state_rcv.datasize], ?DEB),
+					?LOGF("Response done:~p~n", [NewState#state_rcv.datasize],
+						  ?DEB),
 					PageTimeStamp = update_stats(NewState),
-					{NewState#state_rcv{endpage = false, page_timestamp= PageTimeStamp}, Opts} ; % reinit in case of 
+					{NewState#state_rcv{endpage = false, % reinit in case of
+										page_timestamp= PageTimeStamp},
+					 Opts} ; 
 				true ->
-					?PRINTDEBUG("Response: continue:~p~n",[NewState#state_rcv.datasize], ?DEB),
+					?LOGF("Response: continue:~p~n",
+						  [NewState#state_rcv.datasize], ?DEB),
 					{NewState, Opts}
 			end;
 		{AckType, true} ->
@@ -196,7 +200,9 @@ handle_data_msg(Data, State) ->
 			{State#state_rcv{datasize = OldSize+DataSize}, []};
 		{AckType, false} ->
 			PageTimeStamp = update_stats(State),
-			{State#state_rcv{datasize= DataSize, ack_done = true, endpage=false, page_timestamp= PageTimeStamp},[]} % ack for a new message, init size
+			{State#state_rcv{datasize=DataSize,%ack for a new message, init size
+							 ack_done = true, endpage=false,
+							 page_timestamp= PageTimeStamp},[]}
 	end.
 
 %%----------------------------------------------------------------------

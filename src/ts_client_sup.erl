@@ -51,8 +51,8 @@ start_child(ServerId) ->
 %%          {error, Reason}   
 %%----------------------------------------------------------------------
 init([]) ->
-	?PRINTDEBUG2("Starting ~n", ?INFO),
-    SupFlags = {simple_one_for_one,1,?restart_sleep},
+	?LOG("Starting ~n", ?INFO),
+    SupFlags = {simple_one_for_one,1, ?restart_sleep},
     ChildSpec = [ 
 				  {ts_client,{ts_client, start, []},
 				   transient,2000,worker,[ts_client]}

@@ -60,10 +60,10 @@ get_random_message (#jabber{type = 'authenticate'}) ->
     auth();
 
 get_random_message (#jabber{type = 'chat', size = Size,  id = Id, dest = undefined}) ->
-    message(Size, ?jabber_domain);
+    message(Size, ?config(jabber_domain));
 get_random_message (#jabber{type = 'chat', size = Size, id =Id, dest = Dest}) ->
-    ?PRINTDEBUG("~w -> ~w ~n", [Id,  Dest], ?DEB),
-    message(Dest, Size, ?jabber_domain);
+    ?LOGF("~w -> ~w ~n", [Id,  Dest], ?DEB),
+    message(Dest, Size, ?config(jabber_domain));
 
 
 
@@ -80,7 +80,7 @@ connect() ->
 	  "<stream:stream  id='" ++
 	  integer_to_list(ts_msg_server:get_id()) ++
 	  "' to='" ++ 
-	  ?jabber_domain ++
+	  ?config(jabber_domain) ++
 	  "' xmlns='jabber:client' xmlns:stream='http://etherx.jabber.org/streams'>").
 
 %% Close session
@@ -103,15 +103,15 @@ auth(Username, Passwd) ->
 %% auth message from a random client
 auth() ->
     Id = integer_to_list(ts_user_server:get_id()),
-    Name = ?jabber_username ++ Id,
-    Passwd = ?jabber_password ++ Id,
+    Name = ?config(jabber_username) ++ Id,
+    Passwd = ?config(jabber_password) ++ Id,
     auth(Name, Passwd).
 
 
 %% auth message from a given client 
 auth(Id) ->
-    Name = ?jabber_username ++ integer_to_list(Id) ,
-    Passwd = ?jabber_password ++ integer_to_list(Id),
+    Name = ?config(jabber_username) ++ integer_to_list(Id) ,
+    Passwd = ?config(jabber_password) ++ integer_to_list(Id),
     auth(Name, Passwd).
 
 
@@ -122,15 +122,15 @@ registration(Username, Passwd) ->
 
 %% register message from an random client
 registration() ->
-    Id = integer_to_list(random:uniform(?jabber_users)),
-    Name = ?jabber_username ++ Id,
-    Passwd = ?jabber_password ++ Id,
+    Id = integer_to_list(random:uniform(?config(jabber_users))),
+    Name = ?config(jabber_username) ++ Id,
+    Passwd = ?config(jabber_password) ++ Id,
     registration(Name, Passwd).
 
 %% register message from an given client number
 registration(Id) when integer(Id)->
-    Name = ?jabber_username ++ integer_to_list(Id),
-    Passwd = ?jabber_password ++ integer_to_list(Id),
+    Name = ?config(jabber_username) ++ integer_to_list(Id),
+    Passwd = ?config(jabber_password) ++ integer_to_list(Id),
     registration(Name, Passwd).
 
 
@@ -149,7 +149,7 @@ message(Dest, Size, Service) when integer(Size), Size >= 10 ->
     list_to_binary(
 	  "<message id='" ++integer_to_list(ts_msg_server:get_id()) ++ 
 	  "' to='" ++ 
-	  ?jabber_username ++ integer_to_list(Dest) ++ "@" ++ Service  ++
+	  ?config(jabber_username) ++ integer_to_list(Dest) ++ "@" ++ Service  ++
 	  "'><body>" ++ lists:duplicate(Size div 10, "acnkdiejnf") ++ 
 	  "</body></message>");
 
@@ -157,7 +157,7 @@ message(Dest, Size, Service) when integer(Size), Size >= 0 ->
     list_to_binary(
 	  "<message id='" ++integer_to_list(ts_msg_server:get_id()) ++
 	  "' to='"  ++
-	  ?jabber_username ++ integer_to_list(Dest) ++ "@" ++ Service  ++ 
+	  ?config(jabber_username) ++ integer_to_list(Dest) ++ "@" ++ Service  ++ 
 	  "'><body>" ++ lists:duplicate(Size, "a") ++
 	  "</body></message>").
 
@@ -173,11 +173,11 @@ presence () ->
 
 
 presence(roster, Dest)->
-    Name = ?jabber_username ++ integer_to_list(Dest),
+    Name = ?config(jabber_username) ++ integer_to_list(Dest),
     list_to_binary(
 	  "<presence id='" ++integer_to_list(ts_msg_server:get_id()) ++ 
 	  "' to='" ++ 
-	  Name ++ "@"  ++ ?jabber_domain ++
+	  Name ++ "@"  ++ ?config(jabber_domain) ++
 	  "' type='subscribed'/>").
 
 
@@ -187,11 +187,11 @@ presence(roster, Dest)->
 requete(roster, Type, Id)->
     case Type of
 		"set"->
-			Name = ?jabber_username ++ integer_to_list(Id),
+			Name = ?config(jabber_username) ++ integer_to_list(Id),
 			list_to_binary(
 			  "<iq id='" ++integer_to_list(ts_msg_server:get_id()) ++
 			  "' type='set'>" ++ "<query xmlns='jabber:iq:roster'><item jid='" ++
-			  Name ++ "@"  ++ ?jabber_domain ++
+			  Name ++ "@"  ++ ?config(jabber_domain) ++
 			  "' name='gg1000'/></query></iq>");
 		"get"->
 			list_to_binary(
@@ -204,7 +204,7 @@ requete(roster, Type, Id)->
 %% Out: 
 get_random_params(Intensity, 1, Size, Type, L) -> 
     L ++ [#message{ ack = no_ack, 
-		    thinktime = ?messages_last_time,
+		    thinktime = ?config(messages_last_time),
 		    param = #jabber {size=Size, type=Type}}];
 
 get_random_params(Intensity, N, Size, Type, L)  ->

@@ -32,6 +32,7 @@ get_val(Var) ->
 		{ok, Val} ->
 			Val;
 		_ ->
+			?LOGF("WARNING, env ~p is not defined ! ~n", [Var], ?ERR),
 			undef_var
 	end.
 
@@ -40,7 +41,7 @@ debug(From, Message, Level) ->
 	debug(From, Message, [], Level).
 
 debug(From, Message, Args, Level) ->
-	Debug_level = ?debug_level,
+	Debug_level = ?config(debug_level),
 	if 
 		Level =< Debug_level ->
 			error_logger:info_msg("~20s:(~p) "++ Message,
@@ -72,20 +73,20 @@ now_sec() ->
 inet_setopts(ssl, Socket, Opts, Pid) ->
 	case ssl:setopts(Socket, Opts) of
 		ok ->
-			?PRINTDEBUG("Setting ssl options to : ~p ~n", [Opts], ?DEB);
+			?LOGF("Setting ssl options to : ~p ~n", [Opts], ?DEB);
 		{error, closed} ->
 			ts_client:close(Pid);
 		Error ->
-			?PRINTDEBUG("Error while setting ssl options ~p ~p ~n", [Opts, Error], ?ERR)
+			?LOGF("Error while setting ssl options ~p ~p ~n", [Opts, Error], ?ERR)
 	end;
 inet_setopts(gen_tcp, Socket,  Opts, Pid)->
 	case inet:setopts(Socket, Opts) of
 		ok ->
-			?PRINTDEBUG("Setting inet options to : ~p ~n", [Opts], ?DEB);
+			?LOGF("Setting inet options to : ~p ~n", [Opts], ?DEB);
 		{error, closed} ->
 			ts_client:close(Pid);
 		Error ->
-			?PRINTDEBUG("Error while setting inet options ~p ~p ~n", [Opts, Error], ?ERR)
+			?LOGF("Error while setting inet options ~p ~p ~n", [Opts, Error], ?ERR)
 	end;
 inet_setopts(gen_udp, Socket,  Opts, Pid)->
 	ok = inet:setopts(Socket, Opts).

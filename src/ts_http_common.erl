@@ -41,7 +41,7 @@
 %% Returns: List
 %%----------------------------------------------------------------------
 get_client(N, Id) ->
-	get_client(N, Id, ?http_req_filename).
+	get_client(N, Id, ?config(http_req_filename)).
 get_client(N, Id, File) ->
 	ts_req_server:read_sesslog(File),
 	{ok, Session} = ts_req_server:get_next_session(),
@@ -54,7 +54,7 @@ get_client(N, Id, File) ->
 %% currently unused !
 %%----------------------------------------------------------------------
 get_simple_client(N, Id) ->
-	ts_req_server:read(?http_req_filename),
+	ts_req_server:read(?config(http_req_filename)),
 	build_simplesession(N, [], Id).
 
 
@@ -134,7 +134,7 @@ http_post(URL, Version, Cookie, Content) ->
 				  protocol_headers(Version),
 				  user_agent(),
 				  get_cookie(Cookie),
-				  "Content-Length: ",Content,?CR,
+				  "Content-Length: ",Content, ?CR,
 				  ?CR,
 				  Content]).
 
@@ -155,7 +155,7 @@ get_cookie(Cookie) ->
 %% set HTTP headers specific to the protocol version
 %%----------------------------------------------------------------------
 protocol_headers("1.1") ->
-	lists:append(["Host: ", ?server_name, ?CR]);
+	lists:append(["Host: ", ?config(server_name), ?CR]);
 protocol_headers("1.0") ->
 	[].
 	
@@ -171,9 +171,10 @@ parse_requestline(Line) ->
 	case regexp:split(Line, "(\s|\t)+") of  %% slow ?
 		{ok, [URL | FieldList]} ->
 			Request = httperf2record(FieldList),
-			{ok, Request#http_request{url=URL} , round(ts_stats:exponential(?messages_intensity)) };
+			{ok, Request#http_request{url=URL} , 
+			 round(ts_stats:exponential(?messages_intensity)) };
 		{error, Reason} ->
-			?PRINTDEBUG("Error while parsing session ~p~n",[Reason],?ERR),
+			?LOGF("Error while parsing session ~p~n",[Reason],?ERR),
 			{error, Reason}
 	end.
 
@@ -190,7 +191,7 @@ token2record({"method", Value}, Record) ->
 token2record({"contents", Value}, Record) ->
 	Record#http_request{body = Value};
 token2record(Unknown, Record) ->
-	?PRINTDEBUG("Unknown ~p~n",[Unknown],?NOTICE),
+	?LOGF("Unknown ~p~n",[Unknown], ?NOTICE),
 	Record.
 
 %%----------------------------------------------------------------------
@@ -253,21 +254,21 @@ set_msg(HTTPRequest, Think) -> % end of a page, wait before the next one
 
 %% Experimental code, only used when {packet, http} is set 
 parse({http_response, Socket, {VsnMaj, VsnMin}, Status, Data}, State) ->
-	?PRINTDEBUG("HTTP Reponse: ~p ~p ~p ~p ~n", [VsnMaj, VsnMin, Status, Data], ?DEB),
+	?LOGF("HTTP Reponse: ~p ~p ~p ~p ~n", [VsnMaj, VsnMin, Status, Data], ?DEB),
 	ts_mon:addcount({ Status }),
 	Http = #http{ status = Status},
 	{State#state_rcv{session=Http}, []};
 parse({http_header, Socket, Num, 'Content-Length', _, Data}, State) ->
 	CLength = list_to_integer(Data),
-	?PRINTDEBUG("HTTP Content length: ~p ~p~n", [Num, CLength], ?DEB),
+	?LOGF("HTTP Content length: ~p ~p~n", [Num, CLength], ?DEB),
 	OldHttp = State#state_rcv.session,
 	NewHttp = OldHttp#http{content_length=CLength},
 	{State#state_rcv{session=NewHttp}, []};
 parse({http_header, Socket, Num, Header, _R, Data}, State) ->
-	?PRINTDEBUG("HTTP Headers: ~p ~p ~p ~p ~n", [Num, Header, _R, Data], ?DEB),
+	?LOGF("HTTP Headers: ~p ~p ~p ~p ~n", [Num, Header, _R, Data], ?DEB),
 	{State, []};
 parse({http_eoh, Socket}, State) ->
-	?PRINTDEBUG2("HTTP eoh: ~n", ?DEB),
+	?LOG("HTTP eoh: ~n", ?DEB),
 	{State, [{packet, raw}]};
 %% end of experimental code
 
@@ -278,26 +279,28 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 	StartHeaders = string:str(List, "\r\n\r\n"),
 	Headers = string:substr(List, 1, StartHeaders-1),
 	[Status, ParsedHeader] = request_header(Headers),
-	?PRINTDEBUG("HTTP Headers: ~p ~n", [ParsedHeader], ?DEB),
+	?LOGF("HTTP Headers: ~p ~n", [ParsedHeader], ?DEB),
 	Cookie = parse_cookie(ParsedHeader),
 	ts_mon:addcount({ Status }),
 	case httpd_util:key1search(ParsedHeader,"content-length") of
 		undefined ->
-			?PRINTDEBUG("No content length ! ~p~n",[Headers], ?WARN),
+			?LOGF("No content length ! ~p~n",[Headers], ?WARN),
 			State#state_rcv{session= #http{}, ack_done = true, datasize = 0};
 		Length ->
 			CLength = list_to_integer(Length)+4,
-			?PRINTDEBUG("HTTP Content-Length:~p~n",[CLength], ?DEB),
+			?LOGF("HTTP Content-Length:~p~n",[CLength], ?DEB),
 			HeaderSize = length(Headers),
 			BodySize = size(Data)-HeaderSize,
 			case BodySize of 
 				CLength ->  % end of response
-					{State#state_rcv{session= #http{}, ack_done = true, datasize = BodySize, dyndata= Cookie}, []};
+					{State#state_rcv{session= #http{}, ack_done = true, 
+									 datasize = BodySize, dyndata= Cookie}, []};
 				_ ->
 					Http = #http{content_length = CLength,
 								 status         = Status,
 								 body_size      = BodySize},
-					{State#state_rcv{session = Http, ack_done = false, datasize = BodySize, dyndata=Cookie},[]}
+					{State#state_rcv{session = Http, ack_done = false,
+									 datasize = BodySize, dyndata=Cookie},[]}
 			end
 	end;
 
@@ -305,7 +308,7 @@ parse(Data, State) when (State#state_rcv.session)#http.status == none ->
 %% current connection
 parse(Data, State) ->
 	DataSize = size(Data),
-	?PRINTDEBUG("HTTP Body size=~p ~n",[DataSize], ?DEB),
+	?LOGF("HTTP Body size=~p ~n",[DataSize], ?DEB),
 	Size = (State#state_rcv.session)#http.body_size + DataSize,
 	CLength = (State#state_rcv.session)#http.content_length,
 	case Size of 

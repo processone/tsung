@@ -34,15 +34,14 @@
 %%----------------------------------------------------------------------
 start(Type, _StartArgs) ->
 	error_logger:tty(false),
-	error_logger:logfile({open, ?log_file ++"-debug-" ++ 
-						  atom_to_list(node())}),
+	error_logger:logfile({open, ?config(log_file) ++ "-" ++ atom_to_list(node())}),
 	Nodes = net_adm:world(),
-	?PRINTDEBUG("Available nodes : ~p ~n",[Nodes],?NOTICE),
+	?LOGF("Available nodes : ~p ~n",[Nodes],?NOTICE),
     case ts_sup:start_link() of
 		{ok, Pid} -> 
 			{ok, Pid};
 		Error ->
-			?PRINTDEBUG("Can't start ! ~p ~n",[Error],?ERR),
+			?LOGF("Can't start ! ~p ~n",[Error],?ERR),
 			Error
     end.
 

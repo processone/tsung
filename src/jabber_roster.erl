@@ -31,16 +31,16 @@ get_random_message(Args) ->
 
 get_client(N, Id)->
     [#message{ack = no_ack, thinktime=3000, param = #jabber {type = 'connect'}}, 
-     #message{ack = ?messages_ack, thinktime=infinity, param = #jabber {type = 'authenticate', id = Id}},
-     #message{ack = no_ack, thinktime=random:uniform(?presence_delay), param = #jabber {type = 'presence'}}] ++
-		set_roster_params(?n_roster_clients, both,  Id) ++
+     #message{ack = ?config(messages_ack), thinktime=infinity, param = #jabber {type = 'authenticate', id = Id}},
+     #message{ack = no_ack, thinktime=random:uniform(?config(presence_delay)), param = #jabber {type = 'presence'}}] ++
+		set_roster_params(?config(n_roster_clients), both,  Id) ++
 		get_roster_params(N, Id) ++
 	[ #message{ack = local, thinktime = infinity, param = #jabber {type = 'close'}}].
 
 
 get_roster_params(1, Id, L)  ->
    L ++ [#message{ack = no_ack,
-		  thinktime =  ?messages_last_time,
+		  thinktime =  ?config(messages_last_time),
 		  param = #jabber {
 		    id = Id,
 		    type = 'iq:roster:get'}}];

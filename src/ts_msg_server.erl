@@ -28,7 +28,7 @@
 -behaviour(gen_server).
 
 %% External exports
--export([start_link/0, start/0, stop/0]).
+-export([start/0, stop/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -38,13 +38,9 @@
 %%%----------------------------------------------------------------------
 %%% API
 %%%----------------------------------------------------------------------
-start_link() ->
-	?PRINTDEBUG2("Starting ~n",?DEB),
-    gen_server:start_link({global,?MODULE}, ?MODULE, [], []).
-
 start() ->
-	?PRINTDEBUG2("Starting ~n",?DEB),
-    gen_server:start({global, ?MODULE}, ?MODULE, [], []).
+	?LOG("Starting ~n",?DEB),
+    gen_server:start_link({global,?MODULE}, ?MODULE, [], []).
 
 get_id()->
    gen_server:call({global, ?MODULE}, get_id).
@@ -114,7 +110,7 @@ handle_info(Info, State) ->
 %% Returns: any (ignored by gen_server)
 %%----------------------------------------------------------------------
 terminate(Reason, State) ->
-	?PRINTDEBUG2("terminate ~n",?DEB),
+	?LOG("terminate ~n",?DEB),
     ok.
 
 %%----------------------------------------------------------------------

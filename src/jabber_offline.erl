@@ -34,19 +34,21 @@ get_random_message(Args) ->
 %% currently, parameters are included from profile.hrl
 get_client(N, Id) ->
     List_Fin = [#message{ack = no_ack, thinktime=3000, param = #jabber {type = 'connect'}}, 
-		#message{ack = ?messages_ack, thinktime=infinity, param = #jabber {type = 'authenticate', id = Id}},
-		#message{ack = no_ack, thinktime=random:uniform(?presence_delay), param = #jabber {type = 'presence'}}] ++
-	get_offline_params(?messages_intensity,
-					  N,
-					  ?messages_size,'chat', Id) ++
-	[ #message{ack = no_ack, thinktime = 100, param = #jabber {type = 'close'}}],
+		#message{ack = ?config(messages_ack), thinktime=infinity, 
+				 param = #jabber {type = 'authenticate', id = Id}},
+		#message{ack=no_ack, thinktime=random:uniform(?config(presence_delay)),
+				 param = #jabber {type = 'presence'}}] ++
+		get_offline_params(?messages_intensity,
+						   N,
+						   ?config(messages_size),'chat', Id) ++
+		[ #message{ack = no_ack, thinktime = 100, param = #jabber {type = 'close'}}],
     List_Fin.
 
 %%%
 get_offline_params(Intensity, 1, Size, Type, Id, L) -> 
     Dest = ts_user_server:get_offline() ,
     L ++ [#message{ ack = no_ack, 
-		    thinktime = ?messages_last_time,
+		    thinktime = ?config(messages_last_time),
 		    param = #jabber {size=Size, 
 				     type=Type,
 				     id =Id,

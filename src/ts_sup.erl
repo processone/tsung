@@ -35,7 +35,7 @@
 %%% API
 %%%----------------------------------------------------------------------
 start_link() ->
-	?PRINTDEBUG2("starting supervisor ...~n",?DEB),
+	?LOG("starting supervisor ...~n",?DEB),
 	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 %%%----------------------------------------------------------------------
@@ -49,11 +49,11 @@ start_link() ->
 %%          {error, Reason}   
 %%----------------------------------------------------------------------
 init([]) ->
-	?PRINTDEBUG2("starting",?DEB),
+	?LOG("starting",?DEB),
     ClientsSup = {ts_client_sup, {ts_client_sup, start_link, []}, transient, 2000, 
 				  supervisor, [ts_client_sup]},
 	Launcher = {ts_launcher, {ts_launcher, 
-								 start, [[?nclients,?clients_intensity]]}, 
+								 start, [[?config(nclients),?clients_intensity]]}, 
 				transient, 2000, worker, [ts_launcher]},
     {ok,{{one_for_one,?retries,10}, [ClientsSup, Launcher]}}.
 

@@ -39,7 +39,7 @@
 -behaviour(gen_server).
 
 %% External exports
--export([start_link/1, start/1, stop/0]).
+-export([start/1, stop/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -50,13 +50,9 @@
 %%%----------------------------------------------------------------------
 %%% API
 %%%----------------------------------------------------------------------
-start_link([NDeb, NFin, NClients]) ->
-	?PRINTDEBUG("Starting with args ~p ~n",[[NDeb, NFin, NClients]],?DEB),
-    gen_server:start_link({global, ?MODULE}, ?MODULE, {NDeb, NFin, NClients}, []).
-
 start([NDeb, NFin, NClients]) ->
-	?PRINTDEBUG("Starting with args ~p ~n",[[NDeb, NFin, NClients]],?DEB),
-    gen_server:start({global, ?MODULE}, ?MODULE, {NDeb, NFin, NClients}, []).
+	?LOGF("Starting with args ~p ~n",[[NDeb, NFin, NClients]],?DEB),
+    gen_server:start_link({global, ?MODULE}, ?MODULE, {NDeb, NFin, NClients}, []).
 
 reset(NDeb, NFin, NClients)->
     gen_server:call({global, ?MODULE}, {reset, NDeb, NFin, NClients}).
@@ -107,17 +103,17 @@ stop()->
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
 init({NDeb, NFin, NClients}) when  NFin =< NDeb->
-	?PRINTDEBUG("Bad interval ! ~p is not < ~p~n",[NDeb, NFin],?ERR),
+	?LOGF("Bad interval ! ~p is not < ~p~n",[NDeb, NFin],?ERR),
 	{stop, badinterval}	;
 
 init({NDeb, NFin, NClients}) ->
-	?PRINTDEBUG2("starting ...",?DEB),
+	?LOG("starting ...",?DEB),
     {Msec, Sec, Nsec} = ts_utils:init_seed(),
     random:seed(Msec,Sec,Nsec),
 
     {Offline, [H|T]} = build_clients({NDeb, NFin}, NClients+1),
 	Free= length(T),
-	?PRINTDEBUG("ok, started with ~p free users~n",[Free], ?DEB),
+	?LOGF("ok, started with ~p free users~n",[Free], ?DEB),
     State = #state{list_user = T, 
 		   list_offline = Offline,
 		   list_connected = [],
@@ -147,7 +143,7 @@ handle_call(get_id, From, State) ->
 handle_call(get_idle, From, State) ->
     case State#state.free_users of
 		0 ->
-			?PRINTDEBUG2("No more free users ! ~n", ?WARN),
+			?LOG("No more free users ! ~n", ?WARN),
 			{reply, [], State};
 		_Other ->
 			[Element | NewList] = State#state.list_user,
@@ -197,7 +193,7 @@ handle_call({remove_connected, Id}, From, State) ->
 
 %%% Get a connected id different from 'Id'
 handle_call( {get_one_connected, Id}, From, State) ->
-    ?PRINTDEBUG("free_users=~w, connected= ~w~n",
+    ?LOGF("free_users=~w, connected= ~w~n",
 				[State#state.free_users, State#state.list_connected],?DEB),
 	%% First remove Id from the connected list
     Connected = lists:delete(Id, State#state.list_connected),

@@ -36,9 +36,12 @@ get_random_message (Args) ->
 %%quitting
 
 get_client(N, Id) ->
-    [Message] = jabber_common:get_random_params(infinity, 1 ,?messages_size,'chat'),
+    [Message] = jabber_common:get_random_params(infinity, 1 ,
+												?config(messages_size),'chat'),
     [#message{ack = no_ack, thinktime=1000, param = #jabber {type = 'connect'}}, 
-     #message{ack = local, thinktime=infinity, param = #jabber {type = 'authenticate', id = Id}},
-     #message{ack = no_ack, thinktime=?presence_delay, param = #jabber {type = 'presence'}}] ++
-	[Message#message{ack = global}] ++
-	[#message{ack = local, thinktime = infinity, param = #jabber {type = 'close'}}].
+     #message{ack = local, thinktime=infinity, 
+			  param = #jabber {type = 'authenticate', id = Id}},
+     #message{ack = no_ack, thinktime=?config(presence_delay), 
+			  param = #jabber {type = 'presence'}}] ++
+		[Message#message{ack = global}] ++
+		[#message{ack = local, thinktime = infinity, param = #jabber {type = 'close'}}].

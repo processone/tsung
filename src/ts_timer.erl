@@ -43,7 +43,7 @@
 %%% API
 %%%----------------------------------------------------------------------
 start(NClients) ->
-	?PRINTDEBUG2("starting fsm timer",?DEB),
+	?LOG("starting fsm timer",?DEB),
 	gen_fsm:start_link({global, ?MODULE}, ?MODULE, [NClients], []).
 
 connected(Pid) ->
@@ -61,7 +61,7 @@ connected(Pid) ->
 %%          {stop, StopReason}                   
 %%----------------------------------------------------------------------
 init([NClients]) ->
-	?PRINTDEBUG2("starting timer",?DEB),
+	?LOG("starting timer",?DEB),
 	%% init seed
     {Msec, Sec, Nsec} = ts_utils:init_seed(),
     random:seed(Msec,Sec,Nsec),
@@ -80,7 +80,8 @@ receiver({connected, Pid}, #state{pidlist=List, nclient=0}) ->
 
 %% receive a new connected mes
 receiver({connected, Pid}, #state{pidlist=List, nclient=N}) ->
-	{next_state, receiver, #state{pidlist=List ++ [Pid], nclient=N-1}, ?clients_timeout};
+	{next_state, receiver, #state{pidlist=List ++ [Pid], nclient=N-1},
+	 ?config(clients_timeout)};
 
 %% timeout event, now we start to send ack, by sending a timeout event immediatly
 receiver(timeout, StateData) ->
@@ -144,7 +145,7 @@ handle_info(Info, StateName, StateData) ->
 %% Returns: any
 %%----------------------------------------------------------------------
 terminate(Reason, StateName, StatData) ->
-	?PRINTDEBUG2("terminate timer",?DEB),
+	?LOG("terminate timer",?DEB),
 	ok.
 
 %%%----------------------------------------------------------------------

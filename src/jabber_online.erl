@@ -34,18 +34,19 @@ get_random_message(Args) ->
 %% currently, parameters are included from profile.hrl
 get_client(N, Id)->
     List_Fin = [#message{ack = no_ack, thinktime=3000, param = #jabber {type = 'connect'}}, 
-		#message{ack = ?messages_ack, thinktime=infinity, param = #jabber {type = 'authenticate', id = Id}},
-		#message{ack = no_ack, thinktime=2000+random:uniform(?presence_delay), param = #jabber {type = 'presence'}}	] ++
+		#message{ack = ?config(messages_ack), thinktime=infinity, param = #jabber {type = 'authenticate', id = Id}},
+		#message{ack = no_ack, thinktime=2000+random:uniform(?config(presence_delay)),
+				 param = #jabber {type = 'presence'}}	] ++
 		get_online_params(?messages_intensity,N,
-						  ?messages_size,'chat', Id) ++
+						  ?config(messages_size),'chat', Id) ++
 	[ #message{ack = local, thinktime = infinity, param = #jabber {type = 'close'}}],
-    ?PRINTDEBUG("~w~n", [List_Fin], ?DEB),
+    ?LOGF("~w~n", [List_Fin], ?DEB),
     List_Fin.
 
 %%%
 get_online_params(Intensity, 1, Size, Type, Id, L) -> 
     L ++ [#message{ ack = no_ack, 
-		    thinktime = ?messages_last_time,
+		    thinktime = ?config(messages_last_time),
 		    param = #jabber {size=Size, 
 				     type=Type,
 				     id =Id,

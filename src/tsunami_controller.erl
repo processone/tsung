@@ -34,13 +34,12 @@
 %%----------------------------------------------------------------------
 start(Type, _StartArgs) ->
 	error_logger:tty(false),
-	error_logger:logfile({open, ?log_file ++"-debug-controller" ++ 
-						  atom_to_list(node())}),
+	error_logger:logfile({open, ?config(log_file) ++ "-" ++ atom_to_list(node())}),
     case ts_controller_sup:start_link() of
 		{ok, Pid} -> 
 			{ok, Pid};
 		Error ->
-			?PRINTDEBUG("Can't start ! ~p ~n",[Error],?ERR),
+			?LOGF("Can't start ! ~p ~n",[Error], ?ERR),
 			Error
     end.
 

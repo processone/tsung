@@ -53,55 +53,23 @@
 -define(CR, "\n").
 
 %% retry sending message after this timeout (in microsec.)
--define(client_retry_timeout, ts_utils:get_val(client_retry_timeout)).
--define(req_server_timeout, ts_utils:get_val(req_server_timeout)). %% timeout when for reading the session file
-
--define(restart_try, 3).
--define(debug_level, ts_utils:get_val(debug_level)).
+-define(config(Var), ts_utils:get_val(Var)).
 
 -define(messages_intensity, 1/(ts_utils:get_val(messages_interarrival)*1000)).
 -define(clients_intensity, 1/(ts_utils:get_val(interarrival)*1000)).
 
--define(messages_ack, ts_utils:get_val(messages_ack)).
--define(messages_size, ts_utils:get_val(messages_size)).
--define(messages_number, ts_utils:get_val(messages_number)).
--define(messages_last_time, ts_utils:get_val(messages_last_time)).
-
--define(nclients, ts_utils:get_val(nclients)).
--define(nclients_deb, ts_utils:get_val(nclients_deb)).
--define(nclients_fin, ts_utils:get_val(nclients_fin)).
--define(client_type, ts_utils:get_val(client_type)).
--define(parse_type, ts_utils:get_val(parse_type)).
--define(mes_type, ts_utils:get_val(mes_type)).
--define(persistent, ts_utils:get_val(persistent)).
-
--define(snd_size, ts_utils:get_val(snd_size)).
--define(rcv_size, ts_utils:get_val(rcv_size)).
--define(tcp_timeout, ts_utils:get_val(tcp_timeout)).
-
--define(log_file, ts_utils:get_val(log_file)).
--define(monitoring, ts_utils:get_val(monitoring)).
--define(monitor_timeout, ts_utils:get_val(monitor_timeout)).
--define(dumpstats_interval, ts_utils:get_val(dumpstats_interval)).
--define(clients_timeout, ts_utils:get_val(clients_timeout)).
-
--define(server_adr, ts_utils:get_val(server_adr)).
--define(server_port, ts_utils:get_val(server_port)).
--define(server_protocol, ts_utils:get_val(server_protocol)).
-
--define(ssl_ciphers, ts_utils:get_val(ssl_ciphers)).
 
 %% errors messages
 -define(DEBUG, TRUE).
 
 -ifdef(DEBUG).
-    -define(PRINTDEBUG(Msg, Args, Level),
+    -define(LOGF(Msg, Args, Level),
             ts_utils:debug(?MODULE, Msg, Args, Level)).
-    -define(PRINTDEBUG2(Msg, Level),
+    -define(LOG(Msg, Level),
             ts_utils:debug(?MODULE, Msg, Level)).
 -else.
-    -define(PRINTDEBUG(Msg, Args, Level), ok).
-    -define(PRINTDEBUG2(Msg, Level), ok).
+    -define(LOGF(Msg, Args, Level), ok).
+    -define(LOG(Msg, Level), ok).
 -endif.
 
 -define(EMERG, 0). % The system is unusable. 

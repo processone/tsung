@@ -69,7 +69,7 @@
 %% RETURN VALUE ok | throw({error, Reason})
 %%----------------------------------------------------------------------
 start() ->
-	?PRINTDEBUG2("starting monitor, global ~n",?NOTICE),
+	?LOG("starting monitor, global ~n",?NOTICE),
 	gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
 
 stop() ->
@@ -132,22 +132,22 @@ error({Who, When, What}) ->
 init([]) ->
 	{{Y,M,D},{H,Min,S}} = erlang:universaltime(),
 	Date = io_lib:format("-~w:~w:~w-~w:~w",[Y,M,D,H,Min]),
-    Filename = ?log_file ++ Date,
+    Filename = ?config(log_file) ++ Date,
     case file:open(Filename,write) of 
 		{ok, Stream} ->
-			?PRINTDEBUG2("starting monitor~n",?NOTICE),
+			?LOG("starting monitor~n",?NOTICE),
 			Tab = dict:new(),
 			TsunamiClients = net_adm:world(), % .hosts.erlang must be set
-			?PRINTDEBUG("Available nodes : ~p ~n",[TsunamiClients],?NOTICE),
+			?LOGF("Available nodes : ~p ~n",[TsunamiClients],?NOTICE),
 			start_launchers(TsunamiClients,node()),
-			timer:apply_interval(?dumpstats_interval, ?MODULE, dumpstats, [] ),
-			{ok, #state{type    = ?monitoring, 
+			timer:apply_interval(?config(dumpstats_interval), ?MODULE, dumpstats, [] ),
+			{ok, #state{type    = ?config(monitoring), 
 						log     = Stream,
 						stats   = Tab,
 						laststats = Tab
 					   }};
 		{error, Reason} ->
-			?PRINTDEBUG("Can't open mon log file! ~p~n",[Reason], ?ERR),
+			?LOGF("Can't open mon log file! ~p~n",[Reason], ?ERR),
 			{stop,openerror}
     end.
 
@@ -190,7 +190,7 @@ handle_cast({sendmsg, Who, When, What}, State) ->
 handle_cast({sample, Type, Value}, State)  ->
 	Tab = State#state.stats,
 	MyFun = fun (OldVal) -> update_stats(OldVal, Value) end,
-	?PRINTDEBUG("Stats: new sample ~p:~p ~n",[Type, Value] ,?DEB),
+	?LOGF("Stats: new sample ~p:~p ~n",[Type, Value] ,?DEB),
 	NewTab = dict:update(Type, MyFun, update_stats([],Value), Tab),
 	{noreply, State#state{stats=NewTab}};
 
@@ -276,7 +276,7 @@ handle_info(Info, State) ->
 %% Returns: any (ignored by gen_server)
 %%----------------------------------------------------------------------
 terminate(Reason, State) ->
-	?PRINTDEBUG2("stoping monitor~n",?NOTICE),
+	?LOG("stoping monitor~n",?NOTICE),
 	print_stats(State),
 	file:close(State#state.log),
 	ok.
@@ -298,11 +298,13 @@ print_stats(State) ->
 print_dist_list([], Last, Logfile) ->
 	done;
 print_dist_list([{Key, [Mean, 0, Max, Min, Count]} | Tail], LastRes, Logfile) ->
-	io:format(Logfile, "stats: ~p ~p ~p ~p ~p ~p ~p ~n", [Key, Count, Mean, 0, Max, Min, Count ]),
+	io:format(Logfile, "stats: ~p ~p ~p ~p ~p ~p ~p ~n", 
+			  [Key, Count, Mean, 0, Max, Min, Count ]),
 	print_dist_list(Tail, LastRes, Logfile);
 print_dist_list([{Key, [Mean, Var, Max, Min, Count]} | Tail], LastRes, Logfile) ->
 	StdVar = math:sqrt(Var/Count),
-	io:format(Logfile, "stats: ~p ~p ~p ~p ~p ~p ~p ~n", [Key, Count, Mean, StdVar, Max, Min, Count ]),
+	io:format(Logfile, "stats: ~p ~p ~p ~p ~p ~p ~p ~n",
+			  [Key, Count, Mean, StdVar, Max, Min, Count ]),
 	print_dist_list(Tail, LastRes, Logfile);
 print_dist_list([{Key, Value} | Tail], LastRes, Logfile) ->
 	case dict:find(Key, LastRes) of 
@@ -349,10 +351,10 @@ reset_stats(Args) ->
 start_launchers([], Self) ->
 	ok;
 start_launchers([Self | NodeList], Self) -> % don't launch in controller node
-	?PRINTDEBUG2("skip myself ! ~n", ?NOTICE),
+	?LOG("skip myself ! ~n", ?NOTICE),
 	start_launchers(NodeList, Self);
 start_launchers([Node | NodeList], Self) ->
-	?PRINTDEBUG("starting launcher on  ~p~n",[Node],?NOTICE),
+	?LOGF("starting launcher on  ~p~n",[Node],?NOTICE),
 	ts_launcher:launch(Node),
 	start_launchers(NodeList, Self).
 	

@@ -22,15 +22,4 @@
 
 -record(jabber, {dest, size, type, jud_param, cle, id = 0}).
 
--define(jabber_users, ts_utils:get_val(jabber_users)).
--define(jabber_domain, ts_utils:get_val(jabber_domain)).
--define(jabber_server, ts_utils:get_val(jabber_server)).
--define(jabber_username, ts_utils:get_val(jabber_username)).
--define(jabber_password, ts_utils:get_val(jabber_password)).
--define(n_roster_clients, ts_utils:get_val(n_roster_clients)).
 -define(setroster_intensity, 1/(ts_utils:get_val(setroster)*1000)).
--define(req_filename, ts_utils:get_val(req_filename)).
--define(presence_delay, ts_utils:get_val(presence_delay)).
--define(boucle1_percent, ts_utils:get_val(boucle1_percent)).
--define(boucle2_percent, ts_utils:get_val(boucle2_percent)).
--define(boucle3_percent, ts_utils:get_val(boucle3_percent)).

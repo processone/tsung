@@ -35,7 +35,7 @@
 %%% API
 %%%----------------------------------------------------------------------
 start_link() ->
-	?PRINTDEBUG2("starting supervisor ...~n",?DEB),
+	?LOG("starting supervisor ...~n",?DEB),
 	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 %%%----------------------------------------------------------------------
@@ -49,20 +49,21 @@ start_link() ->
 %%          {error, Reason}   
 %%----------------------------------------------------------------------
 init([]) ->
-	?PRINTDEBUG2("starting",?DEB),
+	?LOG("starting",?DEB),
     Monitor = {ts_mon, {ts_mon, start, []}, transient, 2000, 
 			   worker, [ts_mon]},
-    Timer = {ts_timer, {ts_timer, start, [?nclients]}, transient, 2000, 
+    Timer = {ts_timer, {ts_timer, start, [?config(nclients)]}, transient, 2000, 
 			   worker, [ts_timer]},
     Request = {ts_req_server, {ts_req_server, start, []}, transient, 2000, 
 			   worker, [ts_req_server]},
     Msg = {ts_msg_server, {ts_msg_server, start, []}, transient, 2000, 
 			   worker, [ts_msg_server]},
     User = {ts_user_server, {ts_user_server, start, 
-						  [[?nclients_deb, ?nclients_fin, ?nclients]]}, 
+						  [[?config(nclients_deb), ?config(nclients_fin),
+							?config(nclients)]]}, 
 			transient, 2000, worker, [ts_user_server]},
-    {ok,{{one_for_one,?retries,10}, [Monitor, Timer, Request, Msg,
-									 User]}}.
+    {ok,{{one_for_one,?retries,10},
+		 [Monitor, Timer, Request, Msg, User]}}.
 
 %%%----------------------------------------------------------------------
 %%% Internal functions
