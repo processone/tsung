@@ -8,18 +8,19 @@ IDX-TSUNAMI users name  :  cXX
 
 where XX is a integer between 1 and the maximum number of users (say 1000000).
 
+or you can use jabber_register (see below).
 
 optional parameters: (can be set in idx-tsunamirc file)
 ==================
 
 JABBER_DOMAIN=mydomain.com
-N_ROSTER_CLIENTS=6 (see above)
+N_ROSTER_CLIENTS=6 (see below)
 
-modules implemented for the Jabber protocole:
+modules implemented for the Jabber protocol:
 ============================================
 
-- jabber_common:  module regrouping common functions for
-  build messages
+- jabber_common: module regrouping common functions for building
+  messages
 
 - jabber_online: simulate users sending 'chat' messages to online clients only.
 
@@ -42,10 +43,9 @@ modules implemented for the Jabber protocole:
 - jabber_register: each simultated user send a jabber:iq:register,
   type=set message to the server.
 
-- jabber_dynamic: simulate users sending dynamic messages (messages
-  are build on the fly by the process, and not at the startup time like
-  other messages. This allow you to use a really big value for
-  MESSAGES_NUMBER without taking too much memory). 
-
+- jabber_dynamic: simulate users sending "dynamic" chat messages
+  (messages are build on the fly by the process, and not at the startup
+  time like other messages. This allow you to use a really big value for
+  MESSAGES_NUMBER without taking too much memory).
 
 NOTE: currently, no XML parsing is done by the receiving process.

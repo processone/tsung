@@ -47,10 +47,10 @@
   other simple models (deterministics).
 
   In this context, a client is characterize by:
-      - the time elapsed between each request ("think time")
+      - the mean time elapsed between each request ("think time")
       - the number of requests during a session
       - the type and parameters of requests (including, for example,
-        message size for Jabber)
+        'chat' message size for Jabber)
 
   Another key parameter is the arrival rate of clients.
 
