@@ -42,6 +42,8 @@
                 phases =[],
 				myhostname,
                 intensity,
+                phase_duration, % expected phase duration
+                phase_start, % timestamp
                 maxusers %% if maxusers are currently active, launch a
                          %% new beam to handle the new users
                }).
@@ -109,14 +111,23 @@ wait({launch, []}, State) ->
 					  end,
     Warm = lists:min([Warm_timeout,?config(max_warm_delay)]),
 	?LOGF("Activate launcher (~p users) in ~p msec ~n",[Users, Warm], ?NOTICE),
+    Duration = Users/Intensity,
+	?LOGF("Expected duration of first phase: ~p sec ~n",[Duration/1000], ?NOTICE),
 	{next_state,launcher,State#state{phases = Rest, nusers = Users, 
-                                     intensity=Intensity,maxusers=Max },Warm};
+                                     phase_duration=Duration,
+                                     phase_start = now(),
+                                     intensity=Intensity,maxusers=Max }, Warm};
 
 wait({launch, {[{Intensity, Users}| Rest], Max}}, State) ->
-    ?DebugF("Starting with ~p users to do in the current phase (max is ~p)~n",
-			[Users, Max]),
+    ?LOGF("Starting with ~p users to do in the current phase (max is ~p)~n",
+          [Users, Max],?DEB),
+    Duration = Users/Intensity,
+	?LOGF("Expected duration of phase: ~p sec ~n",[Duration/1000], ?NOTICE),
 	{next_state, launcher, State#state{phases = Rest, nusers = Users, 
-                                       intensity = Intensity, maxusers= Max }, ?short_timeout}.
+                                       phase_duration=Duration,
+                                       phase_start = now(),
+                                       intensity = Intensity, maxusers=Max},
+     ?short_timeout}.
 
 launcher(Event, State=#state{nusers = 0, phases = [] }) ->
 	?LOG("no more clients to start, wait  ~n",?INFO),
@@ -130,16 +141,22 @@ launcher(timeout, State=#state{nusers    = Users,
         true ->
             {next_state, finish, State, ?check_noclient_timeout};
         false->
-            case {Users, Phases} of 
-                {0, [{NewIntensity, NewUsers}|Rest]} -> % new phase
+            Duration = ts_utils:elapsed(State#state.phase_start, now()),
+            case change_phase(Users, Phases, Duration,
+                              State#state.phase_duration) of
+                {change, NewUsers, NewIntensity, Rest} ->
                     ts_mon:add({ count, newphase }),
-                   ?LOGF("Start a new arrival phase (~p ~p) ~n",
-                         [NewUsers, NewIntensity], ?NOTICE),
+                    PhaseLength = NewUsers/NewIntensity,
+                    ?LOGF("Start a new arrival phase (~p ~p); expected duration=~p sec~n",
+                          [NewUsers, NewIntensity, Duration/1000], ?NOTICE),
                     {next_state,launcher,State#state{phases = Rest, 
                                                      nusers = NewUsers,
+                                                     phase_duration=PhaseLength,
+                                                     phase_start = now(),
                                                      intensity = NewIntensity},
                      Wait};
-                _  ->{next_state,launcher,State#state{nusers = Users-1} , Wait}
+                {continue} ->
+                    {next_state,launcher,State#state{nusers = Users-1} , Wait}
             end
     end.
     
@@ -218,6 +235,23 @@ code_change(OldVsn, StateName, StateData, Extra) ->
 %%% Internal functions
 %%%----------------------------------------------------------------------
 
+%%%----------------------------------------------------------------------
+%%% Func: change_phase/4
+%%% Purpose: decide if we need to change phase (if current users is
+%%%          reached or if max duration is reached)
+%%% ----------------------------------------------------------------------
+change_phase(0, [{NewIntensity, NewUsers}|Rest], _, _) ->
+    {change, NewUsers, NewIntensity, Rest};
+change_phase(N,[{NewIntensity,NewUsers}|Rest],Current,Total) when Current>Total ->
+    ?LOGF("Phase duration exceeded, but not all users were launched (~p users)~n",
+          [N],?WARN),
+    {change, NewUsers, NewIntensity, Rest};
+change_phase(_, _, Current_Duration, Total) ->
+    {continue}.
+
+%%%----------------------------------------------------------------------
+%%% Func: check_max_raised/1
+%%%----------------------------------------------------------------------
 check_max_raised(State=#state{phases=Phases,maxusers=Max,nusers=Users,
 							  intensity=Intensity})->
     ActiveClients =  ts_client_sup:active_clients(),
@@ -235,6 +269,9 @@ check_max_raised(State=#state{phases=Phases,maxusers=Max,nusers=Users,
             false
     end.
 
+%%%----------------------------------------------------------------------
+%%% Func: do_launch/1
+%%%----------------------------------------------------------------------
 do_launch({Intensity, MyHostName})->
     %%Get one client
     %%set the profile of the client
