@@ -215,7 +215,7 @@ record_http_request(State=#state{prev_host=Host, prev_port=Port},
     case httpd_util:key1search(ParsedHeader,"authorization") of 
         "Basic "++Base64 ->
 			{User,Passwd}=decode_basic_auth(Base64),
-            io:format(Fd,"<www_authenticate userid='~p' passwd='~p'/>~n",[User,Passwd]);
+            io:format(Fd,"<www_authenticate userid=~p passwd=~p/>~n",[User,Passwd]);
 		_ -> ok
     end,
 	io:format(Fd,"</http></request>~n",[]),
