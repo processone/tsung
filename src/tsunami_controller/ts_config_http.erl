@@ -49,7 +49,7 @@ parse_config(Element = #xmlElement{name=dyn_variable}, Conf = #config{}) ->
     ts_config:parse(Element,Conf);
 parse_config(Element = #xmlElement{name=http}, 
              Config=#config{curid = Id, session_tab = Tab,
-                            sessions = [CurS |SList], dynvar=DynVar,
+                            sessions = [CurS | _], dynvar=DynVar,
 							subst    = SubstFlag, match=MatchRegExp}) ->
     Version  = ts_config:getAttr(Element#xmlElement.attributes, version),
     URL      = ts_config:getAttr(Element#xmlElement.attributes, url),
@@ -114,19 +114,16 @@ parse_config(Element = #xmlElement{name=default}, Conf = #config{session_tab = T
 parse_config(Element = #xmlElement{}, Conf = #config{}) ->
     ts_config:parse(Element,Conf);
 %% Parsing non #xmlElement elements
-parse_config(Element, Conf = #config{}) ->
+parse_config(_, Conf = #config{}) ->
     Conf.
 
 
 %%----------------------------------------------------------------------
-%% Func: set_msg/1 or /3
+%% Func: set_msg/3
 %% Returns: #ts_request record
-%% Purpose:
-%% unless specified, the thinktime is an exponential random var.
+%% Purpose: build the #ts_request record from an #http_request,
+%% thinktime and Substition def.
 %%----------------------------------------------------------------------
-set_msg(HTTPRequest) ->
-	set_msg(HTTPRequest, round(ts_stats:exponential(?messages_intensity)), false).
-
 %% if the URL is full (http://...), we parse it and get server host,
 %% port and scheme from the URL and override the global setup of the
 %% server. These informations are stored in the #ts_request record.
