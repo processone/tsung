@@ -20,13 +20,11 @@
 
 %%%  Created :  23 Dec 2003 by Mickael Remond <mickael.remond@erlang-fr.org>
 
-%% Note: this is a quick and dirty module (I need to produce reports NOW!)
-%% I will convert it on the 26 december to OTP and make it more beautiful
-
 %%----------------------------------------------------------------------
 %% HEADER ts_os_mon
 %% COPYRIGHT Mickael Remond (C) 2003
-%% PURPOSE Monitor CPU and memory consumption on a cluster of machines
+%% PURPOSE Monitor CPU, memory consumption and network traffic 
+%%         on a cluster of machines
 %% DESCRIPTION
 %%   TODO ...
 %%----------------------------------------------------------------------
@@ -56,9 +54,6 @@
 -define(TIMEOUT, 30000).
 -define(OPTIONS, [{timeout,?TIMEOUT}]).
 -define(INTERVAL, 5000).
--define(OKTAG, "[[erlang-ok]]").
-
-%%-record(state, {}).
 
 %%====================================================================
 %% External functions
@@ -98,10 +93,17 @@ client_start() ->
     application:start(os_mon).
 
 updatestats() ->
-    timer:apply_after(?INTERVAL, ?MODULE, updatestats, [] ),
-    gen_server:call(?SERVER, {updatestats}, ?OTP_TIMEOUT).
- 
- 
+    Node = atom_to_list(node()),
+    {Cpu, FreeMem, RecvPackets, SentPackets} = node_data(),
+    ts_mon:add([{sample, list_to_atom("cpu:" ++ Node), Cpu},
+				{sample, list_to_atom("freemem:" ++ Node), FreeMem},
+				{sample_counter, list_to_atom("recvpackets:" ++ Node), RecvPackets},
+				{sample_counter, list_to_atom("sentpackets:" ++ Node), SentPackets}]),
+
+    timer:sleep(?INTERVAL),
+    updatestats().
+
+
 %%====================================================================
 %% Server functions
 %%====================================================================
@@ -116,7 +118,8 @@ updatestats() ->
 %%--------------------------------------------------------------------
 init(_Args) ->
     ?LOG(" os_mon started",?NOTICE),
-    {ok, []}.
+	process_flag(trap_exit,true), %% to get the EXIT signal from spawn processes on remote nodes
+	{ok, []}.
 
 %%--------------------------------------------------------------------
 %% Function: handle_call/3
@@ -128,20 +131,6 @@ init(_Args) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-handle_call({updatestats}, _From, State_Nodes) ->
-    ?LOGF("updatestats: ~p~n", [State_Nodes], ?DEB),
-    {Replies, _BadNodes} = rpc:multicall(State_Nodes,?MODULE, node_data, [], ?OTP_TIMEOUT),
-    
-    %% TODO: Fix that: Attention: Crash tout le processus ts_os_mon si une erreur se produit.
-    lists:foreach(fun({Node, Cpu1, FreeMem, RecvPackets, SentPackets}) ->
-                          LNode = atom_to_list(Node),
-            ts_mon:addsample({list_to_atom("cpu:" ++ LNode), Cpu1}),
-            ts_mon:addsample({list_to_atom("freemem:" ++ LNode), FreeMem}),
-            ts_mon:addsample_counter({list_to_atom("recvpackets:" ++ LNode), RecvPackets}),
-            ts_mon:addsample_counter({list_to_atom("sentpackets:" ++ LNode), SentPackets})
-		  end,
-			  Replies),
-    {reply, ok, State_Nodes};
 handle_call({stop}, From, State) ->
     {stop, normal, State};
 handle_call(Request, From, State) ->
@@ -157,15 +146,23 @@ handle_call(Request, From, State) ->
 %%--------------------------------------------------------------------
 handle_cast({activate, Hosts}, State) ->
     start_beam(Hosts),    %% Start an Erlang node on all hosts
-    %% TODO: Replace net_adm:world by an explicite ping
+    %% TODO: Replace net_adm:world by an explicite ping ?
     net_adm:world_list(lists:map(fun(Host) -> list_to_atom(Host) end,Hosts)),
     
     %% Load ts_os_mon code
     Nodes = lists:map(fun(Host) -> list_to_atom(?NODE ++ "@" ++ Host) end, Hosts),
     load_code(Nodes),
     
-    timer:apply_after(?INTERVAL, ?MODULE, updatestats, [] ),
-    {noreply, Nodes};
+	%% because the stats for cpu has to be called from the same
+	%% process (otherwise the same value (mean cpu% since the system
+	%% last boot)  is returned by cpu_sup:util), we spawn a process
+	%% on each node that will do the stats collection and send it to
+	%% ts_mon
+    PidKeys = lists:map(fun(Node) ->{spawn_link(Node, ?MODULE, updatestats, []),
+									 Node}
+						end,
+					 Nodes),
+    {noreply, PidKeys};
 handle_cast(Msg, State) ->
     {noreply, State}.
 
@@ -176,6 +173,21 @@ handle_cast(Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
+handle_info({'EXIT',From,Reason}, State) ->
+	?LOGF("received exit from ~p with reason ~p~n",[From, Reason],?ERR),
+	%% get node name of died pid
+	case lists:keysearch(From,1,State) of 
+		{value, {From, Node}} ->
+			%% start a new process on this node
+			Pid = spawn_link(Node, ?MODULE, updatestats, []),
+			%% replace the pid value
+			NewState = lists:keyreplace(From,1,State,{Pid, Node}),
+			{noreply, NewState};
+		false -> %% the EXIT is not from a stats pid, do nothing 
+			?LOGF("unknown exit from ~p !~n",[From],?WARN),
+			{noreply, State}
+	end;
+
 handle_info(Info, State) ->
     {noreply, State}.
 
@@ -202,12 +214,13 @@ code_change(OldVsn, State, Extra) ->
 %%% Internal functions
 %%--------------------------------------------------------------------
 
-node_data() -> 
+node_data() ->
     {RecvPackets, SentPackets} = packets(),
-    {node(), cpu(), freemem(), RecvPackets, SentPackets}.
+    {cpu(), freemem(), RecvPackets, SentPackets}.
 
 %% Return node cpu utilisation
-cpu() -> cpu_sup:util().
+cpu() ->
+    cpu_sup:util().
 
 %% Return node cpu average load on 1 minute
 cpu1() -> cpu_sup:avg1()/256.
@@ -233,9 +246,11 @@ freemem_linux() ->
     list_to_integer(Free)/1024.
 
 packets() ->
-    Result = os:cmd("cat /proc/net/dev | grep eth0"),
-    [_, RecvPackets, _, _, _, _, _, _, _, SentPackets, _, _, _, _, _,_] = 
-        string:tokens(Result, " \n"),
+	%% linux only !
+	%% TODO: handle more than one ethernet interface
+    Result = os:cmd("cat /proc/net/dev | grep eth0"), 
+    [_, RecvBytes, RecvPackets, _, _, _, _, _, _, SentBytes, SentPackets, _, _, _, _, _,_] = 
+        string:tokens(Result, " \n:"),
     {list_to_integer(RecvPackets), list_to_integer(SentPackets)}.
 
 %% Start an Erlang node on every host that you want to spy
@@ -264,9 +279,12 @@ load_code(Nodes) ->
     ?LOGF("loading tsunami monitor on nodes ~p~n", [Nodes], ?NOTICE),
     {?MODULE, Binary, _File} = code:get_object_code(?MODULE),
     Res1 = rpc:multicall(Nodes, code, load_binary, [?MODULE, ?MODULE, Binary], infinity),
-    Res2 = rpc:multicall(Nodes, ?MODULE, client_start, [], infinity),
+    {ts_mon, Binary2, _File2} = code:get_object_code(ts_mon),
+    Res2 = rpc:multicall(Nodes, code, load_binary, [ts_mon, ts_mon, Binary2], infinity),
+
+    Res3 = rpc:multicall(Nodes, ?MODULE, client_start, [], infinity),
     %% first value of load call is garbage
-    ?LOGF("load_code - ~p ~p~n", [Res1, Res2], ?NOTICE),
+    ?LOGF("load_code - ~p ~p~n", [Res1, Res2, Res3], ?DEB),
     ok.
 
 
