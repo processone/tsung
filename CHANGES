@@ -1,3 +1,10 @@
+1.0.beta5 ->
+    - add a DTD for the configuration file
+    - HTTP: fix partial header parsing (mickael.remond@erlang-fr.org)
+    - HTTP: fix chunk parsing when the chunk-size is split across two packets
+    - add dynamic request substitution (mickael.remond@erlang-fr)
+    - check for bad input (config file, <client> name)
+
 1.0.beta4 -> 1.0.beta5:  Major Feature enhancements (25 Mar 2004)
     - add SNMP monitoring (not yet customizable)
     - fix remote start: log filename is now encoded to avoid bad
