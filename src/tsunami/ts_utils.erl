@@ -182,7 +182,7 @@ datestr()->
 %% datestr/1
 %%----------------------------------------------------------------------
 datestr({{Y,M,D},{H,Min,S}})->
-	io_lib:format("-~w:~w:~w-~w:~w",[Y,M,D,H,Min]).
+	io_lib:format("-~w~2.10.0b~2.10.0b-~2.10.0b:~2.10.0b",[Y,M,D,H,Min]).
 
 erl_system_args()->
 	Shared = case init:get_argument(shared) of 
