@@ -37,7 +37,7 @@
 -include("ts_config.hrl").
 
 %% External exports
--export([start/0, stop/0, newclient/1, endclient/1, newclient/1, sendmes/1,
+-export([start/1, stop/0, newclient/1, endclient/1, newclient/1, sendmes/1,
          start_clients/1,
          rcvmes/1, error/1,
 		 add/1,
@@ -50,7 +50,10 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
         code_change/3]).
 
--record(state, {log,          % log filename
+-define(DUMP_FILENAME,"idx-tsunami.dump").
+
+-record(state, {log,          % log fd
+                log_dir,      % log directory
                 dumpfile,     % file used when dumptrafic is set light or full
 				client=0,     % number of clients currently running
 				maxclient=0,  % max of simultaneous clients 
@@ -70,9 +73,9 @@
 %% PURPOSE Start the monitoring process
 %% RETURN VALUE ok | throw({error, Reason})
 %%----------------------------------------------------------------------
-start() ->
+start(LogDir) ->
 	?LOG("starting monitor, global ~n",?NOTICE),
-	gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
+	gen_server:start_link({global, ?MODULE}, ?MODULE, [LogDir], []).
 
 start_clients({Machines, Monitoring}) ->
     gen_server:call({global, ?MODULE}, {start_clients, Machines, Monitoring}, infinity).
@@ -117,13 +120,17 @@ error({Who, When, What}) ->
 %%          ignore               |
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
-init([]) ->
-    Filename = ts_utils:setsubdir(?config(log_file)),
+init([LogDir]) ->
+    ?LOGF("Init, log dir is ~p~n",[LogDir],?NOTICE),
+    Base = filename:basename(?config(log_file)),
+    backup_config(LogDir, ?config(config_file)),
+    Filename = filename:join(LogDir, Base),
     case file:open(Filename,write) of 
 		{ok, Stream} ->
 			?LOG("starting monitor~n",?NOTICE),
 			Tab = dict:new(),
 			{ok, #state{ log     = Stream,
+                         log_dir = LogDir,
                          stats   = Tab,
                          laststats = Tab
 					   }};
@@ -148,7 +155,7 @@ handle_call({start_clients, Machines, Monitoring}, From, State) ->
         none ->
             {reply, ok, State#state{type=Monitoring}};
         _ ->
-            Filename = ts_utils:setsubdir(?config(log_file)) ++ ".dump",
+            Filename = filename:join(State#state.log_dir,?DUMP_FILENAME),
             case file:open(Filename,write) of 
                 {ok, Stream} ->
                     ?LOG("dump file openedstarting monitor~n",?INFO),
@@ -406,3 +413,11 @@ start_launchers(Machines) ->
     %% starts beam on all client hosts
     lists:foreach(fun(B) -> ts_config_server:newbeam(B) end, HostList).
 	
+%%----------------------------------------------------------------------
+%% Func: backup_config/2
+%% Purpose: copy a backup copy of the config file in the log directory
+%%   This is useful to have an history of all parameters of a test.
+%%----------------------------------------------------------------------
+backup_config(Dir, Config) ->
+    Backup = filename:basename(Config),
+    {ok, _} = file:copy(Config, filename:join(Dir,Backup)).

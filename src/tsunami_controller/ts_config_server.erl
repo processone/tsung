@@ -43,7 +43,7 @@
 
 %%--------------------------------------------------------------------
 %% External exports
--export([start_link/0, read_config/1, get_req/2, get_next_session/1,
+-export([start_link/1, read_config/1, get_req/2, get_next_session/1,
          get_client_config/1, newbeam/1, newbeam/2, get_server_config/0,
 		 get_monitor_hosts/0]).
 
@@ -55,6 +55,7 @@
          code_change/3]).
 
 -record(state, {config,
+                logdir,
                 start_date,       % 
                 last_beam_id = 0, % last tsunami beam id (used to set nodenames)
                 lastips,          % store next ip to choose for each client host
@@ -68,8 +69,8 @@
 %% Function: start_link/0
 %% Description: Starts the server
 %%--------------------------------------------------------------------
-start_link() ->
-    gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
+start_link(LogDir) ->
+    gen_server:start_link({global, ?MODULE}, ?MODULE, [LogDir], []).
 
 %%--------------------------------------------------------------------
 %% Function: newbeam/1
@@ -142,9 +143,10 @@ get_next_session(Host)->
 %%          ignore               |
 %%          {stop, Reason}
 %%--------------------------------------------------------------------
-init([]) ->
+init([LogDir]) ->
 	ts_utils:init_seed(),
-    {ok, #state{}}.
+    ?LOGF("Config server started, logdir is ~p~n ",[LogDir],?NOTICE),
+    {ok, #state{logdir=LogDir}}.
 
 %%--------------------------------------------------------------------
 %% Function: handle_call/3
@@ -168,7 +170,7 @@ handle_call({read_config, ConfigFile}, From, State) ->
             %% we only know now the size of last session from the file: add it
             %% in the table
             ets:insert(Tab, {{LastSess#session.id, size}, LastReqId}),
-            {reply, ok, #state{config=Config, total_weight = Sum}};
+            {reply, ok, State#state{config=Config, total_weight = Sum}};
         {error, Reason} -> 
             ?LOGF("Error while parsing XML config file: ~p~n",[Reason],?EMERG),
             {reply, {error, Reason}, State}
@@ -265,7 +267,7 @@ handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
         " -tsunami debug_level ", integer_to_list(?config(debug_level)),
         " -tsunami monitoring ", atom_to_list(?config(monitoring)),
         " -tsunami ssl_ciphers ", Config#config.ssl_ciphers,
-        " -tsunami 'log_file' \\\"", ?config(log_file),"\\\"",
+        " -tsunami 'log_file' \\\"", State#state.logdir,"\\\"",
         " -tsunami controller ", atom_to_list(node())
         ]),
     ?LOGF("starting newbeam on host ~p with Args ~p~n", [Host, Args], ?DEB), 

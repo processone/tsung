@@ -26,7 +26,7 @@
 -behaviour(supervisor).
 
 %% External exports
--export([start_link/0]).
+-export([start_link/1]).
 
 %% supervisor callbacks
 -export([init/1]).
@@ -34,9 +34,9 @@
 %%%----------------------------------------------------------------------
 %%% API
 %%%----------------------------------------------------------------------
-start_link() ->
+start_link(LogDir) ->
 	?LOG("starting supervisor ...~n",?INFO),
-	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+	supervisor:start_link({local, ?MODULE}, ?MODULE, [LogDir]).
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from supervisor
@@ -48,12 +48,12 @@ start_link() ->
 %%          ignore                          |
 %%          {error, Reason}   
 %%----------------------------------------------------------------------
-init([]) ->
+init([LogDir]) ->
 	?LOG("starting",?INFO),
     Config = {ts_config_server, {ts_config_server, start_link, 
-                                 []}, transient, 2000,
+                                 [LogDir]}, transient, 2000,
               worker, [ts_config_server]},
-    Stats_Mon = {ts_mon, {ts_mon, start, []}, transient, 2000, 
+    Stats_Mon = {ts_mon, {ts_mon, start, [LogDir]}, transient, 2000, 
                  worker, [ts_mon]},
     Os_Mon = {ts_os_mon, {ts_os_mon, start, []}, transient, 2000, 
 			   worker, [ts_os_mon]},

@@ -208,12 +208,12 @@ setsubdir(FileName) ->
     Dir  = filename:join(Path, Date),
     case file:make_dir(Dir) of
         ok ->
-            filename:join(Dir,Base);
+            {ok, {Dir, Base}};
         {error, eexist} ->
             ?DebugF("Directory ~s already exist~n",[Dir]),
-            filename:join(Dir,Base);
+            {ok, {Dir, Base}};
         Err ->
             ?LOGF("Can't create directory ~s (~p)!~n",[Dir, Err],?EMERG),
-            throw(Err)
+            {error, Err}
     end.
 
