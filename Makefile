@@ -12,7 +12,7 @@ else
  ifeq ($(TYPE),test)
    OPT:=+export_all
   else
-   OPT = 
+   OPT =
   endif	
 endif
 INC = ./include
@@ -56,6 +56,8 @@ DTD = idx-tsunami-1.0.dtd
 USERMANUAL = doc/user_manual.html  doc/IDXDOC.css
 USERMANUAL_IMG = $(wildcard doc/images/*.png)
 USERMANUAL_SRC = doc/user_manual.tex
+PERL_SCRIPTS_SRC = $(wildcard $(ESRC)/*.pl.src)
+PERL_SCRIPTS = $(notdir $(basename $(PERL_SCRIPTS_SRC)))
 
 TARGET   = $(addsuffix .beam, $(basename \
              $(addprefix $(EBIN)/, $(notdir $(SRC)))))
@@ -113,11 +115,11 @@ deb:
 clean:
 	-cd priv && rm -f $(shell ls priv | grep -v builder\.erl) && cd ..
 	-rm -f $(TARGET) $(TMP) $(BUILD_OPTIONS_FILE) builder.beam
-	-rm -f $(TGT_APPFILES) idx-tsunami.sh analyse_msg.pl
+	-rm -f $(TGT_APPFILES) idx-tsunami.sh $(PERL_SCRIPTS)
 	-rm -f ebin/*.beam 
 #	-make -C doc clean
 
-install: doc boot  idx-tsunami.sh analyse_msg.pl install_recorder install_controller $(CONFFILE)
+install: doc boot  idx-tsunami.sh $(PERL_SCRIPTS) install_recorder install_controller $(CONFFILE)
 	-rm -f $(TMP)
 
 	install -d $(TARGETDIR)/priv
@@ -144,7 +146,7 @@ install: doc boot  idx-tsunami.sh analyse_msg.pl install_recorder install_contro
 
 # create startup script
 	cp idx-tsunami.sh $(SCRIPT)
-	install analyse_msg.pl $(LIBDIR)/analyse_msg.pl
+	install $(PERL_SCRIPTS) $(LIBDIR)/
 	chmod +x $(SCRIPT)
 
 # 
@@ -246,9 +248,9 @@ release:
 		$(USERMANUAL) $(USERMANUAL_SRC) $(USERMANUAL_IMG) $(DTD) \
 		COPYING README LISEZMOI TODO $(CONFFILE_SRC) Makefile \
 		priv/builder.erl idx-tsunami.sh.in vsn.mk \
-		$(DEBIAN) src/analyse_msg.pl.src CONTRIBUTORS CHANGES \
+		$(DEBIAN)  $(PERL_SCRIPTS_SRC) CONTRIBUTORS CHANGES \
 		configure configure.in config.guess config.sub include.mk.in \
-		install-sh idx-tsunami.spec
+		install-sh idx-tsunami.spec 
 	tar -C $(PACKAGE)-$(VERSION) -zxf tmp.tgz
 	mkdir $(PACKAGE)-$(VERSION)/ebin
 	tar zvcf  $(PACKAGE)-$(VERSION).tar.gz $(PACKAGE)-$(VERSION)
@@ -268,8 +270,9 @@ ebin/%.beam: src/$(RECORDER_APPLICATION)/%.erl  $(INC_FILES)
 ebin/%.beam: src/$(CONTROLLER_APPLICATION)/%.erl  $(INC_FILES)
 	$(CC) $(OPT) -I $(INC) -o ebin $<
 
-analyse_msg.pl: src/analyse_msg.pl.src Makefile
-	$(SED) -e 's;%VERSION%;$(VERSION);g' < $<  > $@
+%.pl: src/%.pl.src Makefile
+	@$(SED) -e 's;%VERSION%;$(VERSION);g' \
+		    -e 's;%DTD%;$(SHARE_DIR)/$(DTD);g' < $<  > $@
 
 idx-tsunami.sh: idx-tsunami.sh.in include.mk Makefile
 	@$(SED) \
