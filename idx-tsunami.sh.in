@@ -17,7 +17,7 @@ TSUNAMIPATH=%INSTALL_DIR%/lib/tsunami-$VERSION/ebin
 CONTROLLERPATH=%INSTALL_DIR%/lib/tsunami_controller-$VERSION/ebin
 RECORDERPATH=%INSTALL_DIR%/lib/tsunami_recorder-$VERSION/ebin
 
-CONF_OPT="-tsunami_controller config_file \"$HOME/.idx-tsunami/idx-tsunami.xml\""
+CONF_OPT_FILE="$HOME/.idx-tsunami/idx-tsunami.xml"
 BOOT_OPT="-boot %INSTALL_DIR%/lib/tsunami_controller-$VERSION/priv/tsunami_controller"
 REC_BOOT_OPT="-boot %INSTALL_DIR%/lib/tsunami_recorder-$VERSION/priv/tsunami_recorder"
 REC_DEBUG_LEVEL=5
@@ -34,8 +34,8 @@ stop_recorder() {
 
 start() {
     echo "Starting IDX-Tsunami"	
-    erl $ERL_OPTS -detached -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT $CONF_OPT \
-    -tsunami_controller $LOG_OPT
+    erl $ERL_OPTS -detached -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT \
+    -tsunami_controller config_file \"$CONF_OPT_FILE\" -tsunami_controller $LOG_OPT
 }
 
 recorder() {
@@ -47,6 +47,19 @@ recorder() {
     -tsunami_recorder proxy_listen_port $LISTEN_PORT
 }
 
+debug() {
+    erl $ERL_OPTS -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT  \
+    -tsunami_controller config_file \"$CONF_OPT_FILE\"  -tsunami_controller $LOG_OPT
+}
+
+checkconfig() {
+	if [ ! -e $CONF_OPT_FILE ]
+	then
+		echo "Config file $CONF_OPT_FILE doesn't exist, aborting !"
+		exit 1
+	fi
+}
+
 maindir() {
 	if [ ! -d $MAIN_DIR ]
 	then
@@ -54,16 +67,13 @@ maindir() {
 		mkdir $MAIN_DIR
 	fi
 }
+
 logdir() {
         if [ ! -d $LOG_DIR ]
         then
                 echo "Creating idx-tsunami log directory $LOG_DIR"
                 mkdir $LOG_DIR
         fi
-}
-debug() {
-    erl $ERL_OPTS -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT $CONF_OPT \
-        -tsunami_controller $LOG_OPT
 }
 
 status() {
@@ -79,7 +89,7 @@ usage() {
 while getopts ":f:l:d:" Option
 do
     case $Option in
-        f) CONF_OPT="-tsunami_controller config_file \"$OPTARG\" ";;
+        f) CONF_OPT_FILE=$OPTARG;;
         l) LOG_OPT="log_file \"$OPTARG\" ";;
         d) REC_DEBUG_LEVEL=$OPTARG;;
         *) usage ;;
@@ -89,6 +99,7 @@ shift $(($OPTIND - 1))
 
 case $1 in
     start)
+		checkconfig
         maindir
         logdir
         start
@@ -101,6 +112,7 @@ case $1 in
         ;;
 
     debug)
+		checkconfig
         maindir
         logdir
         debug
