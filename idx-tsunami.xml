@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+
+<idx-tsunami loglevel="notice" dumptraffic="false">
+
+  <!-- controller is not used (yet ?). -->
+  <controller host="schultze"></controller>
+  
+  <!-- Client side setup -->
+  <clients>
+    <!-- maxusers is the max number of simultaneous clients. Don't set
+    it too high because you can run out of file descriptors. Remember
+    that ssl_esock use 2 fds by connection. -->
+
+    <client host="linuxit01" weight="3" maxusers="500">
+      <!-- Several virtual IP can be used.-->
+      <ip value="192.168.2.225"></ip>
+      <ip value="192.168.2.223"></ip>
+    </client>
+<!--     <client host="speed4" weight="1" maxusers="250"> -->
+<!--       <ip value="192.168.2.224"></ip> -->
+<!--     </client> -->
+  </clients>
+  
+  <!-- Server side setup -->
+  <server host="linuxit02" port="80" type="tcp"></server> -->
+  
+  <!-- several arrival phases can be set: for each phase, you can set
+  the mean inter-arrival time between new clients -->
+  <!-- unit is not yet implemented. by default, the unit of time is seconds -->
+
+  <arrivalphase phase="1" duration="3600" unit="seconds">
+    <users interarrival="0.144" unit="seconds"> </users>
+  </arrivalphase>
+
+  <!-- default values. These values overrides those set in the session
+  nodes -->
+  <default name="thinktime" value="30" random="false"> </default>
+  <!-- set Host header (server_name) value for HTTP/1.1 -->
+  <default type="ts_http" name="server_name" value="static"> </default>
+
+
+  <session name="test1" popularity="85.0" persistent="true" messages_ack="parse" type="ts_http">
+      <request> <http url="/" method="GET" version="1.1"></http> </request>
+      <request> <http url="http://linuxit02/images/accueil2/home-txtdeclar-2.gif" method="GETIMS" version="1.1" date="Fri, 14 Nov 2003 02:43:31 GMT"></http> </request>
+      <request> <http url="/" method="POST" version="1.1" contents="bla=blu"></http> </request>
+
+      <thinktime value="60" random="true"></thinktime>
+
+      <request> <http url="/" method="POST" version="1.0" contents="bla=blu"></http> </request>
+      
+  </session>
+
+  <session popularity="15.0" name="test2" persistent="true" messages_ack="parse" type="ts_http">
+    <request> <http url="/" method="GET" version="1.1"></http> </request>
+  </session>
+  
+</idx-tsunami>
