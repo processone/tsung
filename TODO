@@ -1,15 +1,20 @@
 
-- test more carefully cookie support
-- cache ssl session ID => NOT SUPPORTED BY SSL APPLICATION
-- handle http/1.1 pipelining ?
-- add multiple tcp connections per client (for http) ?
-- improve documentation
-- add custom http headers
-- custom transaction statistics
-- add capability to send several samples at once to ts_mon
-- add remote monitoring of servers via SNMP
-- add proxy mode to build session file
+P1 finish new configuration system
 
-- groupchat for Jabber
-- clients may do a checksum to control integrity of responses ?
-- other useful protocols: ftp, smtp, ldap, sql ... ?
+P2 add proxy mode to build session file
+P2 add remote monitoring of servers via SNMP
+P2 make jabber work again with new configuration system
+
+P3 improve documentation
+P3 other useful protocols: ftp, smtp, ldap, sql ... ?
+P3 handle all cookies attributes
+P3 add custom http headers ?
+
+P4 add multiple tcp connections per client (for http) ?
+P4 add capability to send several samples at once to ts_mon
+P4 clients may do a checksum to control integrity of responses ?
+
+P5 groupchat for Jabber
+P5 handle http/1.1 pipelining ?
+
+- cache ssl session ID => NOT SUPPORTED BY SSL APPLICATION
