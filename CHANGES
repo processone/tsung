@@ -1,3 +1,9 @@
+1.0.1 -> 1.0.2:
+    - fix: replace call to httpd_parse:request_header in recorder by an
+      internal func (the func was removed in R10B)
+    - update configure scripts (now build on RHEL3/x86_64)
+    - remote beam startup is now tunable (-r ssh/rsh)
+
 1.0 -> 1.0.1: Major bugfixes (18 Nov 2004)
     - fix: broken free mem on non linux arch (Matthew Schulkind)
     - add script to convert apache log file (combined) to idx-tsunami XML
