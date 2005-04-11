@@ -157,9 +157,6 @@ parse_dynvar([{VarName, RegExp}| DynVars], String, ValuesList) ->
             parse_dynvar(DynVars, String, [{VarName, Value}| ValuesList]);
         nomatch ->
             ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName], ?WARN),
-            parse_dynvar(DynVars, String, ValuesList);
-        {error,Error} ->
-            ?LOGF("Error while parsing dyn var: bad REGEXP (~p)~n", [Error], ?ERR),
             parse_dynvar(DynVars, String, ValuesList)
     end;
 parse_dynvar(Args, _String, _Values) ->
