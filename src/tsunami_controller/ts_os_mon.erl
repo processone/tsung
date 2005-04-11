@@ -286,7 +286,7 @@ node_data(snmp, [Pid|List]) when is_pid(Pid)->
 %% Return node cpu utilisation
 get_os_data(cpu) -> cpu_sup:util();
 
-%% Return node cpu average load on 1 minute
+%% Return node cpu average load on 1 minute; unused !
 get_os_data(cpu1) -> cpu_sup:avg1()/256;
 
 get_os_data(DataName) -> get_os_data(DataName,os:type()).
