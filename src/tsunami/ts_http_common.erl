@@ -129,8 +129,13 @@ set_cookie_header([Cookie|Cookies], Host, Acc) ->
 cookie_rec2str(#cookie{key=Key, value=Val}) ->
     lists:append([Key,"=",Val]).
                        
-matchdomain_url(Cookie, Host, URL) -> % return a cookie only if domain match
-    case {string:str(Host,Cookie#cookie.domain), % should use regexp:match
+%%----------------------------------------------------------------------
+%% Function: matchdomain_url/3
+%% Purpose:  return a cookie only if domain match
+%% Returns:  true|false
+%%----------------------------------------------------------------------
+matchdomain_url(Cookie, Host, URL) -> 
+    case {string:str(Host,Cookie#cookie.domain), % FIXME:should use regexp:match
           string:str(URL,Cookie#cookie.path)} of
         {0,_} -> false;
         {_,1} -> true;
@@ -432,6 +437,7 @@ parse_req(Http=#http_request{headers=H}, Data) ->
             {more, Http#http_request{id=partial}, Data} 
     end.
 
+%%--------------------------------------------------------------------
 http_method("get")-> get;
 http_method("post")-> post;
 http_method("head")-> head;
