@@ -47,13 +47,19 @@
 -include("ts_profile.hrl").
 
 %% two types of monotoring: snmp or using an erlang agent
--record(state, {erlang_pids=[], snmp_pids=[], timer}).
+-record(state, {erlang_pids=[], snmp_pids=[], timer,
+                interval,  % get data every 'interval' msec, default
+                           % value is ?INTERVAL
+                mon_server % monitoring server to which every data is
+                           % sent to (can be a pid or a registered
+                           % process )
+               }).
 
 -include_lib("snmp/include/snmp_types.hrl").
 
 %%--------------------------------------------------------------------
 %% External exports
--export([start/0, stop/0, activate/0, updatestats/0]).
+-export([start/0, start/1, stop/0, activate/0, updatestats/2]).
 -export([client_start/0]).
 -export([node_data/0]).
 %% gen_server callbacks
@@ -111,6 +117,10 @@ start() ->
     ?LOG("starting os_mon",?NOTICE),
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], ?OPTIONS).
 
+start(Args) ->
+    ?LOGF("starting os_mon with args ~p",[Args],?NOTICE),
+    gen_server:start_link({local, ?SERVER}, ?MODULE, Args, ?OPTIONS).
+
 %%--------------------------------------------------------------------
 %% Function: stop/0
 %% Description: Stop the server
@@ -128,19 +138,19 @@ client_start() ->
     application:start(os_mon).
 
 %%--------------------------------------------------------------------
-%% Function: updatestats/0
+%% Function: updatestats/2
 %% Purpose: update stats for erlang monitoring
 %%--------------------------------------------------------------------
-updatestats() ->
+updatestats(Interval,Mon_Server) ->
     Node = atom_to_list(node()),
     {Cpu, FreeMem, RecvPackets, SentPackets} = node_data(),
-    ts_mon:add([{sample, list_to_atom("cpu:" ++ Node), Cpu},
+    send(Mon_Server,[{sample, list_to_atom("cpu:" ++ Node), Cpu},
 				{sample, list_to_atom("freemem:" ++ Node), FreeMem},
 				{sample_counter, list_to_atom("recvpackets:" ++ Node), RecvPackets},
 				{sample_counter, list_to_atom("sentpackets:" ++ Node), SentPackets}]),
 
-    timer:sleep(?INTERVAL),
-    updatestats().
+    timer:sleep(Interval),
+    updatestats(Interval,Mon_Server).
 
 
 %%====================================================================
@@ -155,11 +165,16 @@ updatestats() ->
 %%          ignore               |
 %%          {stop, Reason}
 %%--------------------------------------------------------------------
-init(_Args) ->
+init({Mon_Server, Interval}) ->
     ?LOG(" os_mon started",?NOTICE),
     %% to get the EXIT signal from spawn processes on remote nodes
 	process_flag(trap_exit,true), 
-	{ok, #state{}}.
+	{ok, #state{mon_server=Mon_Server, interval=Interval}};
+init(_) ->
+    ?LOG(" os_mon started",?NOTICE),
+    %% to get the EXIT signal from spawn processes on remote nodes
+	process_flag(trap_exit,true), 
+	{ok, #state{mon_server={global, ts_mon}, interval=?INTERVAL}}.
 
 %%--------------------------------------------------------------------
 %% Function: handle_call/3
@@ -209,13 +224,13 @@ handle_info({snmp_msg, Msg, Ip, _Udp}, State) ->
         'get-response' ->
             ?LOGF("Got SNMP PDU ~p from ~p~n",[PDU, Ip],?DEB),
             {ok,{hostent,Hostname,_,inet,_,_}} =inet:gethostbyaddr(Ip),
-            analyse_snmp_data(PDU#pdu.varbinds, Hostname);
+            analyse_snmp_data(PDU#pdu.varbinds, Hostname, State);
         _ ->
             skip
     end,
     case  State#state.timer of 
         undefined ->
-            erlang:start_timer(?INTERVAL, self(), send_snmp_request ),
+            erlang:start_timer(State#state.interval, self(), send_snmp_request ),
             {noreply, State#state{timer=on}};
         _ ->
             {noreply, State}
@@ -227,7 +242,7 @@ handle_info({'EXIT', From, Reason}, State) ->
 	case lists:keysearch(From,1,State#state.erlang_pids) of 
 		{value, {From, Node}} ->
 			%% start a new process on this node
-			Pid = spawn_link(Node, ?MODULE, updatestats, []),
+			Pid = spawn_link(Node, ?MODULE, updatestats, [State#state.interval, State#state.mon_server]),
 			%% replace the pid value
 			NewPids = lists:keyreplace(From,1,State#state.erlang_pids,{Pid, Node}),
 			{noreply, State#state{erlang_pids=NewPids}};
@@ -340,7 +355,7 @@ start_beam(Host) ->
 %%--------------------------------------------------------------------
 stop_beam([]) ->
     ok;
-stop_beam([{Pid, Node}|Nodes]) ->
+stop_beam([{_Pid, Node}|Nodes]) ->
     ?LOGF("stopping os_mon beam on node ~p~n", [Node], ?INFO),
     rpc:cast(Node, erlang, halt, []),
     stop_beam(Nodes).
@@ -398,37 +413,37 @@ active_host([{Host, erlang}| HostList], State=#state{erlang_pids=PidList}) ->
     active_host(HostList, State#state{erlang_pids=[{Pid, Node}|PidList]}).
 
 %%--------------------------------------------------------------------
-%% Function: analyse_snmp_data/2
+%% Function: analyse_snmp_data/3
 %% Returns: any (send msg to ts_mon)
 %%--------------------------------------------------------------------
-analyse_snmp_data(Args, Host) ->
-    analyse_snmp_data(Args, Host, []).
+analyse_snmp_data(Args, Host, State) ->
+    analyse_snmp_data(Args, Host, [], State).
 
-analyse_snmp_data([], _Host, Resp) ->
-    ts_mon:add(Resp);
+analyse_snmp_data([], _Host, Resp, State) ->
+    send(State#state.mon_server,Resp);
 
-analyse_snmp_data([#varbind{value='NULL'}| Tail], Host, Stats) ->
-    analyse_snmp_data(Tail, Host, Stats);
+analyse_snmp_data([#varbind{value='NULL'}| Tail], Host, Stats, State) ->
+    analyse_snmp_data(Tail, Host, Stats, State);
 
 %% FIXME: this may not be accurate: if we lost packets (the server is
 %% overloaded), the value will be inconsistent, since we assume a
 %% constant time across samples ($INTERVAL)
 
-analyse_snmp_data([#varbind{oid=?SNMP_CPU_RAW_SYSTEM, value=Val}| Tail], Host, Stats) ->
+analyse_snmp_data([#varbind{oid=?SNMP_CPU_RAW_SYSTEM, value=Val}| Tail], Host, Stats, State) ->
     {value, User} = lists:keysearch(?SNMP_CPU_RAW_USER, #varbind.oid, Tail),
     Value = Val + User#varbind.value,
     CountName = list_to_atom("cpu:os_mon@" ++ Host),
-    NewValue = Value/(?INTERVAL/1000),
+    NewValue = Value/(State#state.interval/1000),
     NewTail = lists:keydelete(?SNMP_CPU_RAW_USER, #varbind.oid, Tail),
-    analyse_snmp_data(NewTail, Host, [{sample_counter, CountName, NewValue}| Stats]);
+    analyse_snmp_data(NewTail, Host, [{sample_counter, CountName, NewValue}| Stats], State);
 
-analyse_snmp_data([User=#varbind{oid=?SNMP_CPU_RAW_USER}| Tail], Host, Stats) ->
+analyse_snmp_data([User=#varbind{oid=?SNMP_CPU_RAW_USER}| Tail], Host, Stats, State) ->
     %%put this entry at the end, this will be used when SYSTEM match
-    analyse_snmp_data(Tail ++ [User], Host, Stats);
+    analyse_snmp_data(Tail ++ [User], Host, Stats, State);
 
-analyse_snmp_data([#varbind{oid=OID, value=Val}| Tail], Host, Stats) ->
+analyse_snmp_data([#varbind{oid=OID, value=Val}| Tail], Host, Stats, State) ->
     {Type, Name, Value}= oid_to_statname(OID, Host, Val),
-    analyse_snmp_data(Tail, Host, [{Type, Name, Value}| Stats]).
+    analyse_snmp_data(Tail, Host, [{Type, Name, Value}| Stats], State).
 
 %%--------------------------------------------------------------------
 %% Function: oid_to_statname/3
@@ -449,3 +464,9 @@ oid_to_statname(?SNMP_MEM_AVAIL, Name, Value)->
 snmp_get(Pid, Oids) ->
     ?DebugF("send snmp get for oid ~p to pid ~p ",[Oids,Pid]),
     Pid ! {get, Oids}, ok.
+
+%%% send data back to the controlling node
+send(Mon_Server, Data) when is_pid(Mon_Server) ->
+    Mon_Server ! {add, Data};
+send(Mon_Server, Data) ->
+    gen_server:cast(Mon_Server, {add, Data}).
