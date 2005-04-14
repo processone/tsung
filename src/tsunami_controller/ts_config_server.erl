@@ -470,5 +470,5 @@ replace_str({A,B},X) ->
 print_info() ->
     ?LOGF("SYSINFO:Erlang version: ~s~n",[erlang:system_info(system_version)],?NOTICE),
     ?LOGF("SYSINFO:system architecture ~s~n",[erlang:system_info(system_architecture)],?NOTICE),
-    ?LOGF("SYSINFO:Current path: ~s~n",[code:where_is_file("tsunami.app")],?NOTICE).
+    ?LOGF("SYSINFO:Current path: ~s~n",[code:which(tsunami)],?NOTICE).
     
