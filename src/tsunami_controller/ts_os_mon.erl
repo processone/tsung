@@ -144,10 +144,10 @@ client_start() ->
 updatestats(Interval,Mon_Server) ->
     Node = atom_to_list(node()),
     {Cpu, FreeMem, RecvPackets, SentPackets} = node_data(),
-    send(Mon_Server,[{sample, list_to_atom("cpu:" ++ Node), Cpu},
-				{sample, list_to_atom("freemem:" ++ Node), FreeMem},
-				{sample_counter, list_to_atom("recvpackets:" ++ Node), RecvPackets},
-				{sample_counter, list_to_atom("sentpackets:" ++ Node), SentPackets}]),
+    send(Mon_Server,[{sample, {cpu, Node}, Cpu},
+				{sample, {freemem, Node}, FreeMem},
+				{sample_counter, {recvpackets, Node}, RecvPackets},
+				{sample_counter, {sentpackets,  Node}, SentPackets}]),
 
     timer:sleep(Interval),
     updatestats(Interval,Mon_Server).
@@ -409,7 +409,7 @@ active_host([{Host, erlang}| HostList], State=#state{erlang_pids=PidList}) ->
 	%% process (otherwise the same value (mean cpu% since the system
 	%% last boot)  is returned by cpu_sup:util), we spawn a process
 	%% that will do the stats collection and send it to ts_mon
-    Pid = spawn_link(Node, ?MODULE, updatestats, []),
+    Pid = spawn_link(Node, ?MODULE, updatestats, [State#state.interval, State#state.mon_server]),
     active_host(HostList, State#state{erlang_pids=[{Pid, Node}|PidList]}).
 
 %%--------------------------------------------------------------------
@@ -432,7 +432,7 @@ analyse_snmp_data([#varbind{value='NULL'}| Tail], Host, Stats, State) ->
 analyse_snmp_data([#varbind{oid=?SNMP_CPU_RAW_SYSTEM, value=Val}| Tail], Host, Stats, State) ->
     {value, User} = lists:keysearch(?SNMP_CPU_RAW_USER, #varbind.oid, Tail),
     Value = Val + User#varbind.value,
-    CountName = list_to_atom("cpu:os_mon@" ++ Host),
+    CountName = {cpu , Host},
     NewValue = Value/(State#state.interval/1000),
     NewTail = lists:keydelete(?SNMP_CPU_RAW_USER, #varbind.oid, Tail),
     analyse_snmp_data(NewTail, Host, [{sample_counter, CountName, NewValue}| Stats], State);
@@ -449,11 +449,11 @@ analyse_snmp_data([#varbind{oid=OID, value=Val}| Tail], Host, Stats, State) ->
 %% Function: oid_to_statname/3
 %%--------------------------------------------------------------------
 oid_to_statname(?SNMP_CPU_RAW_IDLE, Name, Value) ->
-    CountName = list_to_atom("cpu_idle:os_mon@" ++ Name),
+    CountName = {cpu_idle, Name},
     ?DebugF("Adding counter value for ~p~n",[CountName]),
     {sample_counter, CountName, Value/(?INTERVAL/1000)};
 oid_to_statname(?SNMP_MEM_AVAIL, Name, Value)-> 
-    CountName = list_to_atom("freemem:os_mon@" ++ Name),
+    CountName = {freemem, Name},
     ?DebugF("Adding counter value for ~p~n",[CountName]),
     {sample,CountName, Value/1000}.
     
