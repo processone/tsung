@@ -390,16 +390,16 @@ export_stats(State=#state{backend=text}) ->
 print_dist_list([], _, _) ->
 	done;
 print_dist_list([{Key,{_Type,[Mean,0,Max,Min,Count|_]}}|Tail],LastRes,Logfile)->
-	io:format(Logfile, "stats: ~s ~p ~p ~p ~p ~p~n", 
+	io:format(Logfile, "stats: ~p ~p ~p ~p ~p ~p~n", 
 			  [Key, Count, Mean, 0, Max, Min ]),
 	print_dist_list(Tail, LastRes, Logfile);
 print_dist_list([{Key,{_Type,[Mean,Var,Max,Min,Count|_]}}|Tail],LastRes,Logfile)->
 	StdVar = math:sqrt(Var/Count),
-	io:format(Logfile, "stats: ~s ~p ~p ~p ~p ~p~n",
+	io:format(Logfile, "stats: ~p ~p ~p ~p ~p ~p~n",
 			  [Key, Count, Mean, StdVar, Max, Min ]),
 	print_dist_list(Tail, LastRes, Logfile);
 print_dist_list([{Key, {_Type, [Sample,Last]}} | Tail], LastRes, Logfile) ->
-	io:format(Logfile, "stats: ~s ~p ~p~n", [Key, Sample, Last ]),
+	io:format(Logfile, "stats: ~p ~p ~p~n", [Key, Sample, Last ]),
     print_dist_list(Tail, LastRes, Logfile);
 print_dist_list([{Key, {_Type, Value}} | Tail], LastRes, Logfile) ->
 	case dict:find(Key, LastRes) of 

@@ -36,6 +36,7 @@
          now_sec/0, node_to_hostname/1, add_time/2,
          level2int/1, mkey1search/2, close_socket/2, datestr/0, datestr/1,
 		 erl_system_args/0, setsubdir/1, export_text/1,
+         foreach_parallel/2, spawn_par/3,
          stop_all/2, stop_all/3, stop_all/4, join/2, split2/2, split2/3,
          make_dir_rec/1, is_ip/1, from_https/1, to_https/1]).
 
@@ -364,3 +365,22 @@ split2(String,Chr,nostrip) ->
         0   -> {String,[]};
         Pos -> {string:substr(String,1,Pos-1), string:substr(String,Pos+1)}
     end.
+
+
+foreach_parallel(Fun, List)->
+    SpawnFun = fun(A) -> spawn(?MODULE, spawn_par, lists:append([[Fun,self()], [A]])) end,
+    lists:foreach(SpawnFun, List),
+    wait_pids(length(List)).
+
+wait_pids(0) -> done;
+wait_pids(N) ->
+    receive
+        {ok, _Pid, _Res } ->
+            wait_pids(N-1)
+    after ?TIMEOUT_PARALLEL_SPAWN ->
+            {error, {timout, N}} % N missing answer
+    end.
+
+spawn_par(Fun, PidFrom, Args) ->
+    Res = Fun(Args),
+    PidFrom ! {ok, self(), Res}.
