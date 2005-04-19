@@ -189,6 +189,12 @@ sub parse_stats_file {
 			my $values = $2;
 			$type =~ s/page_resptime/page/g;
 			$type =~ s/response_time/request/g;
+            # handle new format of ts_os_mon : reformat as old one
+            if ($type =~ m/os_mon/) {
+                $type =~ s/\{(\S+)\,\"(\S+)\"\}/$1:$2/g;
+            } else {
+                $type =~ s/\{(\S+)\,\"(\S+)\"\}/$1:os_mon\@$2/g;
+            }
 			my ($rate,$mean) = split(/\s+/,$values);
 			if ($interval) {
 				$rate /= $interval;
