@@ -81,6 +81,8 @@
 -define(check_noclient_timeout, 60000).
 -define(retries, 4).
 
+-define(TIMEOUT_PARALLEL_SPAWN, 60000).
+
 -define(CRLF, "\r\n").
 -define(CR,13).
 -define(LF,10).
