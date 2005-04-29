@@ -1,7 +1,35 @@
-# Build the .beam erlang VM files
+#### CONFIGURE VARIABLE
 
-include vsn.mk
-include include.mk
+# export ERLC_EMULATOR to fix a bug in R9B with native compilation
+ERLC_EMULATOR=@ERL@
+export ERLC_EMULATOR
+ERL=@ERL@
+ERLC=@ERLC@
+SED=@SED@
+ERL_OPTS=@ERL_OPTS@
+
+ERLDIR=@ERLDIR@
+export ERLDIR
+
+ERLANG_XMERL_DIR=@ERLANG_XMERL_DIR@
+
+raw_erlang_prefix=@libdir@/erlang/
+
+prefix=$(DESTDIR)@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
+libdir=@libdir@
+datadir=@datadir@
+TEMPLATES_SUBDIR=@TEMPLATES_SUBDIR@
+
+CONFIGURE_DEPENDENCIES=@CONFIGURE_DEPENDENCIES@
+CONFIG_STATUS_DEPENDENCIES=@CONFIG_STATUS_DEPENDENCIES@
+
+VERSION=@PACKAGE_VERSION@
+PACKAGE=@PACKAGE_NAME@
+DTD=@DTD@
+
+#### END OF SUBSTITUTION
 
 ERL_COMPILER_OPTIONS="[warn_unused_vars]"
 export ERL_COMPILER_OPTIONS
@@ -20,21 +48,20 @@ CC  = $(ERLC)
 
 ESRC = ./src
 EBIN = ./ebin
+distdir = $(PACKAGE)-$(VERSION)
 
-VERSION = $(IDX-TSUNAMI_VSN)
 
 # installation path
 BINDIR    = $(bindir)
 LIBDIR    = $(libdir)/idx-tsunami/bin/
 CONFDIR   = $(datadir)/doc/idx-tsunami/examples
 SHARE_DIR = $(datadir)/idx-tsunami/
-TEMPLATES_DIR = $(SHARE_DIR)/templates
+TEMPLATES_DIR = $(datadir)/$(TEMPLATES_SUBDIR)
 MAN_DIR   = $(datadir)/man/man1/
 DOC_DIR   = $(datadir)/doc/idx-tsunami
 
 ERLANG_LIB_DIR = $(libdir)/erlang/lib
 
-PACKAGE = idx-tsunami
 APPLICATION = tsunami
 CONTROLLER_APPLICATION = tsunami_controller
 RECORDER_APPLICATION = tsunami_recorder
@@ -51,12 +78,11 @@ CONTROLLER_SRC  = $(wildcard $(ESRC)/$(CONTROLLER_APPLICATION)/*.erl)
 RECORDER_SRC    = $(wildcard $(ESRC)/$(RECORDER_APPLICATION)/*.erl)
 CONFFILE = idx-tsunami.xml
 CONFFILE_SRC = idx-tsunami.xml.in
-DTD = idx-tsunami-1.0.dtd
 USERMANUAL = doc/user_manual.html  doc/IDXDOC.css
 USERMANUAL_IMG = $(wildcard doc/images/*.png)
 USERMANUAL_SRC = doc/user_manual.tex
-PERL_SCRIPTS_SRC = $(wildcard $(ESRC)/*.pl.src)
-PERL_SCRIPTS = $(notdir $(basename $(PERL_SCRIPTS_SRC)))
+PERL_SCRIPTS_SRC = $(wildcard $(ESRC)/*.pl.in)
+PERL_SCRIPTS = $(basename $(PERL_SCRIPTS_SRC))
 
 TARGET   = $(addsuffix .beam, $(basename \
              $(addprefix $(EBIN)/, $(notdir $(SRC)))))
@@ -64,7 +90,6 @@ CONTROLLER_TARGET   = $(addsuffix .beam, $(basename \
              $(addprefix $(EBIN)/, $(notdir $(CONTROLLER_SRC)))))
 RECORDER_TARGET   = $(addsuffix .beam, $(basename \
              $(addprefix $(EBIN)/, $(notdir $(RECORDER_SRC)))))
-EMAKE    = $(addsuffix \'., $(addprefix \'../, $(SRC)))
 DEBIAN    = debian/changelog debian/control debian/compat debian/copyright debian/docs debian/idx-tsunami.dirs debian/rules
 
 SRC_APPFILES   = $(ESRC)/$(APPLICATION)/$(APPLICATION).app.src $(ESRC)/$(APPLICATION)/$(APPLICATION).rel.src
@@ -87,15 +112,14 @@ BUILD_OPTIONS =	'[{systools, \
         {make_app, true }, {make_rel, true}].'
 BUILD_OPTIONS_FILE = ./BUILD_OPTIONS 
 
+DIST_COMMON=Makefile.in $(CONFFILE_SRC) $(PERL_SCRIPTS_SRC) idx-tsunami.sh.in idx-tsunami.spec.in
+
+
 .PHONY: doc
 
-idx-tsunami: $(TARGET)  $(RECORDER_TARGET) $(CONTROLLER_TARGET) 
+idx-tsunami: Makefile config.status $(PERL_SCRIPTS) idx-tsunami.sh idx-tsunami.spec $(TARGET) $(RECORDER_TARGET) $(CONTROLLER_TARGET)
 
 all: clean idx-tsunami
-
-# used to generate the erlang Emakefile
-emake:
-	@echo $(EMAKE) | tr -s ' ' '\n' > ebin/Emakefile
 
 debug:
 	$(MAKE) TYPE=debug
@@ -104,7 +128,8 @@ native:
 	$(MAKE) TYPE=native
 
 rpm:	release idx-tsunami.spec
-	rpmbuild -ta $(PACKAGE)-$(VERSION).tar.gz
+	rpmbuild -ta $(distdir).tar.gz
+
 
 deb:
 	fakeroot debian/rules clean
@@ -115,10 +140,10 @@ clean:
 	-cd priv && rm -f $(shell ls priv | grep -v builder\.erl| grep -v CVS) && cd ..
 	-rm -f $(TARGET) $(TMP) $(BUILD_OPTIONS_FILE) builder.beam
 	-rm -f $(TGT_APPFILES) idx-tsunami.sh $(PERL_SCRIPTS)
-	-rm -f ebin/*.beam 
-#	-make -C doc clean
+	-rm -f ebin/*.beam idx-tsunami.sh idx-tsunami.spec idx-tsunami.xml
+	-make -C doc clean
 
-install: doc boot  idx-tsunami.sh $(PERL_SCRIPTS) install_recorder install_controller $(CONFFILE)
+install: doc boot install_recorder install_controller $(CONFFILE)
 	-rm -f $(TMP)
 
 	install -d $(TARGETDIR)/priv
@@ -144,15 +169,13 @@ install: doc boot  idx-tsunami.sh $(PERL_SCRIPTS) install_recorder install_contr
 	install $(USERMANUAL_IMG) $(DOC_DIR)/images
 
 # create startup script
-	cp idx-tsunami.sh $(SCRIPT)
+	install idx-tsunami.sh $(SCRIPT)
 	install $(PERL_SCRIPTS) $(LIBDIR)/
-	chmod +x $(SCRIPT)
 
-# 
-	mkdir -p $(CONFDIR)
+	install -d $(CONFDIR)
 	cp $(CONFFILE) $(CONFDIR)
 
-	mkdir -p $(TEMPLATES_DIR)
+	install -d $(TEMPLATES_DIR)
 	cp $(TEMPLATES) $(TEMPLATES_DIR)
 	cp $(DTD) $(SHARE_DIR)
 
@@ -234,12 +257,35 @@ priv/tsunami_recorder.boot: builder.beam $(RECORDER_SRC_APPFILES)
 	)
 	@rm -rf temp
 
+
+Makefile: Makefile.in config.status
+	@$(SHELL) ./config.status --file=$@
+
+%.pl:  %.pl.in
+	@$(SHELL) ./config.status --file=$@
+
+%.spec:  %.spec.in
+	@$(SHELL) ./config.status --file=$@
+
+%.xml.in:  %.xml.in
+	@$(SHELL) ./config.status --file=$@
+
+%.sh :%.sh.in
+	@$(SHELL) ./config.status --file=$@
+
+config.status: configure $(CONFIG_STATUS_DEPENDENCIES)
+	$(SHELL) ./config.status --recheck
+
+configure: configure.in $(CONFIGURE_DEPENDENCIES)
+	@echo "running autoconf"
+	@autoconf
+
 doc: 
 	make -C doc
 
-release:
-	rm -fr $(PACKAGE)-$(VERSION)
-	mkdir -p $(PACKAGE)-$(VERSION)
+release: Makefile
+	rm -fr $(distdir)
+	mkdir -p $(distdir)
 	tar zcf tmp.tgz $(SRC) $(SRC_APPFILES) $(INC_FILES) \
 		$(CONTROLLER_SRC) $(CONTROLLER_SRC_APPFILES) \
 		$(RECORDER_SRC) $(RECORDER_SRC_APPFILES) $(TEMPLATES) \
@@ -248,14 +294,13 @@ release:
 		COPYING README LISEZMOI TODO $(CONFFILE_SRC) Makefile \
 		priv/builder.erl idx-tsunami.sh.in vsn.mk \
 		$(DEBIAN)  $(PERL_SCRIPTS_SRC) CONTRIBUTORS CHANGES \
-		configure configure.in config.guess config.sub include.mk.in \
-		install-sh idx-tsunami.spec 
-	tar -C $(PACKAGE)-$(VERSION) -zxf tmp.tgz
-	mkdir $(PACKAGE)-$(VERSION)/ebin
-	tar zvcf  $(PACKAGE)-$(VERSION).tar.gz $(PACKAGE)-$(VERSION)
-	rm -fr $(PACKAGE)-$(VERSION)
+		configure configure.in config.guess config.sub Makefile.in \
+		install-sh idx-tsunami.spec.in idx-tsunami.spec
+	tar -C $(distdir) -zxf tmp.tgz
+	mkdir $(distdir)/ebin
+	tar zvcf  $(distdir).tar.gz $(distdir)
+	rm -fr $(distdir)
 	rm -fr tmp.tgz
-
 
 builder.beam: priv/builder.erl 
 	$(CC) $(OPT) -I $(INC) $<
@@ -268,25 +313,6 @@ ebin/%.beam: src/$(RECORDER_APPLICATION)/%.erl  $(INC_FILES)
 
 ebin/%.beam: src/$(CONTROLLER_APPLICATION)/%.erl  $(INC_FILES)
 	$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -o ebin $<
-
-%.pl: src/%.pl.src Makefile
-	@$(SED) -e 's;%VERSION%;$(VERSION);g' \
-		    -e 's;%DTD%;$(SHARE_DIR)/$(DTD);g' \
-	        -e 's;${DESTDIR};;g' < $< > $@
-
-idx-tsunami.sh: idx-tsunami.sh.in include.mk Makefile
-	@$(SED) \
-		-e 's;%INSTALL_DIR%;${raw_erlang_prefix};g' \
-		-e 's;${DESTDIR};;g' \
-		-e 's;%ERL_OPTS%;$(ERL_OPTS);g' \
-		-e 's;%ERL%;$(ERL);g' \
-		-e 's;CONFIG_DIR%;${CONFIG_DIR};g' \
-		-e 's;%VERSION%;${VERSION};g' < $< > $@
-
-idx-tsunami.xml: idx-tsunami.xml.in include.mk Makefile
-	@$(SED) \
-		-e 's;%INSTALL_DIR%;${SHARE_DIR};g' \
-        -e 's;${DESTDIR};;g' < $< > $@
 
 %:%.sh
 # Override makefile default implicit rule

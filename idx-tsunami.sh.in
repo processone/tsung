@@ -2,28 +2,28 @@
 
 HOST=`hostname -s`
 
-INSTALL_DIR=%INSTALL_DIR%
-ERL=%ERL%
+INSTALL_DIR=@prefix@/lib/erlang/
+ERL=@ERL@
 MAIN_DIR=$HOME/.idx-tsunami
 LOG_DIR=$MAIN_DIR/log
 LOG_OPT="log_file \"$LOG_DIR/idx-tsunami.log\""
-VERSION=%VERSION%
+VERSION=@PACKAGE_VERSION@
 
 LISTEN_PORT=8090
 NAME=idx-tsunami
 CONTROLLER=tsunami_controller
 RECORDER=tsunami_recorder
 
-TSUNAMIPATH=%INSTALL_DIR%/lib/tsunami-$VERSION/ebin
-CONTROLLERPATH=%INSTALL_DIR%/lib/tsunami_controller-$VERSION/ebin
-RECORDERPATH=%INSTALL_DIR%/lib/tsunami_recorder-$VERSION/ebin
+TSUNAMIPATH=$INSTALL_DIR/lib/tsunami-$VERSION/ebin
+CONTROLLERPATH=$INSTALL_DIR/lib/tsunami_controller-$VERSION/ebin
+RECORDERPATH=$INSTALL_DIR/lib/tsunami_recorder-$VERSION/ebin
 
 CONF_OPT_FILE="$HOME/.idx-tsunami/idx-tsunami.xml"
-BOOT_OPT="-boot %INSTALL_DIR%/lib/tsunami_controller-$VERSION/priv/tsunami_controller -boot_var TSUNAMIPATH  %INSTALL_DIR% "
-REC_BOOT_OPT="-boot %INSTALL_DIR%/lib/tsunami_recorder-$VERSION/priv/tsunami_recorder -boot_var TSUNAMIPATH  %INSTALL_DIR% "
+BOOT_OPT="-boot $INSTALL_DIR/lib/tsunami_controller-$VERSION/priv/tsunami_controller -boot_var TSUNAMIPATH  $INSTALL_DIR "
+REC_BOOT_OPT="-boot $INSTALL_DIR/lib/tsunami_recorder-$VERSION/priv/tsunami_recorder -boot_var TSUNAMIPATH  $INSTALL_DIR "
 REC_DEBUG_LEVEL=5
 ERL_RSH=" -rsh ssh "
-ERL_OPTS=" +A 1 %ERL_OPTS% "
+ERL_OPTS=" +A 1 @ERL_OPTS@ "
 COOKIE='tsunami'
 
 stop() {
@@ -58,6 +58,10 @@ debug() {
      -tsunami_controller $LOG_OPT
 }
 
+version() {
+    echo "IDX-Tsunami version $VERSION" 
+}
+
 checkconfig() {
 	if [ ! -e $CONF_OPT_FILE ]
 	then
@@ -88,7 +92,7 @@ status() {
 
 usage() {
     prog=`basename $1`
-    echo "$prog start|stop|restart|debug|status|recorder|stop_recorder"
+    echo "$prog start|stop|restart|debug|status|recorder|stop_recorder|version"
 }
 
 while getopts ":f:l:d:r:" Option
@@ -138,6 +142,9 @@ case $1 in
     restart)
         stop
         start
+        ;;
+    version)
+        version
         ;;
 
     *)

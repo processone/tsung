@@ -29,7 +29,7 @@ use strict;
 use Getopt::Long;
 use vars qw ($help @files $verbose $debug $plot $extra $version $stats
              $template_dir $html $template_dir $gnuplot $logy);
-my $tagvsn = '%VERSION%';
+my $tagvsn = '@PACKAGE_VERSION@';
 
 GetOptions( "help",\$help,
 			"verbose",\$verbose,
@@ -52,9 +52,13 @@ my $errors =0;
 my $maxval;
 my $category;
 
+my $prefix ="@prefix@";
+
 unless ($template_dir) {
     if (-d "$ENV{HOME}/.idx-tsunami/templates/") {
         $template_dir = "$ENV{HOME}/.idx-tsunami/templates/";
+    } elsif (-d "@datadir@/@TEMPLATES_SUBDIR@") {
+        $template_dir = "@datadir@/@TEMPLATES_SUBDIR@";
     } elsif (-d "/usr/share/idx-tsunami/templates") {
         $template_dir = "/usr/share/idx-tsunami/templates";
     } elsif (-d "/usr/local/share/idx-tsunami/templates") {
@@ -335,7 +339,7 @@ sub html_report {
     require Template;
     my $titre     = 'IDX-Tsunami ';
     my $version   = $tagvsn;
-    my $contact   = "nicolas\@niclux.org";
+    my $contact   = "@PACKAGE_BUGREPORT@";
     my $output   = 'index.html';
 
     my $tt = Template->new({

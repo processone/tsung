@@ -31,7 +31,7 @@ use vars qw ($help *verbose $version $thinktime_threshold $visit_timeout
 my %Months=('Jan','0', 'Feb','1', 'Mar','2', 'Apr','3', 'May','4', 'Jun','5',
             'Jul','6', 'Aug','7', 'Sep','8', 'Oct','9', 'Nov','10', 'Dec','11');
 
-my $tagvsn = '%VERSION%';
+my $tagvsn = '@PACKAGE_VERSION@';
 
 GetOptions( "help",\$help,
             "verbose",\$verbose,
@@ -43,7 +43,8 @@ GetOptions( "help",\$help,
             "version",\$version
           );
 
-my $dtd ="%DTD%";
+my $prefix ="@prefix@";
+my $dtd ="@datadir@/@DTD@";
 
 # remove thinktime less than 1 sec
 $thinktime_threshold ="1" unless $thinktime_threshold;

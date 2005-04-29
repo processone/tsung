@@ -1,11 +1,16 @@
 DNA define([AC_CACHE_LOAD], )dnl
 dnl define([AC_CACHE_SAVE], )dnl
 
-AC_INIT(Makefile)
+AC_INIT([idx-tsunami], m4_normalize(m4_include([vsn.mk])),[idx-tsunami@lists.IDEALX.org])
+AC_CONFIG_SRCDIR(src/tsunami/tsunami.erl)
+dnl AM_INIT_AUTOMAKE()
+
+AC_SUBST([CONFIG_STATUS_DEPENDENCIES],[vsn.mk])
+AC_SUBST([CONFIGURE_DEPENDENCIES],[vsn.mk])
 
 dnl work out who the cpu, vendor and OS are
-AC_CANONICAL_SYSTEM
-AC_DEFINE_UNQUOTED(CPU_VENDOR_OS, "$target")
+dnl AC_CANONICAL_SYSTEM
+dnl AC_DEFINE_UNQUOTED(CPU_VENDOR_OS, "$target")
 
 AC_PATH_PROG(SED, sed)
 
@@ -87,8 +92,12 @@ AC_SUBST(SED)
 AC_SUBST(ERL)
 AC_SUBST(ERLC)
 AC_SUBST(ERLDIR)
+AC_SUBST(DTD,[idx-tsunami-1.0.dtd])
+AC_SUBST(TEMPLATES_SUBDIR,[idx-tsunami/templates])
 
 AC_PROG_MAKE_SET
 AC_PROG_INSTALL
 
-AC_OUTPUT(include.mk)
+AC_CONFIG_FILES([Makefile idx-tsunami.spec idx-tsunami.sh idx-tsunami.xml src/analyse_msg.pl src/log2tsunami.pl])
+
+AC_OUTPUT
