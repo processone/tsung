@@ -1,13 +1,13 @@
 Source: idx-tsunami
 Section: net
 Priority: optional
-Maintainer: Nicolas Niclausse <nicolas.niclausse@IDEALX.com>
-Build-Depends: debhelper (>= 4.0.0), erlang (>= 9.2-1), libxmerl-erlang (>= 0.19-1), docbook-utils
+Maintainer: Nicolas Niclausse <nicolas.niclausse@niclux.org>
+Build-Depends: debhelper (>= 4.0.0), erlang (>= 9.2-1), libxmerl-erlang (>= 0.19-1) | erlang (>= 10.b.5-1) , docbook-utils
 Standards-Version: 3.6.0
 
 Package: idx-tsunami
 Architecture: all
-Depends: erlang (>= 9.2-1), libxmerl-erlang (>= 0.19-1)
+Depends: erlang (>= 9.2-1), libxmerl-erlang (>= 0.19-1) | erlang (>= 10.b.5-1)
 Recommends: gnuplot, perl, ssh, libtemplate-perl
 Description: A distributed multi-protocol load testing tool.
  IDX-Tsunami is a distributed load testing tool.

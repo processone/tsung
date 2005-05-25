@@ -1,4 +1,4 @@
-1.0.1 -> 1.0.2:
+1.0.1 -> 1.0.2: Minor bugfixes
     - fix: replace call to httpd_parse:request_header in recorder by an
       internal func (the func was removed in R10B)
     - update configure scripts (now build on RHEL3/x86_64)
