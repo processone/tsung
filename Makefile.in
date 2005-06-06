@@ -291,7 +291,7 @@ release: Makefile
 		$(RECORDER_SRC) $(RECORDER_SRC_APPFILES) $(TEMPLATES) \
 		 doc/*.txt doc/*.fig doc/*.png doc/Makefile doc/*.sgml \
 		$(USERMANUAL) $(USERMANUAL_SRC) $(USERMANUAL_IMG) $(DTD) \
-		COPYING README LISEZMOI TODO $(CONFFILE_SRC) Makefile \
+		COPYING README LISEZMOI TODO $(CONFFILE_SRC) \
 		priv/builder.erl idx-tsunami.sh.in vsn.mk \
 		$(DEBIAN)  $(PERL_SCRIPTS_SRC) CONTRIBUTORS CHANGES \
 		configure configure.in config.guess config.sub Makefile.in \
