@@ -339,7 +339,7 @@ sub html_report {
     require Template;
     my $titre     = 'IDX-Tsunami ';
     my $version   = $tagvsn;
-    my $contact   = "@PACKAGE_BUGREPORT@";
+    my $contact   = '@PACKAGE_BUGREPORT@';
     my $output   = 'index.html';
 
     my $tt = Template->new({
