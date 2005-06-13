@@ -369,13 +369,13 @@ set_cookie_key([L|"xpires"],Val,Cookie) when L == $E; L==$e ->
     Cookie#cookie{expires=Val}; % NOT IMPLEMENTED
 set_cookie_key([L|"ort"],Val,Cookie) when L == $P; L==$p ->
     Cookie#cookie{port=Val};
-set_cookie_key([L|"iscard"],Val,Cookie) when L == $D; L==$d ->
+set_cookie_key([L|"iscard"],_Val,Cookie) when L == $D; L==$d ->
     Cookie#cookie{discard=true}; % NOT IMPLEMENTED
-set_cookie_key([L|"ecure"],Val,Cookie) when L == $S; L==$s ->
+set_cookie_key([L|"ecure"],_Val,Cookie) when L == $S; L==$s ->
     Cookie#cookie{secure=true}; % NOT IMPLEMENTED
-set_cookie_key([L|"ommenturl"],Val,Cookie) when L == $C; L==$c ->
+set_cookie_key([L|"ommenturl"],_Val,Cookie) when L == $C; L==$c ->
     Cookie; % don't care about comment
-set_cookie_key([L|"omment"],Val,Cookie) when L == $C; L==$c ->
+set_cookie_key([L|"omment"],_Val,Cookie) when L == $C; L==$c ->
     Cookie; % don't care about comment
 set_cookie_key(Key,Val,Cookie) ->
     Cookie#cookie{key=Key,value=Val}.
@@ -438,11 +438,11 @@ parse_req(Http=#http_request{headers=H}, Data) ->
     end.
 
 %%--------------------------------------------------------------------
-http_method("get")-> get;
-http_method("post")-> post;
-http_method("head")-> head;
-http_method("put")-> put;
-http_method("delete")-> delete;
+http_method("get")-> 'GET';
+http_method("post")-> 'POST';
+http_method("head")-> 'HEAD';
+http_method("put")-> 'PUT';
+http_method("delete")-> 'DELETE';
 http_method(_) -> not_implemented.
     
 %%--------------------------------------------------------------------
@@ -470,13 +470,13 @@ parse_line("content-length: "++Tail, Http, _Host)->
 	CL=list_to_integer(Tail),
 	?DebugF("HTTP Content-Length ~p~n",[CL]),
 	Http#http{content_length=CL};
-parse_line("connection: close"++Tail, Http, _Host)->
+parse_line("connection: close"++_Tail, Http, _Host)->
 	?Debug("Connection Closed in Header ~n"),
 	Http#http{close=true};
-parse_line("transfer-encoding: chunked"++Tail, Http, _Host)->
+parse_line("transfer-encoding: chunked"++_Tail, Http, _Host)->
 	?LOG("Chunked transfer encoding~n",?DEB),
 	Http#http{chunk_toread=0};
-parse_line("transfer-encoding: Chunked"++Tail, Http, _Host)->
+parse_line("transfer-encoding: Chunked"++_Tail, Http, _Host)->
 	?LOG("Chunked transfer encoding~n",?DEB),
 	Http#http{chunk_toread=0};
 parse_line("transfer-encoding:"++Tail, Http, _Host)->
