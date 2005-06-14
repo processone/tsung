@@ -58,7 +58,7 @@
     popularity   NMTOKEN #REQUIRED
     type         NMTOKEN #REQUIRED>
 
-<!ELEMENT request ( ( http | jabber ), dyn_variable? )>
+<!ELEMENT request ( ( http | jabber ), dyn_variable* )>
 <!ATTLIST request
     subst (true|false) #IMPLIED
     match CDATA #IMPLIED>
