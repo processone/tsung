@@ -267,7 +267,7 @@ Makefile: Makefile.in config.status
 %.spec:  %.spec.in
 	@$(SHELL) ./config.status --file=$@
 
-%.xml.in:  %.xml.in
+%.xml:  %.xml.in
 	@$(SHELL) ./config.status --file=$@
 
 %.sh :%.sh.in
