@@ -36,7 +36,7 @@
          now_sec/0, node_to_hostname/1, add_time/2,
          level2int/1, mkey1search/2, close_socket/2, datestr/0, datestr/1,
 		 erl_system_args/0, setsubdir/1, export_text/1,
-         foreach_parallel/2, spawn_par/3,
+         foreach_parallel/2, spawn_par/3, inet_setopts/3,
          stop_all/2, stop_all/3, stop_all/4, join/2, split2/2, split2/3,
          make_dir_rec/1, is_ip/1, from_https/1, to_https/1]).
 
@@ -384,3 +384,35 @@ wait_pids(N) ->
 spawn_par(Fun, PidFrom, Args) ->
     Res = Fun(Args),
     PidFrom ! {ok, self(), Res}.
+
+%%----------------------------------------------------------------------
+%% Func: inet_setopts/3
+%% Purpose: set inet options depending on the protocol (gen_tcp, gen_udp,
+%%  ssl)
+%%----------------------------------------------------------------------
+inet_setopts(_, none, _) -> %socket was closed before
+    none;
+inet_setopts(ssl, Socket, Opts) ->
+	case ssl:setopts(Socket, Opts) of
+		ok ->
+			Socket;
+		{error, closed} ->
+			none;
+		Error ->
+			?LOGF("Error while setting ssl options ~p ~p ~n", [Opts, Error], ?ERR),
+            none
+	end;
+inet_setopts(Type, Socket,  Opts) when ( (Type == tcp) or (Type == gen_tcp)) ->
+	case inet:setopts(Socket, Opts) of
+		ok ->
+			Socket;
+		{error, closed} ->
+			none;
+		Error ->
+			?LOGF("Error while setting inet options ~p ~p ~n", [Opts, Error], ?ERR),
+            none
+	end;
+%% FIXME: UDP not tested
+inet_setopts(Type, Socket,  Opts)  when ( (Type == udp) or (Type == gen_udp)) ->
+	ok = inet:setopts(Socket, Opts),
+    Socket.

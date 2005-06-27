@@ -106,8 +106,9 @@ init({#session{id           = Profile,
 %%          {stop, Reason, NewStateData}                         
 %%--------------------------------------------------------------------
 wait_ack(next_msg,State=#state_rcv{request=R}) when R#ts_request.ack==global->
-    NewSocket = inet_setopts(State#state_rcv.protocol, State#state_rcv.socket,
-                             [{active, once} ]),
+    NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol, 
+                                      State#state_rcv.socket,
+                                      [{active, once} ]),
     {PageTimeStamp, _} = update_stats(State),
     handle_next_action(State#state_rcv{socket=NewSocket, 
                                        page_timestamp=PageTimeStamp}).
@@ -146,15 +147,15 @@ handle_info({NetEvent, _Socket, Data}, wait_ack, State) when NetEvent==tcp;
                                                              NetEvent==ssl ->
     case handle_data_msg(Data, State) of 
         {NewState=#state_rcv{ack_done=true}, Opts} ->
-            NewSocket = inet_setopts(State#state_rcv.protocol, 
-                                     NewState#state_rcv.socket,
-                                     [{active, once} | Opts]),
+            NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol, 
+                                              NewState#state_rcv.socket,
+                                              [{active, once} | Opts]),
             handle_next_action(NewState#state_rcv{socket=NewSocket, 
                                                   ack_done=false});
         {NewState, Opts} ->
-            NewSocket = inet_setopts(State#state_rcv.protocol,
-                                     NewState#state_rcv.socket,
-                                     [{active, once} | Opts]),
+            NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol,
+                                              NewState#state_rcv.socket,
+                                              [{active, once} | Opts]),
             {next_state, wait_ack, NewState#state_rcv{socket=NewSocket}, NewState#state_rcv.timeout}
     end;
 %% inet close messages; persistent session, waiting for ack
@@ -212,15 +213,15 @@ handle_info({NetEvent, _Socket, Data}, think, State = #state_rcv{request=Req} )
     ?LOGF("Data receive from socket in state think, ack=~p, skip~n", 
          [Req#ts_request.ack],?NOTICE),
     ?DebugF("Data was ~p~n",[Data]),
-    NewSocket = inet_setopts(State#state_rcv.protocol, State#state_rcv.socket,
-                             [{active, once}]),
+    NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol, State#state_rcv.socket,
+                                      [{active, once}]),
     {next_state, think, State#state_rcv{socket=NewSocket}};
 handle_info({NetEvent, _Socket, Data}, think, State = #state_rcv{request=Req} ) 
   when (NetEvent == tcp) or (NetEvent==ssl) ->
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     ts_mon:add({ count, error_unknown_data }),
     ?LOG("Data receive from socket in state think, stop~n", ?ERR),
-    NewSocket = inet_setopts(State#state_rcv.protocol, State#state_rcv.socket,
+    NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol, State#state_rcv.socket,
                              [{active, once}]),
     {stop, normal, State};
 handle_info(Msg, StateName, State ) ->
@@ -631,34 +632,3 @@ concat_dynvars(DynVars, DynData=#dyndata{dynvars=OldDynVars}) ->
     %% FIXME: should we remove duplicate keys ?
     DynData#dyndata{dynvars=lists:keymerge(1,DynVars,OldDynVars)}.
     
-%%----------------------------------------------------------------------
-%% Func: inet_setopts/3
-%% Purpose: set inet options depending on the protocol (gen_tcp, gen_udp,
-%%  ssl)
-%%----------------------------------------------------------------------
-inet_setopts(_, none, _) -> %socket was closed before
-    none;
-inet_setopts(ssl, Socket, Opts) ->
-	case ssl:setopts(Socket, Opts) of
-		ok ->
-			Socket;
-		{error, closed} ->
-			none;
-		Error ->
-			?LOGF("Error while setting ssl options ~p ~p ~n", [Opts, Error], ?ERR),
-            none
-	end;
-inet_setopts(gen_tcp, Socket,  Opts)->
-	case inet:setopts(Socket, Opts) of
-		ok ->
-			Socket;
-		{error, closed} ->
-			none;
-		Error ->
-			?LOGF("Error while setting inet options ~p ~p ~n", [Opts, Error], ?ERR),
-            none
-	end;
-%% FIXME: UDP not tested
-inet_setopts(gen_udp, Socket,  Opts)->
-	ok = inet:setopts(Socket, Opts),
-    Socket.

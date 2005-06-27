@@ -122,14 +122,14 @@ handle_cast(_Msg, State) ->
 % client data, parse and send it to the server.
 handle_info({tcp, ClientSock, String}, State) 
   when ClientSock == State#state.clientsock ->
-    ok=inet:setopts(ClientSock,[{active, once}]),
+    ts_utils:inet_setopts(tcp, ClientSock,[{active, once}]),
     {ok, NewState}  = parse(State,ClientSock,State#state.serversock,String),
     {noreply, NewState, ?lifetime};
 
 % server data, send it to the client
 handle_info({Type, ServerSock, String}, State) 
   when ServerSock == State#state.serversock, ((Type == tcp) or (Type == ssl)) ->
-    ok=inet:setopts(ServerSock,[{active, once}]),
+    ts_utils:inet_setopts(Type, ServerSock,[{active, once}]),
     ?LOGF("Received data from server: ~s~n",[String],?DEB),
     {ok,NewString} = ts_utils:from_https(String),
     send(State#state.clientsock, NewString),
