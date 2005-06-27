@@ -214,6 +214,7 @@ parse(State=#state{parse_status=Status},_,ServerSocket,String) when Status==new 
             ?LOG("Headers incomplete, buffering ~n",?DEB),
 			{ok, State#state{parse_status=new, buffer=NewString}}; %FIXME: not optimal
         {ok, Http=#http_request{url=RequestURI, version=HTTPVersion}, Body} -> 
+            ?LOGF("Method ~p ~n",[Http#http_request.method],?DEB),
             ?LOGF("Headers ~p ~n",[Http#http_request.headers],?DEB),
             case httpd_util:key1search(Http#http_request.headers,"content-length") of
                 undefined -> % no body, everything received
@@ -227,7 +228,7 @@ parse(State=#state{parse_status=Status},_,ServerSocket,String) when Status==new 
                                      parse_status = new, buffer=[],
                                      serversock=NewSocket}};
                 Length ->
-                    CLength = list_to_integer(Length)+4,
+                    CLength = list_to_integer(Length),
                     ?LOGF("HTTP Content-Length:~p~n",[CLength], ?DEB),
                     BodySize = length(Body),
                     if
@@ -235,6 +236,7 @@ parse(State=#state{parse_status=Status},_,ServerSocket,String) when Status==new 
                             {NewSocket,RelURL} = check_serversocket(ServerSocket,RequestURI),
                             {ok,RealString,_Count} = regexp:gsub(NewString,RequestURI,RelURL),%FIXME: why not use relative_url ?
                             send(NewSocket,RealString),
+                            ?LOG("End of response, recording~n", ?DEB),
                             ts_proxy_recorder:dorecord({Http#http_request{body=Body}}),
                             {ok, State#state{http_version = HTTPVersion,
                                              parse_status = new, buffer=[],
@@ -245,6 +247,7 @@ parse(State=#state{parse_status=Status},_,ServerSocket,String) when Status==new 
                             {NewSocket,RelURL} = check_serversocket(ServerSocket,RequestURI),
                             {ok,RealString,_Count} = regexp:gsub(NewString,RequestURI,RelURL), %FIXME: why not use relative_url ?
                             send(NewSocket,RealString),
+                            ?LOG("More data to come continue before recording~n", ?DEB),
                             {ok, State#state{http_version=HTTPVersion,
                                              content_length = CLength,
                                              body_size = BodySize,
@@ -268,9 +271,11 @@ parse(State=#state{parse_status=Status, buffer=Http},_,ServerSocket,String)
     %% Should be checked before
 	case Size of 
 		CLength -> % end of response
+            ?LOG("End of response, recording~n", ?DEB),
             ts_proxy_recorder:dorecord( {Http#http_request{ body=Buffer }} ),
 			{ok, State#state{body_size=0,parse_status=new, content_length=0,buffer=[]}};
 		_ ->
+            ?LOGF("Received ~p bytes of data, wait for ~p, continue~n", [Size,CLength],?DEB),
 			{ok, State#state{body_size = Size, buffer = Http#http_request{body=Buffer}}}
 	end.
 
