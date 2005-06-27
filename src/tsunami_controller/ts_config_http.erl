@@ -130,7 +130,12 @@ parse_config(_, Conf = #config{}) ->
 set_msg(HTTP=#http_request{url="http" ++ URL}, 
         ThinkTime, {SubstFlag, MatchRegExp}) ->  % full URL
     URLrec = parse_URL("http" ++ URL),
-    Path = URLrec#url.path ++ URLrec#url.querypart,
+    Path= case URLrec#url.querypart of 
+              "" -> % no query
+                  URLrec#url.path;
+              _String -> 
+                  URLrec#url.path ++ "?" ++ URLrec#url.querypart
+          end,
     Port = set_port(URLrec),
     Scheme = case URLrec#url.scheme of
                  http  -> gen_tcp;
