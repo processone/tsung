@@ -297,7 +297,8 @@ parse(Element = #xmlElement{name=request},
 
     Type  = CurSess#session.type,
 
-    SubstitutionFlag  = getAttr(Element#xmlElement.attributes, subst, false),
+    SubstStr  = getAttr(Element#xmlElement.attributes, subst, "false"),
+    {ok, [{atom,1,SubstitutionFlag}],1} = erl_scan:string(SubstStr),
     MatchRegExp  = getAttr(Element#xmlElement.attributes, match, undefined),
 
     %% we must parse dyn_variable before; unfortunately, there is no

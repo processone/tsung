@@ -87,17 +87,29 @@ parse_config(Element, Conf) ->
 %% Function: add_dynparams/4
 %% Purpose: add dynamic parameters to build the message
 %%          this is used for ex. for Cookies in HTTP
+%% Args: Subst (true|false), DynData = #dyndata, Param = #http_request, 
+%%                                               Host  = String
 %%----------------------------------------------------------------------
-add_dynparams(false, DynData, Param, Host) ->
-    add_dynparams(DynData#dyndata.proto, Param, Host);
-add_dynparams(Subst, DynData, Param, Host) ->
+add_dynparams(false, DynData, Param, HostData) ->
+    add_dynparams(DynData#dyndata.proto, Param, HostData);
+add_dynparams(true, DynData, Param, HostData) ->
     NewParam = subst(Param, DynData#dyndata.dynvars),
-    add_dynparams(DynData#dyndata.proto,NewParam, Host).
+    add_dynparams(DynData#dyndata.proto,NewParam, HostData).
+
 % Function: add_dynparams/3
-add_dynparams(#http_dyndata{cookies=[]},Param, Host) ->
+% no cookies
+add_dynparams(#http_dyndata{cookies=[]},Param, {Host, 80}) -> % don't print port
+                                                %in "Host:" if it's the default
 	Param#http_request{server_name=Host};
-add_dynparams(#http_dyndata{cookies=DynData}, Param, Host) ->
-	Param#http_request{cookie=DynData,server_name=Host}.
+add_dynparams(#http_dyndata{cookies=[]},Param, {Host, Port}) ->
+	Param#http_request{server_name=Host++":"++ integer_to_list(Port)};
+% cookies
+add_dynparams(#http_dyndata{cookies=DynData}, Param, {Host, 80}) ->
+	Param#http_request{cookie=DynData,server_name=Host};
+add_dynparams(#http_dyndata{cookies=DynData}, Param, {Host, Port}) ->
+%% FIXME: should we use the Port value in the Cookie ? 
+	Param#http_request{cookie=DynData,
+                       server_name=Host++":"++ integer_to_list(Port)}.
 
 init_dynparams() ->
 	#dyndata{proto=#http_dyndata{}}.

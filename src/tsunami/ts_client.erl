@@ -350,7 +350,7 @@ handle_next_request(Profile, State) ->
 
     Param = Type:add_dynparams(Profile#ts_request.subst,
                                State#state_rcv.dyndata,
-                               Profile#ts_request.param, Host),
+                               Profile#ts_request.param, {Host, Port}),
     Message = Type:get_message(Param),
     Now = now(),
 
