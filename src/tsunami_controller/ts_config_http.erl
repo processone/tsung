@@ -150,7 +150,9 @@ set_msg(HTTP=#http_request{url="http" ++ URL},
                         port = Port});
 %
 set_msg(HTTPRequest, Think, {SubstFlag, MatchRegExp}) -> % relative URL, 
-%%% use global host, port and scheme
+%%% use global host, port and scheme (undefined value), it will be
+%%% dynamicaly set during the run (using default server or previous
+%%% one used in the current session)
     set_msg2(HTTPRequest, Think, #ts_request{ack = parse,
                                              subst = SubstFlag,
                                              match = MatchRegExp
