@@ -64,7 +64,6 @@ get_val(Var) ->
 		{ok, Val} ->
 			ensure_string(Var, Val);
 		_ ->
-			?LOGF("WARNING, env ~p is not defined ! ~n", [Var], ?ERR),
 			undef_var
 	end.
 
