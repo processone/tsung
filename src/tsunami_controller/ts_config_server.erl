@@ -50,7 +50,7 @@
 -export([start_link/1, read_config/1, get_req/2, get_next_session/1,
          get_client_config/1, newbeam/1, newbeam/2, get_server_config/0,
 		 get_monitor_hosts/0, encode_filename/1, decode_filename/1,
-         endlaunching/1, status/0]).
+         endlaunching/1, status/0, start_file_server/1]).
 
 %%debug
 -export([choose_client_ip/2, choose_session/1]).
@@ -185,6 +185,8 @@ handle_call({read_config, ConfigFile}, _From, State) ->
             %% in the table
             print_info(),
             ets:insert(Tab, {{LastSess#session.id, size}, LastReqId}),
+            %% start the file server (if defined) using a separate process (it can be long)
+            spawn(?MODULE, start_file_server, [Config#config.file_server]),
             {reply, ok, State#state{config=Config, total_weight = Sum}};
         {error, Reason} -> 
             ?LOGF("Error while parsing XML config file: ~p~n",[Reason],?EMERG),
@@ -469,6 +471,18 @@ replace_str({A,B},X) ->
 %%----------------------------------------------------------------------
 print_info() ->
     ?LOGF("SYSINFO:Erlang version: ~s~n",[erlang:system_info(system_version)],?NOTICE),
-    ?LOGF("SYSINFO:system architecture ~s~n",[erlang:system_info(system_architecture)],?NOTICE),
+    ?LOGF("SYSINFO:System architecture ~s~n",[erlang:system_info(system_architecture)],?NOTICE),
     ?LOGF("SYSINFO:Current path: ~s~n",[code:which(tsunami)],?NOTICE).
-    
+
+%%----------------------------------------------------------------------
+%% Func: start_file_server/1    
+%%----------------------------------------------------------------------
+start_file_server(undefined) ->
+    ?LOG("No File server defined, skip~n",?DEB);
+start_file_server(FileName) ->
+    ?LOG("Starting File server~n",?INFO),
+    FileSrv  = {ts_file_server, {ts_file_server, start, []}, transient, 2000,
+                worker, [ts_msg_server]},
+    supervisor:start_child(ts_controller_sup, FileSrv),
+    ?LOGF("Reading file ~s~n",[FileName],?NOTICE),
+    ts_file_server:read(FileName).

@@ -333,6 +333,10 @@ parse(Element = #xmlElement{name=default},
                     Cipher = getAttr(Element#xmlElement.attributes, value, negociate),
                     lists:foldl( fun parse/2, Conf#config{ssl_ciphers=Cipher},
                                  Element#xmlElement.content);
+                "file_server" ->
+                    FileName = getAttr(Element#xmlElement.attributes, value),
+                    lists:foldl( fun parse/2, Conf#config{file_server=FileName},
+                                 Element#xmlElement.content);
                 _ ->                    
                     lists:foldl( fun parse/2, Conf, Element#xmlElement.content)
             end;

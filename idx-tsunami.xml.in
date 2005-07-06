@@ -53,6 +53,10 @@
   <!-- to set specific ssl_ciphers -->
   <default name="ssl_ciphers" value="EXP1024-RC4-SHA,EDH-RSA-DES-CBC3-SHA"></default>
 
+  <!-- To start ts_file_server. It can be use later in dynamic
+  substitution using ts_file_server:get_next_line() --> 
+ <default name="file_server"  value="/tmp/userlist"></default>
+
   <!-- HTTP parameters -->
   <!-- none yet -->
   
