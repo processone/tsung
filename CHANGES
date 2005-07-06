@@ -1,3 +1,15 @@
+1.0.2 -> 1.0.3
+    - add ts_file_server module
+    - fix broken https recording
+    Thx to johann.messner@jku.at for bug reporting :
+    - fix: forgot to add "?" when an URL is absolut and had a query
+      part
+    - fix regression in the recorder (introduced in 1.0.2): must use CAPS
+      for method, wrong content-length in recorder causing POST requests
+      to silently fail
+    - allow multiple 'dyn_variable' in DTD
+    - fix Host: header when port is != 80
+
 1.0.1 -> 1.0.2: Minor bugfixes  (6 Jun 2005)
     - fix: the recorder is working now with R10B: replace call to
       httpd_parse:request_header in recorder by an
