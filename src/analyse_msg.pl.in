@@ -207,10 +207,13 @@ sub parse_stats_file {
 				$maxval->{'minmean'}->{$type} = &min($mean, $maxval->{'minmean'}->{$type}) if $rate;
 			}
             if ($type =~ /^cpu:/ ) {
+                next if $values =~ /^0/; # skip when no data is available
                 $category->{$type} = "os_mon_cpu";
             } elsif ($type =~ /^freemem:/) {
+                next if $values =~ /^0/; # skip when no data is available
                 $category->{$type} = "os_mon_free";
             } elsif ($type =~ /^\w{4}packets:/) {
+                next if $values =~ /^0/; # skip when no data is available
                 $category->{$type} = "os_mon_packets";
             } elsif ($type =~ /^\d+$/) {
                 $category->{$type} = "http_status";
