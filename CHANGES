@@ -1,4 +1,4 @@
-1.0.2 -> 1.0.3
+1.0.2 -> 1.0.3 Minor bugfixes  (8 Jul 2005)
     - add ts_file_server module
     - fix broken https recording
     Thx to johann.messner@jku.at for bug reporting :
