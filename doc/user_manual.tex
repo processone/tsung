@@ -80,9 +80,9 @@ Z. Liu, N. Niclausse, et C. Jalpa-Villanueva.  \strong{Traffic Model
 Volume 46, Issue 2-3, October 2001}.
 
 \item This model has already been tested in the INRIA \emph{WAGON}
-  research prototype (Web trAffic GeneratOr and beNchmark). WAGON is
+  research prototype (Web trAffic GeneratOr and beNchmark). WAGON was
   used in the \url{http://www.vthd.org/} project (Very High Broadband
-  IP/WDM test platform for new generation Internet applications).
+  IP/WDM test platform for new generation Internet applications, 2000-2004).
 
 \end{itemize}
 
@@ -173,7 +173,7 @@ statistics regarding:
 
 \begin{itemize}
 \item \emph{Performance}: response time, connection time, decomposition
-of the user scenario based on request grouping instruction, requests
+of the user scenario based on request grouping instruction (called \textit{transactions}), requests
 per second 
 \item \emph{Errors}: Statistics on page return code to trace errors 
 \item \emph{Target server behaviour}: An Erlang agent can gather information
@@ -215,7 +215,7 @@ supported platforms (Solaris, *BSD,  Win32 and MacOS-X).
 
 \subsection{Dependencies}
 \begin{itemize}
-\item Erlang/OTP R9C-0 and up (included R10B-1a, but R9C-2 is recommended)
+\item Erlang/OTP R9C-0 and up (included R10B-6)
   (\url{http://www.erlang.org/download.html}).  RedHat users can
   download a R9C-2 rpm at
   \url{http://www.erlang-projects.org/Public/rpmdeb/rpm_erlang_otp_r9c-2/view}.
@@ -257,16 +257,14 @@ Use the idx-tsunami mailing list (see
 \url{http://lists.idealx.org/info/idx-tsunami}) if you have
 suggestions or questions about \program{IDX-Tsunami}.
 
-For any questions concerning commercial support, ask
-\email{solutions@idealx.com}.
-
 \section{HTTP benchmark approach}
 
 \begin{enumerate}
 \item Record scenario: start the recorder with: \command{idx-tsunami
     recorder}, and then configure your browser to use IDX-Tsunami
   proxy recorder (the listen port is 8090). A session file will be
-  created.
+  created. For HTTPS recording, use \userinput{http://\{} instead of
+    \userinput{https://} in your browser.
 \item Edit / organize scenario
 \item Write small code for dynamic parts if needed and place dynamic mark-up
 in the scenario 
@@ -293,7 +291,7 @@ the number of simultaneous users for each given phase.
 
  \begin{Verbatim}
 <?xml version="1.0"?>
-<!DOCTYPE idx-tsunami SYSTEM "idx-tsunami-1.0.dtd" [] >
+<!DOCTYPE idx-tsunami SYSTEM "/usr/share/idx-tsunami/idx-tsunami-1.0.dtd" [] >
 <idx-tsunami loglevel="info" dumptraffic="false">
 ...
 </idx-tsunami>
@@ -302,7 +300,7 @@ the number of simultaneous users for each given phase.
 
 \subsection{Clients and server}
 
- Scenarios start with a clients (Tsunami cluster) and server definition:
+ Scenarios start with clients (IDX-Tsunami cluster) and server definitions:
 
 \begin{Verbatim}
   <clients>
@@ -349,7 +347,9 @@ a cluster of 6 computers:
 \end{Verbatim}
 
 The type keyword snmp can replace the erlang keyword, if SNMP monitoring
-is preferred. They can be mixed. erlang is the default value for monitoring.
+is preferred. They can be mixed. erlang is the default value for
+monitoring. (\strong{Note:} SNMP is currently not working with erlang
+R10B, use R9C-2 if you need snmp monitoring).
 
 \par Note: For Erlang monitoring, monitored computers need to be
 accessible through the network. SSH needs to be configured to allow
@@ -390,9 +390,9 @@ the theoretical average throughput will be 1000 requests/ sec).
 
 \par Default values can be set-up globally: thinktime between requests
 in the scenario and ssl cipher algorithms. These values overrides
-those set in session configuration tags.
+those set in session configuration tags if override is true.
 \begin{Verbatim}
-  <default name="thinktime" value="3" random="false"/>
+  <default name="thinktime" value="3" random="false" override="true"/>
   <default name="ssl_ciphers" 
            value="EXP1024-RC4-SHA,EDH-RSA-DES-CBC3-SHA"/>
 \end{Verbatim}
@@ -408,6 +408,8 @@ example of default values for Jabber:
   <default type="ts_jabber" name="username" value="glop" />
   <default type="ts_jabber" name="passwd" value="glop" />
 \end{Verbatim}
+
+
 
 \subsection{Sessions}
 
@@ -580,6 +582,44 @@ If you want to set unique id, you can use the built-in function
 </session>
 \end{Verbatim}
 
+\subsubsection{Reading external file}
+\strong{New in 1.0.3}: A new experimental module ts_file_server is available. You
+can use it to read external files. For example, if you need to read user
+names and passwd from a csv file, you can do it with it.
+
+You have to add this in the xml config file:
+\begin{Verbatim}
+ <default name="file_server"  value="/tmp/userlist.csv"></default>
+\end{Verbatim}
+
+Now you can build you own function to use it, for example:
+
+\begin{Verbatim}
+-module(readcsv).
+-export([user/1]).
+
+user(Pid)->
+    {ok,Line} = ts_file_server:get_next_line(), 
+    [Username, Passwd] = string:tokens(Line,";"),
+    "username=" ++ Username ++"&amp;passwd=" ++ Passwd.
+\end{Verbatim}
+
+
+in your session, use something like: 
+
+\begin{Verbatim}
+  <request subst="true">
+    <http url='/login.cgi' version='1.0' contents='%%readcsv:user%%&amp;op=login'
+    content_type='application/x-www-form-urlencoded' method='POST'>
+    </http>
+  </request>
+\end{Verbatim}
+
+
+Two functions are availables: \varname{ts_file_server:get_next_line} and
+\varname{ts_file_server:get_random_line}
+
+
 \subsection{Dynamic variables}
 
 In some cases, you may want to use a value given by the server in a
@@ -713,7 +753,7 @@ Joe Armstrong, Stockholm, 2003 \footnote{\url{http://www.sics.se/~joe/thesis/arm
 
 \section{Acknowledgments}
 
-The first version of this document is based on a talk given by Mickael
+The first version of this document was based on a talk given by Mickael
 Rémond\footnote{\email{mickael.remond@erlang-fr.org}} during an Object
 Web benchmarking workshop in April 2004 (more info at
 \url{http://jmob.objectweb.org/}).
@@ -878,8 +918,12 @@ XML config file).
 
 \subsection{SNMP monitoring doesn't work ?!}
 
-There is a small bug in the \file{snmp\_mgr} module (R9C-0 release). You have to
-apply this patch to make it work. This is fixed in erlang R9C-1 and up.
+SNMP currently doesn't work with erlang R10B and up. Use erlang R9C-2 if you
+need SNMP.
+
+There is a small bug in the \file{snmp\_mgr} module in old Erlang
+release (R9C-0). You have to apply this patch to make it
+work. This is fixed in erlang R9C-1 and up.
 
 
 \begin{Verbatim}

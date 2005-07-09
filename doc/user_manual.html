@@ -3,13 +3,13 @@
 <HTML>
 <HEAD><TITLE>IDX-Tsunami User's manual</TITLE>
 
-<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-15">
 <META name="GENERATOR" content="hevea 1.07">
 
 <link rel="stylesheet" href="IDXDOC.css">
 </HEAD>
 <BODY >
-<!--HEVEA command line is: hevea -fix -I /user/nniclaus/home/cvs/projetdoc/common//styles -exec xxdate.exe -pedantic IDXDOC-DOTORG.hva user_manual.tex -->
+<!--HEVEA command line is: /usr/bin/hevea -fix -I /home/nniclausse/cvs/projetdoc/common//styles -exec xxdate.exe -pedantic IDXDOC-DOTORG.hva user_manual.tex -->
 <!--HTMLHEAD-->
 
 
@@ -33,10 +33,10 @@
  
  <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1>
 <TR><TD ALIGN=left NOWRAP bgcolor="#f2f2f2">Version:</TD>
-<TD ALIGN=left NOWRAP>1.13</TD>
+<TD ALIGN=left NOWRAP>1.14</TD>
 </TR>
 <TR><TD ALIGN=left NOWRAP bgcolor="#f2f2f2">Date :</TD>
-<TD ALIGN=left NOWRAP>November 16, 2004</TD>
+<TD ALIGN=left NOWRAP>July 9, 2005</TD>
 </TR></TABLE>
  </DIV>
 
@@ -83,25 +83,28 @@
 <LI><A HREF="#htoc22">5.5&nbsp;&nbsp;Default values</A>
 <LI><A HREF="#htoc23">5.6&nbsp;&nbsp;Sessions</A>
 <LI><A HREF="#htoc24">5.7&nbsp;&nbsp;Dynamic substitutions</A>
-<LI><A HREF="#htoc25">5.8&nbsp;&nbsp;Dynamic variables</A>
-<LI><A HREF="#htoc26">5.9&nbsp;&nbsp;Checking the server's response</A>
-</UL>
-<LI><A HREF="#htoc27">6&nbsp;&nbsp;Statistics and reports</A>
 <UL><LI>
-<A HREF="#htoc28">6.1&nbsp;&nbsp;Generating the report</A>
-<LI><A HREF="#htoc29">6.2&nbsp;&nbsp;Tsunami summary</A>
-<LI><A HREF="#htoc30">6.3&nbsp;&nbsp;Graphical overview</A>
+<A HREF="#htoc25">5.7.1&nbsp;&nbsp;Reading external file</A>
 </UL>
-<LI><A HREF="#htoc31">7&nbsp;&nbsp;References</A>
-<LI><A HREF="#htoc32">8&nbsp;&nbsp;Acknowledgments</A>
-<LI><A HREF="#htoc33">A&nbsp;&nbsp;Frequently Asked Questions</A>
+<LI><A HREF="#htoc26">5.8&nbsp;&nbsp;Dynamic variables</A>
+<LI><A HREF="#htoc27">5.9&nbsp;&nbsp;Checking the server's response</A>
+</UL>
+<LI><A HREF="#htoc28">6&nbsp;&nbsp;Statistics and reports</A>
 <UL><LI>
-<A HREF="#htoc34">A.1&nbsp;&nbsp;IDX-tsunami crash when I start it </A>
-<LI><A HREF="#htoc35">A.2&nbsp;&nbsp;IDX-tsunami still doesn't start ...</A>
-<LI><A HREF="#htoc36">A.3&nbsp;&nbsp;IDX-tsunami still crash/fails when I start it !</A>
-<LI><A HREF="#htoc37">A.4&nbsp;&nbsp;What is the format of the stats file idx-tsunami.log ?</A>
-<LI><A HREF="#htoc38">A.5&nbsp;&nbsp;How can i specify the number of concurrent users ?</A>
-<LI><A HREF="#htoc39">A.6&nbsp;&nbsp;SNMP monitoring doesn't work ?!</A>
+<A HREF="#htoc29">6.1&nbsp;&nbsp;Generating the report</A>
+<LI><A HREF="#htoc30">6.2&nbsp;&nbsp;Tsunami summary</A>
+<LI><A HREF="#htoc31">6.3&nbsp;&nbsp;Graphical overview</A>
+</UL>
+<LI><A HREF="#htoc32">7&nbsp;&nbsp;References</A>
+<LI><A HREF="#htoc33">8&nbsp;&nbsp;Acknowledgments</A>
+<LI><A HREF="#htoc34">A&nbsp;&nbsp;Frequently Asked Questions</A>
+<UL><LI>
+<A HREF="#htoc35">A.1&nbsp;&nbsp;IDX-tsunami crash when I start it </A>
+<LI><A HREF="#htoc36">A.2&nbsp;&nbsp;IDX-tsunami still doesn't start ...</A>
+<LI><A HREF="#htoc37">A.3&nbsp;&nbsp;IDX-tsunami still crash/fails when I start it !</A>
+<LI><A HREF="#htoc38">A.4&nbsp;&nbsp;What is the format of the stats file idx-tsunami.log ?</A>
+<LI><A HREF="#htoc39">A.5&nbsp;&nbsp;How can i specify the number of concurrent users ?</A>
+<LI><A HREF="#htoc40">A.6&nbsp;&nbsp;SNMP monitoring doesn't work ?!</A>
 </UL>
 </UL>
 
@@ -162,9 +165,9 @@ Z. Liu, N. Niclausse, et C. Jalpa-Villanueva. <B>Traffic Model
 Volume 46, Issue 2-3, October 2001</EM>.<BR>
 <BR>
 <LI>This model has already been tested in the INRIA <EM>WAGON</EM>
- research prototype (Web trAffic GeneratOr and beNchmark). WAGON is
+ research prototype (Web trAffic GeneratOr and beNchmark). WAGON was
  used in the <A HREF="http://www.vthd.org/"><TT>http://www.vthd.org/</TT></A> project (Very High Broadband
- IP/WDM test platform for new generation Internet applications).</UL>
+ IP/WDM test platform for new generation Internet applications, 2000-2004).</UL>
 <EM>IDX-Tsunami</EM> has been used for very high load tests:
 <UL><LI>
 <EM>Jabber</EM> protocol: 10 000 simultaneous users.
@@ -251,7 +254,7 @@ They are all represented as a graphic. <EM>IDX-Tsumami</EM> produces
 statistics regarding:
 <UL><LI>
 <EM>Performance</EM>: response time, connection time, decomposition
-of the user scenario based on request grouping instruction, requests
+of the user scenario based on request grouping instruction (called <I>transactions</I>), requests
 per second 
 <LI><EM>Errors</EM>: Statistics on page return code to trace errors 
 <LI><EM>Target server behaviour</EM>: An Erlang agent can gather information
@@ -295,7 +298,7 @@ supported platforms (Solaris, *BSD, Win32 and MacOS-X).<BR>
 <H3><A NAME="htoc12">3.1</A>&nbsp;&nbsp;Dependencies</H3><!--SEC END -->
 
 <UL><LI>
-Erlang/OTP R9C-0 and up (included R10B-1a, but R9C-2 is recommended)
+Erlang/OTP R9C-0 and up (included R10B-6)
  (<A HREF="http://www.erlang.org/download.html"><TT>http://www.erlang.org/download.html</TT></A>). RedHat users can
  download a R9C-2 rpm at
  <A HREF="http://www.erlang-projects.org/Public/rpmdeb/rpm_erlang_otp_r9c-2/view"><TT>http://www.erlang-projects.org/Public/rpmdeb/rpm_erlang_otp_r9c-2/view</TT></A>.
@@ -367,9 +370,6 @@ Use the idx-tsunami mailing list (see
 <A HREF="http://lists.idealx.org/info/idx-tsunami"><TT>http://lists.idealx.org/info/idx-tsunami</TT></A>) if you have
 suggestions or questions about <EM>IDX-Tsunami</EM>.<BR>
 <BR>
-For any questions concerning commercial support, ask
-<A HREF="mailto:solutions@idealx.com">solutions@idealx.com</A>.<BR>
-<BR>
 <!--TOC section HTTP benchmark approach-->
 
 <H2><A NAME="htoc16">4</A>&nbsp;&nbsp;HTTP benchmark approach</H2><!--SEC END -->
@@ -378,7 +378,8 @@ For any questions concerning commercial support, ask
 Record scenario: start the recorder with: <TT>idx-tsunami
  recorder</TT>, and then configure your browser to use IDX-Tsunami
  proxy recorder (the listen port is 8090). A session file will be
- created.
+ created. For HTTPS recording, use <FONT COLOR=purple>http://{</FONT> instead of
+ <FONT COLOR=purple>https://</FONT> in your browser.
 <LI>Edit / organize scenario
 <LI>Write small code for dynamic parts if needed and place dynamic mark-up
 in the scenario 
@@ -420,7 +421,7 @@ Scenarios are enclosed into idx-tsunami tags:<BR>
 <TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
 <TR><TD><PRE>
 &lt;?xml version="1.0"?&gt;
-&lt;!DOCTYPE idx-tsunami SYSTEM "idx-tsunami-1.0.dtd" [] &gt;
+&lt;!DOCTYPE idx-tsunami SYSTEM "/usr/share/idx-tsunami/idx-tsunami-1.0.dtd" [] &gt;
 &lt;idx-tsunami loglevel="info" dumptraffic="false"&gt;
 ...
 &lt;/idx-tsunami&gt;
@@ -441,7 +442,7 @@ Scenarios are enclosed into idx-tsunami tags:<BR>
 
 <H3><A NAME="htoc19">5.2</A>&nbsp;&nbsp;Clients and server</H3><!--SEC END -->
 
-Scenarios start with a clients (Tsunami cluster) and server definition:<BR>
+Scenarios start with clients (IDX-Tsunami cluster) and server definitions:<BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
  CELLSPACING=0>
@@ -535,7 +536,9 @@ a cluster of 6 computers:<BR>
 </TR></TABLE></TD>
 </TR></TABLE><BR>
 The type keyword snmp can replace the erlang keyword, if SNMP monitoring
-is preferred. They can be mixed. erlang is the default value for monitoring.<BR>
+is preferred. They can be mixed. erlang is the default value for
+monitoring. (<B>Note:</B> SNMP is currently not working with erlang
+R10B, use R9C-2 if you need snmp monitoring).<BR>
 <BR>
 Note: For Erlang monitoring, monitored computers need to be
 accessible through the network. SSH needs to be configured to allow
@@ -602,7 +605,7 @@ the theoretical average throughput will be 1000 requests/ sec).<BR>
 
 Default values can be set-up globally: thinktime between requests
 in the scenario and ssl cipher algorithms. These values overrides
-those set in session configuration tags.
+those set in session configuration tags if override is true.
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
  CELLSPACING=0>
@@ -617,7 +620,7 @@ those set in session configuration tags.
 </TR></TABLE></TD>
 <TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
 <TR><TD><PRE>
-  &lt;default name="thinktime" value="3" random="false"/&gt;
+  &lt;default name="thinktime" value="3" random="false" override="true"/&gt;
   &lt;default name="ssl_ciphers" 
            value="EXP1024-RC4-SHA,EDH-RSA-DES-CBC3-SHA"/&gt;
 </PRE></TD>
@@ -959,9 +962,117 @@ If you want to set unique id, you can use the built-in function
 </TR></TABLE></TD>
 </TR></TABLE></TD>
 </TR></TABLE><BR>
+<!--TOC subsubsection Reading external file-->
+
+<H4><A NAME="htoc25">5.7.1</A>&nbsp;&nbsp;Reading external file</H4><!--SEC END -->
+
+<B>New in 1.0.3</B>: A new experimental module ts_file_server is available. You
+can use it to read external files. For example, if you need to read user
+names and passwd from a csv file, you can do it with it.<BR>
+<BR>
+You have to add this in the xml config file:
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
+<TR><TD><TABLE BORDER=0 CELLPADDING=0
+ CELLSPACING=0>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+<TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
+<TR><TD><PRE>
+ &lt;default name="file_server"  value="/tmp/userlist.csv"&gt;&lt;/default&gt;
+</PRE></TD>
+</TR></TABLE></TD>
+<TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR></TABLE></TD>
+</TR></TABLE><BR>
+Now you can build you own function to use it, for example:<BR>
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
+<TR><TD><TABLE BORDER=0 CELLPADDING=0
+ CELLSPACING=0>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+<TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
+<TR><TD><PRE>
+-module(readcsv).
+-export([user/1]).
+
+user(Pid)-&gt;
+    {ok,Line} = ts_file_server:get_next_line(), 
+    [Username, Passwd] = string:tokens(Line,";"),
+    "username=" ++ Username ++"&amp;amp;passwd=" ++ Passwd.
+</PRE></TD>
+</TR></TABLE></TD>
+<TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR></TABLE></TD>
+</TR></TABLE><BR>
+in your session, use something like: <BR>
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
+<TR><TD><TABLE BORDER=0 CELLPADDING=0
+ CELLSPACING=0>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+<TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
+<TR><TD><PRE>
+  &lt;request subst="true"&gt;
+    &lt;http url='/login.cgi' version='1.0' contents='%%readcsv:user%%&amp;amp;op=login'
+    content_type='application/x-www-form-urlencoded' method='POST'&gt;
+    &lt;/http&gt;
+  &lt;/request&gt;
+</PRE></TD>
+</TR></TABLE></TD>
+<TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR></TABLE></TD>
+</TR></TABLE><BR>
+Two functions are availables: <TT>ts_file_server:get_next_line</TT> and
+<TT>ts_file_server:get_random_line</TT><BR>
+<BR>
 <!--TOC subsection Dynamic variables-->
 
-<H3><A NAME="htoc25">5.8</A>&nbsp;&nbsp;Dynamic variables</H3><!--SEC END -->
+<H3><A NAME="htoc26">5.8</A>&nbsp;&nbsp;Dynamic variables</H3><!--SEC END -->
 
 In some cases, you may want to use a value given by the server in a
 response later in the session, and this value is <B>dynamically
@@ -1103,7 +1214,7 @@ hand, for example to get the title of a HTML page:
 </TR></TABLE><BR>
 <!--TOC subsection Checking the server's response-->
 
-<H3><A NAME="htoc26">5.9</A>&nbsp;&nbsp;Checking the server's response</H3><!--SEC END -->
+<H3><A NAME="htoc27">5.9</A>&nbsp;&nbsp;Checking the server's response</H3><!--SEC END -->
 
 With the attribute <TT>match</TT> in a <TT>request</TT> tag, you can
 check the server's response against a given string. If it matches, this
@@ -1147,7 +1258,7 @@ HTML body, otherwise not. To check that:
 </TR></TABLE><BR>
 <!--TOC section Statistics and reports-->
 
-<H2><A NAME="htoc27">6</A>&nbsp;&nbsp;Statistics and reports</H2><!--SEC END -->
+<H2><A NAME="htoc28">6</A>&nbsp;&nbsp;Statistics and reports</H2><!--SEC END -->
 
 <A NAME="sec:statistics-reports"></A>
 Available stats:
@@ -1167,7 +1278,7 @@ counter for each response status (200, 404, etc.)
 </UL>
 <!--TOC subsection Generating the report-->
 
-<H3><A NAME="htoc28">6.1</A>&nbsp;&nbsp;Generating the report</H3><!--SEC END -->
+<H3><A NAME="htoc29">6.1</A>&nbsp;&nbsp;Generating the report</H3><!--SEC END -->
 
 cd to the log directory of your test (say
 <TT>~/.idx-tsunami/log/20040325-16:33/</TT>) and use the script
@@ -1202,7 +1313,7 @@ cd to the log directory of your test (say
 </TR></TABLE><BR>
 <!--TOC subsection Tsunami summary-->
 
-<H3><A NAME="htoc29">6.2</A>&nbsp;&nbsp;Tsunami summary</H3><!--SEC END -->
+<H3><A NAME="htoc30">6.2</A>&nbsp;&nbsp;Tsunami summary</H3><!--SEC END -->
 
 <BLOCKQUOTE><DIV ALIGN=center><HR WIDTH="80%" SIZE=2></DIV>
  <DIV ALIGN=center>
@@ -1215,7 +1326,7 @@ cd to the log directory of your test (say
 <DIV ALIGN=center><HR WIDTH="80%" SIZE=2></DIV></BLOCKQUOTE>
 <!--TOC subsection Graphical overview-->
 
-<H3><A NAME="htoc30">6.3</A>&nbsp;&nbsp;Graphical overview</H3><!--SEC END -->
+<H3><A NAME="htoc31">6.3</A>&nbsp;&nbsp;Graphical overview</H3><!--SEC END -->
 
 <BLOCKQUOTE><DIV ALIGN=center><HR WIDTH="80%" SIZE=2></DIV>
  <DIV ALIGN=center>
@@ -1228,7 +1339,7 @@ cd to the log directory of your test (say
 <DIV ALIGN=center><HR WIDTH="80%" SIZE=2></DIV></BLOCKQUOTE>
 <!--TOC section References-->
 
-<H2><A NAME="htoc31">7</A>&nbsp;&nbsp;References</H2><!--SEC END -->
+<H2><A NAME="htoc32">7</A>&nbsp;&nbsp;References</H2><!--SEC END -->
 
 <UL><LI>
 <EM>IDX-Tsunami</EM> home page: <A HREF="http://tsunami.idealx.org/"><TT>http://tsunami.idealx.org/</TT></A>
@@ -1241,20 +1352,20 @@ Joe Armstrong, Stockholm, 2003 <SUP><A NAME="text3" HREF="#note3">3</A></SUP>
 </UL>
 <!--TOC section Acknowledgments-->
 
-<H2><A NAME="htoc32">8</A>&nbsp;&nbsp;Acknowledgments</H2><!--SEC END -->
+<H2><A NAME="htoc33">8</A>&nbsp;&nbsp;Acknowledgments</H2><!--SEC END -->
 
-The first version of this document is based on a talk given by Mickael
+The first version of this document was based on a talk given by Mickael
 Rémond<SUP><A NAME="text4" HREF="#note4">4</A></SUP> during an Object
 Web benchmarking workshop in April 2004 (more info at
 <A HREF="http://jmob.objectweb.org/"><TT>http://jmob.objectweb.org/</TT></A>).<BR>
 <BR>
 <!--TOC section Frequently Asked Questions-->
 
-<H2><A NAME="htoc33">A</A>&nbsp;&nbsp;Frequently Asked Questions</H2><!--SEC END -->
+<H2><A NAME="htoc34">A</A>&nbsp;&nbsp;Frequently Asked Questions</H2><!--SEC END -->
 
 <!--TOC subsection IDX-tsunami crash when I start it -->
 
-<H3><A NAME="htoc34">A.1</A>&nbsp;&nbsp;IDX-tsunami crash when I start it </H3><!--SEC END -->
+<H3><A NAME="htoc35">A.1</A>&nbsp;&nbsp;IDX-tsunami crash when I start it </H3><!--SEC END -->
 
 Does your Erlang system has ssl support enabled ?<BR>
 <BR>
@@ -1292,7 +1403,7 @@ to test it:
 </TR></TABLE><BR>
 <!--TOC subsection IDX-tsunami still doesn't start ...-->
 
-<H3><A NAME="htoc35">A.2</A>&nbsp;&nbsp;IDX-tsunami still doesn't start ...</H3><!--SEC END -->
+<H3><A NAME="htoc36">A.2</A>&nbsp;&nbsp;IDX-tsunami still doesn't start ...</H3><!--SEC END -->
 
 Most of the time, when a crash happened at startup without any traffic 
 generated, the problem arise because the main Erlang controller node cannot 
@@ -1392,7 +1503,7 @@ of your client machine should not refer to this address.<BR>
 <BR>
 <!--TOC subsection IDX-tsunami still crash/fails when I start it !-->
 
-<H3><A NAME="htoc36">A.3</A>&nbsp;&nbsp;IDX-tsunami still crash/fails when I start it !</H3><!--SEC END -->
+<H3><A NAME="htoc37">A.3</A>&nbsp;&nbsp;IDX-tsunami still crash/fails when I start it !</H3><!--SEC END -->
 
 First look at the log file
 <TT>~/.idx-tsunami/log/XXX/tsunami_controller@yourhostname'</TT> to see
@@ -1412,7 +1523,7 @@ an erlang shell on the <TT>tsunami_controller</TT> node. Use
 Erlang.
 <!--TOC subsection What is the format of the stats file idx-tsunami.log ?-->
 
-<H3><A NAME="htoc37">A.4</A>&nbsp;&nbsp;What is the format of the stats file idx-tsunami.log ?</H3><!--SEC END -->
+<H3><A NAME="htoc38">A.4</A>&nbsp;&nbsp;What is the format of the stats file idx-tsunami.log ?</H3><!--SEC END -->
 <BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -1471,7 +1582,7 @@ or for HTTP returns code, size ...<BR>
 <BR>
 <!--TOC subsection How can i specify the number of concurrent users ?-->
 
-<H3><A NAME="htoc38">A.5</A>&nbsp;&nbsp;How can i specify the number of concurrent users ?</H3><!--SEC END -->
+<H3><A NAME="htoc39">A.5</A>&nbsp;&nbsp;How can i specify the number of concurrent users ?</H3><!--SEC END -->
 
 You can't. But it's on purpose: the load generated by
 <EM>IDX-Tsunami</EM> is dependent on the arrival time between new
@@ -1487,10 +1598,14 @@ XML config file).<BR>
 <BR>
 <!--TOC subsection SNMP monitoring doesn't work ?!-->
 
-<H3><A NAME="htoc39">A.6</A>&nbsp;&nbsp;SNMP monitoring doesn't work ?!</H3><!--SEC END -->
+<H3><A NAME="htoc40">A.6</A>&nbsp;&nbsp;SNMP monitoring doesn't work ?!</H3><!--SEC END -->
 
-There is a small bug in the <TT>snmp\_mgr</TT> module (R9C-0 release). You have to
-apply this patch to make it work. This is fixed in erlang R9C-1 and up.<BR>
+SNMP currently doesn't work with erlang R10B and up. Use erlang R9C-2 if you
+need SNMP.<BR>
+<BR>
+There is a small bug in the <TT>snmp\_mgr</TT> module in old Erlang
+release (R9C-0). You have to apply this patch to make it
+work. This is fixed in erlang R9C-1 and up.<BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
  CELLSPACING=0>
