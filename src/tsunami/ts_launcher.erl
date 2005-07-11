@@ -47,6 +47,7 @@
                 phases =[],
 				myhostname,
                 intensity,
+                phase_nusers,   % total number of users to start in the current phase
                 phase_duration, % expected phase duration
                 phase_start, % timestamp
                 maxusers %% if maxusers are currently active, launch a
@@ -118,7 +119,8 @@ wait({launch, []}, State) ->
 	?LOGF("Activate launcher (~p users) in ~p msec ~n",[Users, Warm], ?NOTICE),
     Duration = Users/Intensity,
 	?LOGF("Expected duration of first phase: ~p sec ~n",[Duration/1000], ?NOTICE),
-	{next_state,launcher,State#state{phases = Rest, nusers = Users, 
+	{next_state,launcher,State#state{phases = Rest, nusers = Users,
+                                     phase_nusers = Users,
                                      phase_duration=Duration,
                                      phase_start = now(),
                                      intensity=Intensity,maxusers=Max }, Warm};
@@ -129,6 +131,7 @@ wait({launch, {[{Intensity, Users}| Rest], Max}}, State) ->
     Duration = Users/Intensity,
 	?LOGF("Expected duration of phase: ~p sec ~n",[Duration/1000], ?NOTICE),
 	{next_state, launcher, State#state{phases = Rest, nusers = Users, 
+                                       phase_nusers = Users,
                                        phase_duration=Duration,
                                        phase_start = now(),
                                        intensity = Intensity, maxusers=Max},
@@ -140,6 +143,7 @@ launcher(_Event, #state{nusers = 0, phases = [] }) ->
     {next_state, finish, #state{}, ?check_noclient_timeout};
 
 launcher(timeout, State=#state{nusers    = Users,
+                               phase_nusers = PhaseUsers,
                                phases    = Phases,
                                intensity = Intensity}) ->
     Wait = do_launch({Intensity,State#state.myhostname}),
@@ -149,7 +153,7 @@ launcher(timeout, State=#state{nusers    = Users,
         false->
             Duration = ts_utils:elapsed(State#state.phase_start, now()),
             case change_phase(Users, Phases, Duration,
-                              State#state.phase_duration) of
+                              {State#state.phase_duration, PhaseUsers}) of
                 {change, NewUsers, NewIntensity, Rest} ->
                     ts_mon:add({ count, newphase }),
                     PhaseLength = NewUsers/NewIntensity,
@@ -157,10 +161,13 @@ launcher(timeout, State=#state{nusers    = Users,
                           [NewUsers, NewIntensity, Duration/1000], ?NOTICE),
                     {next_state,launcher,State#state{phases = Rest, 
                                                      nusers = NewUsers,
+                                                     phase_nusers = NewUsers,
                                                      phase_duration=PhaseLength,
                                                      phase_start = now(),
                                                      intensity = NewIntensity},
                      Wait};
+                {stop} ->
+                    {next_state,finish, State, ?check_noclient_timeout};
                 {continue} ->
                     {next_state,launcher,State#state{nusers = Users-1} , Wait}
             end
@@ -248,11 +255,17 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%% ----------------------------------------------------------------------
 change_phase(0, [{NewIntensity, NewUsers}|Rest], _, _) ->
     {change, NewUsers, NewIntensity, Rest};
-change_phase(N,[{NewIntensity,NewUsers}|Rest],Current,Total) when Current>Total ->
-    ?LOGF("Phase duration exceeded, but not all users were launched (~p users)~n",
-          [N],?WARN),
-    {change, NewUsers, NewIntensity, Rest};
-change_phase(_, _, _Current_Duration, _Total) ->
+change_phase(N,NewPhases,Current,{Total, PhaseUsers}) when Current>Total ->
+    ?LOGF("Phase duration exceeded, but not all users were launched (~p users, ~.1f% of phase)~n",
+          [N, 100*N/PhaseUsers],?WARN),
+    case NewPhases of
+        [{NewIntensity,NewUsers}|Rest] ->
+            {change, NewUsers, NewIntensity, Rest};
+        [] ->
+            ?LOG("This was the last phase, wait for connected users to finish their session~n",?NOTICE),
+            {stop}
+    end;
+change_phase(_N, _, _Current, {_Total, _}) ->
     {continue}.
 
 %%%----------------------------------------------------------------------
