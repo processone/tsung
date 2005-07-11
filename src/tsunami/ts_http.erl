@@ -96,23 +96,27 @@ add_dynparams(true, DynData, Param, HostData) ->
     NewParam = subst(Param, DynData#dyndata.dynvars),
     add_dynparams(DynData#dyndata.proto,NewParam, HostData).
 
-% Function: add_dynparams/3
-% no cookies
-add_dynparams(#http_dyndata{cookies=[]},Param, {Host, 80}) -> % don't print port
-                                                %in "Host:" if it's the default
-	Param#http_request{server_name=Host};
-add_dynparams(#http_dyndata{cookies=[]},Param, {Host, Port}) ->
-	Param#http_request{server_name=Host++":"++ integer_to_list(Port)};
-% cookies
-add_dynparams(#http_dyndata{cookies=DynData}, Param, {Host, 80}) ->
-	Param#http_request{cookie=DynData,server_name=Host};
-add_dynparams(#http_dyndata{cookies=DynData}, Param, {Host, Port}) ->
+%% Function: add_dynparams/3
+%% no cookies
+add_dynparams(#http_dyndata{cookies=[], user_agent=UA},Param, {Host, 80}) ->
+    %% don't print port in "Host:" if it's the default
+	Param#http_request{server_name=Host, user_agent=UA};
+add_dynparams(#http_dyndata{cookies=[],user_agent=UA},Param, {Host, Port}) ->
+	Param#http_request{server_name=Host++":"++ integer_to_list(Port), user_agent=UA};
+%% cookies
+add_dynparams(#http_dyndata{cookies=DynData,user_agent=UA}, Param, {Host, 80}) ->
+    %% don't print port in "Host:" if it's the default
+	Param#http_request{cookie=DynData,server_name=Host, user_agent=UA};
+add_dynparams(#http_dyndata{cookies=DynData, user_agent=UA}, Param, {Host, Port}) ->
 %% FIXME: should we use the Port value in the Cookie ? 
-	Param#http_request{cookie=DynData,
+	Param#http_request{cookie=DynData,user_agent=UA,
                        server_name=Host++":"++ integer_to_list(Port)}.
 
 init_dynparams() ->
-	#dyndata{proto=#http_dyndata{}}.
+    %% FIXME: optimization: suppress this call if we don't need
+    %% customised users agents
+    UserAgent = ts_session_cache:get_user_agent(),
+	#dyndata{proto=#http_dyndata{user_agent=UserAgent}}.
 
 
 %%----------------------------------------------------------------------

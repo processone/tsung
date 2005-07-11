@@ -35,7 +35,7 @@
 
 %%--------------------------------------------------------------------
 %% External exports
--export([start/0, get_req/2]).
+-export([start/0, get_req/2, get_user_agent/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -62,6 +62,9 @@ start() ->
 
 get_req(Id, Count)->
 	gen_server:call(?MODULE,{get_req, Id, Count}).
+
+get_user_agent()->
+	gen_server:call(?MODULE,{get_user_agent}).
 
 %%====================================================================
 %% Server functions
@@ -111,6 +114,24 @@ handle_call({get_req, Id, N}, From, State) ->
 			{reply, {error, Other}, State}
 	end;
 
+handle_call({get_user_agent}, From, State) ->
+	Tab = State#state.table,
+	case ets:lookup(Tab, {http_user_agent, value}) of 
+		[] -> %% no match, ask the config_server
+            ?Debug("user agents not found in cache~n"),
+            UserAgents = ts_config_server:get_user_agents(),
+            %% cache the response FIXME: handle bad response ?
+            ?DebugF("Useragents: got from config_server~p~n",[UserAgents]),
+            ets:insert(Tab, {{http_user_agent, value}, UserAgents}),
+            {ok, Reply} = choose_user_agent(UserAgents),
+			{reply, Reply, State};
+		[{_, [{_Freq, Value}]}] -> %single user agent defined
+			{reply, Value, State};
+		[{_, UserAgents }] when is_list(UserAgents)->
+            {ok, Reply} = choose_user_agent(UserAgents),
+			{reply, Reply, State}
+	end;
+
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
@@ -155,3 +176,12 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
+
+choose_user_agent(UserAgents) ->
+    choose_user_agent(UserAgents, random:uniform(100),0).
+
+choose_user_agent([{P, Val} | _],Rand, Cur) when Rand =< P+Cur->
+    {ok, Val};
+choose_user_agent([{P, _Val} | SList], Rand, Cur) ->
+    choose_user_agent(SList, Rand, Cur+P).
+

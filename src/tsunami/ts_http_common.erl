@@ -47,24 +47,24 @@
 %% Func: http_get/1
 %% Args: #http_request
 %%----------------------------------------------------------------------
-http_get(#http_request{url=URL, version=Version, cookie=Cookie, 
+http_get(#http_request{url=URL, version=Version, cookie=Cookie, user_agent=UA,
                        get_ims_date=undefined, soap_action=SOAPAction,
                        server_name=Host, userid=UserId, passwd=Passwd})->
 	list_to_binary([?GET, " ", URL," ", "HTTP/", Version, ?CRLF, 
                     "Host: ", Host, ?CRLF,
-                    user_agent(),
+                    user_agent(UA),
                     authenticate(UserId,Passwd),
                     soap_action(SOAPAction),
                     set_cookie_header({Cookie, Host, URL}),
                     ?CRLF]);
 
-http_get(#http_request{url=URL, version=Version, cookie=Cookie,
+http_get(#http_request{url=URL, version=Version, cookie=Cookie,user_agent=UA,
                        get_ims_date=Date, soap_action=SOAPAction,
                        server_name=Host, userid=UserId, passwd=Passwd}) ->
 	list_to_binary([?GET, " ", URL," ", "HTTP/", Version, ?CRLF,
                     ["If-Modified-Since: ", Date, ?CRLF],
                     "Host: ", Host, ?CRLF,
-                    user_agent(),
+                    user_agent(UA),
                     soap_action(SOAPAction),
                     authenticate(UserId,Passwd),
                     set_cookie_header({Cookie, Host, URL}),
@@ -74,7 +74,7 @@ http_get(#http_request{url=URL, version=Version, cookie=Cookie,
 %% Func: http_post/1
 %% Args: #http_request
 %%----------------------------------------------------------------------
-http_post(#http_request{url=URL, version=Version, cookie=Cookie,
+http_post(#http_request{url=URL, version=Version, cookie=Cookie,user_agent=UA,
                         soap_action=SOAPAction, content_type=ContentType,
                         body=Content, server_name=Host,
                         userid=UserId, passwd=Passwd}) ->
@@ -82,7 +82,7 @@ http_post(#http_request{url=URL, version=Version, cookie=Cookie,
 	?DebugF("Content Length of POST: ~p~n.", [ContentLength]),
 	Headers = [?POST, " ", URL," ", "HTTP/", Version, ?CRLF,
                "Host: ", Host, ?CRLF,
-               user_agent(),
+               user_agent(UA),
                authenticate(UserId,Passwd),
                soap_action(SOAPAction),
                set_cookie_header({Cookie, Host, URL}),
@@ -101,8 +101,10 @@ authenticate(UserId,Passwd)->
     AuthStr = httpd_util:encode_base64(lists:append([UserId,":",Passwd])),
     ["Authorization: Basic ",AuthStr,?CRLF].
 
-user_agent() ->
-	["User-Agent: ", ?USER_AGENT, ?CRLF].
+user_agent(undefined) ->
+	["User-Agent: ", ?USER_AGENT, ?CRLF];
+user_agent(UA) ->
+	["User-Agent: ", UA, ?CRLF].
 
 soap_action(undefined) -> [];
 soap_action(SOAPAction) -> ["SOAPAction: \"", SOAPAction, "\"", ?CRLF].
@@ -330,9 +332,10 @@ splitcookie([Char|Rest],Cur,Acc)->splitcookie(Rest, [Char|Cur], Acc).
 %% Purpose: add new cookies to a list of old ones. If the keys already
 %%          exists, replace with the new ones
 %%----------------------------------------------------------------------
-concat_cookies(New, DynData=#dyndata{proto=#http_dyndata{cookies=Cookies}}) ->
+concat_cookies(New, DynData=#dyndata{proto=HTTPDyn}) ->
+    Cookies = HTTPDyn#http_dyndata.cookies,
     NewCookies = concat_cookies(New,  Cookies),
-    DynData#dyndata{proto=#http_dyndata{cookies=NewCookies}};
+    DynData#dyndata{proto=HTTPDyn#http_dyndata{cookies=NewCookies}};
 concat_cookies([],  DynData) -> DynData;
 concat_cookies(New, []) -> New;
 concat_cookies([New=#cookie{}|Rest], OldCookies)->

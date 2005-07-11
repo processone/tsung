@@ -30,13 +30,14 @@
           url,
           version="1.1", % default is HTTP/1.1
           server_name,   % use for the 'Host:' header
-          get_ims_date, % used when the method is getims
-          cookie=none,
-          method=get,
-          content_type=[],
-          headers=[],
-          body=[],
+          get_ims_date,  % used when the method is getims
+          cookie = none,
+          method = get,
+          content_type = [],
+          headers = [],
+          body = [],
           id = 0,
+          user_agent,
           userid, % for www_authentication
           passwd, % for www_authentication
           soap_action % for SOAP support
@@ -44,7 +45,8 @@
 
 -record(http_dyndata, 
         { 
-          cookies=[] % HTTP Cookies
+          user_agent,
+          cookies = [] % HTTP Cookies
          }
        ).
 

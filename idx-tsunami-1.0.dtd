@@ -42,13 +42,13 @@
      unit (hour | minute | second) #REQUIRED
      maxnumber NMTOKEN #IMPLIED>
 
-<!ELEMENT default EMPTY>
+<!ELEMENT default (user_agent*)>
 <!ATTLIST default
     name     NMTOKEN #REQUIRED
     override (true|false) #IMPLIED
     random   (true | false) #IMPLIED
     type     NMTOKEN #IMPLIED
-    value    CDATA #REQUIRED>
+    value    CDATA #IMPLIED>
 
 <!ELEMENT session ( request | thinktime | transaction )*>
 <!ATTLIST session
@@ -67,6 +67,11 @@
 <!ATTLIST thinktime
     random (true|false) #IMPLIED
     value  NMTOKEN #REQUIRED>
+
+<!ELEMENT user_agent (#PCDATA)*>
+<!ATTLIST user_agent
+    frequency CDATA #REQUIRED
+    >
 
 <!ELEMENT transaction (request+)>
 <!ATTLIST transaction name NMTOKEN #REQUIRED>

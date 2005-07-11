@@ -50,7 +50,7 @@
 -export([start_link/1, read_config/1, get_req/2, get_next_session/1,
          get_client_config/1, newbeam/1, newbeam/2, get_server_config/0,
 		 get_monitor_hosts/0, encode_filename/1, decode_filename/1,
-         endlaunching/1, status/0, start_file_server/1]).
+         endlaunching/1, status/0, start_file_server/1, get_user_agents/0]).
 
 %%debug
 -export([choose_client_ip/2, choose_session/1]).
@@ -101,6 +101,14 @@ newbeam(Host, {Arrivals, MaxUsers})->
 %%--------------------------------------------------------------------
 get_req(Id, Count)->
 	gen_server:call({global, ?MODULE},{get_req, Id, Count}).
+
+%%--------------------------------------------------------------------
+%% Function: get_user_agents/0
+%% Description: 
+%% Returns: List
+%%--------------------------------------------------------------------
+get_user_agents()->
+	gen_server:call({global, ?MODULE},{get_user_agents}).
 
 %%--------------------------------------------------------------------
 %% Function: read_config/1
@@ -209,6 +217,16 @@ handle_call({get_req, Id, N}, From, State) ->
 			{reply, {error, Other}, State}
 	end;
 
+%% 
+handle_call({get_user_agents}, From, State) ->
+    Config = State#state.config,
+    case ets:lookup(Config#config.session_tab, {http_user_agent, value}) of
+        [] ->
+            {reply, empty, State};
+        [{_Key, UserAgents}] ->
+            {reply, UserAgents, State}
+    end;
+    
 %% get a new session id and an ip for the given node
 handle_call({get_next_session, HostName}, From, State) ->
     Config = State#state.config,

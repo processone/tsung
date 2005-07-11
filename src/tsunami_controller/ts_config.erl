@@ -43,6 +43,7 @@
 -export([read/1,
          getAttr/2,
          getAttr/3,
+         getText/1,
          parse/2,
          get_default/3,
 		 mark_prev_req/3

@@ -107,9 +107,26 @@ parse_config(Element = #xmlElement{name=default}, Conf = #config{session_tab = T
     case ts_config:getAttr(Element#xmlElement.attributes, name) of
         "server_name" ->
             Val = ts_config:getAttr(Element#xmlElement.attributes, value),
-            ets:insert(Tab,{{http_server_name, value}, Val})
+            ets:insert(Tab,{{http_server_name, value}, Val});
+        "user_agent" ->
+            Val = ts_config:getAttr(Element#xmlElement.attributes, value), %FIXME: useless
+            lists:foldl( fun(A,B)->parse_config(A,B) end, Conf, Element#xmlElement.content)
     end,
     lists:foldl( fun(A,B)->ts_config:parse(A,B) end, Conf, Element#xmlElement.content);
+%% Parsing user_agent
+parse_config(Element = #xmlElement{name=user_agent}, Conf = #config{session_tab = Tab}) ->
+    FreqStr= ts_config:getAttr(Element#xmlElement.attributes, frequency),
+    [Val]= ts_config:getText(Element#xmlElement.content),
+    {ok, [{integer,1,Freq}],1} = erl_scan:string(FreqStr),
+    ?LOGF("Get user agent: ~p ~p ~n",[Freq, Val],?WARN),
+    Previous = case ets:lookup(Tab, {http_user_agent, value}) of 
+                   [] ->
+                       [];
+                   [{Key,Old}] -> 
+                       Old
+               end,
+    ets:insert(Tab,{{http_user_agent, value}, [{Freq, Val}|Previous]}),
+    lists:foldl( fun(A,B)->parse_config(A,B) end, Conf, Element#xmlElement.content);
 %% Parsing other elements
 parse_config(Element = #xmlElement{}, Conf = #config{}) ->
     ts_config:parse(Element,Conf);
