@@ -82,6 +82,8 @@
 -define(retries, 4).
 
 -define(TIMEOUT_PARALLEL_SPAWN, 60000).
+-define(MAX_PHASE_EXCEED_PERCENT, 20).
+-define(MAX_PHASE_EXCEED_NUSERS, 10).
 
 -define(CRLF, "\r\n").
 -define(CR,13).

@@ -146,12 +146,13 @@ launcher(timeout, State=#state{nusers    = Users,
                                phase_nusers = PhaseUsers,
                                phases    = Phases,
                                intensity = Intensity}) ->
+    BeforeLaunch = now(),
     Wait = do_launch({Intensity,State#state.myhostname}),
     case check_max_raised(State) of
         true ->
             {next_state, finish, State, ?check_noclient_timeout};
         false->
-            Duration = ts_utils:elapsed(State#state.phase_start, now()),
+            Duration = ts_utils:elapsed(State#state.phase_start, BeforeLaunch),
             case change_phase(Users, Phases, Duration,
                               {State#state.phase_duration, PhaseUsers}) of
                 {change, NewUsers, NewIntensity, Rest} ->
@@ -165,11 +166,20 @@ launcher(timeout, State=#state{nusers    = Users,
                                                      phase_duration=PhaseLength,
                                                      phase_start = now(),
                                                      intensity = NewIntensity},
-                     Wait};
+                     round(Wait)};
                 {stop} ->
                     {next_state,finish, State, ?check_noclient_timeout};
                 {continue} ->
-                    {next_state,launcher,State#state{nusers = Users-1} , Wait}
+                    LaunchDuration = ts_utils:elapsed(BeforeLaunch, now()),
+                    %% to keep the rate of new users as expected,
+                    %% remove the time to launch a client to the next
+                    %% wait.
+                    NewWait = case Wait > LaunchDuration of 
+                                  true -> round(Wait - LaunchDuration);
+                                  false -> 0
+                              end,
+                    ?DebugF("Real Wait =~p ~n", [NewWait]),
+                    {next_state,launcher,State#state{nusers = Users-1} , NewWait}
             end
     end.
     
@@ -256,8 +266,15 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 change_phase(0, [{NewIntensity, NewUsers}|Rest], _, _) ->
     {change, NewUsers, NewIntensity, Rest};
 change_phase(N,NewPhases,Current,{Total, PhaseUsers}) when Current>Total ->
-    ?LOGF("Phase duration exceeded, but not all users were launched (~p users, ~.1f% of phase)~n",
-          [N, 100*N/PhaseUsers],?WARN),
+    Percent = 100*N/PhaseUsers,
+    case {Percent > ?MAX_PHASE_EXCEED_PERCENT, N > ?MAX_PHASE_EXCEED_NUSERS} of 
+        {true,true} ->
+            ?LOGF("Phase duration exceeded, more than ~p% (~.1f%) of users were not launched in time (~p users), IDX-Tsunami may be overloaded !~n",
+                  [?MAX_PHASE_EXCEED_PERCENT,Percent,N],?WARN);
+        {_,_} ->
+            ?LOGF("Phase duration exceeded, but not all users were launched (~p users, ~.1f% of phase)~n",
+                  [N, Percent],?NOTICE)
+    end,
     case NewPhases of
         [{NewIntensity,NewUsers}|Rest] ->
             {change, NewUsers, NewIntensity, Rest};
@@ -296,6 +313,6 @@ do_launch({Intensity, MyHostName})->
     %%set the profile of the client
     {ok, Profile} = ts_config_server:get_next_session(MyHostName),
     ts_client_sup:start_child(Profile),
-    X = round(ts_stats:exponential(Intensity)),
+    X = ts_stats:exponential(Intensity),
     ?DebugF("client launched, wait ~p ms before launching next client~n",[X]),
     X.
