@@ -150,10 +150,11 @@ launcher(timeout, State=#state{nusers    = Users,
     Wait = do_launch({Intensity,State#state.myhostname}),
     case check_max_raised(State) of
         true ->
+            ts_config_server:endlaunching(node()),
             {next_state, finish, State, ?check_noclient_timeout};
         false->
             Duration = ts_utils:elapsed(State#state.phase_start, BeforeLaunch),
-            case change_phase(Users, Phases, Duration,
+            case change_phase(Users-1, Phases, Duration,
                               {State#state.phase_duration, PhaseUsers}) of
                 {change, NewUsers, NewIntensity, Rest} ->
                     ts_mon:add({ count, newphase }),
@@ -168,6 +169,7 @@ launcher(timeout, State=#state{nusers    = Users,
                                                      intensity = NewIntensity},
                      round(Wait)};
                 {stop} ->
+                    ts_config_server:endlaunching(node()),
                     {next_state,finish, State, ?check_noclient_timeout};
                 {continue} ->
                     LaunchDuration = ts_utils:elapsed(BeforeLaunch, now()),
@@ -265,6 +267,9 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%% ----------------------------------------------------------------------
 change_phase(0, [{NewIntensity, NewUsers}|Rest], _, _) ->
     {change, NewUsers, NewIntensity, Rest};
+change_phase(0, [], _, _) ->
+    ?LOG("This was the last phase, wait for connected users to finish their session~n",?NOTICE),
+    {stop};
 change_phase(N,NewPhases,Current,{Total, PhaseUsers}) when Current>Total ->
     Percent = 100*N/PhaseUsers,
     case {Percent > ?MAX_PHASE_EXCEED_PERCENT, N > ?MAX_PHASE_EXCEED_NUSERS} of 
