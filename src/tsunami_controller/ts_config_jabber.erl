@@ -47,14 +47,10 @@
 parse_config(Element = #xmlElement{name=jabber}, 
              Config=#config{curid= Id, session_tab = Tab,
                             sessions = [CurS |_]}) ->
-    TypeStr  = ts_config:getAttr(Element#xmlElement.attributes, type, "chat"),
-    AckStr  = ts_config:getAttr(Element#xmlElement.attributes, ack, "no_ack"),
-    DestStr= ts_config:getAttr(Element#xmlElement.attributes, destination,"random"),
-    SizeStr= ts_config:getAttr(Element#xmlElement.attributes, size,"0"),
-    Type= list_to_atom(TypeStr),
-    Size= list_to_integer(SizeStr),
-    Dest= list_to_atom(DestStr),
-    Ack = list_to_atom(AckStr),
+    Type  = ts_config:getAttr(atom,Element#xmlElement.attributes, type, chat),
+    Ack  = ts_config:getAttr(atom,Element#xmlElement.attributes, ack, no_ack),
+    Dest= ts_config:getAttr(atom,Element#xmlElement.attributes, destination,random),
+    Size= ts_config:getAttr(integer,Element#xmlElement.attributes, size,0),
 
 	Domain  =ts_config:get_default(Tab, jabber_domain_name, jabber_domain),
 	UserName=ts_config:get_default(Tab, jabber_username, jabber_username),
@@ -88,13 +84,11 @@ parse_config(Element = #xmlElement{name=default}, Conf = #config{session_tab = T
             Val = ts_config:getAttr(Element#xmlElement.attributes, value),
             ets:insert(Tab,{{jabber_domain_name,value}, Val});
         "global_number" ->
-            Val = ts_config:getAttr(Element#xmlElement.attributes, value),
-            {ok, [{integer,1,N}],1} = erl_scan:string(Val),
+            N = ts_config:getAttr(integer,Element#xmlElement.attributes, value),
             ts_timer:config(N),
             ets:insert(Tab,{{jabber_global_number, value}, N});
         "userid_max" ->
-            Val = ts_config:getAttr(Element#xmlElement.attributes, value),
-            {ok, [{integer,1,N}],1} = erl_scan:string(Val),
+            N = ts_config:getAttr(integer,Element#xmlElement.attributes, value),
             ts_user_server:reset(N),
             ets:insert(Tab,{{jabber_userid_max,value}, N})
     end,

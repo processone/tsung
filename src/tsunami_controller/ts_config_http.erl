@@ -55,9 +55,9 @@ parse_config(Element = #xmlElement{name=http},
     URL      = ts_config:getAttr(Element#xmlElement.attributes, url),
     Contents = ts_config:getAttr(Element#xmlElement.attributes, contents),
     %% Apache Tomcat applications need content-type informations to read post forms
-    ContentType = ts_config:getAttr(Element#xmlElement.attributes,
+    ContentType = ts_config:getAttr(string,Element#xmlElement.attributes,
                             content_type, "application/x-www-form-urlencoded"),
-    Date     = ts_config:getAttr(Element#xmlElement.attributes, 
+    Date     = ts_config:getAttr(string, Element#xmlElement.attributes, 
                                  'if_modified_since', undefined),
     Method = case ts_config:getAttr(Element#xmlElement.attributes, method) of 
                  "GET" -> get;
@@ -79,7 +79,7 @@ parse_config(Element = #xmlElement{name=http},
 				    Element#xmlElement.content) of
               {value, SoapEl=#xmlElement{} } ->
                        SOAPAction  = ts_config:getAttr(SoapEl#xmlElement.attributes,
-                                                       action, []),
+                                                       action),
                        Request#http_request{soap_action=SOAPAction};
                    _ -> 
                        Request
@@ -87,9 +87,9 @@ parse_config(Element = #xmlElement{name=http},
     Msg = case lists:keysearch(www_authenticate,#xmlElement.name,
                                Element#xmlElement.content) of
               {value, AuthEl=#xmlElement{} } ->
-                  UserId  = ts_config:getAttr(AuthEl#xmlElement.attributes,
+                  UserId  = ts_config:getAttr(string,AuthEl#xmlElement.attributes,
                                               userid, undefined),
-                  Passwd  = ts_config:getAttr(AuthEl#xmlElement.attributes, 
+                  Passwd  = ts_config:getAttr(string,AuthEl#xmlElement.attributes, 
                                               passwd, undefined),
                   NewReq=Request2#http_request{userid=UserId, passwd=Passwd},
                   set_msg(NewReq, 0, {SubstFlag, MatchRegExp} );
@@ -115,9 +115,8 @@ parse_config(Element = #xmlElement{name=default}, Conf = #config{session_tab = T
     lists:foldl( fun(A,B)->ts_config:parse(A,B) end, Conf, Element#xmlElement.content);
 %% Parsing user_agent
 parse_config(Element = #xmlElement{name=user_agent}, Conf = #config{session_tab = Tab}) ->
-    FreqStr= ts_config:getAttr(Element#xmlElement.attributes, frequency),
+    Freq= ts_config:getAttr(integer,Element#xmlElement.attributes, frequency),
     [Val]= ts_config:getText(Element#xmlElement.content),
-    {ok, [{integer,1,Freq}],1} = erl_scan:string(FreqStr),
     ?LOGF("Get user agent: ~p ~p ~n",[Freq, Val],?WARN),
     Previous = case ets:lookup(Tab, {http_user_agent, value}) of 
                    [] ->
