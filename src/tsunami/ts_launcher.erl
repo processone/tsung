@@ -119,10 +119,11 @@ wait({launch, []}, State) ->
 	?LOGF("Activate launcher (~p users) in ~p msec ~n",[Users, Warm], ?NOTICE),
     Duration = Users/Intensity,
 	?LOGF("Expected duration of first phase: ~p sec ~n",[Duration/1000], ?NOTICE),
+    PhaseStart = ts_utils:add_time(now(), Warm div 1000),
 	{next_state,launcher,State#state{phases = Rest, nusers = Users,
                                      phase_nusers = Users,
                                      phase_duration=Duration,
-                                     phase_start = now(),
+                                     phase_start = PhaseStart,
                                      intensity=Intensity,maxusers=Max }, Warm};
 
 wait({launch, {[{Intensity, Users}| Rest], Max}}, State) ->
