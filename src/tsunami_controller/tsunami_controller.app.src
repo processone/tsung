@@ -24,8 +24,6 @@
 					 {file_server_timeout, 30000},    %% timeout for reading file
                      {warm_time, 10}, %% (seconds) initial waiting time when launching clients
 
-					 {server_name, "glop"},
-
 					 {thinktime_value, "5"}, % default value = 5sec
 					 {thinktime_override, "false"},
 					 {thinktime_random, "false"},

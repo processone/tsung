@@ -20,10 +20,6 @@
 	   {env,		[        
 					 {debug_level, 2},
 					 {ts_cookie, "humhum"},
-					 {server_name, "localhost"},%% required for HTTP/1.1 requests
-					 {server_adr, "127.0.0.1"}, %% server IP or name
-					 {server_port, 80},		    %% server port
-					 {server_protocol, gen_tcp},%% gen_tcp, gen_udp or ssl
 					 {snd_size, 32768}, %% send buffer size
 					 {rcv_size, 32768}, %% receive buffer size
 					 {tcp_timeout, 600000}, %% 10min timeout

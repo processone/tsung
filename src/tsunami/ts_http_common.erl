@@ -49,7 +49,7 @@
 %%----------------------------------------------------------------------
 http_get(#http_request{url=URL, version=Version, cookie=Cookie, user_agent=UA,
                        get_ims_date=undefined, soap_action=SOAPAction,
-                       server_name=Host, userid=UserId, passwd=Passwd})->
+                       host_header=Host, userid=UserId, passwd=Passwd})->
 	list_to_binary([?GET, " ", URL," ", "HTTP/", Version, ?CRLF, 
                     "Host: ", Host, ?CRLF,
                     user_agent(UA),
@@ -60,7 +60,7 @@ http_get(#http_request{url=URL, version=Version, cookie=Cookie, user_agent=UA,
 
 http_get(#http_request{url=URL, version=Version, cookie=Cookie,user_agent=UA,
                        get_ims_date=Date, soap_action=SOAPAction,
-                       server_name=Host, userid=UserId, passwd=Passwd}) ->
+                       host_header=Host, userid=UserId, passwd=Passwd}) ->
 	list_to_binary([?GET, " ", URL," ", "HTTP/", Version, ?CRLF,
                     ["If-Modified-Since: ", Date, ?CRLF],
                     "Host: ", Host, ?CRLF,
@@ -76,7 +76,7 @@ http_get(#http_request{url=URL, version=Version, cookie=Cookie,user_agent=UA,
 %%----------------------------------------------------------------------
 http_post(#http_request{url=URL, version=Version, cookie=Cookie,user_agent=UA,
                         soap_action=SOAPAction, content_type=ContentType,
-                        body=Content, server_name=Host,
+                        body=Content, host_header=Host,
                         userid=UserId, passwd=Passwd}) ->
 	ContentLength=integer_to_list(size(Content)),
 	?DebugF("Content Length of POST: ~p~n.", [ContentLength]),

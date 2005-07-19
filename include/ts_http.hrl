@@ -29,7 +29,7 @@
 -record(http_request, {
           url,
           version="1.1", % default is HTTP/1.1
-          server_name,   % use for the 'Host:' header
+          host_header,   % use for the 'Host:' header
           get_ims_date,  % used when the method is getims
           cookie = none,
           method = get,
