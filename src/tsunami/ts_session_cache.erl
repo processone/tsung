@@ -127,6 +127,8 @@ handle_call({get_user_agent}, From, State) ->
 			{reply, Reply, State};
 		[{_, [{_Freq, Value}]}] -> %single user agent defined
 			{reply, Value, State};
+		[{_, empty }] ->
+			{reply, "IDX-Tsunami", State};
 		[{_, UserAgents }] when is_list(UserAgents)->
             {ok, Reply} = choose_user_agent(UserAgents),
 			{reply, Reply, State}
