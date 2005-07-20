@@ -45,7 +45,7 @@
 session_defaults() ->
     %% we parse the server response, and continue if the tcp
     %% connection is closed
-	{ok,"parse", "true"}.
+	{ok,parse, true}.
 
 %%----------------------------------------------------------------------
 %% Function: new_session/0
