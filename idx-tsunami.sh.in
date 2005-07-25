@@ -87,7 +87,8 @@ logdir() {
 }
 
 status() {
-    $ERL -noshell -sname tsunami_status -setcookie $COOKIE -pa $TSUNAMIPATH -pa $CONTROLLERPATH -s tsunami_controller status $HOST -s init stop
+    SNAME=tsunami_status_$RANDOM
+    $ERL -noshell -sname $SNAME -setcookie $COOKIE -pa $TSUNAMIPATH -pa $CONTROLLERPATH -s tsunami_controller status $HOST -s init stop
 }
 
 usage() {
