@@ -411,6 +411,7 @@ type `analyse_msg.pl --version` for details.\n\n";
     "[--gnuplot <command>]  (path to the gnuplot binary)\n\t",
     "[--html]  (create nice HTML reports)\n\t",
     "[--logy]  (logarithmic scale for Y axis)\n\t",
+    "[--tdir <template_dir>] (Path to the HTML Tsunami templates)\n\t",
     "[--extra  (generate graphics from extra cluster data (os monitor, etc)\n\t",
     "[--stats <file>] (stats file to analyse, default=idx-tsunami.log)\n\t";
 	exit;
