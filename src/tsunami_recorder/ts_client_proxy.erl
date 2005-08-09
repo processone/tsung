@@ -287,6 +287,8 @@ parse(State=#state{parse_status=Status, buffer=Http},_,ServerSocket,String)
 %%--------------------------------------------------------------------            
 check_serversocket(Socket, "http://{" ++ Rest) ->
     check_serversocket(Socket, ts_config_http:parse_URL("https://"++Rest));
+check_serversocket(Socket, "http://%7B" ++ Rest) -> %% for IE.
+    check_serversocket(Socket, ts_config_http:parse_URL("https://"++Rest));
 check_serversocket(Socket, URL) when list(URL)->
     check_serversocket(Socket, ts_config_http:parse_URL(URL));
 check_serversocket(undefined, URL) ->
