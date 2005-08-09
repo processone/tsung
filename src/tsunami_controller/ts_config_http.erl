@@ -30,7 +30,7 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
--export([parse_config/2, parse_URL/1, set_port/1]).
+-export([parse_config/2, parse_URL/1, set_port/1, check_user_agent_sum/1]).
 
 -include("ts_profile.hrl").
 -include("ts_http.hrl").
@@ -287,4 +287,11 @@ parse_URL(path,[$?|T], Acc, URL) ->
 parse_URL(path,[H|T], Acc, URL) ->
     parse_URL(path, T, [H|Acc], URL).
 
-
+% check if the sum of all user agent frequency is equal to 100%
+check_user_agent_sum(Tab) ->
+    case ets:lookup(Tab, {http_user_agent, value}) of
+        [] -> 
+            ok; % no user agent, will use the default one.
+        [{_Key, UserAgents}] -> 
+            ts_utils:check_sum(UserAgents, 1, ?USER_AGENT_ERROR_MSG)
+    end.

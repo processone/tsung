@@ -124,7 +124,7 @@ read_config(ConfigFile)->
 %% Returns: {ok, {ArrivalList, StartDate, MaxUsers}} | {error, notfound}
 %%--------------------------------------------------------------------
 get_client_config(Host)->
-	gen_server:call({global,?MODULE},{get_client_config, Host}).
+	gen_server:call({global,?MODULE},{get_client_config, Host}, ?config_timeout).
 
 %%--------------------------------------------------------------------
 %% Function: get_server_config/0
@@ -182,20 +182,25 @@ init([LogDir]) ->
 handle_call({read_config, ConfigFile}, _From, State) ->
     case catch ts_config:read(ConfigFile) of
         {ok, Config=#config{session_tab=Tab,curid=LastReqId,sessions=[LastSess| _]}} -> 
-            check_popularity(Config#config.sessions),
-            application:set_env(tsunami_controller, clients, Config#config.clients),
-            application:set_env(tsunami_controller, dump, Config#config.dump),
-            application:set_env(tsunami_controller, stats_backend, Config#config.stats_backend),
-            application:set_env(tsunami_controller, debug_level, Config#config.loglevel),
-            SumWeights = fun(X, Sum) -> X#client.weight + Sum end,
-            Sum = lists:foldl(SumWeights, 0, Config#config.clients),
-            %% we only know now the size of last session from the file: add it
-            %% in the table
-            print_info(),
-            ets:insert(Tab, {{LastSess#session.id, size}, LastReqId}),
-            %% start the file server (if defined) using a separate process (it can be long)
-            spawn(?MODULE, start_file_server, [Config#config.file_server]),
-            {reply, ok, State#state{config=Config, total_weight = Sum}};
+            case check_config(Config) of 
+                ok ->
+                    application:set_env(tsunami_controller, clients, Config#config.clients),
+                    application:set_env(tsunami_controller, dump, Config#config.dump),
+                    application:set_env(tsunami_controller, stats_backend, Config#config.stats_backend),
+                    application:set_env(tsunami_controller, debug_level, Config#config.loglevel),
+                    SumWeights = fun(X, Sum) -> X#client.weight + Sum end,
+                    Sum = lists:foldl(SumWeights, 0, Config#config.clients),
+                    %% we only know now the size of last session from the file: add it
+                    %% in the table
+                    print_info(),
+                    ets:insert(Tab, {{LastSess#session.id, size}, LastReqId}),
+                    %% start the file server (if defined) using a separate process (it can be long)
+                    spawn(?MODULE, start_file_server, [Config#config.file_server]),
+                    {reply, ok, State#state{config=Config, total_weight = Sum}};
+                {error, Reason} ->
+                    ?LOGF("Error while checking config: ~p~n",[Reason],?EMERG),
+                    {reply, {error, Reason}, State}
+            end;
         {error, Reason} -> 
             ?LOGF("Error while parsing XML config file: ~p~n",[Reason],?EMERG),
             {reply, {error, Reason}, State};
@@ -447,21 +452,6 @@ get_client_cfg([Arrival=#arrivalphase{duration = Duration,
                    [{ClientIntensity, round(NUsers)} | Cur]).
 
 %%----------------------------------------------------------------------
-%% Func: check_popularity/1
-%% Purpose: Check if the sum of session's popularity is 100
-%%----------------------------------------------------------------------
-check_popularity(Sessions) ->
-    Sum = lists:foldl(fun(X, Sum) -> X#session.popularity+Sum end, 0, Sessions),
-    Epsilon = 0.01, %% popularity may be a float number. 10-2 precision
-    Delta = abs(Sum - 100),
-    case Delta < Epsilon of
-        true -> ok;
-        false -> 
-            ?LOGF("*** Total sum of popularity is not 100 (~p) !",[Sum],?ERR),
-			throw({error,bad_popularity_sum})
-    end.
-
-%%----------------------------------------------------------------------
 %% Func: encode_filename/1
 %% Purpose: kludge: the command line erl doesn't like special characters 
 %%   in strings when setting up environnement variables for application,
@@ -504,3 +494,13 @@ start_file_server(FileName) ->
     supervisor:start_child(ts_controller_sup, FileSrv),
     ?LOGF("Reading file ~s~n",[FileName],?NOTICE),
     ts_file_server:read(FileName).
+
+check_config(Config)->
+    Pop= ts_utils:check_sum(Config#config.sessions, #session.popularity, ?SESSION_POP_ERROR_MSG),
+    %% FIXME: we should not depend on a protocol specific feature here
+    Agents = ts_config_http:check_user_agent_sum(Config#config.session_tab),
+    case lists:filter(fun(X)-> X /= ok  end, [Pop, Agents]) of
+        []        -> ok;
+        ErrorList -> {error, ErrorList}
+    end.
+                 

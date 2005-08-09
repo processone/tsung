@@ -28,6 +28,7 @@
 -author('nicolas.niclausse@IDEALX.com').
 
 -define(TSUNAMIPATH, "TSUNAMIPATH").
+-define(SESSION_POP_ERROR_MSG, "Total sum of session popularity is not equal to 100").
 
 -record(config,	{
           name,
