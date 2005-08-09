@@ -38,7 +38,8 @@
 		 erl_system_args/0, setsubdir/1, export_text/1,
          foreach_parallel/2, spawn_par/3, inet_setopts/3,
          stop_all/2, stop_all/3, stop_all/4, join/2, split2/2, split2/3,
-         make_dir_rec/1, is_ip/1, from_https/1, to_https/1]).
+         make_dir_rec/1, is_ip/1, from_https/1, to_https/1,
+         check_sum/3, check_sum/5]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -133,7 +134,7 @@ now_sec() ->
 %% Func: add_time/2
 %% Purpose: add given Seconds to given Time (same format as now())
 %%----------------------------------------------------------------------
-add_time({MSec, Seconds, MicroSec}, SecToAdd) ->
+add_time({MSec, Seconds, MicroSec}, SecToAdd) when is_integer(SecToAdd)->
     NewSec = Seconds +SecToAdd,
     case NewSec < 1000000 of
         true -> {MSec, NewSec, MicroSec};
@@ -323,10 +324,13 @@ is_ip(_) -> false.
 %% Purpose: rewrite https URL, to act as a pure non ssl proxy
 %%----------------------------------------------------------------------
 to_https({url, "http://{"++Rest})-> "https://" ++ Rest;
+to_https({url, "http://%7B"++Rest})-> "https://" ++ Rest;
 to_https({url, URL})-> URL;
 to_https({request, String}) when is_list(String) ->
-    {ok,NewString,_} = regexp:gsub(String,"http://{","https://"),
-    {ok,RealString,_} = regexp:gsub(NewString,"Host: {","Host: "),
+    {ok,TmpString,_} = regexp:gsub(String,"http://{","https://"),
+    {ok,NewString,_} = regexp:gsub(TmpString,"http://%7B","https://"),
+    {ok,TmpString2,_} = regexp:gsub(NewString,"Host: {","Host: "),
+    {ok,RealString,_} = regexp:gsub(TmpString2,"Host: %7B","Host: "),
     {ok, RealString};
 to_https(_) -> {error, bad_input}.
 
@@ -415,3 +419,15 @@ inet_setopts(Type, Socket,  Opts) when ( (Type == tcp) or (Type == gen_tcp)) ->
 inet_setopts(Type, Socket,  Opts)  when ( (Type == udp) or (Type == gen_udp)) ->
 	ok = inet:setopts(Socket, Opts),
     Socket.
+
+check_sum(RecList, Index, ErrorMsg) ->
+    %% popularity may be a float number. 10-2 precision
+    check_sum(RecList, Index, 100, 0.01, ErrorMsg).
+check_sum(RecList, Index, Total, Epsilon, ErrorMsg) ->
+    %% we use the tuple representation of a record !
+    Sum = lists:foldl(fun(X, Sum) -> element(Index,X)+Sum end, 0, RecList),
+    Delta = abs(Sum - Total),
+    case Delta < Epsilon of
+        true -> ok;
+        false -> {error, {bad_sum, ErrorMsg}}
+    end.
