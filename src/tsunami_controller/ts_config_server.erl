@@ -62,6 +62,7 @@
 -record(state, {config,
                 logdir,
                 start_date,       % 
+                hostname,         % controller hostname
                 last_beam_id = 0, % last tsunami beam id (used to set nodenames)
                 ending_beams = 0, % number of beams with no new users to start
                 lastips,          % store next ip to choose for each client host
@@ -166,8 +167,9 @@ endlaunching(Node) ->
 %%--------------------------------------------------------------------
 init([LogDir]) ->
 	ts_utils:init_seed(),
+    {ok, MyHostName} = ts_utils:node_to_hostname(node()),
     ?LOGF("Config server started, logdir is ~p~n ",[LogDir],?NOTICE),
-    {ok, #state{logdir=LogDir}}.
+    {ok, #state{logdir=LogDir, hostname=list_to_atom(MyHostName)}}.
 
 %%--------------------------------------------------------------------
 %% Function: handle_call/3
@@ -304,7 +306,37 @@ handle_call(Request, _From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-%% start a new beam with slave module 
+%% start the launcher on the current beam
+handle_cast({newbeam, Host, []}, State=#state{last_beam_id = NodeId,
+                                              hostname=Host,
+                                              config = Config}) when Config#config.use_controller_vm == true ->
+    ?LOGF("Start a launcher on the controller beam (~p)~n", [Host], ?NOTICE),
+    LogDir = encode_filename(State#state.logdir),
+    %% set the application spec (read the app file and update some env. var.)
+    {ok, {_,_,AppSpec}} = load_app(tsunami),
+    {value, {env, OldEnv}} = lists:keysearch(env, 1, AppSpec),
+    NewEnv = [ {dump,atom_to_list(?config(dump))},
+               {debug_level,integer_to_list(?config(debug_level))},
+               {log_file,LogDir},
+               {controller, atom_to_list(node())}],
+
+    RepKeyFun = fun(Tuple, List) ->  lists:keyreplace(element(1, Tuple), 1, List, Tuple) end,
+    Env = lists:foldl(RepKeyFun, OldEnv, NewEnv),
+    NewAppSpec = lists:keyreplace(env, 1, AppSpec, {env, Env}),
+     
+    ok = application:load({application, tsunami, NewAppSpec}),
+    case application:start(tsunami) of
+        ok ->
+            ?LOG("Application started, activate launcher, ~n", ?INFO),
+            ts_launcher:launch({node(), []}),
+            {noreply, State#state{last_beam_id = NodeId +1}};
+        {error, Reason} ->
+            ?LOGF("Can't start launcher application ~p (reason: ~p) ! Aborting!~n",[Host, Reason],?EMERG),
+            ts_mon:abort(),
+            {stop, normal}
+    end;
+
+%% start a launcher on a new beam with slave module 
 handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
     Name = "tsunami" ++ integer_to_list(NodeId),
     {ok, [[BootController]]}    = init:get_argument(boot),
@@ -326,7 +358,7 @@ handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
         " -tsunami log_file ", LogDir,
         " -tsunami controller ", atom_to_list(node())
         ]),
-    ?LOGF("starting newbeam on host ~p with Args ~p~n", [Host, Args], ?INFO), 
+    ?LOGF("starting newbeam on host ~p from ~p with Args ~p~n", [Host, State#state.hostname, Args], ?INFO), 
     case slave:start_link(Host, Name, Args) of
         {ok, Node} ->
             ?LOGF("started newbeam on node ~p ~n", [Node], ?NOTICE), 
@@ -504,3 +536,17 @@ check_config(Config)->
         ErrorList -> {error, ErrorList}
     end.
                  
+
+load_app(Name) when atom(Name) ->
+    FName = atom_to_list(Name) ++ ".app",
+    case code:where_is_file(FName) of
+	non_existing ->
+	    {error, {file:format_error({error,enoent}), FName}};
+	FullName ->
+	    case file:consult(FullName) of
+		{ok, [Application]} ->
+		    {ok, Application};
+		{error, Reason} -> 
+		    {error, {file:format_error(Reason), FName}}
+	    end
+    end.

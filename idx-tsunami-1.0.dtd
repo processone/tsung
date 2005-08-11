@@ -19,6 +19,7 @@
      cpu      NMTOKEN #IMPLIED
      host     NMTOKEN #REQUIRED
      maxusers NMTOKEN #REQUIRED
+     use_controller_vm (true | false) #IMPLIED
      weight   NMTOKEN #IMPLIED>
 
 <!ELEMENT ip EMPTY>

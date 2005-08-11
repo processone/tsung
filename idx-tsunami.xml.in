@@ -21,11 +21,18 @@
     </client>
 
     <!-- a second machine is used, with a higher weight, and 2 cpus
-    (erlang does is not SMP aware, so we starts 2 beams to use all the
+    (erlang is not SMP aware, so we starts 2 beams to use all the
     CPUs -->
     <client host="speed4" weight="3" maxusers="250" cpu="2">
       <ip value="192.168.2.224"></ip>
     </client>
+
+    <!-- If you have a single machine to do the tests, you may add
+    this attribute to the client tag: use_controller_vm="true" . This
+    will run the virtual users on the same Virtual Machine as the
+    controller. Useful if you have problèms with starting up remote
+    beam-->
+
   </clients>
   
   <!-- Server side setup -->

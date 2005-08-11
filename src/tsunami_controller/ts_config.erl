@@ -77,10 +77,10 @@ read(Filename) ->
 %%% Function: parse/2
 %%% Purpose:  parse the xmerl structure
 %%%----------------------------------------------------------------------
-parse(Element = #xmlElement{parents = []}, Conf=#config{}) ->
-    Loglevel = getAttr(Element#xmlElement.attributes, loglevel),
-    Dump     = getAttr(Element#xmlElement.attributes, dumptraffic),
-    BackEnd  = getAttr(atom, Element#xmlElement.attributes, backend, text),
+parse(Element = #xmlElement{parents = [], attributes=Attrs}, Conf=#config{}) ->
+    Loglevel = getAttr(Attrs, loglevel),
+    Dump     = getAttr(Attrs, dumptraffic),
+    BackEnd  = getAttr(atom, Attrs, backend, text),
     DumpType = case Dump of 
                    "false" -> none;
                    "true"  -> full;
@@ -93,10 +93,10 @@ parse(Element = #xmlElement{parents = []}, Conf=#config{}) ->
 
 
 %% parsing the Server elements
-parse(Element = #xmlElement{name=server}, Conf) ->
-    Server = getAttr(Element#xmlElement.attributes, host),
-    Port   = getAttr(integer, Element#xmlElement.attributes, port),
-    Type = case getAttr(Element#xmlElement.attributes, type) of 
+parse(Element = #xmlElement{name=server, attributes=Attrs}, Conf) ->
+    Server = getAttr(Attrs, host),
+    Port   = getAttr(integer, Attrs, port),
+    Type = case getAttr(Attrs, type) of 
                "ssl" -> ssl;
                "tcp" -> gen_tcp;
                "udp" -> gen_udp
@@ -110,22 +110,24 @@ parse(Element = #xmlElement{name=server}, Conf) ->
 		Element#xmlElement.content);
 
 %% Parsing the cluster monitoring element (monitor)
-parse(Element = #xmlElement{name=monitor}, Conf = #config{monitor_hosts=MHList}) ->
-    Host = getAttr(Element#xmlElement.attributes, host),
-    Type = getAttr(atom, Element#xmlElement.attributes, type, erlang),
+parse(Element = #xmlElement{name=monitor, attributes=Attrs},
+      Conf = #config{monitor_hosts=MHList}) ->
+    Host = getAttr(Attrs, host),
+    Type = getAttr(atom, Attrs, type, erlang),
     lists:foldl(fun parse/2,
 		Conf#config{monitor_hosts = lists:append(MHList, [{Host, Type}])},
 		Element#xmlElement.content);
 
 
 %% Parsing the Client element
-parse(Element = #xmlElement{name=client},
+parse(Element = #xmlElement{name=client, attributes=Attrs},
       Conf = #config{clients=CList}) ->
 
-    Host     = getAttr(Element#xmlElement.attributes, host),
-    Weight   = getAttr(integer,Element#xmlElement.attributes, weight,1),
-    MaxUsers = getAttr(integer,Element#xmlElement.attributes, maxusers,750),
-    CPU      = getAttr(integer,Element#xmlElement.attributes, cpu, 1),
+    Host     = getAttr(Attrs, host),
+    Weight   = getAttr(integer,Attrs, weight,1),
+    MaxUsers = getAttr(integer,Attrs, maxusers,750),
+    CPU      = getAttr(integer,Attrs, cpu, 1),
+    SingleNode = getAttr(atom, Attrs, use_controller_vm, false) or Conf#config.use_controller_vm,
     %% must be hostname and not ip:
     case ts_utils:is_ip(Host) of 
         true ->
@@ -138,16 +140,17 @@ parse(Element = #xmlElement{name=client},
                                                    weight   = Weight/CPU,
                                                    maxusers = MaxUsers}),
             lists:foldl(fun parse/2, 
-                        Conf#config{clients = lists:append(NewClients,CList)},
+                        Conf#config{clients = lists:append(NewClients,CList),
+                                    use_controller_vm = SingleNode},
                         Element#xmlElement.content)
     end;
 
 %% Parsing the ip element
-parse(Element = #xmlElement{name=ip},
+parse(Element = #xmlElement{name=ip, attributes=Attrs},
       Conf = #config{clients=[CurClient|CList]}) ->
     IPList = CurClient#client.ip,
 
-    StrIP     = getAttr(Element#xmlElement.attributes, value),
+    StrIP     = getAttr(Attrs, value),
     {ok, IP } = inet:getaddr(StrIP,inet),
 
     lists:foldl(fun parse/2,
@@ -156,12 +159,12 @@ parse(Element = #xmlElement{name=ip},
                 Element#xmlElement.content);
 
 %% Parsing the arrivalphase element
-parse(Element = #xmlElement{name=arrivalphase},
+parse(Element = #xmlElement{name=arrivalphase, attributes=Attrs},
       Conf = #config{arrivalphases=AList}) ->
 
-    Phase     = getAttr(integer,Element#xmlElement.attributes, phase),
-    IDuration  = getAttr(integer, Element#xmlElement.attributes, duration),
-    Unit  = getAttr(string,Element#xmlElement.attributes, unit, "second"),
+    Phase     = getAttr(integer,Attrs, phase),
+    IDuration  = getAttr(integer, Attrs, duration),
+    Unit  = getAttr(string,Attrs, unit, "second"),
 	D = to_seconds(Unit, IDuration),
     case lists:keysearch(Phase,#arrivalphase.phase,AList) of
         false ->
@@ -177,14 +180,14 @@ parse(Element = #xmlElement{name=arrivalphase},
     end;
         
 %% Parsing the users element
-parse(Element = #xmlElement{name=users},
+parse(Element = #xmlElement{name=users, attributes=Attrs},
       Conf = #config{arrivalphases=[CurA | AList]}) ->
     
-    Max = getAttr(integer,Element#xmlElement.attributes, maxnumber, infinity),
+    Max = getAttr(integer,Attrs, maxnumber, infinity),
 	?LOGF("Maximum number of users ~p~n",[Max],?INFO),
 
-    InterArrival  = getAttr(float_or_integer,Element#xmlElement.attributes, interarrival),
-    Unit  = getAttr(string,Element#xmlElement.attributes, unit, "second"),
+    InterArrival  = getAttr(float_or_integer,Attrs, interarrival),
+    Unit  = getAttr(string,Attrs, unit, "second"),
     Intensity= 1/(1000 * to_seconds(Unit,InterArrival)),
 
     lists:foldl(fun parse/2,
@@ -194,21 +197,21 @@ parse(Element = #xmlElement{name=users},
                 Element#xmlElement.content);
 
 %% Parsing the session element
-parse(Element = #xmlElement{name=session},
+parse(Element = #xmlElement{name=session, attributes=Attrs},
       Conf = #config{session_tab = Tab, curid= PrevReqId, sessions=SList}) ->
 
     Id = length(SList),
-    Type        = getAttr(atom,Element#xmlElement.attributes, type),
+    Type        = getAttr(atom,Attrs, type),
 
     {ok, Ack_def, Persistent_def} = Type:session_defaults(),
 
-    Msg_Ack     = getAttr(atom,Element#xmlElement.attributes, messages_ack, Ack_def),
-    Persistent  = getAttr(atom,Element#xmlElement.attributes, persistent, Persistent_def),
+    Msg_Ack     = getAttr(atom,Attrs, messages_ack, Ack_def),
+    Persistent  = getAttr(atom,Attrs, persistent, Persistent_def),
 
-    Name        = getAttr(Element#xmlElement.attributes, name),
+    Name        = getAttr(Attrs, name),
     ?LOGF("Session name for id ~p is ~p~n",[Id+1, Name],?NOTICE),
     ?LOGF("Session type: ack=~p persistent=~p~n",[Msg_Ack, Persistent],?NOTICE),
-    Popularity = getAttr(float_or_integer, Element#xmlElement.attributes, popularity),
+    Popularity = getAttr(float_or_integer, Attrs, popularity),
     case Id of 
         0 -> ok; % first session 
         _ -> 
@@ -229,10 +232,10 @@ parse(Element = #xmlElement{name=session},
                 Element#xmlElement.content);
 
 %%%% Parsing the transaction element
-parse(Element = #xmlElement{name=transaction},
+parse(Element = #xmlElement{name=transaction, attributes=Attrs},
       Conf = #config{session_tab = Tab, sessions=[CurS|_], curid=Id}) ->
 
-    RawName = getAttr(Element#xmlElement.attributes, name),
+    RawName = getAttr(Attrs, name),
     {ok, [{atom,1,Name}],1} = erl_scan:string("tr_"++RawName),
     ?LOGF("Add start transaction ~p in session ~p as id ~p",
          [Name,CurS#session.id,Id+1],?INFO),
@@ -248,11 +251,11 @@ parse(Element = #xmlElement{name=transaction},
     NewConf#config{curid=NewId+1} ;
 
 %%% Parsing the dyn_variable element
-parse(Element = #xmlElement{name=dyn_variable},
+parse(Element = #xmlElement{name=dyn_variable, attributes=Attrs},
       Conf=#config{sessions=[CurS|_],dynvar=DynVar}) ->
-    StrName  = getAttr(Element#xmlElement.attributes, name),
+    StrName  = getAttr(Attrs, name),
     DefaultRegExp = "name=(\"|')"++ StrName ++"(\"|') +value=(\"|')\\([^\"]+\\)(\"|')",%'
-    RegExp  = getAttr(string,Element#xmlElement.attributes, regexp, DefaultRegExp),
+    RegExp  = getAttr(string,Attrs, regexp, DefaultRegExp),
     {ok, [{atom,1,Name}],1} = erl_scan:string(StrName),
     ?LOGF("Add new regexp: ~s ~n", [RegExp],?INFO),
     %% precompilation of the regexp
@@ -266,12 +269,12 @@ parse(Element = #xmlElement{name=dyn_variable},
     Conf#config{ dynvar= NewDynVar };
 
 %%% Parsing the request element
-parse(Element = #xmlElement{name=request},
+parse(Element = #xmlElement{name=request, attributes=Attrs},
       Conf = #config{sessions=[CurSess|_], curid=Id}) ->
 
     Type  = CurSess#session.type,
-    SubstitutionFlag  = getAttr(atom,Element#xmlElement.attributes, subst, false),
-    MatchRegExp  = getAttr(string,Element#xmlElement.attributes, match, undefined),
+    SubstitutionFlag  = getAttr(atom,Attrs, subst, false),
+    MatchRegExp  = getAttr(string,Attrs, match, undefined),
 
     %% we must parse dyn_variable before; unfortunately, there is no
     %% lists:keysort with Fun. FIXME: this will not work if a protocol
@@ -286,27 +289,27 @@ parse(Element = #xmlElement{name=request},
                  SortedContent);
 
 %%% Parsing the default element
-parse(Element = #xmlElement{name=default},
+parse(Element = #xmlElement{name=default, attributes=Attrs},
       Conf = #config{session_tab = Tab}) ->
-    case getAttr(atom,Element#xmlElement.attributes, type) of
+    case getAttr(atom,Attrs, type) of
         "" ->
-            case getAttr(Element#xmlElement.attributes, name) of
+            case getAttr(Attrs, name) of
                 "thinktime" ->
-                    Val = getAttr(integer,Element#xmlElement.attributes, value),
+                    Val = getAttr(integer,Attrs, value),
                     ets:insert(Tab,{{thinktime, value}, Val}),
-                    Random = getAttr(string,Element#xmlElement.attributes, random,
+                    Random = getAttr(string,Attrs, random,
                                      ?config(thinktime_random)),
                     ets:insert(Tab,{{thinktime, random}, Random}),
-                    Override = getAttr(string, Element#xmlElement.attributes, override,
+                    Override = getAttr(string, Attrs, override,
                                        ?config(thinktime_override)),
                     ets:insert(Tab,{{thinktime, override}, Override}),
                     lists:foldl( fun parse/2, Conf, Element#xmlElement.content);
                 "ssl_ciphers" ->
-                    Cipher = getAttr(string,Element#xmlElement.attributes, value, negociate),
+                    Cipher = getAttr(string,Attrs, value, negociate),
                     lists:foldl( fun parse/2, Conf#config{ssl_ciphers=Cipher},
                                  Element#xmlElement.content);
                 "file_server" ->
-                    FileName = getAttr(Element#xmlElement.attributes, value),
+                    FileName = getAttr(Attrs, value),
                     lists:foldl( fun parse/2, Conf#config{file_server=FileName},
                                  Element#xmlElement.content);
                 _ ->                    
@@ -319,7 +322,7 @@ parse(Element = #xmlElement{name=default},
             
 
 %%% Parsing the thinktime element
-parse(Element = #xmlElement{name=thinktime},
+parse(Element = #xmlElement{name=thinktime, attributes=Attrs},
       Conf = #config{cur_req_id=ReqId, curid=Id, session_tab = Tab, 
                      sessions = [CurS |_]}) ->
     DefThink = get_default(Tab,{thinktime, value},thinktime_value),
@@ -329,8 +332,8 @@ parse(Element = #xmlElement{name=thinktime},
             "true" -> 
                 {DefThink, DefRandom};
             "false" ->
-                CurThink = getAttr(integer,Element#xmlElement.attributes, value,DefThink),
-                CurRandom=getAttr(string,Element#xmlElement.attributes,random,DefRandom),
+                CurThink = getAttr(integer, Attrs, value,DefThink),
+                CurRandom=getAttr(string, Attrs,random,DefRandom),
                 {CurThink, CurRandom}
         end,
     RealThink = case Randomize of
@@ -361,8 +364,8 @@ parse(_Element, Conf = #config{}) ->
 %%% Function: getAttr/2
 %%% Purpose:  search the attibute list for the given one
 %%%----------------------------------------------------------------------
-getAttr(Attr, Name) -> getAttr(string,Attr, Name, "").
-getAttr(Type, Attr, Name) -> getAttr(Type,Attr, Name, "").
+getAttr(Attr, Name) -> getAttr(string, Attr, Name, "").
+getAttr(Type, Attr, Name) -> getAttr(Type, Attr, Name, "").
 
 getAttr(Type, [Attr = #xmlAttribute{name=Name}|_], Name, Default) ->
     case Attr#xmlAttribute.value of

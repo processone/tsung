@@ -47,6 +47,8 @@
           dynvar,
           sessions=[],
           session_tab,
+          use_controller_vm = false, % if true, start the first launcher in the
+                                     % same vm as the controller if possible
           curthink, %% temporary var (current request think)
           curid = 0, %% temporary var (current request id (can be transaction))
           cur_req_id = 0, %% temporary var (current real request id)
@@ -58,7 +60,7 @@
         {host,
          weight   = 1,
          maxusers,
-         ip         = []
+         ip       = []
         }).
 -record(server,	
         {host,

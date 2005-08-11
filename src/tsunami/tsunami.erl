@@ -44,7 +44,7 @@ start(_Type, _StartArgs) ->
     LogFile = filename:join(LogFileEnc, atom_to_list(node()) ++ ".log"),
     LogDir = filename:dirname(LogFile),
     ok = ts_utils:make_dir_rec(LogDir),
-	ok = error_logger:logfile({open, LogFile}),
+	error_logger:logfile({open, LogFile}),
     ?LOG("ok~n",?DEB),
     case ts_sup:start_link() of
 		{ok, Pid} -> 
