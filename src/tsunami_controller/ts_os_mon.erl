@@ -401,16 +401,23 @@ active_host([{HostStr, snmp} | HostList], State=#state{snmp_pids=PidList}) ->
 
 %% monitoring using a remote erlang node
 active_host([{Host, erlang}| HostList], State=#state{erlang_pids=PidList}) ->
-    {ok, Node} = start_beam(Host),
-	Pong= net_adm:ping(Node),
-    ?LOGF("ping ~p: ~p~n", [Node, Pong],?INFO),
-    load_code([Node]),
 	%% because the stats for cpu has to be called from the same
 	%% process (otherwise the same value (mean cpu% since the system
 	%% last boot)  is returned by cpu_sup:util), we spawn a process
 	%% that will do the stats collection and send it to ts_mon
-    Pid = spawn_link(Node, ?MODULE, updatestats, [State#state.interval, State#state.mon_server]),
-    active_host(HostList, State#state{erlang_pids=[{Pid, Node}|PidList]}).
+    {ok, LocalHost} = ts_utils:node_to_hostname(node()),
+    {Pid, RemNode} = case list_to_atom(LocalHost) of
+              Host -> % same host, don't start a new beam
+                  { spawn_link(updatestats, [State#state.interval, State#state.mon_server]), node()};
+              _ ->
+                  {ok, Node} = start_beam(Host),
+                  Pong= net_adm:ping(Node),
+                  ?LOGF("ping ~p: ~p~n", [Node, Pong],?INFO),
+                  load_code([Node]),
+                  { spawn_link(Node, ?MODULE, updatestats, [State#state.interval, State#state.mon_server]),
+                    Node }
+          end,
+    active_host(HostList, State#state{erlang_pids=[{Pid, RemNode}|PidList]}).
 
 %%--------------------------------------------------------------------
 %% Function: analyse_snmp_data/3
