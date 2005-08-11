@@ -87,11 +87,6 @@ launch({Node, Arrivals}) ->
 %%----------------------------------------------------------------------
 init([]) ->
     ts_utils:init_seed(),
-%	ControllerNode = ?config(controller),
-%	Res = net_adm:ping(ControllerNode),
-%	global:sync(),
-%	?LOGF("ping ~p: ~p (nodes=~p)~n",[ControllerNode, Res,nodes()],?NOTICE),
-
     {ok, MyHostName} = ts_utils:node_to_hostname(node()),
 	{ok, wait, #state{myhostname=MyHostName}}.
 
