@@ -1,6 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 
-HOST=`hostname -s`
+UNAME=`uname`
+case $UNAME in
+        "Linux") HOSTNAME=`hostname -s`;;
+        "SunOS") HOSTNAME=`hostname`;;
+        *) HOSTNAME=`hostname -s`;;
+esac
 
 INSTALL_DIR=@prefix@/lib/erlang/
 ERL=@ERL@
