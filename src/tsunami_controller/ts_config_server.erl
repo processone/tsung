@@ -317,8 +317,7 @@ handle_cast({newbeam, Host, []}, State=#state{last_beam_id = NodeId,
     {value, {env, OldEnv}} = lists:keysearch(env, 1, AppSpec),
     NewEnv = [ {dump,atom_to_list(?config(dump))},
                {debug_level,integer_to_list(?config(debug_level))},
-               {log_file,LogDir},
-               {controller, atom_to_list(node())}],
+               {log_file,LogDir}],
 
     RepKeyFun = fun(Tuple, List) ->  lists:keyreplace(element(1, Tuple), 1, List, Tuple) end,
     Env = lists:foldl(RepKeyFun, OldEnv, NewEnv),
@@ -355,8 +354,7 @@ handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
         " -pa ", PA2,
         " -tsunami debug_level ", integer_to_list(?config(debug_level)),
         " -tsunami dump ", atom_to_list(?config(dump)),
-        " -tsunami log_file ", LogDir,
-        " -tsunami controller ", atom_to_list(node())
+        " -tsunami log_file ", LogDir
         ]),
     ?LOGF("starting newbeam on host ~p from ~p with Args ~p~n", [Host, State#state.hostname, Args], ?INFO), 
     case slave:start_link(Host, Name, Args) of
