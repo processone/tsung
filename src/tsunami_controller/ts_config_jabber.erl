@@ -47,10 +47,11 @@
 parse_config(Element = #xmlElement{name=jabber}, 
              Config=#config{curid= Id, session_tab = Tab,
                             sessions = [CurS |_]}) ->
-    Type  = ts_config:getAttr(atom,Element#xmlElement.attributes, type, chat),
+    TypeStr  = ts_config:getAttr(string,Element#xmlElement.attributes, type, "chat"),
     Ack  = ts_config:getAttr(atom,Element#xmlElement.attributes, ack, no_ack),
     Dest= ts_config:getAttr(atom,Element#xmlElement.attributes, destination,random),
     Size= ts_config:getAttr(integer,Element#xmlElement.attributes, size,0),
+    Type= list_to_atom(TypeStr),
 
 	Domain  =ts_config:get_default(Tab, jabber_domain_name, jabber_domain),
 	UserName=ts_config:get_default(Tab, jabber_username, jabber_username),
