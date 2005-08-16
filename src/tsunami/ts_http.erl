@@ -72,7 +72,7 @@ get_message(Req=#http_request{method=post}) ->
 %% Purpose: Parse the given data and return a new state
 %% Args:	Data (binary)
 %%			State (record)
-%% Returns: NewState (record)
+%% Returns: {NewState, Options for socket (list), Close}
 %%----------------------------------------------------------------------
 parse(Data, State) ->
 	ts_http_common:parse(Data, State).
