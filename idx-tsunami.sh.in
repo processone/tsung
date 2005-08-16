@@ -2,9 +2,9 @@
 
 UNAME=`uname`
 case $UNAME in
-        "Linux") HOSTNAME=`hostname -s`;;
-        "SunOS") HOSTNAME=`hostname`;;
-        *) HOSTNAME=`hostname -s`;;
+        "Linux") HOST=`hostname -s`;;
+        "SunOS") HOST=`hostname`;;
+        *) HOST=`hostname -s`;;
 esac
 
 INSTALL_DIR=@prefix@/lib/erlang/
