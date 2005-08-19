@@ -145,11 +145,16 @@ registration(#jabber{username=Name,passwd=Passwd})->
 %% send message to defined user at the Service (aim, ...)
 message(Dest, Jabber, Service) when is_integer(Dest) ->
 	message(integer_to_list(Dest),Jabber, Service);
-message(Dest, #jabber{size=Size, username=Username}, Service) when is_integer(Size) ->
+message(Dest, #jabber{size=Size,data=undefined, username=Username}, Service) when is_integer(Size) ->
     list_to_binary([
                     "<message id='",ts_msg_server:get_id(list), "' to='",
                     Username, Dest, "@", Service,
-                    "'><body>",garbage(Size), "</body></message>"]).
+                    "'><body>",garbage(Size), "</body></message>"]);
+message(Dest, #jabber{data=Data, username=Username}, Service) when is_list(Data) ->
+    list_to_binary([
+                    "<message id='",ts_msg_server:get_id(list), "' to='",
+                    Username, Dest, "@", Service,
+                    "'><body>",Data, "</body></message>"]).
 
 %% generate list of given size. implement by duplicating list of
 %% length 10 to be faster

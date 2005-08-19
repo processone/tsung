@@ -24,8 +24,11 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
+-record(jabber_dyndata, {id}).
+
 -record(jabber, {dest,
 				 size,
+                 data,
 				 type,
 				 jud_param,
 				 cle,

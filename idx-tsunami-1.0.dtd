@@ -105,4 +105,5 @@
     destination NMTOKEN #IMPLIED
     id          NMTOKEN #IMPLIED
     size        NMTOKEN #IMPLIED
+    data        CDATA   #IMPLIED
     type        NMTOKEN #REQUIRED>

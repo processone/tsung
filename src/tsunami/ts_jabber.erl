@@ -37,7 +37,7 @@
 		 add_dynparams/4,
 		 get_message/1,
 		 session_defaults/0,
-         subst/1,
+         subst/2,
          parse/2,
          parse_config/2,
          new_session/0]).
@@ -88,18 +88,20 @@ parse_config(Element, Conf) ->
 %%----------------------------------------------------------------------
 add_dynparams(_Subst,[], Param, _Host) ->
 	Param;
-add_dynparams(_Subst,DynData, Param, _Host) ->
-	Param#jabber{id=DynData}.
+add_dynparams(false,#dyndata{proto=DynData}, Param, _Host) ->
+	Param#jabber{id=DynData#jabber_dyndata.id};
+add_dynparams(true,#dyndata{proto=JabDynData, dynvars=DynVars}, Param, _Host) ->
+    ?DebugF("Subst in jabber msg (~p) with dyn vars ~p~n",[Param,DynVars]),
+    NewParam = subst(Param, DynVars),
+	NewParam#jabber{id=JabDynData#jabber_dyndata.id}.
 
 init_dynparams() ->
-	ts_user_server:get_idle().
+    #dyndata{proto=#jabber_dyndata{id=ts_user_server:get_idle()}}.
 
 
 %%----------------------------------------------------------------------
-%% Function: subst/1
-%% Purpose: Replace on the fly dynamic element of the HTTP request
-%%          For the moment, this feature is not supported for the Jabber
-%%          protocol
+%% Function: subst/2
+%% Purpose: Replace on the fly dynamic element
 %%----------------------------------------------------------------------
-subst(Req) ->
-    Req.
+subst(Req=#jabber{data=Data}, DynData) ->
+    Req#jabber{data=ts_search:subst(Data,DynData)}.

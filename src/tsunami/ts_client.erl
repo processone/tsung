@@ -571,6 +571,7 @@ handle_data_msg(Data,State=#state_rcv{request=Req,datasize=OldSize})
   when Req#ts_request.ack==global ->
     %% FIXME: we do not report size now (but after receiving the
     %% global ack), the size stats may be not very accurate.
+    %% FIXME: should we set buffer and parse for dynvars ?
     DataSize = size(Data), 
     {State#state_rcv{ datasize = OldSize + DataSize},[]};
 
@@ -579,9 +580,10 @@ handle_data_msg(Data, State=#state_rcv{request=Req}) ->
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     NewBuffer= set_new_buffer(Req, State#state_rcv.buffer, Data),
 	DataSize = size(Data),
-    {PageTimeStamp, _} = update_stats(State#state_rcv{datasize=DataSize,
+    {PageTimeStamp, DynVars} = update_stats(State#state_rcv{datasize=DataSize,
                                                       buffer=NewBuffer}),
-    {State#state_rcv{ack_done = true, buffer= NewBuffer,
+    NewDynData = concat_dynvars(DynVars, State#state_rcv.dyndata),
+    {State#state_rcv{ack_done = true, buffer= NewBuffer,dyndata = NewDynData,
                      page_timestamp= PageTimeStamp},[]}.
 
 

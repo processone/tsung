@@ -44,13 +44,17 @@
 %% Purpose: parse a request defined in the XML config file
 %%----------------------------------------------------------------------
 %% TODO: Dynamic content substitution is not yet supported for Jabber
-parse_config(Element = #xmlElement{name=jabber}, 
+parse_config(Element = #xmlElement{name=dyn_variable}, Conf = #config{}) ->
+    ts_config:parse(Element,Conf);
+parse_config(Element = #xmlElement{name=jabber},
              Config=#config{curid= Id, session_tab = Tab,
-                            sessions = [CurS |_]}) ->
+                            match=MatchRegExp, dynvar=DynVar,
+                            subst= SubstFlag, sessions = [CurS |_]}) ->
     TypeStr  = ts_config:getAttr(string,Element#xmlElement.attributes, type, "chat"),
     Ack  = ts_config:getAttr(atom,Element#xmlElement.attributes, ack, no_ack),
     Dest= ts_config:getAttr(atom,Element#xmlElement.attributes, destination,random),
     Size= ts_config:getAttr(integer,Element#xmlElement.attributes, size,0),
+    Data= ts_config:getAttr(string,Element#xmlElement.attributes, data,undefined),
     Type= list_to_atom(TypeStr),
 
 	Domain  =ts_config:get_default(Tab, jabber_domain_name, jabber_domain),
@@ -58,10 +62,14 @@ parse_config(Element = #xmlElement{name=jabber},
 	Passwd  =ts_config:get_default(Tab, jabber_passwd, jabber_passwd),
 
 	Msg=#ts_request{ack   = Ack,
+                    dynvar_specs= DynVar,
                     endpage = true,
+                    subst   = SubstFlag,
+                    match   = MatchRegExp,
                     param = #jabber{domain = Domain,
                                     username = UserName,
                                     passwd = Passwd,
+                                    data   = Data,
                                     type   = Type,
                                     dest   = Dest,
                                     size   = Size
@@ -70,7 +78,7 @@ parse_config(Element = #xmlElement{name=jabber},
     ts_config:mark_prev_req(Id-1, Tab, CurS),
     ets:insert(Tab,{{CurS#session.id, Id}, Msg}),
     lists:foldl( fun(A,B) -> ts_config:parse(A,B) end,
-                 Config#config{},
+                 Config#config{dynvar=undefined},
                  Element#xmlElement.content);
 %% Parsing default values
 parse_config(Element = #xmlElement{name=default}, Conf = #config{session_tab = Tab}) ->
