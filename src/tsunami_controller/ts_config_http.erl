@@ -121,7 +121,8 @@ parse_config(Element = #xmlElement{name=default}, Conf = #config{session_tab = T
 %% Parsing user_agent
 parse_config(Element = #xmlElement{name=user_agent}, Conf = #config{session_tab = Tab}) ->
     Freq= ts_config:getAttr(integer,Element#xmlElement.attributes, frequency),
-    [Val]= ts_config:getText(Element#xmlElement.content),
+    [ValRaw]= ts_config:getText(Element#xmlElement.content),
+    Val = ts_utils:clean_str(ValRaw),
     ?LOGF("Get user agent: ~p ~p ~n",[Freq, Val],?WARN),
     Previous = case ets:lookup(Tab, {http_user_agent, value}) of 
                    [] ->

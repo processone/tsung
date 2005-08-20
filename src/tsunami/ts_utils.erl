@@ -39,7 +39,7 @@
          foreach_parallel/2, spawn_par/3, inet_setopts/3,
          stop_all/2, stop_all/3, stop_all/4, join/2, split2/2, split2/3,
          make_dir_rec/1, is_ip/1, from_https/1, to_https/1,
-         check_sum/3, check_sum/5]).
+         check_sum/3, check_sum/5, clean_str/1]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -114,6 +114,17 @@ elapsed({Before1, Before2, Before3}, {After1, After2, After3}) ->
 %%----------------------------------------------------------------------
 chop(String) ->
 	string:strip(String, right, 10).
+
+%%----------------------------------------------------------------------
+%% Func: clean_str/1
+%% Purpose: remove "\n" and space at the beginning and at that end of a string
+%%----------------------------------------------------------------------
+clean_str(String) ->
+	Str1 = string:strip(String, both, 10),
+	Str2 = string:strip(Str1),
+	Str3 = string:strip(Str2, both, 10),
+	string:strip(Str3).
+    
 
 %%----------------------------------------------------------------------
 %% Func: init_seed/0
