@@ -33,10 +33,10 @@
  
  <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1>
 <TR><TD ALIGN=left NOWRAP bgcolor="#f2f2f2">Version:</TD>
-<TD ALIGN=left NOWRAP>1.14</TD>
+<TD ALIGN=left NOWRAP>1.16</TD>
 </TR>
 <TR><TD ALIGN=left NOWRAP bgcolor="#f2f2f2">Date :</TD>
-<TD ALIGN=left NOWRAP>July 9, 2005</TD>
+<TD ALIGN=left NOWRAP>August 20, 2005</TD>
 </TR></TABLE>
  </DIV>
 
@@ -74,37 +74,41 @@
 <LI><A HREF="#htoc15">3.4&nbsp;&nbsp;Feedback</A>
 </UL>
 <LI><A HREF="#htoc16">4&nbsp;&nbsp;HTTP benchmark approach</A>
-<LI><A HREF="#htoc17">5&nbsp;&nbsp;Understanding idx-tsunami.xml configuration file</A>
 <UL><LI>
-<A HREF="#htoc18">5.1&nbsp;&nbsp;File structure</A>
-<LI><A HREF="#htoc19">5.2&nbsp;&nbsp;Clients and server</A>
-<LI><A HREF="#htoc20">5.3&nbsp;&nbsp;Monitoring</A>
-<LI><A HREF="#htoc21">5.4&nbsp;&nbsp;Defining the load progression</A>
-<LI><A HREF="#htoc22">5.5&nbsp;&nbsp;Default values</A>
-<LI><A HREF="#htoc23">5.6&nbsp;&nbsp;Sessions</A>
-<LI><A HREF="#htoc24">5.7&nbsp;&nbsp;Dynamic substitutions</A>
-<UL><LI>
-<A HREF="#htoc25">5.7.1&nbsp;&nbsp;Reading external file</A>
+<A HREF="#htoc17">4.1&nbsp;&nbsp;benchmarking a HTTP proxy server</A>
 </UL>
-<LI><A HREF="#htoc26">5.8&nbsp;&nbsp;Dynamic variables</A>
-<LI><A HREF="#htoc27">5.9&nbsp;&nbsp;Checking the server's response</A>
-</UL>
-<LI><A HREF="#htoc28">6&nbsp;&nbsp;Statistics and reports</A>
+<LI><A HREF="#htoc18">5&nbsp;&nbsp;Jabber benchmark approach</A>
+<LI><A HREF="#htoc19">6&nbsp;&nbsp;Understanding idx-tsunami.xml configuration file</A>
 <UL><LI>
-<A HREF="#htoc29">6.1&nbsp;&nbsp;Generating the report</A>
-<LI><A HREF="#htoc30">6.2&nbsp;&nbsp;Tsunami summary</A>
-<LI><A HREF="#htoc31">6.3&nbsp;&nbsp;Graphical overview</A>
-</UL>
-<LI><A HREF="#htoc32">7&nbsp;&nbsp;References</A>
-<LI><A HREF="#htoc33">8&nbsp;&nbsp;Acknowledgments</A>
-<LI><A HREF="#htoc34">A&nbsp;&nbsp;Frequently Asked Questions</A>
+<A HREF="#htoc20">6.1&nbsp;&nbsp;File structure</A>
+<LI><A HREF="#htoc21">6.2&nbsp;&nbsp;Clients and server</A>
+<LI><A HREF="#htoc22">6.3&nbsp;&nbsp;Monitoring</A>
+<LI><A HREF="#htoc23">6.4&nbsp;&nbsp;Defining the load progression</A>
+<LI><A HREF="#htoc24">6.5&nbsp;&nbsp;Default values</A>
+<LI><A HREF="#htoc25">6.6&nbsp;&nbsp;Sessions</A>
+<LI><A HREF="#htoc26">6.7&nbsp;&nbsp;Dynamic substitutions</A>
 <UL><LI>
-<A HREF="#htoc35">A.1&nbsp;&nbsp;IDX-tsunami crash when I start it </A>
-<LI><A HREF="#htoc36">A.2&nbsp;&nbsp;IDX-tsunami still doesn't start ...</A>
-<LI><A HREF="#htoc37">A.3&nbsp;&nbsp;IDX-tsunami still crash/fails when I start it !</A>
-<LI><A HREF="#htoc38">A.4&nbsp;&nbsp;What is the format of the stats file idx-tsunami.log ?</A>
-<LI><A HREF="#htoc39">A.5&nbsp;&nbsp;How can i specify the number of concurrent users ?</A>
-<LI><A HREF="#htoc40">A.6&nbsp;&nbsp;SNMP monitoring doesn't work ?!</A>
+<A HREF="#htoc27">6.7.1&nbsp;&nbsp;Reading external file</A>
+</UL>
+<LI><A HREF="#htoc28">6.8&nbsp;&nbsp;Dynamic variables</A>
+<LI><A HREF="#htoc29">6.9&nbsp;&nbsp;Checking the server's response</A>
+</UL>
+<LI><A HREF="#htoc30">7&nbsp;&nbsp;Statistics and reports</A>
+<UL><LI>
+<A HREF="#htoc31">7.1&nbsp;&nbsp;Generating the report</A>
+<LI><A HREF="#htoc32">7.2&nbsp;&nbsp;Tsunami summary</A>
+<LI><A HREF="#htoc33">7.3&nbsp;&nbsp;Graphical overview</A>
+</UL>
+<LI><A HREF="#htoc34">8&nbsp;&nbsp;References</A>
+<LI><A HREF="#htoc35">9&nbsp;&nbsp;Acknowledgments</A>
+<LI><A HREF="#htoc36">A&nbsp;&nbsp;Frequently Asked Questions</A>
+<UL><LI>
+<A HREF="#htoc37">A.1&nbsp;&nbsp;IDX-tsunami crash when I start it </A>
+<LI><A HREF="#htoc38">A.2&nbsp;&nbsp;IDX-tsunami still doesn't start ...</A>
+<LI><A HREF="#htoc39">A.3&nbsp;&nbsp;IDX-tsunami still crash/fails when I start it !</A>
+<LI><A HREF="#htoc40">A.4&nbsp;&nbsp;What is the format of the stats file idx-tsunami.log ?</A>
+<LI><A HREF="#htoc41">A.5&nbsp;&nbsp;How can i specify the number of concurrent users ?</A>
+<LI><A HREF="#htoc42">A.6&nbsp;&nbsp;SNMP monitoring doesn't work ?!</A>
 </UL>
 </UL>
 
@@ -250,7 +254,7 @@ Authentication, presence and register messages
 <H3><A NAME="htoc9">2.4</A>&nbsp;&nbsp;Complete reports set</H3><!--SEC END -->
 
 Measures and statistics produced by Tsunami are extremely feature-full.
-They are all represented as a graphic. <EM>IDX-Tsumami</EM> produces
+They are all represented as a graphic. <EM>IDX-Tsunami</EM> produces
 statistics regarding:
 <UL><LI>
 <EM>Performance</EM>: response time, connection time, decomposition
@@ -316,6 +320,7 @@ Erlang/OTP R9C-0 and up (included R10B-6)
  <LI>for distributed tests, you need an ssh access to remote
  machines without password (use a RSA/DSA key without pass-phrase or
  ssh-agent)
+<LI>You also need bash
 </UL>
 <!--TOC subsection Compilation-->
 
@@ -392,18 +397,172 @@ the number of simultaneous users for each given phase.
  <TT>idx-tsunami start</TT>
 <LI>Wait for the end of the test or stop by hand with
  <TT>idx-tsunami stop</TT> (reports can also be generated during the
- test (see § <A HREF="#sec:statistics-reports">6</A>) : the statistics are
+ test (see § <A HREF="#sec:statistics-reports">7</A>) : the statistics are
  updated every 10 seconds). For a brief summary of the current
  activity, use <TT>idx-tsunami status</TT>
 <LI>Analyse results, change parameters and relaunch another benchmark 
 </OL>
+<!--TOC subsection benchmarking a HTTP proxy server-->
+
+<H3><A NAME="htoc17">4.1</A>&nbsp;&nbsp;benchmarking a HTTP proxy server</H3><!--SEC END -->
+
+By default, the HTTP plugin is used to benchmark HTTP servers. But you
+can also benchmark HTTP Proxy server. To do that, you must add :<BR>
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
+<TR><TD><TABLE BORDER=0 CELLPADDING=0
+ CELLSPACING=0>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+<TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
+<TR><TD><PRE>
+  &lt;default type="ts_http" name="http_use_server_as_proxy" value="true"&gt;&lt;/default&gt;
+</PRE></TD>
+</TR></TABLE></TD>
+<TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR></TABLE></TD>
+</TR></TABLE><BR>
+<!--TOC section Jabber benchmark approach-->
+
+<H2><A NAME="htoc18">5</A>&nbsp;&nbsp;Jabber benchmark approach</H2><!--SEC END -->
+
+This paragraph explain how to write a session for Jabber.<BR>
+<BR>
+There are two difference between HTTP and Jabber testing:
+<OL type=1><LI>
+There is no recorder for Jabber, so you have to write your
+ sessions by hand (an example is provided in
+ <A HREF="#sec:sessions:jabber">6.6</A>).
+<LI>the jabber plugin do not parse XML; instead it use packets
+ acknowledgement. The rest of this paragraph will explain this
+ feature.
+</OL>
+Since the jabber plugin do not parse XML (historically, it was for
+performance reasons), and also due to the bidirectional nature of the
+jabber protocol, you must have a way to say when a request is
+finished. There are 3 possibilities:
+<DL COMPACT=compact><DT>
+ <B>ack=local</B><DD> as soon as a packet is received from the server, the
+request is consider over. Hence if you use a local ack with a request
+that do not require a response from the server (presence for ex.), it
+ will wait forever (or until a timeout is reached).
+ <DT><B>ack=no_ack</B><DD> as soon as the request is send, it is consider over (do
+not wait for incoming data)
+ <DT><B>ack=global</B><DD> synchronized users. its main use is for waiting for all
+users to connect before sending messages. To do that, set a request
+with global ack (it can be the first presence msg:<BR>
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
+<TR><TD><TABLE BORDER=0 CELLPADDING=0
+ CELLSPACING=0>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+<TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
+<TR><TD><PRE>
+   &lt;request&gt; &lt;jabber type="presence" ack="global"/&gt; &lt;/request&gt;
+</PRE></TD>
+</TR></TABLE></TD>
+<TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR></TABLE></TD>
+</TR></TABLE>)<BR>
+<BR>
+You also have to specify the number of users to be connected:<BR>
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
+<TR><TD><TABLE BORDER=0 CELLPADDING=0
+ CELLSPACING=0>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+<TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
+<TR><TD><PRE>
+&lt;default type="ts_jabber" name="global_number" value="100"&gt;&lt;/default&gt;
+</PRE></TD>
+</TR></TABLE></TD>
+<TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR></TABLE></TD>
+</TR></TABLE><BR>
+To be sure that exactly <TT>global_number</TT> users are started, add the
+<FONT COLOR=purple>'maxnumber'</FONT> attribute to <TT>'users'</TT><BR>
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
+<TR><TD><TABLE BORDER=0 CELLPADDING=0
+ CELLSPACING=0>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+<TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
+<TR><TD><PRE>
+    &lt;users maxnumber="100" interarrival="1.0" unit="second"&gt;&lt;/users&gt;
+</PRE></TD>
+</TR></TABLE></TD>
+<TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR></TABLE></TD>
+</TR></TABLE><BR>
+If you do not specify maxnumber, the global ack will be reset every
+<TT>global_number</TT> users
+</DL>
 <!--TOC section Understanding idx-tsunami.xml configuration file-->
 
-<H2><A NAME="htoc17">5</A>&nbsp;&nbsp;Understanding idx-tsunami.xml configuration file</H2><!--SEC END -->
+<H2><A NAME="htoc19">6</A>&nbsp;&nbsp;Understanding idx-tsunami.xml configuration file</H2><!--SEC END -->
 
 <!--TOC subsection File structure-->
 
-<H3><A NAME="htoc18">5.1</A>&nbsp;&nbsp;File structure</H3><!--SEC END -->
+<H3><A NAME="htoc20">6.1</A>&nbsp;&nbsp;File structure</H3><!--SEC END -->
 
 Scenarios are enclosed into idx-tsunami tags:<BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
@@ -440,7 +599,7 @@ Scenarios are enclosed into idx-tsunami tags:<BR>
 </TR></TABLE><BR>
 <!--TOC subsection Clients and server-->
 
-<H3><A NAME="htoc19">5.2</A>&nbsp;&nbsp;Clients and server</H3><!--SEC END -->
+<H3><A NAME="htoc21">6.2</A>&nbsp;&nbsp;Clients and server</H3><!--SEC END -->
 
 Scenarios start with clients (IDX-Tsunami cluster) and server definitions:<BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
@@ -495,7 +654,7 @@ The server is the entry point into the cluster (Only one server
 <BR>
 <!--TOC subsection Monitoring-->
 
-<H3><A NAME="htoc20">5.3</A>&nbsp;&nbsp;Monitoring</H3><!--SEC END -->
+<H3><A NAME="htoc22">6.3</A>&nbsp;&nbsp;Monitoring</H3><!--SEC END -->
 
 Scenarios can contain optional monitoring informations. For example,
 here is a cluster monitoring definition based on Erlang agents, for
@@ -547,7 +706,7 @@ Erlang/OTP on all nodes otherwise it may not work properly !</B><BR>
 <BR>
 <!--TOC subsection Defining the load progression-->
 
-<H3><A NAME="htoc21">5.4</A>&nbsp;&nbsp;Defining the load progression</H3><!--SEC END -->
+<H3><A NAME="htoc23">6.4</A>&nbsp;&nbsp;Defining the load progression</H3><!--SEC END -->
 
 The load progression is set-up by defining several arrival phases:<BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
@@ -601,7 +760,7 @@ the theoretical average throughput will be 1000 requests/ sec).<BR>
 <BR>
 <!--TOC subsection Default values-->
 
-<H3><A NAME="htoc22">5.5</A>&nbsp;&nbsp;Default values</H3><!--SEC END -->
+<H3><A NAME="htoc24">6.5</A>&nbsp;&nbsp;Default values</H3><!--SEC END -->
 
 Default values can be set-up globally: thinktime between requests
 in the scenario and ssl cipher algorithms. These values overrides
@@ -670,9 +829,46 @@ example of default values for Jabber:<BR>
 </TR></TABLE></TD>
 </TR></TABLE></TD>
 </TR></TABLE><BR>
+For HTTP, you can set the UserAgent values, using a frequency for each
+value (the sum of all frequencies must be equal to 100)<BR>
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
+<TR><TD><TABLE BORDER=0 CELLPADDING=0
+ CELLSPACING=0>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+<TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
+<TR><TD><PRE>
+  &lt;default type="ts_http" name="user_agent"&gt;
+    &lt;user_agent frequency="80"&gt;
+       Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.7.8) Gecko/20050513 Galeon/1.3.21
+    &lt;/user_agent&gt;
+    &lt;user_agent frequency="20"&gt;
+      Mozilla/5.0 (Windows; U; Windows NT 5.2; fr-FR; rv:1.7.8) Gecko/20050511 Firefox/1.0.4
+    &lt;/user_agent&gt;
+  &lt;/default&gt;
+</PRE></TD>
+</TR></TABLE></TD>
+<TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR></TABLE></TD>
+</TR></TABLE><BR>
 <!--TOC subsection Sessions-->
 
-<H3><A NAME="htoc23">5.6</A>&nbsp;&nbsp;Sessions</H3><!--SEC END -->
+<H3><A NAME="htoc25">6.6</A>&nbsp;&nbsp;Sessions</H3><!--SEC END -->
 
 Sessions define the content of the scenario itself. They describe
 the requests to execute.<BR>
@@ -745,6 +941,9 @@ session<CODE>'</CODE>s popularity must be 100. <BR>
 This example show several features of the HTTP protocol support in
 Tsunami: GET and POST request, basic authentication, transaction for
 statistics definition, ...<BR>
+<BR>
+<A NAME="sec:sessions:jabber"></A>
+<BR>
 <BR>
 Here is an example of a session definition for the Jabber protocol:
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
@@ -841,7 +1040,7 @@ Here is an example of a session definition for the Jabber protocol:
 </TR></TABLE><BR>
 <!--TOC subsection Dynamic substitutions-->
 
-<H3><A NAME="htoc24">5.7</A>&nbsp;&nbsp;Dynamic substitutions</H3><!--SEC END -->
+<H3><A NAME="htoc26">6.7</A>&nbsp;&nbsp;Dynamic substitutions</H3><!--SEC END -->
 
 Dynamic substitution are mark-up placed in element of the scenario.
 For HTTP, this mark-up can be placed in basic authentication (www_authenticate
@@ -854,7 +1053,10 @@ request tag has the attribute <FONT COLOR=purple>subst="true"</FONT>.<BR>
 <BR>
 When a substitution is asked, the substitution mark-up is replaced by
 the result of the call to the Erlang function:
-<FONT COLOR=purple>Module:Function(Pid)</FONT>.<BR>
+<FONT COLOR=purple>Module:Function(Pid, DynData)</FONT> where Pid is the erlang process
+id of the current virtual user and DynData the list of all Dynamic
+variables (<B>Warn: before version, 1.0.4, the argument was just the
+ Pid !</B>).<BR>
 <BR>
 Here is an example of use of substitution in a Tsunami scenario:<BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
@@ -907,7 +1109,7 @@ Here is an example of use of substitution in a Tsunami scenario:<BR>
 -module(symbol).
 -export([new/1]).
 
-new(Pid) -&gt;
+new({Pid, DynData}) -&gt;
     case random:uniform(3) of
         1 -&gt; "IBM";
         2 -&gt; "MSFT";
@@ -964,7 +1166,7 @@ If you want to set unique id, you can use the built-in function
 </TR></TABLE><BR>
 <!--TOC subsubsection Reading external file-->
 
-<H4><A NAME="htoc25">5.7.1</A>&nbsp;&nbsp;Reading external file</H4><!--SEC END -->
+<H4><A NAME="htoc27">6.7.1</A>&nbsp;&nbsp;Reading external file</H4><!--SEC END -->
 
 <B>New in 1.0.3</B>: A new experimental module ts_file_server is available. You
 can use it to read external files. For example, if you need to read user
@@ -1067,12 +1269,12 @@ in your session, use something like: <BR>
 </TR></TABLE></TD>
 </TR></TABLE></TD>
 </TR></TABLE><BR>
-Two functions are availables: <TT>ts_file_server:get_next_line</TT> and
+Two functions are available: <TT>ts_file_server:get_next_line</TT> and
 <TT>ts_file_server:get_random_line</TT><BR>
 <BR>
 <!--TOC subsection Dynamic variables-->
 
-<H3><A NAME="htoc26">5.8</A>&nbsp;&nbsp;Dynamic variables</H3><!--SEC END -->
+<H3><A NAME="htoc28">6.8</A>&nbsp;&nbsp;Dynamic variables</H3><!--SEC END -->
 
 In some cases, you may want to use a value given by the server in a
 response later in the session, and this value is <B>dynamically
@@ -1214,7 +1416,7 @@ hand, for example to get the title of a HTML page:
 </TR></TABLE><BR>
 <!--TOC subsection Checking the server's response-->
 
-<H3><A NAME="htoc27">5.9</A>&nbsp;&nbsp;Checking the server's response</H3><!--SEC END -->
+<H3><A NAME="htoc29">6.9</A>&nbsp;&nbsp;Checking the server's response</H3><!--SEC END -->
 
 With the attribute <TT>match</TT> in a <TT>request</TT> tag, you can
 check the server's response against a given string. If it matches, this
@@ -1258,7 +1460,7 @@ HTML body, otherwise not. To check that:
 </TR></TABLE><BR>
 <!--TOC section Statistics and reports-->
 
-<H2><A NAME="htoc28">6</A>&nbsp;&nbsp;Statistics and reports</H2><!--SEC END -->
+<H2><A NAME="htoc30">7</A>&nbsp;&nbsp;Statistics and reports</H2><!--SEC END -->
 
 <A NAME="sec:statistics-reports"></A>
 Available stats:
@@ -1278,7 +1480,7 @@ counter for each response status (200, 404, etc.)
 </UL>
 <!--TOC subsection Generating the report-->
 
-<H3><A NAME="htoc29">6.1</A>&nbsp;&nbsp;Generating the report</H3><!--SEC END -->
+<H3><A NAME="htoc31">7.1</A>&nbsp;&nbsp;Generating the report</H3><!--SEC END -->
 
 cd to the log directory of your test (say
 <TT>~/.idx-tsunami/log/20040325-16:33/</TT>) and use the script
@@ -1313,7 +1515,7 @@ cd to the log directory of your test (say
 </TR></TABLE><BR>
 <!--TOC subsection Tsunami summary-->
 
-<H3><A NAME="htoc30">6.2</A>&nbsp;&nbsp;Tsunami summary</H3><!--SEC END -->
+<H3><A NAME="htoc32">7.2</A>&nbsp;&nbsp;Tsunami summary</H3><!--SEC END -->
 
 <BLOCKQUOTE><DIV ALIGN=center><HR WIDTH="80%" SIZE=2></DIV>
  <DIV ALIGN=center>
@@ -1326,7 +1528,7 @@ cd to the log directory of your test (say
 <DIV ALIGN=center><HR WIDTH="80%" SIZE=2></DIV></BLOCKQUOTE>
 <!--TOC subsection Graphical overview-->
 
-<H3><A NAME="htoc31">6.3</A>&nbsp;&nbsp;Graphical overview</H3><!--SEC END -->
+<H3><A NAME="htoc33">7.3</A>&nbsp;&nbsp;Graphical overview</H3><!--SEC END -->
 
 <BLOCKQUOTE><DIV ALIGN=center><HR WIDTH="80%" SIZE=2></DIV>
  <DIV ALIGN=center>
@@ -1339,7 +1541,7 @@ cd to the log directory of your test (say
 <DIV ALIGN=center><HR WIDTH="80%" SIZE=2></DIV></BLOCKQUOTE>
 <!--TOC section References-->
 
-<H2><A NAME="htoc32">7</A>&nbsp;&nbsp;References</H2><!--SEC END -->
+<H2><A NAME="htoc34">8</A>&nbsp;&nbsp;References</H2><!--SEC END -->
 
 <UL><LI>
 <EM>IDX-Tsunami</EM> home page: <A HREF="http://tsunami.idealx.org/"><TT>http://tsunami.idealx.org/</TT></A>
@@ -1352,7 +1554,7 @@ Joe Armstrong, Stockholm, 2003 <SUP><A NAME="text3" HREF="#note3">3</A></SUP>
 </UL>
 <!--TOC section Acknowledgments-->
 
-<H2><A NAME="htoc33">8</A>&nbsp;&nbsp;Acknowledgments</H2><!--SEC END -->
+<H2><A NAME="htoc35">9</A>&nbsp;&nbsp;Acknowledgments</H2><!--SEC END -->
 
 The first version of this document was based on a talk given by Mickael
 Rémond<SUP><A NAME="text4" HREF="#note4">4</A></SUP> during an Object
@@ -1361,11 +1563,11 @@ Web benchmarking workshop in April 2004 (more info at
 <BR>
 <!--TOC section Frequently Asked Questions-->
 
-<H2><A NAME="htoc34">A</A>&nbsp;&nbsp;Frequently Asked Questions</H2><!--SEC END -->
+<H2><A NAME="htoc36">A</A>&nbsp;&nbsp;Frequently Asked Questions</H2><!--SEC END -->
 
 <!--TOC subsection IDX-tsunami crash when I start it -->
 
-<H3><A NAME="htoc35">A.1</A>&nbsp;&nbsp;IDX-tsunami crash when I start it </H3><!--SEC END -->
+<H3><A NAME="htoc37">A.1</A>&nbsp;&nbsp;IDX-tsunami crash when I start it </H3><!--SEC END -->
 
 Does your Erlang system has ssl support enabled ?<BR>
 <BR>
@@ -1403,7 +1605,7 @@ to test it:
 </TR></TABLE><BR>
 <!--TOC subsection IDX-tsunami still doesn't start ...-->
 
-<H3><A NAME="htoc36">A.2</A>&nbsp;&nbsp;IDX-tsunami still doesn't start ...</H3><!--SEC END -->
+<H3><A NAME="htoc38">A.2</A>&nbsp;&nbsp;IDX-tsunami still doesn't start ...</H3><!--SEC END -->
 
 Most of the time, when a crash happened at startup without any traffic 
 generated, the problem arise because the main Erlang controller node cannot 
@@ -1501,9 +1703,40 @@ Note that you do not need to use the 127.0.0.1 address in the config file.
 It will not work if you use it as the injection interface. The shortname 
 of your client machine should not refer to this address.<BR>
 <BR>
+<B>New in 1.0.4</B>: If you don't use the distributed feature of
+Tsunami and have trouble to start a remote beam on a local machine,
+you can set the <TT>'use_controller_vm'</TT> attribute to true, for ex.:<BR>
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
+<TR><TD><TABLE BORDER=0 CELLPADDING=0
+ CELLSPACING=0>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+<TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
+<TR><TD><PRE>
+  &lt;client host="mymachine" use_controller_vm="true"&gt;
+</PRE></TD>
+</TR></TABLE></TD>
+<TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR></TABLE></TD>
+</TR></TABLE><BR>
 <!--TOC subsection IDX-tsunami still crash/fails when I start it !-->
 
-<H3><A NAME="htoc37">A.3</A>&nbsp;&nbsp;IDX-tsunami still crash/fails when I start it !</H3><!--SEC END -->
+<H3><A NAME="htoc39">A.3</A>&nbsp;&nbsp;IDX-tsunami still crash/fails when I start it !</H3><!--SEC END -->
 
 First look at the log file
 <TT>~/.idx-tsunami/log/XXX/tsunami_controller@yourhostname'</TT> to see
@@ -1523,7 +1756,7 @@ an erlang shell on the <TT>tsunami_controller</TT> node. Use
 Erlang.
 <!--TOC subsection What is the format of the stats file idx-tsunami.log ?-->
 
-<H3><A NAME="htoc38">A.4</A>&nbsp;&nbsp;What is the format of the stats file idx-tsunami.log ?</H3><!--SEC END -->
+<H3><A NAME="htoc40">A.4</A>&nbsp;&nbsp;What is the format of the stats file idx-tsunami.log ?</H3><!--SEC END -->
 <BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -1582,7 +1815,7 @@ or for HTTP returns code, size ...<BR>
 <BR>
 <!--TOC subsection How can i specify the number of concurrent users ?-->
 
-<H3><A NAME="htoc39">A.5</A>&nbsp;&nbsp;How can i specify the number of concurrent users ?</H3><!--SEC END -->
+<H3><A NAME="htoc41">A.5</A>&nbsp;&nbsp;How can i specify the number of concurrent users ?</H3><!--SEC END -->
 
 You can't. But it's on purpose: the load generated by
 <EM>IDX-Tsunami</EM> is dependent on the arrival time between new
@@ -1598,7 +1831,7 @@ XML config file).<BR>
 <BR>
 <!--TOC subsection SNMP monitoring doesn't work ?!-->
 
-<H3><A NAME="htoc40">A.6</A>&nbsp;&nbsp;SNMP monitoring doesn't work ?!</H3><!--SEC END -->
+<H3><A NAME="htoc42">A.6</A>&nbsp;&nbsp;SNMP monitoring doesn't work ?!</H3><!--SEC END -->
 
 SNMP currently doesn't work with erlang R10B and up. Use erlang R9C-2 if you
 need SNMP.<BR>

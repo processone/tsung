@@ -168,7 +168,7 @@ distribution (exponential currently)
 \subsection{Complete reports set}
 
 Measures and statistics produced by Tsunami are extremely feature-full.
-They are all represented as a graphic. \program{IDX-Tsumami} produces
+They are all represented as a graphic. \program{IDX-Tsunami} produces
 statistics regarding:
 
 \begin{itemize}
@@ -283,6 +283,67 @@ the number of simultaneous users for each given phase.
   activity, use \command{idx-tsunami status}
 \item Analyse results, change parameters and relaunch another benchmark 
 \end{enumerate}
+
+\subsection{benchmarking a HTTP proxy server}
+
+By default, the HTTP plugin is used to benchmark HTTP servers. But you
+can also benchmark HTTP Proxy server. To do that, you must add :
+
+\begin{Verbatim}
+  <default type="ts_http" name="http_use_server_as_proxy" value="true"></default>
+\end{Verbatim}
+
+\section{Jabber benchmark approach}
+
+This paragraph explain how to write a session for Jabber.
+
+There are two difference between HTTP and Jabber testing:
+\begin{enumerate}
+\item There is no recorder for Jabber, so you have to write your
+  sessions by hand (an example is provided in
+  \ref{sec:sessions:jabber}).
+\item the jabber plugin do not parse XML; instead it use packets
+  acknowledgement. The rest of this paragraph will explain this
+  feature.
+\end{enumerate}
+
+Since the jabber plugin do not parse XML (historically, it was for
+performance reasons), and also due to the bidirectional nature of the
+jabber protocol, you must have a way to say when a request is
+finished. There are 3 possibilities:
+
+\begin{description}
+ \item[ack=local] as soon as a packet is received from the server, the
+request is consider over. Hence if you use a local ack with a request
+that do not require a response from the server (presence for ex.), it
+ will wait forever (or until a timeout is reached).
+ \item[ack=no_ack] as soon as the request is send, it is consider over (do
+not wait for incoming data)
+ \item[ack=global] synchronized users. its main use is for waiting for all
+users to connect before sending messages. To do that, set a request
+with global ack (it can be the first presence msg:
+
+\begin{Verbatim}
+   <request> <jabber type="presence" ack="global"/> </request>
+\end{Verbatim}
+)
+
+You also have to specify the number of users to be connected:
+
+\begin{Verbatim}
+<default type="ts_jabber" name="global_number" value="100"></default>
+\end{Verbatim}
+
+To be sure that exactly \varname{global_number} users are started, add the
+\userinput{'maxnumber'} attribute to \varname{'users'}
+
+\begin{Verbatim}
+    <users maxnumber="100" interarrival="1.0" unit="second"></users>
+\end{Verbatim}
+
+If you do not specify maxnumber, the global ack will be reset every
+\varname{global_number} users
+\end{description}
 
 \section{Understanding idx-tsunami.xml configuration file}
 
@@ -410,6 +471,19 @@ example of default values for Jabber:
   <default type="ts_jabber" name="passwd" value="glop" />
 \end{Verbatim}
 
+For HTTP, you can set the UserAgent values, using a frequency for each
+value (the sum of all frequencies must be equal to 100)
+
+\begin{Verbatim}
+  <default type="ts_http" name="user_agent">
+    <user_agent frequency="80">
+       Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.7.8) Gecko/20050513 Galeon/1.3.21
+    </user_agent>
+    <user_agent frequency="20">
+      Mozilla/5.0 (Windows; U; Windows NT 5.2; fr-FR; rv:1.7.8) Gecko/20050511 Firefox/1.0.4
+    </user_agent>
+  </default>
+\end{Verbatim}
 
 
 \subsection{Sessions}
@@ -463,6 +537,8 @@ This example show several features of the HTTP protocol support in
 Tsunami: GET and POST request, basic authentication, transaction for
 statistics definition, ...
 
+
+\label{sec:sessions:jabber}
 \par Here is an example of a session definition for the Jabber protocol:
 \begin{Verbatim}
  <session popularity="70" name="jabber-example" type="ts_jabber">
@@ -545,7 +621,12 @@ request tag has the attribute \userinput{subst="true"}.
 
 When a substitution is asked, the substitution mark-up is replaced by
 the result of the call to the Erlang function:
-\userinput{Module:Function(Pid)}.
+\userinput{Module:Function({Pid, DynData})} where Pid is the erlang process
+id of the current virtual user and DynData the list of all Dynamic
+variables (\strong{Warn: before version, 1.0.4, the argument was just the
+  Pid !}).
+
+
 
 Here is an example of use of substitution in a Tsunami scenario:
 
@@ -563,7 +644,7 @@ Here is an example of use of substitution in a Tsunami scenario:
 -module(symbol).
 -export([new/1]).
 
-new(Pid) ->
+new({Pid, DynData}) ->
     case random:uniform(3) of
         1 -> "IBM";
         2 -> "MSFT";
@@ -617,7 +698,7 @@ in your session, use something like:
 \end{Verbatim}
 
 
-Two functions are availables: \varname{ts_file_server:get_next_line} and
+Two functions are available: \varname{ts_file_server:get_next_line} and
 \varname{ts_file_server:get_random_line}
 
 
@@ -852,6 +933,13 @@ Note that you do not need to use the 127.0.0.1 address in the config file.
 It will not work if you use it as the injection interface. The shortname  
 of your client machine should not refer to this address.
 
+\strong{New in 1.0.4}: If you don't use the distributed feature of
+Tsunami and have trouble to start a remote beam on a local machine,
+you can set the \varname{'use_controller_vm'} attribute to true, for ex.:
+
+\begin{Verbatim}
+  <client host="mymachine" use_controller_vm="true">
+\end{Verbatim}
 
 \subsection{IDX-tsunami still crash/fails  when I start it !}
 First look at the log file
