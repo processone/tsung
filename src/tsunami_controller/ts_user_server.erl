@@ -75,7 +75,12 @@ get_unique_id(Pid)->
     ID = pid_to_list(Pid),
     [ID1,ID2,ID3] = string:tokens(ID, [$<,$.,$>]),
     %% here we assume that the node name is tsunamiXX@whatever
-    [_, NodeId|_] = string:tokens(atom_to_list(node()),[$@,$i]),
+    NodeId = case string:tokens(atom_to_list(node()),[$@,$i]) of
+                 ["tsunam", "_controller"|_] -> 
+                     "0"; % when the launcher is run on the controller
+                 ["tsunam", Id|_] -> 
+                     Id 
+             end,
     %% all ID's must be < 65536 !
     ?DebugF("got unique id from ~p",[[ID1, ID3, NodeId, ID2]]),
     {ok, Int} = list_to_id([ID1, ID3, NodeId, ID2],65536),
