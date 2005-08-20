@@ -71,7 +71,7 @@ get_id()->
     gen_server:call({global, ?MODULE }, get_id).
 
 %% return a unique id. use the pid and the node name to set an id.
-get_unique_id(Pid)->
+get_unique_id({Pid, DynData})->
     ID = pid_to_list(Pid),
     [ID1,ID2,ID3] = string:tokens(ID, [$<,$.,$>]),
     %% here we assume that the node name is tsunamiXX@whatever

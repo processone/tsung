@@ -95,7 +95,7 @@ extract_function([$%,$%|Tail], DynVar, Acc, Mod, Fun) ->
     ?DebugF("found function name: ~p~n",[lists:reverse(Fun)]),
     Module = list_to_atom(Mod),
     Function = list_to_atom(lists:reverse(Fun)),
-    Result = case Module:Function(self()) of 
+    Result = case Module:Function({self(), DynVar }) of 
                  Int when is_integer(Int) ->
                      lists:reverse(integer_to_list(Int));
                  Str when is_list(Str) ->
