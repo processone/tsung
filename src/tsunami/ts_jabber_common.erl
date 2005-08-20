@@ -33,7 +33,12 @@
 -include("ts_profile.hrl").
 -include("ts_jabber.hrl").
 
-%get_random_message (#jabber{type = connect, size = Size, dest = Dest}) ->
+%%----------------------------------------------------------------------
+%% Func: get_message/1
+%% Args: #jabber record
+%% Returns: binary
+%% Purpose: Build a message/request from a #jabber record
+%%----------------------------------------------------------------------
 get_message(Jabber=#jabber{type = 'connect'}) ->
     connect(Jabber);
 get_message(#jabber{type = 'close', id=Id}) ->
@@ -71,7 +76,7 @@ get_message(Jabber=#jabber{type = 'chat', dest=random, domain=Domain}) ->
 get_message(Jabber=#jabber{type = 'chat', dest=unique, domain=Domain})->
     {Dest, _} = ts_user_server:get_first(),
     message(Dest, Jabber, Domain);
-get_message(Jabber=#jabber{type = 'chat', id =Id, dest = Dest, domain=Domain}) ->
+get_message(Jabber=#jabber{type = 'chat', id=Id, dest = Dest, domain=Domain}) ->
     ?DebugF("~w -> ~w ~n", [Id,  Dest]),
     message(Dest, Jabber, Domain);
 get_message(#jabber{type = 'iq:roster:set', id=Id, dest = online,username=User,domain=Domain}) ->
@@ -93,12 +98,19 @@ get_message(#jabber{type = 'iq:roster:set',dest = offline,username=User,domain=D
 get_message(#jabber{type = 'iq:roster:get', id = Id,username=User,domain=Domain}) ->
     request(roster_get, User, Domain, Id);
 
+get_message(Jabber=#jabber{type = 'raw'}) ->
+    raw(Jabber);
+
 
 get_message(Jabber=#jabber{username = Name, passwd= Passwd, id=Id}) ->
     FullName = Name ++ Id,
     FullPasswd = Passwd ++ Id,
 	get_message2(Jabber#jabber{username=FullName,passwd=FullPasswd}).
 
+
+%%----------------------------------------------------------------------
+%% Func: get_message2/1
+%%----------------------------------------------------------------------
 get_message2(Jabber=#jabber{type = 'register'}) ->
     registration(Jabber);
 get_message2(Jabber=#jabber{type = 'authenticate'}) ->
@@ -107,8 +119,9 @@ get_message2(Jabber=#jabber{type = 'authenticate'}) ->
 
 
 
-%%%%%%%%%%%
-%% Connect messages
+%%----------------------------------------------------------------------
+%% Func: connect/1
+%%----------------------------------------------------------------------
 connect(#jabber{domain=Domain}) ->
     list_to_binary([
 	  "<stream:stream  id='",
@@ -117,10 +130,15 @@ connect(#jabber{domain=Domain}) ->
 	  Domain,
 	  "' xmlns='jabber:client' xmlns:stream='http://etherx.jabber.org/streams'>"]).
 
-%% Close session
+%%----------------------------------------------------------------------
+%% Func: close/0
+%% Purpose: close jabber session
+%%----------------------------------------------------------------------
 close () -> list_to_binary("</stream:stream>").
 
+%%----------------------------------------------------------------------
 %% generic Authentication message (auth or register)
+%%----------------------------------------------------------------------
 auth(#jabber{username=Name,passwd=Passwd})->
 	auth(Name, Passwd, "auth").
 
@@ -133,16 +151,17 @@ auth(Username, Passwd, Type) ->
    "<resource>tsunami</resource>",
    "<password>", Passwd, "</password></query></iq>"]).
 
-%% register message
+%%----------------------------------------------------------------------
+%% Func: registration/1
+%% Purpose: register message
+%%----------------------------------------------------------------------
 registration(#jabber{username=Name,passwd=Passwd})->
 	auth(Name, Passwd, "register").
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%              <message>
-%%
-%
-
-%% send message to defined user at the Service (aim, ...)
+%%----------------------------------------------------------------------
+%% Func: message/3
+%% Purpose: send message to defined user at the Service (aim, ...)
+%%----------------------------------------------------------------------
 message(Dest, Jabber, Service) when is_integer(Dest) ->
 	message(integer_to_list(Dest),Jabber, Service);
 message(Dest, #jabber{size=Size,data=undefined, username=Username}, Service) when is_integer(Size) ->
@@ -156,9 +175,12 @@ message(Dest, #jabber{data=Data, username=Username}, Service) when is_list(Data)
                     Username, Dest, "@", Service,
                     "'><body>",Data, "</body></message>"]).
 
-%% generate list of given size. implement by duplicating list of
-%% length 10 to be faster
-garbage(Size) when Size > 10->
+%%----------------------------------------------------------------------
+%% Func:    garbage/1
+%% Purpose: generate list of given size. Implemented by duplicating list
+%% of length 10 to be faster
+%%----------------------------------------------------------------------
+garbage(Size) when Size >= 10 ->
 	Msg= lists:duplicate(Size div 10,"0123456789"),
 	case Size rem 10 of
 		0->
@@ -170,15 +192,13 @@ garbage(Size)->
 	lists:duplicate(Size rem 10,"a").
 	
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%              <presence>
-%%
-%
-
-%% presence
+%%----------------------------------------------------------------------
+%% Func: presence/0
+%%----------------------------------------------------------------------
 presence() -> 
 	list_to_binary([ "<presence id='",ts_msg_server:get_id(list),"' />"]).
 
+%%----------------------------------------------------------------------
 presence(roster, Jabber=#jabber{dest=Dest}) when is_integer(Dest)->
     presence(roster, Jabber#jabber{dest=integer_to_list(Dest)}) ;
 presence(roster, #jabber{dest=Dest, domain=Domain, username=UserName})->
@@ -188,10 +208,9 @@ presence(roster, #jabber{dest=Dest, domain=Domain, username=UserName})->
 	  "' to='", DestName, "@" , Domain,
 	  "' type='subscribed'/>"]).
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%              <iq>
-
+%%----------------------------------------------------------------------
+%% Func: request/4
+%%----------------------------------------------------------------------
 request(roster_set, UserName, Domain, Id) when is_integer(Id)->
     request(roster_set, UserName, Domain, integer_to_list(Id));
 request(roster_set, UserName, Domain, Id)->
@@ -206,9 +225,11 @@ request(roster_get, _UserName, _Domain, _Id)->
 	  "<iq id='" ,ts_msg_server:get_id(list),
 	  "' type='get'><query xmlns='jabber:iq:roster'></query></iq>"]).
 
-%% In : Intensity : inverse of the mean of inter arrival of messages
-%%      N         : number of messages
-%% Out: 
+%%----------------------------------------------------------------------
+%% Func: get_random_params/5
+%% Args: Intensity (inverse of the mean of inter arrival of messages)
+%%       N         : number of messages
+%%----------------------------------------------------------------------
 get_random_params(_Intensity, 1, Size, Type, L) -> 
     L ++ [#ts_request{ ack = no_ack, 
 		    thinktime = ?config(messages_last_time),
@@ -224,6 +245,14 @@ get_random_params(Intensity, N, Size, Type, L)  ->
 get_random_params(Intensity, N, Size, Type) when is_integer(N), N >= 0 ->
     get_random_params(Intensity, N, Size, Type, []).
 
+
+%%%----------------------------------------------------------------------
+%%% Func: raw/1
+%%%----------------------------------------------------------------------
+raw(#jabber{data=undefined}) ->
+    << >>;
+raw(#jabber{data=Data}) when is_list(Data) ->
+    list_to_binary(Data).
 
 
 
