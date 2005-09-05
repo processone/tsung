@@ -70,6 +70,7 @@ Comment rajouter un nouveau protocole ou étendre un existant:
          parse_config/2,
          new_session/0]).
 
+cf. fichier template doc/ts_template.erl
 
 Références:
 ==========

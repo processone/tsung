@@ -82,6 +82,8 @@ How to add a new protocol, or extend an existing one:
          parse_config/2,
          new_session/0]).
 
+There is a template file is doc/ts_template.erl
+
 
 References:
 ==========
