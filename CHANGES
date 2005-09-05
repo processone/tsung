@@ -1,16 +1,20 @@
-1.0.3 -> 1.0.4 Minor feature enhancements
+1.0.3 -> 1.1.0 Major feature enhancements (5 Sep 2005)
     - new feature: HTTP proxy load testing in now possible (set
       http_use_server_as_proxy to true)
+    - add dynamic substitution support for jabber
+    - add 'raw' type of msg for Jabber (use the new 'data' attribute) 
+    - add the dynamic variable list to dynamic substitutions
     - UserAgent is now customizable for HTTP testing
-    - Add an option to run all components (controller and lauchner)
+    - Add an option to run all components (controller and launcher)
       within a single erlang beam (use_controller_vm). Should ease
       idx-tsunami use for light load tests
+    - fix bash script for solaris (jasonwtucker@gmail.com)
     - fix: several 'idx-tsunami status' can be run simultaneously
       (reported by Adam Spotton)
     - internal: Host header is now set during configuration phase 
     - fix last phase duration
 
-1.0.2 -> 1.0.3 Minor bugfixes  (8 Jul 2005)
+1.0.2 -> 1.0.3 Minor bugfixes (8 Jul 2005)
     - add ts_file_server module
     - fix broken https recording
     Thx to johann.messner@jku.at for bug reporting :
