@@ -289,7 +289,7 @@ release: Makefile
 	tar zcf tmp.tgz $(SRC) $(SRC_APPFILES) $(INC_FILES) \
 		$(CONTROLLER_SRC) $(CONTROLLER_SRC_APPFILES) \
 		$(RECORDER_SRC) $(RECORDER_SRC_APPFILES) $(TEMPLATES) \
-		 doc/*.txt doc/*.fig doc/*.png doc/Makefile doc/*.sgml \
+		doc/*.erl doc/*.txt doc/*.fig doc/*.png doc/Makefile doc/*.sgml \
 		$(USERMANUAL) $(USERMANUAL_SRC) $(USERMANUAL_IMG) $(DTD) \
 		COPYING README LISEZMOI TODO $(CONFFILE_SRC) \
 		priv/builder.erl idx-tsunami.sh.in vsn.mk \
