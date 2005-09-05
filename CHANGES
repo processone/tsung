@@ -13,6 +13,7 @@
       (reported by Adam Spotton)
     - internal: Host header is now set during configuration phase 
     - fix last phase duration
+    - fix recorder: must log absolute url if only the scheme has changed
 
 1.0.2 -> 1.0.3 Minor bugfixes (8 Jul 2005)
     - add ts_file_server module
