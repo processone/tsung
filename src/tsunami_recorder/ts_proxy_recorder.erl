@@ -54,7 +54,8 @@
 
 -record(state, {log_file,    % logfile name
                 logfd,       % logfile IODevice
-                prev_port,   % previous port  
+                prev_port,   % previous port
+                prev_scheme, % previous scheme
                 prev_host,   % previous hostname 
                 timestamp=0, % last request date
                 thinktime_low = 1000 % dot not record thinktime less than this
@@ -204,21 +205,21 @@ code_change(_OldVsn, State, _Extra) ->
 %% Purpose: record request given State=#state and Request=#http_request
 %% Returns: {ok, NewState}
 %%--------------------------------------------------------------------
-record_http_request(State=#state{prev_host=Host, prev_port=Port},
+record_http_request(State=#state{prev_host=Host, prev_port=Port, prev_scheme=Scheme},
                     #http_request{method  = Method, url = RequestURI,
                                   version = HTTPVersion,
                                   headers = ParsedHeader,body=Body}) ->
     
     FullURL = ts_utils:to_https({url, RequestURI}),
 
-    {URL,NewPort,NewHost} = 
+    {URL,NewPort,NewHost, NewScheme} = 
         case ts_config_http:parse_URL(FullURL) of 
-              #url{path=RelURL, host=Host, port=Port,querypart=[]} ->
-                {RelURL, Port, Host};
-              #url{path=RelURL, host=Host, port=Port,querypart=Args} ->
-                {RelURL++"?"++Args, Port, Host};
-              #url{path=RelURL, host=Host2,port=Port2,querypart=Args } ->
-                {FullURL,Port2,Host2 }
+            #url{path=RelURL,host=Host,port=Port,querypart=[],scheme=Scheme}->
+                {RelURL, Port, Host, Scheme};
+            #url{path=RelURL,host=Host,port=Port,querypart=Args,scheme=Scheme}->
+                {RelURL++"?"++Args, Port, Host, Scheme};
+            #url{path=RelURL,host=Host2,port=Port2,querypart=Args,scheme=Sc2}->
+                {FullURL,Port2,Host2,Sc2 }
         end,
     Fd = State#state.logfd,
     URL2 = ts_utils:export_text(URL),
@@ -245,7 +246,7 @@ record_http_request(State=#state{prev_host=Host, prev_port=Port},
 
 	io:format(Fd,"</http></request>~n",[]),
 
-    {ok, State#state{prev_port=NewPort,prev_host=NewHost}}.
+    {ok,State#state{prev_port=NewPort,prev_host=NewHost,prev_scheme=NewScheme}}.
 
 %%--------------------------------------------------------------------
 %% Func: decode_basic_auth/1
