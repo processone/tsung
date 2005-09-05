@@ -133,6 +133,9 @@ agents on remote servers or \emph{SNMP}
 \item \emph{XML configuration system}: complex user's scenarios are written
   in XML. Scenarios can be written with a simple browser using the
   tsunami recorder (for HTTP only).
+\item \emph{Dynamic scenarios}: You can get dynamic data from the
+  server under load (without writing any code) and reinject it in
+  subsequent requests.
 \item \emph{Mixed behaviours}: several sessions can be used to simulate
 different type of users during the same benchmark. You can define
 the proportion of the various behaviours in the benchmark scenario. 
@@ -147,13 +150,15 @@ distribution (exponential currently)
 
 
 \begin{itemize}
-\item HTTP/1.0 and HTTP/1.1 support 
+\item HTTP/1.0 and HTTP/1.1 support
 \item GET and POST requests 
 \item Cookies: Automatic cookies management 
 \item \verb|'|GET If-modified since\verb|'| type of request 
 \item WWW-authentication Basic 
 \item Proxy mode to record sessions using a Web browser 
-\item SOAP support using the HTTP mode (the SOAPAction HTTP header is handled). 
+\item SOAP support using the HTTP mode (the SOAPAction HTTP header is
+  handled).
+\item HTTP server or proxy server load testing.
 \end{itemize}
 
 \subsection{Jabber related features}
@@ -162,7 +167,8 @@ distribution (exponential currently)
 \item Authentication, presence and register messages 
 \item Chat messages to online or offline users 
 \item Roster set and get requests 
-\item Global users\verb|'| synchronization can be set on specific actions 
+\item Global users\verb|'| synchronization can be set on specific actions
+\item raw XML messages
 \end{itemize}
 
 \subsection{Complete reports set}
@@ -192,7 +198,8 @@ are gathered in real-time.
 
 
 \begin{itemize}
-\item \emph{Outstanding performance} and \emph{distributed benchmark}
+\item \emph{High performance} and \emph{distributed benchmark}: You
+  can use IDX-Tsunami to simulate tens of thousands of virtual users.
 \item \emph{Ease of use}: The hard work is already done for all supported
 protocol. No need to write complex scripts. Dynamic scenarios only
 requires small trivial piece of code.
@@ -232,8 +239,8 @@ supported platforms (Solaris, *BSD,  Win32 and MacOS-X).
     reports (see \url{http://template-toolkit.org/})
   \item for distributed tests, you need an ssh access to remote
     machines without password (use a RSA/DSA key without pass-phrase or
-    ssh-agent)
-\item You also need bash
+    ssh-agent) (rsh is also supported)
+\item bash
 \end{itemize}
 \subsection{Compilation}
 
@@ -459,6 +466,7 @@ those set in session configuration tags if override is true.
            value="EXP1024-RC4-SHA,EDH-RSA-DES-CBC3-SHA"/>
 \end{Verbatim}
 
+\subsubsection{Default values: Jabber}
 
 Default values for specific protocols can be defined. Here is an
 example of default values for Jabber:
@@ -467,12 +475,19 @@ example of default values for Jabber:
   <default type="ts_jabber" name="global_number" value="5" />
   <default type="ts_jabber" name="userid_max" value="100" />
   <default type="ts_jabber" name="domain" value="jabber.org" />
-  <default type="ts_jabber" name="username" value="glop" />
-  <default type="ts_jabber" name="passwd" value="glop" />
+  <default type="ts_jabber" name="username" value="myuser" />
+  <default type="ts_jabber" name="passwd" value="mypasswd" />
 \end{Verbatim}
 
-For HTTP, you can set the UserAgent values, using a frequency for each
-value (the sum of all frequencies must be equal to 100)
+Using these values, users will be \userinput{myuserXXX} where XXX is an integer in
+the interval [1:userid_max] and passwd  \userinput{mypasswdXXX}
+
+
+\subsubsection{Default values: HTTP}
+
+For HTTP, you can set the UserAgent values (\string{available since
+  Idx-Tsunami 1.1.0}), using a frequency for each value (the sum of all
+frequencies must be equal to 100)
 
 \begin{Verbatim}
   <default type="ts_http" name="user_agent">
@@ -543,69 +558,40 @@ statistics definition, ...
 \begin{Verbatim}
  <session popularity="70" name="jabber-example" type="ts_jabber">
 
-    <request> <jabber type="connect" ack="no_ack" />
-                    </request>
+    <request> <jabber type="connect" ack="no_ack" /> </request>
+
     <thinktime value="2"></thinktime>
+
     <transaction name="authenticate">
-      <request> <jabber type="authenticate" ack="local">
-                      </jabber> </request>
+      <request> <jabber type="authenticate" ack="local"> </jabber> </request>
     </transaction>
 
-    <request> <jabber type="presence" ack="no_ack"/> 
-                </request>
-    <thinktime value="2"></thinktime>
+    <request> <jabber type="presence" ack="no_ack"/> </request>
 
-    <request> <jabber type="register" ack="no_ack" 
-                     id="new"></jabber> </request>
+    <thinktime value="2"></thinktime>
 
     <transaction name="roster">
-      <request><jabber type="iq:roster:set" ack="no_ack" 
-                              destination="offline" />
-      </request>
-      <request><jabber type="presence:roster" ack="no_ack"
-                              destination="previous"/>
-      </request>
-      <request><jabber type="iq:roster:set" ack="no_ack"
-                             destination="online"/>
-      </request>
-      <request><jabber type="iq:roster:get" ack="no_ack">
-                  </jabber> </request>
-    </transaction>
-    <thinktime value="2"></thinktime>
-
-    <request> <jabber type="chat" ack="no_ack"
-                           size="56"/></request>
-    <thinktime value="30"></thinktime>
-
-    <transaction name="global_msg">
-    <request> <jabber type="chat" ack="global" size="56"
-                           destination="random"/></request>
+      <request><jabber type="iq:roster:get" ack="local"> </jabber> </request>
     </transaction>
 
     <thinktime value="30"></thinktime>
 
     <transaction name="online">
-    <request> <jabber type="chat" ack="no_ack" size="16"
-                          destination="online"/></request>
+    <request> <jabber type="chat" ack="no_ack" size="16" destination="online"/></request>
     </transaction>
     <thinktime value="30"></thinktime>
 
     <transaction name="offline">
-      <request> <jabber type="chat" ack="no_ack" size="56"
-                             destination="offline"/><request>
+      <request> <jabber type="chat" ack="no_ack" size="56" destination="offline"/><request>
     </transaction>
 
     <thinktime value="30"></thinktime>
 
     <transaction name="close">
-      <request> <jabber type="close" ack="local">
-                </jabber></request>
+      <request> <jabber type="close" ack="local"> </jabber></request>
     </transaction>
-
   </session>
 
-  <session popularity="30" name="jabber-example2" ...>
-  ... </session>  
 \end{Verbatim}
 
 \subsection{Dynamic substitutions}
@@ -623,7 +609,7 @@ When a substitution is asked, the substitution mark-up is replaced by
 the result of the call to the Erlang function:
 \userinput{Module:Function({Pid, DynData})} where Pid is the erlang process
 id of the current virtual user and DynData the list of all Dynamic
-variables (\strong{Warn: before version, 1.0.4, the argument was just the
+variables (\strong{Warn: before version 1.1.0, the argument was just the
   Pid !}).
 
 
@@ -933,7 +919,7 @@ Note that you do not need to use the 127.0.0.1 address in the config file.
 It will not work if you use it as the injection interface. The shortname  
 of your client machine should not refer to this address.
 
-\strong{New in 1.0.4}: If you don't use the distributed feature of
+\strong{New in 1.1.0}: If you don't use the distributed feature of
 Tsunami and have trouble to start a remote beam on a local machine,
 you can set the \varname{'use_controller_vm'} attribute to true, for ex.:
 
@@ -945,9 +931,6 @@ you can set the \varname{'use_controller_vm'} attribute to true, for ex.:
 First look at the log file
 \file{~/.idx-tsunami/log/XXX/tsunami_controller@yourhostname'} to see
 if there is a problem. 
-
-Remember that you can validate your configuration file using the
-provided DTD !
 
 If you see nothing wrong, you can compile \program{idx-tsunami} with full
 debugging: recompile with \command{make debug} , and
