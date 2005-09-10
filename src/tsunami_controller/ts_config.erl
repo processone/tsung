@@ -117,7 +117,7 @@ parse(Element = #xmlElement{name=monitor, attributes=Attrs},
     Type = getAttr(atom, Attrs, type, erlang),
     NewMon = case getAttr(atom, Attrs, batch, false) of 
                  true ->
-                     Nodes = get_batch_nodes(list_to_atom(Host)),
+                     Nodes = lists:usort(get_batch_nodes(list_to_atom(Host))),
                      lists:map(fun(N)-> {N, Type} end, Nodes);
                  _ ->
                      [{Host, Type}]
