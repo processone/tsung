@@ -115,8 +115,15 @@ parse(Element = #xmlElement{name=monitor, attributes=Attrs},
       Conf = #config{monitor_hosts=MHList}) ->
     Host = getAttr(Attrs, host),
     Type = getAttr(atom, Attrs, type, erlang),
+    NewMon = case getAttr(atom, Attrs, batch, false) of 
+                 true ->
+                     Nodes = get_batch_nodes(Host),
+                     lists:map(fun(N)-> {N, Type} end, Nodes);
+                 _ ->
+                     [{Host, Type}]
+             end,
     lists:foldl(fun parse/2,
-		Conf#config{monitor_hosts = lists:append(MHList, [{Host, Type}])},
+		Conf#config{monitor_hosts = lists:append(MHList, NewMon)},
 		Element#xmlElement.content);
 
 

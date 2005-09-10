@@ -31,6 +31,7 @@
 <!ELEMENT monitor EMPTY>
 <!ATTLIST monitor
      host NMTOKEN #REQUIRED
+     batch (true | false) #IMPLIED
      type (snmp | erlang) "erlang">
 
 <!ELEMENT arrivalphase (users)>
