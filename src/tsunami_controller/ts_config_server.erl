@@ -413,6 +413,8 @@ code_change(OldVsn, State, _Extra) ->
 %% Purpose: choose an IP for a client
 %% Returns: {ok, {IP, NewList}} IP=IPv4 address {A1,A2,A3,A4}
 %%----------------------------------------------------------------------
+choose_client_ip(#client{ip = []},RR) -> %% no ip, return default 0.0.0.0
+    {ok, {0,0,0,0}, RR};
 choose_client_ip(#client{ip = [IP]},RR) -> %% only one IP
     {ok, IP, RR};
 choose_client_ip(Client,undefined) ->
