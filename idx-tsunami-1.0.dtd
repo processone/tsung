@@ -14,10 +14,12 @@
      type (ssl | tcp | udp) #REQUIRED>
 
 <!ELEMENT clients (client+)>
-<!ELEMENT client (ip+) >
-<!ATTLIST client 
+<!ELEMENT client (ip*) >
+<!ATTLIST client
      cpu      NMTOKEN #IMPLIED
-     host     NMTOKEN #REQUIRED
+     type     (machine|batch)  #IMPLIED
+     host     NMTOKEN #IMPLIED
+     batch    NMTOKEN #IMPLIED
      maxusers NMTOKEN #REQUIRED
      use_controller_vm (true | false) #IMPLIED
      weight   NMTOKEN #IMPLIED>
@@ -59,7 +61,7 @@
     popularity   NMTOKEN #REQUIRED
     type         NMTOKEN #REQUIRED>
 
-<!ELEMENT request ( ( http | jabber ), dyn_variable* )>
+<!ELEMENT request ( ( http | jabber | raw), dyn_variable* )>
 <!ATTLIST request
     subst (true|false) #IMPLIED
     match CDATA #IMPLIED>
@@ -107,3 +109,8 @@
     size        NMTOKEN #IMPLIED
     data        CDATA   #IMPLIED
     type        NMTOKEN #REQUIRED>
+
+<!ELEMENT raw EMPTY >
+<!ATTLIST raw
+    ack         (global|local|no_ack) #REQUIRED
+    data CDATA #REQUIRED>

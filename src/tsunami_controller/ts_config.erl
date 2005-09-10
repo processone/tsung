@@ -47,7 +47,8 @@
          getText/1,
          parse/2,
          get_default/3,
-		 mark_prev_req/3
+		 mark_prev_req/3,
+         get_batch_nodes/1
         ]).
 
 %%%----------------------------------------------------------------------
@@ -122,28 +123,36 @@ parse(Element = #xmlElement{name=monitor, attributes=Attrs},
 %% Parsing the Client element
 parse(Element = #xmlElement{name=client, attributes=Attrs},
       Conf = #config{clients=CList}) ->
-
     Host     = getAttr(Attrs, host),
     Weight   = getAttr(integer,Attrs, weight,1),
     MaxUsers = getAttr(integer,Attrs, maxusers,750),
-    CPU      = getAttr(integer,Attrs, cpu, 1),
     SingleNode = getAttr(atom, Attrs, use_controller_vm, false) or Conf#config.use_controller_vm,
-    %% must be hostname and not ip:
-    case ts_utils:is_ip(Host) of 
-        true ->
-            ?LOGF("ERROR: client config: 'host' attribute must be a hostname, "++
-                  "not an IP ! (was ~p)~n",[Host],?EMERG),
-            throw({error, badhostname});
-        false ->
-            %% add a new client for each CPU
-            NewClients=lists:duplicate(CPU,#client{host     = Host,
-                                                   weight   = Weight/CPU,
-                                                   maxusers = MaxUsers}),
-            lists:foldl(fun parse/2, 
-                        Conf#config{clients = lists:append(NewClients,CList),
-                                    use_controller_vm = SingleNode},
-                        Element#xmlElement.content)
-    end;
+    NewClients =
+        case getAttr(atom, Attrs, type) of
+            batch ->
+                Batch = getAttr(atom, Attrs, batch),
+                Nodes = get_batch_nodes(Batch),
+                Fun = fun(N)-> #client{host=N,weight=Weight,maxusers=MaxUsers} end,
+                lists:map(Fun, Nodes);
+            _ ->
+                CPU      = getAttr(integer,Attrs, cpu, 1),
+                %% must be hostname and not ip:
+                case ts_utils:is_ip(Host) of
+                    true ->
+                        ?LOGF("ERROR: client config: 'host' attribute must be a hostname, "++
+                              "not an IP ! (was ~p)~n",[Host],?EMERG),
+                        throw({error, badhostname});
+                    false ->
+                        %% add a new client for each CPU
+                        lists:duplicate(CPU,#client{host     = Host,
+                                                    weight   = Weight/CPU,
+                                                    maxusers = MaxUsers})
+                end
+        end,
+    lists:foldl(fun parse/2,
+                Conf#config{clients = lists:append(NewClients,CList),
+                            use_controller_vm = SingleNode},
+                Element#xmlElement.content);
 
 %% Parsing the ip element
 parse(Element = #xmlElement{name=ip, attributes=Attrs},
@@ -444,3 +453,30 @@ mark_prev_req(Id, Tab, CurS) ->
 			mark_prev_req(Id-1, Tab, CurS);
 		_ -> ok
 	end.
+
+
+get_batch_nodes(pbs) ->
+    get_batch_nodes(torque);
+get_batch_nodes(lsf)->
+    case os:getenv("LSB_HOSTS") of
+        false ->
+            [];
+        Nodes -> 
+            lists:map(fun shortnames/1, string:tokens(Nodes, " "))
+
+    end;
+get_batch_nodes(oar) -> get_batch_nodes2("OAR_NODEFILE");
+get_batch_nodes(torque) -> get_batch_nodes2("PBS_NODEFILE").
+
+get_batch_nodes2(Env) ->
+    case os:getenv(Env) of
+        false ->
+            [];
+        NodeFile ->
+            {ok, Nodes} = ts_utils:file_to_list(NodeFile),
+            lists:map(fun shortnames/1, Nodes)
+    end.
+
+shortnames(Hostname)->
+    [S | _]= string:tokens(Hostname,"."),
+    S.

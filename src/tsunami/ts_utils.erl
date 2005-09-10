@@ -39,7 +39,7 @@
          foreach_parallel/2, spawn_par/3, inet_setopts/3,
          stop_all/2, stop_all/3, stop_all/4, join/2, split2/2, split2/3,
          make_dir_rec/1, is_ip/1, from_https/1, to_https/1,
-         check_sum/3, check_sum/5, clean_str/1]).
+         check_sum/3, check_sum/5, clean_str/1, file_to_list/1]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -431,6 +431,12 @@ inet_setopts(Type, Socket,  Opts)  when ( (Type == udp) or (Type == gen_udp)) ->
 	ok = inet:setopts(Socket, Opts),
     Socket.
 
+%%----------------------------------------------------------------------
+%% Func: check_sum/3
+%% Purpose: check sum of int equals 100. 
+%% Args: List of tuples, index of int in tuple, Error msg
+%% Returns ok | {error, {bad_sum, Msg}}
+%%----------------------------------------------------------------------
 check_sum(RecList, Index, ErrorMsg) ->
     %% popularity may be a float number. 10-2 precision
     check_sum(RecList, Index, 100, 0.01, ErrorMsg).
@@ -442,3 +448,26 @@ check_sum(RecList, Index, Total, Epsilon, ErrorMsg) ->
         true -> ok;
         false -> {error, {bad_sum, ErrorMsg}}
     end.
+
+%%----------------------------------------------------------------------
+%% Func: file_to_list/1
+%% Purpose: read a file line by line and put them in a list
+%% Args: filename
+%% Returns {ok, List} | {error, Reason}
+%%----------------------------------------------------------------------
+file_to_list(FileName) ->
+    case file:open(FileName, read) of
+        {error, Reason} ->
+			{error, Reason};
+        {ok , File} ->
+            Lines = read_lines(File),
+            file:close(File),
+			{ok, Lines}
+    end.
+
+read_lines(FD) ->read_lines(FD,io:get_line(FD,""),[]).
+
+read_lines(_FD, eof, L) ->
+    lists:reverse(L);
+read_lines(FD, Line, L) ->
+    read_lines(FD, io:get_line(FD,""),[chop(Line)|L]).
