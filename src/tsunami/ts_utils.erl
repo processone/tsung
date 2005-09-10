@@ -438,15 +438,15 @@ inet_setopts(Type, Socket,  Opts)  when ( (Type == udp) or (Type == gen_udp)) ->
 %% Returns ok | {error, {bad_sum, Msg}}
 %%----------------------------------------------------------------------
 check_sum(RecList, Index, ErrorMsg) ->
-    %% popularity may be a float number. 10-2 precision
-    check_sum(RecList, Index, 100, 0.01, ErrorMsg).
+    %% popularity may be a float number. 5.10-2 precision
+    check_sum(RecList, Index, 100, 0.05, ErrorMsg).
 check_sum(RecList, Index, Total, Epsilon, ErrorMsg) ->
     %% we use the tuple representation of a record !
     Sum = lists:foldl(fun(X, Sum) -> element(Index,X)+Sum end, 0, RecList),
     Delta = abs(Sum - Total),
     case Delta < Epsilon of
         true -> ok;
-        false -> {error, {bad_sum, ErrorMsg}}
+        false -> {error, {bad_sum, Sum ,ErrorMsg}}
     end.
 
 %%----------------------------------------------------------------------
