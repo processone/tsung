@@ -138,7 +138,11 @@ parse(Element = #xmlElement{name=client, attributes=Attrs},
         case getAttr(atom, Attrs, type) of
             batch ->
                 Batch = getAttr(atom, Attrs, batch),
-                Nodes = get_batch_nodes(Batch),
+                NodesTmp = get_batch_nodes(Batch),
+                %% remove controller host from list to avoid
+                %% overloading the machine running the controller
+                {ok, ControllerHost} = ts_utils:node_to_hostname(node()),
+                Nodes = lists:delete(ControllerHost, NodesTmp),
                 Fun = fun(N)-> #client{host=N,weight=Weight,maxusers=MaxUsers} end,
                 lists:map(Fun, Nodes);
             _ ->
