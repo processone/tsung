@@ -38,14 +38,18 @@
 -export([start/0, get_req/2, get_user_agent/0]).
 
 %% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
+         add/1, code_change/3]).
 
 
 -record(state, {
           table, % ets table
           hit  =0.0, % number of hits
-          total=0.0  % total number of requests
+          total=0.0, % total number of requests
+          stats=[]   % cache stats msgs
          }).
+
+-define(DUMP_STATS_INTERVAL, 500).
 
 -include("ts_profile.hrl").
 
@@ -66,6 +70,8 @@ get_req(Id, Count)->
 get_user_agent()->
 	gen_server:call(?MODULE,{get_user_agent}).
 
+add(Data) ->
+	gen_server:cast(?MODULE, {add, Data}).
 %%====================================================================
 %% Server functions
 %%====================================================================
@@ -80,6 +86,7 @@ get_user_agent()->
 %%--------------------------------------------------------------------
 init([]) ->
 	Table = ets:new(sessiontable, [set, private]),
+    erlang:start_timer(?DUMP_STATS_INTERVAL, self(), dump_stats ),
     {ok, #state{table=Table}}.
 
 %%--------------------------------------------------------------------
@@ -145,6 +152,11 @@ handle_call(_Request, _From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
+handle_cast({add, Data}, State=#state{stats=List}) when is_list(Data) ->
+    {noreply, State#state{stats = lists:append(Data, List)} };
+handle_cast({add, Data}, State=#state{stats=List}) when is_tuple(Data) ->
+    {noreply, State#state{stats = lists:append([Data], List)} };
+
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -155,6 +167,15 @@ handle_cast(_Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
+handle_info({timeout, _Ref, dump_stats}, State = #state{stats =[]}) ->
+    erlang:start_timer(?DUMP_STATS_INTERVAL, self(), dump_stats ),
+    {noreply, State};
+
+handle_info({timeout, _Ref, dump_stats}, State =#state{stats= List}) ->
+    ts_mon:add(nocache, List),
+    erlang:start_timer(?DUMP_STATS_INTERVAL, self(), dump_stats ),
+    {noreply, State#state{stats=[]}};
+
 handle_info(_Info, State) ->
     {noreply, State}.
 

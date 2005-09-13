@@ -45,7 +45,7 @@
 %% External exports
 -export([start/1, stop/0, newclient/1, endclient/1, newclient/1, sendmes/1,
          start_clients/1, abort/0, status/0,
-         rcvmes/1, add/1, dumpstats/0
+         rcvmes/1, add/1, add/2, dumpstats/0
 		]).
 
 -export([update_stats/2]).
@@ -115,8 +115,10 @@ rcvmes({_, _, closed}) -> skip;
 rcvmes({_Type, Who, What})  ->
 	gen_server:cast({global, ?MODULE}, {rcvmsg, Who, now(), What}).
 
-add(Data) ->
+add(nocache, Data) ->
 	gen_server:cast({global, ?MODULE}, {add, Data}).
+add(Data) ->
+	ts_session_cache:add(Data).
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from gen_server
