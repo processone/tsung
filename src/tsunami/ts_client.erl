@@ -306,7 +306,7 @@ get_server_cfg({Profile, Id}) ->
 get_server_cfg(#ts_request{host=undefined, port=undefined, scheme=undefined},_,_)->
     ?Debug("Server not configured in msg, get global conf ~n"),
     %% get global server profile
-    ts_config_server:get_server_config();
+    ts_session_cache:get_server_config();
 get_server_cfg(#ts_request{host=ServerName, port=Port, scheme=Protocol},_,_) ->
     %% server profile can be overriden in the first URL of the session
     %% curently, the following server modifications in the session are not used.
@@ -319,7 +319,7 @@ get_server_cfg({thinktime,_},Profile,Id) ->
     get_server_cfg(ts_session_cache:get_req(Profile, Id+1), Profile, Id+1);
 get_server_cfg(Other,_,_) ->
     ?LOGF("ERROR while getting cfg (~p)! ~n",[Other],?ERR),
-    ts_config_server:get_server_config().
+    ts_session_cache:get_server_config().
 
 %%----------------------------------------------------------------------
 %% Func: handle_next_request/2
