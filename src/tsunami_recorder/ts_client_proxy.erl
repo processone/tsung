@@ -57,6 +57,7 @@
 -record(state, {
           clientsock,
           http_version,
+          close, % must closed client socket (connection:close header was send by server)
           parse_status   = new, %% http status = body|new
           body_size      = 0,
           content_length = 0,
@@ -133,11 +134,21 @@ handle_info({Type, ServerSock, String}, State)
     ?LOGF("Received data from server: ~s~n",[String],?DEB),
     {ok,NewString} = ts_utils:from_https(String),
     send(State#state.clientsock, NewString),
-    {noreply, State, ?lifetime};
+    case regexp:first_match(NewString, "[cC]onnection: [cC]lose") of 
+        nomatch ->
+            {noreply, State, ?lifetime};
+        _ ->
+            {noreply, State#state{close=true}, ?lifetime}
+    end;
 
 %%%%%%%%%%%% Errors and termination %%%%%%%%%%%%%%%%%%%
 
 % Log who did close the connection, and exit.
+handle_info({Msg,Socket},State=#state{http_version = HTTPVersion,
+                                      serversock = Socket, close = true
+                                     }) when Msg==tcp_close; Msg==ssl_closed ->
+    ?LOG("socket closed by server, close client socket also~n",?INFO),
+    {stop, normal, ?lifetime};% close ask by server in previous request
 handle_info({Msg,Socket},State=#state{http_version = HTTPVersion,
                                       serversock = Socket
                                      }) when Msg==tcp_close; Msg==ssl_closed ->
