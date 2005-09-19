@@ -446,6 +446,7 @@ http_method("post")-> 'POST';
 http_method("head")-> 'HEAD';
 http_method("put")-> 'PUT';
 http_method("delete")-> 'DELETE';
+http_method("connect")-> 'CONNECT';
 http_method(_) -> not_implemented.
     
 %%--------------------------------------------------------------------

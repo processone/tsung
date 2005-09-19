@@ -256,7 +256,10 @@ set_query(URLrec = #url{}) ->
 parse_URL("https://" ++ String) ->
     parse_URL(host, String, [], #url{scheme=https});
 parse_URL("http://" ++ String) ->
-    parse_URL(host, String, [], #url{scheme=http}).
+    parse_URL(host, String, [], #url{scheme=http});
+parse_URL(String) when is_list(String) ->
+    [Host, Port] = string:tokens(String,":"),
+    #url{scheme=connect, host=Host, port=list_to_integer(Port)}.
 
 %%----------------------------------------------------------------------
 %% Func: parse_URL/4 (inspired by yaws_api.erl)

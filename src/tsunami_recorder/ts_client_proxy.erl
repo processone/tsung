@@ -211,7 +211,7 @@ parse(State=#state{parse_status=Status},_,ServerSocket,String) when Status==new 
     NewString = lists:append(State#state.buffer,String),
 	case ts_http_common:parse_req(NewString) of 
 		{more, _Http, _Head} -> 
-            ?LOG("Headers incomplete, buffering ~n",?DEB),
+            ?LOGF("Headers incomplete (~p), buffering ~n",[NewString],?DEB),
 			{ok, State#state{parse_status=new, buffer=NewString}}; %FIXME: not optimal
         {ok, Http=#http_request{url=RequestURI, version=HTTPVersion}, Body} -> 
             ?LOGF("Method ~p ~n",[Http#http_request.method],?DEB),
@@ -219,21 +219,28 @@ parse(State=#state{parse_status=Status},_,ServerSocket,String) when Status==new 
             case httpd_util:key1search(Http#http_request.headers,"content-length") of
                 undefined -> % no body, everything received
                     ts_proxy_recorder:dorecord({Http }),
-                    {NewSocket,RelURL} = check_serversocket(ServerSocket,RequestURI),
+                    {NewSocket,RelURL} = check_serversocket(ServerSocket,RequestURI,State#state.clientsock),
                     ?LOGF("Remove server info from url:~p ~p in ~p~n",
                           [RequestURI,RelURL,NewString], ?INFO),
                     {ok, RealString} = relative_url(NewString,RequestURI,RelURL),
                     send(NewSocket,RealString),
-                    {ok, State#state{http_version=HTTPVersion,
-                                     parse_status = new, buffer=[],
-                                     serversock=NewSocket}};
+                    case Http#http_request.method of
+                        'CONNECT' ->
+                            {ok, State#state{http_version=HTTPVersion,
+                                             parse_status = connect, buffer=[],
+                                             serversock=NewSocket}};
+                        _ ->
+                            {ok, State#state{http_version=HTTPVersion,
+                                             parse_status = new, buffer=[],
+                                             serversock=NewSocket}}
+                    end;
                 Length ->
                     CLength = list_to_integer(Length),
                     ?LOGF("HTTP Content-Length:~p~n",[CLength], ?DEB),
                     BodySize = length(Body),
                     if
                         BodySize == CLength ->  % end of response
-                            {NewSocket,RelURL} = check_serversocket(ServerSocket,RequestURI),
+                            {NewSocket,RelURL} = check_serversocket(ServerSocket,RequestURI,State#state.clientsock),
                             {ok,RealString,_Count} = regexp:gsub(NewString,RequestURI,RelURL),%FIXME: why not use relative_url ?
                             send(NewSocket,RealString),
                             ?LOG("End of response, recording~n", ?DEB),
@@ -244,7 +251,7 @@ parse(State=#state{parse_status=Status},_,ServerSocket,String) when Status==new 
                         BodySize > CLength  ->
                             {error, bad_content_length};
                         true ->
-                            {NewSocket,RelURL} = check_serversocket(ServerSocket,RequestURI),
+                            {NewSocket,RelURL} = check_serversocket(ServerSocket,RequestURI,State#state.clientsock),
                             {ok,RealString,_Count} = regexp:gsub(NewString,RequestURI,RelURL), %FIXME: why not use relative_url ?
                             send(NewSocket,RealString),
                             ?LOG("More data to come continue before recording~n", ?DEB),
@@ -260,8 +267,7 @@ parse(State=#state{parse_status=Status},_,ServerSocket,String) when Status==new 
             end
     end;
 
-parse(State=#state{parse_status=Status, buffer=Http},_,ServerSocket,String) 
-  when Status == body ->
+parse(State=#state{parse_status=body, buffer=Http},_,ServerSocket,String) ->
 	DataSize = length(String),
 	?LOGF("HTTP Body size=~p ~n",[DataSize], ?DEB),
 	Size = State#state.body_size + DataSize,
@@ -277,21 +283,27 @@ parse(State=#state{parse_status=Status, buffer=Http},_,ServerSocket,String)
 		_ ->
             ?LOGF("Received ~p bytes of data, wait for ~p, continue~n", [Size,CLength],?DEB),
 			{ok, State#state{body_size = Size, buffer = Http#http_request{body=Buffer}}}
-	end.
+	end;
+
+parse(State=#state{parse_status=connect},_,ServerSocket,String) ->
+    ?LOGF("Received data from client: ~s~n",[String],?DEB),
+    send(ServerSocket, String),
+    {ok, State}.
 
 %%--------------------------------------------------------------------
 %% Func: check_serversocket/2
 %% Purpose: If the socket is not defined, or if the server is not the
 %%          same, connect to the server as specified in URL
-%% Returns: Socket
+%% Returns: {Socket, RelativeURL (String)}
 %%--------------------------------------------------------------------            
-check_serversocket(Socket, "http://{" ++ Rest) ->
-    check_serversocket(Socket, ts_config_http:parse_URL("https://"++Rest));
-check_serversocket(Socket, "http://%7B" ++ Rest) -> %% for IE.
-    check_serversocket(Socket, ts_config_http:parse_URL("https://"++Rest));
-check_serversocket(Socket, URL) when list(URL)->
-    check_serversocket(Socket, ts_config_http:parse_URL(URL));
-check_serversocket(undefined, URL) ->
+check_serversocket(Socket, "http://{" ++ Rest, ClientSock) ->
+    check_serversocket(Socket, ts_config_http:parse_URL("https://"++Rest), ClientSock);
+check_serversocket(Socket, "http://%7B" ++ Rest, ClientSock) -> %% for IE.
+    check_serversocket(Socket, ts_config_http:parse_URL("https://"++Rest), ClientSock);
+check_serversocket(Socket, URL, ClientSock) when list(URL)->
+    check_serversocket(Socket, ts_config_http:parse_URL(URL), ClientSock);
+
+check_serversocket(undefined, URL = #url{}, ClientSock) ->
     Port = ts_config_http:set_port(URL),
     ?LOGF("Connecting to ~p:~p ...~n", [URL#url.host, Port],?DEB),
 
@@ -299,12 +311,18 @@ check_serversocket(undefined, URL) ->
 
     ?LOGF("Connected to server ~p on port ~p (socket is ~p)~n",
           [URL#url.host,Port,Socket],?INFO),
-    case URL#url.querypart of 
-        []    -> {Socket, URL#url.path};
-        Query -> {Socket, URL#url.path++"?"++Query}
+    case URL#url.scheme of 
+        connect ->
+            ?LOGF("CONNECT: Send 'connection established' to client socket (~p)",[ClientSock],?DEB),
+            send(ClientSock, "HTTP/1.0 200 Connection established\r\nProxy-agent: IDX-Tsunami\r\n\r\n"),
+            { Socket, [] };
+        _ ->
+            case URL#url.querypart of 
+                []    -> {Socket, URL#url.path};
+                Query -> {Socket, URL#url.path++"?"++Query}
+            end
     end;
-    
-check_serversocket(Socket, URL=#url{port=Port,host=Host}) ->
+check_serversocket(Socket, URL=#url{port=Port,host=Host}, ClientSock) ->
     RealPort = ts_config_http:set_port(URL),
     {ok, RealIP} = inet:getaddr(Host,inet),
     case peername(Socket) of
@@ -332,6 +350,7 @@ peername({sslsocket,A,B})-> ssl:peername({sslsocket,A,B});
 peername(Socket)         -> prim_inet:peername(Socket).
 
 
+send(_,[]) -> ok; % no data
 send({sslsocket,A,B},String) ->
     {ok, RealString } = ts_utils:to_https({request,String}),
     ?LOGF("Sending data to ssl socket ~p ~p (~p)~n", [A, B, RealString],?DEB),
@@ -343,8 +362,8 @@ connect(Scheme, Host, Port)->
     case Scheme of 
         https -> 
             {ok, _} = ssl:connect(Host,Port,
-                                  [{active, once}]);
-        http  -> 
+                                 [{active, once}]);
+        _  -> 
             {ok, _} = gen_tcp:connect(Host,Port,
                                       [{active, once},
                                        {recbuf, ?tcp_buffer},
@@ -352,6 +371,8 @@ connect(Scheme, Host, Port)->
                                       ])
     end.
 
+relative_url("CONNECT"++Tail,RequestURI,[])-> 
+    {ok, []};
 relative_url(NewString,RequestURI,RelURL)->
     [FullURL_noargs|_] = string:tokens(RequestURI,"?"),
     [RelURL_noargs|_]  = string:tokens(RelURL,"?"),
