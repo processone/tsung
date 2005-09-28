@@ -40,13 +40,13 @@ It is distributed under the GNU General Public License version 2.
 
 \subsection{What is Erlang and why is it important for IDX-Tsunami ?}
 
-\program{IDX-Tsunami} main strength is its ability to simulate a huge number a
+\program{IDX-Tsunami's} main strength is its ability to simulate a huge number of
 simultaneous user from a single CPU. When used on cluster you can
 generate a really impressive load on a server with a modest cluster,
 easy to set-up and to maintain.
 
 \program{IDX-Tsunami} is developed in Erlang and this is where the power
-of \program{IDX-Tsunami} relies.
+of \program{IDX-Tsunami} resides.
 
 \par Erlang is a \emph{concurrency-oriented} programming language.
 Tsunami is based on the Erlang OTP (Open Transaction Platform) and
@@ -55,7 +55,7 @@ inherits several characteristics from Erlang:
 \begin{itemize}
 \item \emph{Performance}: Erlang has been made to support hundred thousands
 of lightweight processes in a single virtual machine. 
-\item \emph{Scalability}: Erlang development environment is naturally
+\item \emph{Scalability}: Erlang runtime environment is naturally
 distributed, promoting the idea of process's location transparency. 
 \item \emph{Fault-tolerance}:Erlang has been built to develop robust,
 fault-tolerant systems. As such, wrong answer sent from the server
@@ -71,7 +71,7 @@ More informations on Erlang on \url{http://www.erlang.org} and
 History:
 \begin{itemize}
 \item \program{IDX-Tsunami} is being developed since 2001 
-\item It is an industrial implementation of a \emph{stochastic model}
+\item It is an industrial strenght implementation of a \emph{stochastic model}
 for real users simulation. User events distribution is based on a
 Poisson Process. More information on this topic in:
 
@@ -113,7 +113,7 @@ for Petroleum
 
 \begin{itemize}
 \item \emph{High Performance}: \program{IDX-Tsunami} can simulate a
-  huge number of simultaneous users par physical computer: It can
+  huge number of simultaneous users per physical computer: It can
   simulates thousands of users on a single CPU (Note: a simulated user
   is not always active: it can be idle during a \varname{thinktime}
   period). Traditional injection tools can hardly go further than a
@@ -141,7 +141,7 @@ different type of users during the same benchmark. You can define
 the proportion of the various behaviours in the benchmark scenario. 
 \item \emph{Stochastic processes}: in order to generate a realistic traffic,
 user thinktimes and the arrival rate can be randomize using a probability
-distribution (exponential currently) 
+distribution (currently exponential) 
 \end{itemize}
 
 \subsection{HTTP related features}
@@ -251,7 +251,7 @@ supported platforms (Solaris, *BSD,  Win32 and MacOS-X).
 \end{Verbatim}
 \subsection{Configuration}
 
-The main configuration file is \file{~/.idx-tsunami/idx-tsunami.xml} (
+The default configuration file is \file{~/.idx-tsunami/idx-tsunami.xml} (
 there is a sample file
 \file{/usr/share/doc/idx-tsunami/examples/idx-tsunami.xml}).
 
@@ -268,14 +268,15 @@ suggestions or questions about \program{IDX-Tsunami}.
 \section{HTTP benchmark approach}
 
 \begin{enumerate}
-\item Record scenario: start the recorder with: \command{idx-tsunami
+\item Record one or more sessions: start the recorder with: \command{idx-tsunami
     recorder}, and then configure your browser to use IDX-Tsunami
   proxy recorder (the listen port is 8090). A session file will be
   created. For HTTPS recording, use \userinput{http://\{} instead of
     \userinput{https://} in your browser.
-\item Edit / organize scenario
+\item Edit / organize scenario, by adding recorded sessions in the
+  configuration file.
 \item Write small code for dynamic parts if needed and place dynamic mark-up
-in the scenario 
+in the scenario.
 \item Test and adjust scenario to have a nice progression of the load. This
 is highly dependent of the application and of the size of the target
 server(s). Calculate the normal duration of the scenario and use the
@@ -309,22 +310,22 @@ There are two difference between HTTP and Jabber testing:
 \item There is no recorder for Jabber, so you have to write your
   sessions by hand (an example is provided in
   \ref{sec:sessions:jabber}).
-\item the jabber plugin do not parse XML; instead it use packets
-  acknowledgement. The rest of this paragraph will explain this
+\item the jabber plugin does not parse XML; instead it uses packet
+  acknowledgements. The rest of this paragraph will explain this
   feature.
 \end{enumerate}
 
 Since the jabber plugin do not parse XML (historically, it was for
 performance reasons), and also due to the bidirectional nature of the
-jabber protocol, you must have a way to say when a request is
+jabber protocol, you must have a way to tell when a request is
 finished. There are 3 possibilities:
 
 \begin{description}
  \item[ack=local] as soon as a packet is received from the server, the
-request is consider over. Hence if you use a local ack with a request
+request is considered as completed. Hence if you use a local ack with a request
 that do not require a response from the server (presence for ex.), it
  will wait forever (or until a timeout is reached).
- \item[ack=no_ack] as soon as the request is send, it is consider over (do
+ \item[ack=no_ack] as soon as the request is send, it is considered as completed (do
 not wait for incoming data)
  \item[ack=global] synchronized users. its main use is for waiting for all
 users to connect before sending messages. To do that, set a request
@@ -446,8 +447,8 @@ Erlang/OTP on all nodes otherwise it may not work properly !}
 
 With this setup, during the first 10 minutes of the test, a new user
 will be created every 2 seconds, then during the next 10 minutes, a
-new user will be created every seconds, and for the last 10 minutes,
-10 users will be generated every seconds. The test will finish when
+new user will be created every second, and for the last 10 minutes,
+10 users will be generated every second. The test will finish when
 all users have ended their session.
 
 The load generated in terms of HTTP requests / seconds will also
@@ -506,6 +507,11 @@ frequencies must be equal to 100)
 Sessions define the content of the scenario itself. They describe
 the requests to execute.
 
+This example show several features of the HTTP protocol support in
+Tsunami: GET and POST request, basic authentication, transaction for
+statistics definition, ...
+
+
 \begin{Verbatim}
   <session name="http-example" popularity="70" type="ts_http">
 
@@ -547,10 +553,6 @@ the requests to execute.
 The popularity is the frequency of this type of session. This is used
 to decide which session a new user will execute. The sum of all
 session\verb|'|s popularity must be 100. 
-
-This example show several features of the HTTP protocol support in
-Tsunami: GET and POST request, basic authentication, transaction for
-statistics definition, ...
 
 
 \label{sec:sessions:jabber}
@@ -605,7 +607,7 @@ Those mark-up are of the form \userinput{\%\%Module:Function\%\%}.
 Substitutions are executed on a request-by-request basis, only if the
 request tag has the attribute \userinput{subst="true"}.
 
-When a substitution is asked, the substitution mark-up is replaced by
+When a substitution is requested, the substitution mark-up is replaced by
 the result of the call to the Erlang function:
 \userinput{Module:Function({Pid, DynData})} where Pid is the erlang process
 id of the current virtual user and DynData the list of all Dynamic
