@@ -238,7 +238,7 @@ record_http_request(State=#state{prev_host=Host, prev_port=Port, prev_scheme=Sch
     io:format(Fd,"method='~s'>", [Method]),
 
     record_header(Fd,ParsedHeader,"authorization",
-                  "~n  <www_authenticate userid=~p passwd=~p> </www_authenticate>"),
+                  "~n  <www_authenticate userid=~p passwd=~p />"),
     %% SOAP Support: Need to record use of the SOAPAction header
     record_header(Fd,ParsedHeader,"soapaction",
                   "~n  <soap action='~s'></soap>~n",
