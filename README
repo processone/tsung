@@ -1,30 +1,10 @@
 # $Id$
 
   IDX-TSUNAMI README
-  IDEALX
-
-  ____________________________________________________________
-
-  Table of Contents
-
-
-  1. Introduction
-
-     1.1 General
-     1.2 What This Package Is
-
-  2. Getting Things Installed
-
-     2.1 Dependencies
-     2.2 Compilation and Installation
-     2.3 Problems/Bugs
-     2.4 Platform Issues
-
-  ______________________________________________________________________
 
   1.  Introduction
 
-1.1.  General
+  1.1.  General
 
   This document gives pointers for information on this package which is
   distributed under the GNU General Public License version 2 (see file
@@ -34,14 +14,7 @@
 
   The purpose of IDX-TSUNAMI is to simulate users in order to test
   the scalability and performances of IP based client/server
-  applications. Currently, HTTP and Jabber protocol have been
-  implemented and tested, but it can be easily extended (see
-  doc/Design.txt). IDX-TSUNAMI use the Erlang language.
-
-  This tool can simulate thousands of users concurrently, and can be
-  distributed on several client machines. Up to 10000 users can be
-  simulated on a single machine (the limit depends on the hardware and
-  also on the activity of the simulated clients).
+  applications.
 
   A User's manual is available :
           http://tsunami.idealx.org/user_manual.html
@@ -49,14 +22,7 @@
 
   1.3.  Problems/Bugs
  
-  Submit bug reports/ask questions to nicolas.niclausse@IDEALX.com
-
-  Or join the mailing-list: http://lists.idealx.org/info/idx-tsunami
+  Join the mailing-list: http://lists.idealx.org/info/idx-tsunami
  
-  1.4.  Platform Issues
-
-  This package has only be tested on Linux. It should work
-  on Erlang supported platforms (Solaris, *BSD, and maybe Win32)
-
 
 
