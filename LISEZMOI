@@ -1,26 +1,6 @@
 # $Id$
 
   IDX-TSUNAMI LISEZMOI
-  IDEALX
-
-  ____________________________________________________________
-
-  Table des matières
-
-
-  1. Introduction
-
-     1.1 Généralités
-     1.2 Qu'est-ce que ce logiciel fait?
-
-  2. Installation
-
-     2.1 Dépendances
-     2.2 Compilation et Installation
-     2.3 Problèmes/Bugs
-     2.4 Portabilité
-
-  ____________________________________________________________
 
   1.  Introduction
 
@@ -76,9 +56,8 @@
 
   Voir également le site  http://tsunami.idealx.org/
 
-  NEW: Un manuel utilisateur est maintenant disponible:
-  http://tsunami.idealx.org/user_manual.htm (en anglais seulement pour
-  le moment)
+  NEW: Un manuel utilisateur est maintenant disponible en anglais:
+  http://tsunami.idealx.org/user_manual.html
 
   2.  Installation
 
@@ -86,13 +65,9 @@
   
   - nécessite Erlang/OTP R9C-0 (http://www.erlang.org/download.html)
 
-  - xmerl-0.19 (http://sowap.sourceforge.net/download.html). Un paque
+  - xmerl-0.19 (http://sowap.sourceforge.net/download.html). Un paquet
     debian binaire est disponible à l'adresse 
     http://tsunami.idealx.org/dist/
-
-    xmerl-0.15 devrait fonctionner, mais la notation <tag/> n'est pas
-    supporté par cette version de xmerl (il faut utiliser à la place
-    la notation <tag></tag> )
 
   - le module extended regexp est utilisé pour les variables
     dynamiques: gregexp.erl est disponible à
@@ -175,10 +150,10 @@
 
   2.3.  Problèmes/Bugs
  
-    Envoyez vos questions/rapports de bugs à nicolas.niclausse@IDEALX.com
- 
-    Ou bien abonnez vous à la liste de diffusion
+    Envoyez vos questions/rapports à la liste de diffusion
        http://lists.idealx.org/info/idx-tsunami
+    
+    ou directement à l'auteur, <nicolas@niclux.org>
 
   2.4.  Portabilité
 
