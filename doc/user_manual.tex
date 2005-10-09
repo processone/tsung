@@ -286,7 +286,7 @@ the number of simultaneous users for each given phase.
   \command{idx-tsunami start}
 \item Wait for the end of the test or stop by hand with
   \command{idx-tsunami stop} (reports can also be generated during the
-  test (see § \vref{sec:statistics-reports}) : the statistics are
+  test (see § \ref{sec:statistics-reports}) : the statistics are
   updated every 10 seconds). For a brief summary of the current
   activity, use \command{idx-tsunami status}
 \item Analyse results, change parameters and relaunch another benchmark 
@@ -325,7 +325,7 @@ finished. There are 3 possibilities:
 request is considered as completed. Hence if you use a local ack with a request
 that do not require a response from the server (presence for ex.), it
  will wait forever (or until a timeout is reached).
- \item[ack=no_ack] as soon as the request is send, it is considered as completed (do
+ \item[ack=no\_ack] as soon as the request is send, it is considered as completed (do
 not wait for incoming data)
  \item[ack=global] synchronized users. its main use is for waiting for all
 users to connect before sending messages. To do that, set a request
@@ -342,7 +342,7 @@ You also have to specify the number of users to be connected:
 <default type="ts_jabber" name="global_number" value="100"></default>
 \end{Verbatim}
 
-To be sure that exactly \varname{global_number} users are started, add the
+To be sure that exactly \varname{global\_number} users are started, add the
 \userinput{'maxnumber'} attribute to \varname{'users'}
 
 \begin{Verbatim}
@@ -350,7 +350,7 @@ To be sure that exactly \varname{global_number} users are started, add the
 \end{Verbatim}
 
 If you do not specify maxnumber, the global ack will be reset every
-\varname{global_number} users
+\varname{global\_number} users
 \end{description}
 
 \section{Understanding idx-tsunami.xml configuration file}
@@ -389,12 +389,23 @@ If you do not specify maxnumber, the global ack will be reset every
  
  Several virtual IP can be used to simulate more machines. This is
  very useful when a load-balancer use the client\verb|'|s IP to
- distribute the traffic among a cluster of servers. 
+ distribute the traffic among a cluster of servers. \strong{New in
+   1.1.1:} IP is not mandatory. If not specified, the default IP will
+ be used.
  
  In this example, a second machine is used in the Tsunami cluster,
  with a higher weight, and 2 cpus. Two Erlang virtual machines will be
  used to take advantage of the number of CPU.
- 
+
+ By default, the load is distributed uniformely on all CPU (one cpu
+ per client by default). The weight parameter (integer) can be used to
+ take into account the speed of the client machine. For instance, if
+ one real client has a weight of 1 and the other client has a weight
+ of 2, the second one will start twice the number of users as the
+ first (the proportions will be 1/3 and 2/3). In the earlier example
+ where for the second client has 2 CPU and weight=3, the weight is
+ equal to 1.5 for each CPU.
+
  The server is the entry point into the cluster (Only one server
  should be defined).
 
@@ -481,8 +492,12 @@ example of default values for Jabber:
 \end{Verbatim}
 
 Using these values, users will be \userinput{myuserXXX} where XXX is an integer in
-the interval [1:userid_max] and passwd  \userinput{mypasswdXXX}
+the interval [1:userid\_max] and passwd  \userinput{mypasswdXXX}
 
+If not set in the config file, the values will be set to:
+\begin{itemize}
+\item global\_number = 
+\end{itemize}
 
 \subsubsection{Default values: HTTP}
 
@@ -554,6 +569,15 @@ The popularity is the frequency of this type of session. This is used
 to decide which session a new user will execute. The sum of all
 session\verb|'|s popularity must be 100. 
 
+A transaction is just a way to have customized statistics. Say if you
+want to know the response time of the login page of your website, you
+just have to put all the requests of this page (HTML + embedded
+pictures) within a transaction. In the example above, the transaction
+called \varname{index\_request} will gives you in the
+statistics/reports the mean response time to get
+\userinput{index.en.html + header.gif}. Be warn that If you have a
+thinktime inside the transaction, the thinktime will be part of the
+response time.
 
 \label{sec:sessions:jabber}
 \par Here is an example of a session definition for the Jabber protocol:
@@ -653,9 +677,10 @@ If you want to set unique id, you can use the built-in function
 \end{Verbatim}
 
 \subsubsection{Reading external file}
-\strong{New in 1.0.3}: A new experimental module ts_file_server is available. You
+\strong{New in 1.0.3}: A new  module \varname{ts\_file\_server} is available. You
 can use it to read external files. For example, if you need to read user
-names and passwd from a csv file, you can do it with it.
+names and passwd from a csv file, you can do it with it (currently,
+you can read only a single file).
 
 You have to add this in the xml config file:
 \begin{Verbatim}
@@ -686,8 +711,10 @@ in your session, use something like:
 \end{Verbatim}
 
 
-Two functions are available: \varname{ts_file_server:get_next_line} and
-\varname{ts_file_server:get_random_line}
+Two functions are available: \varname{ts\_file\_server:get\_next\_line}
+and \varname{ts\_file\_server:get\_random\_line}. For the
+\varname{get\_next\_line} function, when the end of file is reached, the
+first line of the file will be the next line.
 
 
 \subsection{Dynamic variables}
@@ -760,8 +787,9 @@ HTML body, otherwise not. To check that:
 Available stats:
 \begin{itemize}
 \item  request (response time for each request)
-\item  page (response time for each set of requests)
-\item  connect (duration of the connection)
+\item  page (response time for each set of requests (a page is a group
+  of request not separated by a thinktime))
+\item  connect (duration of the connection establishment)
 \item  reconnect (number of reconnection)
 \item  size (size of responses)
 \item  session (duration of a user's session)
@@ -769,10 +797,41 @@ Available stats:
 \item  custom transactions
 \end{itemize}
 
+The mean response time (for requests, page, etc.) is computed every 10
+sec (and reset). That's why you have the highest mean and lowest mean
+values in the Stats report (the mean for the whole test is not
+computed, since it's not very meaningful if you have several phases
+with differents input rate in your setup).
+
 HTTP specific stats:
 \begin{itemize}
 \item counter for each response status (200, 404, etc.)
 \end{itemize}
+
+
+A bit of explanation on the design and internals of the statistics engine:
+
+IDX-tsunami was designed to handle thousands of requests/sec, for very
+long period of times (several hours) so it do not write all data to
+the disk and do the maths after the end of a test (for performance
+reasons). Instead it compute on the fly an estimation of the mean and
+standard variation for each type of data, and write these estimations
+every 10 seconds to disk (and then start a new estimation for the next
+10 sec). These computations are done for two kinds of data:
+\begin{itemize}
+\item \varname{sample}, for things like response time
+\item \varname{sample\_counter} when the input is a cumulative one (number of
+packet sent for ex.).
+\end{itemize}
+
+There are also two other types of useful data (no averaging is done for
+those) :
+\begin{itemize}
+\item \varname{counter}: a simple counter, for HTTP status code for ex.
+\item \varname{sum} for ex. the cumulative HTTP response's size (it gives an
+estimated bandwidth usage).
+\end{itemize}
+
 
 
 \subsection{Generating the report}
@@ -923,7 +982,7 @@ of your client machine should not refer to this address.
 
 \strong{New in 1.1.0}: If you don't use the distributed feature of
 Tsunami and have trouble to start a remote beam on a local machine,
-you can set the \varname{'use_controller_vm'} attribute to true, for ex.:
+you can set the \varname{'use\_controller\_vm'} attribute to true, for ex.:
 
 \begin{Verbatim}
   <client host="mymachine" use_controller_vm="true">

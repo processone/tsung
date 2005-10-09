@@ -223,7 +223,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 
 choose_user_agent(empty) -> {ok, "IDX-Tsunami"};
-choose_user_agent([{_P, Val}]) -> Val;
+choose_user_agent([{_P, Val}]) -> {ok, Val};
 choose_user_agent(UserAgents) ->
     choose_user_agent(UserAgents, random:uniform(100),0).
 

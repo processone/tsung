@@ -317,11 +317,11 @@ sub parse_stats_file {
 	}
 	plot_stats(\@col,"Session",undef,\@session,["sessions/sec"],$logy) if $plot;
 	plot_stats(\@colcount,"HTTP_CODE",undef,\@code,["number/sec","total"],$logy) if $plot and @code;
-	plot_stats(\@col,"Perfs",undef,\@tps,["rate/sec","msec"],$logy) if $plot;
-	plot_stats(\@col,"Transactions",undef,\@transactions,["rate/sec","msec"],$logy) if $plot;
-	plot_stats(\@colcount,"Match",undef,\@match,["rate/sec","rate/sec"],$logy) if $plot;
-	plot_stats(\@colcount,"Event",undef,\@time,["rate/sec","msec"],$logy) if $plot;
-	plot_stats(\@colcount,"Errors",undef,\@errors,["rate/sec","total"],$logy) if $plot;
+	plot_stats(\@col,"Perfs",undef,\@tps,["rate","msec"],$logy) if $plot;
+	plot_stats(\@col,"Transactions",undef,\@transactions,["transactions/sec","msec"],$logy) if $plot;
+	plot_stats(\@colcount,"Match",undef,\@match,["rate","rate"],$logy) if $plot;
+	plot_stats(\@colcount,"Event",undef,\@time,["rate","msec"],$logy) if $plot;
+	plot_stats(\@colcount,"Errors",undef,\@errors,["errors/sec","total"],$logy) if $plot;
 	plot_stats(\@colusers,"Users",undef,\@users,["connected users", "total"],$logy) if $plot;
 	plot_stats(\@colcount,"Users_Arrival",undef,\@users_rate,["number of users/sec", "total"],$logy) if $plot;
 	plot_stats(\@colcount,"Size",undef,\@size,["Kbits/sec","total Kbits"],$logy) if $plot;
