@@ -39,7 +39,7 @@ GetOptions( "help",\$help,
 			"version",\$version,
 			"logy",\$logy,
 			"plot",\$plot,
-			"tdir",\$template_dir,
+			"tdir=s",\$template_dir,
 			"html",\$html,
 			"extra",\$extra
 		  );
