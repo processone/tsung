@@ -496,7 +496,11 @@ the interval [1:userid\_max] and passwd  \userinput{mypasswdXXX}
 
 If not set in the config file, the values will be set to:
 \begin{itemize}
-\item global\_number = 
+\item global\_number = TODO
+\item userid\_max  = TODO
+\item domain = TODO
+\item username = TODO
+\item passwd = TODO
 \end{itemize}
 
 \subsubsection{Default values: HTTP}
@@ -976,6 +980,15 @@ node. It tries to start it with the short node name
 start. Most of the time, adding the short name with the correct IP
 address in the \file{/etc/hosts} file is sufficient to make it work.
 
+You can test this using this simple commands:
+\begin{Verbatim}
+>erl -rsh ssh -sname foo -setcookie mycookie
+
+Eshell V5.4.3 (abort with ^G) 
+(foo@myhostname)1>slave:start(remotehost,bar,"-setcookie mycookie").
+{ok,bar@remotehost}
+\end{Verbatim}
+
 Note that you do not need to use the 127.0.0.1 address in the config file.  
 It will not work if you use it as the injection interface. The shortname  
 of your client machine should not refer to this address.
@@ -988,10 +1001,29 @@ you can set the \varname{'use\_controller\_vm'} attribute to true, for ex.:
   <client host="mymachine" use_controller_vm="true">
 \end{Verbatim}
 
+You may also have problems due to the sshd configuration:
+
+For example, for SuSE 9.2 sshd is compiled with restricted set of
+paths (\ie{} when you shell into the account you get the users shell,
+when you execute a command via ssh you don't) and this makes it
+impossible to start an erlang node (if erlang is installed in
+/usr/local for example).
+
+Run:
+ssh myhostname erl
+
+If the erlang shell doesn't start then check what paths sshd was compiled with 
+(in SuSE see /etc/ssh/sshd_config) and symlink from one of the approved paths 
+to the erlang executable (thanks to Gordon Guthrie for reporting this).
+
 \subsection{IDX-tsunami still crash/fails  when I start it !}
 First look at the log file
 \file{~/.idx-tsunami/log/XXX/tsunami_controller@yourhostname'} to see
 if there is a problem. 
+
+If the file is not created and a crashed dump file is present, maybe
+you are using a binary installation of tsunami not compatible with the
+version of erlang you used.
 
 If you see nothing wrong, you can compile \program{idx-tsunami} with full
 debugging: recompile with \command{make debug} , and
