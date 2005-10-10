@@ -35,7 +35,7 @@
 -export([debug/3, debug/4, get_val/1, init_seed/0, chop/1, elapsed/2,
          now_sec/0, node_to_hostname/1, add_time/2,
          level2int/1, mkey1search/2, close_socket/2, datestr/0, datestr/1,
-		 erl_system_args/0, setsubdir/1, export_text/1,
+         erl_system_args/0, erl_system_args/1, setsubdir/1, export_text/1,
          foreach_parallel/2, spawn_par/3, inet_setopts/3,
          stop_all/2, stop_all/3, stop_all/4, join/2, split2/2, split2/3,
          make_dir_rec/1, is_ip/1, from_https/1, to_https/1,
@@ -201,21 +201,35 @@ datestr({{Y,M,D},{H,Min,_S}})->
 %% erl_system_args/0
 %%----------------------------------------------------------------------
 erl_system_args()->
-	Shared = case init:get_argument(shared) of 
-                 error     -> " ";
-                 {ok,[[]]} -> " -shared "
-             end,
-	Mea = case  erlang:system_info(version) of 
-              "5.3" ++ _Tail     -> " +Mea r10b ";
-              _ -> " "
-          end,
+    erl_system_args(extended).
+erl_system_args(basic)->
 	Rsh = case  init:get_argument(rsh) of 
               {ok,[["ssh"]]}  -> " -rsh ssh ";
               _ -> " "
           end,
     lists:append([Rsh, " -detached -setcookie  ",
-                  atom_to_list(erlang:get_cookie()),
-				  Shared, Mea]).
+                  atom_to_list(erlang:get_cookie()) ]);
+erl_system_args(extended)->
+    BasicArgs  = erl_system_args(basic),
+	Shared = case init:get_argument(shared) of 
+                 error     -> " ";
+                 {ok,[[]]} -> " -shared "
+             end,
+	Hybrid = case init:get_argument(hybrid) of 
+                 error     -> " ";
+                 {ok,[[]]} -> " -hybrid "
+             end,
+    Inet = case init:get_argument(kernel) of
+               {ok,[["inetrc",InetRcFile]]} -> 
+                   ?LOGF("Get inetrc= ~p~n",[InetRcFile],?NOTICE),
+                   " -kernel inetrc '"++ InetRcFile ++ "'" ;
+               _ -> " "
+           end,
+	Mea = case  erlang:system_info(version) of 
+              "5.3" ++ _Tail     -> " +Mea r10b ";
+              _ -> " "
+          end,
+    lists:append([BasicArgs, Shared, Hybrid, Mea, Inet]).
 
 %%----------------------------------------------------------------------
 %% setsubdir/1
