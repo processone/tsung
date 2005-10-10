@@ -203,6 +203,10 @@ handle_call({read_config, ConfigFile}, _From, State) ->
                     ?LOGF("Error while checking config: ~p~n",[Reason],?EMERG),
                     {reply, {error, Reason}, State}
             end;
+        {error, {{case_clause, {error, enoent}},
+                  [{xmerl_scan, fetch_DTD, 2}|_]}} -> 
+                ?LOG("Error while parsing XML: DTD not found !~n",?EMERG),
+                {reply, {error, dtd_not_found}, State};
         {error, Reason} -> 
             ?LOGF("Error while parsing XML config file: ~p~n",[Reason],?EMERG),
             {reply, {error, Reason}, State};
