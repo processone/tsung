@@ -71,7 +71,7 @@ More informations on Erlang on \url{http://www.erlang.org} and
 History:
 \begin{itemize}
 \item \program{IDX-Tsunami} is being developed since 2001 
-\item It is an industrial strenght implementation of a \emph{stochastic model}
+\item It is an industrial strength implementation of a \emph{stochastic model}
 for real users simulation. User events distribution is based on a
 Poisson Process. More information on this topic in:
 
@@ -90,7 +90,7 @@ Volume 46, Issue 2-3, October 2001}.
  
 \begin{itemize}
 \item \emph{Jabber} protocol: 10 000 simultaneous users.
-  \program{IDX-Tsunami} were running on a 3-computers cluster (CPU
+  \program{IDX-Tsunami} was running on a 3-computers cluster (CPU
   800Mhz)
 \item \emph{HTTP and HTTPS} protocol: 12 000 simultaneous users.
   \program{IDX-Tsunami} were running on a 4-computers cluster. The
@@ -134,7 +134,7 @@ agents on remote servers or \emph{SNMP}
   in XML. Scenarios can be written with a simple browser using the
   tsunami recorder (for HTTP only).
 \item \emph{Dynamic scenarios}: You can get dynamic data from the
-  server under load (without writing any code) and reinject it in
+  server under load (without writing any code) and re-inject it in
   subsequent requests.
 \item \emph{Mixed behaviours}: several sessions can be used to simulate
 different type of users during the same benchmark. You can define
@@ -183,10 +183,10 @@ of the user scenario based on request grouping instruction (called \textit{trans
 per second 
 \item \emph{Errors}: Statistics on page return code to trace errors 
 \item \emph{Target server behaviour}: An Erlang agent can gather information
-from the target server(s). Tsunami produce graphs for CPU and memory
+from the target server(s). Tsunami produces graphs for CPU and memory
 consumption and network traffic. SNMP is also supported. 
 \end{itemize}
-\par Note that \program{IDX-Tsunami} take care of the synchronization process
+\par Note that \program{IDX-Tsunami} takes care of the synchronization process
 by itself. Gathered statistics are «synchronized».
 
  It is possible to generate graphs during the benchmark as statistics
@@ -217,8 +217,9 @@ engine and database)
 
 \section{Installation}
 
-This package has only be tested on Linux. It should work on Erlang
-supported platforms (Solaris, *BSD,  Win32 and MacOS-X).
+This package has been tested on Linux, FreeBSD and Solaris. It should
+work on Erlang supported platforms (Linux, Solaris, *BSD, Win32 and
+MacOS-X).
 
 \subsection{Dependencies}
 \begin{itemize}
@@ -226,7 +227,7 @@ supported platforms (Solaris, *BSD,  Win32 and MacOS-X).
   (\url{http://www.erlang.org/download.html}).  RedHat users can
   download a R9C-2 rpm at
   \url{http://www.erlang-projects.org/Public/rpmdeb/rpm_erlang_otp_r9c-2/view}.
-\item xmerl-0.19 (included in erlang R10B) (\url{http://sowap.sourceforge.net/download.html}). Debian and Redhat
+\item xmerl-0.19 (included in Erlang R10B) (\url{http://sowap.sourceforge.net/download.html}). Debian and Redhat
     binaries are provided at
     \url{http://tsunami.idealx.org/dist/}
   \item extended regexp module (used for dynamic variables):
@@ -267,6 +268,8 @@ suggestions or questions about \program{IDX-Tsunami}.
 
 \section{HTTP benchmark approach}
 
+\subsection{benchmarking a Web server}
+
 \begin{enumerate}
 \item Record one or more sessions: start the recorder with: \command{idx-tsunami
     recorder}, and then configure your browser to use IDX-Tsunami
@@ -289,10 +292,10 @@ the number of simultaneous users for each given phase.
   test (see § \ref{sec:statistics-reports}) : the statistics are
   updated every 10 seconds). For a brief summary of the current
   activity, use \command{idx-tsunami status}
-\item Analyse results, change parameters and relaunch another benchmark 
+\item Analyze results, change parameters and relaunch another benchmark 
 \end{enumerate}
 
-\subsection{benchmarking a HTTP proxy server}
+\subsection{benchmarking a proxy server}
 
 By default, the HTTP plugin is used to benchmark HTTP servers. But you
 can also benchmark HTTP Proxy server. To do that, you must add :
@@ -303,19 +306,19 @@ can also benchmark HTTP Proxy server. To do that, you must add :
 
 \section{Jabber benchmark approach}
 
-This paragraph explain how to write a session for Jabber.
+This paragraph explains how to write a session for Jabber.
 
-There are two difference between HTTP and Jabber testing:
+There are two differences between HTTP and Jabber testing:
 \begin{enumerate}
 \item There is no recorder for Jabber, so you have to write your
   sessions by hand (an example is provided in
   \ref{sec:sessions:jabber}).
 \item the jabber plugin does not parse XML; instead it uses packet
-  acknowledgements. The rest of this paragraph will explain this
+  acknowledgments. The rest of this paragraph will explain this
   feature.
 \end{enumerate}
 
-Since the jabber plugin do not parse XML (historically, it was for
+Since the jabber plugin does not parse XML (historically, it was for
 performance reasons), and also due to the bidirectional nature of the
 jabber protocol, you must have a way to tell when a request is
 finished. There are 3 possibilities:
@@ -397,7 +400,7 @@ If you do not specify maxnumber, the global ack will be reset every
  with a higher weight, and 2 cpus. Two Erlang virtual machines will be
  used to take advantage of the number of CPU.
 
- By default, the load is distributed uniformely on all CPU (one cpu
+ By default, the load is distributed uniformly on all CPU (one cpu
  per client by default). The weight parameter (integer) can be used to
  take into account the speed of the client machine. For instance, if
  one real client has a weight of 1 and the other client has a weight
@@ -467,7 +470,7 @@ depend on the mean number of requests within a session (if you have a
 mean value of 100 requests per session and 10 new users per seconds,
 the theoretical average throughput will be 1000 requests/ sec).
  
-\subsection{Default values}
+\subsection{Setting Default values}
 
 \par Default values can be set-up globally: thinktime between requests
 in the scenario and ssl cipher algorithms. These values overrides
@@ -494,7 +497,7 @@ example of default values for Jabber:
 Using these values, users will be \userinput{myuserXXX} where XXX is an integer in
 the interval [1:userid\_max] and passwd  \userinput{mypasswdXXX}
 
-If not set in the config file, the values will be set to:
+If not set in the configuration file, the values will be set to:
 \begin{itemize}
 \item global\_number = TODO
 \item userid\_max  = TODO
@@ -523,10 +526,12 @@ frequencies must be equal to 100)
 
 \subsection{Sessions}
 
+\subsubsection{Overview and examples}
+
 Sessions define the content of the scenario itself. They describe
 the requests to execute.
 
-This example show several features of the HTTP protocol support in
+This example shows several features of the HTTP protocol support in
 Tsunami: GET and POST request, basic authentication, transaction for
 statistics definition, ...
 
@@ -624,7 +629,7 @@ response time.
 
 \end{Verbatim}
 
-\subsection{Dynamic substitutions}
+\subsubsection{Dynamic substitutions}
 
  Dynamic substitution are mark-up placed in element of the scenario.
 For HTTP, this mark-up can be placed in basic authentication (www\_authenticate
@@ -637,7 +642,7 @@ request tag has the attribute \userinput{subst="true"}.
 
 When a substitution is requested, the substitution mark-up is replaced by
 the result of the call to the Erlang function:
-\userinput{Module:Function({Pid, DynData})} where Pid is the erlang process
+\userinput{Module:Function({Pid, DynData})} where Pid is the Erlang process
 id of the current virtual user and DynData the list of all Dynamic
 variables (\strong{Warn: before version 1.1.0, the argument was just the
   Pid !}).
@@ -668,7 +673,7 @@ new({Pid, DynData}) ->
     end.
 \end{Verbatim}
 
-As you can this, writing scenario with dynamic substitution is trivial.
+As you can see, writing scenario with dynamic substitution is trivial.
 
 If you want to set unique id, you can use the built-in function
 \varname{ts\_user\_server:get\_unique\_id}.
@@ -686,7 +691,7 @@ can use it to read external files. For example, if you need to read user
 names and passwd from a csv file, you can do it with it (currently,
 you can read only a single file).
 
-You have to add this in the xml config file:
+You have to add this in the xml configuration file:
 \begin{Verbatim}
  <default name="file_server"  value="/tmp/userlist.csv"></default>
 \end{Verbatim}
@@ -704,7 +709,7 @@ user(Pid)->
 \end{Verbatim}
 
 
-in your session, use something like: 
+In your session, use something like: 
 
 \begin{Verbatim}
   <request subst="true">
@@ -721,7 +726,7 @@ and \varname{ts\_file\_server:get\_random\_line}. For the
 first line of the file will be the next line.
 
 
-\subsection{Dynamic variables}
+\subsubsection{Dynamic variables}
 
 In some cases, you may want to use a value given by the server in a
 response later in the session, and this value is \strong{dynamically
@@ -736,6 +741,7 @@ form like:
 </form>
 \end{Verbatim}
 
+with:
 \begin{Verbatim}
  <request>
    <http url="/testtsunami.html" method="GET" version="1.0"></http>
@@ -767,7 +773,7 @@ hand, for example to get the title of a HTML page:
     </request>
 \end{Verbatim}
 
-\subsection{Checking the server's response}
+\subsubsection{Checking the server's response}
 
 With the attribute \varname{match} in a \varname{request} tag, you can
 check the server's response against a given string. If it matches, this
@@ -785,10 +791,13 @@ HTML body, otherwise not. To check that:
  </request>
 \end{Verbatim}
 
+You can use a regexp instead of a simple string.
+
 \section{Statistics and reports}
 \label{sec:statistics-reports}
 
-Available stats:
+\subsection{Available stats}
+
 \begin{itemize}
 \item  request (response time for each request)
 \item  page (response time for each set of requests (a page is a group
@@ -805,7 +814,7 @@ The mean response time (for requests, page, etc.) is computed every 10
 sec (and reset). That's why you have the highest mean and lowest mean
 values in the Stats report (the mean for the whole test is not
 computed, since it's not very meaningful if you have several phases
-with differents input rate in your setup).
+with different input rates in your setup).
 
 HTTP specific stats:
 \begin{itemize}
@@ -813,15 +822,17 @@ HTTP specific stats:
 \end{itemize}
 
 
+\subsection{Design}
+
 A bit of explanation on the design and internals of the statistics engine:
 
 IDX-tsunami was designed to handle thousands of requests/sec, for very
 long period of times (several hours) so it do not write all data to
-the disk and do the maths after the end of a test (for performance
-reasons). Instead it compute on the fly an estimation of the mean and
-standard variation for each type of data, and write these estimations
-every 10 seconds to disk (and then start a new estimation for the next
-10 sec). These computations are done for two kinds of data:
+the disk (for performance reasons). Instead it computes on the fly an
+estimation of the mean and standard variation for each type of data,
+and writes these estimations every 10 seconds to the disk (and then
+starts a new estimation for the next 10 sec). These computations are
+done for two kinds of data:
 \begin{itemize}
 \item \varname{sample}, for things like response time
 \item \varname{sample\_counter} when the input is a cumulative one (number of
@@ -845,8 +856,10 @@ cd to the log directory of your test (say
 \command{analyse\_msg.pl}:
 
 \begin{Verbatim}
-/usr/lib/idx-tsunami/bin/analyse_msg.pl --stats idx-tsunami.log  --html --extra  --plot  
+/usr/lib/idx-tsunami/bin/analyse_msg.pl --html --extra  --plot  
 \end{Verbatim}
+
+(use \userinput{--help} to view all available options)
 
 \subsection{Tsunami summary}
 \begin{figure}[htb]
@@ -896,7 +909,7 @@ Web benchmarking workshop in April 2004 (more info at
 
 \section{Frequently Asked Questions}
 
-\subsection{IDX-tsunami crash when I start it }
+\subsection{IDX-tsunami crashes when I start it }
 
 Does your Erlang system has ssl support enabled ?
 
@@ -966,12 +979,12 @@ create a "slave" Erlang virtual machine. The message looks like:
 
 IDX-Tsunami launches a new erl virtual machine to do the actual
 injection even when you have only one machine in the injection
-cluster. This is because it need to by-pass some limit with the number
+cluster. This is because it needs to by-pass some limit with the number
 of open socket from a single process (1024 most of the time). The idea
 is to have several system processes (Erl beam) that can handle only a
 small part of the network connection from the given computer. When the
 \varname{maxclient} limit (simultaneous) is reach, a new Erlang beam is launched
-and the newest connection can be handle by the new beam).
+and the newest connection can be handled by the new beam).
 
 The problem is that the Erlang slave module cannot start a local slave
 node. It tries to start it with the short node name
@@ -989,7 +1002,7 @@ Eshell V5.4.3 (abort with ^G)
 {ok,bar@remotehost}
 \end{Verbatim}
 
-Note that you do not need to use the 127.0.0.1 address in the config file.  
+Note that you do not need to use the 127.0.0.1 address in the configuration file.  
 It will not work if you use it as the injection interface. The shortname  
 of your client machine should not refer to this address.
 
@@ -1007,16 +1020,19 @@ For example, for SuSE 9.2 sshd is compiled with restricted set of
 paths (\ie{} when you shell into the account you get the users shell,
 when you execute a command via ssh you don't) and this makes it
 impossible to start an erlang node (if erlang is installed in
-/usr/local for example).
+\file{/usr/local} for example).
 
 Run:
+
+\begin{Verbatim}
 ssh myhostname erl
+\end{Verbatim}
 
 If the erlang shell doesn't start then check what paths sshd was compiled with 
-(in SuSE see /etc/ssh/sshd_config) and symlink from one of the approved paths 
+(in SuSE see \file{/etc/ssh/sshd_config}) and symlink from one of the approved paths 
 to the erlang executable (thanks to Gordon Guthrie for reporting this).
 
-\subsection{IDX-tsunami still crash/fails  when I start it !}
+\subsection{IDX-tsunami still crashes/fails  when I start it !}
 First look at the log file
 \file{~/.idx-tsunami/log/XXX/tsunami_controller@yourhostname'} to see
 if there is a problem. 
@@ -1067,7 +1083,7 @@ stats: 200 51 71
 
 \texttt{ \# stats:'name' count(during the last 10sec), totalcount(since the beginning)}
 
-\subsection{How can i specify the number of concurrent users ?}
+\subsection{How can I specify the number of concurrent users ?}
 
 You can't. But it's on purpose: the load generated by
 \program{IDX-Tsunami} is dependent on the arrival time between new
@@ -1085,6 +1101,17 @@ XML config file).
 
 SNMP currently doesn't work with erlang R10B and up. Use erlang R9C-2 if you
 need SNMP.
+
+
+It use SNMP v1 and the 'public' community. It has been tested with
+\url{http://net-snmp.sourceforge.net/}.
+
+You can try with \command{snmpwalk} to see if your snmpd config is ok:
+
+\begin{Verbatim}
+>snmpwalk -v 1 -c public IP-OF-YOUR-SERVER .1.3.6.1.4.1.2021.4.5.0
+UCD-SNMP-MIB::memTotalReal.0 = INTEGER: 1033436
+\end{Verbatim}
 
 There is a small bug in the \file{snmp\_mgr} module in old Erlang
 release (R9C-0). You have to apply this patch to make it
