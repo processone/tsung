@@ -41,7 +41,7 @@ stop_recorder() {
 
 start() {
     echo "Starting IDX-Tsunami"	
-    $ERL $ERL_OPTS $ERL_RSH -detached -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT \
+    $ERL $ERL_OPTS $ERL_RSH -noshell -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT \
     -pa $TSUNAMIPATH -pa $CONTROLLERPATH \
     -tsunami_controller config_file \"$CONF_OPT_FILE\" -tsunami_controller $LOG_OPT
 }
