@@ -312,9 +312,10 @@ handle_call(Request, _From, State) ->
 %%--------------------------------------------------------------------
 %% start the launcher on the current beam
 handle_cast({newbeam, Host, []}, State=#state{last_beam_id = NodeId,
-                                              hostname=Host,
-                                              config = Config}) when Config#config.use_controller_vm == true ->
-    ?LOGF("Start a launcher on the controller beam (~p)~n", [Host], ?NOTICE),
+                                              hostname=LocalHost,
+                                              config = Config}) 
+  when Config#config.use_controller_vm and ( ( LocalHost == Host ) or ( Host == 'localhost' )) ->
+    ?LOGF("Start a launcher on the controller beam ~p~n", [LocalHost], ?NOTICE),
     LogDir = encode_filename(State#state.logdir),
     %% set the application spec (read the app file and update some env. var.)
     {ok, {_,_,AppSpec}} = load_app(tsunami),
@@ -331,7 +332,7 @@ handle_cast({newbeam, Host, []}, State=#state{last_beam_id = NodeId,
     case application:start(tsunami) of
         ok ->
             ?LOG("Application started, activate launcher, ~n", ?INFO),
-            ts_launcher:launch({node(), []}),
+            ts_launcher:launch({node(), Host, []}),
             {noreply, State#state{last_beam_id = NodeId +1}};
         {error, Reason} ->
             ?LOGF("Can't start launcher application ~p (reason: ~p) ! Aborting!~n",[Host, Reason],?EMERG),
@@ -339,8 +340,18 @@ handle_cast({newbeam, Host, []}, State=#state{last_beam_id = NodeId,
             {stop, normal}
     end;
 
+%% use_controller_vm and max number of concurrent users reached , big trouble !
+handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId,
+                                              hostname=LocalHost,
+                                              config = Config}) 
+  when Config#config.use_controller_vm and ( ( LocalHost == Host ) or ( Host == 'localhost' )) ->
+    Msg ="Maximum number of concurrent users in a single VM reached and 'use_controller_vm' is true, can't start new beam !!!~n",
+	?LOG(Msg, ?EMERG),
+    erlang:display(Msg),
+    {noreply, State};
+
 %% start a launcher on a new beam with slave module 
-handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
+handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId, config= Config}) ->
     Name = "tsunami" ++ integer_to_list(NodeId),
     {ok, [[BootController]]}    = init:get_argument(boot),
     ?DebugF("BootController ~p~n", [BootController]), 

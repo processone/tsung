@@ -71,7 +71,12 @@ start() ->
 %% Start clients with given interarrival (can be empty list)
 launch({Node, Arrivals}) ->
 	?LOGF("starting on node ~p~n",[[Node]], ?INFO),
-	gen_fsm:send_event({?MODULE, Node}, {launch, Arrivals}).
+	gen_fsm:send_event({?MODULE, Node}, {launch, Arrivals});
+
+% same erlang beam case
+launch({Node, Host, Arrivals}) ->
+	?LOGF("starting on node ~p~n",[[Node]], ?INFO),
+	gen_fsm:send_event({?MODULE, Node}, {launch, Arrivals, atom_to_list(Host)}).
 
 
 %%%----------------------------------------------------------------------
@@ -96,6 +101,8 @@ init([]) ->
 %%          {next_state, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}                         
 %%----------------------------------------------------------------------
+wait({launch, Args, Hostname}, State) ->
+    wait({launch, Args}, State#state{myhostname = Hostname});
 wait({launch, []}, State) ->
 	MyHostName = State#state.myhostname,
 	?LOGF("Launch msg receive (~p)~n",[MyHostName], ?NOTICE),
