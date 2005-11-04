@@ -110,6 +110,9 @@ BUILD_OPTIONS =	'[{systools, \
         }]}, \
 	    {sh_script, none}, \
         {make_app, true }, {make_rel, true}].'
+
+BUILD_OPTIONS_DOT = $(subst $(PWD)/temp/,./,$(BUILD_OPTIONS))
+
 BUILD_OPTIONS_FILE = ./BUILD_OPTIONS 
 
 DIST_COMMON=Makefile.in $(CONFFILE_SRC) $(PERL_SCRIPTS_SRC) idx-tsunami.sh.in idx-tsunami.spec.in
@@ -155,11 +158,13 @@ install: doc boot install_recorder install_controller $(CONFFILE)
 
 	cp $(INC_FILES) $(TARGETDIR)/include
 	cp $(TARGET) $(TARGETDIR)/ebin
+	cp builder.beam $(TARGETDIR)/ebin
 
 	cp $(TGT_APPFILES_E) $(TARGETDIR)/ebin
 	cp $(TGT_APPFILES_P) $(TARGETDIR)/priv
 
 	cp $(SRC) $(SRC_APPFILES) $(TARGETDIR)/src
+	echo $(BUILD_OPTIONS_DOT) > $(TARGETDIR)/BUILD_OPTIONS
 
 # install the man page & user's manual
 	install -d $(MAN_DIR)
@@ -192,6 +197,7 @@ install_recorder:
 	cp $(RECORDER_TGT_APPFILES_P) $(RECORDER_TARGETDIR)/priv
 
 	cp $(RECORDER_SRC) $(RECORDER_SRC_APPFILES) $(RECORDER_TARGETDIR)/src
+	echo $(BUILD_OPTIONS_DOT) > $(RECORDER_TARGETDIR)/BUILD_OPTIONS
 
 install_controller:
 	install -d $(CONTROLLER_TARGETDIR)/priv
@@ -205,6 +211,7 @@ install_controller:
 	cp $(CONTROLLER_TGT_APPFILES_P) $(CONTROLLER_TARGETDIR)/priv
 
 	cp $(CONTROLLER_SRC) $(CONTROLLER_SRC_APPFILES) $(CONTROLLER_TARGETDIR)/src
+	echo $(BUILD_OPTIONS_DOT) > $(CONTROLLER_TARGETDIR)/BUILD_OPTIONS
 
 uninstall:
 	rm -rf $(TARGETDIR) $(SCRIPT)
