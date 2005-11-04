@@ -58,7 +58,7 @@ if ! test -f conftest.out; then
        AC_MSG_ERROR([erlang program was not properly executed, (conftest.out was
  not produced)])
 fi
-ERLANG_XMERL_DIR=`cat conftest.out|head -1`
+ERLANG_XMERL_DIR=`head -1 < conftest.out`
 if test -f "$ERLANG_XMERL_DIR/inc/xmerl.hrl"; then
   ERLANG_XMERL_DIR="$ERLANG_XMERL_DIR/inc/"
   AC_MSG_RESULT($ERLANG_XMERL_DIR)
