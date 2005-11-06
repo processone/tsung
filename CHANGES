@@ -1,12 +1,13 @@
 1.1.0 -> X.X.X
-    - fix regression in recorder for WWWauthentication (anders.nygren@gmail.com)
+    - fix regression in recorder for WWW-Authentication (anders.nygren@gmail.com)
     - fix single user agent case.
     - ip is no more mandatory (default is 0.0.0.0)
     - clients and monitoring can use host lists defined in environment
       variables, for use with batch schedulers (openpbs, lsf and oar)
     - performance improvements in stats engine for very high load
+    - rebuild boot scripts if erlang version is different from compile time
     - close client socket when connection:closed is ask by the server
-     (this should enable https recording with IE)
+      (this should enable https recording with IE)
 
 1.0.3 -> 1.1.0 Major feature enhancements (5 Sep 2005)
     - new feature: HTTP proxy load testing in now possible (set
