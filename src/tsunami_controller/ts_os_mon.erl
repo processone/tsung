@@ -316,6 +316,10 @@ get_os_data(freemem, {unix, linux}) ->
     Result = os:cmd("free | grep '\\-/\\+'"),
     [_, _, _, Free] = string:tokens(Result, " \n"),
     list_to_integer(Free)/1024;
+get_os_data(freemem, {unix, sunos}) ->
+    Result = os:cmd("vmstat 1 2 | tail -1"),
+    [_, _, _, _, Free | _] = string:tokens(Result, " "),
+    list_to_integer(Free)/1024;
 get_os_data(freemem, _OS) ->
     Data = memsup:get_system_memory_data(),
     {value,{free_memory,FreeMem}} = lists:keysearch(free_memory, 1, Data),
@@ -328,6 +332,12 @@ get_os_data(packets, {unix, linux}) ->
     Result = os:cmd("cat /proc/net/dev | grep eth0"), 
     [_, _RecvBytes, RecvPackets, _, _, _, _, _, _, _SentBytes, SentPackets, _, _, _, _, _,_] = 
         string:tokens(Result, " \n:"),
+    {list_to_integer(RecvPackets), list_to_integer(SentPackets)};
+
+%% solaris, contributed by Jason Tucker
+get_os_data(packets, {unix, sunos}) ->
+    Result = os:cmd("netstat -in 1 1 | tail -1"),
+    [_, _, _, _, _, RecvPackets, _, SentPackets | _] = string:tokens(Result, " "),
     {list_to_integer(RecvPackets), list_to_integer(SentPackets)};
 
 %{ok, IODev} =file:open("/proc/net/dev",[read]),
