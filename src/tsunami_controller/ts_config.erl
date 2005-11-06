@@ -79,8 +79,8 @@ read(Filename) ->
 %%% Purpose:  parse the xmerl structure
 %%%----------------------------------------------------------------------
 parse(Element = #xmlElement{parents = [], attributes=Attrs}, Conf=#config{}) ->
-    Loglevel = getAttr(Attrs, loglevel),
-    Dump     = getAttr(Attrs, dumptraffic),
+    Loglevel = getAttr(string, Attrs, loglevel, "notice"),
+    Dump     = getAttr(string, Attrs, dumptraffic, "false"),
     BackEnd  = getAttr(atom, Attrs, backend, text),
     DumpType = case Dump of 
                    "false" -> none;
@@ -132,7 +132,7 @@ parse(Element = #xmlElement{name=client, attributes=Attrs},
       Conf = #config{clients=CList}) ->
     Host     = getAttr(Attrs, host),
     Weight   = getAttr(integer,Attrs, weight,1),
-    MaxUsers = getAttr(integer,Attrs, maxusers,750),
+    MaxUsers = getAttr(integer,Attrs, maxusers, 800),
     SingleNode = getAttr(atom, Attrs, use_controller_vm, false) or Conf#config.use_controller_vm,
     NewClients =
         case getAttr(atom, Attrs, type) of

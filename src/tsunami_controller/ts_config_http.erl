@@ -65,10 +65,7 @@ parse_config(Element = #xmlElement{name=http},
                                  'if_modified_since', undefined),
     Method = case ts_config:getAttr(Element#xmlElement.attributes, method) of 
                  "GET" -> get;
-                 "POST"-> post;
-                 Other ->
-                     ?LOGF("Bad method ! ~p ~n",[Other],?ERR),
-                     get
+                 "POST"-> post
              end,
             
     Request = #http_request{url         = URL,

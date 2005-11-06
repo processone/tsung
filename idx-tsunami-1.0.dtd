@@ -2,9 +2,9 @@
 <!ELEMENT idx-tsunami (clients, server, monitoring?, arrivalphase+, default*, session+)>
 
 <!ATTLIST idx-tsunami 
-     dumptraffic (true|false) #REQUIRED
-     backend     (text|rrdtool) #IMPLIED
-     loglevel    (emergency|critical|error|warning|notice|info|debug) #REQUIRED
+     dumptraffic (true | false | light) "false"
+     backend     (text | rrdtool) "text"
+     loglevel    (emergency|critical|error|warning|notice|info|debug) "notice"
      version     NMTOKEN #IMPLIED>
 
 <!ELEMENT server EMPTY>
@@ -16,13 +16,13 @@
 <!ELEMENT clients (client+)>
 <!ELEMENT client (ip*) >
 <!ATTLIST client
-     cpu      NMTOKEN #IMPLIED
-     type     (machine|batch)  #IMPLIED
+     cpu      NMTOKEN "1"
+     type     (machine | batch)  "machine"
      host     NMTOKEN #IMPLIED
-     batch    NMTOKEN #IMPLIED
-     maxusers NMTOKEN #REQUIRED
-     use_controller_vm (true | false) #IMPLIED
-     weight   NMTOKEN #IMPLIED>
+     batch    (torque | pbs | lsf | oar) #IMPLIED
+     maxusers NMTOKEN "800"
+     use_controller_vm (true | false) "false"
+     weight   NMTOKEN "1">
 
 <!ELEMENT ip EMPTY>
 <!ATTLIST ip value NMTOKEN #REQUIRED>
@@ -31,7 +31,7 @@
 <!ELEMENT monitor EMPTY>
 <!ATTLIST monitor
      host NMTOKEN #REQUIRED
-     batch (true | false) #IMPLIED
+     batch (true | false) "false"
      type (snmp | erlang) "erlang">
 
 <!ELEMENT arrivalphase (users)>
@@ -49,9 +49,9 @@
 <!ELEMENT default (user_agent*)>
 <!ATTLIST default
     name     NMTOKEN #REQUIRED
-    override (true|false) #IMPLIED
+    override (true | false) #IMPLIED
     random   (true | false) #IMPLIED
-    type     NMTOKEN #IMPLIED
+    type     (ts_http | ts_jabber ) #IMPLIED
     value    CDATA #IMPLIED>
 
 <!ELEMENT session ( request | thinktime | transaction )*>
@@ -60,16 +60,16 @@
     name         CDATA #REQUIRED
     persistent   (true | false) #IMPLIED
     popularity   NMTOKEN #REQUIRED
-    type         NMTOKEN #REQUIRED>
+    type         (ts_jabber | ts_http | ts_raw ) #REQUIRED>
 
-<!ELEMENT request ( ( http | jabber | raw), dyn_variable* )>
+<!ELEMENT request ( ( http | jabber | raw ), dyn_variable* )>
 <!ATTLIST request
-    subst (true|false) #IMPLIED
+    subst (true|false) "false"
     match CDATA #IMPLIED>
 
 <!ELEMENT thinktime EMPTY>
 <!ATTLIST thinktime
-    random (true|false) #IMPLIED
+    random (true|false) "false"
     value  NMTOKEN #REQUIRED>
 
 <!ELEMENT user_agent (#PCDATA)*>
@@ -85,9 +85,9 @@
     contents          CDATA #IMPLIED
     content_type      CDATA #IMPLIED
     if_modified_since CDATA #IMPLIED
-    method            (GET | POST) #REQUIRED
+    method            (GET | POST) "GET"
     url               CDATA #REQUIRED
-    version           (1.0|1.1) #REQUIRED>
+    version           (1.0 | 1.1) "1.1" >
 
 <!ELEMENT soap EMPTY >
 <!ATTLIST soap action CDATA #REQUIRED >
@@ -104,14 +104,14 @@
 
 <!ELEMENT jabber EMPTY >
 <!ATTLIST jabber
-    ack         (global|local|no_ack) #REQUIRED
-    destination NMTOKEN #IMPLIED
+    ack         (global | local | no_ack) #REQUIRED
+    destination (online | offline | random | unique | previous) "random"
     id          NMTOKEN #IMPLIED
-    size        NMTOKEN #IMPLIED
+    size        NMTOKEN "0"
     data        CDATA   #IMPLIED
     type        NMTOKEN #REQUIRED>
 
 <!ELEMENT raw EMPTY >
 <!ATTLIST raw
-    ack         (global|local|no_ack) #REQUIRED
+    ack         (global | local | no_ack) #REQUIRED
     data CDATA #REQUIRED>
