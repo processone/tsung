@@ -30,9 +30,9 @@
 -include("ts_http.hrl").
 
 -export([init_dynparams/0,
-		 add_dynparams/4,
-		 get_message/1,
-		 session_defaults/0,
+         add_dynparams/4,
+         get_message/1,
+         session_defaults/0,
          parse/2,
          parse_config/2,
          new_session/0]).
