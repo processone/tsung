@@ -221,6 +221,7 @@ handle_info({NetEvent, _Socket, Data}, think, State = #state_rcv{request=Req} )
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     ts_mon:add({ count, error_unknown_data }),
     ?LOG("Data receive from socket in state think, stop~n", ?ERR),
+    ?DebugF("Data was ~p~n",[Data]),
     NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol, State#state_rcv.socket,
                              [{active, once}]),
     {stop, normal, State};
@@ -551,10 +552,12 @@ handle_data_msg(Data, State=#state_rcv{request=Req, clienttype=Type}) when Req#t
                     ts_utils:close_socket(State#state_rcv.protocol,State#state_rcv.socket),
                     {NewState#state_rcv{ page_timestamp = PageTimeStamp,
                                          socket = none,
+                                         datasize = 0,
                                          dyndata = NewDynData,
                                          buffer = <<>>}, Opts};
                 false -> 
                     {NewState#state_rcv{ page_timestamp = PageTimeStamp,
+                                         datasize = 0,
                                          dyndata = NewDynData,
                                          buffer = <<>>}, Opts}
             end;
