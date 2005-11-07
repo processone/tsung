@@ -268,16 +268,16 @@ priv/tsunami_recorder.boot: builder.beam $(RECORDER_SRC_APPFILES)
 Makefile: Makefile.in config.status
 	@$(SHELL) ./config.status --file=$@
 
-%.pl:  %.pl.in
+%.pl:  %.pl.in vsn.mk
 	@$(SHELL) ./config.status --file=$@
 
-%.spec:  %.spec.in
+%.spec:  %.spec.in vsn.mk
 	@$(SHELL) ./config.status --file=$@
 
 %.xml:  %.xml.in
 	@$(SHELL) ./config.status --file=$@
 
-%.sh :%.sh.in
+%.sh :%.sh.in vsn.mk
 	@$(SHELL) ./config.status --file=$@
 
 config.status: configure $(CONFIG_STATUS_DEPENDENCIES)
