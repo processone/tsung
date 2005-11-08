@@ -216,14 +216,12 @@ handle_info({NetEvent, _Socket, Data}, think, State = #state_rcv{request=Req} )
     NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol, State#state_rcv.socket,
                                       [{active, once}]),
     {next_state, think, State#state_rcv{socket=NewSocket}};
-handle_info({NetEvent, _Socket, Data}, think, State = #state_rcv{request=Req} ) 
+handle_info({NetEvent, _Socket, Data}, think, State) 
   when (NetEvent == tcp) or (NetEvent==ssl) ->
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     ts_mon:add({ count, error_unknown_data }),
     ?LOG("Data receive from socket in state think, stop~n", ?ERR),
     ?DebugF("Data was ~p~n",[Data]),
-    NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol, State#state_rcv.socket,
-                             [{active, once}]),
     {stop, normal, State};
 handle_info(Msg, StateName, State ) ->
     ?LOGF("Error: Unknown msg ~p receive in state ~p, stop~n", [Msg,StateName], ?ERR),
@@ -366,6 +364,7 @@ handle_next_request(Profile, State) ->
                                         _ -> %page already started
                                             State#state_rcv.page_timestamp
                                     end,
+                    ts_mon:add({ sum, size_sent, size(Message)}),
                     ts_mon:sendmes({State#state_rcv.dump, self(), Message}),
                     NewState = State#state_rcv{socket   = NewSocket,
                                                protocol = Protocol,
@@ -566,7 +565,7 @@ handle_data_msg(Data, State=#state_rcv{request=Req, clienttype=Type}) when Req#t
             {NewState#state_rcv{buffer=NewBuffer}, Opts}
     end;
 
-handle_data_msg(closed,State=#state_rcv{request=Req,datasize=OldSize}) ->
+handle_data_msg(closed,State) ->
     {State,[]};
 
 %% ack = global
@@ -611,7 +610,7 @@ update_stats(State) ->
 	Now = now(),
 	Elapsed = ts_utils:elapsed(State#state_rcv.send_timestamp, Now),
 	Stats= [{ sample, request, Elapsed},
-			{ sum, size, State#state_rcv.datasize}],
+			{ sum, size_rcv, State#state_rcv.datasize}],
     Profile = State#state_rcv.request,
     ts_search:match(Profile#ts_request.match, State#state_rcv.buffer),
     DynVars = ts_search:parse_dynvar(Profile#ts_request.dynvar_specs,

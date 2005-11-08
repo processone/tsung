@@ -221,7 +221,7 @@ sub parse_stats_file {
                 $category->{$type} = "stats";
             } elsif ($type =~ /^tr_/ or $type eq "page") {
                 $category->{$type} = "transaction";
-            } elsif ($type eq "size") {
+            } elsif ($type =~ "^size") {
                 $category->{$type} = "network";
             } elsif ($type =~ /^error/) {
                 $category->{$type} = "error";
@@ -243,7 +243,7 @@ sub parse_stats_file {
 	close FILE;
     unless ($html) {
         foreach my $key (sort keys %{$maxval->{'rate'}}) {
-            if ($key =~ /\d+/ or $key eq 'size') {
+            if ($key =~ /\d+/ or $key =~ /^size/) {
                 printf "Total $key = %7.2f\n", $maxval->{'mean'}->{$key};
             } else {
                 printf "Mean  $key (max sample) = %7.2f\n", $maxval->{'mean'}->{$key};
@@ -275,13 +275,13 @@ sub parse_stats_file {
         $key =~ s/\'//g;
 		open (TYPE, "> $datadir/$key.txt") or die "$!";
 		foreach my $data (@{$data->{$key}}) {
-			if (($key !~ /^users$/ and $key !~ /^size$/) and $interval) {#
+			if (($key !~ /^users$/ and $key !~ /^size_/) and $interval) {#
 				my @tmp;
 				my $time;
 				($time, $data, @tmp) = split(/\s/,$data);
 				$data /= $interval;
 				$data = "$time $data @tmp";
-			} elsif ($key =~ /size/) { # bits instead of bytes
+			} elsif ($key =~ /^size/) { # bits instead of bytes
 				my ($time, @tmp) = split(/\s/,$data);
 				@tmp = map {$_*8/(1024*$interval) } @tmp; # kb/s instead of Bytes/s
 				$data = "$time @tmp";
@@ -290,7 +290,7 @@ sub parse_stats_file {
 		}
 		if ($key eq "session") {
 			push @session, "$key.txt";
-		} elsif ($key eq "size") {
+		} elsif ($key =~ /^size/) {
 			push @size, "$key.txt";
 		} elsif ($key =~ /^users$/) {
 			push @users, "$key.txt";
@@ -357,11 +357,13 @@ sub html_report {
             $xml_conf= $file;
         }
     }
-    if ($maxval->{rate}->{size}) {
-        $maxval->{rate}->{size} = sprintf("%.2f",$maxval->{rate}->{size}*8/1024);
-        $maxval->{mean}->{size} = sprintf("%.2f",$maxval->{mean}->{size}/(1024*1024));
-    } else {
-        warn "Size is equal to 0 !\n";
+    foreach my $size ("size_rcv", "size_sent") {
+        if ($maxval->{rate}->{$size}) {
+            $maxval->{rate}->{$size} = sprintf("%.2f",$maxval->{rate}->{$size}*8/1024);
+            $maxval->{mean}->{$size} = sprintf("%.2f",$maxval->{mean}->{$size}/(1024*1024));
+        } else {
+            warn "$size is equal to 0 !\n";
+        }
     }
 
     my $vars =
