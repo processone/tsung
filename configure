@@ -1569,7 +1569,7 @@ echo "$as_me: error: erlang program was not properly executed, (conftest.out was
  not produced)" >&2;}
    { (exit 1); exit 1; }; }
 fi
-ERLANG_XMERL_DIR=`cat conftest.out|head -1`
+ERLANG_XMERL_DIR=`head -1 < conftest.out`
 if test -f "$ERLANG_XMERL_DIR/inc/xmerl.hrl"; then
   ERLANG_XMERL_DIR="$ERLANG_XMERL_DIR/inc/"
   echo "$as_me:$LINENO: result: $ERLANG_XMERL_DIR" >&5
@@ -1752,7 +1752,7 @@ test -z "$INSTALL_SCRIPT" && INSTALL_SCRIPT='${INSTALL}'
 test -z "$INSTALL_DATA" && INSTALL_DATA='${INSTALL} -m 644'
 
 
-                                                            ac_config_files="$ac_config_files Makefile idx-tsunami.spec idx-tsunami.sh idx-tsunami.xml src/analyse_msg.pl src/log2tsunami.pl"
+                                                            ac_config_files="$ac_config_files Makefile idx-tsunami.spec idx-tsunami.sh examples/*.xml src/analyse_msg.pl src/log2tsunami.pl"
 
 
 cat >confcache <<\_ACEOF
@@ -2309,7 +2309,7 @@ do
   "Makefile" ) CONFIG_FILES="$CONFIG_FILES Makefile" ;;
   "idx-tsunami.spec" ) CONFIG_FILES="$CONFIG_FILES idx-tsunami.spec" ;;
   "idx-tsunami.sh" ) CONFIG_FILES="$CONFIG_FILES idx-tsunami.sh" ;;
-  "idx-tsunami.xml" ) CONFIG_FILES="$CONFIG_FILES idx-tsunami.xml" ;;
+  "examples/*.xml" ) CONFIG_FILES="$CONFIG_FILES examples/*.xml" ;;
   "src/analyse_msg.pl" ) CONFIG_FILES="$CONFIG_FILES src/analyse_msg.pl" ;;
   "src/log2tsunami.pl" ) CONFIG_FILES="$CONFIG_FILES src/log2tsunami.pl" ;;
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5

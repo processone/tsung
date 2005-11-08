@@ -98,6 +98,6 @@ AC_SUBST(TEMPLATES_SUBDIR,[idx-tsunami/templates])
 AC_PROG_MAKE_SET
 AC_PROG_INSTALL
 
-AC_CONFIG_FILES([Makefile idx-tsunami.spec idx-tsunami.sh idx-tsunami.xml src/analyse_msg.pl src/log2tsunami.pl])
+AC_CONFIG_FILES([Makefile idx-tsunami.spec idx-tsunami.sh examples/*.xml src/analyse_msg.pl src/log2tsunami.pl])
 
 AC_OUTPUT

@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<!DOCTYPE idx-tsunami SYSTEM "/home/nniclausse/share/idx-tsunami/idx-tsunami-1.0.dtd">
+<idx-tsunami loglevel="notice" version="1.0">
+
+  <clients>
+    <client host="localhost" use_controller_vm="true"></client>
+  </clients>
+
+  <!-- Server side setup -->
+  <server host="127.0.0.1" port="5222" type="tcp"></server>
+
+
+  <arrivalphase phase="1" duration="1" unit="minute">
+    <users interarrival="2" unit="second"></users>
+  </arrivalphase>
+
+  <!-- JABBER parameters -->
+  <!-- to synchronise users,  use a global acknoledgement -->
+  <default type="ts_jabber" name="global_number" value="100"></default>
+  <default type="ts_jabber" name="userid_max" value="10000"></default>
+  <default type="ts_jabber" name="domain" value="mydomain.org"></default>
+  <default type="ts_jabber" name="username" value="user"></default>
+  <default type="ts_jabber" name="passwd" value="pass"></default>
+
+ <session popularity="100" name="jabber-example" type="ts_jabber">
+
+    <request> <jabber type="connect" ack="no_ack"></jabber> </request>
+    <thinktime value="2"></thinktime>
+    <transaction name="authenticate">
+      <request> <jabber type="authenticate" ack="local"></jabber> </request>
+    </transaction>
+
+    <request> <jabber type="presence" ack="no_ack"/> </request>
+    <thinktime value="2"></thinktime>
+
+    <transaction name="roster">
+      <request> <jabber type="iq:roster:get" ack="local"></jabber></request>
+    </transaction>
+
+    <thinktime value="30"></thinktime>
+
+    <transaction name="online">
+    <request> <jabber type="chat" ack="no_ack" size="16" destination="online"></jabber> </request>
+    </transaction>
+
+    <thinktime value="30"></thinktime>
+
+    <transaction name="offline">
+      <request> <jabber type="chat" ack="no_ack" size="56" destination="offline"></jabber> </request>
+    </transaction>
+
+    <thinktime value="30"></thinktime>
+
+    <transaction name="close">
+      <request> <jabber type="close" ack="no_ack"></jabber> </request>
+    </transaction>
+
+  </session>
+</idx-tsunami>
+

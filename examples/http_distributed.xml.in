@@ -4,27 +4,25 @@
 <!-- set loglevel="debug" for maximum verbosity -->
 <idx-tsunami loglevel="notice" dumptraffic="false" version="1.0">
 
- 
-  
   <!-- Client side setup -->
   <clients>
     <!-- maxusers is the max number of simultaneous clients. Don't set
     it too high because you can run out of file descriptors. Remember
     that ssl_esock use 2 fds by connection. -->
 
-    <client host="localhost" weight="2" maxusers="500">
+    <client host="myhost" weight="2" maxusers="500">
       <!-- Several virtual IP can be used to simulate more
       machines. Very useful when a load-balancer use the client's IP to
       distribute the traffic amoung a cluster of servers-->
       <ip value="192.168.2.223"></ip> 
-      <ip value="127.0.0.1"></ip>
+      <ip value="192.168.2.224"></ip> 
     </client>
 
     <!-- a second machine is used, with a higher weight, and 2 cpus
     (erlang is not SMP aware, so we starts 2 beams to use all the
     CPUs -->
-    <client host="speed4" weight="3" maxusers="250" cpu="2">
-      <ip value="192.168.2.224"></ip>
+    <client host="myhost2" weight="3" maxusers="250" cpu="2">
+      <ip value="192.168.2.225"></ip>
     </client>
 
     <!-- If you have a single machine to do the tests, you may add
@@ -36,13 +34,13 @@
   </clients>
   
   <!-- Server side setup -->
-  <server host="myserver" port="7" type="tcp"></server>
+  <server host="myserver" port="80" type="tcp"></server>
 
   <!-- to start os monitoring (cpu, network, memory). Use an erlang
   agent on the remote machine or SNMP. erlang is the default --> 
   <monitoring>
     <monitor host="myserver" type="snmp"></monitor>
-    <monitor host="myserver2" type="erlang"></monitor>
+    <monitor host="myhost" type="erlang"></monitor>
   </monitoring>
   
   <!-- several arrival phases can be set: for each phase, you can set
@@ -52,29 +50,24 @@
   <arrivalphase phase="1" duration="1" unit="hour">
     <users interarrival="2" unit="second"></users>
   </arrivalphase>
+  <arrivalphase phase="2" duration="1" unit="hour">
+    <users interarrival="1" unit="second"></users>
+  </arrivalphase>
 
   <!--  default values. -->
   <!-- Thinktime value overrides those set in the session
   nodes if override=true. -->
-  <default name="thinktime" value="3" random="false" override="false"></default>
+  <default name="thinktime" value="3" random="true" override="false"></default>
+
   <!-- to set specific ssl_ciphers -->
-  <default name="ssl_ciphers" value="EXP1024-RC4-SHA,EDH-RSA-DES-CBC3-SHA"></default>
+  <!--   <default name="ssl_ciphers" value="EXP1024-RC4-SHA,EDH-RSA-DES-CBC3-SHA"></default> -->
 
   <!-- To start ts_file_server. It can be use later in dynamic
   substitution using ts_file_server:get_next_line() --> 
  <default name="file_server"  value="/tmp/userlist"></default>
 
   <!-- HTTP parameters -->
-  <!-- none yet -->
   
-  <!-- JABBER parameters -->
-  <!-- to synchronise users,  use a global acknoledgement -->
-  <default type="ts_jabber" name="global_number" value="5"></default>
-  <default type="ts_jabber" name="userid_max" value="100"></default>
-  <default type="ts_jabber" name="domain" value="jabber.org"></default>
-  <default type="ts_jabber" name="username" value="glop"></default>
-  <default type="ts_jabber" name="passwd" value="glop"></default>
-
   <!-- If you want to benchmark a proxy server instead of a reguler web server-->
 <!--   <default type="ts_http" name="http_use_server_as_proxy" value="true"/> -->
 
@@ -132,56 +125,15 @@
   </session>
 
 
+  <session name="http-example" popularity="30" type="ts_http">
 
+    <request> <http url="/" method="GET" version="1.1"></http> </request>
+    <request> <http url="/images/icon1.gif" method="GET" version="1.1" if_modified_since="Fri, 14 Nov 2003 02:43:31 GMT"></http> </request>
+    <request> <http url="/images/icon1.gif" method="GET" version="1.1"></http> </request>
 
-  <!-- ********************************************** -->
-  <!--   Jabber session example (see 'type' argument) -->
-  <!-- ********************************************** -->
+    <thinktime value="60" random="true"></thinktime>
 
- <session popularity="70" name="jabber-example" type="ts_jabber">
-    
-    <request> <jabber type="connect" ack="no_ack"></jabber> </request>
-    <thinktime value="2"></thinktime>
-    <transaction name="authenticate">
-      <request> <jabber type="authenticate" ack="local"></jabber> </request>
-    </transaction>
-
-    <request> <jabber type="presence" ack="no_ack"/> </request>
-    <thinktime value="2"></thinktime>
-
-    <request> <jabber type="register" ack="no_ack" id="new"></jabber> </request>
-    
-    <transaction name="roster">
-      <request> <jabber type="iq:roster:set" ack="no_ack" destination="offline"></jabber> </request>
-      <request> <jabber type="presence:roster" ack="no_ack" destination="previous"></jabber> </request>
-      <request> <jabber type="iq:roster:set" ack="no_ack" destination="online"></jabber> </request>
-      <request> <jabber type="iq:roster:get" ack="no_ack"></jabber> </request>
-    </transaction>
-    <thinktime value="2"></thinktime>
-
-    <request> <jabber type="chat" ack="no_ack" size="56"></jabber> </request>
-    <thinktime value="30"></thinktime>
-
-    <transaction name="global_msg">
-    <request> <jabber type="chat" ack="global" size="56" destination="random"></jabber> </request>
-    </transaction>
-
-    <thinktime value="30"></thinktime>
-
-    <transaction name="online">
-    <request> <jabber type="chat" ack="no_ack" size="16" destination="online"></jabber> </request>
-    </transaction>
-    <thinktime value="30"></thinktime>
-
-    <transaction name="offline">
-      <request> <jabber type="chat" ack="no_ack" size="56" destination="offline"></jabber> </request>
-    </transaction>
-
-    <thinktime value="30"></thinktime>
-    
-    <transaction name="close">
-      <request> <jabber type="close" ack="local"></jabber> </request>
-    </transaction>
+    <request> <http url="/" method="GET" version="1.1"  if_modified_since="Fri, 14 Nov 2003 02:43:31 GMT"></http> </request>
 
   </session>
 </idx-tsunami>
