@@ -30,7 +30,7 @@
 %%% ---------------------------------------------------------------------
 
 -module(ts_pgsql).
--vc('$Id: ts_template.erl 506 2005-08-16 17:21:39Z nic $ ').
+-vc('$Id:$ ').
 -author('nicolas.niclausse@niclux.org').
 
 -include("ts_profile.hrl").
@@ -108,24 +108,31 @@ parse(Data, State=#state_rcv{acc = [], dyndata=DynData}) ->
     case process_head(Data) of
         {ok, {ready_for_query, idle}, _ } ->
             {State#state_rcv{ack_done = true},[],false};
+
         {ok, {ready_for_query, transaction}, _ } ->
             ?Debug("PGSQL: Transaction ~n"),
             {State#state_rcv{ack_done = true},[],false};
+
         {ok, {ready_for_query, failed_transaction}, _ } ->
             ?LOG("PGSQL: Failed Transaction ~n",?NOTICE),
             ts_mon:add({ count, pgsql_failed_transaction }),
             {State#state_rcv{ack_done = true},[],false};
+
         {ok, {authenticate, 0}, Tail } -> % auth OK, continue to parse resp.
             parse(Tail, State);
+
         {ok, {error_message, ErrMsg}, << >> } ->
-            %%TODO: err msg using ts_mon ?
+            ts_mon:add({ count, pgsql_error_message }),
             ?LOGF("PGSQL: Got Error Msg from postgresql [~p] ~n",[ErrMsg],?INFO),
             {State#state_rcv{ack_done = false},[],false};
+
         {ok, {authenticate, AuthType}, _ } ->
             NewDynData=DynData#dyndata{proto=#pgsql_dyndata{auth_method=AuthType}},
             {State#state_rcv{ack_done = true, dyndata=NewDynData},[],false};
+
         {ok, _Pair, Tail } ->
             parse(Tail, State);
+
         more ->
             ?LOG("PGSQL: need more data from socket ~n",?DEB),
             {State#state_rcv{ack_done = false, acc=Data},[],false}
