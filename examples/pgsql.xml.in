@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<!DOCTYPE idx-tsunami SYSTEM "@prefix@/share/@PACKAGE_NAME@/@DTD@">
+<idx-tsunami loglevel="notice">
+
+  <clients>
+    <client host="localhost" use_controller_vm="true"/>
+  </clients>
+
+  <!-- Server side setup -->
+  <server host="127.0.0.1" port="5432" type="tcp"/>
+  <monitoring>
+   <monitor host="localhost"/>
+  </monitoring>
+  
+
+  <arrivalphase phase="1" duration="10" unit="minute">
+    <users interarrival="30" unit="second"></users>
+  </arrivalphase>
+
+ <session popularity="100" name="pgsql-example" type="ts_pgsql">
+    <transaction name="connection">
+      <request>
+        <pgsql type="connect">
+          <pgsql_connect database="bench" username="bench" />
+        </pgsql>
+      </request>
+    </transaction>
+
+    <transaction name="authentication">
+      <request>
+        <pgsql type="authenticate" value="sesame"/>
+      </request>
+    </transaction>
+
+    <thinktime value="12"/>
+
+    <transaction name="select">
+      <request><pgsql type="sql" value="SELECT * from accounts;"></pgsql></request>
+    </transaction>
+
+    <thinktime value="20"/>
+
+    <request><pgsql type="sql" value="SELECT * from users;"></pgsql></request>
+
+    <request><pgsql type="close"></pgsql></request>
+
+  </session>
+</idx-tsunami>
+

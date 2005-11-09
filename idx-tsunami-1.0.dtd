@@ -51,7 +51,7 @@
     name     NMTOKEN #REQUIRED
     override (true | false) #IMPLIED
     random   (true | false) #IMPLIED
-    type     (ts_http | ts_jabber ) #IMPLIED
+    type     (ts_http | ts_jabber | ts_pgsql) #IMPLIED
     value    CDATA #IMPLIED>
 
 <!ELEMENT session ( request | thinktime | transaction )*>
@@ -60,9 +60,9 @@
     name         CDATA #REQUIRED
     persistent   (true | false) #IMPLIED
     popularity   NMTOKEN #REQUIRED
-    type         (ts_jabber | ts_http | ts_raw ) #REQUIRED>
+    type         (ts_jabber | ts_http | ts_raw | ts_pgsql) #REQUIRED>
 
-<!ELEMENT request ( ( http | jabber | raw ), dyn_variable* )>
+<!ELEMENT request ( ( http | jabber | raw | pgsql ), dyn_variable* )>
 <!ATTLIST request
     subst (true|false) "false"
     match CDATA #IMPLIED>
@@ -110,6 +110,16 @@
     size        NMTOKEN "0"
     data        CDATA   #IMPLIED
     type        NMTOKEN #REQUIRED>
+
+<!ELEMENT pgsql ( pgsql_connect? ) >
+<!ATTLIST pgsql
+    value       CDATA   #IMPLIED
+    type        (connect | authenticate | sql | close) #REQUIRED >
+
+<!ELEMENT pgsql_connect EMPTY >
+<!ATTLIST pgsql_connect
+    database CDATA #REQUIRED
+    username CDATA #REQUIRED >
 
 <!ELEMENT raw EMPTY >
 <!ATTLIST raw
