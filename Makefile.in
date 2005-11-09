@@ -31,6 +31,8 @@ DTD=@DTD@
 
 #### END OF SUBSTITUTION
 
+SVN_REVISION=$Revision$
+
 ERL_COMPILER_OPTIONS="[warn_unused_vars]"
 export ERL_COMPILER_OPTIONS
 
@@ -294,7 +296,7 @@ configure: configure.in $(CONFIGURE_DEPENDENCIES)
 doc: 
 	make -C doc
 
-release: Makefile
+release: Makefile idx-tsunami.spec
 	rm -fr $(distdir)
 	mkdir -p $(distdir)
 	tar zcf tmp.tgz $(SRC) $(SRC_APPFILES) $(INC_FILES) \
