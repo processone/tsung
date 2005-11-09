@@ -148,7 +148,7 @@ deb:
 clean:
 	-cd priv && rm -f $(shell ls priv | grep -v builder\.erl| grep -v CVS) && cd ..
 	-rm -f $(TARGET) $(TMP) $(BUILD_OPTIONS_FILE) builder.beam
-	-rm -f $(TGT_APPFILES) idx-tsunami.sh $(PERL_SCRIPTS)
+	-rm -f $(TGT_APPFILES) idx-tsunami.sh $(PERL_SCRIPTS) $(CONFFILE)
 	-rm -f ebin/*.beam idx-tsunami.sh idx-tsunami.spec idx-tsunami.xml
 	-make -C doc clean
 
