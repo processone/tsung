@@ -48,8 +48,12 @@ CC  = $(ERLC)
 
 ESRC = ./src
 EBIN = ./ebin
+ifeq ($(TYPE),snapshot)
+DAY=$(shell date +"%Y%m%d")
+distdir = $(PACKAGE)-$(VERSION)-$(DAY)
+else 
 distdir = $(PACKAGE)-$(VERSION)
-
+endif
 
 # installation path
 BINDIR    = $(bindir)
@@ -308,6 +312,9 @@ release: Makefile
 	tar zvcf  $(distdir).tar.gz $(distdir)
 	rm -fr $(distdir)
 	rm -fr tmp.tgz
+
+snapshot:
+	make TYPE=snapshot release
 
 builder.beam: priv/builder.erl 
 	$(CC) $(OPT) -I $(INC) $<
