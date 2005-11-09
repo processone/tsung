@@ -152,7 +152,13 @@ parse_config(Element, Conf) ->
 %%                                               Host  = String
 %% Returns: #pgsql_request
 %%----------------------------------------------------------------------
-add_dynparams(_Subst, #dyndata{proto=DynPgsql}, Param, _HostData) ->
+add_dynparams(false, DynData, Param, HostData) ->
+    add_dynparams(DynData#dyndata.proto, Param, HostData);
+add_dynparams(true, DynData, Param, HostData) ->
+    NewParam = subst(Param, DynData#dyndata.dynvars),
+    add_dynparams(DynData#dyndata.proto,NewParam, HostData).
+
+add_dynparams(#dyndata{proto=DynPgsql}, Param, _HostData) ->
 	Param#pgsql_request{auth_method=DynPgsql#pgsql_dyndata.auth_method,
                         salt=DynPgsql#pgsql_dyndata.salt}.
 
@@ -169,8 +175,8 @@ init_dynparams() ->
 %% Purpose: Replace on the fly dynamic element of the request.
 %% Returns: #pgsql_request
 %%----------------------------------------------------------------------
-subst(Req=#pgsql_request{}, _DynData) ->
-    Req.
+subst(Req=#pgsql_request{sql=SQL}, DynData) ->
+    Req#pgsql_request{sql=ts_search:subst(SQL, DynData)}.
 
 
 %%% -- Internal funs --------------------
