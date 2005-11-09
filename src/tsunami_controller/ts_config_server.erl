@@ -332,6 +332,7 @@ handle_cast({newbeam, Host, []}, State=#state{last_beam_id = NodeId,
     case application:start(tsunami) of
         ok ->
             ?LOG("Application started, activate launcher, ~n", ?INFO),
+            application:set_env(tsunami, debug_level, Config#config.loglevel),
             ts_launcher:launch({node(), Host, []}),
             {noreply, State#state{last_beam_id = NodeId +1}};
         {error, Reason} ->
