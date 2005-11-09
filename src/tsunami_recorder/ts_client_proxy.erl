@@ -144,9 +144,7 @@ handle_info({Type, ServerSock, String}, State)
 %%%%%%%%%%%% Errors and termination %%%%%%%%%%%%%%%%%%%
 
 % Log who did close the connection, and exit.
-handle_info({Msg,Socket},State=#state{http_version = HTTPVersion,
-                                      serversock = Socket, close = true
-                                     }) when Msg==tcp_close; Msg==ssl_closed ->
+handle_info({Msg, Socket}, #state{ serversock = Socket, close = true }) when Msg==tcp_close; Msg==ssl_closed ->
     ?LOG("socket closed by server, close client socket also~n",?INFO),
     {stop, normal, ?lifetime};% close ask by server in previous request
 handle_info({Msg,Socket},State=#state{http_version = HTTPVersion,
@@ -333,7 +331,7 @@ check_serversocket(undefined, URL = #url{}, ClientSock) ->
                 Query -> {Socket, URL#url.path++"?"++Query}
             end
     end;
-check_serversocket(Socket, URL=#url{port=Port,host=Host}, ClientSock) ->
+check_serversocket(Socket, URL=#url{host=Host}, _ClientSock) ->
     RealPort = ts_config_http:set_port(URL),
     {ok, RealIP} = inet:getaddr(Host,inet),
     case peername(Socket) of
@@ -382,7 +380,7 @@ connect(Scheme, Host, Port)->
                                       ])
     end.
 
-relative_url("CONNECT"++Tail,RequestURI,[])-> 
+relative_url("CONNECT"++_Tail,_RequestURI,[])-> 
     {ok, []};
 relative_url(NewString,RequestURI,RelURL)->
     [FullURL_noargs|_] = string:tokens(RequestURI,"?"),
