@@ -44,6 +44,7 @@
          parse_config/2,
          new_session/0]).
 
+
 %%----------------------------------------------------------------------
 %% Function: session_default/0
 %% Purpose: default parameters for session
@@ -165,7 +166,7 @@ add_dynparams(true, DynData, Param, HostData) ->
     NewParam = subst(Param, DynData#dyndata.dynvars),
     add_dynparams(DynData#dyndata.proto,NewParam, HostData).
 
-add_dynparams(#dyndata{proto=DynPgsql}, Param, _HostData) ->
+add_dynparams(DynPgsql, Param, _HostData) ->
 	Param#pgsql_request{auth_method=DynPgsql#pgsql_dyndata.auth_method,
                         salt=DynPgsql#pgsql_dyndata.salt}.
 
@@ -210,6 +211,7 @@ encode_message(password, Password) when is_binary(Password)->
     pgsql_proto:encode(?PG_PASSWORD_MSG, << Password/binary, 0:8/integer >> );
 encode_message(Type, Msg)->
     pgsql_proto:encode_message(Type, Msg).
+
 
 %%----------------------------------------------------------------------
 %% Function: encode_md5/3
