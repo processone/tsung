@@ -55,23 +55,19 @@ parse_config(Element = #xmlElement{name=pgsql},
 
     Request = case ts_config:getAttr(atom, Element#xmlElement.attributes, type) of 
                   sql ->
-                      SQL  = ts_config:getAttr(Element#xmlElement.attributes, value),
+                      [ValRaw]= ts_config:getText(Element#xmlElement.content),
+                      SQL = ts_utils:clean_str(ValRaw),
+                      ?LOGF("Got SQL query: ~p~n",[SQL], ?NOTICE),
                       #pgsql_request{sql=SQL, type= sql};
                   close ->
                       #pgsql_request{type= close};
                   authenticate ->
-                      Passwd  = ts_config:getAttr(Element#xmlElement.attributes, value),
+                      Passwd  = ts_config:getAttr(Element#xmlElement.attributes, password),
                       #pgsql_request{passwd=Passwd, type= authenticate};
                   connect ->
-                      case lists:keysearch(pgsql_connect,#xmlElement.name,
-                                           Element#xmlElement.content) of
-                          {value, AuthEl=#xmlElement{} } ->
-                              User  = ts_config:getAttr(string,AuthEl#xmlElement.attributes,
-                                                        username, undefined),
-                              Database  = ts_config:getAttr(string,AuthEl#xmlElement.attributes, 
-                                                            database, undefined),
-                              #pgsql_request{username=User, database=Database,  type=connect}
-                      end
+                      Database  = ts_config:getAttr(Element#xmlElement.attributes, database),
+                      User  = ts_config:getAttr(Element#xmlElement.attributes, username),
+                      #pgsql_request{username=User, database=Database,  type=connect}
               end,
     Msg= #ts_request{ack     = parse,
                      endpage = true,

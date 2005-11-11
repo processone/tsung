@@ -111,15 +111,12 @@
     data        CDATA   #IMPLIED
     type        NMTOKEN #REQUIRED>
 
-<!ELEMENT pgsql ( pgsql_connect? ) >
+<!ELEMENT pgsql (#PCDATA) >
 <!ATTLIST pgsql
-    value       CDATA   #IMPLIED
+    password     CDATA   #IMPLIED
+    database     CDATA   #IMPLIED
+    username     CDATA   #IMPLIED
     type        (connect | authenticate | sql | close) #REQUIRED >
-
-<!ELEMENT pgsql_connect EMPTY >
-<!ATTLIST pgsql_connect
-    database CDATA #REQUIRED
-    username CDATA #REQUIRED >
 
 <!ELEMENT raw EMPTY >
 <!ATTLIST raw
