@@ -20,27 +20,25 @@
  <session popularity="100" name="pgsql-example" type="ts_pgsql">
     <transaction name="connection">
       <request>
-        <pgsql type="connect">
-          <pgsql_connect database="bench" username="bench" />
-        </pgsql>
+        <pgsql type="connect" database="bench" username="bench" />
       </request>
     </transaction>
 
     <transaction name="authentication">
       <request>
-        <pgsql type="authenticate" value="sesame"/>
+        <pgsql type="authenticate" password="sesame"/>
       </request>
     </transaction>
 
     <thinktime value="12"/>
 
     <transaction name="select">
-      <request><pgsql type="sql" value="SELECT * from accounts;"></pgsql></request>
+      <request><pgsql type="sql">SELECT * from accounts;</pgsql></request>
     </transaction>
 
     <thinktime value="20"/>
 
-    <request><pgsql type="sql" value="SELECT * from users;"></pgsql></request>
+    <request><pgsql type="sql">SELECT * from users;</pgsql></request>
 
     <request><pgsql type="close"></pgsql></request>
 
