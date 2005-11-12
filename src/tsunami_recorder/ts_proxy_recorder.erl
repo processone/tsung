@@ -43,24 +43,15 @@
 %%--------------------------------------------------------------------
 -include("ts_profile.hrl").
 -include("ts_http.hrl").
+-include("ts_recorder.hrl").
 
 %%--------------------------------------------------------------------
 %% External exports
 -export([start/1, dorecord/1, stop/1]).
--export([decode_basic_auth/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
--record(state, {log_file,    % logfile name
-                logfd,       % logfile IODevice
-                prev_port,   % previous port
-                prev_scheme, % previous scheme
-                prev_host,   % previous hostname 
-                timestamp=0, % last request date
-                thinktime_low = 1000 % dot not record thinktime less than this
-                                     % value (msec)
-               }).
 
 %%====================================================================
 %% External functions
@@ -106,9 +97,11 @@ init(Filename) ->
     end,    
     case file:open(File,write) of 
 		{ok, Stream} ->
-			?LOG("starting recorder~n",?NOTICE),
-			{ok, #state{ log_file = File,
-                         logfd    = Stream
+            Plugin = ?config(plugin),
+			?LOGF("starting recorder with plugin ~s~n",[Plugin],?NOTICE),
+			{ok, #state_rec{ log_file = File,
+                             logfd    = Stream,
+                             plugin   = Plugin
 					   }};
 		{error, Reason} ->
 			?LOGF("Can't open log file ~p! ~p~n",[File,Reason], ?ERR),
@@ -126,8 +119,8 @@ init(Filename) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
 handle_call({stop}, _From, State) ->
-    io:format(State#state.logfd,"</session>~n",[]),
-    file:close(State#state.logfd),
+    io:format(State#state_rec.logfd,"</session>~n",[]),
+    file:close(State#state_rec.logfd),
     {stop, normal, ok, State};
 
 handle_call(_Request, _From, State) ->
@@ -142,30 +135,31 @@ handle_call(_Request, _From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
 handle_cast({record, endsession}, State) ->
-    io:format(State#state.logfd,"</session>"),
+    io:format(State#state_rec.logfd,"</session>"),
     {noreply, State};
 
-handle_cast({record, {HTTPRequest}}, State=#state{timestamp=0}) -> % first record
+handle_cast({record, {Request}}, State=#state_rec{timestamp=0,plugin=Plugin}) -> % first record
     Name= ts_utils:datestr(),
-    io:format(State#state.logfd,"<session name='~s' popularity='100' "++
-              " type='ts_http'>~n",["rec"++Name]),
-    {ok, NewState} = record_http_request(State, HTTPRequest),
-    {noreply, NewState#state{timestamp=now()}};
+    Type = Plugin:gettype(),
+    io:format(State#state_rec.logfd,"<session name='~s' popularity='100' "++
+              " type='~s'>~n",["rec"++Name, Type]),
+    {ok, NewState} = Plugin:record_request(State, Request),
+    {noreply, NewState#state_rec{timestamp=now()}};
 
-handle_cast({record, {HTTPRequest}}, State) ->
+handle_cast({record, {Request}}, State=#state_rec{plugin=Plugin}) ->
     TimeStamp=now(),
-    Elapsed = ts_utils:elapsed(State#state.timestamp,TimeStamp),
-    case Elapsed < State#state.thinktime_low of
+    Elapsed = ts_utils:elapsed(State#state_rec.timestamp,TimeStamp),
+    case Elapsed < State#state_rec.thinktime_low of
         true ->
             ?LOGF("skip too low thinktime, assuming it's an embedded object (~p)~n",
                   [Elapsed],?INFO);
         false ->
-            io:format(State#state.logfd,
+            io:format(State#state_rec.logfd,
                       "~n<thinktime random='true' value='~p'/>~n~n",
                       [round(Elapsed/1000)])
     end,
-    {ok, NewState} = record_http_request(State, HTTPRequest),
-    {noreply, NewState#state{timestamp=TimeStamp}};
+    {ok, NewState} = Plugin:record_request(State, Request),
+    {noreply, NewState#state_rec{timestamp=TimeStamp}};
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -200,82 +194,4 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%--------------------------------------------------------------------
 
-%%--------------------------------------------------------------------
-%% Func: record_http_request/2
-%% Purpose: record request given State=#state and Request=#http_request
-%% Returns: {ok, NewState}
-%%--------------------------------------------------------------------
-record_http_request(State=#state{prev_host=Host, prev_port=Port, prev_scheme=Scheme},
-                    #http_request{method  = Method, url = RequestURI,
-                                  version = HTTPVersion,
-                                  headers = ParsedHeader,body=Body}) ->
-    
-    FullURL = ts_utils:to_https({url, RequestURI}),
-
-    {URL,NewPort,NewHost, NewScheme} = 
-        case ts_config_http:parse_URL(FullURL) of 
-            #url{path=RelURL,host=Host,port=Port,querypart=[],scheme=Scheme}->
-                {RelURL, Port, Host, Scheme};
-            #url{path=RelURL,host=Host,port=Port,querypart=Args,scheme=Scheme}->
-                {RelURL++"?"++Args, Port, Host, Scheme};
-            #url{path=RelURL,host=Host2,port=Port2,querypart=Args,scheme=Sc2}->
-                {FullURL,Port2,Host2,Sc2 }
-        end,
-    Fd = State#state.logfd,
-    URL2 = ts_utils:export_text(URL),
-    io:format(Fd,"<request><http url='~s' version='~s' ", [URL2, HTTPVersion]),
-    case Body of 
-        [] -> ok;
-        _  -> 
-            Body2 = ts_utils:export_text(Body),
-            io:format(Fd," contents='~s' ", [Body2]) % must be a POST method
-    end,
-
-    %% Content-type recording (This is usefull for SOAP post for example):
-    record_header(Fd,ParsedHeader,"content-type", "content_type='~s' "),
-    record_header(Fd,ParsedHeader,"if_modified_since", "if_modified_since='~s' "),
-
-    io:format(Fd,"method='~s'>", [Method]),
-
-    record_header(Fd,ParsedHeader,"authorization",
-                  "~n  <www_authenticate userid=~p passwd=~p />"),
-    %% SOAP Support: Need to record use of the SOAPAction header
-    record_header(Fd,ParsedHeader,"soapaction",
-                  "~n  <soap action='~s'></soap>~n",
-                  fun(A) -> string:strip(A,both,$") end ),
-
-	io:format(Fd,"</http></request>~n",[]),
-
-    {ok,State#state{prev_port=NewPort,prev_host=NewHost,prev_scheme=NewScheme}}.
-
-%%--------------------------------------------------------------------
-%% Func: decode_basic_auth/1
-%% Purpose: decode base64 encoded user passwd for basic authentication
-%% Returns: {User, Passwd}
-%%--------------------------------------------------------------------
-decode_basic_auth(Base64)->
-	AuthStr= httpd_util:decode_base64(Base64),
-	Sep = string:chr(AuthStr,$:),
-	{string:substr(AuthStr,1,Sep-1),string:substr(AuthStr,Sep+1)}.
-	
-%%--------------------------------------------------------------------
-%% Func: record_header/3
-%%--------------------------------------------------------------------
-record_header(Fd, Headers, "authorization", Msg)->
-    %% special case for authorization
-    case httpd_util:key1search(Headers,"authorization") of
-        "Basic " ++ Base64 ->
-            {User,Passwd} = decode_basic_auth(Base64),
-            io:format(Fd, Msg, [User,Passwd]);
-		_ -> ok
-    end;
-record_header(Fd, Headers, HeaderName, Msg)->
-    %% record Msg as it is given
-    record_header(Fd, Headers,HeaderName, Msg, fun(A)->A end). 
-%%--------------------------------------------------------------------
-record_header(Fd, Headers,HeaderName, Msg, Fun)->
-    case httpd_util:key1search(Headers,HeaderName) of
-        undefined -> ok;
-        Value     -> io:format(Fd,Msg,[Fun(Value)])
-    end.
 

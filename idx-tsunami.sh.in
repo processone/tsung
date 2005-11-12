@@ -27,6 +27,7 @@ CONF_OPT_FILE="$HOME/.idx-tsunami/idx-tsunami.xml"
 BOOT_OPT="-boot $INSTALL_DIR/lib/tsunami_controller-$VERSION/priv/tsunami_controller -boot_var TSUNAMIPATH  $INSTALL_DIR "
 REC_BOOT_OPT="-boot $INSTALL_DIR/lib/tsunami_recorder-$VERSION/priv/tsunami_recorder -boot_var TSUNAMIPATH  $INSTALL_DIR "
 REC_DEBUG_LEVEL=5
+RECORDER_PLUGIN="http"
 ERL_RSH=" -rsh ssh "
 ERL_OPTS=" +A 1 @ERL_OPTS@ "
 COOKIE='tsunami'
@@ -75,6 +76,7 @@ recorder() {
     -pa $TSUNAMIPATH -pa $RECORDERPATH -pa $CONTROLLERPATH \
     -tsunami_recorder debug_level $REC_DEBUG_LEVEL \
     -tsunami_recorder $LOG_OPT \
+    -tsunami_recorder plugin ts_proxy_$RECORDER_PLUGIN \
     -tsunami_recorder proxy_log_file \"$MAIN_DIR/idx-tsunami_recorder.xml\" \
     -tsunami_recorder proxy_listen_port $LISTEN_PORT
 }
@@ -124,13 +126,14 @@ usage() {
     echo "$prog start|stop|restart|debug|status|recorder|stop_recorder|version"
 }
 
-while getopts ":f:l:d:r:" Option
+while getopts ":f:p:l:d:r:" Option
 do
     case $Option in
         f) CONF_OPT_FILE=$OPTARG;;
         l) LOG_OPT="log_file \"$OPTARG\" ";;
         d) REC_DEBUG_LEVEL=$OPTARG;;
         r) ERL_RSH=" -rsh $OPTARG ";;
+        p) RECORDER_PLUGIN=$OPTARG;;
         *) usage ;;
     esac
 done	

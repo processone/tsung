@@ -41,10 +41,7 @@
 %% Include files
 %%--------------------------------------------------------------------
 -include("ts_profile.hrl").
--include("ts_http.hrl").
-
--define(lifetime, 120000).
--define(tcp_buffer, 65536).
+-include("ts_recorder.hrl").
 
 %%--------------------------------------------------------------------
 %% External exports
@@ -52,18 +49,8 @@
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
-		 code_change/3]).
+		 code_change/3, peername/1, send/3]).
 
--record(state, {
-          clientsock,
-          http_version,
-          close, % must closed client socket (connection:close header was send by server)
-          parse_status   = new, %% http status = body|new
-          body_size      = 0,
-          content_length = 0,
-          buffer = [],
-          serversock
-          }).
 %%====================================================================
 %% External functions
 %%====================================================================
@@ -87,7 +74,7 @@ start(Socket) ->
 %%          {stop, Reason}
 %%--------------------------------------------------------------------
 init([Socket]) ->
-    {ok, #state{clientsock=Socket}}.
+    {ok, #proxy{clientsock=Socket, plugin=?config(plugin)}}.
 
 %%--------------------------------------------------------------------
 %% Function: handle_call/3
@@ -121,33 +108,33 @@ handle_cast(_Msg, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
 % client data, parse and send it to the server.
-handle_info({tcp, ClientSock, String}, State) 
-  when ClientSock == State#state.clientsock ->
+handle_info({tcp, ClientSock, String}, State=#proxy{plugin=Plugin}) 
+  when ClientSock == State#proxy.clientsock ->
     ts_utils:inet_setopts(tcp, ClientSock,[{active, once}]),
-    {ok, NewState}  = parse(State,ClientSock,State#state.serversock,String),
+    {ok, NewState}  = Plugin:parse(State,ClientSock,State#proxy.serversock,String),
     {noreply, NewState, ?lifetime};
 
 % server data, send it to the client
-handle_info({Type, ServerSock, String}, State) 
-  when ServerSock == State#state.serversock, ((Type == tcp) or (Type == ssl)) ->
+handle_info({Type, ServerSock, String}, State=#proxy{plugin=Plugin}) 
+  when ServerSock == State#proxy.serversock, ((Type == tcp) or (Type == ssl)) ->
     ts_utils:inet_setopts(Type, ServerSock,[{active, once}]),
     ?LOGF("Received data from server: ~s~n",[String],?DEB),
-    {ok,NewString} = ts_utils:from_https(String),
-    send(State#state.clientsock, NewString),
+    {ok,NewString} = Plugin:rewrite_serverdata(String),
+    send(State#proxy.clientsock, NewString, Plugin),
     case regexp:first_match(NewString, "[cC]onnection: [cC]lose") of 
         nomatch ->
             {noreply, State, ?lifetime};
         _ ->
-            {noreply, State#state{close=true}, ?lifetime}
+            {noreply, State#proxy{close=true}, ?lifetime}
     end;
 
 %%%%%%%%%%%% Errors and termination %%%%%%%%%%%%%%%%%%%
 
 % Log who did close the connection, and exit.
-handle_info({Msg, Socket}, #state{ serversock = Socket, close = true }) when Msg==tcp_close; Msg==ssl_closed ->
+handle_info({Msg, Socket}, #proxy{ serversock = Socket, close = true }) when Msg==tcp_close; Msg==ssl_closed ->
     ?LOG("socket closed by server, close client socket also~n",?INFO),
     {stop, normal, ?lifetime};% close ask by server in previous request
-handle_info({Msg,Socket},State=#state{http_version = HTTPVersion,
+handle_info({Msg,Socket},State=#proxy{http_version = HTTPVersion,
                                       serversock = Socket
                                      }) when Msg==tcp_close; Msg==ssl_closed ->
     ?LOG("socket closed by server~n",?INFO),
@@ -155,7 +142,7 @@ handle_info({Msg,Socket},State=#state{http_version = HTTPVersion,
         "HTTP/1.0" ->
             {stop, normal, ?lifetime};%Disconnect client if it requires HTTP/1.0
         _ ->
-            {noreply, State#state{serversock=undefined}, ?lifetime}
+            {noreply, State#proxy{serversock=undefined}, ?lifetime}
     end;
 
 handle_info({Msg, _Socket}, State) when Msg == tcp_closed;
@@ -172,7 +159,8 @@ handle_info({Msg, Socket, Reason}, State) when Msg == tcp_error;
 handle_info(timeout, State) ->
     {stop, timeout, State};
 
-handle_info(_Info, State) ->
+handle_info(Info, State) ->
+    ?LOGF("Uknown data  ~p~n",[Info],?ERR),
     {stop, unknown, State}.
 
 %%--------------------------------------------------------------------
@@ -205,185 +193,21 @@ code_change(_OldVsn, State, _Extra) ->
 %% Types:   Sockname -> server | client | unknown
 %%          State -> state_record()
 
-sockname(Socket,#state{serversock=Socket})-> server;
-sockname(Socket,#state{clientsock=Socket})-> client;
+sockname(Socket,#proxy{serversock=Socket})-> server;
+sockname(Socket,#proxy{clientsock=Socket})-> client;
 sockname(_Socket,_State)-> unknown.
 
-
-
-%%--------------------------------------------------------------------
-%% Func: parse/4
-%% Purpose: parse HTTP request
-%% Returns: {ok, NewState}
-%%--------------------------------------------------------------------
-parse(State=#state{parse_status=Status},_,ServerSocket,String) when Status==new ->
-    NewString = lists:append(State#state.buffer,String),
-	case ts_http_common:parse_req(NewString) of 
-		{more, _Http, _Head} -> 
-            ?LOGF("Headers incomplete (~p), buffering ~n",[NewString],?DEB),
-			{ok, State#state{parse_status=new, buffer=NewString}}; %FIXME: not optimal
-        {ok, Http=#http_request{url=RequestURI, version=HTTPVersion}, Body} -> 
-            ?LOGF("Method ~p ~n",[Http#http_request.method],?DEB),
-            ?LOGF("Headers ~p ~n",[Http#http_request.headers],?DEB),
-            case httpd_util:key1search(Http#http_request.headers,"content-length") of
-                undefined -> % no body, everything received
-                    ts_proxy_recorder:dorecord({Http }),
-                    {NewSocket,RelURL} = check_serversocket(ServerSocket,RequestURI,State#state.clientsock),
-                    ?LOGF("Remove server info from url:~p ~p in ~p~n",
-                          [RequestURI,RelURL,NewString], ?INFO),
-                    {ok, RealString} = relative_url(NewString,RequestURI,RelURL),
-                    send(NewSocket,RealString),
-                    case Http#http_request.method of
-                        'CONNECT' ->
-                            {ok, State#state{http_version=HTTPVersion,
-                                             parse_status = connect, buffer=[],
-                                             serversock=NewSocket}};
-                        _ ->
-                            {ok, State#state{http_version=HTTPVersion,
-                                             parse_status = new, buffer=[],
-                                             serversock=NewSocket}}
-                    end;
-                Length ->
-                    CLength = list_to_integer(Length),
-                    ?LOGF("HTTP Content-Length:~p~n",[CLength], ?DEB),
-                    BodySize = length(Body),
-                    if
-                        BodySize == CLength ->  % end of response
-                            {NewSocket,RelURL} = check_serversocket(ServerSocket,RequestURI,State#state.clientsock),
-                            {ok,RealString,_Count} = regexp:gsub(NewString,RequestURI,RelURL),%FIXME: why not use relative_url ?
-                            send(NewSocket,RealString),
-                            ?LOG("End of response, recording~n", ?DEB),
-                            ts_proxy_recorder:dorecord({Http#http_request{body=Body}}),
-                            {ok, State#state{http_version = HTTPVersion,
-                                             parse_status = new, buffer=[],
-                                             serversock=NewSocket}};
-                        BodySize > CLength  ->
-                            {error, bad_content_length};
-                        true ->
-                            {NewSocket,RelURL} = check_serversocket(ServerSocket,RequestURI,State#state.clientsock),
-                            {ok,RealString,_Count} = regexp:gsub(NewString,RequestURI,RelURL), %FIXME: why not use relative_url ?
-                            send(NewSocket,RealString),
-                            ?LOG("More data to come continue before recording~n", ?DEB),
-                            {ok, State#state{http_version=HTTPVersion,
-                                             content_length = CLength,
-                                             body_size = BodySize,
-                                             serversock=NewSocket,
-                                             buffer = Http#http_request{body=Body },
-                                             parse_status = body
-                                            }
-                            }
-                    end
-            end
-    end;
-
-parse(State=#state{parse_status=body, buffer=Http},_,ServerSocket,String) ->
-	DataSize = length(String),
-	?LOGF("HTTP Body size=~p ~n",[DataSize], ?DEB),
-	Size = State#state.body_size + DataSize,
-	CLength = State#state.content_length,
-    send(ServerSocket, String),
-    Buffer=lists:append(Http#http_request.body,String),
-    %% Should be checked before
-	case Size of 
-		CLength -> % end of response
-            ?LOG("End of response, recording~n", ?DEB),
-            ts_proxy_recorder:dorecord( {Http#http_request{ body=Buffer }} ),
-			{ok, State#state{body_size=0,parse_status=new, content_length=0,buffer=[]}};
-		_ ->
-            ?LOGF("Received ~p bytes of data, wait for ~p, continue~n", [Size,CLength],?DEB),
-			{ok, State#state{body_size = Size, buffer = Http#http_request{body=Buffer}}}
-	end;
-
-parse(State=#state{parse_status=connect},_,ServerSocket,String) ->
-    ?LOGF("Received data from client: ~s~n",[String],?DEB),
-    send(ServerSocket, String),
-    {ok, State}.
-
-%%--------------------------------------------------------------------
-%% Func: check_serversocket/2
-%% Purpose: If the socket is not defined, or if the server is not the
-%%          same, connect to the server as specified in URL
-%% Returns: {Socket, RelativeURL (String)}
-%%--------------------------------------------------------------------            
-check_serversocket(Socket, "http://{" ++ Rest, ClientSock) ->
-    check_serversocket(Socket, ts_config_http:parse_URL("https://"++Rest), ClientSock);
-check_serversocket(Socket, "http://%7B" ++ Rest, ClientSock) -> %% for IE.
-    check_serversocket(Socket, ts_config_http:parse_URL("https://"++Rest), ClientSock);
-check_serversocket(Socket, URL, ClientSock) when list(URL)->
-    check_serversocket(Socket, ts_config_http:parse_URL(URL), ClientSock);
-
-check_serversocket(undefined, URL = #url{}, ClientSock) ->
-    Port = ts_config_http:set_port(URL),
-    ?LOGF("Connecting to ~p:~p ...~n", [URL#url.host, Port],?DEB),
-
-    {ok, Socket} = connect(URL#url.scheme, URL#url.host,Port),
-
-    ?LOGF("Connected to server ~p on port ~p (socket is ~p)~n",
-          [URL#url.host,Port,Socket],?INFO),
-    case URL#url.scheme of 
-        connect ->
-            ?LOGF("CONNECT: Send 'connection established' to client socket (~p)",[ClientSock],?DEB),
-            send(ClientSock, "HTTP/1.0 200 Connection established\r\nProxy-agent: IDX-Tsunami\r\n\r\n"),
-            { Socket, [] };
-        _ ->
-            case URL#url.querypart of 
-                []    -> {Socket, URL#url.path};
-                Query -> {Socket, URL#url.path++"?"++Query}
-            end
-    end;
-check_serversocket(Socket, URL=#url{host=Host}, _ClientSock) ->
-    RealPort = ts_config_http:set_port(URL),
-    {ok, RealIP} = inet:getaddr(Host,inet),
-    case peername(Socket) of
-        {ok, {RealIP, RealPort}} -> % same as previous URL
-            ?LOGF("Reuse socket ~p on URL ~p~n", [Socket, URL],?DEB),
-            case URL#url.querypart of 
-                []    -> {Socket, URL#url.path};
-                Query -> {Socket, URL#url.path++"?"++Query}
-            end;
-        Other ->
-            ?LOGF("New server configuration  (~p:~p, was ~p) on URL ~p~n", 
-                  [RealIP, RealPort, Other, URL],?DEB),
-            case Socket of 
-                {sslsocket, _, _} -> ssl:close(Socket);
-                _             -> gen_tcp:close(Socket)
-            end,
-            {ok, NewSocket} = connect(URL#url.scheme, Host,RealPort),
-            case URL#url.querypart of 
-                []    -> {NewSocket, URL#url.path};
-                Query -> {NewSocket, URL#url.path++"?"++Query}
-            end
-    end.
 
 peername({sslsocket,A,B})-> ssl:peername({sslsocket,A,B});
 peername(Socket)         -> prim_inet:peername(Socket).
 
 
-send(_,[]) -> ok; % no data
-send({sslsocket,A,B},String) ->
-    {ok, RealString } = ts_utils:to_https({request,String}),
+send(_,[],_) -> ok; % no data
+send({sslsocket,A,B},String, Plugin) ->
+    {ok, RealString } = Plugin:rewrite_ssl({request,String}),
     ?LOGF("Sending data to ssl socket ~p ~p (~p)~n", [A, B, RealString],?DEB),
     ssl:send({sslsocket,A,B}, RealString);
-send(Socket,String) ->
+send(Socket,String,_) ->
     gen_tcp:send(Socket,String).
 
-connect(Scheme, Host, Port)->
-    case Scheme of 
-        https -> 
-            {ok, _} = ssl:connect(Host,Port,
-                                 [{active, once}]);
-        _  -> 
-            {ok, _} = gen_tcp:connect(Host,Port,
-                                      [{active, once},
-                                       {recbuf, ?tcp_buffer},
-                                       {sndbuf, ?tcp_buffer}
-                                      ])
-    end.
 
-relative_url("CONNECT"++_Tail,_RequestURI,[])-> 
-    {ok, []};
-relative_url(NewString,RequestURI,RelURL)->
-    [FullURL_noargs|_] = string:tokens(RequestURI,"?"),
-    [RelURL_noargs|_]  = string:tokens(RelURL,"?"),
-    {ok,RealString,_Count} = regexp:gsub(NewString,FullURL_noargs,RelURL_noargs),
-    {ok, RealString}.

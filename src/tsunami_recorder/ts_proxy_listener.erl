@@ -41,7 +41,7 @@
 %% Include files
 %%--------------------------------------------------------------------
 -include("ts_profile.hrl").
--include("ts_http.hrl").
+-include("ts_recorder.hrl").
 
 %% gen_server callbacks
 -export([init/1, 
@@ -57,6 +57,7 @@
 -export([accept_loop/3]).
 
 -record(state, {
+          plugin,
           acceptsock,  % The socket we are accept()ing at
           acceptloop_pid, % The PID of the companion process that blocks
                                                 % in accept().
@@ -90,7 +91,7 @@ start()->
 %%          {stop, Reason}
 %%--------------------------------------------------------------------
 init(_Config) ->
-    State=#state{},
+    State=#state{plugin=?config(plugin)},
     activate(State),
     {ok, State}.
 
@@ -195,16 +196,14 @@ code_change(_OldVsn, State, _Extra) ->
 %%   and returns the new state. If the instance is already active, do
 %%   nothing.
 %%--------------------------------------------------------------------
-activate(State)->
+activate(State=#state{plugin=Plugin})->
     case State#state.acceptsock of
-	undefined ->
-	    Portno=?config(proxy_listen_port),
-	    {ok, ServerSock} = gen_tcp:listen(Portno,
-                                          [{packet, 0},
-                                           {reuseaddr, true},
-                                           {active, once}
-                                          ]),
-	    NewState = State#state
+        undefined ->
+            Portno=?config(proxy_listen_port),
+            Opts = lists:append(Plugin:socket_opts(),
+                                [{reuseaddr, true}, {active, once}]),
+            {ok, ServerSock} = gen_tcp:listen(Portno, Opts),
+            NewState = State#state
 			 {acceptsock=ServerSock,
 			  acceptloop_pid = spawn_link(?MODULE,
 						      accept_loop,
