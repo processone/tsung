@@ -146,7 +146,12 @@ parse(Element = #xmlElement{name=client, attributes=Attrs},
                 Fun = fun(N)-> #client{host=N,weight=Weight,maxusers=MaxUsers} end,
                 lists:map(Fun, Nodes);
             _ ->
-                CPU      = getAttr(integer,Attrs, cpu, 1),
+                CPU = case {getAttr(integer,Attrs, cpu, 1), SingleNode} of
+                          {Val, true} when Val > 1 ->
+                              erlang:display("Can't use CPU > 1 when use_controller_vm is true ! Set CPU to 1."),
+                              1;
+                          {Val, _} -> Val
+                      end,
                 %% must be hostname and not ip:
                 case ts_utils:is_ip(Host) of
                     true ->
