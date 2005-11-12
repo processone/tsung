@@ -139,6 +139,8 @@ native:
 rpm:	release idx-tsunami.spec
 	rpmbuild -ta $(distdir).tar.gz
 
+validate: $(CONFFILE)
+	@for i in $(CONFFILE); do xmlproc_val $$i; done
 
 deb:
 	fakeroot debian/rules clean

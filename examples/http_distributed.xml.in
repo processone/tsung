@@ -28,8 +28,8 @@
     <!-- If you have a single machine to do the tests, you may add
     this attribute to the client tag: use_controller_vm="true" . This
     will run the virtual users on the same Virtual Machine as the
-    controller. Useful if you have problèms with starting up remote
-    beam-->
+    controller. Useful if you have problems with starting up remote
+    beam -->
 
   </clients>
   
