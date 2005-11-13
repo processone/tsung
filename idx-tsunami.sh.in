@@ -40,15 +40,16 @@ stop() {
 
 stop_recorder() {
     $ERL $ERL_OPTS $ERL_RSH -noshell  -sname killer -setcookie $COOKIE -pa $TSUNAMIPATH -pa $RECORDERPATH -s tsunami_recorder stop_all $HOST -s init stop
+    rm $PIDFILE
 }
 
 checkversion() {
-	if [ $ERTS_RUN != $ERTS_BOOT ]
+    if [ $ERTS_RUN != $ERTS_BOOT ]
     then
 		echo "Erlang version has changed ! [$ERTS_BOOT] != [$ERTS_RUN]"
 		echo "Must create new boot files (you may have to run this once as root ! )"
 		makebootfiles
-	fi
+    fi
 }
 
 makebootfiles() {
@@ -72,13 +73,14 @@ start() {
 
 recorder() {
     echo "Starting IDX-Tsunami recorder on port $LISTEN_PORT"
-    $ERL $ERL_OPTS $ERL_RSH -detached -sname $RECORDER -setcookie $COOKIE  $REC_BOOT_OPT \
+    $ERL $ERL_OPTS $ERL_RSH -noshell -sname $RECORDER -setcookie $COOKIE  $REC_BOOT_OPT \
     -pa $TSUNAMIPATH -pa $RECORDERPATH -pa $CONTROLLERPATH \
     -tsunami_recorder debug_level $REC_DEBUG_LEVEL \
     -tsunami_recorder $LOG_OPT \
     -tsunami_recorder plugin ts_proxy_$RECORDER_PLUGIN \
     -tsunami_recorder proxy_log_file \"$MAIN_DIR/idx-tsunami_recorder.xml\" \
-    -tsunami_recorder proxy_listen_port $LISTEN_PORT
+    -tsunami_recorder proxy_listen_port $LISTEN_PORT &
+    echo $! > /tmp/tsunami_recorder.pid
 }
 
 debug() {
@@ -121,6 +123,24 @@ status() {
     $ERL -noshell -sname $SNAME -setcookie $COOKIE -pa $TSUNAMIPATH -pa $CONTROLLERPATH -s tsunami_controller status $HOST -s init stop
 }
 
+checkrunning_controller() {
+    RES=`status`
+    if [ "$RES" != "IDX-Tsunami is not started [ERROR]" ]; then
+        echo "Tsunami is already running, exit."
+        exit 1
+    fi
+}
+
+checkrunning(){
+    if [ -f $PIDFILE ]; then
+        CURPID=`cat $PIDFILE`
+        if kill -0 $CURPID 2> /dev/null ; then
+            echo "Can't start: Tsunami recorder already running !"
+            exit 1
+        fi
+    fi
+}
+
 usage() {
     prog=`basename $1`
     echo "$prog start|stop|restart|debug|status|recorder|stop_recorder|version"
@@ -141,27 +161,28 @@ shift $(($OPTIND - 1))
 
 case $1 in
     start)
-		checkconfig
-		checkversion
+        checkconfig
+        checkversion
         maindir
         logdir
         start
         ;;
-
     recorder)
-		checkversion
+        PIDFILE="/tmp/tsunami_recorder.pid"
+        checkversion
         maindir
         logdir
+        checkrunning
         recorder
         ;;
 
     boot)
-		checkversion
-		;;
+        checkversion
+        ;;
 
     debug)
-		checkconfig
-		checkversion
+        checkconfig
+        checkversion
         maindir
         logdir
         debug
@@ -171,6 +192,7 @@ case $1 in
         stop
         ;;
     stop_recorder)
+        PIDFILE="/tmp/tsunami_recorder.pid"
         stop_recorder
         ;;
 
