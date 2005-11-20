@@ -31,6 +31,7 @@
 %%-compile(export_all).
 -export([reset/1, 
 	 get_unique_id/1,
+	 get_really_unique_id/1,
 	 get_id/0,
 	 get_idle/0,
 	 get_offline/0,
@@ -71,7 +72,7 @@ get_id()->
     gen_server:call({global, ?MODULE }, get_id).
 
 %% return a unique id. use the pid and the node name to set an id.
-get_unique_id({Pid, DynData})->
+get_unique_id({Pid, _DynData})->
     ID = pid_to_list(Pid),
     [ID1,ID2,ID3] = string:tokens(ID, [$<,$.,$>]),
     %% here we assume that the node name is tsunamiXX@whatever
@@ -86,6 +87,11 @@ get_unique_id({Pid, DynData})->
     {ok, Int} = list_to_id([ID1, ID3, NodeId, ID2],65536),
     ?DebugF("id=~p",[Int]),
     Int.
+
+%% return a really unique id, one that is unique across runs.
+get_really_unique_id({Pid, DynData}) ->
+    Sec = ts_utils:now_sec(),
+    io_lib:format("~B~s~B",[Sec,"-",get_unique_id({Pid, DynData})]).
 
 %% get an idle id, and add it to the connected table
 get_idle()->
