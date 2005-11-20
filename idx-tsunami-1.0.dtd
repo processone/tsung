@@ -65,6 +65,8 @@
 <!ELEMENT request ( ( http | jabber | raw | pgsql ), dyn_variable* )>
 <!ATTLIST request
     subst (true|false) "false"
+    on_badmatch (continue|loop|stop) "continue"
+    neg_match (true|false) "false"
     match CDATA #IMPLIED>
 
 <!ELEMENT thinktime EMPTY>

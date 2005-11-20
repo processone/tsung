@@ -298,8 +298,16 @@ parse(Element = #xmlElement{name=request, attributes=Attrs},
       Conf = #config{sessions=[CurSess|_], curid=Id}) ->
 
     Type  = CurSess#session.type,
-    SubstitutionFlag  = getAttr(atom,Attrs, subst, false),
-    MatchRegExp  = getAttr(string,Attrs, match, undefined),
+    SubstitutionFlag  = getAttr(atom, Attrs, subst, false),
+    OnBadmatch   = getAttr(atom, Attrs, on_badmatch, continue),
+    NegMatch     = getAttr(atom, Attrs, neg_match, false),
+    MatchRegExp  = case getAttr(string, Attrs, match, undefined) of
+                       undefined -> undefined;
+                       RegExp    -> #match{regexp = RegExp,
+                                           action = OnBadmatch,
+                                           negative = NegMatch
+                                          }
+                   end,
 
     %% we must parse dyn_variable before; unfortunately, there is no
     %% lists:keysort with Fun. FIXME: this will not work if a protocol

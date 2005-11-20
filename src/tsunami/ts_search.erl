@@ -32,7 +32,7 @@
 -module(ts_search).
 -vc('$Id$ ').
 
--export([subst/2, match/2, parse_dynvar/2]).
+-export([subst/2, match/3, parse_dynvar/2]).
 
 -include("ts_profile.hrl").
 
@@ -111,27 +111,63 @@ extract_function([H|Tail],DynVar,  Acc, Mod, Fun) ->
 
 %%----------------------------------------------------------------------
 %% Func: match/2 
-%% Args: RegExp, Data
-%% Returns: ok
+%% Args: RegExp, Data, Request Counter
+%% Returns:  New Counter ( not changed if match )
 %% Purpose: search for regexp in Data; send result to ts_mon
 %%----------------------------------------------------------------------
-match(undefined, _Data) -> ok;
-match(RegExp, Data)  when is_binary(Data)->
+match(undefined, _Data, Count) -> Count;
+match(Match, Data, Count)  when is_binary(Data)->
     ?DebugF("Matching Data size ~p~n",[size(Data)]),
-    match(RegExp, binary_to_list(Data));
-match(RegExp, String) ->
+    match(Match, binary_to_list(Data), Count);
+match(#match{regexp=RegExp, action=Action, negative=Neg}, String, Count) ->
     case regexp:first_match(String, RegExp) of
         {match,_, _} ->
             ?LOGF("Ok Match (regexp=~p) ~n",[RegExp], ?INFO),
             ts_mon:add({count, match}),
-            ok;
+            setcount(Neg, Action, Count);
         nomatch ->
             ?LOGF("Bad Match (regexp=~p), ~n",[RegExp], ?NOTICE),
-            ts_mon:add({count, nomatch});
+            ts_mon:add({count, nomatch}),
+            setcount(not Neg, Action, Count);
         {error,_Error} ->
             ?LOGF("Error while matching: bad REGEXP (~p)~n", [RegExp], ?WARN),
-            ts_mon:add({count, badregexp})
+            ts_mon:add({count, badregexp}),
+            Count        
     end.
+
+%%----------------------------------------------------------------------
+%% Func: setcount/2
+%% Args:  MatchResult, Action, Count
+%% Update the request counter after a match: 
+%%   - if loop is true, we must start again the same request, so add 1 to count
+%%   - if stop is true, set count to 0
+%%----------------------------------------------------------------------
+setcount(false, loop, Count)  -> 
+    put(loop_count, 0), % reset loop_counter
+    Count;
+setcount(false, _, Count)  -> Count;
+setcount(_,continue, Count)-> Count;
+setcount(_,loop, Count) -> 
+    ?LOG("Loop on (bad)match~n", ?INFO),
+    ts_mon:add({count, match_loop}),
+    case get(loop_count) of 
+        undefined ->
+            put(loop_count,1),
+            timer:sleep(?LOOP_SLEEP),
+            Count +1 ;
+        Val when Val > ?LOOP_MAX ->
+            ?LOG("Max Loop reached, abort loop on request! ~n", ?WARN),
+            put(loop_count, 0),
+            Count;
+        Val -> 
+            put(loop_count, Val +1),
+            timer:sleep(?LOOP_SLEEP),
+            Count + 1
+    end;
+setcount(_,stop, _) ->
+    ts_mon:add({count, match_stop}),
+    0.
+    
 
 %%----------------------------------------------------------------------
 %% Func: parse_dynvar/2 

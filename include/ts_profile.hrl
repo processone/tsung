@@ -29,11 +29,17 @@
          proto    % dynamic data specific to protocole (#http_dyndata for HTTP)
        }).
 
+-record(match,
+        {regexp,
+         negative = false,
+         action = continue %(continue | loop | stop)
+       }).
+
 -record(ts_request,
         {thinktime,
          ack,
          subst=false,
-         match=undefined,
+         match=undefined, 
          dynvar_specs=undefined, % undefined | [{VarName, Regexp} |...]
          param,
          endpage=false,
@@ -73,6 +79,9 @@
          transactions=[], % current transactions
 		 dump        % type of dump (full, light, none)
 		}).
+
+-define(LOOP_SLEEP,5000).
+-define(LOOP_MAX, 50).
 
 -define(restart_sleep, 2000).
 -define(infinity_timeout, 15000).

@@ -544,6 +544,7 @@ handle_data_msg(Data, State=#state_rcv{request=Req, clienttype=Type}) when Req#t
         true ->
             ?DebugF("Response done:~p~n", [NewState#state_rcv.datasize]),
             {PageTimeStamp, DynVars} = update_stats(NewState#state_rcv{buffer=NewBuffer}),
+            NewCount = ts_search:match(Req#ts_request.match, NewBuffer, NewState#state_rcv.count),
             NewDynData = concat_dynvars(DynVars, NewState#state_rcv.dyndata),
             case Close of
                 true ->
@@ -552,10 +553,12 @@ handle_data_msg(Data, State=#state_rcv{request=Req, clienttype=Type}) when Req#t
                     {NewState#state_rcv{ page_timestamp = PageTimeStamp,
                                          socket = none,
                                          datasize = 0,
+                                         count = NewCount,
                                          dyndata = NewDynData,
                                          buffer = <<>>}, Opts};
                 false -> 
                     {NewState#state_rcv{ page_timestamp = PageTimeStamp,
+                                         count = NewCount,
                                          datasize = 0,
                                          dyndata = NewDynData,
                                          buffer = <<>>}, Opts}
@@ -583,10 +586,11 @@ handle_data_msg(Data, State=#state_rcv{request=Req}) ->
     NewBuffer= set_new_buffer(Req, State#state_rcv.buffer, Data),
 	DataSize = size(Data),
     {PageTimeStamp, DynVars} = update_stats(State#state_rcv{datasize=DataSize,
-                                                      buffer=NewBuffer}),
+                                                            buffer=NewBuffer}),
+    NewCount = ts_search:match(Req#ts_request.match, NewBuffer, State#state_rcv.count),
     NewDynData = concat_dynvars(DynVars, State#state_rcv.dyndata),
-    {State#state_rcv{ack_done = true, buffer= NewBuffer,dyndata = NewDynData,
-                     page_timestamp= PageTimeStamp},[]}.
+    {State#state_rcv{ack_done = true, buffer= NewBuffer, dyndata = NewDynData,
+                     page_timestamp= PageTimeStamp, count=NewCount},[]}.
 
 
 %%----------------------------------------------------------------------
@@ -603,7 +607,7 @@ set_new_buffer(_, OldBuffer, Data) ->
 %%----------------------------------------------------------------------
 %% Func: update_stats/1
 %% Args: State
-%% Returns: {State, DynVars}
+%% Returns: {TimeStamp, DynVars}
 %% Purpose: update the statistics
 %%----------------------------------------------------------------------
 update_stats(State) ->
@@ -612,7 +616,6 @@ update_stats(State) ->
 	Stats= [{ sample, request, Elapsed},
 			{ sum, size_rcv, State#state_rcv.datasize}],
     Profile = State#state_rcv.request,
-    ts_search:match(Profile#ts_request.match, State#state_rcv.buffer),
     DynVars = ts_search:parse_dynvar(Profile#ts_request.dynvar_specs,
                                      State#state_rcv.buffer),
 	case Profile#ts_request.endpage of
