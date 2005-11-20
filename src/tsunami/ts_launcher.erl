@@ -106,6 +106,7 @@ wait({launch, Args, Hostname}, State) ->
 wait({launch, []}, State) ->
 	MyHostName = State#state.myhostname,
 	?LOGF("Launch msg receive (~p)~n",[MyHostName], ?NOTICE),
+    check_registered(),
     {ok, {[{Intensity, Users}| Rest], StartDate, Max}} = 
         ts_config_server:get_client_config(MyHostName),
 	Warm_timeout=case ts_utils:elapsed(now(), StartDate) of 
@@ -324,3 +325,11 @@ do_launch({Intensity, MyHostName})->
     X = ts_stats:exponential(Intensity),
     ?DebugF("client launched, wait ~p ms before launching next client~n",[X]),
     X.
+
+check_registered() ->
+    case global:registered_names() of
+        [] ->
+            ?LOG("No registered processes ! syncing ...~n", ?WARN),
+            global:sync();
+        _ -> ok
+    end.
