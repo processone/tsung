@@ -47,10 +47,20 @@ get_message(#jabber{type = 'close', id=Id}) ->
 get_message(#jabber{type = 'presence'}) ->
     presence();
 
+get_message(Jabber=#jabber{type = 'presence:directed', id=Id}) ->
+    case ts_user_server:get_one_connected(Id) of
+        {ok, Dest} ->
+            presence(directed,  Jabber#jabber{dest=Dest});
+        {error, no_online} ->
+            ts_mon:add({ count, error_no_online }),
+            << >>
+    end;
+
 get_message(Jabber=#jabber{id=Id}) when is_integer(Id)->
     get_message(Jabber#jabber{id=integer_to_list(Id)});
-get_message(Jabber=#jabber{type = 'presence:roster',dest=previous,id=Id}) ->
-    presence(roster, Jabber#jabber{dest=Id}); %% ??? FIXME
+get_message(Jabber=#jabber{type = 'presence:roster',dest=previous}) ->
+    Dest = get(previous),
+    presence(roster, Jabber#jabber{dest=Dest});
 get_message(Jabber=#jabber{type = 'presence:roster'}) ->
     presence(roster, Jabber);
 get_message(Jabber=#jabber{type = 'chat', id=Id, dest=online, domain=Domain})->
@@ -90,6 +100,7 @@ get_message(#jabber{type = 'iq:roster:set', id=Id, dest = online,username=User,d
 get_message(#jabber{type = 'iq:roster:set',dest = offline,username=User,domain=Domain})->
     case ts_user_server:get_offline() of 
         {ok, Dest} ->
+            put(previous, Dest),
             request(roster_set, User, Domain, Dest);
         {error, no_offline} ->
             ts_mon:add({ count, error_no_offline }),
@@ -199,14 +210,22 @@ presence() ->
 	list_to_binary([ "<presence id='",ts_msg_server:get_id(list),"' />"]).
 
 %%----------------------------------------------------------------------
-presence(roster, Jabber=#jabber{dest=Dest}) when is_integer(Dest)->
-    presence(roster, Jabber#jabber{dest=integer_to_list(Dest)}) ;
+presence(Type, Jabber=#jabber{dest=Dest}) when is_integer(Dest)->
+    presence(Type, Jabber#jabber{dest=integer_to_list(Dest)}) ;
 presence(roster, #jabber{dest=Dest, domain=Domain, username=UserName})->
     DestName = UserName ++ Dest,
     list_to_binary([
 	  "<presence id='",ts_msg_server:get_id(list),
 	  "' to='", DestName, "@" , Domain,
-	  "' type='subscribed'/>"]).
+	  "' type='subscribed'/>"]);
+
+presence(directed, #jabber{dest= Dest,domain=Domain, username=UserName})->
+    DestName = UserName ++ Dest,
+    list_to_binary([
+          "<presence id='",ts_msg_server:get_id(list),
+          "' to='", DestName, "@" , Domain , ">",
+          "<show>chat</show><status>tsunami load gen</status></presence>"]).
+
 
 %%----------------------------------------------------------------------
 %% Func: request/4
@@ -219,7 +238,7 @@ request(roster_set, UserName, Domain, Id)->
 		"<iq id='" ,ts_msg_server:get_id(list),
 		"' type='set'>","<query xmlns='jabber:iq:roster'><item jid='",
 		Name,"@",Domain,
-		"' name='gg1000'/></query></iq>"]);
+		"' name='gg1000'/><group>Tsunami</group></query></iq>"]);
 request(roster_get, _UserName, _Domain, _Id)->
 	list_to_binary([
 	  "<iq id='" ,ts_msg_server:get_id(list),
