@@ -1,9 +1,19 @@
-1.1.0 -> X.X.X
+1.1.0 -> X.X.X Major feature enhancements (XX XXX 2005)
+    - add new plugin: pgsql for postgresql load testing
+    - add plugin architure in recorder; add pgsql plugin
+    - add size_rcv stats
+    - rebuild boot scripts if erlang version is different from compile time
+    - DTD improvements
+    - add loop|stop on badmatch behavior
+    - freemem and packet stats for solaris (jasonwtucker@gmail.com)
+    - fix presence:roster request
+    - add presence:directed request for jabber (jasonwtucker@gmail.com)
+    - fix several small problems with 'use_controller_vm' option
     - fix regression in recorder for WWW-Authentication (anders.nygren@gmail.com)
     - fix single user agent case.
     - ip is no more mandatory (default is 0.0.0.0)
     - clients and monitoring can use host lists defined in environment
-      variables, for use with batch schedulers (openpbs, lsf and oar)
+      variables, for use with batch schedulers (openpbs/torque, LSF and OAR)
     - performance improvements in stats engine for very high load
     - rebuild boot scripts if erlang version is different from compile time
     - close client socket when connection:closed is ask by the server
