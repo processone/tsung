@@ -1,8 +1,8 @@
 %%%
 %%%  Copyright © IDEALX S.A.S. 2003
 %%%
-%%%	 Author : Nicolas Niclausse <nicolas.niclausse@IDEALX.com>
-%%%  Created: 04 Dec 2003 by Nicolas Niclausse <nicolas.niclausse@IDEALX.com>
+%%%	 Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
+%%%  Created: 04 Dec 2003 by Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
 %%%  it under the terms of the GNU General Public License as published by
@@ -25,16 +25,16 @@
 
 %%%-------------------------------------------------------------------
 %%% File    : ts_config_server.erl
-%%% Author  : Nicolas Niclausse <nniclausse@idealx.com>
+%%% Author  : Nicolas Niclausse <nicolas@niclux.org>
 %%% Description : 
 %%%
-%%% Created :  4 Dec 2003 by Nicolas Niclausse <nniclausse@idealx.com>
+%%% Created :  4 Dec 2003 by Nicolas Niclausse <nicolas@niclux.org>
 %%%-------------------------------------------------------------------
 
 -module(ts_config_server).
 
 -vc('$Id$ ').
--author('nicolas.niclausse@IDEALX.com').
+-author('nicolas.niclausse@niclux.org').
 
 -behaviour(gen_server).
 
@@ -270,6 +270,7 @@ handle_call({get_server_config}, _From, State) ->
 
 %% 
 handle_call({get_client_config, Host}, _From, State) ->
+    ?DebugF("get_client_config from ~p~n",[Host]),
     Config = State#state.config,
     %% set start date if not done yet
     StartDate = case State#state.start_date of 
