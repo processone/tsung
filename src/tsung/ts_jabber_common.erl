@@ -58,11 +58,13 @@ get_message(Jabber=#jabber{type = 'presence:directed', id=Id}) ->
 
 get_message(Jabber=#jabber{id=Id}) when is_integer(Id)->
     get_message(Jabber#jabber{id=integer_to_list(Id)});
-get_message(Jabber=#jabber{type = 'presence:roster',dest=previous}) ->
+get_message(Jabber=#jabber{dest=previous}) ->
     Dest = get(previous),
-    presence(roster, Jabber#jabber{dest=Dest});
+    get_message(Jabber#jabber{dest=Dest});
 get_message(Jabber=#jabber{type = 'presence:roster'}) ->
     presence(roster, Jabber);
+get_message(Jabber=#jabber{type = 'presence:subscribe'}) ->
+    presence("subscribe", Jabber);
 get_message(Jabber=#jabber{type = 'chat', id=Id, dest=online, domain=Domain})->
     case ts_user_server:get_one_connected(Id) of 
         {ok, Dest} ->
@@ -212,19 +214,22 @@ presence() ->
 %%----------------------------------------------------------------------
 presence(Type, Jabber=#jabber{dest=Dest}) when is_integer(Dest)->
     presence(Type, Jabber#jabber{dest=integer_to_list(Dest)}) ;
-presence(roster, #jabber{dest=Dest, domain=Domain, username=UserName})->
-    DestName = UserName ++ Dest,
-    list_to_binary([
-	  "<presence id='",ts_msg_server:get_id(list),
-	  "' to='", DestName, "@" , Domain,
-	  "' type='subscribed'/>"]);
-
+presence(roster, Jabber)->
+    presence(subscribed, Jabber);
 presence(directed, #jabber{dest= Dest,domain=Domain, username=UserName})->
     DestName = UserName ++ Dest,
     list_to_binary([
           "<presence id='",ts_msg_server:get_id(list),
           "' to='", DestName, "@" , Domain , "'>",
-          "<show>chat</show><status>tsung load gen</status></presence>"]).
+          "<show>chat</show><status>tsung load gen</status></presence>"]);
+presence(Type, Jabber) when is_atom(Type)->
+    presence(atom_to_list(Type), Jabber);
+presence(Type, #jabber{dest=Dest, domain=Domain, username=UserName})->
+    DestName = UserName ++ Dest,
+    list_to_binary([
+	  "<presence id='",ts_msg_server:get_id(list),
+	  "' to='", DestName, "@" , Domain,
+	  "' type='",Type,"'/>"]).
 
 
 %%----------------------------------------------------------------------
