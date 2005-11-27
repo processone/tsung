@@ -1,7 +1,7 @@
 [% INCLUDE header.thtml %]
 
 <div id="maincontent">
- <h2 class="main">IDX-Tsunami - Graphical Reports</h2> 
+ <h2 class="main">tsung - Graphical Reports</h2> 
 
 <div id="response_time">
 <h3>Response Time</h3> 

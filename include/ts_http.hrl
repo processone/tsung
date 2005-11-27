@@ -90,6 +90,6 @@
 -define(GET, "GET").
 -define(POST, "POST").
 
--define(USER_AGENT, "IDX-Tsunami").
+-define(USER_AGENT, "Tsung").
 -define(USER_AGENT_ERROR_MSG, "Total sum of user agents frequency is not equal to 100").
 

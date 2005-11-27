@@ -1,7 +1,7 @@
 # $Id$
 
-MANPAGE_SRC  = idx-tsunami.1.sgml
-MANPAGE  = idx-tsunami.1
+MANPAGE_SRC  = tsung.1.sgml
+MANPAGE  = tsung.1
 
 TOPDIR=$(HOME)/cvs/projetdoc/common/
 IMG_TOPDIR=.
@@ -10,7 +10,7 @@ LOGO_DIR=$(TOPDIR)/logos
 FILES=$(wildcard *.tex)
 
 # classe et styles latex
-INCLUDES=idx-shortcuts.sty IDXDOC_light.cls
+INCLUDES=shortcuts.sty IDXDOC_light.cls
 
 # chemin des fichiers de style
 STYLE=$(TOPDIR)/styles
@@ -22,7 +22,7 @@ HEVEAOPTS=-fix -I $(STYLE) -exec xxdate.exe -pedantic
 LANGUAGE=
 
 # logos
-LOGOS_JPG=logo_idealx.jpg idx-map.jpg
+LOGOS_JPG=logo_idealx.jpg map.jpg
 LOGOS_EPS = $(LOGOS_JPG:.jpg=.eps) 
 
 ##############

@@ -143,7 +143,7 @@ handle_call({get_user_agent}, From, State) ->
 		[{_, [{_Freq, Value}]}] -> %single user agent defined
 			{reply, Value, State};
 		[{_, empty }] ->
-			{reply, "IDX-Tsunami", State};
+			{reply, "tsung", State};
 		[{_, UserAgents }] when is_list(UserAgents)->
             {ok, Reply} = choose_user_agent(UserAgents),
 			{reply, Reply, State}
@@ -222,7 +222,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%--------------------------------------------------------------------
 
-choose_user_agent(empty) -> {ok, "IDX-Tsunami"};
+choose_user_agent(empty) -> {ok, "tsung"};
 choose_user_agent([{_P, Val}]) -> {ok, Val};
 choose_user_agent(UserAgents) ->
     choose_user_agent(UserAgents, random:uniform(100),0).

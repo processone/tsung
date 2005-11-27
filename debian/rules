@@ -43,8 +43,8 @@ install: build
 	#dh_clean -k
 	dh_installdirs
 
-	# Add here commands to install the package into debian/idx-tsunami
-	make install DESTDIR=$(CURDIR)/debian/idx-tsunami
+	# Add here commands to install the package into debian/tsung
+	make install DESTDIR=$(CURDIR)/debian/tsung
 
 
 # Build architecture-independent files here.

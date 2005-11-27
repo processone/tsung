@@ -75,11 +75,11 @@ get_id()->
 get_unique_id({Pid, _DynData})->
     ID = pid_to_list(Pid),
     [ID1,ID2,ID3] = string:tokens(ID, [$<,$.,$>]),
-    %% here we assume that the node name is tsunamiXX@whatever
-    NodeId = case string:tokens(atom_to_list(node()),[$@,$i]) of
-                 ["tsunam", "_controller"|_] -> 
+    %% here we assume that the node name is tsungXX@whatever
+    NodeId = case string:tokens(atom_to_list(node()),[$@,$g]) of
+                 ["tsun", "_controller"|_] -> 
                      "0"; % when the launcher is run on the controller
-                 ["tsunam", Id|_] -> 
+                 ["tsun", Id|_] -> 
                      Id 
              end,
     %% all ID's must be < 65536 !

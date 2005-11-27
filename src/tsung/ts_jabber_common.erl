@@ -159,7 +159,7 @@ auth(Username, Passwd, Type) ->
    "' type='set' >",
    "<query xmlns='jabber:iq:", Type, "'>",
    "<username>", Username, "</username>", 
-   "<resource>tsunami</resource>",
+   "<resource>Tsung</resource>",
    "<password>", Passwd, "</password></query></iq>"]).
 
 %%----------------------------------------------------------------------
@@ -224,7 +224,7 @@ presence(directed, #jabber{dest= Dest,domain=Domain, username=UserName})->
     list_to_binary([
           "<presence id='",ts_msg_server:get_id(list),
           "' to='", DestName, "@" , Domain , "'>",
-          "<show>chat</show><status>tsunami load gen</status></presence>"]).
+          "<show>chat</show><status>tsung load gen</status></presence>"]).
 
 
 %%----------------------------------------------------------------------
@@ -238,7 +238,7 @@ request(roster_set, UserName, Domain, Id)->
 		"<iq id='" ,ts_msg_server:get_id(list),
 		"' type='set'>","<query xmlns='jabber:iq:roster'><item jid='",
 		Name,"@",Domain,
-		"' name='gg1000'/><group>Tsunami</group></query></iq>"]);
+		"' name='gg1000'/><group>Tsung</group></query></iq>"]);
 request(roster_get, _UserName, _Domain, _Id)->
 	list_to_binary([
 	  "<iq id='" ,ts_msg_server:get_id(list),

@@ -2,9 +2,9 @@
 OTP Supervision tree:
 ====================
 
-The application is now split in two (see tsunami-inside.png for an overview):
+The application is now split in two (see tsung-inside.png for an overview):
 
-** a single controller (tsunami_controller)
+** a single controller (tsung_controller)
 
  * ts_config_server (gen_server). Configuration server. Session's
    definitions are kept by the config server.
@@ -22,7 +22,7 @@ The application is now split in two (see tsunami-inside.png for an overview):
  * ts_msg_server (gen_server) 
  * ts_user_server (gen_server) used by jabber_* for unicity of users id
 
-** several clients (tsunami) Several nodes can be used simultaneously
+** several clients (tsung) Several nodes can be used simultaneously
 
 This application is simpler:
   
@@ -49,7 +49,7 @@ Main modules:
    3/ protocol-specific modules (ts_jabber and ts_http, for
    example).
 
-      IDX-TSUNAMI use different types of acknoledgements to determine
+      tsung use different types of acknoledgements to determine
       when a the response of a request is over. For each requests, 4
       options are possible:
 

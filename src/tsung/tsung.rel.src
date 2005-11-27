@@ -1,4 +1,4 @@
-{release, {"tsunami", "&tsunami_vsn&"}, {erts, "&erts_vsn&"},
+{release, {"tsung", "&tsung_vsn&"}, {erts, "&erts_vsn&"},
  [
   {kernel,"&kernel_vsn&"},
   {ssl,"&ssl_vsn&"},

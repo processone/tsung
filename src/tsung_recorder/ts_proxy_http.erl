@@ -177,7 +177,7 @@ check_serversocket(undefined, URL = #url{}, ClientSock) ->
     case URL#url.scheme of 
         connect ->
             ?LOGF("CONNECT: Send 'connection established' to client socket (~p)",[ClientSock],?DEB),
-            ts_client_proxy:send(ClientSock, "HTTP/1.0 200 Connection established\r\nProxy-agent: IDX-Tsunami\r\n\r\n", ?MODULE),
+            ts_client_proxy:send(ClientSock, "HTTP/1.0 200 Connection established\r\nProxy-agent: tsung\r\n\r\n", ?MODULE),
             { Socket, [] };
         _ ->
             case URL#url.querypart of 

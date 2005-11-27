@@ -9,37 +9,37 @@ esac
 
 INSTALL_DIR=@prefix@/lib/erlang/
 ERL=@ERL@
-MAIN_DIR=$HOME/.idx-tsunami
+MAIN_DIR=$HOME/.tsung
 LOG_DIR=$MAIN_DIR/log
-LOG_OPT="log_file \"$LOG_DIR/idx-tsunami.log\""
+LOG_OPT="log_file \"$LOG_DIR/tsung.log\""
 VERSION=@PACKAGE_VERSION@
 
 LISTEN_PORT=8090
-NAME=idx-tsunami
-CONTROLLER=tsunami_controller
-RECORDER=tsunami_recorder
+NAME=tsung
+CONTROLLER=tsung_controller
+RECORDER=tsung_recorder
 
-TSUNAMIPATH=$INSTALL_DIR/lib/tsunami-$VERSION/ebin
-CONTROLLERPATH=$INSTALL_DIR/lib/tsunami_controller-$VERSION/ebin
-RECORDERPATH=$INSTALL_DIR/lib/tsunami_recorder-$VERSION/ebin
+TSUNGPATH=$INSTALL_DIR/lib/tsung-$VERSION/ebin
+CONTROLLERPATH=$INSTALL_DIR/lib/tsung_controller-$VERSION/ebin
+RECORDERPATH=$INSTALL_DIR/lib/tsung_recorder-$VERSION/ebin
 
-CONF_OPT_FILE="$HOME/.idx-tsunami/idx-tsunami.xml"
-BOOT_OPT="-boot $INSTALL_DIR/lib/tsunami_controller-$VERSION/priv/tsunami_controller -boot_var TSUNAMIPATH  $INSTALL_DIR "
-REC_BOOT_OPT="-boot $INSTALL_DIR/lib/tsunami_recorder-$VERSION/priv/tsunami_recorder -boot_var TSUNAMIPATH  $INSTALL_DIR "
+CONF_OPT_FILE="$HOME/.tsung/tsung.xml"
+BOOT_OPT="-boot $INSTALL_DIR/lib/tsung_controller-$VERSION/priv/tsung_controller -boot_var TSUNGPATH  $INSTALL_DIR "
+REC_BOOT_OPT="-boot $INSTALL_DIR/lib/tsung_recorder-$VERSION/priv/tsung_recorder -boot_var TSUNGPATH  $INSTALL_DIR "
 REC_DEBUG_LEVEL=5
 RECORDER_PLUGIN="http"
 ERL_RSH=" -rsh ssh "
 ERL_OPTS=" +A 1 @ERL_OPTS@ "
-COOKIE='tsunami'
+COOKIE='tsung'
 ERTS_RUN=`$ERL -version 2>&1 | tr -d '[A-Za-z] (),\f\n\r'`
-ERTS_BOOT=`grep erts $TSUNAMIPATH/../priv/tsunami.rel | tr -d 'a-z{}"" ,\n'`
+ERTS_BOOT=`grep erts $TSUNGPATH/../priv/tsung.rel | tr -d 'a-z{}"" ,\n'`
 
 stop() {
-    $ERL $ERL_OPTS $ERL_RSH -noshell  -sname killer -setcookie $COOKIE -pa $TSUNAMIPATH -pa $CONTROLLERPATH -s tsunami_controller stop_all $HOST -s init stop
+    $ERL $ERL_OPTS $ERL_RSH -noshell  -sname killer -setcookie $COOKIE -pa $TSUNGPATH -pa $CONTROLLERPATH -s tsung_controller stop_all $HOST -s init stop
 }
 
 stop_recorder() {
-    $ERL $ERL_OPTS $ERL_RSH -noshell  -sname killer -setcookie $COOKIE -pa $TSUNAMIPATH -pa $RECORDERPATH -s tsunami_recorder stop_all $HOST -s init stop
+    $ERL $ERL_OPTS $ERL_RSH -noshell  -sname killer -setcookie $COOKIE -pa $TSUNGPATH -pa $RECORDERPATH -s tsung_recorder stop_all $HOST -s init stop
     rm $PIDFILE
 }
 
@@ -53,45 +53,45 @@ checkversion() {
 }
 
 makebootfiles() {
-    cd $TSUNAMIPATH/..
-    echo "creating boot file for tsunami application"
-    $ERL $ERL_OPTS -noshell -pa $TSUNAMIPATH -s builder go -s init stop > /dev/null
+    cd $TSUNGPATH/..
+    echo "creating boot file for tsung application"
+    $ERL $ERL_OPTS -noshell -pa $TSUNGPATH -s builder go -s init stop > /dev/null
     cd $CONTROLLERPATH/..
-    echo "creating boot file for tsunami_controller application"
-    $ERL $ERL_OPTS -noshell -pa $TSUNAMIPATH -s builder go -s init stop > /dev/null
-    echo "creating boot file for tsunami_recorder application"
+    echo "creating boot file for tsung_controller application"
+    $ERL $ERL_OPTS -noshell -pa $TSUNGPATH -s builder go -s init stop > /dev/null
+    echo "creating boot file for tsung_recorder application"
     cd $RECORDERPATH/..
-    $ERL $ERL_OPTS -noshell -pa $TSUNAMIPATH -s builder go -s init stop > /dev/null
+    $ERL $ERL_OPTS -noshell -pa $TSUNGPATH -s builder go -s init stop > /dev/null
 }
 
 start() {
-    echo "Starting IDX-Tsunami"	
+    echo "Starting Tsung"	
     $ERL $ERL_OPTS $ERL_RSH -noshell -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT \
-    -pa $TSUNAMIPATH -pa $CONTROLLERPATH \
-    -tsunami_controller config_file \"$CONF_OPT_FILE\" -tsunami_controller $LOG_OPT
+    -pa $TSUNGPATH -pa $CONTROLLERPATH \
+    -tsung_controller config_file \"$CONF_OPT_FILE\" -tsung_controller $LOG_OPT
 }
 
 recorder() {
-    echo "Starting IDX-Tsunami recorder on port $LISTEN_PORT"
+    echo "Starting Tsung recorder on port $LISTEN_PORT"
     $ERL $ERL_OPTS $ERL_RSH -noshell -sname $RECORDER -setcookie $COOKIE  $REC_BOOT_OPT \
-    -pa $TSUNAMIPATH -pa $RECORDERPATH -pa $CONTROLLERPATH \
-    -tsunami_recorder debug_level $REC_DEBUG_LEVEL \
-    -tsunami_recorder $LOG_OPT \
-    -tsunami_recorder plugin ts_proxy_$RECORDER_PLUGIN \
-    -tsunami_recorder proxy_log_file \"$MAIN_DIR/idx-tsunami_recorder.xml\" \
-    -tsunami_recorder proxy_listen_port $LISTEN_PORT &
-    echo $! > /tmp/tsunami_recorder.pid
+    -pa $TSUNGPATH -pa $RECORDERPATH -pa $CONTROLLERPATH \
+    -tsung_recorder debug_level $REC_DEBUG_LEVEL \
+    -tsung_recorder $LOG_OPT \
+    -tsung_recorder plugin ts_proxy_$RECORDER_PLUGIN \
+    -tsung_recorder proxy_log_file \"$MAIN_DIR/tsung_recorder.xml\" \
+    -tsung_recorder proxy_listen_port $LISTEN_PORT &
+    echo $! > /tmp/tsung_recorder.pid
 }
 
 debug() {
     $ERL $ERL_OPTS $ERL_RSH -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT \
-     -pa $TSUNAMIPATH -pa $CONTROLLERPATH \
-     -tsunami_controller config_file \"$CONF_OPT_FILE\" \
-     -tsunami_controller $LOG_OPT
+     -pa $TSUNGPATH -pa $CONTROLLERPATH \
+     -tsung_controller config_file \"$CONF_OPT_FILE\" \
+     -tsung_controller $LOG_OPT
 }
 
 version() {
-    echo "IDX-Tsunami version $VERSION" 
+    echo "Tsung version $VERSION" 
 }
 
 checkconfig() {
@@ -105,7 +105,7 @@ checkconfig() {
 maindir() {
 	if [ ! -d $MAIN_DIR ]
 	then
-		echo "Creating local tsunami directory $MAIN_DIR"
+		echo "Creating local Tsung directory $MAIN_DIR"
 		mkdir $MAIN_DIR
 	fi
 }
@@ -113,20 +113,20 @@ maindir() {
 logdir() {
         if [ ! -d $LOG_DIR ]
         then
-                echo "Creating idx-tsunami log directory $LOG_DIR"
+                echo "Creating Tsung log directory $LOG_DIR"
                 mkdir $LOG_DIR
         fi
 }
 
 status() {
-    SNAME=tsunami_status_$RANDOM
-    $ERL -noshell -sname $SNAME -setcookie $COOKIE -pa $TSUNAMIPATH -pa $CONTROLLERPATH -s tsunami_controller status $HOST -s init stop
+    SNAME=tsung_status_$RANDOM
+    $ERL -noshell -sname $SNAME -setcookie $COOKIE -pa $TSUNGPATH -pa $CONTROLLERPATH -s tsung_controller status $HOST -s init stop
 }
 
 checkrunning_controller() {
     RES=`status`
-    if [ "$RES" != "IDX-Tsunami is not started [ERROR]" ]; then
-        echo "Tsunami is already running, exit."
+    if [ "$RES" != "Tsung is not started [ERROR]" ]; then
+        echo "Tsung is already running, exit."
         exit 1
     fi
 }
@@ -135,7 +135,7 @@ checkrunning(){
     if [ -f $PIDFILE ]; then
         CURPID=`cat $PIDFILE`
         if kill -0 $CURPID 2> /dev/null ; then
-            echo "Can't start: Tsunami recorder already running !"
+            echo "Can't start: Tsung recorder already running !"
             exit 1
         fi
     fi
@@ -168,7 +168,7 @@ case $1 in
         start
         ;;
     recorder)
-        PIDFILE="/tmp/tsunami_recorder.pid"
+        PIDFILE="/tmp/tsung_recorder.pid"
         checkversion
         maindir
         logdir
@@ -192,7 +192,7 @@ case $1 in
         stop
         ;;
     stop_recorder)
-        PIDFILE="/tmp/tsunami_recorder.pid"
+        PIDFILE="/tmp/tsung_recorder.pid"
         stop_recorder
         ;;
 

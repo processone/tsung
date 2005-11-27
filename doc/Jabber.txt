@@ -3,14 +3,14 @@ Requirements:
 
 users has to be already registered:
 
-IDX-TSUNAMI users name  :  cXX
+tsung users name  :  cXX
                   passwd:  pasXX
 
 where XX is a integer between 1 and the maximum number of users (say 1000000).
 
 or you can use jabber_register (see below).
 
-optional parameters: (can be set in idx-tsunami.xml file)
+optional parameters: (can be set in tsung.xml file)
 ==================
 
 jabber_domain=mydomain.com

@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
-<!DOCTYPE idx-tsunami SYSTEM "@prefix@/share/@PACKAGE_NAME@/@DTD@">
+<!DOCTYPE tsung SYSTEM "@prefix@/share/@PACKAGE_NAME@/@DTD@">
 <!-- set dumptraffic="true" to dump all received and sent packets -->
 <!-- set loglevel="debug" for maximum verbosity -->
-<idx-tsunami loglevel="notice" dumptraffic="false" version="1.0">
+<tsung loglevel="notice" dumptraffic="false" version="1.0">
 
   <!-- Client side setup -->
   <clients>
@@ -136,4 +136,4 @@
     <request> <http url="/" method="GET" version="1.1"  if_modified_since="Fri, 14 Nov 2003 02:43:31 GMT"></http> </request>
 
   </session>
-</idx-tsunami>
+</tsung>

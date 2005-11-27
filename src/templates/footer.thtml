@@ -1,7 +1,7 @@
 <hr/>
 <div id="footer">
     <address>
-		Copyright &copy; IDEALX S.A.S 2004 - <a href="http://tsunami.idealx.org">http://tsunami.idealx.org/</a>
+		<a href="http://tsung.erlang-projects.org">http://tsung.erlang-projects.org/</a>
         Contact:   <a href="mailto:[% contact %]">[% contact %]</a>
     </address>
 </div>

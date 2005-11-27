@@ -1,16 +1,16 @@
-Source: idx-tsunami
+Source: tsung
 Section: net
 Priority: optional
 Maintainer: Nicolas Niclausse <nicolas.niclausse@niclux.org>
 Build-Depends: debhelper (>= 4.0.0), erlang (>= 9.2-1), libxmerl-erlang (>= 0.19-1) | erlang (>= 10.b.5-1) , docbook-utils
 Standards-Version: 3.6.0
 
-Package: idx-tsunami
+Package: tsung
 Architecture: all
 Depends: erlang (>= 9.2-1), libxmerl-erlang (>= 0.19-1) | erlang (>= 10.b.5-1)
 Recommends: gnuplot, perl, ssh, libtemplate-perl
 Description: A distributed multi-protocol load testing tool.
- IDX-Tsunami is a distributed load testing tool.
+ Tsung is a distributed load testing tool.
  It is protocol-independent and can currently be used to stress and 
  benchmark HTTP and Jabber servers. 
  It simulates user behaviour using an XML description file, reports
@@ -20,4 +20,4 @@ Description: A distributed multi-protocol load testing tool.
  sessions, supports GET and POST methods, Cookies, and Basic
  WWW-authentication. It also has support for SSL.
  .
- More information is available at http://tsunami.idealx.org/ .
+ More information is available at http://tsung.erlang-projects.org/ .

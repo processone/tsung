@@ -1,23 +1,23 @@
 # $Id$
 
-  IDX-TSUNAMI LISEZMOI
+  Tsung LISEZMOI
 
   1.  Introduction
 
   1.1.  Généralités
 
-  Ce document donne un rapide descriptifs de IDX-TSUNAMI, qui est
+  Ce document donne un rapide descriptifs de Tsung, qui est
   distribué sous les termes de la GNU General Public License version 2
   (voir le fichier COPYING).
 
   1.2.  Qu'est-ce que ce logiciel fait?
 
-  Le propos de IDX-TSUNAMI est de simuler des utilisateurs afin de
+  Le propos de Tsung est de simuler des utilisateurs afin de
   tester la montée en charge et les performances d'applications
   client/serveur (basées sur IP). Actuellement, les protocoles
-  HTTP et Jabber sont implémentés, et IDX-TSUNAMI est très facilement
+  HTTP et Jabber sont implémentés, et Tsung est très facilement
   extensible (voir le fichier doc/Design.txt pour une description
-  de l'implémentation et des possibilités d'extensions). IDX-TSUNAMI
+  de l'implémentation et des possibilités d'extensions). Tsung
   utilise le langage Erlang.
 
   Ce logiciel est capable de simuler plusieurs milliers d'utilisateurs
@@ -54,10 +54,10 @@
   ralentir considérablement les injecteurs en cas de très forte
   charge.
 
-  Voir également le site  http://tsunami.idealx.org/
+  Voir également le site  http://tsung.erlang-projects.org/
 
   NEW: Un manuel utilisateur est maintenant disponible en anglais:
-  http://tsunami.idealx.org/user_manual.html
+  http://tsung.erlang-projects.org/user_manual.html
 
   2.  Installation
 
@@ -67,13 +67,13 @@
 
   - xmerl-0.19 (http://sowap.sourceforge.net/download.html). Un paquet
     debian binaire est disponible à l'adresse 
-    http://tsunami.idealx.org/dist/
+    http://tsung.erlang-projects.org/dist/
 
   - le module extended regexp est utilisé pour les variables
     dynamiques: gregexp.erl est disponible à
      http://www.cellicium.com/erlang/contribs/ . Ce module est
      inclus dans les distributions sources et binaires de
-     IDX-Tsunami. Ce module est diffusé en license EPL .
+     tsung. Ce module est diffusé en license EPL .
 
   - gnuplot et perl5 (optionel, utilisé pour les sorties graphiques du script 
     analyse_msg.pl). Le Template Toolkit est utilisé pour les rapports en HTML
@@ -90,18 +90,18 @@
   make install
 
   Comment l'utiliser:
-    1a/ Éditer un fichier ~/.idx-tsunami/idx-tsunami.xml (toutes les
+    1a/ Éditer un fichier ~/.tsung/tsung.xml (toutes les
     options sont décrites en commentaires dans le fichier d'exemple
-    /usr/share/doc/idx-tsunami/examples/idx-tsunami.xml).
+    /usr/share/doc/tsung/examples/tsung.xml).
 
     1b/ Lire le fichier doc/Jabber.txt pour des informations spécifiques à 
     Jabber.
 
-    2/ utilisez le script "idx-tsunami --start" pour démarrer le 
-    test de charge (man idx-tsunami pour avoir les options disponibles)
+    2/ utilisez le script "tsung --start" pour démarrer le 
+    test de charge (man tsung pour avoir les options disponibles)
 
-    3/ Lorsque c'est terminé (idx-tsunami --stop pour forcer l'arrêt), le
-    script analyse_msg.pl (/usr/lib/idx-tsunami/bin/analyse_msg.pl)
+    3/ Lorsque c'est terminé (tsung --stop pour forcer l'arrêt), le
+    script analyse_msg.pl (/usr/lib/tsung/bin/analyse_msg.pl)
     génère une synthèse des temps de réponses;
     ce script peut également générer des graphes avec l'option --plot.
 
@@ -110,7 +110,7 @@
  	   avec les options --stats and --plot option. Le script va
  	   générer des graphes au format postscript en utilisant
  	   gnuplot. L'option --stats requiert en argement le nomdu fichier
- 	   de log, par défaut 'idx-tsunami.log-YYYY:MM:DD-HH:mm'
+ 	   de log, par défaut 'tsung.log-YYYY:MM:DD-HH:mm'
 		   
 	   Les mesures suivantes sont disponibles:
 		- response_time (temps de réponse pour chaque requête)
@@ -132,19 +132,19 @@
        Depuis la version v1.0.beta3, un rapport HTML peut être générer
        en utilisant l'option --html. Ceci utilise le Template
        Toolkit. Le répertoire contenenant les templates est
-       ~/idx-tsunami/templates ou /usr/share/idx-tsunami/template ou
+       ~/tsung/templates ou /usr/share/tsung/template ou
        encore peut être configuré par --tdir <dir>
  
-      Ex: > cd ~/.idx-tsunami/log/2004YYYY-XX:XX
-          > analyse_msg.pl --stats idx-tsunami.log --plot --html
+      Ex: > cd ~/.tsung/log/2004YYYY-XX:XX
+          > analyse_msg.pl --stats tsung.log --plot --html
 
     4/ Pour utiliser le proxy enregistreur de sessions HTTP depuis un
     navigateur, il faut d'abord démarrer le proxy avec la commande
-    'idx-tsunami recorder'. Celui-ci démmare le proxy qui écoute sur le
+    'tsung recorder'. Celui-ci démmare le proxy qui écoute sur le
     port 8090. Il suffit ensuite de paramétrer le navigateur pour
     utiliser ce proxy. Toutes les requêtes et les 'thinktimes' seront
     enregistrées dans un fichier directement au format XML. Une fois
-    terminé, lancer la commande 'idx-tsunami stop_recorder'.
+    terminé, lancer la commande 'tsung stop_recorder'.
 
 
 

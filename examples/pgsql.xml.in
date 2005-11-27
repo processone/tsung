@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<!DOCTYPE idx-tsunami SYSTEM "@prefix@/share/@PACKAGE_NAME@/@DTD@">
-<idx-tsunami loglevel="notice">
+<!DOCTYPE tsung SYSTEM "@prefix@/share/@PACKAGE_NAME@/@DTD@">
+<tsung loglevel="notice">
 
   <clients>
     <client host="localhost" use_controller_vm="true"/>
@@ -43,5 +43,5 @@
     <request><pgsql type="close"></pgsql></request>
 
   </session>
-</idx-tsunami>
+</tsung>
 

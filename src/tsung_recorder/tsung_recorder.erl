@@ -24,13 +24,13 @@
 %%%  the two.
 
 %%%-------------------------------------------------------------------
-%%% File    : tsunami_recorder.erl
+%%% File    : tsung_recorder.erl
 %%% Author  :  <nicolas.niclaussse@IDEALX.com>
-%%% Description : tsunami_recorder application
+%%% Description : tsung_recorder application
 %%% Created : 22 Dec 2003 by Nicolas Niclausse <nicolas@niclux.org>
 %%%-------------------------------------------------------------------
 
--module(tsunami_recorder).
+-module(tsung_recorder).
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
@@ -68,5 +68,5 @@ stop(_State) ->
 %% Returns: any 
 %%----------------------------------------------------------------------
 stop_all(Arg) ->
-	ts_utils:stop_all(Arg,'ts_proxy_listener', "IDX-Tsunami recorder",
+	ts_utils:stop_all(Arg,'ts_proxy_listener', "tsung recorder",
                       {ts_proxy_recorder, stop}).

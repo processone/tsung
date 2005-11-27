@@ -1,8 +1,8 @@
 DNA define([AC_CACHE_LOAD], )dnl
 dnl define([AC_CACHE_SAVE], )dnl
 
-AC_INIT([idx-tsunami], m4_normalize(m4_include([vsn.mk])),[idx-tsunami@lists.IDEALX.org])
-AC_CONFIG_SRCDIR(src/tsunami/tsunami.erl)
+AC_INIT([tsung], m4_normalize(m4_include([vsn.mk])),[idx-tsunami@lists.IDEALX.org])
+AC_CONFIG_SRCDIR(src/tsung/tsung.erl)
 dnl AM_INIT_AUTOMAKE()
 
 AC_SUBST([CONFIG_STATUS_DEPENDENCIES],[vsn.mk])
@@ -92,12 +92,12 @@ AC_SUBST(SED)
 AC_SUBST(ERL)
 AC_SUBST(ERLC)
 AC_SUBST(ERLDIR)
-AC_SUBST(DTD,[idx-tsunami-1.0.dtd])
-AC_SUBST(TEMPLATES_SUBDIR,[idx-tsunami/templates])
+AC_SUBST(DTD,[tsung-1.0.dtd])
+AC_SUBST(TEMPLATES_SUBDIR,[tsung/templates])
 
 AC_PROG_MAKE_SET
 AC_PROG_INSTALL
 
-AC_CONFIG_FILES([Makefile idx-tsunami.spec idx-tsunami.sh examples/*.xml src/analyse_msg.pl src/log2tsunami.pl])
+AC_CONFIG_FILES([Makefile tsung.spec tsung.sh examples/*.xml src/analyse_msg.pl src/log2tsung.pl])
 
 AC_OUTPUT

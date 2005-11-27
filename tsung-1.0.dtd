@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!ELEMENT idx-tsunami (clients, server, monitoring?, arrivalphase+, default*, session+)>
+<!ELEMENT tsung (clients, server, monitoring?, arrivalphase+, default*, session+)>
 
-<!ATTLIST idx-tsunami 
+<!ATTLIST tsung 
      dumptraffic (true | false | light) "false"
      backend     (text | rrdtool) "text"
      loglevel    (emergency|critical|error|warning|notice|info|debug) "notice"

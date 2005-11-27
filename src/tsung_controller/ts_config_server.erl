@@ -63,7 +63,7 @@
                 logdir,
                 start_date,       % 
                 hostname,         % controller hostname
-                last_beam_id = 0, % last tsunami beam id (used to set nodenames)
+                last_beam_id = 0, % last tsung beam id (used to set nodenames)
                 ending_beams = 0, % number of beams with no new users to start
                 lastips,          % store next ip to choose for each client host
                 total_weight      % total weight of client machines
@@ -186,10 +186,10 @@ handle_call({read_config, ConfigFile}, _From, State) ->
         {ok, Config=#config{session_tab=Tab,curid=LastReqId,sessions=[LastSess| _]}} -> 
             case check_config(Config) of 
                 ok ->
-                    application:set_env(tsunami_controller, clients, Config#config.clients),
-                    application:set_env(tsunami_controller, dump, Config#config.dump),
-                    application:set_env(tsunami_controller, stats_backend, Config#config.stats_backend),
-                    application:set_env(tsunami_controller, debug_level, Config#config.loglevel),
+                    application:set_env(tsung_controller, clients, Config#config.clients),
+                    application:set_env(tsung_controller, dump, Config#config.dump),
+                    application:set_env(tsung_controller, stats_backend, Config#config.stats_backend),
+                    application:set_env(tsung_controller, debug_level, Config#config.loglevel),
                     SumWeights = fun(X, Sum) -> X#client.weight + Sum end,
                     Sum = lists:foldl(SumWeights, 0, Config#config.clients),
                     %% we only know now the size of last session from the file: add it
@@ -319,7 +319,7 @@ handle_cast({newbeam, Host, []}, State=#state{last_beam_id = NodeId,
     ?LOGF("Start a launcher on the controller beam ~p~n", [LocalHost], ?NOTICE),
     LogDir = encode_filename(State#state.logdir),
     %% set the application spec (read the app file and update some env. var.)
-    {ok, {_,_,AppSpec}} = load_app(tsunami),
+    {ok, {_,_,AppSpec}} = load_app(tsung),
     {value, {env, OldEnv}} = lists:keysearch(env, 1, AppSpec),
     NewEnv = [ {dump,atom_to_list(?config(dump))},
                {debug_level,integer_to_list(?config(debug_level))},
@@ -329,11 +329,11 @@ handle_cast({newbeam, Host, []}, State=#state{last_beam_id = NodeId,
     Env = lists:foldl(RepKeyFun, OldEnv, NewEnv),
     NewAppSpec = lists:keyreplace(env, 1, AppSpec, {env, Env}),
      
-    ok = application:load({application, tsunami, NewAppSpec}),
-    case application:start(tsunami) of
+    ok = application:load({application, tsung, NewAppSpec}),
+    case application:start(tsung) of
         ok ->
             ?LOG("Application started, activate launcher, ~n", ?INFO),
-            application:set_env(tsunami, debug_level, Config#config.loglevel),
+            application:set_env(tsung, debug_level, Config#config.loglevel),
             ts_launcher:launch({node(), Host, []}),
             {noreply, State#state{last_beam_id = NodeId +1}};
         {error, Reason} ->
@@ -354,24 +354,24 @@ handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId,
 
 %% start a launcher on a new beam with slave module 
 handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId, config= Config}) ->
-    Name = "tsunami" ++ integer_to_list(NodeId),
+    Name = "tsung" ++ integer_to_list(NodeId),
     {ok, [[BootController]]}    = init:get_argument(boot),
     ?DebugF("BootController ~p~n", [BootController]), 
-    {ok, [[?TSUNAMIPATH,PathVar]]}    = init:get_argument(boot_var),
+    {ok, [[?TSUNGPATH,PathVar]]}    = init:get_argument(boot_var),
     ?DebugF("BootPathVar ~p~n", [PathVar]), 
     {ok, [[PA1],[PA2]]}    = init:get_argument(pa), % ugly
     ?DebugF("PA list ~p ~p~n", [PA1,PA2]), 
-    {ok, Boot, _} = regexp:gsub(BootController,"tsunami_controller","tsunami"),
+    {ok, Boot, _} = regexp:gsub(BootController,"tsung_controller","tsung"),
     ?DebugF("Boot ~p~n", [Boot]), 
 	Sys_Args= ts_utils:erl_system_args(),
     LogDir = encode_filename(State#state.logdir),
     Args = lists:append([ Sys_Args," -boot ", Boot,
-        " -boot_var ", ?TSUNAMIPATH, " ",PathVar,
+        " -boot_var ", ?TSUNGPATH, " ",PathVar,
         " -pa ", PA1,
         " -pa ", PA2,
-        " -tsunami debug_level ", integer_to_list(?config(debug_level)),
-        " -tsunami dump ", atom_to_list(?config(dump)),
-        " -tsunami log_file ", LogDir
+        " -tsung debug_level ", integer_to_list(?config(debug_level)),
+        " -tsung dump ", atom_to_list(?config(dump)),
+        " -tsung log_file ", LogDir
         ]),
     ?LOGF("starting newbeam on host ~p from ~p with Args ~p~n", [Host, State#state.hostname, Args], ?INFO), 
     case slave:start_link(Host, Name, Args) of
@@ -529,7 +529,7 @@ replace_str({A,B},X) ->
 print_info() ->
     ?LOGF("SYSINFO:Erlang version: ~s~n",[erlang:system_info(system_version)],?NOTICE),
     ?LOGF("SYSINFO:System architecture ~s~n",[erlang:system_info(system_architecture)],?NOTICE),
-    ?LOGF("SYSINFO:Current path: ~s~n",[code:which(tsunami)],?NOTICE).
+    ?LOGF("SYSINFO:Current path: ~s~n",[code:which(tsung)],?NOTICE).
 
 %%----------------------------------------------------------------------
 %% Func: start_file_server/1    

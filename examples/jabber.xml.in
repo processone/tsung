@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<!DOCTYPE idx-tsunami SYSTEM "@prefix@/share/@PACKAGE_NAME@/@DTD@">
-<idx-tsunami loglevel="notice" version="1.0">
+<!DOCTYPE tsung SYSTEM "@prefix@/share/@PACKAGE_NAME@/@DTD@">
+<tsung loglevel="notice" version="1.0">
 
   <clients>
     <client host="localhost" use_controller_vm="true"></client>
@@ -56,5 +56,5 @@
     </transaction>
 
   </session>
-</idx-tsunami>
+</tsung>
 

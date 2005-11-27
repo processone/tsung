@@ -27,7 +27,7 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
--define(TSUNAMIPATH, "TSUNAMIPATH").
+-define(TSUNGPATH, "TSUNGPATH").
 -define(SESSION_POP_ERROR_MSG, "Total sum of session popularity is not equal to 100").
 
 -record(config,	{

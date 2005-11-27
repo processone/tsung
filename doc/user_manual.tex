@@ -8,48 +8,48 @@
 \RCS$Date$
 
 \documentclass{IDXDOC-en}
-\usepackage{idx-shortcuts}
+\usepackage{shortcuts}
 
 % --------------------------------------------
 % Title 
 % --------------------------------------------
-\doctitle{IDX-Tsunami User's manual}
+\doctitle{tsung User's manual}
 
 %\addauthor{Nicolas}{Niclausse}{nicolas.niclausse@IDEALX.com}
 
 \doccopyright{IDEALX S.A.S.}
 \docversion{\RCSRevision}
 \docreldate{\RCSDate}
-\docref{idx-tsunami-user-manual}
+\docref{tsung-user-manual}
 
 \begin{document}
 \maketitle
-\Abstract{IDX-Tsunami user's manual}
+\Abstract{tsung user's manual}
 \newpage
 \tableofcontents
 
 \section{Introduction}
 
-\subsection{What is IDX-Tsunami ?}
+\subsection{What is tsung ?}
 
-\program{IDX-Tsunami} is a distributed load testing tool. It is
+\program{tsung} is a distributed load testing tool. It is
 protocol-independent and can currently be used to stress HTTP, SOAP
 and Jabber servers.
 
 It is distributed under the GNU General Public License version 2.
 
-\subsection{What is Erlang and why is it important for IDX-Tsunami ?}
+\subsection{What is Erlang and why is it important for tsung ?}
 
-\program{IDX-Tsunami's} main strength is its ability to simulate a huge number of
+\program{tsung's} main strength is its ability to simulate a huge number of
 simultaneous user from a single CPU. When used on cluster you can
 generate a really impressive load on a server with a modest cluster,
 easy to set-up and to maintain.
 
-\program{IDX-Tsunami} is developed in Erlang and this is where the power
-of \program{IDX-Tsunami} resides.
+\program{tsung} is developed in Erlang and this is where the power
+of \program{tsung} resides.
 
 \par Erlang is a \emph{concurrency-oriented} programming language.
-Tsunami is based on the Erlang OTP (Open Transaction Platform) and
+tsung is based on the Erlang OTP (Open Transaction Platform) and
 inherits several characteristics from Erlang: 
 
 \begin{itemize}
@@ -59,18 +59,18 @@ of lightweight processes in a single virtual machine.
 distributed, promoting the idea of process's location transparency. 
 \item \emph{Fault-tolerance}:Erlang has been built to develop robust,
 fault-tolerant systems. As such, wrong answer sent from the server
-to \program{IDX-Tsunami} does not make the whole running benchmark crash. 
+to \program{tsung} does not make the whole running benchmark crash. 
 \end{itemize}
 
 More informations on Erlang on \url{http://www.erlang.org} and
 \url{http://www.erlang-projects.org/}
 
 
-\subsection{IDX-Tsunami background}
+\subsection{tsung background}
 
 History:
 \begin{itemize}
-\item \program{IDX-Tsunami} is being developed since 2001 
+\item \program{tsung} is being developed since 2001 
 \item It is an industrial strength implementation of a \emph{stochastic model}
 for real users simulation. User events distribution is based on a
 Poisson Process. More information on this topic in:
@@ -86,18 +86,18 @@ Volume 46, Issue 2-3, October 2001}.
 
 \end{itemize}
 
-\program{IDX-Tsunami} has been used for very high load tests:
+\program{tsung} has been used for very high load tests:
  
 \begin{itemize}
 \item \emph{Jabber} protocol: 10 000 simultaneous users.
-  \program{IDX-Tsunami} was running on a 3-computers cluster (CPU
+  \program{tsung} was running on a 3-computers cluster (CPU
   800Mhz)
 \item \emph{HTTP and HTTPS} protocol: 12 000 simultaneous users.
-  \program{IDX-Tsunami} were running on a 4-computers cluster. The
+  \program{tsung} were running on a 4-computers cluster. The
   tested platform reached 3 000 requests per second.
 \end{itemize}
 
-\program{IDX-Tsunami} has been used  at: 
+\program{tsung} has been used  at: 
 
 \begin{itemize}
 \item \emph{DGI} (Direction Générale des impôts): French finance ministry 
@@ -109,17 +109,17 @@ for Petroleum
 
 \section{Features}
 
-\subsection{IDX-Tsunami main features}
+\subsection{tsung main features}
 
 \begin{itemize}
-\item \emph{High Performance}: \program{IDX-Tsunami} can simulate a
+\item \emph{High Performance}: \program{tsung} can simulate a
   huge number of simultaneous users per physical computer: It can
   simulates thousands of users on a single CPU (Note: a simulated user
   is not always active: it can be idle during a \varname{thinktime}
   period). Traditional injection tools can hardly go further than a
   few hundreds (Hint: if all you want to do is requesting a single URL
   in a loop, use \program{ab}; but if you want to build complex
-  scenarios with extended reports, \program{IDX-Tsunami} is for you).
+  scenarios with extended reports, \program{tsung} is for you).
 \item \emph{Distributed}: the load can be distributed on a cluster of
 client machines 
 \item \emph{Multi-Protocols} using a plug-in system: HTTP (both standard
@@ -132,7 +132,7 @@ the underlying OS IP Aliasing
 agents on remote servers or \emph{SNMP}
 \item \emph{XML configuration system}: complex user's scenarios are written
   in XML. Scenarios can be written with a simple browser using the
-  tsunami recorder (for HTTP only).
+  tsung recorder (for HTTP only).
 \item \emph{Dynamic scenarios}: You can get dynamic data from the
   server under load (without writing any code) and re-inject it in
   subsequent requests.
@@ -173,8 +173,8 @@ distribution (currently exponential)
 
 \subsection{Complete reports set}
 
-Measures and statistics produced by Tsunami are extremely feature-full.
-They are all represented as a graphic. \program{IDX-Tsunami} produces
+Measures and statistics produced by tsung are extremely feature-full.
+They are all represented as a graphic. \program{tsung} produces
 statistics regarding:
 
 \begin{itemize}
@@ -183,10 +183,10 @@ of the user scenario based on request grouping instruction (called \textit{trans
 per second 
 \item \emph{Errors}: Statistics on page return code to trace errors 
 \item \emph{Target server behaviour}: An Erlang agent can gather information
-from the target server(s). Tsunami produces graphs for CPU and memory
+from the target server(s). tsung produces graphs for CPU and memory
 consumption and network traffic. SNMP is also supported. 
 \end{itemize}
-\par Note that \program{IDX-Tsunami} takes care of the synchronization process
+\par Note that \program{tsung} takes care of the synchronization process
 by itself. Gathered statistics are «synchronized».
 
  It is possible to generate graphs during the benchmark as statistics
@@ -194,17 +194,17 @@ are gathered in real-time.
 
 \subsection{Highlights}
 
-\program{IDX-Tsunami} has several advantages over other injection tools: 
+\program{tsung} has several advantages over other injection tools: 
 
 
 \begin{itemize}
 \item \emph{High performance} and \emph{distributed benchmark}: You
-  can use IDX-Tsunami to simulate tens of thousands of virtual users.
+  can use tsung to simulate tens of thousands of virtual users.
 \item \emph{Ease of use}: The hard work is already done for all supported
 protocol. No need to write complex scripts. Dynamic scenarios only
 requires small trivial piece of code.
-% Tsunami scenarii realisation is mostly based on 
-\item \emph{Multi-protocol support}: \program{IDX-Tsunami} is for example one of
+% tsung scenarii realisation is mostly based on 
+\item \emph{Multi-protocol support}: \program{tsung} is for example one of
 the only tool to benchmark SOAP applications 
 \item \emph{Monitoring} of the target server(s) to analyze the behaviour
 and find bottlenecks. For example, it has been used to analyze cluster
@@ -229,14 +229,14 @@ MacOS-X).
   \url{http://www.erlang-projects.org/Public/rpmdeb/rpm_erlang_otp_r9c-2/view}.
 \item xmerl-0.19 (included in Erlang R10B) (\url{http://sowap.sourceforge.net/download.html}). Debian and Redhat
     binaries are provided at
-    \url{http://tsunami.idealx.org/dist/}
+    \url{http://tsung.idealx.org/dist/}
   \item extended regexp module (used for dynamic variables):
     gregexp.erl available at
     \url{http://www.cellicium.com/erlang/contribs/} . The module is
-    included in the source and binary distribution of \program{IDX-Tsunami}. It
+    included in the source and binary distribution of \program{tsung}. It
     is released under the EPL License.
    \item  gnuplot and perl5 (optional; for graphical output with
-    \command{analyse\_msg.pl} script).  The Template Toolkit is used for HTML
+    \command{tsung\_stats.pl} script).  The Template Toolkit is used for HTML
     reports (see \url{http://template-toolkit.org/})
   \item for distributed tests, you need an ssh access to remote
     machines without password (use a RSA/DSA key without pass-phrase or
@@ -252,27 +252,27 @@ MacOS-X).
 \end{Verbatim}
 \subsection{Configuration}
 
-The default configuration file is \file{~/.idx-tsunami/idx-tsunami.xml} (
+The default configuration file is \file{~/.tsung/tsung.xml} (
 there is a sample file
-\file{/usr/share/doc/idx-tsunami/examples/idx-tsunami.xml}).
+\file{/usr/share/doc/tsung/examples/tsung.xml}).
 
-Log files are saved in \file{~/.idx-tsunami/log/} . A new subdirectory
+Log files are saved in \file{~/.tsung/log/} . A new subdirectory
 is created for each test using the current date as name
-(\file{~/.idx-tsunami/log/20040217-09:40} for ex.)
+(\file{~/.tsung/log/20040217-09:40} for ex.)
 
 \subsection{Feedback}
 
-Use the idx-tsunami mailing list (see
+Use the Tsung mailing list (see
 \url{http://lists.idealx.org/info/idx-tsunami}) if you have
-suggestions or questions about \program{IDX-Tsunami}.
+suggestions or questions about \program{Tsung}.
 
 \section{HTTP benchmark approach}
 
 \subsection{benchmarking a Web server}
 
 \begin{enumerate}
-\item Record one or more sessions: start the recorder with: \command{idx-tsunami
-    recorder}, and then configure your browser to use IDX-Tsunami
+\item Record one or more sessions: start the recorder with: \command{tsung
+    recorder}, and then configure your browser to use tsung
   proxy recorder (the listen port is 8090). A session file will be
   created. For HTTPS recording, use \userinput{http://\{} instead of
     \userinput{https://} in your browser.
@@ -286,12 +286,12 @@ server(s). Calculate the normal duration of the scenario and use the
 interarrival time between users and the duration of the phase to estimate
 the number of simultaneous users for each given phase. 
 \item Launch benchmark with your first application parameters set-up:
-  \command{idx-tsunami start}
+  \command{tsung start}
 \item Wait for the end of the test or stop by hand with
-  \command{idx-tsunami stop} (reports can also be generated during the
+  \command{tsung stop} (reports can also be generated during the
   test (see § \ref{sec:statistics-reports}) : the statistics are
   updated every 10 seconds). For a brief summary of the current
-  activity, use \command{idx-tsunami status}
+  activity, use \command{tsung status}
 \item Analyze results, change parameters and relaunch another benchmark 
 \end{enumerate}
 
@@ -356,24 +356,24 @@ If you do not specify maxnumber, the global ack will be reset every
 \varname{global\_number} users
 \end{description}
 
-\section{Understanding idx-tsunami.xml configuration file}
+\section{Understanding tsung.xml configuration file}
 
 \subsection{File structure}
 
- Scenarios are enclosed into idx-tsunami tags:
+ Scenarios are enclosed into tsung tags:
 
  \begin{Verbatim}
 <?xml version="1.0"?>
-<!DOCTYPE idx-tsunami SYSTEM "/usr/share/idx-tsunami/idx-tsunami-1.0.dtd" [] >
-<idx-tsunami loglevel="info" dumptraffic="false">
+<!DOCTYPE tsung SYSTEM "/usr/share/tsung/tsung-1.0.dtd" [] >
+<tsung loglevel="info" dumptraffic="false">
 ...
-</idx-tsunami>
+</tsung>
  \end{Verbatim}
 
 
 \subsection{Clients and server}
 
- Scenarios start with clients (IDX-Tsunami cluster) and server definitions:
+ Scenarios start with clients (tsung cluster) and server definitions:
 
 \begin{Verbatim}
   <clients>
@@ -396,7 +396,7 @@ If you do not specify maxnumber, the global ack will be reset every
    1.1.1:} IP is not mandatory. If not specified, the default IP will
  be used.
  
- In this example, a second machine is used in the Tsunami cluster,
+ In this example, a second machine is used in the tsung cluster,
  with a higher weight, and 2 cpus. Two Erlang virtual machines will be
  used to take advantage of the number of CPU.
 
@@ -509,7 +509,7 @@ If not set in the configuration file, the values will be set to:
 \subsubsection{Default values: HTTP}
 
 For HTTP, you can set the UserAgent values (\string{available since
-  Idx-Tsunami 1.1.0}), using a frequency for each value (the sum of all
+  tsung 1.1.0}), using a frequency for each value (the sum of all
 frequencies must be equal to 100)
 
 \begin{Verbatim}
@@ -532,7 +532,7 @@ Sessions define the content of the scenario itself. They describe
 the requests to execute.
 
 This example shows several features of the HTTP protocol support in
-Tsunami: GET and POST request, basic authentication, transaction for
+tsung: GET and POST request, basic authentication, transaction for
 statistics definition, ...
 
 
@@ -649,7 +649,7 @@ variables (\strong{Warn: before version 1.1.0, the argument was just the
 
 
 
-Here is an example of use of substitution in a Tsunami scenario:
+Here is an example of use of substitution in a tsung scenario:
 
 \begin{Verbatim}
 <session name="rec20040316-08:47" popularity="100" type="ts_http">
@@ -744,7 +744,7 @@ form like:
 with:
 \begin{Verbatim}
  <request>
-   <http url="/testtsunami.html" method="GET" version="1.0"></http>
+   <http url="/testtsung.html" method="GET" version="1.0"></http>
    <dyn_variable name="random_num" ></dyn_variable>
  </request>
 \end{Verbatim}
@@ -767,7 +767,7 @@ If the dynamic value is not a form variable, you can set a regexp by
 hand, for example to get the title of a HTML page:
 \begin{Verbatim}
     <request>
-      <http url="/testtsunami.html" method="GET" version="1.0"></http>
+      <http url="/testtsung.html" method="GET" version="1.0"></http>
       <dyn_variable name="mytitlevar" 
                     regexp="&lt;title&gt;\(.*\)&lt;/title&gt;"/>
     </request>
@@ -826,7 +826,7 @@ HTTP specific stats:
 
 A bit of explanation on the design and internals of the statistics engine:
 
-IDX-tsunami was designed to handle thousands of requests/sec, for very
+tsung was designed to handle thousands of requests/sec, for very
 long period of times (several hours) so it do not write all data to
 the disk (for performance reasons). Instead it computes on the fly an
 estimation of the mean and standard variation for each type of data,
@@ -852,19 +852,19 @@ estimated bandwidth usage).
 \subsection{Generating the report}
 
 cd to the log directory of your test (say
-\file{~/.idx-tsunami/log/20040325-16:33/}) and use the script
-\command{analyse\_msg.pl}:
+\file{~/.tsung/log/20040325-16:33/}) and use the script
+\command{tsung\_stats.pl}:
 
 \begin{Verbatim}
-/usr/lib/idx-tsunami/bin/analyse_msg.pl --html --extra  --plot  
+/usr/lib/tsung/bin/tsung_stats.pl --html --extra --plot  
 \end{Verbatim}
 
 (use \userinput{--help} to view all available options)
 
-\subsection{Tsunami summary}
+\subsection{tsung summary}
 \begin{figure}[htb]
   \begin{center}
-    \includegraphics[width=0.6\linewidth]{tsunami-report}
+    \includegraphics[width=0.6\linewidth]{tsung-report}
     \end{center}
       \caption{Report}
     \label{fig:report}
@@ -875,7 +875,7 @@ cd to the log directory of your test (say
 
 \begin{figure}[htb]
   \begin{center}
-    \includegraphics[width=0.6\linewidth]{tsunami-graph}
+    \includegraphics[width=0.6\linewidth]{tsung-graph}
     \end{center}
       \caption{Graphical output}
     \label{fig:graph}
@@ -888,8 +888,8 @@ cd to the log directory of your test (say
 \section{References}
 
 \begin{itemize}
-\item \program{IDX-Tsunami} home page: \url{http://tsunami.idealx.org/}
-\item \program{IDX-Tsunami} description (French)\footnote{\url{http://www.erlang-projects.org/Members/mremond/events/dossier_de_presentat/block_10766817551485/file}}
+\item \program{tsung} home page: \url{http://tsung.idealx.org/}
+\item \program{tsung} description (French)\footnote{\url{http://www.erlang-projects.org/Members/mremond/events/dossier_de_presentat/block_10766817551485/file}}
 \item Erlang web site \url{http://www.erlang.org/}
 \item Erlang programmation, Mickaël Rémond, Editions Eyrolles, 2003
   \footnote{\url{http://www.editions-eyrolles.com/php.accueil/Ouvrages/ouvrage.php3?ouv_ean13=9782212110791}}
@@ -909,7 +909,7 @@ Web benchmarking workshop in April 2004 (more info at
 
 \section{Frequently Asked Questions}
 
-\subsection{IDX-tsunami crashes when I start it }
+\subsection{tsung crashes when I start it }
 
 Does your Erlang system has ssl support enabled ?
 
@@ -921,7 +921,7 @@ to test it:
   you should see 'ok' 
 \end{Verbatim}
 
-\subsection{IDX-tsunami still doesn't start ...}
+\subsection{tsung still doesn't start ...}
 
 Most of the time, when a crash happened at startup without any traffic  
 generated, the problem arise because the main Erlang controller node cannot  
@@ -964,7 +964,7 @@ create a "slave" Erlang virtual machine. The message looks like:
                                      7,
                                      6,
                                      "negociate"},
-  "/home/username/.idx-tsunami/log/20040204-18:32",
+  "/home/username/.tsung/log/20040204-18:32",
                                undefined,
                                0,
                                undefined,
@@ -977,7 +977,7 @@ create a "slave" Erlang virtual machine. The message looks like:
 \end{Verbatim} 
 %%%$
 
-IDX-Tsunami launches a new erl virtual machine to do the actual
+tsung launches a new erl virtual machine to do the actual
 injection even when you have only one machine in the injection
 cluster. This is because it needs to by-pass some limit with the number
 of open socket from a single process (1024 most of the time). The idea
@@ -1007,7 +1007,7 @@ It will not work if you use it as the injection interface. The shortname
 of your client machine should not refer to this address.
 
 \strong{New in 1.1.0}: If you don't use the distributed feature of
-Tsunami and have trouble to start a remote beam on a local machine,
+tsung and have trouble to start a remote beam on a local machine,
 you can set the \varname{'use\_controller\_vm'} attribute to true, for ex.:
 
 \begin{Verbatim}
@@ -1032,25 +1032,25 @@ If the erlang shell doesn't start then check what paths sshd was compiled with
 (in SuSE see \file{/etc/ssh/sshd_config}) and symlink from one of the approved paths 
 to the erlang executable (thanks to Gordon Guthrie for reporting this).
 
-\subsection{IDX-tsunami still crashes/fails  when I start it !}
+\subsection{tsung still crashes/fails  when I start it !}
 First look at the log file
-\file{~/.idx-tsunami/log/XXX/tsunami_controller@yourhostname'} to see
+\file{~/.tsung/log/XXX/tsung_controller@yourhostname'} to see
 if there is a problem. 
 
 If the file is not created and a crashed dump file is present, maybe
-you are using a binary installation of tsunami not compatible with the
+you are using a binary installation of tsung not compatible with the
 version of erlang you used.
 
-If you see nothing wrong, you can compile \program{idx-tsunami} with full
+If you see nothing wrong, you can compile \program{tsung} with full
 debugging: recompile with \command{make debug} , and
 don't forget to set the loglevel to "debug" in the XML file.
 
-To start the debugger or see what happen, start \program{IDX-Tsunami} with the
+To start the debugger or see what happen, start \program{tsung} with the
 \userinput{debug} argument instead of \userinput{start}. You will have
-an erlang shell on the \varname{tsunami\_controller} node. Use
+an erlang shell on the \varname{tsung\_controller} node. Use
 \command{toolbar:start().} to launch the graphical tools provided by
 Erlang.
-\subsection{What is the format of the stats file idx-tsunami.log ?}
+\subsection{What is the format of the stats file tsung.log ?}
 
 \begin{Verbatim}
 # stats: dump at 1083694995
@@ -1086,9 +1086,9 @@ stats: 200 51 71
 \subsection{How can I specify the number of concurrent users ?}
 
 You can't. But it's on purpose: the load generated by
-\program{IDX-Tsunami} is dependent on the arrival time between new
+\program{tsung} is dependent on the arrival time between new
 clients. Indeed, once a client has finished his session in
-\program{idx-tsunami}, it stops. So the number of concurrent users is
+\program{tsung}, it stops. So the number of concurrent users is
 a function of the arrival rate and the mean session duration.
 
 For example, if your web site has $1000$ visits/hour, the arrival rate

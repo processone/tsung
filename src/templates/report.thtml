@@ -1,7 +1,7 @@
 [% INCLUDE header.thtml %]
 
 <div id="maincontent">
- <h2 class="main">IDX-Tsunami - Statistics</h2> 
+ <h2 class="main">tsung - Statistics</h2> 
 
 <div id="stats">
  <h3>Main Statistics</h3> 

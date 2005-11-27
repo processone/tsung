@@ -1,13 +1,13 @@
-%define name idx-tsunami
+%define name tsung
 %define version @PACKAGE_VERSION@
 %define release 1
 
 Summary: A distributed multi-protocol load testing tool.
-URL: http://tsunami.idealx.org/
+URL: http://tsung.idealx.org/
 Name: %{name}
 Version: %{version}
 Release: %{release}
-Source0: http://tsunami.idealx.org/dist/%{name}-%{version}.tar.gz
+Source0: http://tsung.idealx.org/dist/%{name}-%{version}.tar.gz
 License: GPL
 Vendor: IDEALX S.A.S.
 Packager: Nicolas Niclausse <nicolas@niclux.org>
@@ -19,7 +19,7 @@ BuildRoot: %{_tmppath}/%{name}-buildroot
 Prefix: %{_prefix}
 
 %description
- IDX-Tsunami is a distributed load testing tool.
+ tsung is a distributed load testing tool.
  It is protocol-independent and can currently be used to stress and
  benchmark HTTP and Jabber servers.
  It simulates user behaviour using an XML description file, reports
@@ -29,7 +29,7 @@ Prefix: %{_prefix}
  sessions, supports GET and POST methods, Cookies, and Basic
  WWW-authentication. It also has support for SSL.
  .
- More information is available at http://tsunami.idealx.org/ .
+ More information is available at http://tsung.idealx.org/ .
 
 %prep
 %setup
@@ -51,12 +51,12 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-/usr/bin/idx-tsunami
+/usr/bin/tsung
 /usr/lib/erlang/lib
-/usr/lib/idx-tsunami
-/usr/share/idx-tsunami
-%doc /usr/share/doc/idx-tsunami/*
-%doc /usr/share/man/man1/idx-tsunami.1.gz
+/usr/lib/tsung
+/usr/share/tsung
+%doc /usr/share/doc/tsung/*
+%doc /usr/share/man/man1/tsung.1.gz
 
 %changelog
 * Wed Apr 27 2005 Nicolas Niclausse <nicolas.niclausse@niclux.org> 1.0.2-1

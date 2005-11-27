@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
             "http://www.w3.org/TR/REC-html40/loose.dtd">
 <HTML>
-<HEAD><TITLE>IDX-Tsunami User's manual</TITLE>
+<HEAD><TITLE>tsung User's manual</TITLE>
 
 <META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
 <META name="GENERATOR" content="hevea 1.07">
@@ -60,7 +60,7 @@ a:hover     {background:#ffffaa;}
 
 
 
-<H1 ALIGN=center>IDX-Tsunami User's manual</H1>
+<H1 ALIGN=center>tsung User's manual</H1>
 
 
 <DIV ALIGN=center>
@@ -77,7 +77,7 @@ a:hover     {background:#ffffaa;}
 <BR>
 <DIV ALIGN=center>
  <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1>
-<TR><TD VALIGN=top ALIGN=left><I>IDX-Tsunami user's manual</I></TD>
+<TR><TD VALIGN=top ALIGN=left><I>tsung user's manual</I></TD>
 </TR></TABLE>
 </DIV>
 
@@ -88,13 +88,13 @@ a:hover     {background:#ffffaa;}
 <UL><LI>
 <A HREF="#htoc1">1&nbsp;&nbsp;Introduction</A>
 <UL><LI>
-<A HREF="#htoc2">1.1&nbsp;&nbsp;What is IDX-Tsunami ?</A>
-<LI><A HREF="#htoc3">1.2&nbsp;&nbsp;What is Erlang and why is it important for IDX-Tsunami ?</A>
-<LI><A HREF="#htoc4">1.3&nbsp;&nbsp;IDX-Tsunami background</A>
+<A HREF="#htoc2">1.1&nbsp;&nbsp;What is tsung ?</A>
+<LI><A HREF="#htoc3">1.2&nbsp;&nbsp;What is Erlang and why is it important for tsung ?</A>
+<LI><A HREF="#htoc4">1.3&nbsp;&nbsp;tsung background</A>
 </UL>
 <LI><A HREF="#htoc5">2&nbsp;&nbsp;Features</A>
 <UL><LI>
-<A HREF="#htoc6">2.1&nbsp;&nbsp;IDX-Tsunami main features</A>
+<A HREF="#htoc6">2.1&nbsp;&nbsp;tsung main features</A>
 <LI><A HREF="#htoc7">2.2&nbsp;&nbsp;HTTP related features</A>
 <LI><A HREF="#htoc8">2.3&nbsp;&nbsp;Jabber related features</A>
 <LI><A HREF="#htoc9">2.4&nbsp;&nbsp;Complete reports set</A>
@@ -113,7 +113,7 @@ a:hover     {background:#ffffaa;}
 <LI><A HREF="#htoc18">4.2&nbsp;&nbsp;benchmarking a proxy server</A>
 </UL>
 <LI><A HREF="#htoc19">5&nbsp;&nbsp;Jabber benchmark approach</A>
-<LI><A HREF="#htoc20">6&nbsp;&nbsp;Understanding idx-tsunami.xml configuration file</A>
+<LI><A HREF="#htoc20">6&nbsp;&nbsp;Understanding tsung.xml configuration file</A>
 <UL><LI>
 <A HREF="#htoc21">6.1&nbsp;&nbsp;File structure</A>
 <LI><A HREF="#htoc22">6.2&nbsp;&nbsp;Clients and server</A>
@@ -138,17 +138,17 @@ a:hover     {background:#ffffaa;}
 <A HREF="#htoc35">7.1&nbsp;&nbsp;Available stats</A>
 <LI><A HREF="#htoc36">7.2&nbsp;&nbsp;Design</A>
 <LI><A HREF="#htoc37">7.3&nbsp;&nbsp;Generating the report</A>
-<LI><A HREF="#htoc38">7.4&nbsp;&nbsp;Tsunami summary</A>
+<LI><A HREF="#htoc38">7.4&nbsp;&nbsp;tsung summary</A>
 <LI><A HREF="#htoc39">7.5&nbsp;&nbsp;Graphical overview</A>
 </UL>
 <LI><A HREF="#htoc40">8&nbsp;&nbsp;References</A>
 <LI><A HREF="#htoc41">9&nbsp;&nbsp;Acknowledgments</A>
 <LI><A HREF="#htoc42">A&nbsp;&nbsp;Frequently Asked Questions</A>
 <UL><LI>
-<A HREF="#htoc43">A.1&nbsp;&nbsp;IDX-tsunami crashes when I start it </A>
-<LI><A HREF="#htoc44">A.2&nbsp;&nbsp;IDX-tsunami still doesn't start ...</A>
-<LI><A HREF="#htoc45">A.3&nbsp;&nbsp;IDX-tsunami still crashes/fails when I start it !</A>
-<LI><A HREF="#htoc46">A.4&nbsp;&nbsp;What is the format of the stats file idx-tsunami.log ?</A>
+<A HREF="#htoc43">A.1&nbsp;&nbsp;tsung crashes when I start it </A>
+<LI><A HREF="#htoc44">A.2&nbsp;&nbsp;tsung still doesn't start ...</A>
+<LI><A HREF="#htoc45">A.3&nbsp;&nbsp;tsung still crashes/fails when I start it !</A>
+<LI><A HREF="#htoc46">A.4&nbsp;&nbsp;What is the format of the stats file tsung.log ?</A>
 <LI><A HREF="#htoc47">A.5&nbsp;&nbsp;How can I specify the number of concurrent users ?</A>
 <LI><A HREF="#htoc48">A.6&nbsp;&nbsp;SNMP monitoring doesn't work ?!</A>
 </UL>
@@ -158,30 +158,30 @@ a:hover     {background:#ffffaa;}
 
 <H2><A NAME="htoc1">1</A>&nbsp;&nbsp;Introduction</H2><!--SEC END -->
 
-<!--TOC subsection What is IDX-Tsunami ?-->
+<!--TOC subsection What is tsung ?-->
 
-<H3><A NAME="htoc2">1.1</A>&nbsp;&nbsp;What is IDX-Tsunami ?</H3><!--SEC END -->
+<H3><A NAME="htoc2">1.1</A>&nbsp;&nbsp;What is tsung ?</H3><!--SEC END -->
 
-<EM>IDX-Tsunami</EM> is a distributed load testing tool. It is
+<EM>tsung</EM> is a distributed load testing tool. It is
 protocol-independent and can currently be used to stress HTTP, SOAP
 and Jabber servers.<BR>
 <BR>
 It is distributed under the GNU General Public License version 2.<BR>
 <BR>
-<!--TOC subsection What is Erlang and why is it important for IDX-Tsunami ?-->
+<!--TOC subsection What is Erlang and why is it important for tsung ?-->
 
-<H3><A NAME="htoc3">1.2</A>&nbsp;&nbsp;What is Erlang and why is it important for IDX-Tsunami ?</H3><!--SEC END -->
+<H3><A NAME="htoc3">1.2</A>&nbsp;&nbsp;What is Erlang and why is it important for tsung ?</H3><!--SEC END -->
 
-<EM>IDX-Tsunami's</EM> main strength is its ability to simulate a huge number of
+<EM>tsung's</EM> main strength is its ability to simulate a huge number of
 simultaneous user from a single CPU. When used on cluster you can
 generate a really impressive load on a server with a modest cluster,
 easy to set-up and to maintain.<BR>
 <BR>
-<EM>IDX-Tsunami</EM> is developed in Erlang and this is where the power
-of <EM>IDX-Tsunami</EM> resides.<BR>
+<EM>tsung</EM> is developed in Erlang and this is where the power
+of <EM>tsung</EM> resides.<BR>
 <BR>
 Erlang is a <EM>concurrency-oriented</EM> programming language.
-Tsunami is based on the Erlang OTP (Open Transaction Platform) and
+tsung is based on the Erlang OTP (Open Transaction Platform) and
 inherits several characteristics from Erlang: 
 <UL><LI>
 <EM>Performance</EM>: Erlang has been made to support hundred thousands
@@ -190,18 +190,18 @@ of lightweight processes in a single virtual machine.
 distributed, promoting the idea of process's location transparency. 
 <LI><EM>Fault-tolerance</EM>:Erlang has been built to develop robust,
 fault-tolerant systems. As such, wrong answer sent from the server
-to <EM>IDX-Tsunami</EM> does not make the whole running benchmark crash. 
+to <EM>tsung</EM> does not make the whole running benchmark crash. 
 </UL>
 More informations on Erlang on <A HREF="http://www.erlang.org"><TT>http://www.erlang.org</TT></A> and
 <A HREF="http://www.erlang-projects.org/"><TT>http://www.erlang-projects.org/</TT></A><BR>
 <BR>
-<!--TOC subsection IDX-Tsunami background-->
+<!--TOC subsection tsung background-->
 
-<H3><A NAME="htoc4">1.3</A>&nbsp;&nbsp;IDX-Tsunami background</H3><!--SEC END -->
+<H3><A NAME="htoc4">1.3</A>&nbsp;&nbsp;tsung background</H3><!--SEC END -->
 
 History:
 <UL><LI>
-<EM>IDX-Tsunami</EM> is being developed since 2001 
+<EM>tsung</EM> is being developed since 2001 
 <LI>It is an industrial strength implementation of a <EM>stochastic model</EM>
 for real users simulation. User events distribution is based on a
 Poisson Process. More information on this topic in:<BR>
@@ -214,16 +214,16 @@ Volume 46, Issue 2-3, October 2001</EM>.<BR>
  research prototype (Web trAffic GeneratOr and beNchmark). WAGON was
  used in the <A HREF="http://www.vthd.org/"><TT>http://www.vthd.org/</TT></A> project (Very High Broadband
  IP/WDM test platform for new generation Internet applications, 2000-2004).</UL>
-<EM>IDX-Tsunami</EM> has been used for very high load tests:
+<EM>tsung</EM> has been used for very high load tests:
 <UL><LI>
 <EM>Jabber</EM> protocol: 10 000 simultaneous users.
- <EM>IDX-Tsunami</EM> was running on a 3-computers cluster (CPU
+ <EM>tsung</EM> was running on a 3-computers cluster (CPU
  800Mhz)
 <LI><EM>HTTP and HTTPS</EM> protocol: 12 000 simultaneous users.
- <EM>IDX-Tsunami</EM> were running on a 4-computers cluster. The
+ <EM>tsung</EM> were running on a 4-computers cluster. The
  tested platform reached 3 000 requests per second.
 </UL>
-<EM>IDX-Tsunami</EM> has been used at: 
+<EM>tsung</EM> has been used at: 
 <UL><LI>
 <EM>DGI</EM> (Direction Générale des impôts): French finance ministry 
 <LI><EM>Cap Gemini Ernst &amp; Young</EM>
@@ -235,19 +235,19 @@ for Petroleum
 
 <H2><A NAME="htoc5">2</A>&nbsp;&nbsp;Features</H2><!--SEC END -->
 
-<!--TOC subsection IDX-Tsunami main features-->
+<!--TOC subsection tsung main features-->
 
-<H3><A NAME="htoc6">2.1</A>&nbsp;&nbsp;IDX-Tsunami main features</H3><!--SEC END -->
+<H3><A NAME="htoc6">2.1</A>&nbsp;&nbsp;tsung main features</H3><!--SEC END -->
 
 <UL><LI>
-<EM>High Performance</EM>: <EM>IDX-Tsunami</EM> can simulate a
+<EM>High Performance</EM>: <EM>tsung</EM> can simulate a
  huge number of simultaneous users per physical computer: It can
  simulates thousands of users on a single CPU (Note: a simulated user
  is not always active: it can be idle during a <TT>thinktime</TT>
  period). Traditional injection tools can hardly go further than a
  few hundreds (Hint: if all you want to do is requesting a single URL
  in a loop, use <EM>ab</EM>; but if you want to build complex
- scenarios with extended reports, <EM>IDX-Tsunami</EM> is for you).
+ scenarios with extended reports, <EM>tsung</EM> is for you).
 <LI><EM>Distributed</EM>: the load can be distributed on a cluster of
 client machines 
 <LI><EM>Multi-Protocols</EM> using a plug-in system: HTTP (both standard
@@ -260,7 +260,7 @@ the underlying OS IP Aliasing
 agents on remote servers or <EM>SNMP</EM>
 <LI><EM>XML configuration system</EM>: complex user's scenarios are written
  in XML. Scenarios can be written with a simple browser using the
- tsunami recorder (for HTTP only).
+ tsung recorder (for HTTP only).
 <LI><EM>Dynamic scenarios</EM>: You can get dynamic data from the
  server under load (without writing any code) and re-inject it in
  subsequent requests.
@@ -301,8 +301,8 @@ Authentication, presence and register messages
 
 <H3><A NAME="htoc9">2.4</A>&nbsp;&nbsp;Complete reports set</H3><!--SEC END -->
 
-Measures and statistics produced by Tsunami are extremely feature-full.
-They are all represented as a graphic. <EM>IDX-Tsunami</EM> produces
+Measures and statistics produced by tsung are extremely feature-full.
+They are all represented as a graphic. <EM>tsung</EM> produces
 statistics regarding:
 <UL><LI>
 <EM>Performance</EM>: response time, connection time, decomposition
@@ -310,11 +310,11 @@ of the user scenario based on request grouping instruction (called <I>transactio
 per second 
 <LI><EM>Errors</EM>: Statistics on page return code to trace errors 
 <LI><EM>Target server behaviour</EM>: An Erlang agent can gather information
-from the target server(s). Tsunami produces graphs for CPU and memory
+from the target server(s). tsung produces graphs for CPU and memory
 consumption and network traffic. SNMP is also supported. 
 </UL>
 
-Note that <EM>IDX-Tsunami</EM> takes care of the synchronization process
+Note that <EM>tsung</EM> takes care of the synchronization process
 by itself. Gathered statistics are «synchronized».<BR>
 <BR>
 It is possible to generate graphs during the benchmark as statistics
@@ -324,14 +324,14 @@ are gathered in real-time.<BR>
 
 <H3><A NAME="htoc10">2.5</A>&nbsp;&nbsp;Highlights</H3><!--SEC END -->
 
-<EM>IDX-Tsunami</EM> has several advantages over other injection tools: 
+<EM>tsung</EM> has several advantages over other injection tools: 
 <UL><LI>
 <EM>High performance</EM> and <EM>distributed benchmark</EM>: You
- can use IDX-Tsunami to simulate tens of thousands of virtual users.
+ can use tsung to simulate tens of thousands of virtual users.
 <LI><EM>Ease of use</EM>: The hard work is already done for all supported
 protocol. No need to write complex scripts. Dynamic scenarios only
 requires small trivial piece of code.
-<LI><EM>Multi-protocol support</EM>: <EM>IDX-Tsunami</EM> is for example one of
+<LI><EM>Multi-protocol support</EM>: <EM>tsung</EM> is for example one of
 the only tool to benchmark SOAP applications 
 <LI><EM>Monitoring</EM> of the target server(s) to analyze the behaviour
 and find bottlenecks. For example, it has been used to analyze cluster
@@ -358,11 +358,11 @@ Erlang/OTP R9C-0 and up (included R10B-6)
  <A HREF="http://www.erlang-projects.org/Public/rpmdeb/rpm_erlang_otp_r9c-2/view"><TT>http://www.erlang-projects.org/Public/rpmdeb/rpm_erlang_otp_r9c-2/view</TT></A>.
 <LI>xmerl-0.19 (included in Erlang R10B) (<A HREF="http://sowap.sourceforge.net/download.html"><TT>http://sowap.sourceforge.net/download.html</TT></A>). Debian and Redhat
  binaries are provided at
- <A HREF="http://tsunami.idealx.org/dist/"><TT>http://tsunami.idealx.org/dist/</TT></A>
+ <A HREF="http://tsung.idealx.org/dist/"><TT>http://tsung.idealx.org/dist/</TT></A>
  <LI>extended regexp module (used for dynamic variables):
  gregexp.erl available at
  <A HREF="http://www.cellicium.com/erlang/contribs/"><TT>http://www.cellicium.com/erlang/contribs/</TT></A> . The module is
- included in the source and binary distribution of <EM>IDX-Tsunami</EM>. It
+ included in the source and binary distribution of <EM>tsung</EM>. It
  is released under the EPL License.
  <LI>gnuplot and perl5 (optional; for graphical output with
  <TT>analyse_msg.pl</TT> script). The Template Toolkit is used for HTML
@@ -409,21 +409,21 @@ Erlang/OTP R9C-0 and up (included R10B-6)
 
 <H3><A NAME="htoc14">3.3</A>&nbsp;&nbsp;Configuration</H3><!--SEC END -->
 
-The default configuration file is <TT>~/.idx-tsunami/idx-tsunami.xml</TT> (
+The default configuration file is <TT>~/.tsung/tsung.xml</TT> (
 there is a sample file
-<TT>/usr/share/doc/idx-tsunami/examples/idx-tsunami.xml</TT>).<BR>
+<TT>/usr/share/doc/tsung/examples/tsung.xml</TT>).<BR>
 <BR>
-Log files are saved in <TT>~/.idx-tsunami/log/</TT> . A new subdirectory
+Log files are saved in <TT>~/.tsung/log/</TT> . A new subdirectory
 is created for each test using the current date as name
-(<TT>~/.idx-tsunami/log/20040217-09:40</TT> for ex.)<BR>
+(<TT>~/.tsung/log/20040217-09:40</TT> for ex.)<BR>
 <BR>
 <!--TOC subsection Feedback-->
 
 <H3><A NAME="htoc15">3.4</A>&nbsp;&nbsp;Feedback</H3><!--SEC END -->
 
-Use the idx-tsunami mailing list (see
-<A HREF="http://lists.idealx.org/info/idx-tsunami"><TT>http://lists.idealx.org/info/idx-tsunami</TT></A>) if you have
-suggestions or questions about <EM>IDX-Tsunami</EM>.<BR>
+Use the tsung mailing list (see
+<A HREF="http://lists.idealx.org/info/tsung"><TT>http://lists.idealx.org/info/tsung</TT></A>) if you have
+suggestions or questions about <EM>tsung</EM>.<BR>
 <BR>
 <!--TOC section HTTP benchmark approach-->
 
@@ -434,8 +434,8 @@ suggestions or questions about <EM>IDX-Tsunami</EM>.<BR>
 <H3><A NAME="htoc17">4.1</A>&nbsp;&nbsp;benchmarking a Web server</H3><!--SEC END -->
 
 <OL type=1><LI>
-Record one or more sessions: start the recorder with: <TT>idx-tsunami
- recorder</TT>, and then configure your browser to use IDX-Tsunami
+Record one or more sessions: start the recorder with: <TT>tsung
+ recorder</TT>, and then configure your browser to use tsung
  proxy recorder (the listen port is 8090). A session file will be
  created. For HTTPS recording, use <FONT COLOR=purple>http://{</FONT> instead of
  <FONT COLOR=purple>https://</FONT> in your browser.
@@ -449,12 +449,12 @@ server(s). Calculate the normal duration of the scenario and use the
 interarrival time between users and the duration of the phase to estimate
 the number of simultaneous users for each given phase. 
 <LI>Launch benchmark with your first application parameters set-up:
- <TT>idx-tsunami start</TT>
+ <TT>tsung start</TT>
 <LI>Wait for the end of the test or stop by hand with
- <TT>idx-tsunami stop</TT> (reports can also be generated during the
+ <TT>tsung stop</TT> (reports can also be generated during the
  test (see § <A HREF="#sec:statistics-reports">7</A>) : the statistics are
  updated every 10 seconds). For a brief summary of the current
- activity, use <TT>idx-tsunami status</TT>
+ activity, use <TT>tsung status</TT>
 <LI>Analyze results, change parameters and relaunch another benchmark 
 </OL>
 <!--TOC subsection benchmarking a proxy server-->
@@ -611,15 +611,15 @@ To be sure that exactly <TT>global_number</TT> users are started, add the
 If you do not specify maxnumber, the global ack will be reset every
 <TT>global_number</TT> users
 </DL>
-<!--TOC section Understanding idx-tsunami.xml configuration file-->
+<!--TOC section Understanding tsung.xml configuration file-->
 
-<H2><A NAME="htoc20">6</A>&nbsp;&nbsp;Understanding idx-tsunami.xml configuration file</H2><!--SEC END -->
+<H2><A NAME="htoc20">6</A>&nbsp;&nbsp;Understanding tsung.xml configuration file</H2><!--SEC END -->
 
 <!--TOC subsection File structure-->
 
 <H3><A NAME="htoc21">6.1</A>&nbsp;&nbsp;File structure</H3><!--SEC END -->
 
-Scenarios are enclosed into idx-tsunami tags:<BR>
+Scenarios are enclosed into tsung tags:<BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
  CELLSPACING=0>
@@ -635,10 +635,10 @@ Scenarios are enclosed into idx-tsunami tags:<BR>
 <TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
 <TR><TD><PRE>
 &lt;?xml version="1.0"?&gt;
-&lt;!DOCTYPE idx-tsunami SYSTEM "/usr/share/idx-tsunami/idx-tsunami-1.0.dtd" [] &gt;
-&lt;idx-tsunami loglevel="info" dumptraffic="false"&gt;
+&lt;!DOCTYPE tsung SYSTEM "/usr/share/tsung/tsung-1.0.dtd" [] &gt;
+&lt;tsung loglevel="info" dumptraffic="false"&gt;
 ...
-&lt;/idx-tsunami&gt;
+&lt;/tsung&gt;
  </PRE></TD>
 </TR></TABLE></TD>
 <TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
@@ -656,7 +656,7 @@ Scenarios are enclosed into idx-tsunami tags:<BR>
 
 <H3><A NAME="htoc22">6.2</A>&nbsp;&nbsp;Clients and server</H3><!--SEC END -->
 
-Scenarios start with clients (IDX-Tsunami cluster) and server definitions:<BR>
+Scenarios start with clients (tsung cluster) and server definitions:<BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
  CELLSPACING=0>
@@ -702,7 +702,7 @@ Scenarios start with clients (IDX-Tsunami cluster) and server definitions:<BR>
  1.1.1:</B> IP is not mandatory. If not specified, the default IP will
  be used.<BR>
 <BR>
-In this example, a second machine is used in the Tsunami cluster,
+In this example, a second machine is used in the tsung cluster,
  with a higher weight, and 2 cpus. Two Erlang virtual machines will be
  used to take advantage of the number of CPU.<BR>
 <BR>
@@ -915,7 +915,7 @@ global_number = FIXME
 <H4><A NAME="htoc27">6.5.2</A>&nbsp;&nbsp;Default values: HTTP</H4><!--SEC END -->
 
 For HTTP, you can set the UserAgent values (available since
-  Idx-Tsunami 1.1.0), using a frequency for each value (the sum of all
+  tsung 1.1.0), using a frequency for each value (the sum of all
 frequencies must be equal to 100)<BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -964,7 +964,7 @@ Sessions define the content of the scenario itself. They describe
 the requests to execute.<BR>
 <BR>
 This example shows several features of the HTTP protocol support in
-Tsunami: GET and POST request, basic authentication, transaction for
+tsung: GET and POST request, basic authentication, transaction for
 statistics definition, ...<BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -1129,7 +1129,7 @@ id of the current virtual user and DynData the list of all Dynamic
 variables (<B>Warn: before version 1.1.0, the argument was just the
  Pid !</B>).<BR>
 <BR>
-Here is an example of use of substitution in a Tsunami scenario:<BR>
+Here is an example of use of substitution in a tsung scenario:<BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
  CELLSPACING=0>
@@ -1403,7 +1403,7 @@ with:
 <TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
 <TR><TD><PRE>
  &lt;request&gt;
-   &lt;http url="/testtsunami.html" method="GET" version="1.0"&gt;&lt;/http&gt;
+   &lt;http url="/testtsung.html" method="GET" version="1.0"&gt;&lt;/http&gt;
    &lt;dyn_variable name="random_num" &gt;&lt;/dyn_variable&gt;
  &lt;/request&gt;
 </PRE></TD>
@@ -1472,7 +1472,7 @@ hand, for example to get the title of a HTML page:
 <TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
 <TR><TD><PRE>
     &lt;request&gt;
-      &lt;http url="/testtsunami.html" method="GET" version="1.0"&gt;&lt;/http&gt;
+      &lt;http url="/testtsung.html" method="GET" version="1.0"&gt;&lt;/http&gt;
       &lt;dyn_variable name="mytitlevar" 
                     regexp="&amp;lt;title&amp;gt;\(.*\)&amp;lt;/title&amp;gt;"/&gt;
     &lt;/request&gt;
@@ -1571,7 +1571,7 @@ counter for each response status (200, 404, etc.)
 
 A bit of explanation on the design and internals of the statistics engine:<BR>
 <BR>
-IDX-tsunami was designed to handle thousands of requests/sec, for very
+tsung was designed to handle thousands of requests/sec, for very
 long period of times (several hours) so it do not write all data to
 the disk (for performance reasons). Instead it computes on the fly an
 estimation of the mean and standard variation for each type of data,
@@ -1595,7 +1595,7 @@ estimated bandwidth usage).
 <H3><A NAME="htoc37">7.3</A>&nbsp;&nbsp;Generating the report</H3><!--SEC END -->
 
 cd to the log directory of your test (say
-<TT>~/.idx-tsunami/log/20040325-16:33/</TT>) and use the script
+<TT>~/.tsung/log/20040325-16:33/</TT>) and use the script
 <TT>analyse_msg.pl</TT>:<BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -1611,7 +1611,7 @@ cd to the log directory of your test (say
 </TR></TABLE></TD>
 <TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
 <TR><TD><PRE>
-/usr/lib/idx-tsunami/bin/analyse_msg.pl --html --extra  --plot  
+/usr/lib/tsung/bin/analyse_msg.pl --html --extra  --plot  
 </PRE></TD>
 </TR></TABLE></TD>
 <TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
@@ -1627,13 +1627,13 @@ cd to the log directory of your test (say
 </TR></TABLE><BR>
 (use <FONT COLOR=purple>--help</FONT> to view all available options)<BR>
 <BR>
-<!--TOC subsection Tsunami summary-->
+<!--TOC subsection tsung summary-->
 
-<H3><A NAME="htoc38">7.4</A>&nbsp;&nbsp;Tsunami summary</H3><!--SEC END -->
+<H3><A NAME="htoc38">7.4</A>&nbsp;&nbsp;tsung summary</H3><!--SEC END -->
 
 <BLOCKQUOTE><DIV ALIGN=center><HR WIDTH="80%" SIZE=2></DIV>
  <DIV ALIGN=center>
- <IMG SRC="images/tsunami-report.png" ALT="images/tsunami-report.png">
+ <IMG SRC="images/tsung-report.png" ALT="images/tsung-report.png">
  </DIV>
  <BR>
 <DIV ALIGN=center>Figure 1: Report</DIV><BR>
@@ -1646,7 +1646,7 @@ cd to the log directory of your test (say
 
 <BLOCKQUOTE><DIV ALIGN=center><HR WIDTH="80%" SIZE=2></DIV>
  <DIV ALIGN=center>
- <IMG SRC="images/tsunami-graph.png" ALT="images/tsunami-graph.png">
+ <IMG SRC="images/tsung-graph.png" ALT="images/tsung-graph.png">
  </DIV>
  <BR>
 <DIV ALIGN=center>Figure 2: Graphical output</DIV><BR>
@@ -1658,8 +1658,8 @@ cd to the log directory of your test (say
 <H2><A NAME="htoc40">8</A>&nbsp;&nbsp;References</H2><!--SEC END -->
 
 <UL><LI>
-<EM>IDX-Tsunami</EM> home page: <A HREF="http://tsunami.idealx.org/"><TT>http://tsunami.idealx.org/</TT></A>
-<LI><EM>IDX-Tsunami</EM> description (French)<SUP><A NAME="text1" HREF="#note1">1</A></SUP>
+<EM>tsung</EM> home page: <A HREF="http://tsung.idealx.org/"><TT>http://tsung.idealx.org/</TT></A>
+<LI><EM>tsung</EM> description (French)<SUP><A NAME="text1" HREF="#note1">1</A></SUP>
 <LI>Erlang web site <A HREF="http://www.erlang.org/"><TT>http://www.erlang.org/</TT></A>
 <LI>Erlang programmation, Mickaël Rémond, Editions Eyrolles, 2003
  <SUP><A NAME="text2" HREF="#note2">2</A></SUP>
@@ -1679,9 +1679,9 @@ Web benchmarking workshop in April 2004 (more info at
 
 <H2><A NAME="htoc42">A</A>&nbsp;&nbsp;Frequently Asked Questions</H2><!--SEC END -->
 
-<!--TOC subsection IDX-tsunami crashes when I start it -->
+<!--TOC subsection tsung crashes when I start it -->
 
-<H3><A NAME="htoc43">A.1</A>&nbsp;&nbsp;IDX-tsunami crashes when I start it </H3><!--SEC END -->
+<H3><A NAME="htoc43">A.1</A>&nbsp;&nbsp;tsung crashes when I start it </H3><!--SEC END -->
 
 Does your Erlang system has ssl support enabled ?<BR>
 <BR>
@@ -1717,9 +1717,9 @@ to test it:
 </TR></TABLE></TD>
 </TR></TABLE></TD>
 </TR></TABLE><BR>
-<!--TOC subsection IDX-tsunami still doesn't start ...-->
+<!--TOC subsection tsung still doesn't start ...-->
 
-<H3><A NAME="htoc44">A.2</A>&nbsp;&nbsp;IDX-tsunami still doesn't start ...</H3><!--SEC END -->
+<H3><A NAME="htoc44">A.2</A>&nbsp;&nbsp;tsung still doesn't start ...</H3><!--SEC END -->
 
 Most of the time, when a crash happened at startup without any traffic 
 generated, the problem arise because the main Erlang controller node cannot 
@@ -1774,7 +1774,7 @@ create a "slave" Erlang virtual machine. The message looks like:<BR>
                                      7,
                                      6,
                                      "negociate"},
-  "/home/username/.idx-tsunami/log/20040204-18:32",
+  "/home/username/.tsung/log/20040204-18:32",
                                undefined,
                                0,
                                undefined,
@@ -1797,7 +1797,7 @@ create a "slave" Erlang virtual machine. The message looks like:<BR>
 </TR></TABLE></TD>
 </TR></TABLE></TD>
 </TR></TABLE><BR>
-IDX-Tsunami launches a new erl virtual machine to do the actual
+tsung launches a new erl virtual machine to do the actual
 injection even when you have only one machine in the injection
 cluster. This is because it needs to by-pass some limit with the number
 of open socket from a single process (1024 most of the time). The idea
@@ -1851,7 +1851,7 @@ It will not work if you use it as the injection interface. The shortname
 of your client machine should not refer to this address.<BR>
 <BR>
 <B>New in 1.1.0</B>: If you don't use the distributed feature of
-Tsunami and have trouble to start a remote beam on a local machine,
+tsung and have trouble to start a remote beam on a local machine,
 you can set the <TT>'use_controller_vm'</TT> attribute to true, for ex.:<BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -1922,30 +1922,30 @@ If the erlang shell doesn't start then check what paths sshd was compiled with
 (in SuSE see <TT>/etc/ssh/sshd_config</TT>) and symlink from one of the approved paths 
 to the erlang executable (thanks to Gordon Guthrie for reporting this).<BR>
 <BR>
-<!--TOC subsection IDX-tsunami still crashes/fails when I start it !-->
+<!--TOC subsection tsung still crashes/fails when I start it !-->
 
-<H3><A NAME="htoc45">A.3</A>&nbsp;&nbsp;IDX-tsunami still crashes/fails when I start it !</H3><!--SEC END -->
+<H3><A NAME="htoc45">A.3</A>&nbsp;&nbsp;tsung still crashes/fails when I start it !</H3><!--SEC END -->
 
 First look at the log file
-<TT>~/.idx-tsunami/log/XXX/tsunami_controller@yourhostname'</TT> to see
+<TT>~/.tsung/log/XXX/tsung_controller@yourhostname'</TT> to see
 if there is a problem. <BR>
 <BR>
 If the file is not created and a crashed dump file is present, maybe
-you are using a binary installation of tsunami not compatible with the
+you are using a binary installation of tsung not compatible with the
 version of erlang you used.<BR>
 <BR>
-If you see nothing wrong, you can compile <EM>idx-tsunami</EM> with full
+If you see nothing wrong, you can compile <EM>tsung</EM> with full
 debugging: recompile with <TT>make debug</TT> , and
 don't forget to set the loglevel to "debug" in the XML file.<BR>
 <BR>
-To start the debugger or see what happen, start <EM>IDX-Tsunami</EM> with the
+To start the debugger or see what happen, start <EM>tsung</EM> with the
 <FONT COLOR=purple>debug</FONT> argument instead of <FONT COLOR=purple>start</FONT>. You will have
-an erlang shell on the <TT>tsunami_controller</TT> node. Use
+an erlang shell on the <TT>tsung_controller</TT> node. Use
 <TT>toolbar:start().</TT> to launch the graphical tools provided by
 Erlang.
-<!--TOC subsection What is the format of the stats file idx-tsunami.log ?-->
+<!--TOC subsection What is the format of the stats file tsung.log ?-->
 
-<H3><A NAME="htoc46">A.4</A>&nbsp;&nbsp;What is the format of the stats file idx-tsunami.log ?</H3><!--SEC END -->
+<H3><A NAME="htoc46">A.4</A>&nbsp;&nbsp;What is the format of the stats file tsung.log ?</H3><!--SEC END -->
 <BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -2007,9 +2007,9 @@ or for HTTP returns code, size ...<BR>
 <H3><A NAME="htoc47">A.5</A>&nbsp;&nbsp;How can I specify the number of concurrent users ?</H3><!--SEC END -->
 
 You can't. But it's on purpose: the load generated by
-<EM>IDX-Tsunami</EM> is dependent on the arrival time between new
+<EM>tsung</EM> is dependent on the arrival time between new
 clients. Indeed, once a client has finished his session in
-<EM>idx-tsunami</EM>, it stops. So the number of concurrent users is
+<EM>tsung</EM>, it stops. So the number of concurrent users is
 a function of the arrival rate and the mean session duration.<BR>
 <BR>
 For example, if your web site has 1000 visits/hour, the arrival rate

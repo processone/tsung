@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<!DOCTYPE idx-tsunami SYSTEM "@prefix@/share/@PACKAGE_NAME@/@DTD@">
-<idx-tsunami loglevel="notice" version="1.0">
+<!DOCTYPE tsung SYSTEM "@prefix@/share/@PACKAGE_NAME@/@DTD@">
+<tsung loglevel="notice" version="1.0">
 
   <!-- Client side setup -->
   <clients>
@@ -48,4 +48,4 @@
     <request> <http url="/index.en.html" method="GET" version="1.1" ></http> </request>
 
   </session>
-</idx-tsunami>
+</tsung>

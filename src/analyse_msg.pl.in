@@ -22,7 +22,7 @@
 # Version: $Id$
 
 # purpose: quick and dirty ugly hack to compute stats and plots graph
-# given a (set of) log file(s)  from the IDX-Tsunami tool.
+# given a (set of) log file(s)  from the tsung tool.
 
 
 use strict;
@@ -55,20 +55,20 @@ my $category;
 my $prefix ="@prefix@";
 
 unless ($template_dir) {
-    if (-d "$ENV{HOME}/.idx-tsunami/templates/") {
-        $template_dir = "$ENV{HOME}/.idx-tsunami/templates/";
+    if (-d "$ENV{HOME}/.tsung/templates/") {
+        $template_dir = "$ENV{HOME}/.tsung/templates/";
     } elsif (-d "@datadir@/@TEMPLATES_SUBDIR@") {
         $template_dir = "@datadir@/@TEMPLATES_SUBDIR@";
-    } elsif (-d "/usr/share/idx-tsunami/templates") {
-        $template_dir = "/usr/share/idx-tsunami/templates";
-    } elsif (-d "/usr/local/share/idx-tsunami/templates") {
-        $template_dir = "/usr/local/share/idx-tsunami/templates";
+    } elsif (-d "/usr/share/tsung/templates") {
+        $template_dir = "/usr/share/tsung/templates";
+    } elsif (-d "/usr/local/share/tsung/templates") {
+        $template_dir = "/usr/local/share/tsung/templates";
     } else {
         warn "Can't find template directory !";
     }
 }
 
-$stats = "idx-tsunami.log" unless $stats;
+$stats = "tsung.log" unless $stats;
 die "The stats file ($stats) does not exist, abort !" unless -e $stats;
 
 my $datadir = "data"; # all data files are created in this subdirectory
@@ -340,7 +340,7 @@ sub parse_stats_file {
 
 sub html_report {
     require Template;
-    my $titre     = 'IDX-Tsunami ';
+    my $titre     = 'tsung ';
     my $version   = $tagvsn;
     my $contact   = '@PACKAGE_BUGREPORT@';
     my $output   = 'index.html';
@@ -399,9 +399,9 @@ sub html_report {
 
 
 sub usage {
-	print "this script is part of IDX-TSUNAMI version $tagvsn,
+	print "this script is part of tsung version $tagvsn,
 Copyright (C) 2001-2004 IDEALX (http://IDEALX.org/)\n\n";
-	print "IDX-TSUNAMI comes with ABSOLUTELY NO WARRANTY; This is free software, and
+	print "tsung comes with ABSOLUTELY NO WARRANTY; This is free software, and
 ou are welcome to redistribute it under certain conditions
 type `analyse_msg.pl --version` for details.\n\n";
 
@@ -413,9 +413,9 @@ type `analyse_msg.pl --version` for details.\n\n";
     "[--gnuplot <command>]  (path to the gnuplot binary)\n\t",
     "[--html]  (create nice HTML reports)\n\t",
     "[--logy]  (logarithmic scale for Y axis)\n\t",
-    "[--tdir <template_dir>] (Path to the HTML Tsunami templates)\n\t",
+    "[--tdir <template_dir>] (Path to the HTML tsung templates)\n\t",
     "[--extra  (generate graphics from extra cluster data (os monitor, etc)\n\t",
-    "[--stats <file>] (stats file to analyse, default=idx-tsunami.log)\n\t";
+    "[--stats <file>] (stats file to analyse, default=tsung.log)\n\t";
 	exit;
 	}
 
@@ -426,7 +426,7 @@ sub	affiche() {
 }
 
 sub version {
-print "this script is part of IDX-TSUNAMI version $tagvsn
+print "this script is part of tsung version $tagvsn
 
 Written by Nicolas Niclausse and Jean François Lecomte
 

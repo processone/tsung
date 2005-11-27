@@ -22,7 +22,7 @@
 %%%  the EPL license and distribute linked combinations including
 %%%  the two.
 
--module(tsunami_controller).
+-module(tsung_controller).
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
@@ -79,7 +79,7 @@ status([Host]) when is_atom(Host)->
     global:sync(),
     Msg = case catch ts_mon:status() of 
               {Clients, {ok, {sample,[Mean, Var, Max, Min, Count]}},Interval, Phase}->
-                  S1 = io_lib:format("IDX-Tsunami is running [OK]~n" ++
+                  S1 = io_lib:format("tsung is running [OK]~n" ++
                                      " Current request rate: ~p req/sec~n" ++
                                      " Current users:        ~p~n",
                                      [Count/Interval, Clients]),
@@ -94,9 +94,9 @@ status([Host]) when is_atom(Host)->
                           io_lib:format("~s Current phase:        ~p",[S1,NPhases])
                   end;
               {_,  error, _,_} ->
-                  "IDX-Tsunami is initializing, please wait ...";
+                  "tsung is initializing, please wait ...";
               {'EXIT', {noproc, _}} ->
-                  "IDX-Tsunami is not started [ERROR]"
+                  "tsung is not started [ERROR]"
           end,
     io:format("~s~n",[Msg]).  
 

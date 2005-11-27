@@ -278,7 +278,7 @@ change_phase(N,NewPhases,Current,{Total, PhaseUsers}) when Current>Total ->
     Percent = 100*N/PhaseUsers,
     case {Percent > ?MAX_PHASE_EXCEED_PERCENT, N > ?MAX_PHASE_EXCEED_NUSERS} of 
         {true,true} ->
-            ?LOGF("Phase duration exceeded, more than ~p% (~.1f%) of users were not launched in time (~p users), IDX-Tsunami may be overloaded !~n",
+            ?LOGF("Phase duration exceeded, more than ~p% (~.1f%) of users were not launched in time (~p users), tsung may be overloaded !~n",
                   [?MAX_PHASE_EXCEED_PERCENT,Percent,N],?WARN);
         {_,_} ->
             ?LOGF("Phase duration exceeded, but not all users were launched (~p users, ~.1f% of phase)~n",

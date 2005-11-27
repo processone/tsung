@@ -54,7 +54,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
         code_change/3]).
 
--define(DUMP_FILENAME,"idx-tsunami.dump").
+-define(DUMP_FILENAME,"tsung.dump").
 
 -record(state, {log,          % log fd
                 backend,      % type of backend: text|rrdtool
@@ -466,7 +466,7 @@ reset_stats(Args) ->
 %% start the launcher on clients nodes
 %%----------------------------------------------------------------------
 start_launchers(Machines) -> 
-	?DebugF("Need to start tsunami client on ~p~n",[Machines]),
+	?DebugF("Need to start tsung client on ~p~n",[Machines]),
 	GetHost = fun(A) -> list_to_atom(A#client.host) end,
 	HostList = lists:map(GetHost, Machines),
 	?DebugF("Hostlist is ~p~n",[HostList]),

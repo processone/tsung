@@ -1,8 +1,8 @@
-{application, tsunami,
-      [{description,  "IDX-TSUNAMI, a bench tool for TCP/UDP servers"},
+{application, tsung,
+      [{description,  "tsung, a bench tool for TCP/UDP servers"},
        {vsn,          "%VSN%"},
        {modules,      [
-					   tsunami,
+					   tsung,
 					   ts_launcher,
 					   ts_session_cache,
 					   ts_client,
@@ -38,7 +38,7 @@
 					 {mes_type, dynamic}, %% dynamic or static
 					 {nclients, 10},      %% Nombre de clients à connecter
 					 {interarrival, 2},  	%% Intervalle de temps entre l'arrivée de 2 clients (en sec)
-					 {log_file, "./idx-tsunami.log"},	%% Base du fichier de log
+					 {log_file, "./tsung.log"},	%% Base du fichier de log
 
 					 {messages_interarrival, 10},	%% Intervalle de temps entre 2 messages (en sec)
 					 {messages_number, 100},       	%% Nombre de messages par clients
@@ -70,5 +70,5 @@
 
 					]},        
 	   {applications, [kernel, stdlib, ssl]},
-       {mod,          {tsunami, []}}
+       {mod,          {tsung, []}}
 	  ]}.

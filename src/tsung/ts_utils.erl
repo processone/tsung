@@ -70,7 +70,7 @@ get_val(Var) ->
 
 
 %% ensure atom to string conversion of environnement variable
-%% This is intended to fix a problem making Tsunami run under Windows
+%% This is intended to fix a problem making tsung run under Windows
 %%  I convert parameter that are called from the command-line
 ensure_string(log_file, Atom) when atom(Atom) ->
     atom_to_list(Atom);
@@ -281,7 +281,7 @@ export_text([C | T], Cont) ->
 %% stop_all/2
 %%----------------------------------------------------------------------
 stop_all(Host, Name) ->
-	stop_all(Host, Name, "IDX-Tsunami").
+	stop_all(Host, Name, "Tsung").
 
 stop_all([Host],Name,MsgName)  ->
     VoidFun = fun(A)-> ok end,

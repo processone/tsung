@@ -2,9 +2,9 @@
 Arbre de supervision OTP:
 ========================
 
-Tsunami est divisé en deux applications aux sens OTP:
+tsung est divisé en deux applications aux sens OTP:
 
-** un controlleur unique (tsunami_controller) 
+** un controlleur unique (tsung_controller) 
 
  * ts_config_server (gen_server). Serveur de configuration server. La
    définition des sessions est gardé part le serveur de configuration.
@@ -22,7 +22,7 @@ Tsunami est divisé en deux applications aux sens OTP:
  * ts_user_server (gen_server) utilisé par ts_launcher et jabber_*
    pour l'unicité des utilisateurs
 
-** plusieurs injecteurs (tsunami). Plusieus noeuds peuvent être actifs
+** plusieurs injecteurs (tsung). Plusieus noeuds peuvent être actifs
    simultanément
 
  * ts_launcher (gen_fsm) lance les clients simulés (selon un processus de 

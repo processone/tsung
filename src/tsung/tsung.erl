@@ -22,7 +22,7 @@
 %%% the EPL license and distribute linked combinations including
 %%% the two.
 
--module(tsunami).
+-module(tsung).
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 

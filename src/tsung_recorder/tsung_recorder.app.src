@@ -1,8 +1,8 @@
-{application, tsunami_recorder,
-      [{description,  "IDX-TSUNAMI recorder"},
+{application, tsung_recorder,
+      [{description,  "tsung recorder"},
        {vsn,          "%VSN%"},
        {modules,      [
-					   tsunami_recorder,
+					   tsung_recorder,
 					   ts_recorder_sup,
 					   ts_client_proxy_sup,
 					   ts_proxy_recorder,
@@ -15,13 +15,13 @@
 	   {env,		[        
 					 {debug_level, 6},
 					 {ts_cookie, "humhum"},
-					 {log_file, "./idx-tsunami.log"},
+					 {log_file, "./tsung.log"},
 					 {plugin, ts_proxy_http},
 					 {pgsql_server, "127.0.0.1"},
 					 {pgsql_port, 5432},
-					 {proxy_log_file, "./idx-tsunami_recorder"},
+					 {proxy_log_file, "./tsung_recorder"},
 					 {proxy_listen_port, 8090}
 					]},        
 	   {applications, [kernel, stdlib, ssl]},
-       {mod,          {tsunami_recorder, []}}
+       {mod,          {tsung_recorder, []}}
 	  ]}.

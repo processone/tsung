@@ -95,7 +95,7 @@
 
 %%--------------------------------------------------------------------
 %% Function: activate/0
-%% Purpose: This is used by tsunami to start the cluster monitor service
+%% Purpose: This is used by tsung to start the cluster monitor service
 %% It will only be started if there are cluster/monitor@host element
 %% in the config file.
 %%--------------------------------------------------------------------
@@ -375,7 +375,7 @@ stop_beam([{_Pid, Node}|Nodes]) ->
 %% Purpose: Load ts_os_mon code on all Erlang nodes
 %%--------------------------------------------------------------------
 load_code(Nodes) ->
-    ?LOGF("loading tsunami monitor on nodes ~p~n", [Nodes], ?NOTICE),
+    ?LOGF("loading tsung monitor on nodes ~p~n", [Nodes], ?NOTICE),
     {?MODULE, Binary, _File} = code:get_object_code(?MODULE),
     Res1 = rpc:multicall(Nodes, code, load_binary, [?MODULE, ?MODULE, Binary], infinity),
     {ts_mon, Binary2, _File2} = code:get_object_code(ts_mon),

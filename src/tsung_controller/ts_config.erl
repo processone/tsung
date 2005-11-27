@@ -24,7 +24,7 @@
 %%%----------------------------------------------------------------------
 %%% File    : config.erl
 %%% Author  : Nicolas Niclausse <nicolas.niclausse@niclux.org>
-%%% Purpose : Read the IDX-Tsunami XML config file. Currently, it
+%%% Purpose : Read the tsung XML config file. Currently, it
 %%%           work by parsing the #xmlElement record by hand ! 
 %%%           TODO: learn how to use xmerl correctly
 %%% Created : 3 Dec 2003 by Nicolas Niclausse <nicolas@niclux.org>
@@ -57,7 +57,7 @@
 %%%----------------------------------------------------------------------
 read(Filename) ->
     case catch xmerl_scan:file(Filename,
-                               [{fetch_path,["/usr/share/idx-tsunami/","./"]},
+                               [{fetch_path,["/usr/share/tsung/","./"]},
                                 {validation,true}]) of
                                                 % FIXME:validation doesn't work ?
         {ok, Root = #xmlElement{}} ->  % xmerl-0.15

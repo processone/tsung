@@ -1095,7 +1095,7 @@ EOF
     mc68030:UNIX_System_V:4.*:*)
 	echo m68k-atari-sysv4
 	exit 0 ;;
-    TSUNAMI:LynxOS:2.*:*)
+    tsung:LynxOS:2.*:*)
 	echo sparc-unknown-lynxos${UNAME_RELEASE}
 	exit 0 ;;
     rs6000:LynxOS:2.*:*)

@@ -20,7 +20,7 @@
 
 %%% File    : ts_search.erl
 %%% Author  : Mickael Remond <mickael.remond@erlang-fr.org>
-%%% Description : Add dynamic / Differenciated parameters in Tsunami
+%%% Description : Add dynamic / Differenciated parameters in tsung
 %%%               request and response
 %%%               The function subst is intended to be called for each
 %%%               relevant field in ts_protocol implementation.
@@ -41,7 +41,7 @@
 %% Purpose: search into a given string and replace %%Mod:Fun%% strings
 %%          by the result of the call to Mod:Fun(Pid) where Pid is the
 %%          Pid of the client The substitution tag are intended to
-%%          be used in idx-tsunami.xml scenarii files.
+%%          be used in tsung.xml scenarii files.
 %% ----------------------------------------------------------------------
 subst(Atom, _DynVar) when atom(Atom) ->
     Atom;

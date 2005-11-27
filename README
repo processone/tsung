@@ -1,6 +1,6 @@
 # $Id$
 
-  IDX-TSUNAMI README
+  tsung README
 
   1.  Introduction
 
@@ -12,12 +12,12 @@
 
   1.2.  What This Package Is
 
-  The purpose of IDX-TSUNAMI is to simulate users in order to test
+  The purpose of tsung is to simulate users in order to test
   the scalability and performances of IP based client/server
   applications.
 
   A User's manual is available :
-          http://tsunami.idealx.org/user_manual.html
+          http://tsung.erlang-projects.org/user_manual.html
 
 
   1.3.  Problems/Bugs

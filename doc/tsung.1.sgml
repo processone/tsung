@@ -16,12 +16,12 @@
   </refentryinfo>
 
   <refmeta>
-    <refentrytitle>idx-tsunami</refentrytitle>
+    <refentrytitle>tsung</refentrytitle>
     <manvolnum>1</manvolnum>
   </refmeta>
 
   <refnamediv>
-    <refname>idx-tsunami</refname>
+    <refname>tsung</refname>
     <refpurpose>
 A distributed multi-protocol load testing tool.
     </refpurpose>
@@ -29,10 +29,11 @@ A distributed multi-protocol load testing tool.
 
   <refsynopsisdiv>
     <cmdsynopsis>
-      <command>idx-tsunami</command>
+      <command>tsung</command>
       <arg><option>-f</option> configuration file</arg>
       <arg><option>-l</option> log file</arg>
       <arg><option>-r</option> command</arg>
+      <arg><option>-p</option> plugin</arg> (recorder only)
       <arg>start|stop|restart|debug|status|recorder|stop_recorder</arg>
     </cmdsynopsis>
   </refsynopsisdiv>
@@ -40,7 +41,7 @@ A distributed multi-protocol load testing tool.
   <refsect1>
     <title>description</title>
     <para>
-      <command>IDX-Tsunami</command> is a distributed load testing
+      <command>tsung</command> is a distributed load testing
       tool.  It is protocol-independent and can currently be used to
       stress and benchmark HTTP and Jabber servers.</para>
 
@@ -55,22 +56,22 @@ A distributed multi-protocol load testing tool.
 
     <para>
       An example config file can be found in
-      <filename>/usr/share/doc/idx-tsunami/examples/idx-tsunami.xml</filename>.
+      <filename>/usr/share/doc/tsung/examples/tsung.xml</filename>.
       </para>
 
     <variablelist>
       <varlistentry>
         <term><option>start</option></term>
         <listitem>
-          <para>start idx-tsunami</filename></para>
+          <para>start tsung</filename></para>
         </listitem>
         <term><option>debug</option></term>
         <listitem>
-          <para>start idx-tsunami with an erlang shell</filename></para>
+          <para>start tsung with an erlang shell</filename></para>
         </listitem>
         <term><option>stop</option></term>
         <listitem>
-          <para>stop idx-tsunami</filename></para>
+          <para>stop tsung</filename></para>
         </listitem>
         <term><option>recorder</option></term>
         <listitem>
@@ -82,7 +83,7 @@ A distributed multi-protocol load testing tool.
         </listitem>
         <term><option>status</option></term>
         <listitem>
-          <para>print current status of idx-tsunami</filename></para>
+          <para>print current status of tsung</filename></para>
         </listitem>
       </varlistentry>
     </variablelist>
@@ -90,9 +91,9 @@ A distributed multi-protocol load testing tool.
   </refsect1>
   <refsect1>
     <title>manual</title> <para>A manual should be available at
-    <filename>/usr/share/doc/idx-tsunami/user_manual.html</filename>. It
+    <filename>/usr/share/doc/tsung/user_manual.html</filename>. It
     is also available online at
-    <address>http://tsunami.idealx.org/user_manual.html</address>
+    <address>http://tsung.erlang-projects.org/user_manual.html</address>
     </para>
   </refsect1>
 
@@ -102,13 +103,13 @@ A distributed multi-protocol load testing tool.
       <varlistentry>
         <term><option>-f</option></term>
         <listitem>
-          <para>specifies the configuration file to use. The default file name is <filename>~/.idx-tsunami/idx-tsunami.xml</filename></para>
+          <para>specifies the configuration file to use. The default file name is <filename>~/.tsung/tsung.xml</filename></para>
         </listitem>
       </varlistentry>
       <varlistentry>
 	<term><option>-l</option></term>
 	<listitem>
-          <para>specifies the log file to use. The default log file name is <filename>~/idx-tsunami/log/idx-tsunami.log</filename></para>
+          <para>specifies the log file to use. The default log file name is <filename>~/tsung/log/tsung.log</filename></para>
 	</listitem>
       </varlistentry>
     </variablelist>
@@ -138,10 +139,10 @@ A distributed multi-protocol load testing tool.
   <refsect1>
     <title>Authors</title>
     <para>
-        <command>IDX-Tsunami</command> is written by <author>Nicolas Niclausse</author>
+        <command>Tsung</command> is written by <author>Nicolas Niclausse</author>
       <email>nicolas@niclux.org</email>. Contributors list
       is available in
-      <filename>/usr/share/doc/idx-tsunami/CONTRIBUTORS</filename>
+      <filename>/usr/share/doc/tsung/CONTRIBUTORS</filename>
   </refsect1>
   
 </refentry>

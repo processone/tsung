@@ -59,18 +59,18 @@ endif
 
 # installation path
 BINDIR    = $(bindir)
-LIBDIR    = $(libdir)/idx-tsunami/bin/
-CONFDIR   = $(datadir)/doc/idx-tsunami/examples
-SHARE_DIR = $(datadir)/idx-tsunami/
+LIBDIR    = $(libdir)/tsung/bin/
+CONFDIR   = $(datadir)/doc/tsung/examples
+SHARE_DIR = $(datadir)/tsung/
 TEMPLATES_DIR = $(datadir)/$(TEMPLATES_SUBDIR)
 MAN_DIR   = $(datadir)/man/man1/
-DOC_DIR   = $(datadir)/doc/idx-tsunami
+DOC_DIR   = $(datadir)/doc/tsung
 
 ERLANG_LIB_DIR = $(libdir)/erlang/lib
 
-APPLICATION = tsunami
-CONTROLLER_APPLICATION = tsunami_controller
-RECORDER_APPLICATION = tsunami_recorder
+APPLICATION = tsung
+CONTROLLER_APPLICATION = tsung_controller
+RECORDER_APPLICATION = tsung_recorder
 
 RECORDER_TARGETDIR = $(ERLANG_LIB_DIR)/$(RECORDER_APPLICATION)-$(VERSION)
 CONTROLLER_TARGETDIR = $(ERLANG_LIB_DIR)/$(CONTROLLER_APPLICATION)-$(VERSION)
@@ -96,7 +96,7 @@ CONTROLLER_TARGET   = $(addsuffix .beam, $(basename \
              $(addprefix $(EBIN)/, $(notdir $(CONTROLLER_SRC)))))
 RECORDER_TARGET   = $(addsuffix .beam, $(basename \
              $(addprefix $(EBIN)/, $(notdir $(RECORDER_SRC)))))
-DEBIAN    = debian/changelog debian/control debian/compat debian/copyright debian/docs debian/idx-tsunami.dirs debian/rules
+DEBIAN    = debian/changelog debian/control debian/compat debian/copyright debian/docs debian/tsung.dirs debian/rules
 
 SRC_APPFILES   = $(ESRC)/$(APPLICATION)/$(APPLICATION).app.src $(ESRC)/$(APPLICATION)/$(APPLICATION).rel.src
 CONTROLLER_SRC_APPFILES   = $(ESRC)/$(CONTROLLER_APPLICATION)/$(CONTROLLER_APPLICATION).app.src $(ESRC)/$(CONTROLLER_APPLICATION)/$(CONTROLLER_APPLICATION).rel.src
@@ -108,11 +108,11 @@ TGT_APPFILES_P = priv/$(APPLICATION)*
 RECORDER_TGT_APPFILES_P = priv/$(RECORDER_APPLICATION)*
 CONTROLLER_TGT_APPFILES_P = priv/$(CONTROLLER_APPLICATION)*
 
-SCRIPT   = $(BINDIR)/idx-tsunami
+SCRIPT   = $(BINDIR)/tsung
 PWD = $(shell pwd)
 BUILD_OPTIONS =	'[{systools, \
         [{variables,[ \
-         {"TSUNAMIPATH", "$(PWD)/temp/"}] \
+         {"TSUNGPATH", "$(PWD)/temp/"}] \
         }]}, \
 	    {sh_script, none}, \
         {make_app, true }, {make_rel, true}].'
@@ -121,14 +121,14 @@ BUILD_OPTIONS_DOT = $(subst $(PWD)/temp/,./,$(BUILD_OPTIONS))
 
 BUILD_OPTIONS_FILE = ./BUILD_OPTIONS 
 
-DIST_COMMON=Makefile.in $(CONFFILE_SRC) $(PERL_SCRIPTS_SRC) idx-tsunami.sh.in idx-tsunami.spec.in
+DIST_COMMON=Makefile.in $(CONFFILE_SRC) $(PERL_SCRIPTS_SRC) tsung.sh.in tsung.spec.in
 
 
 .PHONY: doc
 
-idx-tsunami: Makefile config.status $(PERL_SCRIPTS) idx-tsunami.sh idx-tsunami.spec $(TARGET) $(RECORDER_TARGET) $(CONTROLLER_TARGET)
+tsung: Makefile config.status $(PERL_SCRIPTS) tsung.sh tsung.spec $(TARGET) $(RECORDER_TARGET) $(CONTROLLER_TARGET)
 
-all: clean idx-tsunami
+all: clean tsung
 
 debug:
 	$(MAKE) TYPE=debug
@@ -136,7 +136,7 @@ debug:
 native:
 	$(MAKE) TYPE=native
 
-rpm:	release idx-tsunami.spec
+rpm:	release tsung.spec
 	rpmbuild -ta $(distdir).tar.gz
 
 validate: $(CONFFILE)
@@ -150,8 +150,8 @@ deb:
 clean:
 	-cd priv && rm -f $(shell ls priv | grep -v builder\.erl| grep -v CVS) && cd ..
 	-rm -f $(TARGET) $(TMP) $(BUILD_OPTIONS_FILE) builder.beam
-	-rm -f $(TGT_APPFILES) idx-tsunami.sh $(PERL_SCRIPTS) $(CONFFILE)
-	-rm -f ebin/*.beam idx-tsunami.sh idx-tsunami.spec idx-tsunami.xml
+	-rm -f $(TGT_APPFILES) tsung.sh $(PERL_SCRIPTS) $(CONFFILE)
+	-rm -f ebin/*.beam tsung.sh tsung.spec tsung.xml
 	-make -C doc clean
 
 install: doc boot install_recorder install_controller $(CONFFILE)
@@ -176,13 +176,13 @@ install: doc boot install_recorder install_controller $(CONFFILE)
 
 # install the man page & user's manual
 	install -d $(MAN_DIR)
-	install doc/idx-tsunami.1 $(MAN_DIR)
+	install doc/tsung.1 $(MAN_DIR)
 	install -d $(DOC_DIR)/images
 	install $(USERMANUAL) $(DOC_DIR)
 	install $(USERMANUAL_IMG) $(DOC_DIR)/images
 
 # create startup script
-	install idx-tsunami.sh $(SCRIPT)
+	install tsung.sh $(SCRIPT)
 	install $(PERL_SCRIPTS) $(LIBDIR)/
 
 	install -d $(CONFDIR)
@@ -224,9 +224,9 @@ install_controller:
 uninstall:
 	rm -rf $(TARGETDIR) $(SCRIPT)
 
-boot: idx-tsunami priv/tsunami.boot priv/tsunami_recorder.boot priv/tsunami_controller.boot
+boot: tsung priv/tsung.boot priv/tsung_recorder.boot priv/tsung_controller.boot
 
-priv/tsunami.boot: builder.beam  $(SRC_APPFILES)
+priv/tsung.boot: builder.beam  $(SRC_APPFILES)
 # use builder to make boot file
 	@rm -rf temp
 	@mkdir -p temp/lib/$(APPLICATION)-$(VERSION)
@@ -242,7 +242,7 @@ priv/tsunami.boot: builder.beam  $(SRC_APPFILES)
 	)
 	@rm -rf temp
 
-priv/tsunami_controller.boot: builder.beam $(CONTROLLER_SRC_APPFILES)
+priv/tsung_controller.boot: builder.beam $(CONTROLLER_SRC_APPFILES)
 # use builder to make boot file
 	@rm -rf temp
 	@mkdir -p temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)
@@ -257,7 +257,7 @@ priv/tsunami_controller.boot: builder.beam $(CONTROLLER_SRC_APPFILES)
 	)
 	@rm -rf temp
 
-priv/tsunami_recorder.boot: builder.beam $(RECORDER_SRC_APPFILES)
+priv/tsung_recorder.boot: builder.beam $(RECORDER_SRC_APPFILES)
 # use builder to make boot file
 	@rm -rf temp
 	@mkdir -p temp/lib/$(RECORDER_APPLICATION)-$(VERSION)
@@ -298,7 +298,7 @@ configure: configure.in $(CONFIGURE_DEPENDENCIES)
 doc: 
 	make -C doc
 
-release: Makefile idx-tsunami.spec
+release: Makefile tsung.spec
 	rm -fr $(distdir)
 	mkdir -p $(distdir)
 	tar zcf tmp.tgz $(SRC) $(SRC_APPFILES) $(INC_FILES) \
@@ -307,10 +307,10 @@ release: Makefile idx-tsunami.spec
 		doc/*.erl doc/*.txt doc/*.fig doc/*.png doc/Makefile doc/*.sgml \
 		$(USERMANUAL) $(USERMANUAL_SRC) $(USERMANUAL_IMG) $(DTD) \
 		COPYING README LISEZMOI TODO $(CONFFILE_SRC) \
-		priv/builder.erl idx-tsunami.sh.in vsn.mk \
+		priv/builder.erl tsung.sh.in vsn.mk \
 		$(DEBIAN)  $(PERL_SCRIPTS_SRC) CONTRIBUTORS CHANGES \
 		configure configure.in config.guess config.sub Makefile.in \
-		install-sh idx-tsunami.spec.in idx-tsunami.spec
+		install-sh tsung.spec.in tsung.spec
 	tar -C $(distdir) -zxf tmp.tgz
 	mkdir $(distdir)/ebin
 	tar zvcf  $(distdir).tar.gz $(distdir)

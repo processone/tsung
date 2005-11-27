@@ -72,7 +72,7 @@ init([]) ->
 				   temporary,2000,worker,[ts_client]}
 				 ],
 %	fprof:start(),
-%	Res = fprof:trace(start, "/tmp/tsunami.fprof"),
+%	Res = fprof:trace(start, "/tmp/tsung.fprof"),
 %	?LOGF("starting profiler: ~p~n",[Res], ?WARN),
 
     {ok, {SupFlags, ChildSpec}}.
