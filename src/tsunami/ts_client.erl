@@ -16,7 +16,7 @@
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 %%% 
-%%%  Created : 15 Feb 2001 by Nicolas Niclausse <nniclausse@IDEALX.com>
+%%%  Created : 15 Feb 2001 by Nicolas Niclausse <nicolas@niclux.org>
 
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
@@ -25,7 +25,7 @@
 
 -module(ts_client).
 -vc('$Id$ ').
--author('nicolas.niclausse@IDEALX.com').
+-author('nicolas.niclausse@niclux.org').
 -modified_by('jflecomte@IDEALX.com').
 
 -behaviour(gen_fsm). % two state: wait_ack | think
@@ -610,9 +610,9 @@ set_new_buffer(_, OldBuffer, Data) ->
 %% Returns: {TimeStamp, DynVars}
 %% Purpose: update the statistics
 %%----------------------------------------------------------------------
-update_stats(State) ->
+update_stats(State=#state_rcv{page_timestamp=PageTime,send_timestamp=SendTime}) ->
 	Now = now(),
-	Elapsed = ts_utils:elapsed(State#state_rcv.send_timestamp, Now),
+	Elapsed = ts_utils:elapsed(SendTime, Now),
 	Stats= [{ sample, request, Elapsed},
 			{ sum, size_rcv, State#state_rcv.datasize}],
     Profile = State#state_rcv.request,
@@ -620,12 +620,12 @@ update_stats(State) ->
                                      State#state_rcv.buffer),
 	case Profile#ts_request.endpage of
 		true -> % end of a page, compute page reponse time 
-			PageElapsed = ts_utils:elapsed(State#state_rcv.page_timestamp, Now),
+			PageElapsed = ts_utils:elapsed(PageTime, Now),
 			ts_mon:add(lists:append([Stats,[{sample, page, PageElapsed}]])),
 			{0, DynVars};
 		_ ->
 			ts_mon:add(Stats),
-			{State#state_rcv.page_timestamp, DynVars}
+			{PageTime, DynVars}
 	end.
 
 %%----------------------------------------------------------------------
