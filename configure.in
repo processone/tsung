@@ -98,6 +98,6 @@ AC_SUBST(TEMPLATES_SUBDIR,[tsung/templates])
 AC_PROG_MAKE_SET
 AC_PROG_INSTALL
 
-AC_CONFIG_FILES([Makefile tsung.spec tsung.sh examples/*.xml src/analyse_msg.pl src/log2tsung.pl])
+AC_CONFIG_FILES([Makefile tsung.spec tsung.sh examples/*.xml src/tsung_stats.pl src/log2tsung.pl])
 
 AC_OUTPUT

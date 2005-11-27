@@ -76,7 +76,7 @@
      tsung. Ce module est diffusé en license EPL .
 
   - gnuplot et perl5 (optionel, utilisé pour les sorties graphiques du script 
-    analyse_msg.pl). Le Template Toolkit est utilisé pour les rapports en HTML
+    tsung_stats.pl). Le Template Toolkit est utilisé pour les rapports en HTML
     (cf. http://template-toolkit.org/)
   
   - les tests distribués utilisent un accès ssh non intéractif pour
@@ -101,7 +101,7 @@
     test de charge (man tsung pour avoir les options disponibles)
 
     3/ Lorsque c'est terminé (tsung --stop pour forcer l'arrêt), le
-    script analyse_msg.pl (/usr/lib/tsung/bin/analyse_msg.pl)
+    script tsung_stats.pl (/usr/lib/tsung/bin/tsung_stats.pl)
     génère une synthèse des temps de réponses;
     ce script peut également générer des graphes avec l'option --plot.
 
@@ -136,7 +136,7 @@
        encore peut être configuré par --tdir <dir>
  
       Ex: > cd ~/.tsung/log/2004YYYY-XX:XX
-          > analyse_msg.pl --stats tsung.log --plot --html
+          > tsung_stats.pl --stats tsung.log --plot --html
 
     4/ Pour utiliser le proxy enregistreur de sessions HTTP depuis un
     navigateur, il faut d'abord démarrer le proxy avec la commande

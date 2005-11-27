@@ -403,7 +403,7 @@ sub usage {
 Copyright (C) 2001-2004 IDEALX (http://IDEALX.org/)\n\n";
 	print "tsung comes with ABSOLUTELY NO WARRANTY; This is free software, and
 ou are welcome to redistribute it under certain conditions
-type `analyse_msg.pl --version` for details.\n\n";
+type `tsung_stats.pl --version` for details.\n\n";
 
     print "Usage: $0 [<options>]\n","Available options:\n\t",
     "[--help] (this help text)\n\t",

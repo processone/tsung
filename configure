@@ -1752,7 +1752,7 @@ test -z "$INSTALL_SCRIPT" && INSTALL_SCRIPT='${INSTALL}'
 test -z "$INSTALL_DATA" && INSTALL_DATA='${INSTALL} -m 644'
 
 
-                                                            ac_config_files="$ac_config_files Makefile tsung.spec tsung.sh examples/*.xml src/analyse_msg.pl src/log2tsung.pl"
+                                                            ac_config_files="$ac_config_files Makefile tsung.spec tsung.sh examples/*.xml src/tsung_stats.pl src/log2tsung.pl"
 
 
 cat >confcache <<\_ACEOF
@@ -2310,7 +2310,7 @@ do
   "tsung.spec" ) CONFIG_FILES="$CONFIG_FILES tsung.spec" ;;
   "tsung.sh" ) CONFIG_FILES="$CONFIG_FILES tsung.sh" ;;
   "examples/*.xml" ) CONFIG_FILES="$CONFIG_FILES examples/*.xml" ;;
-  "src/analyse_msg.pl" ) CONFIG_FILES="$CONFIG_FILES src/analyse_msg.pl" ;;
+  "src/tsung_stats.pl" ) CONFIG_FILES="$CONFIG_FILES src/tsung_stats.pl" ;;
   "src/log2tsung.pl" ) CONFIG_FILES="$CONFIG_FILES src/log2tsung.pl" ;;
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}
