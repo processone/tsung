@@ -24,7 +24,7 @@
 
 -module(ts_jabber_common).
 -vc('$Id$ ').
--author('nicolas.niclausse@IDEALX.com').
+-author('nicolas.niclausse@niclux.org').
 
 -export([ get_random_params/4,  
           get_message/1
@@ -223,7 +223,7 @@ presence(directed, #jabber{dest= Dest,domain=Domain, username=UserName})->
     DestName = UserName ++ Dest,
     list_to_binary([
           "<presence id='",ts_msg_server:get_id(list),
-          "' to='", DestName, "@" , Domain , ">",
+          "' to='", DestName, "@" , Domain , "'>",
           "<show>chat</show><status>tsunami load gen</status></presence>"]).
 
 
