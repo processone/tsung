@@ -13,9 +13,9 @@
 % --------------------------------------------
 % Title 
 % --------------------------------------------
-\doctitle{tsung User's manual}
+\doctitle{Tsung User's manual}
 
-%\addauthor{Nicolas}{Niclausse}{nicolas.niclausse@IDEALX.com}
+%\addauthor{Nicolas}{Niclausse}{nicolas.niclausse@niclux.org}
 
 \doccopyright{IDEALX S.A.S.}
 \docversion{\RCSRevision}
@@ -24,32 +24,32 @@
 
 \begin{document}
 \maketitle
-\Abstract{tsung user's manual}
+\Abstract{Tsung user's manual}
 \newpage
 \tableofcontents
 
 \section{Introduction}
 
-\subsection{What is tsung ?}
+\subsection{What is Tsung ?}
 
-\program{tsung} is a distributed load testing tool. It is
+\program{Tsung} (formerly IDX-Tsunami) is a distributed load testing tool. It is
 protocol-independent and can currently be used to stress HTTP, SOAP
-and Jabber servers.
+PostgreSQL, and Jabber servers.
 
 It is distributed under the GNU General Public License version 2.
 
-\subsection{What is Erlang and why is it important for tsung ?}
+\subsection{What is Erlang and why is it important for Tsung ?}
 
-\program{tsung's} main strength is its ability to simulate a huge number of
+\program{Tsung's} main strength is its ability to simulate a huge number of
 simultaneous user from a single CPU. When used on cluster you can
 generate a really impressive load on a server with a modest cluster,
 easy to set-up and to maintain.
 
-\program{tsung} is developed in Erlang and this is where the power
-of \program{tsung} resides.
+\program{Tsung} is developed in Erlang and this is where the power
+of \program{Tsung} resides.
 
 \par Erlang is a \emph{concurrency-oriented} programming language.
-tsung is based on the Erlang OTP (Open Transaction Platform) and
+Tsung is based on the Erlang OTP (Open Transaction Platform) and
 inherits several characteristics from Erlang: 
 
 \begin{itemize}
@@ -59,18 +59,19 @@ of lightweight processes in a single virtual machine.
 distributed, promoting the idea of process's location transparency. 
 \item \emph{Fault-tolerance}:Erlang has been built to develop robust,
 fault-tolerant systems. As such, wrong answer sent from the server
-to \program{tsung} does not make the whole running benchmark crash. 
+to \program{Tsung} does not make the whole running benchmark crash. 
 \end{itemize}
 
 More informations on Erlang on \url{http://www.erlang.org} and
 \url{http://www.erlang-projects.org/}
 
 
-\subsection{tsung background}
+\subsection{Tsung background}
 
 History:
 \begin{itemize}
-\item \program{tsung} is being developed since 2001 
+\item \program{Tsung} is being developed since 2001 (it was called
+  IDX-Tsunami at this time)
 \item It is an industrial strength implementation of a \emph{stochastic model}
 for real users simulation. User events distribution is based on a
 Poisson Process. More information on this topic in:
@@ -86,18 +87,18 @@ Volume 46, Issue 2-3, October 2001}.
 
 \end{itemize}
 
-\program{tsung} has been used for very high load tests:
+\program{Tsung} has been used for very high load tests:
  
 \begin{itemize}
 \item \emph{Jabber} protocol: 10 000 simultaneous users.
-  \program{tsung} was running on a 3-computers cluster (CPU
+  \program{Tsung} was running on a 3-computers cluster (CPU
   800Mhz)
 \item \emph{HTTP and HTTPS} protocol: 12 000 simultaneous users.
-  \program{tsung} were running on a 4-computers cluster. The
+  \program{Tsung} were running on a 4-computers cluster. The
   tested platform reached 3 000 requests per second.
 \end{itemize}
 
-\program{tsung} has been used  at: 
+\program{Tsung} has been used  at: 
 
 \begin{itemize}
 \item \emph{DGI} (Direction Générale des impôts): French finance ministry 
@@ -109,17 +110,17 @@ for Petroleum
 
 \section{Features}
 
-\subsection{tsung main features}
+\subsection{Tsung main features}
 
 \begin{itemize}
-\item \emph{High Performance}: \program{tsung} can simulate a
+\item \emph{High Performance}: \program{Tsung} can simulate a
   huge number of simultaneous users per physical computer: It can
   simulates thousands of users on a single CPU (Note: a simulated user
   is not always active: it can be idle during a \varname{thinktime}
   period). Traditional injection tools can hardly go further than a
   few hundreds (Hint: if all you want to do is requesting a single URL
   in a loop, use \program{ab}; but if you want to build complex
-  scenarios with extended reports, \program{tsung} is for you).
+  scenarios with extended reports, \program{Tsung} is for you).
 \item \emph{Distributed}: the load can be distributed on a cluster of
 client machines 
 \item \emph{Multi-Protocols} using a plug-in system: HTTP (both standard
@@ -132,7 +133,7 @@ the underlying OS IP Aliasing
 agents on remote servers or \emph{SNMP}
 \item \emph{XML configuration system}: complex user's scenarios are written
   in XML. Scenarios can be written with a simple browser using the
-  tsung recorder (for HTTP only).
+  Tsung recorder (for HTTP only).
 \item \emph{Dynamic scenarios}: You can get dynamic data from the
   server under load (without writing any code) and re-inject it in
   subsequent requests.
@@ -173,8 +174,8 @@ distribution (currently exponential)
 
 \subsection{Complete reports set}
 
-Measures and statistics produced by tsung are extremely feature-full.
-They are all represented as a graphic. \program{tsung} produces
+Measures and statistics produced by Tsung are extremely feature-full.
+They are all represented as a graphic. \program{Tsung} produces
 statistics regarding:
 
 \begin{itemize}
@@ -183,10 +184,10 @@ of the user scenario based on request grouping instruction (called \textit{trans
 per second 
 \item \emph{Errors}: Statistics on page return code to trace errors 
 \item \emph{Target server behaviour}: An Erlang agent can gather information
-from the target server(s). tsung produces graphs for CPU and memory
+from the target server(s). Tsung produces graphs for CPU and memory
 consumption and network traffic. SNMP is also supported. 
 \end{itemize}
-\par Note that \program{tsung} takes care of the synchronization process
+\par Note that \program{Tsung} takes care of the synchronization process
 by itself. Gathered statistics are «synchronized».
 
  It is possible to generate graphs during the benchmark as statistics
@@ -194,17 +195,17 @@ are gathered in real-time.
 
 \subsection{Highlights}
 
-\program{tsung} has several advantages over other injection tools: 
+\program{Tsung} has several advantages over other injection tools: 
 
 
 \begin{itemize}
 \item \emph{High performance} and \emph{distributed benchmark}: You
-  can use tsung to simulate tens of thousands of virtual users.
+  can use Tsung to simulate tens of thousands of virtual users.
 \item \emph{Ease of use}: The hard work is already done for all supported
 protocol. No need to write complex scripts. Dynamic scenarios only
 requires small trivial piece of code.
-% tsung scenarii realisation is mostly based on 
-\item \emph{Multi-protocol support}: \program{tsung} is for example one of
+% Tsung scenarii realisation is mostly based on 
+\item \emph{Multi-protocol support}: \program{Tsung} is for example one of
 the only tool to benchmark SOAP applications 
 \item \emph{Monitoring} of the target server(s) to analyze the behaviour
 and find bottlenecks. For example, it has been used to analyze cluster
@@ -229,12 +230,16 @@ MacOS-X).
   \url{http://www.erlang-projects.org/Public/rpmdeb/rpm_erlang_otp_r9c-2/view}.
 \item xmerl-0.19 (included in Erlang R10B) (\url{http://sowap.sourceforge.net/download.html}). Debian and Redhat
     binaries are provided at
-    \url{http://tsung.idealx.org/dist/}
+    \url{http://tsung.erlang-projects.org/dist/}
   \item extended regexp module (used for dynamic variables):
     gregexp.erl available at
     \url{http://www.cellicium.com/erlang/contribs/} . The module is
-    included in the source and binary distribution of \program{tsung}. It
+    included in the source and binary distribution of \program{Tsung}. It
     is released under the EPL License.
+  \item pgsql module (for the postgresql plugin):
+    source available at
+    \url{http://jungerl.sourceforge.net/} . The module is
+    included in the source and binary distribution of \program{IDX-Tsunami}. 
    \item  gnuplot and perl5 (optional; for graphical output with
     \command{tsung\_stats.pl} script).  The Template Toolkit is used for HTML
     reports (see \url{http://template-toolkit.org/})
@@ -272,7 +277,7 @@ suggestions or questions about \program{Tsung}.
 
 \begin{enumerate}
 \item Record one or more sessions: start the recorder with: \command{tsung
-    recorder}, and then configure your browser to use tsung
+    recorder}, and then configure your browser to use Tsung
   proxy recorder (the listen port is 8090). A session file will be
   created. For HTTPS recording, use \userinput{http://\{} instead of
     \userinput{https://} in your browser.
@@ -303,6 +308,12 @@ can also benchmark HTTP Proxy server. To do that, you must add :
 \begin{Verbatim}
   <default type="ts_http" name="http_use_server_as_proxy" value="true"></default>
 \end{Verbatim}
+
+\section{PostgreSQL benchmark approach}
+
+It's the same approach as HTTP: first you start to record one or more
+sessions with the recorder: 
+\command{idx-tsunami -p pgsql  recorder}
 
 \section{Jabber benchmark approach}
 
@@ -360,7 +371,7 @@ If you do not specify maxnumber, the global ack will be reset every
 
 \subsection{File structure}
 
- Scenarios are enclosed into tsung tags:
+ Scenarios are enclosed into Tsung tags:
 
  \begin{Verbatim}
 <?xml version="1.0"?>
@@ -373,7 +384,7 @@ If you do not specify maxnumber, the global ack will be reset every
 
 \subsection{Clients and server}
 
- Scenarios start with clients (tsung cluster) and server definitions:
+ Scenarios start with clients (Tsung cluster) and server definitions:
 
 \begin{Verbatim}
   <clients>
@@ -396,7 +407,7 @@ If you do not specify maxnumber, the global ack will be reset every
    1.1.1:} IP is not mandatory. If not specified, the default IP will
  be used.
  
- In this example, a second machine is used in the tsung cluster,
+ In this example, a second machine is used in the Tsung cluster,
  with a higher weight, and 2 cpus. Two Erlang virtual machines will be
  used to take advantage of the number of CPU.
 
@@ -509,7 +520,7 @@ If not set in the configuration file, the values will be set to:
 \subsubsection{Default values: HTTP}
 
 For HTTP, you can set the UserAgent values (\string{available since
-  tsung 1.1.0}), using a frequency for each value (the sum of all
+  Tsung 1.1.0}), using a frequency for each value (the sum of all
 frequencies must be equal to 100)
 
 \begin{Verbatim}
@@ -532,7 +543,7 @@ Sessions define the content of the scenario itself. They describe
 the requests to execute.
 
 This example shows several features of the HTTP protocol support in
-tsung: GET and POST request, basic authentication, transaction for
+Tsung: GET and POST request, basic authentication, transaction for
 statistics definition, ...
 
 
@@ -649,7 +660,7 @@ variables (\strong{Warn: before version 1.1.0, the argument was just the
 
 
 
-Here is an example of use of substitution in a tsung scenario:
+Here is an example of use of substitution in a Tsung scenario:
 
 \begin{Verbatim}
 <session name="rec20040316-08:47" popularity="100" type="ts_http">
@@ -826,7 +837,7 @@ HTTP specific stats:
 
 A bit of explanation on the design and internals of the statistics engine:
 
-tsung was designed to handle thousands of requests/sec, for very
+Tsung was designed to handle thousands of requests/sec, for very
 long period of times (several hours) so it do not write all data to
 the disk (for performance reasons). Instead it computes on the fly an
 estimation of the mean and standard variation for each type of data,
@@ -888,8 +899,8 @@ cd to the log directory of your test (say
 \section{References}
 
 \begin{itemize}
-\item \program{tsung} home page: \url{http://tsung.idealx.org/}
-\item \program{tsung} description (French)\footnote{\url{http://www.erlang-projects.org/Members/mremond/events/dossier_de_presentat/block_10766817551485/file}}
+\item \program{Tsung} home page: \url{http://tsung.idealx.org/}
+\item \program{Tsung} description (French)\footnote{\url{http://www.erlang-projects.org/Members/mremond/events/dossier_de_presentat/block_10766817551485/file}}
 \item Erlang web site \url{http://www.erlang.org/}
 \item Erlang programmation, Mickaël Rémond, Editions Eyrolles, 2003
   \footnote{\url{http://www.editions-eyrolles.com/php.accueil/Ouvrages/ouvrage.php3?ouv_ean13=9782212110791}}
@@ -909,7 +920,7 @@ Web benchmarking workshop in April 2004 (more info at
 
 \section{Frequently Asked Questions}
 
-\subsection{tsung crashes when I start it }
+\subsection{Tsung crashes when I start it }
 
 Does your Erlang system has ssl support enabled ?
 
@@ -917,11 +928,11 @@ to test it:
 \begin{Verbatim}
   > erl
   Eshell V5.2  (abort with ^G)
-  1> ssl:start()
+  1> ssl:start().
   you should see 'ok' 
 \end{Verbatim}
 
-\subsection{tsung still doesn't start ...}
+\subsection{Tsung still doesn't start ...}
 
 Most of the time, when a crash happened at startup without any traffic  
 generated, the problem arise because the main Erlang controller node cannot  
@@ -977,7 +988,7 @@ create a "slave" Erlang virtual machine. The message looks like:
 \end{Verbatim} 
 %%%$
 
-tsung launches a new erl virtual machine to do the actual
+Tsung launches a new erl virtual machine to do the actual
 injection even when you have only one machine in the injection
 cluster. This is because it needs to by-pass some limit with the number
 of open socket from a single process (1024 most of the time). The idea
@@ -1007,7 +1018,7 @@ It will not work if you use it as the injection interface. The shortname
 of your client machine should not refer to this address.
 
 \strong{New in 1.1.0}: If you don't use the distributed feature of
-tsung and have trouble to start a remote beam on a local machine,
+Tsung and have trouble to start a remote beam on a local machine,
 you can set the \varname{'use\_controller\_vm'} attribute to true, for ex.:
 
 \begin{Verbatim}
@@ -1032,16 +1043,16 @@ If the erlang shell doesn't start then check what paths sshd was compiled with
 (in SuSE see \file{/etc/ssh/sshd_config}) and symlink from one of the approved paths 
 to the erlang executable (thanks to Gordon Guthrie for reporting this).
 
-\subsection{tsung still crashes/fails  when I start it !}
+\subsection{Tsung still crashes/fails  when I start it !}
 First look at the log file
 \file{~/.tsung/log/XXX/tsung_controller@yourhostname'} to see
 if there is a problem. 
 
 If the file is not created and a crashed dump file is present, maybe
-you are using a binary installation of tsung not compatible with the
+you are using a binary installation of Tsung not compatible with the
 version of erlang you used.
 
-If you see nothing wrong, you can compile \program{tsung} with full
+If you see nothing wrong, you can compile \program{Tsung} with full
 debugging: recompile with \command{make debug} , and
 don't forget to set the loglevel to "debug" in the XML file.
 
@@ -1086,7 +1097,7 @@ stats: 200 51 71
 \subsection{How can I specify the number of concurrent users ?}
 
 You can't. But it's on purpose: the load generated by
-\program{tsung} is dependent on the arrival time between new
+\program{Tsung} is dependent on the arrival time between new
 clients. Indeed, once a client has finished his session in
 \program{tsung}, it stops. So the number of concurrent users is
 a function of the arrival rate and the mean session duration.
