@@ -21,7 +21,7 @@
 %%%  the EPL license and distribute linked combinations including
 %%%  the two.
 
-%%%  Created :  8 Feb 2001 by Nicolas Niclausse <nniclausse@idealx.com>
+%%%  Created :  8 Feb 2001 by Nicolas Niclausse <nicolas@niclux.org>
 
 %%----------------------------------------------------------------------
 %% HEADER ts_mon
@@ -33,7 +33,7 @@
 
 
 -module(ts_mon).
--author('nniclausse@idealx.com').
+-author('nicolas@niclux.org').
 -vc('$Id$ ').
 
 -behaviour(gen_server).

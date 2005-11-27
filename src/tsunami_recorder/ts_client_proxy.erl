@@ -1,8 +1,8 @@
 %%%
 %%%  Copyright © IDEALX S.A.S. 2003
 %%%
-%%%	 Author : Nicolas Niclausse <nicolas.niclausse@IDEALX.com>
-%%%  Created: 22 Dec 2003 by Nicolas Niclausse <nicolas.niclausse@IDEALX.com>
+%%%	 Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
+%%%  Created: 22 Dec 2003 by Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
 %%%  it under the terms of the GNU General Public License as published by
@@ -25,16 +25,16 @@
 
 %%%-------------------------------------------------------------------
 %%% File    : ts_client_proxy.erl
-%%% Author  : Nicolas Niclausse <nniclausse@idealx.com>
+%%% Author  : Nicolas Niclausse <nicolas@niclux.org>
 %%% Description : handle communication with client and server.
 %%%
-%%% Created : 22 Dec 2003 by Nicolas Niclausse <nniclausse@idealx.com>
+%%% Created : 22 Dec 2003 by Nicolas Niclausse <nicolas@niclux.org>
 %%%-------------------------------------------------------------------
 
 
 -module(ts_client_proxy).
 -vc('$Id$ ').
--author('nicolas.niclausse@IDEALX.com').
+-author('nicolas.niclausse@niclux.org').
 
 -behaviour(gen_server).
 %%--------------------------------------------------------------------

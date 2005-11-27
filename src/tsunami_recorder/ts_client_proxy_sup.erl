@@ -23,7 +23,7 @@
 
 -module(ts_client_proxy_sup).
 -vc('$Id$ ').
--author('nicolas.niclausse@IDEALX.com').
+-author('nicolas.niclausse@niclux.org').
 
 -behaviour(supervisor).
 

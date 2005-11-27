@@ -27,7 +27,7 @@
 -module(ts_stats).
 -created('Date: 2000/10/20 13:58:56 nniclausse Exp ').
 -vc('$Id$ ').
--author('nicolas.niclausse@IDEALX.com').
+-author('nicolas.niclausse@niclux.org').
 
 -export([exponential/1, exponential/2, pareto/2, 
 		 mean/1,     mean/3,

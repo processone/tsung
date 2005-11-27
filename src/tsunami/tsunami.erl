@@ -24,7 +24,7 @@
 
 -module(tsunami).
 -vc('$Id$ ').
--author('nicolas.niclausse@IDEALX.com').
+-author('nicolas.niclausse@niclux.org').
 
 -export([start/2, stop/1]).
 -behaviour(application).

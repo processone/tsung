@@ -24,7 +24,7 @@
 -module(ts_timer).
 -vc('$Id$ ').
 -author('jflecomte@IDEALX.com').
--modifiedby('nniclausse@IDEALX.com').
+-modifiedby('nicolas@niclux.org').
 
 -include("ts_profile.hrl").
 

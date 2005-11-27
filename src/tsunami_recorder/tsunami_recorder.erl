@@ -1,8 +1,8 @@
 %%%
 %%%  Copyright © IDEALX S.A.S. 2003
 %%%
-%%%	 Author : Nicolas Niclausse <nicolas.niclausse@IDEALX.com>
-%%%  Created: 22 Dec 2003 by Nicolas Niclausse <nicolas.niclausse@IDEALX.com>
+%%%	 Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
+%%%  Created: 22 Dec 2003 by Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
 %%%  it under the terms of the GNU General Public License as published by
@@ -27,12 +27,12 @@
 %%% File    : tsunami_recorder.erl
 %%% Author  :  <nicolas.niclaussse@IDEALX.com>
 %%% Description : tsunami_recorder application
-%%% Created : 22 Dec 2003 by Nicolas Niclausse <nniclausse@IDEALX.com>
+%%% Created : 22 Dec 2003 by Nicolas Niclausse <nicolas@niclux.org>
 %%%-------------------------------------------------------------------
 
 -module(tsunami_recorder).
 -vc('$Id$ ').
--author('nicolas.niclausse@IDEALX.com').
+-author('nicolas.niclausse@niclux.org').
 
 -export([start/2,stop/1, stop_all/1]).
 -behaviour(application).

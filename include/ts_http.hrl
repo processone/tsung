@@ -23,7 +23,7 @@
 
 
 -vc('$Id$ ').
--author('nicolas.niclausse@IDEALX.com').
+-author('nicolas.niclausse@niclux.org').
 
 %% use by the client to create the request
 -record(http_request, {

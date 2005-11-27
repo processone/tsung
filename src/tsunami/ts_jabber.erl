@@ -23,9 +23,9 @@
 %%% the two.
 
 %%% File    : ts_jabber.erl
-%%% Author  : Nicolas Niclausse <nniclausse@IDEALX.com>
+%%% Author  : Nicolas Niclausse <nicolas@niclux.org>
 %%% Purpose : 
-%%% Created : 11 Jan 2004 by Nicolas Niclausse <nniclausse@IDEALX.com>
+%%% Created : 11 Jan 2004 by Nicolas Niclausse <nicolas@niclux.org>
 
 -module(ts_jabber).
 -author('nniclausse@hyperion').

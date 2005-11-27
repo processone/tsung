@@ -30,7 +30,7 @@
 -module(ts_launcher).
 -created('Date: 2000/10/23 12:09:57 nniclausse ').
 -vc('$Id$ ').
--author('nicolas.niclausse@IDEALX.com').
+-author('nicolas.niclausse@niclux.org').
 
 -include("ts_profile.hrl").
 

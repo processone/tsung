@@ -22,7 +22,7 @@
 %%%  the two.
 
 -vc('$Id$ ').
--author('nicolas.niclausse@IDEALX.com').
+-author('nicolas.niclausse@niclux.org').
 
 -record(dyndata,
         {dynvars, % dynamic variables

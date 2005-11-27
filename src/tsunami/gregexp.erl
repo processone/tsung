@@ -25,7 +25,7 @@
 %%
 %% Note that the character '(' can be matched with the regexp "[(]".
 
-%% 04-2004: nicolas.niclausse@IDEALX.com. patch groups function:
+%% 04-2004: nicolas.niclausse@niclux.org. patch groups function:
 %%  indeed, for performance reason the function is using implicitely
 %%  "^regexp". This patch change this behaviour and the function now
 %%  will not try to match the begin of the given string (this is

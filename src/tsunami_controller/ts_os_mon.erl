@@ -35,7 +35,7 @@
 
 -module(ts_os_mon).
 -author('mickael.remond@erlang-fr.org').
--modifiedby('nniclausse@IDEALX.com').
+-modifiedby('nicolas@niclux.org').
 -vc('$Id$ ').
 
 -behaviour(gen_server).

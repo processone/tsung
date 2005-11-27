@@ -1,8 +1,8 @@
 %%%
 %%%  Copyright © IDEALX S.A.S. 2004
 %%%
-%%%	 Author : Nicolas Niclausse <nicolas.niclausse@IDEALX.com>
-%%%  Created: 20 Apr 2004 by Nicolas Niclausse <nicolas.niclausse@IDEALX.com>
+%%%	 Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
+%%%  Created: 20 Apr 2004 by Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
 %%%  it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 
 -module(ts_config_jabber).
 -vc('$Id$ ').
--author('nicolas.niclausse@IDEALX.com').
+-author('nicolas.niclausse@niclux.org').
 
 -export([parse_config/2 ]).
 

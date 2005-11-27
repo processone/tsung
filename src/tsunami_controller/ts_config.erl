@@ -23,16 +23,16 @@
 
 %%%----------------------------------------------------------------------
 %%% File    : config.erl
-%%% Author  : Nicolas Niclausse <nicolas.niclausse@IDEALX.com>
+%%% Author  : Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%% Purpose : Read the IDX-Tsunami XML config file. Currently, it
 %%%           work by parsing the #xmlElement record by hand ! 
 %%%           TODO: learn how to use xmerl correctly
-%%% Created : 3 Dec 2003 by Nicolas Niclausse <nniclausse@idealx.com>
+%%% Created : 3 Dec 2003 by Nicolas Niclausse <nicolas@niclux.org>
 %%%----------------------------------------------------------------------
 
 
 -module(ts_config).
--author('nniclausse@idealx.com').
+-author('nicolas@niclux.org').
 -vc('$Id$ ').
 
 -include("ts_profile.hrl").

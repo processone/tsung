@@ -1,8 +1,8 @@
 %%%
 %%%  Copyright © IDEALX S.A.S. 2004
 %%%
-%%%	 Author : Nicolas Niclausse <nicolas.niclausse@IDEALX.com>
-%%%  Created: 06 May 2004 by Nicolas Niclausse <nicolas.niclausse@IDEALX.com>
+%%%	 Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
+%%%  Created: 06 May 2004 by Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
 %%%  it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 %%% 
 
 -vc('$Id$ ').
--author('nicolas.niclausse@IDEALX.com').
+-author('nicolas.niclausse@niclux.org').
 
 -record(rrd_create, {filename,
                      step=300, % one step every 5mn by def.

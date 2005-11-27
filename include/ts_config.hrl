@@ -1,8 +1,8 @@
 %%%
 %%%  Copyright © IDEALX S.A.S. 2003
 %%%
-%%%	 Author : Nicolas Niclausse <nicolas.niclausse@IDEALX.com>
-%%%  Created: 03 Dec 2003 by Nicolas Niclausse <nicolas.niclausse@IDEALX.com>
+%%%	 Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
+%%%  Created: 03 Dec 2003 by Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
 %%%  it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
 
 
 -vc('$Id$ ').
--author('nicolas.niclausse@IDEALX.com').
+-author('nicolas.niclausse@niclux.org').
 
 -define(TSUNAMIPATH, "TSUNAMIPATH").
 -define(SESSION_POP_ERROR_MSG, "Total sum of session popularity is not equal to 100").

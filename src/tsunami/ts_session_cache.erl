@@ -22,7 +22,7 @@
 %%% Author  : Nicolas Niclausse <nniclausse@schultze.ird.idealx.com>
 %%% Description : cache sessions request from ts_config_server
 %%%
-%%% Created :  2 Dec 2003 by Nicolas Niclausse <nniclausse@idealx.com>
+%%% Created :  2 Dec 2003 by Nicolas Niclausse <nicolas@niclux.org>
 %%%-------------------------------------------------------------------
 
 
