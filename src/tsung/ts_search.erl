@@ -24,7 +24,6 @@
 %%%               request and response
 %%%               The function subst is intended to be called for each
 %%%               relevant field in ts_protocol implementation.
-%%%               TODO: Insert exemple
 %%% Created : 22 Mar 2004 by Mickael Remond <mickael.remond@erlang-fr.org>
 
 %%% Nicolas Niclausse: add dynamic variable and matching
@@ -110,64 +109,97 @@ extract_function([H|Tail],DynVar,  Acc, Mod, Fun) ->
     extract_function(Tail, DynVar, Acc, Mod, [H|Fun]).
 
 %%----------------------------------------------------------------------
-%% Func: match/2 
+%% Func: match/3
 %% Args: RegExp, Data, Request Counter
 %% Returns:  New Counter ( not changed if match )
 %% Purpose: search for regexp in Data; send result to ts_mon
 %%----------------------------------------------------------------------
-match(undefined, _Data, Count) -> Count;
-match(Match, Data, Count)  when is_binary(Data)->
+match([], _Data, {Count, _MaxC}) -> Count;
+match(Match, Data, Counts)  when is_binary(Data)->
     ?DebugF("Matching Data size ~p~n",[size(Data)]),
-    match(Match, binary_to_list(Data), Count);
-match(#match{regexp=RegExp, action=Action, negative=Neg}, String, Count) ->
+    match(Match, binary_to_list(Data), Counts, []);
+match(Match, Data, Counts)  -> 
+    match(Match, Data, Counts, []).
+
+%% Func: match/4
+match([], _Data, {Count, _MaxC}, Stats) ->  
+    %% all matches done, add stats, and return Count unchanged (continue)
+    ts_mon:add(Stats),
+    Count;
+match([Match=#match{regexp=RegExp, do=Action, 'when'=When}| Tail], String, Counts, Stats)->
     case regexp:first_match(String, RegExp) of
+        {When,_, _} -> 
+            ?LOGF("Ok Match (regexp=~p) do=~p~n",[RegExp,Action], ?INFO),
+            setcount(Match, Counts, [{count, match}| Stats]);
+        When -> % nomatch
+            ?LOGF("Bad Match (regexp=~p) do=~p~n",[RegExp, Action], ?INFO),
+            setcount(Match, Counts, [{count, nomatch} | Stats]);
         {match,_, _} ->
-            ?LOGF("Ok Match (regexp=~p) ~n",[RegExp], ?INFO),
-            ts_mon:add({count, match}),
-            setcount(Neg, Action, Count);
+            ?LOGF("Ok Match (regexp=~p)~n",[RegExp], ?INFO),
+            case Action of 
+                loop -> put(loop_count, 0)
+            end,
+            match(Tail, String, Counts, [{count, match} | Stats]);
         nomatch ->
-            ?LOGF("Bad Match (regexp=~p), ~n",[RegExp], ?NOTICE),
-            ts_mon:add({count, nomatch}),
-            setcount(not Neg, Action, Count);
+            ?LOGF("Bad Match (regexp=~p)~n",[RegExp], ?INFO),
+            case Action of 
+                loop -> put(loop_count, 0)
+            end,
+            match(Tail, String, Counts,[{count, nomatch} | Stats]);
         {error,_Error} ->
             ?LOGF("Error while matching: bad REGEXP (~p)~n", [RegExp], ?WARN),
-            ts_mon:add({count, badregexp}),
-            Count        
+            match(Tail, String, Counts,[{count, badregexp} | Stats])
     end.
 
 %%----------------------------------------------------------------------
-%% Func: setcount/2
-%% Args:  MatchResult, Action, Count
+%% Func: setcount/3
+%% Args:  #match, Counts, Stats
 %% Update the request counter after a match: 
 %%   - if loop is true, we must start again the same request, so add 1 to count
+%%   - if restart is true, we must start again the all session, set count to MaxCount
 %%   - if stop is true, set count to 0
 %%----------------------------------------------------------------------
-setcount(false, loop, Count)  -> 
-    put(loop_count, 0), % reset loop_counter
+setcount(#match{do=continue}, {Count, _MaxC}, Stats)-> 
+    ts_mon:add(Stats),
     Count;
-setcount(false, _, Count)  -> Count;
-setcount(_,continue, Count)-> Count;
-setcount(_,loop, Count) -> 
-    ?LOG("Loop on (bad)match~n", ?INFO),
-    ts_mon:add({count, match_loop}),
-    case get(loop_count) of 
+setcount(#match{do=restart, max_restart=MaxRestart}, {_Count, MaxC}, Stats)-> 
+    CurRestart = get(restart_count),
+    ?LOGF("Restart on (no)match ~p~n",[CurRestart], ?INFO),
+    case CurRestart of 
+        undefined ->
+            put(restart_count,1),
+            ts_mon:add([{count, match_restart} | Stats]),
+            MaxC ;
+        Val when Val > MaxRestart ->
+            ?LOG("Max restart reached, abort ! ~n", ?WARN),
+            ts_mon:add([{count, match_restart_abort} | Stats]),
+            0;
+        Val -> 
+            put(restart_count, Val +1),
+            ts_mon:add([{count, match_restart} | Stats]),
+            MaxC
+    end;
+setcount(#match{do=loop,max_loop=MaxLoop,sleep_loop=Sleep},{Count,_MaxC},Stats)->
+    CurLoop = get(loop_count),
+    ?LOGF("Loop on (no)match ~p~n",[CurLoop], ?INFO),
+    ts_mon:add([{count, match_loop} | Stats]),
+    case CurLoop of 
         undefined ->
             put(loop_count,1),
-            timer:sleep(?LOOP_SLEEP),
+            timer:sleep(Sleep),
             Count +1 ;
-        Val when Val > ?LOOP_MAX ->
+        Val when Val > MaxLoop ->
             ?LOG("Max Loop reached, abort loop on request! ~n", ?WARN),
             put(loop_count, 0),
             Count;
         Val -> 
             put(loop_count, Val +1),
-            timer:sleep(?LOOP_SLEEP),
+            timer:sleep(Sleep),
             Count + 1
     end;
-setcount(_,stop, _) ->
-    ts_mon:add({count, match_stop}),
+setcount(#match{do=abort}, _, Stats) ->
+    ts_mon:add([{count, match_stop} | Stats]),
     0.
-    
 
 %%----------------------------------------------------------------------
 %% Func: parse_dynvar/2 

@@ -51,7 +51,7 @@
 %% Returns: {ok, ack_type = parse|no_ack|local, persistent = true|false} 
 %%----------------------------------------------------------------------
 session_defaults() ->
-    {ok, parse, true}.
+    {ok, true}.
 
 %%----------------------------------------------------------------------
 %% Function: new_session/0

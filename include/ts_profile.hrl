@@ -30,9 +30,12 @@
        }).
 
 -record(match,
-        {regexp,
-         negative = false,
-         action = continue %(continue | loop | stop)
+        { regexp,
+         'when' = false,
+          do    = continue, %(continue | loop | stop)
+          sleep_loop, % in seconds
+          max_loop,
+          max_restart
        }).
 
 -record(ts_request,
@@ -79,9 +82,6 @@
          transactions=[], % current transactions
 		 dump        % type of dump (full, light, none)
 		}).
-
--define(LOOP_SLEEP,5000).
--define(LOOP_MAX, 50).
 
 -define(restart_sleep, 2000).
 -define(infinity_timeout, 15000).

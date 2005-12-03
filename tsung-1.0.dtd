@@ -56,18 +56,24 @@
 
 <!ELEMENT session ( request | thinktime | transaction )*>
 <!ATTLIST session
-    messages_ack (parse | local | global | no_ack) #IMPLIED
     name         CDATA #REQUIRED
     persistent   (true | false) #IMPLIED
     popularity   NMTOKEN #REQUIRED
     type         (ts_jabber | ts_http | ts_raw | ts_pgsql) #REQUIRED>
 
-<!ELEMENT request ( ( http | jabber | raw | pgsql ), dyn_variable* )>
+<!ELEMENT request ( match*, ( http | jabber | raw | pgsql ), dyn_variable* )>
 <!ATTLIST request
     subst (true|false) "false"
-    on_badmatch (continue|loop|stop) "continue"
-    neg_match (true|false) "false"
-    match CDATA #IMPLIED>
+    >
+
+<!ELEMENT match (#PCDATA)>
+<!ATTLIST match
+    do (continue|loop|abort|restart) "continue"
+    when (match|nomatch) "match"
+    max_loop    NMTOKEN "20"
+    max_restart NMTOKEN "3"
+    sleep_loop  NMTOKEN "5"
+    >
 
 <!ELEMENT thinktime EMPTY>
 <!ATTLIST thinktime

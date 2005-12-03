@@ -228,14 +228,12 @@ parse(Element = #xmlElement{name=session, attributes=Attrs},
     Id = length(SList),
     Type        = getAttr(atom,Attrs, type),
 
-    {ok, Ack_def, Persistent_def} = Type:session_defaults(),
+    {ok, Persistent_def} = Type:session_defaults(),
 
-    Msg_Ack     = getAttr(atom,Attrs, messages_ack, Ack_def),
     Persistent  = getAttr(atom,Attrs, persistent, Persistent_def),
-
     Name        = getAttr(Attrs, name),
     ?LOGF("Session name for id ~p is ~p~n",[Id+1, Name],?NOTICE),
-    ?LOGF("Session type: ack=~p persistent=~p~n",[Msg_Ack, Persistent],?NOTICE),
+    ?LOGF("Session type: persistent=~p~n",[Persistent],?NOTICE),
     Popularity = getAttr(float_or_integer, Attrs, popularity),
     case Id of 
         0 -> ok; % first session 
@@ -248,7 +246,6 @@ parse(Element = #xmlElement{name=session, attributes=Attrs},
                 Conf#config{sessions = [#session{id           = Id + 1,
                                                  popularity   = Popularity,
                                                  type         = Type,
-                                                 messages_ack = Msg_Ack,
                                                  persistent   = Persistent,
                                                  ssl_ciphers  = Conf#config.ssl_ciphers
                                                 }
@@ -299,28 +296,29 @@ parse(Element = #xmlElement{name=request, attributes=Attrs},
 
     Type  = CurSess#session.type,
     SubstitutionFlag  = getAttr(atom, Attrs, subst, false),
-    OnBadmatch   = getAttr(atom, Attrs, on_badmatch, continue),
-    NegMatch     = getAttr(atom, Attrs, neg_match, false),
-    MatchRegExp  = case getAttr(string, Attrs, match, undefined) of
-                       undefined -> undefined;
-                       RegExp    -> #match{regexp = RegExp,
-                                           action = OnBadmatch,
-                                           negative = NegMatch
-                                          }
-                   end,
-
-    %% we must parse dyn_variable before; unfortunately, there is no
-    %% lists:keysort with Fun. FIXME: this will not work if a protocol
-    %% name is sorted before 'dyn_variable'
-    SortedContent = lists:keysort(#xmlElement.name, Element#xmlElement.content),
 
     lists:foldl( fun(A,B) ->Type:parse_config(A,B) end,
                  Conf#config{curid=Id+1, cur_req_id=Id+1,
                              subst=SubstitutionFlag,
-                             match=MatchRegExp
+                             match=[]
                             },
-                 SortedContent);
+                 Element#xmlElement.content);
+%%% Match
+parse(Element=#xmlElement{name=match,attributes=Attrs},
+      Conf=#config{match=Match})->
+    Do         = getAttr(atom, Attrs, do, continue),
+    When       = getAttr(atom, Attrs, 'when', match),
+    MaxLoop    = getAttr(integer, Attrs, max_loop, 20),
+    MaxRestart = getAttr(integer, Attrs, max_restart, 3),
+    SleepLoop  = getAttr(integer, Attrs, sleep_loop, 5),
+    [ValRaw]   = ts_config:getText(Element#xmlElement.content),
+    RegExp     = ts_utils:clean_str(ValRaw),
+    NewMatch   = #match{regexp=RegExp, do=Do,'when'=When,sleep_loop=SleepLoop * 1000,
+                        max_restart=MaxRestart, max_loop=MaxLoop },
 
+    lists:foldl(fun parse/2,
+                Conf#config{ match=lists:append(Match, [NewMatch]) },
+                Element#xmlElement.content);
 %%% Parsing the default element
 parse(Element = #xmlElement{name=default, attributes=Attrs},
       Conf = #config{session_tab = Tab}) ->

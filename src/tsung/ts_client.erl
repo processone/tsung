@@ -70,7 +70,6 @@ next({Pid}) ->
 %%----------------------------------------------------------------------
 init({#session{id           = Profile,
                persistent   = Persistent,
-               messages_ack = PType, % FIXME: unused
                ssl_ciphers  = Ciphers,
                type         = CType}, Count, IP}) ->
 	?DebugF("Init ... started with count = ~p  ~n",[Count]),
@@ -533,7 +532,8 @@ handle_data_msg(Data, State=#state_rcv{request=Req}) when Req#ts_request.ack==no
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     {State, []};
 
-handle_data_msg(Data, State=#state_rcv{request=Req, clienttype=Type}) when Req#ts_request.ack==parse->
+handle_data_msg(Data,State=#state_rcv{request=Req, clienttype=Type, maxcount=MaxCount})
+  when Req#ts_request.ack==parse->
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
 	
     {NewState, Opts, Close} = Type:parse(Data, State),
@@ -544,7 +544,7 @@ handle_data_msg(Data, State=#state_rcv{request=Req, clienttype=Type}) when Req#t
         true ->
             ?DebugF("Response done:~p~n", [NewState#state_rcv.datasize]),
             {PageTimeStamp, DynVars} = update_stats(NewState#state_rcv{buffer=NewBuffer}),
-            NewCount = ts_search:match(Req#ts_request.match, NewBuffer, NewState#state_rcv.count),
+            NewCount = ts_search:match(Req#ts_request.match, NewBuffer, {NewState#state_rcv.count, MaxCount}),
             NewDynData = concat_dynvars(DynVars, NewState#state_rcv.dyndata),
             case Close of
                 true ->
@@ -581,13 +581,13 @@ handle_data_msg(Data,State=#state_rcv{request=Req,datasize=OldSize})
     {State#state_rcv{ datasize = OldSize + DataSize},[]};
 
 %% local ack, set ack_done to true
-handle_data_msg(Data, State=#state_rcv{request=Req}) ->
+handle_data_msg(Data, State=#state_rcv{request=Req, maxcount= MaxCount}) ->
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     NewBuffer= set_new_buffer(Req, State#state_rcv.buffer, Data),
 	DataSize = size(Data),
     {PageTimeStamp, DynVars} = update_stats(State#state_rcv{datasize=DataSize,
                                                             buffer=NewBuffer}),
-    NewCount = ts_search:match(Req#ts_request.match, NewBuffer, State#state_rcv.count),
+    NewCount = ts_search:match(Req#ts_request.match, NewBuffer, {State#state_rcv.count,MaxCount}),
     NewDynData = concat_dynvars(DynVars, State#state_rcv.dyndata),
     {State#state_rcv{ack_done = true, buffer= NewBuffer, dyndata = NewDynData,
                      page_timestamp= PageTimeStamp, count=NewCount},[]}.

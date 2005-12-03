@@ -35,7 +35,7 @@
 %%----------------------------------------------------------------------
 %% Function: session_default/0
 %% Purpose: default parameters for session
-%% Returns: {ok, ack_type = parse|no_ack|local, persistent = true|false} 
+%% Returns: {ok, persistent = true|false} 
 %%----------------------------------------------------------------------
 session_defaults() ->
     todo.

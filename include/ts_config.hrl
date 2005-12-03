@@ -71,7 +71,6 @@
         { id,
           popularity,
           type,
-          messages_ack = parse,
           persistent   = false,
           ssl_ciphers  = negociate,
           size 
