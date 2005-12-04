@@ -129,7 +129,7 @@ handle_call({get_req, Id, N}, From, State) ->
 			{reply, {error, Other}, State}
 	end;
 
-handle_call({get_user_agent}, From, State) ->
+handle_call({get_user_agent}, _From, State) ->
 	Tab = State#state.table,
 	case ets:lookup(Tab, {http_user_agent, value}) of 
 		[] -> %% no match, ask the config_server
@@ -149,7 +149,7 @@ handle_call({get_user_agent}, From, State) ->
 			{reply, Reply, State}
 	end;
 
-handle_call({get_server_config}, From, State= #state{table=Tab}) ->
+handle_call({get_server_config}, _From, State= #state{table=Tab}) ->
 	case ets:lookup(Tab, {server_config}) of 
 		[{_, ServerConf}] -> 
 			{reply, ServerConf, State};

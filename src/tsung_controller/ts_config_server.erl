@@ -229,7 +229,7 @@ handle_call({get_req, Id, N}, From, State) ->
 	end;
 
 %% 
-handle_call({get_user_agents}, From, State) ->
+handle_call({get_user_agents}, _From, State) ->
     Config = State#state.config,
     case ets:lookup(Config#config.session_tab, {http_user_agent, value}) of
         [] ->
@@ -343,9 +343,7 @@ handle_cast({newbeam, Host, []}, State=#state{last_beam_id = NodeId,
     end;
 
 %% use_controller_vm and max number of concurrent users reached , big trouble !
-handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId,
-                                              hostname=LocalHost,
-                                              config = Config}) 
+handle_cast({newbeam, Host, _}, State=#state{ hostname=LocalHost,config=Config})
   when Config#config.use_controller_vm and ( ( LocalHost == Host ) or ( Host == 'localhost' )) ->
     Msg ="Maximum number of concurrent users in a single VM reached and 'use_controller_vm' is true, can't start new beam !!!~n",
 	?LOG(Msg, ?EMERG),
@@ -353,7 +351,7 @@ handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId,
     {noreply, State};
 
 %% start a launcher on a new beam with slave module 
-handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId, config= Config}) ->
+handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
     Name = "tsung" ++ integer_to_list(NodeId),
     {ok, [[BootController]]}    = init:get_argument(boot),
     ?DebugF("BootController ~p~n", [BootController]), 
@@ -387,7 +385,7 @@ handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId, confi
             {stop, normal}
     end;
 
-handle_cast({end_launching, Node}, State=#state{ending_beams=Beams}) ->
+handle_cast({end_launching, _Node}, State=#state{ending_beams=Beams}) ->
     {noreply, State#state{ending_beams = Beams+1}};
 
 handle_cast(Msg, State) ->
@@ -409,7 +407,7 @@ handle_info(_Info, State) ->
 %% Description: Shutdown the server
 %% Returns: any (ignored by gen_server)
 %%--------------------------------------------------------------------
-terminate(_Reason, State) ->
+terminate(_Reason, _State) ->
     ok.
 
 %%--------------------------------------------------------------------
@@ -417,7 +415,7 @@ terminate(_Reason, State) ->
 %% Purpose: Convert process state when code is changed
 %% Returns: {ok, NewState}
 %%--------------------------------------------------------------------
-code_change(OldVsn, State, _Extra) ->
+code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 %%--------------------------------------------------------------------

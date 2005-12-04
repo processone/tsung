@@ -57,16 +57,16 @@ start(_Type, _StartArgs) ->
             {error, Reason}
     end.
 
-start_phase(load_config, StartType, _PhaseArgs) ->
+start_phase(load_config, _StartType, _PhaseArgs) ->
 	case ts_config_server:read_config(?config(config_file)) of 
 		{error,Reason}->
 			erlang:display(["Config Error, aborting ! ", Reason]),
 			init:stop();
 		ok -> ok
 	end;
-start_phase(start_os_monitoring, StartType, _PhaseArgs) ->
+start_phase(start_os_monitoring, _StartType, _PhaseArgs) ->
     ts_os_mon:activate();
-start_phase(start_clients, StartType, _PhaseArgs) ->
+start_phase(start_clients, _StartType, _PhaseArgs) ->
     ts_mon:start_clients({?config(clients),
                           ?config(dump),
                           ?config(stats_backend)}).
@@ -78,7 +78,7 @@ status([Host]) when is_atom(Host)->
     _List = net_adm:world_list([Host]),
     global:sync(),
     Msg = case catch ts_mon:status() of 
-              {Clients, {ok, {sample,[Mean, Var, Max, Min, Count]}},Interval, Phase}->
+              {Clients, {ok, {sample,[_Mean, _Var, _Max, _Min, Count]}},Interval, Phase}->
                   S1 = io_lib:format("tsung is running [OK]~n" ++
                                      " Current request rate: ~p req/sec~n" ++
                                      " Current users:        ~p~n",

@@ -192,7 +192,7 @@ handle_call(Request, _From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_cast({sendmsg, Who, When, _What}, State = #state{type = none}) ->
+handle_cast({sendmsg, _, _, _}, State = #state{type = none}) ->
 	{noreply, State};
 
 handle_cast({sendmsg, Who, When, What}, State = #state{type=light,dumpfile=Log}) ->
@@ -449,9 +449,9 @@ reset_all_stats(Dict)->
 %%----------------------------------------------------------------------
 reset_stats({Type,[]}) ->
 	{Type, [0, 0, 0, 0, 0]};
-reset_stats({Type, [Mean, Var, Max, Min, _Count, Last]}) ->
+reset_stats({Type, [_Mean, _Var, Max, Min, _Count, Last]}) ->
 	{Type, [0, 0, Max, Min, 0, Last]};
-reset_stats({Type, [Mean, Var, Max, Min, _Count]}) ->
+reset_stats({Type, [_Mean, _Var, Max, Min, _Count]}) ->
 	{Type, [0, 0, Max, Min, 0]};
 reset_stats({Type, [_Sample, LastValue]}) ->
 	{Type, [0, LastValue]};

@@ -273,7 +273,7 @@ parse(Element = #xmlElement{name=transaction, attributes=Attrs},
     NewConf#config{curid=NewId+1} ;
 
 %%% Parsing the dyn_variable element
-parse(Element = #xmlElement{name=dyn_variable, attributes=Attrs},
+parse(#xmlElement{name=dyn_variable, attributes=Attrs},
       Conf=#config{sessions=[CurS|_],dynvar=DynVar}) ->
     StrName  = getAttr(Attrs, name),
     DefaultRegExp = "name=(\"|')"++ StrName ++"(\"|') +value=(\"|')\\([^\"]+\\)(\"|')",%'

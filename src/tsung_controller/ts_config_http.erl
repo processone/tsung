@@ -124,7 +124,7 @@ parse_config(Element = #xmlElement{name=user_agent}, Conf = #config{session_tab 
     Previous = case ets:lookup(Tab, {http_user_agent, value}) of 
                    [] ->
                        [];
-                   [{Key,Old}] -> 
+                   [{_Key,Old}] -> 
                        Old
                end,
     ets:insert(Tab,{{http_user_agent, value}, [{Freq, Val}|Previous]}),
@@ -180,7 +180,7 @@ set_msg(HTTPRequest, Think, {SubstFlag, MatchRegExp, false, Server, [],_Tab,_Id}
     set_msg(HTTPRequest#http_request{url=URL}, Think, {SubstFlag, MatchRegExp, false, Server, [],_Tab,_Id});
     
 %% relative URL, no previous HTTP server, use proxy, error !
-set_msg(HTTPRequest, Think, {SubstFlag, MatchRegExp, true, _Server, [],_Tab,_Id}) -> 
+set_msg(_, _, {_, _, true, _Server, [],_Tab,_Id}) -> 
     ?LOG("Need absolut URL when using a proxy ! Abort",?ERR),
     throw({error, badurl_proxy});
 %% relative URL, no proxy
@@ -206,14 +206,14 @@ set_msg2(HTTPRequest, Think, Msg) -> % end of a page, wait before the next one
                     thinktime = Think,
                     param = HTTPRequest }.
 
-server_to_url(Server=#server{port=80, host= Host, type= gen_tcp})->
+server_to_url(#server{port=80, host= Host, type= gen_tcp})->
     "http://" ++ Host;
-server_to_url(Server=#server{port=Port, host= Host, type= gen_tcp})->
-    "http://" ++ Host ++ ":" ++ integer_to_list(Server#server.port);
-server_to_url(Server=#server{port=443, host= Host, type= ssl})->
+server_to_url(#server{port=Port, host= Host, type= gen_tcp})->
+    "http://" ++ Host ++ ":" ++ integer_to_list(Port);
+server_to_url(#server{port=443, host= Host, type= ssl})->
     "https://" ++ Host;
-server_to_url(Server=#server{port=Port, host= Host, type= ssl})->
-    "https://" ++ Host ++ ":" ++ integer_to_list(Server#server.port).
+server_to_url(#server{port=Port, host= Host, type= ssl})->
+    "https://" ++ Host ++ ":" ++ integer_to_list(Port).
 
 %%--------------------------------------------------------------------
 %% Func: set_host_header/1

@@ -58,7 +58,7 @@ rewrite_ssl(Data)->{ok, Data}.
 %% Purpose: parse PGSQL request
 %% Returns: {ok, NewState}
 %%--------------------------------------------------------------------
-parse(State=#proxy{parse_status=Status},_,ServerSocket,String=[0,0,0,8,4,210,22,47]) when Status==new ->
+parse(State=#proxy{parse_status=Status},_,_SSocket,String=[0,0,0,8,4,210,22,47]) when Status==new ->
     ?LOG("SSL req: ~n",?DEB),
     {ok, Socket} = gen_tcp:connect(?config(pgsql_server),?config(pgsql_port),
                                    [{active, once},
@@ -87,15 +87,15 @@ parse(State=#proxy{},_,ServerSocket,String) ->
                 more ->
                     ?LOG("need more~n",?DEB),
                     {ok, State#proxy{buffer=String} };
-                {ok, {sql, SQL}, Tail } ->
+                {ok, {sql, SQL}, _Tail } ->
                     SQLStr= binary_to_list(SQL),
                     ?LOGF("sql = ~s~n",[SQLStr],?DEB),
                     ts_proxy_recorder:dorecord({#pgsql_request{type=sql, sql=SQLStr}}),
                     {ok, State#proxy{buffer=[]}};
-                {ok, terminate, Tail } ->
+                {ok, terminate, _Tail } ->
                     ts_proxy_recorder:dorecord({#pgsql_request{type=close}}),
                     {ok, State#proxy{buffer=[]}};
-                {ok, {password, Password}, Tail } ->
+                {ok, {password, Password}, _Tail } ->
                     PwdStr= binary_to_list(Password),
                     ?LOGF("password = ~s~n",[PwdStr],?DEB),
                     ts_proxy_recorder:dorecord({#pgsql_request{type=authenticate, passwd=PwdStr}}),
@@ -136,7 +136,7 @@ decode_packet($p, Data) ->
     Size= size(Data)-1,
     <<Password:Size/binary, 0:8 >> = Data,
     {ok, {password, Password}};
-decode_packet($X, Data) ->
+decode_packet($X, _) ->
     {ok, terminate}.
     
 %%--------------------------------------------------------------------

@@ -98,21 +98,21 @@ init([]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_call(get_all_lines, From, State) ->
+handle_call(get_all_lines, _From, State) ->
 	Reply = {ok, State#state.items},
 	{reply, Reply, State};
 
-handle_call(get_random_line, From, State) ->
+handle_call(get_random_line, _From, State) ->
 	I = random:uniform(State#state.size),
 	Reply = {ok,  lists:nth(I, State#state.items)},
 	{reply, Reply, State};
 
-handle_call(get_next_line, From, State) ->
+handle_call(get_next_line, _From, State) ->
 	I = (State#state.current + 1)  rem State#state.size,
 	Reply = {ok,  lists:nth(I+1, State#state.items)},
 	{reply, Reply, State#state{current=I}};
 
-handle_call({read, Filename}, From, State) when State#state.open == 0 ->
+handle_call({read, Filename}, _From, State) when State#state.open == 0 ->
 	?LOGF("Opening file ~p~n",[Filename],?INFO),
     {Status, File} = file:open(Filename, read),
     case Status of
@@ -125,11 +125,11 @@ handle_call({read, Filename}, From, State) when State#state.open == 0 ->
             file:close(File),
 			{reply, ok, State#state{items = List_items, open= 1, size=length(List_items)}}
     end;
-handle_call({read, Filename}, From, State) ->
+handle_call({read, Filename}, _From, State) ->
 	?LOGF("~p already opened~n",[Filename],?INFO),
 	{reply, {error, already_open}, State};
 
-handle_call(stop, From, State)->
+handle_call(stop, _From, State)->
     {stop, normal, ok, State}.
 
 %%----------------------------------------------------------------------
@@ -138,7 +138,7 @@ handle_call(stop, From, State)->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_cast(Msg, State) ->
+handle_cast(_Msg, State) ->
 	{noreply, State}.
 
 %%----------------------------------------------------------------------
@@ -147,7 +147,7 @@ handle_cast(Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_info(Info, State) ->
+handle_info(_Info, State) ->
 	{noreply, State}.
 
 %%----------------------------------------------------------------------
@@ -155,7 +155,7 @@ handle_info(Info, State) ->
 %% Purpose: Shutdown the server
 %% Returns: any (ignored by gen_server)
 %%----------------------------------------------------------------------
-terminate(Reason, State) ->
+terminate(_Reason, _State) ->
 	ok.
 
 %%--------------------------------------------------------------------
@@ -163,7 +163,7 @@ terminate(Reason, State) ->
 %% Purpose: Convert process state when code is changed
 %% Returns: {ok, NewState}
 %%--------------------------------------------------------------------
-code_change(OldVsn, State, _Extra) ->
+code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 %%%----------------------------------------------------------------------
