@@ -311,7 +311,7 @@ doc:
 release: Makefile tsung.spec
 	rm -fr $(distdir)
 	mkdir -p $(distdir)
-	tar zcf tmp.tgz $(SRC) $(SRC_APPFILES) $(INC_FILES) \
+	tar zcf tmp.tgz $(SRC) $(SRC_APPFILES) $(INC_FILES) $(LIBSRC) \
 		$(CONTROLLER_SRC) $(CONTROLLER_SRC_APPFILES) \
 		$(RECORDER_SRC) $(RECORDER_SRC_APPFILES) $(TEMPLATES) \
 		doc/*.erl doc/*.txt doc/*.fig doc/*.png doc/Makefile doc/*.sgml \
@@ -331,19 +331,23 @@ snapshot:
 	make TYPE=snapshot release
 
 builder.beam: priv/builder.erl 
-	$(CC) -W0 $(OPT) -I $(INC) $<
+	@$(CC) -W0 $(OPT) -I $(INC) $<
 
 ebin/%.beam: src/lib/%.erl $(INC_FILES)
-	$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -o ebin $<
+	@echo  "Compiling  $< ... "
+	@$(CC) -W0 $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -o ebin $<
 
 ebin/%.beam: src/$(APPLICATION)/%.erl $(INC_FILES)
-	$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -o ebin $<
+	@echo  "Compiling  $< ... "
+	@$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -o ebin $<
 
 ebin/%.beam: src/$(RECORDER_APPLICATION)/%.erl  $(INC_FILES)
-	$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -o ebin $<
+	@echo  "Compiling  $< ... "
+	@$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -o ebin $<
 
 ebin/%.beam: src/$(CONTROLLER_APPLICATION)/%.erl  $(INC_FILES)
-	$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -o ebin $<
+	@echo "Compiling  $< ... "
+	@$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -o ebin $<
 
 %:%.sh
 # Override makefile default implicit rule
