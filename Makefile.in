@@ -79,6 +79,7 @@ TARGETDIR = $(ERLANG_LIB_DIR)/$(APPLICATION)-$(VERSION)
 TEMPLATES = $(wildcard $(ESRC)/templates/*.thtml)
 TMP       = $(wildcard *~) $(wildcard src/*~) $(wildcard inc/*~)
 INC_FILES = $(wildcard $(INC)/*.hrl)
+LIBSRC    = $(wildcard $(ESRC)/lib/*.erl)
 SRC       = $(wildcard $(ESRC)/$(APPLICATION)/*.erl)
 CONTROLLER_SRC  = $(wildcard $(ESRC)/$(CONTROLLER_APPLICATION)/*.erl)
 RECORDER_SRC    = $(wildcard $(ESRC)/$(RECORDER_APPLICATION)/*.erl)
@@ -92,6 +93,8 @@ PERL_SCRIPTS = $(basename $(PERL_SCRIPTS_SRC))
 
 TARGET   = $(addsuffix .beam, $(basename \
              $(addprefix $(EBIN)/, $(notdir $(SRC)))))
+LIB_TARGET   = $(addsuffix .beam, $(basename \
+             $(addprefix $(EBIN)/, $(notdir $(LIBSRC)))))
 CONTROLLER_TARGET   = $(addsuffix .beam, $(basename \
              $(addprefix $(EBIN)/, $(notdir $(CONTROLLER_SRC)))))
 RECORDER_TARGET   = $(addsuffix .beam, $(basename \
@@ -126,7 +129,7 @@ DIST_COMMON=Makefile.in $(CONFFILE_SRC) $(PERL_SCRIPTS_SRC) tsung.sh.in tsung.sp
 
 .PHONY: doc
 
-tsung: Makefile config.status $(PERL_SCRIPTS) tsung.sh tsung.spec $(TARGET) $(RECORDER_TARGET) $(CONTROLLER_TARGET)
+tsung: Makefile config.status $(PERL_SCRIPTS) tsung.sh tsung.spec $(TARGET) $(RECORDER_TARGET) $(CONTROLLER_TARGET) $(LIB_TARGET)
 
 all: clean tsung
 
@@ -166,6 +169,7 @@ install: doc boot install_recorder install_controller $(CONFFILE)
 
 	cp $(INC_FILES) $(TARGETDIR)/include
 	cp $(TARGET) $(TARGETDIR)/ebin
+	cp $(LIB_TARGET) $(TARGETDIR)/ebin
 	cp builder.beam $(TARGETDIR)/ebin
 
 	cp $(TGT_APPFILES_E) $(TARGETDIR)/ebin
@@ -205,7 +209,7 @@ install_recorder:
 	cp $(RECORDER_TGT_APPFILES_P) $(RECORDER_TARGETDIR)/priv
 
 	cp $(RECORDER_SRC) $(RECORDER_SRC_APPFILES) $(RECORDER_TARGETDIR)/src
-	echo $(BUILD_OPTIONS_DOT) > $(RECORDER_TARGETDIR)/BUILD_OPTIONS
+	@echo $(BUILD_OPTIONS_DOT) > $(RECORDER_TARGETDIR)/BUILD_OPTIONS
 
 install_controller:
 	install -d $(CONTROLLER_TARGETDIR)/priv
@@ -219,7 +223,7 @@ install_controller:
 	cp $(CONTROLLER_TGT_APPFILES_P) $(CONTROLLER_TARGETDIR)/priv
 
 	cp $(CONTROLLER_SRC) $(CONTROLLER_SRC_APPFILES) $(CONTROLLER_TARGETDIR)/src
-	echo $(BUILD_OPTIONS_DOT) > $(CONTROLLER_TARGETDIR)/BUILD_OPTIONS
+	@echo $(BUILD_OPTIONS_DOT) > $(CONTROLLER_TARGETDIR)/BUILD_OPTIONS
 
 uninstall:
 	rm -rf $(TARGETDIR) $(SCRIPT)
@@ -236,11 +240,13 @@ priv/tsung.boot: builder.beam  $(SRC_APPFILES)
 	@ln -sf $(PWD)/priv temp/lib/$(APPLICATION)-$(VERSION)/priv
 	@ln -sf $(PWD)/builder.beam temp/lib/$(APPLICATION)-$(VERSION)/
 	@ln -sf $(PWD) temp/lib/$(APPLICATION)-$(VERSION)
+	@echo -n "build main app boot script ... "
 	@(cd temp/lib/$(APPLICATION)-$(VERSION) \
 	 && echo $(BUILD_OPTIONS) > $(BUILD_OPTIONS_FILE) \
-	 && $(ERL) -s builder go -s init stop \
+	 && $(ERL) -s builder go -s init stop > /dev/null 2>&1 \
 	)
 	@rm -rf temp
+	@echo "done"
 
 priv/tsung_controller.boot: builder.beam $(CONTROLLER_SRC_APPFILES)
 # use builder to make boot file
@@ -251,11 +257,13 @@ priv/tsung_controller.boot: builder.beam $(CONTROLLER_SRC_APPFILES)
 	@ln -sf $(PWD)/include temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/include
 	@ln -sf $(PWD)/priv temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/priv
 	@ln -sf $(PWD)/builder.beam temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/
+	@echo -n "build controller boot script ... "
 	@(cd temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION) \
 	 && echo $(BUILD_OPTIONS) > $(BUILD_OPTIONS_FILE) \
-	 && $(ERL) -s builder go -s init stop \
+	 && $(ERL) -s builder go -s init stop  > /dev/null 2>&1 \
 	)
 	@rm -rf temp
+	@echo "done"
 
 priv/tsung_recorder.boot: builder.beam $(RECORDER_SRC_APPFILES)
 # use builder to make boot file
@@ -266,11 +274,13 @@ priv/tsung_recorder.boot: builder.beam $(RECORDER_SRC_APPFILES)
 	@ln -sf $(PWD)/include temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/include
 	@ln -sf $(PWD)/priv temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/priv
 	@ln -sf $(PWD)/builder.beam temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/
+	@echo -n "build recorder boot script ... "
 	@(cd temp/lib/$(RECORDER_APPLICATION)-$(VERSION) \
 	 && echo $(BUILD_OPTIONS) > $(BUILD_OPTIONS_FILE) \
-	 && $(ERL) -noshell -s builder go -s init stop \
+	 && $(ERL) -noshell -s builder go -s init stop  > /dev/null 2>&1 \
 	)
 	@rm -rf temp
+	@echo "done"
 
 
 Makefile: Makefile.in config.status
@@ -321,7 +331,10 @@ snapshot:
 	make TYPE=snapshot release
 
 builder.beam: priv/builder.erl 
-	$(CC) $(OPT) -I $(INC) $<
+	$(CC) -W0 $(OPT) -I $(INC) $<
+
+ebin/%.beam: src/lib/%.erl $(INC_FILES)
+	$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -o ebin $<
 
 ebin/%.beam: src/$(APPLICATION)/%.erl $(INC_FILES)
 	$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -o ebin $<
