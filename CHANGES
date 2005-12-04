@@ -2,9 +2,11 @@
     - add new plugin: pgsql for postgresql load testing
     - add plugin architure in recorder; add pgsql plugin
     - add size_rcv stats
+    - import snmp_mgr src from R9C2 to enable SNMP with R10B
     - rebuild boot scripts if erlang version is different from compile time
     - DTD improvements
-    - add loop|stop on badmatch behavior
+    - improved match: add loop|abort|restart on (no)match behavior,
+      multiple match tag is now possible
     - freemem and packet stats for solaris (jasonwtucker@gmail.com)
     - fix presence:roster request
     - add presence:directed request for jabber (jasonwtucker@gmail.com)
@@ -14,8 +16,7 @@
     - ip is no more mandatory (default is 0.0.0.0)
     - clients and monitoring can use host lists defined in environment
       variables, for use with batch schedulers (openpbs/torque, LSF and OAR)
-    - performance improvements in stats engine for very high load
-    - rebuild boot scripts if erlang version is different from compile time
+    - performance improvements in stats engine for very high load (use session_cache)
     - close client socket when connection:closed is ask by the server
       (this should enable https recording with IE)
 
