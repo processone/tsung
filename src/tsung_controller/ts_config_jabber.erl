@@ -80,8 +80,8 @@ parse_config(Element = #xmlElement{name=jabber},
     lists:foldl( fun(A,B) -> ts_config:parse(A,B) end,
                  Config#config{dynvar=undefined},
                  Element#xmlElement.content);
-%% Parsing default values
-parse_config(Element = #xmlElement{name=default}, Conf = #config{session_tab = Tab}) ->
+%% Parsing options
+parse_config(Element = #xmlElement{name=option}, Conf = #config{session_tab = Tab}) ->
     case ts_config:getAttr(Element#xmlElement.attributes, name) of
         "username" ->
             Val = ts_config:getAttr(Element#xmlElement.attributes, value),

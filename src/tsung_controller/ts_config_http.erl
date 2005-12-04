@@ -105,7 +105,7 @@ parse_config(Element = #xmlElement{name=http},
                  Config#config{dynvar=undefined},
                  Element#xmlElement.content);
 %% Parsing default values
-parse_config(Element = #xmlElement{name=default}, Conf = #config{session_tab = Tab}) ->
+parse_config(Element = #xmlElement{name=option}, Conf = #config{session_tab = Tab}) ->
     case ts_config:getAttr(Element#xmlElement.attributes, name) of
         "user_agent" ->
             Val = ts_config:getAttr(Element#xmlElement.attributes, value), %FIXME: useless
@@ -117,17 +117,17 @@ parse_config(Element = #xmlElement{name=default}, Conf = #config{session_tab = T
     lists:foldl( fun(A,B)->ts_config:parse(A,B) end, Conf, Element#xmlElement.content);
 %% Parsing user_agent
 parse_config(Element = #xmlElement{name=user_agent}, Conf = #config{session_tab = Tab}) ->
-    Freq= ts_config:getAttr(integer,Element#xmlElement.attributes, frequency),
+    Proba = ts_config:getAttr(integer,Element#xmlElement.attributes, probability),
     [ValRaw]= ts_config:getText(Element#xmlElement.content),
     Val = ts_utils:clean_str(ValRaw),
-    ?LOGF("Get user agent: ~p ~p ~n",[Freq, Val],?WARN),
+    ?LOGF("Get user agent: ~p ~p ~n",[Proba, Val],?WARN),
     Previous = case ets:lookup(Tab, {http_user_agent, value}) of 
                    [] ->
                        [];
                    [{_Key,Old}] -> 
                        Old
                end,
-    ets:insert(Tab,{{http_user_agent, value}, [{Freq, Val}|Previous]}),
+    ets:insert(Tab,{{http_user_agent, value}, [{Proba, Val}|Previous]}),
     lists:foldl( fun(A,B)->parse_config(A,B) end, Conf, Element#xmlElement.content);
 %% Parsing other elements
 parse_config(Element = #xmlElement{}, Conf = #config{}) ->
@@ -288,7 +288,7 @@ parse_URL(path,[$?|T], Acc, URL) ->
 parse_URL(path,[H|T], Acc, URL) ->
     parse_URL(path, T, [H|Acc], URL).
 
-% check if the sum of all user agent frequency is equal to 100%
+% check if the sum of all user agent probabilities is equal to 100%
 check_user_agent_sum(Tab) ->
     case ets:lookup(Tab, {http_user_agent, value}) of
         [] -> 

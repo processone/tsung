@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!ELEMENT tsung (clients, server, monitoring?, arrivalphase+, default*, session+)>
+<!ELEMENT tsung (information?, clients, server, monitoring?, load, options?, sessions)>
+
+<!ELEMENT information (name|description|username|organisation)*>
+
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT username (#PCDATA)>
+<!ELEMENT organisation (#PCDATA)>
 
 <!ATTLIST tsung 
      dumptraffic (true | false | light) "false"
@@ -34,6 +41,7 @@
      batch (true | false) "false"
      type (snmp | erlang) "erlang">
 
+<!ELEMENT load (arrivalphase+)>
 <!ELEMENT arrivalphase (users)>
 <!ATTLIST arrivalphase
      duration NMTOKEN #REQUIRED
@@ -46,19 +54,21 @@
      unit (hour | minute | second) #REQUIRED
      maxnumber NMTOKEN #IMPLIED>
 
-<!ELEMENT default (user_agent*)>
-<!ATTLIST default
+<!ELEMENT options (option*)>
+<!ELEMENT option (user_agent*)>
+<!ATTLIST option
     name     NMTOKEN #REQUIRED
     override (true | false) #IMPLIED
     random   (true | false) #IMPLIED
     type     (ts_http | ts_jabber | ts_pgsql) #IMPLIED
     value    CDATA #IMPLIED>
 
+<!ELEMENT sessions (session+)>
 <!ELEMENT session ( request | thinktime | transaction )*>
 <!ATTLIST session
     name         CDATA #REQUIRED
     persistent   (true | false) #IMPLIED
-    popularity   NMTOKEN #REQUIRED
+    probability   NMTOKEN #REQUIRED
     type         (ts_jabber | ts_http | ts_raw | ts_pgsql) #REQUIRED>
 
 <!ELEMENT request ( match*, ( http | jabber | raw | pgsql ), dyn_variable* )>
@@ -82,7 +92,7 @@
 
 <!ELEMENT user_agent (#PCDATA)*>
 <!ATTLIST user_agent
-    frequency CDATA #REQUIRED
+    probability NMTOKEN #REQUIRED
     >
 
 <!ELEMENT transaction (request+)>

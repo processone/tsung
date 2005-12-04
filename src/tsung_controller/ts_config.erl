@@ -234,7 +234,7 @@ parse(Element = #xmlElement{name=session, attributes=Attrs},
     Name        = getAttr(Attrs, name),
     ?LOGF("Session name for id ~p is ~p~n",[Id+1, Name],?NOTICE),
     ?LOGF("Session type: persistent=~p~n",[Persistent],?NOTICE),
-    Popularity = getAttr(float_or_integer, Attrs, popularity),
+    Probability = getAttr(float_or_integer, Attrs, probability),
     case Id of 
         0 -> ok; % first session 
         _ -> 
@@ -244,7 +244,7 @@ parse(Element = #xmlElement{name=session, attributes=Attrs},
             
     lists:foldl(fun parse/2,
                 Conf#config{sessions = [#session{id           = Id + 1,
-                                                 popularity   = Popularity,
+                                                 popularity   = Probability,
                                                  type         = Type,
                                                  persistent   = Persistent,
                                                  ssl_ciphers  = Conf#config.ssl_ciphers
@@ -319,8 +319,8 @@ parse(Element=#xmlElement{name=match,attributes=Attrs},
     lists:foldl(fun parse/2,
                 Conf#config{ match=lists:append(Match, [NewMatch]) },
                 Element#xmlElement.content);
-%%% Parsing the default element
-parse(Element = #xmlElement{name=default, attributes=Attrs},
+%%% Parsing the option element
+parse(Element = #xmlElement{name=option, attributes=Attrs},
       Conf = #config{session_tab = Tab}) ->
     case getAttr(atom,Attrs, type) of
         "" ->

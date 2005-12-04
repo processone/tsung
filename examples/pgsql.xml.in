@@ -8,16 +8,19 @@
 
   <!-- Server side setup -->
   <server host="127.0.0.1" port="5432" type="tcp"/>
+
   <monitoring>
    <monitor host="localhost"/>
   </monitoring>
   
-
+ <load>
   <arrivalphase phase="1" duration="10" unit="minute">
     <users interarrival="30" unit="second"></users>
   </arrivalphase>
+ </load>
 
- <session popularity="100" name="pgsql-example" type="ts_pgsql">
+ <sessions>
+  <session probability="100" name="pgsql-example" type="ts_pgsql">
     <transaction name="connection">
       <request>
         <pgsql type="connect" database="bench" username="bench" />
@@ -43,5 +46,6 @@
     <request><pgsql type="close"></pgsql></request>
 
   </session>
+ </sessions>
 </tsung>
 
