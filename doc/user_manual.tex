@@ -172,6 +172,16 @@ distribution (currently exponential)
 \item raw XML messages
 \end{itemize}
 
+\subsection{PostgreSQL related features}
+
+This pluging is still experimental
+
+\begin{itemize}
+\item Basic Authentication
+\item Basic Queries (Extended queries not yet supported)
+\item Proxy mode to record sessions
+\end{itemize}
+
 \subsection{Complete reports set}
 
 Measures and statistics produced by Tsung are extremely feature-full.
@@ -224,7 +234,7 @@ MacOS-X).
 
 \subsection{Dependencies}
 \begin{itemize}
-\item Erlang/OTP R9C-0 and up (included R10B-6)
+\item Erlang/OTP R9C-0 and up (included R10B-8)
   (\url{http://www.erlang.org/download.html}).  RedHat users can
   download a R9C-2 rpm at
   \url{http://www.erlang-projects.org/Public/rpmdeb/rpm_erlang_otp_r9c-2/view}.
@@ -236,10 +246,10 @@ MacOS-X).
     \url{http://www.cellicium.com/erlang/contribs/} . The module is
     included in the source and binary distribution of \program{Tsung}. It
     is released under the EPL License.
-  \item pgsql module (for the postgresql plugin):
-    source available at
+  \item pgsql module made by Christian Sunesson (for the postgresql plugin):
+    sources available at
     \url{http://jungerl.sourceforge.net/} . The module is
-    included in the source and binary distribution of \program{IDX-Tsunami}. 
+    included in the source and binary distribution of \program{Tsung}. 
    \item  gnuplot and perl5 (optional; for graphical output with
     \command{tsung\_stats.pl} script).  The Template Toolkit is used for HTML
     reports (see \url{http://template-toolkit.org/})
@@ -303,10 +313,11 @@ the number of simultaneous users for each given phase.
 \subsection{benchmarking a proxy server}
 
 By default, the HTTP plugin is used to benchmark HTTP servers. But you
-can also benchmark HTTP Proxy server. To do that, you must add :
+can also benchmark HTTP Proxy server. To do that, you must add in the
+\varname{options} section:
 
 \begin{Verbatim}
-  <default type="ts_http" name="http_use_server_as_proxy" value="true"></default>
+  <option type="ts_http" name="http_use_server_as_proxy" value="true"></option>
 \end{Verbatim}
 
 \section{PostgreSQL benchmark approach}
@@ -314,6 +325,9 @@ can also benchmark HTTP Proxy server. To do that, you must add :
 It's the same approach as HTTP: first you start to record one or more
 sessions with the recorder: 
 \command{idx-tsunami -p pgsql  recorder}
+
+This will start a proxy listening to port 8090 and will proxy requests
+to 127.0.0.0:5432.
 
 \section{Jabber benchmark approach}
 
@@ -353,7 +367,7 @@ with global ack (it can be the first presence msg:
 You also have to specify the number of users to be connected:
 
 \begin{Verbatim}
-<default type="ts_jabber" name="global_number" value="100"></default>
+<option type="ts_jabber" name="global_number" value="100"></option>
 \end{Verbatim}
 
 To be sure that exactly \varname{global\_number} users are started, add the
@@ -376,23 +390,46 @@ If you do not specify maxnumber, the global ack will be reset every
  \begin{Verbatim}
 <?xml version="1.0"?>
 <!DOCTYPE tsung SYSTEM "/usr/share/tsung/tsung-1.0.dtd" [] >
-<tsung loglevel="info" dumptraffic="false">
+<tsung loglevel="info">
 ...
 </tsung>
  \end{Verbatim}
 
+ If you add the attribute \userinput{dumptraffic="true"}, all the
+ traffic will be logged to a file. \emph{Warn:} this will considerably
+ slow down Tsung, so use with care. It is useful for debugging
+ purpose.
 
 \subsection{Clients and server}
 
  Scenarios start with clients (Tsung cluster) and server definitions:
 
+For non distributed load, you can use a basic setup like:
+
 \begin{Verbatim}
   <clients>
-     <client host="louxor" weight="1" maxusers="500">
+     <client host="localhost" use_controller_vm="true"/>
+  </clients>
+
+  <server host="192.168.1.1" port="80" type="tcp"></server>
+ \end{Verbatim}
+
+This will start the load on the same host and on the same Erlang
+virtual machine as the controller.
+
+The server is the entry point into the cluster (only one server
+ can be defined).
+
+The next example is a more complex, and use several features for
+advanced distributed testing:
+
+\begin{Verbatim}
+  <clients>
+     <client host="louxor" weight="1" maxusers="800">
          <ip value="10.9.195.12"></ip>
          <ip value="10.9.195.13"></ip>
      </client>
-     <client host="memphis" weight="3" maxusers="250" cpu="2">
+     <client host="memphis" weight="3" maxusers="600" cpu="2">
          <ip value="10.9.195.14"></ip>
      </client>
   </clients>
@@ -420,9 +457,6 @@ If you do not specify maxnumber, the global ack will be reset every
  where for the second client has 2 CPU and weight=3, the weight is
  equal to 1.5 for each CPU.
 
- The server is the entry point into the cluster (Only one server
- should be defined).
-
 
 \subsection{Monitoring}
 
@@ -443,20 +477,20 @@ a cluster of 6 computers:
 
 The type keyword snmp can replace the erlang keyword, if SNMP monitoring
 is preferred. They can be mixed. erlang is the default value for
-monitoring. (\strong{Note:} SNMP is currently not working with erlang
-R10B, use R9C-2 if you need snmp monitoring).
+monitoring.
 
 \par Note: For Erlang monitoring, monitored computers need to be
-accessible through the network. SSH needs to be configured to allow
-connection without password on. \strong{You must use the same version of
-Erlang/OTP on all nodes otherwise it may not work properly !}
-
+accessible through the network. SSH (or rsh) needs to be configured to
+allow connection without password on. \strong{You must use the same
+  version of Erlang/OTP on all nodes otherwise it may not work
+  properly !}
 
 \subsection{Defining the load progression}
 
 \par The load progression is set-up by defining several arrival phases:
 
 \begin{Verbatim}
+ <load>
   <arrivalphase phase="1" duration="10" unit="minute">
     <users interarrival="2" unit="second"> </users>
   </arrivalphase>
@@ -468,6 +502,7 @@ Erlang/OTP on all nodes otherwise it may not work properly !}
   <arrivalphase phase="3" duration="10" unit="minute">
     <users interarrival="0.1" unit="second"> </users>
   </arrivalphase>
+ </load>
 \end{Verbatim}
 
 With this setup, during the first 10 minutes of the test, a new user
@@ -481,28 +516,28 @@ depend on the mean number of requests within a session (if you have a
 mean value of 100 requests per session and 10 new users per seconds,
 the theoretical average throughput will be 1000 requests/ sec).
  
-\subsection{Setting Default values}
+\subsection{Setting options}
 
 \par Default values can be set-up globally: thinktime between requests
 in the scenario and ssl cipher algorithms. These values overrides
 those set in session configuration tags if override is true.
 \begin{Verbatim}
-  <default name="thinktime" value="3" random="false" override="true"/>
-  <default name="ssl_ciphers" 
+  <option name="thinktime" value="3" random="false" override="true"/>
+  <option name="ssl_ciphers" 
            value="EXP1024-RC4-SHA,EDH-RSA-DES-CBC3-SHA"/>
 \end{Verbatim}
 
-\subsubsection{Default values: Jabber}
+\subsubsection{Jabber options}
 
 Default values for specific protocols can be defined. Here is an
-example of default values for Jabber:
+example of option values for Jabber:
 
 \begin{Verbatim}
-  <default type="ts_jabber" name="global_number" value="5" />
-  <default type="ts_jabber" name="userid_max" value="100" />
-  <default type="ts_jabber" name="domain" value="jabber.org" />
-  <default type="ts_jabber" name="username" value="myuser" />
-  <default type="ts_jabber" name="passwd" value="mypasswd" />
+  <option type="ts_jabber" name="global_number" value="5" />
+  <option type="ts_jabber" name="userid_max" value="100" />
+  <option type="ts_jabber" name="domain" value="jabber.org" />
+  <option type="ts_jabber" name="username" value="myuser" />
+  <option type="ts_jabber" name="passwd" value="mypasswd" />
 \end{Verbatim}
 
 Using these values, users will be \userinput{myuserXXX} where XXX is an integer in
@@ -517,23 +552,22 @@ If not set in the configuration file, the values will be set to:
 \item passwd = FIXME
 \end{itemize}
 
-\subsubsection{Default values: HTTP}
+\subsubsection{HTTP options}
 
-For HTTP, you can set the UserAgent values (\string{available since
-  Tsung 1.1.0}), using a frequency for each value (the sum of all
-frequencies must be equal to 100)
+For HTTP, you can set the \varname{UserAgent} values
+(\string{available since Tsung 1.1.0}), using a probability for each
+value (the sum of all probabilities must be equal to 100)
 
 \begin{Verbatim}
-  <default type="ts_http" name="user_agent">
-    <user_agent frequency="80">
+  <option type="ts_http" name="user_agent">
+    <user_agent probability="80">
        Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.7.8) Gecko/20050513 Galeon/1.3.21
     </user_agent>
-    <user_agent frequency="20">
+    <user_agent probability="20">
       Mozilla/5.0 (Windows; U; Windows NT 5.2; fr-FR; rv:1.7.8) Gecko/20050511 Firefox/1.0.4
     </user_agent>
-  </default>
+  </option>
 \end{Verbatim}
-
 
 \subsection{Sessions}
 
@@ -548,6 +582,7 @@ statistics definition, ...
 
 
 \begin{Verbatim}
+<sessions>
   <session name="http-example" popularity="70" type="ts_http">
 
     <request> <http url="/" method="GET" version="1.1">
@@ -583,11 +618,12 @@ statistics definition, ...
 
   <session name="backoffice" popularity="30" ...>
   ... </session>
+</sessions>
 \end{Verbatim}
 
-The popularity is the frequency of this type of session. This is used
-to decide which session a new user will execute. The sum of all
-session\verb|'|s popularity must be 100. 
+Each session has a given probability. This is used to decide which
+session a new user will execute. The sum of all session\verb|'|s
+probabilities must be 100.
 
 A transaction is just a way to have customized statistics. Say if you
 want to know the response time of the login page of your website, you
@@ -602,7 +638,8 @@ response time.
 \label{sec:sessions:jabber}
 \par Here is an example of a session definition for the Jabber protocol:
 \begin{Verbatim}
- <session popularity="70" name="jabber-example" type="ts_jabber">
+<sessions>
+ <session probability="70" name="jabber-example" type="ts_jabber">
 
     <request> <jabber type="connect" ack="no_ack" /> </request>
 
@@ -637,7 +674,7 @@ response time.
       <request> <jabber type="close" ack="local"> </jabber></request>
     </transaction>
   </session>
-
+</sessions>
 \end{Verbatim}
 
 \subsubsection{Dynamic substitutions}
@@ -658,19 +695,17 @@ id of the current virtual user and DynData the list of all Dynamic
 variables (\strong{Warn: before version 1.1.0, the argument was just the
   Pid !}).
 
-
-
 Here is an example of use of substitution in a Tsung scenario:
 
 \begin{Verbatim}
-<session name="rec20040316-08:47" popularity="100" type="ts_http">
+<session name="rec20040316-08:47" probability="100" type="ts_http">
  <request subst="true">
   <http url="/echo?symbol=%%symbol:new%%" method="GET">
   </http></request>
 </session>
 \end{Verbatim}
 
- Here is the Erlang code of the module used for dynamic substitution:
+Here is the Erlang code of the module used for dynamic substitution:
 
 \begin{Verbatim}
 -module(symbol).
@@ -684,12 +719,16 @@ new({Pid, DynData}) ->
     end.
 \end{Verbatim}
 
+(use \command{erlc} to compiled the code, and put the resulting .beam
+file in \file{$PREFIX/lib/erlang/lib/tsung-X.X.X/ebin/} on all client
+machines)
+
 As you can see, writing scenario with dynamic substitution is trivial.
 
 If you want to set unique id, you can use the built-in function
 \varname{ts\_user\_server:get\_unique\_id}.
 \begin{Verbatim}
-<session name="rec20040316-08:47" popularity="100" type="ts_http">
+<session name="rec20040316-08:47" probability="100" type="ts_http">
  <request subst="true">
   <http url="/echo?id=%%ts_user_server:get_unique_id%%" method="GET">
   </http></request>
@@ -704,7 +743,7 @@ you can read only a single file).
 
 You have to add this in the xml configuration file:
 \begin{Verbatim}
- <default name="file_server"  value="/tmp/userlist.csv"></default>
+ <option name="file_server"  value="/tmp/userlist.csv"></option>
 \end{Verbatim}
 
 Now you can build you own function to use it, for example:
@@ -786,16 +825,18 @@ hand, for example to get the title of a HTML page:
 
 \subsubsection{Checking the server's response}
 
-With the attribute \varname{match} in a \varname{request} tag, you can
-check the server's response against a given string. If it matches, this
-will increment the \varname{match} counter, if it does not match, the
+With the tag \varname{match} in a \varname{request} tag, you can check
+the server's response against a given string, and do some actions
+depending on the result. In any case, if it matches, this will
+increment the \varname{match} counter, if it does not match, the
 \varname{nomatch} counter will be incremented.
 
 For example, let's say you want to test a login page. If the login is
 ok, the server will respond with \computeroutput{Welcome !} in the
 HTML body, otherwise not. To check that:
 \begin{Verbatim}
- <request match="Welcome !">
+ <request>
+      <match do="continue" when="match">Welcome !</match>
       <http url='/login.php' version='1.0' method='POST' 
        contents='username=nic&amp;user_password=sesame'
        content_type='application/x-www-form-urlencoded' >
@@ -803,6 +844,27 @@ HTML body, otherwise not. To check that:
 \end{Verbatim}
 
 You can use a regexp instead of a simple string.
+
+The list of available actions to do is:
+\begin{itemize}
+\item continue
+\item abort : abort the session
+\item restart: restart the session. The maximum number of
+  restarts is 3 by default.
+\item loop: repeat the request, after 5 seconds. The maximum number of
+  loops is 20 by default.
+\end{itemize}
+
+You can mixed several match tag in a single request:
+\begin{Verbatim}
+ <request>
+      <match do="loop" sleep_loop="5" max_loop="10" when="match">Retry</match>
+      <match do="abort" when="match">Error</match>
+      <http url='/index.php' method=GET'>
+ </request>
+\end{Verbatim}
+
+You can also do the action on "nomatch" instead of "match".
 
 \section{Statistics and reports}
 \label{sec:statistics-reports}
@@ -815,7 +877,8 @@ You can use a regexp instead of a simple string.
   of request not separated by a thinktime))
 \item  connect (duration of the connection establishment)
 \item  reconnect (number of reconnection)
-\item  size (size of responses)
+\item  size\_rcv (size of responses)
+\item  size\_sent (size of requests)
 \item  session (duration of a user's session)
 \item  users (number of simultaneous users)
 \item  custom transactions
@@ -1109,10 +1172,6 @@ interarrival="3.6" unit="second">} in the \varname{arrivalphase} node in the
 XML config file).
 
 \subsection{SNMP monitoring doesn't work ?!}
-
-SNMP currently doesn't work with erlang R10B and up. Use erlang R9C-2 if you
-need SNMP.
-
 
 It use SNMP v1 and the 'public' community. It has been tested with
 \url{http://net-snmp.sourceforge.net/}.
