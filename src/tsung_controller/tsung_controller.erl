@@ -96,7 +96,7 @@ status([Host]) when is_atom(Host)->
               {_,  error, _,_} ->
                   "Tsung is initializing, please wait ...";
               {'EXIT', {noproc, _}} ->
-                  "Tsung is not started [ERROR]"
+                  "Tsung is not started"
           end,
     io:format("~s~n",[Msg]).  
 

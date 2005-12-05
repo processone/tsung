@@ -43,6 +43,15 @@ stop_recorder() {
     rm $PIDFILE
 }
 
+recorder_status() {
+    PIDFILE="/tmp/tsung_recorder.pid"
+    if [ -f $PIDFILE ]; then
+      echo "Tsung recorder started [OK]"
+    else
+      echo "Tsung recorder not started "
+    fi
+}
+
 checkversion() {
     if [ $ERTS_RUN != $ERTS_BOOT ]
     then
@@ -125,7 +134,7 @@ status() {
 
 checkrunning_controller() {
     RES=`status`
-    if [ "$RES" != "Tsung is not started [ERROR]" ]; then
+    if [ "$RES" != "Tsung is not started" ]; then
         echo "Tsung is already running, exit."
         exit 1
     fi
@@ -142,8 +151,9 @@ checkrunning(){
 }
 
 usage() {
-    prog=`basename $1`
+    prog=`basename $0`
     echo "$prog start|stop|restart|debug|status|recorder|stop_recorder|version"
+    exit
 }
 
 while getopts ":f:p:l:d:r:" Option
@@ -197,6 +207,7 @@ case $1 in
         ;;
 
     status)
+        recorder_status
         status
         ;;
 
