@@ -79,7 +79,7 @@ status([Host]) when is_atom(Host)->
     global:sync(),
     Msg = case catch ts_mon:status() of 
               {Clients, {ok, {sample,[_Mean, _Var, _Max, _Min, Count]}},Interval, Phase}->
-                  S1 = io_lib:format("tsung is running [OK]~n" ++
+                  S1 = io_lib:format("Tsung is running [OK]~n" ++
                                      " Current request rate: ~p req/sec~n" ++
                                      " Current users:        ~p~n",
                                      [Count/Interval, Clients]),
@@ -94,9 +94,9 @@ status([Host]) when is_atom(Host)->
                           io_lib:format("~s Current phase:        ~p",[S1,NPhases])
                   end;
               {_,  error, _,_} ->
-                  "tsung is initializing, please wait ...";
+                  "Tsung is initializing, please wait ...";
               {'EXIT', {noproc, _}} ->
-                  "tsung is not started [ERROR]"
+                  "Tsung is not started [ERROR]"
           end,
     io:format("~s~n",[Msg]).  
 
