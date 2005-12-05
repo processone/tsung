@@ -33,7 +33,7 @@ A distributed multi-protocol load testing tool.
       <arg><option>-f</option> configuration file</arg>
       <arg><option>-l</option> log file</arg>
       <arg><option>-r</option> command</arg>
-      <arg><option>-p</option> plugin</arg> (recorder only)
+      <arg><option>-p</option> plugin</arg>
       <arg>start|stop|restart|debug|status|recorder|stop_recorder</arg>
     </cmdsynopsis>
   </refsynopsisdiv>
@@ -43,7 +43,7 @@ A distributed multi-protocol load testing tool.
     <para>
       <command>tsung</command> is a distributed load testing
       tool.  It is protocol-independent and can currently be used to
-      stress and benchmark HTTP and Jabber servers.</para>
+      stress and benchmark HTTP, PostgreSQL and Jabber servers.</para>
 
     <para> It simulates user behaviour using an XML description file,
     reports many measurements in real time (statistics can be
@@ -54,16 +54,18 @@ A distributed multi-protocol load testing tool.
     record sessions, supports GET and POST methods, Cookies, and Basic
     WWW-authentication. It also has support for SSL.  </para>
 
+    <para> There are two applications builtin with this script: the load testing tool, and the proxy recorder.
+    </para>
     <para>
-      An example config file can be found in
-      <filename>/usr/share/doc/tsung/examples/tsung.xml</filename>.
+      Several config examples can be found in
+      <filename>/usr/share/doc/tsung/examples/</filename>.
       </para>
 
     <variablelist>
       <varlistentry>
         <term><option>start</option></term>
         <listitem>
-          <para>start tsung</filename></para>
+          <para>start tsung load testing</filename></para>
         </listitem>
         <term><option>debug</option></term>
         <listitem>
@@ -75,11 +77,11 @@ A distributed multi-protocol load testing tool.
         </listitem>
         <term><option>recorder</option></term>
         <listitem>
-          <para>start the HTTP proxy recorder (listening port is 8090) </filename></para>
+          <para>start the proxy recorder (listening port is 8090). By default the HTTP recorder is started. With the -p option, you can select another plugin. The resulting files will be created as <filename>~/.tsung/tsung_recorderYYYMMDD-HH:MM.xml</filename>; if it doesn't work, take a look at <filename>~/.tsung/log/tsung.log-tsunami_recorder@hostname</filename> </para>
         </listitem>
         <term><option>stop_recorder</option></term>
         <listitem>
-          <para>stop the HTTP proxy recorder</filename></para>
+          <para>stop the proxy recorder</filename></para>
         </listitem>
         <term><option>status</option></term>
         <listitem>
@@ -108,18 +110,24 @@ A distributed multi-protocol load testing tool.
       </varlistentry>
       <varlistentry>
 	<term><option>-l</option></term>
-	<listitem>
+        <listitem>
           <para>specifies the log file to use. The default log file name is <filename>~/tsung/log/tsung.log</filename></para>
-	</listitem>
+        </listitem>
       </varlistentry>
     </variablelist>
       <varlistentry>
-	<term><option>-r</option></term>
-	<listitem>
-          <para> Specifies an alternative to ssh (rsh for ex.) for starting a slave node on a remote host</para>
-	</listitem>
-      </varlistentry>
-    </variablelist>
+      <term><option>-r</option></term>
+      <listitem>
+        <para> Specifies an alternative to ssh (rsh for ex.) for starting a slave node on a remote host</para>
+      </listitem>
+    </varlistentry>
+      <varlistentry>
+      <term><option>-p</option></term>
+      <listitem>
+        <para> Specifies the plugin used for the recorder. Default is http, available: http, pgsql</para>
+      </listitem>
+    </varlistentry>
+  </variablelist>
   </refsect1>
 
   <refsect1>
