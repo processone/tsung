@@ -137,13 +137,17 @@ match([Match=#match{regexp=RegExp, do=Action, 'when'=When}| Tail], String, Count
         {match,_, _} ->
             ?LOGF("Ok Match (regexp=~p)~n",[RegExp], ?INFO),
             case Action of 
-                loop -> put(loop_count, 0)
+                loop    -> put(loop_count, 0);
+                restart -> put(restart_count, 0);
+                _       -> ok
             end,
             match(Tail, String, Counts, [{count, match} | Stats]);
         nomatch ->
             ?LOGF("Bad Match (regexp=~p)~n",[RegExp], ?INFO),
             case Action of 
-                loop -> put(loop_count, 0)
+                loop    -> put(loop_count, 0);
+                restart -> put(restart_count, 0);
+                _       -> ok
             end,
             match(Tail, String, Counts,[{count, nomatch} | Stats]);
         {error,_Error} ->
