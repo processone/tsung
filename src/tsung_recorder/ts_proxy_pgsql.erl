@@ -81,12 +81,13 @@ parse(State=#proxy{parse_status=Status},_,ServerSocket,String) when Status==new 
     ts_client_proxy:send(ServerSocket, Data, ?MODULE),
     {ok, State#proxy{parse_status=open, buffer=[]} };
 parse(State=#proxy{},_,ServerSocket,String) ->
-    Data = list_to_binary(lists:append(String, State#proxy.buffer)),
+    NewString = lists:append(State#proxy.buffer, String),
+    Data = list_to_binary(NewString),
     ?LOGF("Received data from client: ~p~n",[Data],?DEB),
     Reply = case process_data(Data) of
                 more ->
                     ?LOG("need more~n",?DEB),
-                    {ok, State#proxy{buffer=String} };
+                    {ok, State#proxy{buffer=NewString} };
                 {ok, {sql, SQL}, _Tail } ->
                     SQLStr= binary_to_list(SQL),
                     ?LOGF("sql = ~s~n",[SQLStr],?DEB),
