@@ -151,7 +151,7 @@ record_request(State=#state_rec{logfd=Fd},
 	io:format(Fd,"</request>~n",[]),
     {ok,State};
 record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=sql, sql=SQL})->
-    io:format(Fd,"<request><pgsql type='sql'>~s</pgsql>", [SQL]),
+    io:format(Fd,"<request><pgsql type='sql'><![CDATA[~s]]></pgsql>", [SQL]),
 	io:format(Fd,"</request>~n",[]),
     {ok,State};
 record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=close})->
