@@ -155,7 +155,6 @@ clean:
 	-rm -f $(TARGET) $(TMP) $(BUILD_OPTIONS_FILE) builder.beam
 	-rm -f $(TGT_APPFILES) tsung.sh $(PERL_SCRIPTS) $(CONFFILE)
 	-rm -f ebin/*.beam tsung.sh tsung.spec tsung.xml
-	-make -C doc clean
 
 install: doc boot install_recorder install_controller $(CONFFILE)
 	-rm -f $(TMP)
@@ -308,13 +307,13 @@ configure: configure.in $(CONFIGURE_DEPENDENCIES)
 doc: 
 	make -C doc
 
-release: Makefile tsung.spec
+release: Makefile tsung.spec doc
 	rm -fr $(distdir)
 	mkdir -p $(distdir)
 	tar zcf tmp.tgz $(SRC) $(SRC_APPFILES) $(INC_FILES) $(LIBSRC) \
 		$(CONTROLLER_SRC) $(CONTROLLER_SRC_APPFILES) \
 		$(RECORDER_SRC) $(RECORDER_SRC_APPFILES) $(TEMPLATES) \
-		doc/*.erl doc/*.txt doc/*.fig doc/*.png doc/Makefile doc/*.sgml \
+		doc/*.erl doc/*.txt doc/*.fig doc/*.png doc/Makefile doc/*.sgml doc/*.1 \
 		$(USERMANUAL) $(USERMANUAL_SRC) $(USERMANUAL_IMG) $(DTD) \
 		COPYING README LISEZMOI TODO $(CONFFILE_SRC) \
 		priv/builder.erl tsung.sh.in vsn.mk \
