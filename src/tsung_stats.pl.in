@@ -27,8 +27,8 @@
 
 use strict;
 use Getopt::Long;
-use vars qw ($help @files $verbose $debug $plot $extra $version $stats
-             $template_dir $html $template_dir $gnuplot $logy);
+use vars qw ($help @files $verbose $debug $noplot $noextra $version $stats
+             $template_dir $nohtml $template_dir $gnuplot $logy);
 my $tagvsn = '@PACKAGE_VERSION@';
 
 GetOptions( "help",\$help,
@@ -38,14 +38,16 @@ GetOptions( "help",\$help,
 			"gnuplot=s",\$gnuplot,
 			"version",\$version,
 			"logy",\$logy,
-			"plot",\$plot,
+			"noplot",\$noplot,
 			"tdir=s",\$template_dir,
-			"html",\$html,
-			"extra",\$extra
+			"nohtml",\$nohtml,
+			"noextra",\$noextra
 		  );
 
 &usage if $help or $Getopt::Long::error;
 &version if $version;
+
+my $extra = not $noextra;
 
 my $match =0;
 my $errors =0;
@@ -88,7 +90,7 @@ die "$gnuplot is not executable !" unless -x $gnuplot;
 $gnuplot .= " >> gnuplot.log 2>&1";
 
 &parse_stats_file($stats);
-&html_report() if $html;
+&html_report() unless $nohtml;
 
 # plot stats from file
 sub plot_stats {
@@ -241,7 +243,7 @@ sub parse_stats_file {
 		}
 	}
 	close FILE;
-    unless ($html) {
+    if ($nohtml) {
         foreach my $key (sort keys %{$maxval->{'rate'}}) {
             if ($key =~ /\d+/ or $key =~ /^size/) {
                 printf "Total $key = %7.2f\n", $maxval->{'mean'}->{$key};
@@ -315,19 +317,19 @@ sub parse_stats_file {
 		}
 		close TYPE;
 	}
-	plot_stats(\@col,"Session",undef,\@session,["sessions/sec"],$logy) if $plot;
-	plot_stats(\@colcount,"HTTP_CODE",undef,\@code,["number/sec","total"],$logy) if $plot and @code;
-	plot_stats(\@col,"Perfs",undef,\@tps,["rate","msec"],$logy) if $plot;
-	plot_stats(\@col,"Transactions",undef,\@transactions,["transactions/sec","msec"],$logy) if $plot;
-	plot_stats(\@colcount,"Match",undef,\@match,["rate","rate"],$logy) if $plot;
-	plot_stats(\@colcount,"Event",undef,\@time,["rate","msec"],$logy) if $plot;
-	plot_stats(\@colcount,"Errors",undef,\@errors,["errors/sec","total"],$logy) if $plot;
-	plot_stats(\@colusers,"Users",undef,\@users,["connected users", "total"],$logy) if $plot;
-	plot_stats(\@colcount,"Users_Arrival",undef,\@users_rate,["number of users/sec", "total"],$logy) if $plot;
-	plot_stats(\@colcount,"Size",undef,\@size,["Kbits/sec","total Kbits"],$logy) if $plot;
+	plot_stats(\@col,"Session",undef,\@session,["sessions/sec"],$logy) unless $noplot;
+	plot_stats(\@colcount,"HTTP_CODE",undef,\@code,["number/sec","total"],$logy) if not $noplot and @code;
+	plot_stats(\@col,"Perfs",undef,\@tps,["rate","msec"],$logy) unless $noplot;
+	plot_stats(\@col,"Transactions",undef,\@transactions,["transactions/sec","msec"],$logy) unless $noplot;
+	plot_stats(\@colcount,"Match",undef,\@match,["rate","rate"],$logy) unless $noplot;
+	plot_stats(\@colcount,"Event",undef,\@time,["rate","msec"],$logy) unless $noplot;
+	plot_stats(\@colcount,"Errors",undef,\@errors,["errors/sec","total"],$logy) unless $noplot;
+	plot_stats(\@colusers,"Users",undef,\@users,["connected users", "total"],$logy) unless $noplot;
+	plot_stats(\@colcount,"Users_Arrival",undef,\@users_rate,["number of users/sec", "total"],$logy) unless $noplot;
+	plot_stats(\@colcount,"Size",undef,\@size,["Kbits/sec","total Kbits"],$logy) unless $noplot;
 
     # Generate graphes for extra indicators (os_mon for example)
-	if ($plot and $extra and (scalar keys %extra_info) != 0 ) {
+	if (not $noplot and $extra and (scalar keys %extra_info) != 0 ) {
         print STDOUT "Generation os_mon graphs\n" if $verbose;
         foreach my $key (sort keys %extra_info) {
             my $pos = index($key,":");
@@ -340,7 +342,7 @@ sub parse_stats_file {
 
 sub html_report {
     require Template;
-    my $titre     = 'tsung ';
+    my $titre     = 'Tsung ';
     my $version   = $tagvsn;
     my $contact   = '@PACKAGE_BUGREPORT@';
     my $output   = 'index.html';
@@ -409,12 +411,12 @@ type `tsung_stats.pl --version` for details.\n\n";
     "[--help] (this help text)\n\t",
     "[--verbose] (print all messages)\n\t",
     "[--debug] (print receive without send messages)\n\t",
-    "[--plot]  (make graphics using gnuplot)\n\t",
+    "[--noplot]  (don't make graphics)\n\t",
     "[--gnuplot <command>]  (path to the gnuplot binary)\n\t",
-    "[--html]  (create nice HTML reports)\n\t",
+    "[--nohtml]  (don't create HTML reports)\n\t",
     "[--logy]  (logarithmic scale for Y axis)\n\t",
     "[--tdir <template_dir>] (Path to the HTML tsung templates)\n\t",
-    "[--extra  (generate graphics from extra cluster data (os monitor, etc)\n\t",
+    "[--noextra  (don't generate graphics from extra data (os monitor, etc)\n\t",
     "[--stats <file>] (stats file to analyse, default=tsung.log)\n\t";
 	exit;
 	}
@@ -426,7 +428,7 @@ sub	affiche() {
 }
 
 sub version {
-print "this script is part of tsung version $tagvsn
+print "this script is part of Tsung version $tagvsn
 
 Written by Nicolas Niclausse and Jean François Lecomte
 
