@@ -48,7 +48,7 @@
 parse_config(Element = #xmlElement{name=dyn_variable}, Conf = #config{}) ->
     ts_config:parse(Element,Conf);
 parse_config(Element = #xmlElement{name=http}, 
-             Config=#config{curid = Id, session_tab = Tab, server = Server,
+             Config=#config{curid = Id, session_tab = Tab, servers = Servers,
                             sessions = [CurS | _], dynvar=DynVar,
 							subst    = SubstFlag, match=MatchRegExp}) ->
     Version  = ts_config:getAttr(Element#xmlElement.attributes, version),
@@ -93,9 +93,9 @@ parse_config(Element = #xmlElement{name=http},
                   Passwd  = ts_config:getAttr(string,AuthEl#xmlElement.attributes, 
                                               passwd, undefined),
                   NewReq=Request2#http_request{userid=UserId, passwd=Passwd},
-                  set_msg(NewReq, 0, {SubstFlag, MatchRegExp, UseProxy, Server, PreviousHTTPServer, Tab, CurS#session.id} );
+                  set_msg(NewReq, 0, {SubstFlag, MatchRegExp, UseProxy, Servers, PreviousHTTPServer, Tab, CurS#session.id} );
               _ ->
-                  set_msg(Request2, 0, {SubstFlag, MatchRegExp, UseProxy, Server, PreviousHTTPServer, Tab, CurS#session.id} )
+                  set_msg(Request2, 0, {SubstFlag, MatchRegExp, UseProxy, Servers, PreviousHTTPServer, Tab, CurS#session.id} )
           end,
 
     ts_config:mark_prev_req(Id-1, Tab, CurS),
@@ -152,7 +152,7 @@ get_previous_http_server(Ets, Id) ->
 %% port and scheme from the URL and override the global setup of the
 %% server. These informations are stored in the #ts_request record.
 set_msg(HTTP=#http_request{url="http" ++ URL}, 
-        ThinkTime, {SubstFlag, MatchRegExp, UseProxy, Server, _PrevHTTPServer, Tab, Id}) ->  % full URL
+        ThinkTime, {SubstFlag, MatchRegExp, UseProxy, [Server|_], _PrevHTTPServer, Tab, Id}) ->
     URLrec = parse_URL("http" ++ URL),
     Path = set_query(URLrec),
     HostHeader = set_host_header(URLrec),
@@ -174,23 +174,26 @@ set_msg(HTTP=#http_request{url="http" ++ URL},
                          scheme = RealServer#server.type,
                          port   = RealServer#server.port});
 
-%% relative URL, no previous HTTP server (hence, first request in session)
-set_msg(HTTPRequest, Think, {SubstFlag, MatchRegExp, false, Server, [],_Tab,_Id}) -> 
-    URL = server_to_url(Server) ++ HTTPRequest#http_request.url,
-    set_msg(HTTPRequest#http_request{url=URL}, Think, {SubstFlag, MatchRegExp, false, Server, [],_Tab,_Id});
-    
 %% relative URL, no previous HTTP server, use proxy, error !
 set_msg(_, _, {_, _, true, _Server, [],_Tab,_Id}) -> 
     ?LOG("Need absolut URL when using a proxy ! Abort",?ERR),
     throw({error, badurl_proxy});
+%% relative URL, no proxy, a single server => we can preset host header at configuration time
+set_msg(HTTPRequest, Think, {SubstFlag, MatchRegExp, false, [Server], [],_Tab,_Id}) -> 
+    ?LOG("Relative URL, single server ",?NOTICE),
+    URL = server_to_url(Server) ++ HTTPRequest#http_request.url,
+    set_msg(HTTPRequest#http_request{url=URL}, Think, {SubstFlag, MatchRegExp, false, [Server], [],_Tab,_Id});
+%% relative URL, no proxy, several servers: don't set host header
+%% since the real server will be choose at run time
+set_msg(HTTPRequest, Think, {SubstFlag, MatchRegExp, false, _Servers, [],_Tab,_Id}) -> 
+    set_msg2(HTTPRequest, Think,
+             #ts_request{ack = parse, subst = SubstFlag, match = MatchRegExp });
 %% relative URL, no proxy
 set_msg(HTTPRequest, Think, {SubstFlag, MatchRegExp, false, _Server, {HostHeader,_},_Tab,_Id}) -> 
-    %% don't set host, port and scheme (undefined value), it will be
-    %% dynamicaly set during the run (using default server or previous
-    %% one used in the current session)
     set_msg2(HTTPRequest#http_request{host_header= HostHeader}, Think,
              #ts_request{ack = parse, subst = SubstFlag, match = MatchRegExp });
-set_msg(HTTPRequest, Think, {SubstFlag, MatchRegExp, true, Server, {HostHeader, PrevScheme},Tab,Id}) -> % relative URL, use proxy
+%% relative URL, use proxy
+set_msg(HTTPRequest, Think, {SubstFlag, MatchRegExp, true, Server, {HostHeader, PrevScheme},Tab,Id}) -> 
     %% set absolut URL using previous Server used.
     URL = atom_to_list(PrevScheme) ++ "://" ++ HostHeader ++ HTTPRequest#http_request.url,
     set_msg(HTTPRequest#http_request{url=URL}, Think, {SubstFlag, MatchRegExp, true, Server, {HostHeader, PrevScheme},Tab,Id}).

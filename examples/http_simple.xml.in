@@ -8,7 +8,9 @@
   </clients>
   
   <!-- Server side setup -->
+<servers>
   <server host="myserver" port="80" type="tcp"></server>
+</servers>
 
   <!-- to start os monitoring (cpu, network, memory). Use an erlang
   agent on the remote machine or SNMP. erlang is the default --> 

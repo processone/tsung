@@ -48,7 +48,7 @@
 %%--------------------------------------------------------------------
 %% External exports
 -export([start_link/1, read_config/1, get_req/2, get_next_session/1,
-         get_client_config/1, newbeam/1, newbeam/2, get_server_config/0,
+         get_client_config/1, newbeam/1, newbeam/2,
 		 get_monitor_hosts/0, encode_filename/1, decode_filename/1,
          endlaunching/1, status/0, start_file_server/1, get_user_agents/0]).
 
@@ -126,13 +126,6 @@ read_config(ConfigFile)->
 %%--------------------------------------------------------------------
 get_client_config(Host)->
 	gen_server:call({global,?MODULE},{get_client_config, Host}, ?config_timeout).
-
-%%--------------------------------------------------------------------
-%% Function: get_server_config/0
-%% Returns: {Hostname, Port (integer), Protocol type (ssl|gen_tcp|gen_udp)}
-%%--------------------------------------------------------------------
-get_server_config()->
-	gen_server:call({global,?MODULE},{get_server_config}).
 
 %%--------------------------------------------------------------------
 %% Function: get_monitor_hosts/0
@@ -245,7 +238,8 @@ handle_call({get_next_session, HostName}, From, State) ->
 
     {value, Client} = lists:keysearch(HostName, #client.host, Config#config.clients),
     
-    {ok,IP,NewPos} = choose_client_ip(Client,State#state.lastips),
+    {ok,IP,TmpPos} = choose_client_ip(Client,State#state.lastips),
+    {ok, Server, NewPos} = choose_server(Config#config.servers, TmpPos),
     
     ?DebugF("get new session for ~p~n",[From]),
 	NewState=State#state{lastips=NewPos},
@@ -254,19 +248,13 @@ handle_call({get_next_session, HostName}, From, State) ->
             ?LOGF("Session ~p choosen~n",[Id],?INFO),
             case ets:lookup(Tab, {Id, size}) of 
                 [{_, Size}] -> 
-                    {reply, {ok, {Session, Size, IP}}, NewState};
+                    {reply, {ok, {Session, Size, IP, Server}}, NewState};
                 Other ->
                     {reply, {error, Other}, NewState}
             end;
 		Other ->
 			{reply, {error, Other}, NewState}
     end;
-
-%%
-handle_call({get_server_config}, _From, State) ->
-    Config = State#state.config,
-    Server = Config#config.server,
-    {reply,{Server#server.host, Server#server.port, Server#server.type}, State};
 
 %% 
 handle_call({get_client_config, Host}, _From, State) ->
@@ -423,27 +411,48 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 
 %%----------------------------------------------------------------------
-%% Func: choose_client_ip/1
-%% Args: #client
+%% Func: choose_client_ip/2
+%% Args: #client, Dict
 %% Purpose: choose an IP for a client
-%% Returns: {ok, {IP, NewList}} IP=IPv4 address {A1,A2,A3,A4}
+%% Returns: {ok, IP, NewDict} IP=IPv4 address {A1,A2,A3,A4}
 %%----------------------------------------------------------------------
-choose_client_ip(#client{ip = []},RR) -> %% no ip, return default 0.0.0.0
-    {ok, {0,0,0,0}, RR};
-choose_client_ip(#client{ip = [IP]},RR) -> %% only one IP
-    {ok, IP, RR};
-choose_client_ip(Client,undefined) ->
-	choose_client_ip(Client, dict:new());
+%% FIXME: and for IPV6 ?
 choose_client_ip(#client{ip = IPList, host=Host},RRval) ->
-    case dict:find(Host, RRval) of 
+    choose_rr(IPList, Host, RRval, {0,0,0,0}).
+
+%%----------------------------------------------------------------------
+%% Func: choose_server/2
+%% Args: List, Dict
+%% Purpose: choose a server for a new client
+%% Returns: {ok, #server, NewDict}
+%%----------------------------------------------------------------------
+choose_server(ServerList, RRVal) ->
+    choose_rr(ServerList, server, RRVal, #server{}).
+
+%%----------------------------------------------------------------------
+%% Func: choose_rr/4
+%% Args: List, Key, Dict, Default
+%% Purpose: choose an value in list in a round robin way. Use last
+%%          value stored in dict with key Key. 
+%           Return Default if list is empty
+%% Returns: {ok, Val, NewDict}
+%%----------------------------------------------------------------------
+choose_rr([],_, RR, Def) -> % no val, return default
+    {ok, Def, RR};
+choose_rr([Val],_,RR,_) -> % only one value
+    {ok, Val, RR};
+choose_rr(List,Key,undefined,Def) ->
+	choose_rr(List,Key, dict:new(),Def);
+choose_rr(List,Key,RRval,_) ->
+    case dict:find(Key, RRval) of 
 		{ok, NextVal} -> 
-			NewRR = dict:update_counter(Host,1,RRval),
-			I = (NextVal rem length(IPList))+1, %% round robin
-			{ok, lists:nth(I, IPList), NewRR};
-		error ->
-			Dict = dict:store(Host,1,RRval),
-			[IP|_] = IPList,
-			{ok, IP, Dict}
+			NewRR = dict:update_counter(Key,1,RRval),
+			I = (NextVal rem length(List))+1, % round robin
+			{ok, lists:nth(I, List), NewRR};
+		error -> % first used of this key, init index to 1
+			Dict = dict:store(Key,1,RRval),
+			Val = lists:nth(1,List),
+			{ok, Val, Dict}
 	end.
 
 %%----------------------------------------------------------------------

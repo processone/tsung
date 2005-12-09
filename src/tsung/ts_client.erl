@@ -71,20 +71,19 @@ next({Pid}) ->
 init({#session{id           = Profile,
                persistent   = Persistent,
                ssl_ciphers  = Ciphers,
-               type         = CType}, Count, IP}) ->
-	?DebugF("Init ... started with count = ~p  ~n",[Count]),
+               type         = CType}, Count, IP, Server}) ->
+	?DebugF("Init ... started with count = ~p~n",[Count]),
 	ts_utils:init_seed(),
 
-    {ServerName, Port, Protocol} = get_server_cfg({Profile,1}),
-	?DebugF("Get dynparams for ~p  ~n",[CType]),
+	?DebugF("Get dynparams for ~p~n",[CType]),
 	DynData = CType:init_dynparams(),
 	StartTime= now(),
     ts_mon:newclient({self(), StartTime}),
     set_thinktime(?short_timeout),
-    {ok, think, #state_rcv{ port       = Port,
-                            host       = ServerName,
+    {ok, think, #state_rcv{ port       = Server#server.port,
+                            host       = Server#server.host,
                             profile    = Profile,
-                            protocol   = Protocol,
+                            protocol   = Server#server.type,
                             clienttype = CType,
                             session    = CType:new_session(),
                             persistent = Persistent,
@@ -291,33 +290,6 @@ handle_next_action(State) ->
     end.
 
 
-%%----------------------------------------------------------------------
-%% Func: get_server_cfg/1
-%% Args: Profile, Id
-%%----------------------------------------------------------------------
-get_server_cfg({Profile, Id}) ->
-    get_server_cfg(ts_session_cache:get_req(Profile, Id), Profile, Id).
-
-%%----------------------------------------------------------------------
-%% Func: get_server_cfg/3
-%%----------------------------------------------------------------------
-get_server_cfg(#ts_request{host=undefined, port=undefined, scheme=undefined},_,_)->
-    ?Debug("Server not configured in msg, get global conf ~n"),
-    %% get global server profile
-    ts_session_cache:get_server_config();
-get_server_cfg(#ts_request{host=ServerName, port=Port, scheme=Protocol},_,_) ->
-    %% server profile can be overriden in the first URL of the session
-    %% curently, the following server modifications in the session are not used.
-    ?LOGF("Server setup overriden for this client host=~s port=~p proto=~p~n",
-          [ServerName, Port, Protocol], ?INFO),
-    {ServerName, Port, Protocol};
-get_server_cfg({transaction,_,_},Profile,Id) ->
-    get_server_cfg(ts_session_cache:get_req(Profile, Id+1), Profile, Id+1);
-get_server_cfg({thinktime,_},Profile,Id) ->
-    get_server_cfg(ts_session_cache:get_req(Profile, Id+1), Profile, Id+1);
-get_server_cfg(Other,_,_) ->
-    ?LOGF("ERROR while getting cfg (~p)! ~n",[Other],?ERR),
-    ts_session_cache:get_server_config().
 
 %%----------------------------------------------------------------------
 %% Func: handle_next_request/2

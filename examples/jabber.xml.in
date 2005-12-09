@@ -7,7 +7,9 @@
   </clients>
 
   <!-- Server side setup -->
+ <servers>
   <server host="127.0.0.1" port="5222" type="tcp"></server>
+ </servers>
 
   <load>
    <arrivalphase phase="1" duration="1" unit="minute">

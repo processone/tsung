@@ -38,7 +38,7 @@
           controller, %% controller machine
           clients=[], %% client machines
 
-          server, %% server to test
+          servers =[], %% server(s) to test
           monitor_hosts = [], %% Cluster host to monitor (for CPU, MEM usage)
           arrivalphases = [], %% arrival process specs
           thinktime,  %% default thinktime specs

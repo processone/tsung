@@ -97,12 +97,16 @@ add_dynparams(true, DynData, Param, HostData) ->
     add_dynparams(DynData#dyndata.proto,NewParam, HostData).
 
 %% Function: add_dynparams/3
+add_dynparams(DynData,Param=#http_request{host_header=undefined}, {Host,Port})->
+    Header=Host++":"++ integer_to_list(Port),
+    ?DebugF("set host header dynamically: ~s~n",[Header]),
+    add_dynparams(DynData, Param#http_request{host_header=Header},{Host,Port});
 %% no cookies
 add_dynparams(#http_dyndata{cookies=[],user_agent=UA},Param, _) ->
 	Param#http_request{user_agent=UA};
 %% cookies
 add_dynparams(#http_dyndata{cookies=DynData,user_agent=UA}, Param, _) ->
-%% FIXME: should we use the Port value in the Cookie ? 
+    %% FIXME: should we use the Port value in the Cookie ? 
 	Param#http_request{cookie=DynData,user_agent=UA}.
 
 init_dynparams() ->

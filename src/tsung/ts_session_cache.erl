@@ -39,14 +39,13 @@
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
-         add/1, code_change/3, get_server_config/0]).
+         add/1, code_change/3]).
 
 
 -record(state, {
           table, % ets table
           hit  =0.0, % number of hits
           total=0.0, % total number of requests
-          server_config,
           stats=[]   % cache stats msgs
          }).
 
@@ -70,9 +69,6 @@ get_req(Id, Count)->
 
 get_user_agent()->
 	gen_server:call(?MODULE,{get_user_agent}).
-
-get_server_config()->
-	gen_server:call(?MODULE,{get_server_config}).
 
 add(Data) ->
 	gen_server:cast(?MODULE, {add, Data}).
@@ -147,20 +143,6 @@ handle_call({get_user_agent}, _From, State) ->
 		[{_, UserAgents }] when is_list(UserAgents)->
             {ok, Reply} = choose_user_agent(UserAgents),
 			{reply, Reply, State}
-	end;
-
-handle_call({get_server_config}, _From, State= #state{table=Tab}) ->
-	case ets:lookup(Tab, {server_config}) of 
-		[{_, ServerConf}] -> 
-			{reply, ServerConf, State};
-		[] -> %% no match, ask the config_server
-            case catch ts_config_server:get_server_config() of
-                {'EXIT',Reason}  ->
-                    {reply, {error, Reason}, State};
-                Reply ->
-                    ets:insert(Tab, {{get_server_config}, Reply}), 
-                    {reply, Reply, State#state{server_config = Reply}}
-            end
 	end;
 
 handle_call(_Request, _From, State) ->

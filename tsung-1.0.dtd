@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!ELEMENT tsung (information?, clients, server, monitoring?, load, options?, sessions)>
+<!ELEMENT tsung (information?, clients, servers, monitoring?, load, options?, sessions)>
 
 <!ELEMENT information (name|description|username|organisation)*>
 
@@ -14,6 +14,7 @@
      loglevel    (emergency|critical|error|warning|notice|info|debug) "notice"
      version     NMTOKEN #IMPLIED>
 
+<!ELEMENT servers (server+)>
 <!ELEMENT server EMPTY>
 <!ATTLIST server
      host NMTOKEN #REQUIRED

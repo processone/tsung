@@ -7,7 +7,9 @@
   </clients>
 
   <!-- Server side setup -->
+ <servers>
   <server host="127.0.0.1" port="5432" type="tcp"/>
+ </servers>
 
   <monitoring>
    <monitor host="localhost"/>

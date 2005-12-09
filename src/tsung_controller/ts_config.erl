@@ -94,7 +94,7 @@ parse(Element = #xmlElement{parents = [], attributes=Attrs}, Conf=#config{}) ->
 
 
 %% parsing the Server elements
-parse(Element = #xmlElement{name=server, attributes=Attrs}, Conf) ->
+parse(Element = #xmlElement{name=server, attributes=Attrs}, Conf=#config{servers=ServerList}) ->
     Server = getAttr(Attrs, host),
     Port   = getAttr(integer, Attrs, port),
     Type = case getAttr(Attrs, type) of 
@@ -104,10 +104,10 @@ parse(Element = #xmlElement{name=server, attributes=Attrs}, Conf) ->
            end,
 
     lists:foldl(fun parse/2,
-		Conf#config{server = #server{host=Server,
-					       port=Port,
-					       type=Type
-					      }},
+		Conf#config{servers = [#server{host=Server,
+                                       port=Port,
+                                       type=Type
+                                     }|ServerList]},
 		Element#xmlElement.content);
 
 %% Parsing the cluster monitoring element (monitor)
