@@ -203,7 +203,8 @@ handle_cast({activate, Hosts}, State) ->
     NewState = active_host(Hosts,State),
     {noreply, NewState};
 
-handle_cast(_Msg, State) ->
+handle_cast(Msg, State) ->
+    ?LOGF("handle cast: unknown msg ~p~n",[Msg],?WARN),
     {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -223,7 +224,8 @@ handle_info({snmp_msg, Msg, Ip, _Udp}, State) ->
     case PDU#pdu.type of 
         'get-response' ->
             ?LOGF("Got SNMP PDU ~p from ~p~n",[PDU, Ip],?DEB),
-            {ok,{hostent,Hostname,_,inet,_,_}} =inet:gethostbyaddr(Ip),
+            %% FIXME: resolve the address once and cache the result ?
+            {ok,{hostent,Hostname,_,inet,_,_}} = inet:gethostbyaddr(Ip),
             analyse_snmp_data(PDU#pdu.varbinds, Hostname, State);
         _ ->
             skip
@@ -260,6 +262,7 @@ handle_info(Info, State) ->
 %% Returns: any (ignored by gen_server)
 %%--------------------------------------------------------------------
 terminate(normal, #state{erlang_pids=Nodes}) ->
+    ?LOGF("Terminating ts_os_mon, stop beams: ~p~n",[Nodes],?NOTICE),
     stop_beam(Nodes),    
     ok;
 terminate(_Reason, _State) ->
