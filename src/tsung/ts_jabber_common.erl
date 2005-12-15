@@ -46,7 +46,9 @@ get_message(#jabber{type = 'close', id=Id}) ->
     close();
 get_message(#jabber{type = 'presence'}) ->
     presence();
-
+get_message(#jabber{type = 'presence:initial', id=Id}) ->
+    ts_user_server:add_to_online(Id),
+    presence();
 get_message(Jabber=#jabber{type = 'presence:directed', id=Id}) ->
     case ts_user_server:get_one_connected(Id) of
         {ok, Dest} ->
@@ -66,7 +68,7 @@ get_message(Jabber=#jabber{type = 'presence:roster'}) ->
 get_message(Jabber=#jabber{type = 'presence:subscribe'}) ->
     presence("subscribe", Jabber);
 get_message(Jabber=#jabber{type = 'chat', id=Id, dest=online, domain=Domain})->
-    case ts_user_server:get_one_connected(Id) of 
+    case ts_user_server:get_online(Id) of 
         {ok, Dest} ->
             message(Dest, Jabber, Domain);
         {error, no_online} ->
@@ -92,7 +94,7 @@ get_message(Jabber=#jabber{type = 'chat', id=Id, dest = Dest, domain=Domain}) ->
     ?DebugF("~w -> ~w ~n", [Id,  Dest]),
     message(Dest, Jabber, Domain);
 get_message(#jabber{type = 'iq:roster:set', id=Id, dest = online,username=User,domain=Domain}) ->
-    case ts_user_server:get_one_connected(Id) of 
+    case ts_user_server:get_online(Id) of 
         {ok, Dest} ->
             request(roster_set, User, Domain, Dest);
         {error, no_online} ->
