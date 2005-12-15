@@ -59,7 +59,6 @@ read(Filename) ->
     case catch xmerl_scan:file(Filename,
                                [{fetch_path,["/usr/share/tsung/","./"]},
                                 {validation,true}]) of
-                                                % FIXME:validation doesn't work ?
         {ok, Root = #xmlElement{}} ->  % xmerl-0.15
             ?LOGF("Reading config file: ~s~n", [Filename], ?NOTICE),
             Table = ets:new(sessiontable, [ordered_set, protected]),
