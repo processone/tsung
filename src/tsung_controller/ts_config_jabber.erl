@@ -84,20 +84,20 @@ parse_config(Element = #xmlElement{name=jabber},
 parse_config(Element = #xmlElement{name=option}, Conf = #config{session_tab = Tab}) ->
     case ts_config:getAttr(Element#xmlElement.attributes, name) of
         "username" ->
-            Val = ts_config:getAttr(Element#xmlElement.attributes, value),
+            Val = ts_config:getAttr(string,Element#xmlElement.attributes, value,"tsunguser"),
             ets:insert(Tab,{{jabber_username,value}, Val});
         "passwd" ->
-            Val = ts_config:getAttr(Element#xmlElement.attributes, value),
+            Val = ts_config:getAttr(string,Element#xmlElement.attributes, value,"sesame"),
             ets:insert(Tab,{{jabber_passwd,value}, Val});
         "domain" ->
-            Val = ts_config:getAttr(Element#xmlElement.attributes, value),
+            Val = ts_config:getAttr(string,Element#xmlElement.attributes, value,"erlang-projects.org"),
             ets:insert(Tab,{{jabber_domain_name,value}, Val});
         "global_number" ->
-            N = ts_config:getAttr(integer,Element#xmlElement.attributes, value),
+            N = ts_config:getAttr(integer,Element#xmlElement.attributes, value, 100),
             ts_timer:config(N),
             ets:insert(Tab,{{jabber_global_number, value}, N});
         "userid_max" ->
-            N = ts_config:getAttr(integer,Element#xmlElement.attributes, value),
+            N = ts_config:getAttr(integer,Element#xmlElement.attributes, value, 10000),
             ts_user_server:reset(N),
             ets:insert(Tab,{{jabber_userid_max,value}, N})
     end,
