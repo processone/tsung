@@ -56,7 +56,7 @@ checkversion() {
     if [ $ERTS_RUN != $ERTS_BOOT ]
     then
 		echo "Erlang version has changed ! [$ERTS_BOOT] != [$ERTS_RUN]"
-		echo "Must create new boot files (you may have to run this once as root ! )"
+		echo "Must create new boot files (you may have to run this one time as root ! )"
 		makebootfiles
     fi
 }
