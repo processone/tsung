@@ -22,7 +22,7 @@ HEVEAOPTS=-fix -I $(STYLE) -exec xxdate.exe -pedantic
 LANGUAGE=
 
 # logos
-LOGOS_JPG=logo_idealx.jpg map.jpg
+LOGOS_JPG=
 LOGOS_EPS = $(LOGOS_JPG:.jpg=.eps) 
 
 ##############
@@ -112,9 +112,16 @@ psimages: $(FIGURES_EPS) $(IMAGES_EPS) $(LOGOS_EPS)
 pngimages: $(FIGURES_PNG)
 
 show:
+	@echo INC = $(INCLUDES)
+	@echo FIG = $(FIGURES_PNG)
+	@echo IMG=  $(IMAGES_PNG)
+	@echo HEVEA=  $(HEVEA_INC)
+	@echo PLOT= $(PLOT_PNG)
 	@echo TEX = $(TEXFILES) 
+	@echo HTML = $(HTMLFILES) 
 	@echo LOGOS = $(LOGOS_EPS) 
 	@echo ALL_IMG = $(ALL_IMG)
+	@echo TEXINPUTS = $(TEXINPUTS)
 
 dist: pdf html
 	tar zvcfh  archive.tgz *.html *.pdf $(ALL_IMG) $(CSS)
@@ -138,8 +145,9 @@ print:	$(PSFILES)
 	@echo splitting $@ ...
 	@$(HACHA)  $(LANGUAGE) -o $@ $<
 
+#%.html:	%.tex $(INCLUDES) $(FIGURES_PNG) $(IMAGES_PNG) $(HEVEA_INC) $(LOGOS_EPS) $(PLOT_PNG)
 
-%.html:	%.tex $(INCLUDES) $(FIGURES_PNG) $(IMAGES_PNG) $(HEVEA_INC) $(LOGOS_EPS) $(PLOT_PNG)
+user_manual.html:	user_manual.tex $(INCLUDES) $(FIGURES_PNG) $(IMAGES_PNG) $(HEVEA_INC) $(LOGOS_EPS) $(PLOT_PNG)
 	@echo Generating $@...
 	@$(HEVEA) $(HEVEAOPTS) $(LANGUAGE) $(HEVEA_INC) $<
 ifeq ($(strip $(IMAGES_PNG)),)
