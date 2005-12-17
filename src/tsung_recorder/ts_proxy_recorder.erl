@@ -91,14 +91,15 @@ dorecord(Args) ->
 init(Filename) ->
     Date = ts_utils:datestr(),
     %% add date to filename
-    File= case regexp:gsub(Filename,"\.xml$", Date ++ ".xml") of %% "
-        {ok, RealName, _ } -> RealName;
-        _ ->  Date ++ "-" ++ Filename         
-    end,    
+    File = case regexp:gsub(Filename,"\.xml$", Date ++ ".xml") of %% "
+               {ok, RealName, _ } -> RealName;
+               _ ->  Date ++ "-" ++ Filename         
+           end,
     case file:open(File,write) of 
 		{ok, Stream} ->
             Plugin = ?config(plugin),
-			?LOGF("starting recorder with plugin ~s~n",[Plugin],?NOTICE),
+            erlang:display(lists:flatten(["Record file: ",File])),
+			?LOGF("starting recorder with plugin ~s : ~s~n",[Plugin,File],?NOTICE),
 			{ok, #state_rec{ log_file = File,
                              logfd    = Stream,
                              plugin   = Plugin
