@@ -424,8 +424,8 @@ set_profile(MaxCount, Count, ProfileId) when is_integer(ProfileId) ->
 %% purpose: try to reconnect if this is needed (when the socket is set to none)
 %%----------------------------------------------------------------------
 reconnect(none, ServerName, Port, {Protocol, Ciphers}, IP) ->
-	?DebugF("Try to (re)connect to: ~p:~p using protocol ~p~n",
-            [ServerName,Port,Protocol]),
+	?DebugF("Try to (re)connect to: ~p:~p from ~p using protocol ~p~n",
+            [ServerName,Port,IP,Protocol]),
 	Opts = protocol_options(Protocol, Ciphers)  ++ [{ip, IP}],
     Before= now(),
     case Protocol:connect(ServerName, Port, Opts) of
