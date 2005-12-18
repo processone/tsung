@@ -142,7 +142,7 @@ handle_cast({record, endsession}, State) ->
 handle_cast({record, {Request}}, State=#state_rec{timestamp=0,plugin=Plugin}) -> % first record
     Name= ts_utils:datestr(),
     Type = Plugin:gettype(),
-    io:format(State#state_rec.logfd,"<session name='~s' popularity='100' "++
+    io:format(State#state_rec.logfd,"<session name='~s' probability='100' "++
               " type='~s'>~n",["rec"++Name, Type]),
     {ok, NewState} = Plugin:record_request(State, Request),
     {noreply, NewState#state_rec{timestamp=now()}};
