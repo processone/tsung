@@ -124,7 +124,7 @@ for Petroleum
 \item \emph{Distributed}: the load can be distributed on a cluster of
 client machines 
 \item \emph{Multi-Protocols} using a plug-in system: HTTP (both standard
-web traffic and SOAP) and Jabber are currently supported. LDAP and
+web traffic and SOAP),  Jabber and Postgresql are currently supported. LDAP and
 SMTP are on the TODO list. 
 \item \emph{SSL} support 
 \item \emph{Several IP addresses} can be used on a single machine using
@@ -133,10 +133,11 @@ the underlying OS IP Aliasing
 agents on remote servers or \emph{SNMP}
 \item \emph{XML configuration system}: complex user's scenarios are written
   in XML. Scenarios can be written with a simple browser using the
-  Tsung recorder (for HTTP only).
+  Tsung recorder (HTTP and Postgresql only).
 \item \emph{Dynamic scenarios}: You can get dynamic data from the
   server under load (without writing any code) and re-inject it in
-  subsequent requests.
+  subsequent requests. You can also loop, restart or stop a
+  session when a string (or regexp) matches the server response.
 \item \emph{Mixed behaviours}: several sessions can be used to simulate
 different type of users during the same benchmark. You can define
 the proportion of the various behaviours in the benchmark scenario. 
@@ -238,9 +239,10 @@ MacOS-X).
   (\url{http://www.erlang.org/download.html}).  RedHat users can
   download a R9C-2 rpm at
   \url{http://www.erlang-projects.org/Public/rpmdeb/rpm_erlang_otp_r9c-2/view}.
-\item xmerl-0.19 (included in Erlang R10B) (\url{http://sowap.sourceforge.net/download.html}). Debian and Redhat
-    binaries are provided at
-    \url{http://tsung.erlang-projects.org/dist/}
+\item With Erlang R9C, you also need xmerl-0.19 (included in Erlang
+  R10B) (\url{http://sowap.sourceforge.net/download.html}). Debian and
+  Redhat binaries are provided at
+  \url{http://tsung.erlang-projects.org/dist/}
   \item extended regexp module (used for dynamic variables):
     gregexp.erl available at
     \url{http://www.cellicium.com/erlang/contribs/} . The module is
@@ -249,7 +251,8 @@ MacOS-X).
   \item pgsql module made by Christian Sunesson (for the postgresql plugin):
     sources available at
     \url{http://jungerl.sourceforge.net/} . The module is
-    included in the source and binary distribution of \program{Tsung}. 
+    included in the source and binary distribution of \program{Tsung}. It
+    is released under the EPL License.
    \item  gnuplot and perl5 (optional; for graphical output with
     \command{tsung\_stats.pl} script).  The Template Toolkit is used for HTML
     reports (see \url{http://template-toolkit.org/})
@@ -344,8 +347,7 @@ There are two differences between HTTP and Jabber testing:
 \end{enumerate}
 
 Since the jabber plugin does not parse XML (historically, it was for
-performance reasons), and also due to the bidirectional nature of the
-jabber protocol, you must have a way to tell when a request is
+performance reasons), you must have a way to tell when a request is
 finished. There are 3 possibilities:
 
 \begin{description}
@@ -381,6 +383,41 @@ If you do not specify maxnumber, the global ack will be reset every
 \varname{global\_number} users
 \end{description}
 
+You can send messages to offline or online users. A user is considered
+online when he has send a \varname{presence:initial} message
+(\emph{warn:} this is new in 1.2.0, in earlier version, it was
+considered online as soon as it was connected).
+
+
+\section{Using the proxy recorder}
+
+The recorder has two plugins: one for HTTP and one for PostgreSQL.
+
+To start it, \command{tsung -p plugin recorder}. \userinput{http} is
+the default plugin. For PostgreSQL, use \userinput{pgsql}.
+
+The proxy is listening to port 8090. The recorded session is
+created as \file{~/.tsung/tsung_recorderYYYMMDD-HH:MM.xml}; if it doesn't
+work, take a look at \file{~/.tsung/log/tsung.log-tsunami_recorder@hostname}
+
+
+To stop it, use \command{tsung stop\_recorder}.
+
+Once a session has been created, you can insert it in your main config
+file, either by editing by hand the file, or by using an ENTITY
+declaration, like:
+
+\begin{Verbatim}
+<!DOCTYPE tsung SYSTEM "/usr/share/tsung/tsung-1.0.dtd" [
+ <!ENTITY mysession1 SYSTEM "/home/nniclausse/.tsung/tsung_recorder20051217-13:11.xml">
+]>
+...
+<sessions>
+  &mysession1;
+</sessions>
+\end{Verbatim}
+
+
 \section{Understanding tsung.xml configuration file}
 
 \subsection{File structure}
@@ -411,14 +448,17 @@ For non distributed load, you can use a basic setup like:
      <client host="localhost" use_controller_vm="true"/>
   </clients>
 
+<servers>
   <server host="192.168.1.1" port="80" type="tcp"></server>
+</servers>
  \end{Verbatim}
 
 This will start the load on the same host and on the same Erlang
 virtual machine as the controller.
 
-The server is the entry point into the cluster (only one server
- can be defined).
+The server is the entry point into the cluster (\strong{New in 1.2.0:}
+if several servers are defined, a round robin algorithm is used to
+choose the server).
 
 The next example is a more complex, and use several features for
 advanced distributed testing:
@@ -434,7 +474,9 @@ advanced distributed testing:
      </client>
   </clients>
 
+<servers>
   <server host="10.9.195.1" port="8080" type="tcp"></server>
+</servers>
  \end{Verbatim}
 
  
@@ -649,7 +691,7 @@ response time.
       <request> <jabber type="authenticate" ack="local"> </jabber> </request>
     </transaction>
 
-    <request> <jabber type="presence" ack="no_ack"/> </request>
+    <request> <jabber type="presence:initial" ack="no_ack"/> </request>
 
     <thinktime value="2"></thinktime>
 
