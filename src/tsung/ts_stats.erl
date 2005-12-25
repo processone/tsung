@@ -30,12 +30,18 @@
 -author('nicolas.niclausse@niclux.org').
 
 -export([exponential/1, exponential/2, pareto/2, 
+         normal/0, normal/1, normal/2,
+         invgaussian/2,
 		 mean/1,     mean/3,
 		 variance/1, 
 		 meanvar/4,
 		 stdvar/1]).
 
+-import(math, [log/1, pi/0, sqrt/1, pow/2]).
+
 -record(pareto, {a = 1 , beta}).
+-record(normal, {mean = 0 , stddev= 1 }).
+-record(invgaussian, {mu , lambda}).
 
 %% get n samples from a function F with parameter Param
 sample (F, Param, N) ->
@@ -64,6 +70,49 @@ pareto([A, Beta], N) ->
 %% N samples from a Pareto distribution
 pareto(Param, N) ->
     sample(fun(X) -> pareto(X) end , Param, N).
+
+invgaussian([Mu,Lambda],N) ->
+    invgaussian(#invgaussian{mu=Mu,lambda=Lambda},N);
+
+invgaussian(Param,N) ->
+    sample(fun(X) -> invgaussian(X) end , Param, N).
+    
+%% random sample from a Inverse Gaussian distribution
+invgaussian(#invgaussian{mu=Mu, lambda=Lambda}) ->
+    Y = Mu*pow(normal(), 2),
+    X1 = Mu+Mu*Y/(2*Lambda)-Mu*sqrt(4*Lambda*Y+pow(Y,2))/(2*Lambda),
+    U = random:uniform(),
+    X = (Mu/(Mu+X1))-U,
+    case X >=0 of 
+        true  -> X1;
+        false -> Mu*Mu/X1
+    end.
+
+normal() ->
+    [Val] = normal(#normal{},1),
+    Val.
+
+normal([Mean,StdDev],N) ->
+    normal(#normal{mean=Mean,stddev=StdDev},N);
+
+normal(Param,N) ->
+    sample(fun(X) -> normal(X) end , Param, N).
+    
+normal(N) when integer(N)->
+    normal(#normal{},N);
+normal(#normal{mean=M,stddev=S}) ->
+    normal_boxm(M,S,0,0,1).
+
+%%% use the polar form of the Box-Muller transformation
+normal_boxm(M,S,X1,X2,W) when W < 1->
+    W2 = sqrt( (-2.0 * log( W ) ) / W ),
+    Y1 = X1 * W2,
+    M + Y1 * S;
+normal_boxm(M,S,_,_,_W) ->
+    X1 = 2.0 * random:uniform() - 1.0,
+    X2 = 2.0 * random:uniform() - 1.0,
+    normal_boxm(M,S,X1,X2,X1 * X1 + X2 * X2).
+%%%
 
 %% incremental computation of the mean
 mean(Esp, [], _) -> Esp;
