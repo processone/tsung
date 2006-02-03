@@ -97,7 +97,7 @@
 <div id="os_mon">
  <h3>Server monitoring</h3> 
  <table class="stats">
-  <tr><th class="stats">Name</th> <th class="stats">highest mean value</th><th class="stats">lowset mean value</th>
+  <tr><th class="stats">Name</th> <th class="stats">highest mean value</th><th class="stats">lowest mean value</th>
   </tr>
  [% FOREACH key = data.rate.keys.sort %]
    [% IF cat_data.$key == "os_mon_cpu" %]
