@@ -10,6 +10,7 @@
     - freemem and packet stats for solaris (jasonwtucker@gmail.com)
     - fix presence:roster request
     - add presence:directed request for jabber (jasonwtucker@gmail.com)
+    - fix online: must use presence:initial to switch to online status
     - fix several small problems with 'use_controller_vm' option
     - fix regression in recorder for WWW-Authentication (anders.nygren@gmail.com)
     - fix single user agent case.
