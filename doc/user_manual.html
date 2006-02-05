@@ -49,10 +49,10 @@ BLOCKQUOTE{margin-left:4ex;margin-right:4ex;text-align:left;}
  
  <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1>
 <TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2">Version:</TD>
-<TD ALIGN=left NOWRAP>619</TD>
+<TD ALIGN=left NOWRAP>626</TD>
 </TR>
 <TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2">Date :</TD>
-<TD ALIGN=left NOWRAP>						19th												December,&nbsp;2005</TD>
+<TD ALIGN=left NOWRAP>						13th	January,&nbsp;2006</TD>
 </TR></TABLE>
  </DIV>
 
@@ -288,7 +288,7 @@ Authentication, presence and register messages
 
 <H3 CLASS="subsection"><A NAME="htoc9">2.4</A>&nbsp;&nbsp;PostgreSQL related features</H3><!--SEC END -->
 
-This pluging is still experimental
+<B>Warning:</B> This pluging is still experimental.
 <UL CLASS="itemize"><LI CLASS="li-itemize">
 Basic Authentication
 <LI CLASS="li-itemize">Basic Queries (Extended queries not yet supported)
@@ -627,8 +627,8 @@ If you do not specify maxnumber, the global ack will be reset every
 </DL>
 You can send messages to offline or online users. A user is considered
 online when he has send a <TT>presence:initial</TT> message
-(<EM>warn:</EM> this is new in 1.2.0, in earlier version, it was
-considered online as soon as it was connected).<BR>
+(<EM>warn:</EM> this is new in <B>1.2.0</B>, in earlier version, it
+was considered online as soon as it was connected).<BR>
 <BR>
 <!--TOC section Using the proxy recorder-->
 
@@ -636,7 +636,7 @@ considered online as soon as it was connected).<BR>
 
 The recorder has two plugins: one for HTTP and one for PostgreSQL.<BR>
 <BR>
-To start it, <TT>tsung -p plugin recorder</TT>. <FONT COLOR=purple>http</FONT> is
+To start it, <TT>tsung -p PLUGIN recorder</TT>. <FONT COLOR=purple>http</FONT> is
 the default plugin. For PostgreSQL, use <FONT COLOR=purple>pgsql</FONT>.<BR>
 <BR>
 The proxy is listening to port 8090. The recorded session is
@@ -686,6 +686,35 @@ declaration, like:<BR>
 
 <H2 CLASS="section"><A NAME="htoc23">8</A>&nbsp;&nbsp;Understanding tsung.xml configuration file</H2><!--SEC END -->
 
+The default encoding is utf-8. You can use a different encoding, like in:<BR>
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
+<TR><TD><TABLE BORDER=0 CELLPADDING=0
+ CELLSPACING=0>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+<TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
+<TR><TD><PRE CLASS="verbatim">
+&lt;?xml version="1.0" encoding="ISO-8859-1"?&gt;
+ </PRE></TD>
+</TR></TABLE></TD>
+<TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR></TABLE></TD>
+</TR></TABLE><BR>
 <!--TOC subsection File structure-->
 
 <H3 CLASS="subsection"><A NAME="htoc24">8.1</A>&nbsp;&nbsp;File structure</H3><!--SEC END -->
@@ -727,6 +756,21 @@ Scenarios are enclosed into Tsung tags:<BR>
  traffic will be logged to a file. <EM>Warn:</EM> this will considerably
  slow down Tsung, so use with care. It is useful for debugging
  purpose.<BR>
+<BR>
+The <TT>loglevel</TT> can also have a great impact on performance:
+ For high load, <FONT COLOR=purple>warning</FONT> is recommanded .
+ Possible values are:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+emergency
+<LI CLASS="li-itemize">critical
+<LI CLASS="li-itemize">error
+<LI CLASS="li-itemize">warning
+<LI CLASS="li-itemize">notice (default)
+<LI CLASS="li-itemize">info
+<LI CLASS="li-itemize">debug
+</UL>
+For REALLY verbose logging, recompile tsung with <TT>make debug</TT>
+and set loglevel to <FONT COLOR=purple>debug</FONT>.<BR>
 <BR>
 <!--TOC subsection Clients and server-->
 
@@ -1103,7 +1147,7 @@ statistics definition, ...<BR>
 <TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
 <TR><TD><PRE CLASS="verbatim">
 &lt;sessions&gt;
-  &lt;session name="http-example" popularity="70" type="ts_http"&gt;
+  &lt;session name="http-example" probability="70" type="ts_http"&gt;
 
     &lt;request&gt; &lt;http url="/" method="GET" version="1.1"&gt;
                     &lt;/http&gt; &lt;/request&gt;
@@ -1136,7 +1180,7 @@ statistics definition, ...<BR>
     &lt;/request&gt;
   &lt;/session&gt;
 
-  &lt;session name="backoffice" popularity="30" ...&gt;
+  &lt;session name="backoffice" probability="30" ...&gt;
   ... &lt;/session&gt;
 &lt;/sessions&gt;
 </PRE></TD>
@@ -1325,7 +1369,7 @@ new({Pid, DynData}) -&gt;
 </TR></TABLE></TD>
 </TR></TABLE><BR>
 (use <TT>erlc</TT> to compiled the code, and put the resulting .beam
-file in <TT>$PREFIX/lib/erlang/lib/tsung-X.X.X/ebin/</TT> on all client
+file in <TT>\$PREFIX/lib/erlang/lib/tsung-X.X.X/ebin/</TT> on all client
 machines)<BR>
 <BR>
 As you can see, writing scenario with dynamic substitution is trivial.<BR>
@@ -1370,8 +1414,9 @@ If you want to set unique id, you can use the built-in function
 
 <B>New in 1.0.3</B>: A new module <TT>ts_file_server</TT> is available. You
 can use it to read external files. For example, if you need to read user
-names and passwd from a csv file, you can do it with it (currently,
-you can read only a single file).<BR>
+names and passwd from a CSV file, you can do it with it (currently,
+you can read only a single file). <EM>Note: Reading usernames and
+password from a CSV file is not possible for Jabber.</EM><BR>
 <BR>
 You have to add this in the xml configuration file:
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
@@ -1787,7 +1832,7 @@ cd to the log directory of your test (say
 </TR></TABLE></TD>
 <TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
 <TR><TD><PRE CLASS="verbatim">
-/usr/lib/tsung/bin/tsung_stats.pl --html --extra --plot  
+/usr/lib/tsung/bin/tsung_stats.pl
 </PRE></TD>
 </TR></TABLE></TD>
 <TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
@@ -2235,6 +2280,8 @@ UCD-SNMP-MIB::memTotalReal.0 = INTEGER: 1033436
 </TR></TABLE></TD>
 </TR></TABLE></TD>
 </TR></TABLE><BR>
+SNMP doesn't work with erlang R10B and Tsung older than 1.2.0.<BR>
+<BR>
 There is a small bug in the <TT>snmp\_mgr</TT> module in old Erlang
 release (R9C-0). You have to apply this patch to make it
 work. This is fixed in erlang R9C-1 and up.<BR>
