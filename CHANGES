@@ -1,6 +1,7 @@
 1.1.0 -> X.X.X Major feature enhancements (XX XXX 2005)
     - add new plugin: pgsql for postgresql load testing
     - add plugin architure in recorder; add pgsql plugin
+    - new: it's possible to set multiple servers (selected at runtime by round robin)
     - add size_rcv stats
     - import snmp_mgr src from R9C2 to enable SNMP with R10B
     - rebuild boot scripts if erlang version is different from compile time
