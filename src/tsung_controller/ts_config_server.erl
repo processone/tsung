@@ -449,7 +449,7 @@ choose_rr(List,Key,RRval,_) ->
 			NewRR = dict:update_counter(Key,1,RRval),
 			I = (NextVal rem length(List))+1, % round robin
 			{ok, lists:nth(I, List), NewRR};
-		error -> % first used of this key, init index to 1
+		error -> % first use of this key, init index to 1
 			Dict = dict:store(Key,1,RRval),
 			Val = lists:nth(1,List),
 			{ok, Val, Dict}
