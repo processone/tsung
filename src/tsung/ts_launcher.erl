@@ -150,6 +150,7 @@ launcher(timeout, State=#state{nusers    = Users,
                                phase_nusers = PhaseUsers,
                                phases    = Phases,
                                intensity = Intensity}) ->
+    check_registered(),
     BeforeLaunch = now(),
     Wait = do_launch({Intensity,State#state.myhostname}),
     case check_max_raised(State) of
