@@ -134,6 +134,7 @@ wait({launch, {[{Intensity, Users}| Rest], Max}}, State) ->
           [Users, Max],?DEB),
     Duration = Users/Intensity,
 	?LOGF("Expected duration of phase: ~p sec ~n",[Duration/1000], ?NOTICE),
+    check_registered(),
 	{next_state, launcher, State#state{phases = Rest, nusers = Users, 
                                        phase_nusers = Users,
                                        phase_duration=Duration,
@@ -150,7 +151,6 @@ launcher(timeout, State=#state{nusers    = Users,
                                phase_nusers = PhaseUsers,
                                phases    = Phases,
                                intensity = Intensity}) ->
-    check_registered(),
     BeforeLaunch = now(),
     Wait = do_launch({Intensity,State#state.myhostname}),
     case check_max_raised(State) of
@@ -327,6 +327,7 @@ do_launch({Intensity, MyHostName})->
     ?DebugF("client launched, wait ~p ms before launching next client~n",[X]),
     X.
 
+%% Check if global names are synced; Annoying "feature" of R10B7 and up
 check_registered() ->
     case global:registered_names() of
         [] ->
