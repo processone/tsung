@@ -34,6 +34,9 @@
 
 -include("ts_profile.hrl").
 
+% wait up to 10ms after an error
+-define(NEXT_AFTER_FAILED_TIMEOUT, 10).
+
 -behaviour(gen_fsm). %% a primitive gen_fsm with two state: launcher and wait
 
 %% External exports
@@ -152,44 +155,51 @@ launcher(timeout, State=#state{nusers    = Users,
                                phases    = Phases,
                                intensity = Intensity}) ->
     BeforeLaunch = now(),
-    Wait = do_launch({Intensity,State#state.myhostname}),
-    case check_max_raised(State) of
-        true ->
-            ts_config_server:endlaunching(node()),
-            {next_state, finish, State, ?check_noclient_timeout};
-        false->
-            Duration = ts_utils:elapsed(State#state.phase_start, BeforeLaunch),
-            case change_phase(Users-1, Phases, Duration,
-                              {State#state.phase_duration, PhaseUsers}) of
-                {change, NewUsers, NewIntensity, Rest} ->
-                    ts_mon:add({ count, newphase }),
-                    PhaseLength = NewUsers/NewIntensity,
-                    ?LOGF("Start a new arrival phase (~p ~p); expected duration=~p sec~n",
-                          [NewUsers, NewIntensity, Duration/1000], ?NOTICE),
-                    {next_state,launcher,State#state{phases = Rest, 
-                                                     nusers = NewUsers,
-                                                     phase_nusers = NewUsers,
-                                                     phase_duration=PhaseLength,
-                                                     phase_start = now(),
-                                                     intensity = NewIntensity},
-                     round(Wait)};
-                {stop} ->
+    case do_launch({Intensity,State#state.myhostname}) of
+        {ok, Wait} ->
+            case check_max_raised(State) of
+                true ->
                     ts_config_server:endlaunching(node()),
-                    {next_state,finish, State, ?check_noclient_timeout};
-                {continue} ->
-                    LaunchDuration = ts_utils:elapsed(BeforeLaunch, now()),
-                    %% to keep the rate of new users as expected,
-                    %% remove the time to launch a client to the next
-                    %% wait.
-                    NewWait = case Wait > LaunchDuration of 
-                                  true -> round(Wait - LaunchDuration);
-                                  false -> 0
-                              end,
-                    ?DebugF("Real Wait =~p ~n", [NewWait]),
-                    {next_state,launcher,State#state{nusers = Users-1} , NewWait}
-            end
+                    {next_state, finish, State, ?check_noclient_timeout};
+                false->
+                    Duration = ts_utils:elapsed(State#state.phase_start, BeforeLaunch),
+                    case change_phase(Users-1, Phases, Duration,
+                                      {State#state.phase_duration, PhaseUsers}) of
+                        {change, NewUsers, NewIntensity, Rest} ->
+                            ts_mon:add({ count, newphase }),
+                            PhaseLength = NewUsers/NewIntensity,
+                            ?LOGF("Start a new arrival phase (~p ~p); expected duration=~p sec~n",
+                                  [NewUsers, NewIntensity, Duration/1000], ?NOTICE),
+                            {next_state,launcher,State#state{phases = Rest, 
+                                                             nusers = NewUsers,
+                                                             phase_nusers = NewUsers,
+                                                             phase_duration=PhaseLength,
+                                                             phase_start = now(),
+                                                             intensity = NewIntensity},
+                             round(Wait)};
+                        {stop} ->
+                            ts_config_server:endlaunching(node()),
+                            {next_state,finish, State, ?check_noclient_timeout};
+                        {continue} ->
+                            LaunchDuration = ts_utils:elapsed(BeforeLaunch, now()),
+                            %% to keep the rate of new users as expected,
+                            %% remove the time to launch a client to the next
+                            %% wait.
+                            NewWait = case Wait > LaunchDuration of 
+                                          true -> round(Wait - LaunchDuration);
+                                          false -> 0
+                                      end,
+                            ?DebugF("Real Wait =~p ~n", [NewWait]),
+                            {next_state,launcher,State#state{nusers = Users-1} , NewWait}
+                    end
+            end;
+        error ->
+            % retry with the same user, wait randomly a few msec
+            RndWait = random:uniform(?NEXT_AFTER_FAILED_TIMEOUT),
+            {next_state,launcher,State , RndWait}
     end.
-    
+
+
 finish(timeout, State) ->
     case ts_client_sup:active_clients() of
        0 -> %% no users left, stop
@@ -321,11 +331,19 @@ check_max_raised(State=#state{phases=Phases,maxusers=Max,nusers=Users,
 do_launch({Intensity, MyHostName})->
     %%Get one client
     %%set the profile of the client
-    {ok, Profile} = ts_config_server:get_next_session(MyHostName),
-    ts_client_sup:start_child(Profile),
-    X = ts_stats:exponential(Intensity),
-    ?DebugF("client launched, wait ~p ms before launching next client~n",[X]),
-    X.
+    case catch ts_config_server:get_next_session(MyHostName) of 
+        {timeout, _ } ->
+            ?LOG("get_next_session failed (timeout), skip this session !~n", ?ERR),
+            error;
+        {ok, Profile} ->
+            ts_client_sup:start_child(Profile),
+            X = ts_stats:exponential(Intensity),
+            ?DebugF("client launched, wait ~p ms before launching next client~n",[X]),
+            {ok, X};
+        Error ->
+            ?LOGF("get_next_session failed [~p], skip this session !~n", [Error],?ERR),
+            error
+    end.
 
 %% Check if global names are synced; Annoying "feature" of R10B7 and up
 check_registered() ->
