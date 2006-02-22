@@ -435,7 +435,9 @@ reconnect(none, ServerName, Port, {Protocol, Ciphers}, IP) ->
 			?Debug("(Re)connected~n"),
 			{ok, Socket};
 		{error, Reason} ->
-			?LOGF("(Re)connect Error: ~p~n",[Reason],?ERR),
+	                {A,B,C,D} = IP,
+			?LOGF("(Re)connect from ~p.~p.~p.~p to ~s:~p, Error: ~p~n",
+			      [A,B,C,D, ServerName, Port, Reason],?ERR),
             CountName="error_connect_"++atom_to_list(Reason),
 			ts_mon:add({ count, list_to_atom(CountName) }),
 			{stop, normal}
