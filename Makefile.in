@@ -305,7 +305,7 @@ configure: configure.in $(CONFIGURE_DEPENDENCIES)
 	@autoconf
 
 doc: 
-	make -C doc
+	$(MAKE) -C doc
 
 release: Makefile tsung.spec doc
 	rm -fr $(distdir)
@@ -327,7 +327,7 @@ release: Makefile tsung.spec doc
 	rm -fr tmp.tgz
 
 snapshot:
-	make TYPE=snapshot release
+	$(MAKE) TYPE=snapshot release
 
 builder.beam: priv/builder.erl 
 	@$(CC) -W0 $(OPT) -I $(INC) $<
