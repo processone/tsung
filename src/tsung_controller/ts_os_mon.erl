@@ -421,7 +421,7 @@ active_host([{Host, erlang}| HostList], State=#state{erlang_pids=PidList}) ->
     {ok, LocalHost} = ts_utils:node_to_hostname(node()),
     {Pid, RemNode} = case list_to_atom(LocalHost) of
               Host -> % same host, don't start a new beam
-                  { spawn_link(updatestats, [State#state.interval, State#state.mon_server]), node()};
+                  { spawn_link(?MODULE, updatestats, [State#state.interval, State#state.mon_server]), node()};
               _ ->
                   {ok, Node} = start_beam(Host),
                   Pong= net_adm:ping(Node),
