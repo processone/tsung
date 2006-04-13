@@ -192,7 +192,7 @@ setcount(#match{do=loop,max_loop=MaxLoop,sleep_loop=Sleep},{Count,_MaxC},Stats)-
             put(loop_count,1),
             timer:sleep(Sleep),
             Count +1 ;
-        Val when Val > MaxLoop ->
+        Val when Val >= MaxLoop ->
             ?LOG("Max Loop reached, abort loop on request! ~n", ?WARN),
             put(loop_count, 0),
             Count;
