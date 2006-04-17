@@ -610,6 +610,5 @@ concat_dynvars([], DynData) -> DynData;
 concat_dynvars(DynVars, DynData=#dyndata{dynvars=undefined}) ->
     DynData#dyndata{dynvars=DynVars};
 concat_dynvars(DynVars, DynData=#dyndata{dynvars=OldDynVars}) ->
-    %% FIXME: should we remove duplicate keys ?
-    DynData#dyndata{dynvars=lists:keymerge(1,DynVars,OldDynVars)}.
+    DynData#dyndata{dynvars=ts_utils:keyumerge(1,DynVars,OldDynVars)}.
     

@@ -33,7 +33,7 @@
 
 %% user interface
 -export([debug/3, debug/4, get_val/1, init_seed/0, chop/1, elapsed/2,
-         now_sec/0, node_to_hostname/1, add_time/2,
+         now_sec/0, node_to_hostname/1, add_time/2, keyumerge/3,
          level2int/1, mkey1search/2, close_socket/2, datestr/0, datestr/1,
          erl_system_args/0, erl_system_args/1, setsubdir/1, export_text/1,
          foreach_parallel/2, spawn_par/3, inet_setopts/3,
@@ -485,3 +485,15 @@ read_lines(_FD, eof, L) ->
     lists:reverse(L);
 read_lines(FD, Line, L) ->
     read_lines(FD, io:get_line(FD,""),[chop(Line)|L]).
+
+%%----------------------------------------------------------------------
+%% Func: keyumerge/3
+%% Purpose: Same as lists:keymerge, but remove duplicates (use items from A)
+%% Returns: List
+%%----------------------------------------------------------------------
+keyumerge(_N,[],B)->B;
+keyumerge(N,[A|Rest],B)->
+    Key = element(N,A),
+    % remove old values if it exists
+    NewB = lists:keydelete(Key, N, B),
+    keyumerge(N,Rest, [A|NewB]).
