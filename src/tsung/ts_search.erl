@@ -225,13 +225,13 @@ parse_dynvar([], _String, ValuesList) -> ValuesList;
 parse_dynvar([{VarName, RegExp}| DynVars], String, ValuesList) ->
     case gregexp:groups(String, RegExp) of
         {match,[Value|_]} ->
-            ?LOGF("Ok Match (~p=~p) ~n",[VarName, Value], ?DEB),
+            ?LOGF("DynVar: Match (~p=~p) ~n",[VarName, Value], ?DEB),
             parse_dynvar(DynVars, String, [{VarName, Value}| ValuesList]);
         nomatch ->
             ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName], ?WARN),
             parse_dynvar(DynVars, String, ValuesList)
     end;
 parse_dynvar(Args, _String, _Values) ->
-    ?LOGF("Bad args while parsing dyn var (~p)~n", [Args], ?ERR),
+    ?LOGF("Bad args while parsing Dyn Var (~p)~n", [Args], ?ERR),
     [].
     
