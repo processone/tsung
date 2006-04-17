@@ -72,7 +72,7 @@
     probability   NMTOKEN #REQUIRED
     type         (ts_jabber | ts_http | ts_raw | ts_pgsql) #REQUIRED>
 
-<!ELEMENT request ( match*, ( http | jabber | raw | pgsql ), dyn_variable* )>
+<!ELEMENT request ( match*, dyn_variable*, ( http | jabber | raw | pgsql ) )>
 <!ATTLIST request
     subst (true|false) "false"
     >
