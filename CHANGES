@@ -1,24 +1,28 @@
-1.1.0 -> X.X.X Major feature enhancements (XX XXX 2005)
+1.1.0 -> 1.2.0 Major feature enhancements (XX XXX 2006)
+    - change name: idx-tsunami is now called tsung 
     - add new plugin: pgsql for postgresql load testing
-    - add plugin architure in recorder; add pgsql plugin
-    - new: it's possible to set multiple servers (selected at runtime by round robin)
+    - add plugin architecture in recorder; add pgsql plugin
+    - new: it's now possible to set multiple servers (selected at runtime 
+      by round robin)
     - add size_rcv stats
     - import snmp_mgr src from R9C2 to enable SNMP with R10B
     - rebuild boot scripts if erlang version is different from compile time
-    - DTD improvements
+    - many DTD improvements
     - improved match: add loop|abort|restart on (no)match behavior,
-      multiple match tag is now possible
-    - freemem and packet stats for solaris (jasonwtucker@gmail.com)
+      multiple match tags is now possible (suggested by msmith@truelink.com)
+    - freemem and packet stats for Solaris (jasonwtucker@gmail.com)
     - fix presence:roster request
     - add presence:directed request for jabber (jasonwtucker@gmail.com)
     - fix online: must use presence:initial to switch to online status
     - fix several small problems with 'use_controller_vm' option
-    - fix regression in recorder for WWW-Authentication (anders.nygren@gmail.com)
+    - fix regression in recorder for WWW-Authentication 
+      (anders.nygren@gmail.com)
     - fix single user agent case.
     - ip is no more mandatory (default is 0.0.0.0)
-    - clients and monitoring can use host lists defined in environment
+    - clients and monitoring can use hosts list defined in environment
       variables, for use with batch schedulers (openpbs/torque, LSF and OAR)
-    - performance improvements in stats engine for very high load (use session_cache)
+    - performance improvements in stats engine for very high load 
+      (use session_cache)
     - close client socket when connection:closed is ask by the server
       (this should enable https recording with IE)
 
@@ -43,7 +47,7 @@
     - add ts_file_server module
     - fix broken https recording
     Thx to johann.messner@jku.at for bug reporting :
-    - fix: forgot to add "?" when an URL is absolut and had a query
+    - fix: forgot to add "?" when an URL is absolute and had a query
       part
     - fix regression in the recorder (introduced in 1.0.2): must use CAPS
       for method, wrong content-length in recorder causing POST requests
