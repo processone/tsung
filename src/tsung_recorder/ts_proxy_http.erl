@@ -68,6 +68,7 @@ parse(State=#proxy{parse_status=Status},_,ServerSocket,String) when Status==new 
             ?LOGF("Headers incomplete (~p), buffering ~n",[NewString],?DEB),
 			{ok, State#proxy{parse_status=new, buffer=NewString}}; %FIXME: not optimal
         {ok, Http=#http_request{url=RequestURI, version=HTTPVersion}, Body} -> 
+            ?LOGF("URL ~p ~n",[RequestURI],?DEB),
             ?LOGF("Method ~p ~n",[Http#http_request.method],?DEB),
             ?LOGF("Headers ~p ~n",[Http#http_request.headers],?DEB),
             case httpd_util:key1search(Http#http_request.headers,"content-length") of
