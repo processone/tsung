@@ -50,6 +50,7 @@
 http_get(#http_request{url=URL, version=Version, cookie=Cookie, user_agent=UA,
                        get_ims_date=undefined, soap_action=SOAPAction,
                        host_header=Host, userid=UserId, passwd=Passwd})->
+    ?DebugF("GET ~p~n",[URL]),
 	list_to_binary([?GET, " ", URL," ", "HTTP/", Version, ?CRLF, 
                     "Host: ", Host, ?CRLF,
                     user_agent(UA),
@@ -61,6 +62,7 @@ http_get(#http_request{url=URL, version=Version, cookie=Cookie, user_agent=UA,
 http_get(#http_request{url=URL, version=Version, cookie=Cookie,user_agent=UA,
                        get_ims_date=Date, soap_action=SOAPAction,
                        host_header=Host, userid=UserId, passwd=Passwd}) ->
+    ?DebugF("GET ~p~n",[URL]),
 	list_to_binary([?GET, " ", URL," ", "HTTP/", Version, ?CRLF,
                     ["If-Modified-Since: ", Date, ?CRLF],
                     "Host: ", Host, ?CRLF,
@@ -181,6 +183,9 @@ parse(Data, State=#state_rcv{session=HTTP}) when HTTP#http.status == none;
 			{State#state_rcv{session= Http, ack_done = false, 
 							 datasize = TotalSize,
 							 dyndata= DynData}, [], true};
+		{ok, Http=#http{status=100}, _} -> % Status 100 Continue, ignore.
+            %% FIXME: not tested
+			{State#state_rcv{ack_done=false,session=#http{}},[],false};
 		{ok, Http, Tail} ->
 			DynData = concat_cookies(Http#http.cookie, State#state_rcv.dyndata),
 			check_resp_size(Http, length(Tail), DynData, State#state_rcv{acc=[]}, TotalSize)
@@ -275,7 +280,7 @@ read_chunk(<<Char:1/binary, Data/binary>>, State, Int, Acc) ->
                              datasize = Acc %% FIXME: is it the correct size?
                             }, []};
 	<<?CR>> when Int==0, size(Data) < 3 ->  % lack ?CRLF, continue 
-            { State#state_rcv{acc =  <<48, ?CR, ?LF>> }, [] };
+            { State#state_rcv{acc =  <<48, ?CR , Data/binary>>, ack_done=false }, [] };
 	<<C>> when C==$ -> % Some servers (e.g., Apache 1.3.6) throw in
 			   % additional whitespace...
 	    read_chunk(Data, State, Int, Acc+1);
