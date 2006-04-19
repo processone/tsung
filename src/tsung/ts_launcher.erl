@@ -95,6 +95,7 @@ launch({Node, Host, Arrivals}) ->
 %%----------------------------------------------------------------------
 init([]) ->
     ts_utils:init_seed(),
+    crypto:start(),
     {ok, MyHostName} = ts_utils:node_to_hostname(node()),
 	{ok, wait, #state{myhostname=MyHostName}}.
 

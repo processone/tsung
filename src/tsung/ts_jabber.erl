@@ -92,8 +92,8 @@ add_dynparams(false,#dyndata{proto=DynData}, Param, _Host) ->
 	Param#jabber{id=DynData#jabber_dyndata.id};
 add_dynparams(true,#dyndata{proto=JabDynData, dynvars=DynVars}, Param, _Host) ->
     ?DebugF("Subst in jabber msg (~p) with dyn vars ~p~n",[Param,DynVars]),
-    NewParam = subst(Param, DynVars),
-	NewParam#jabber{id=JabDynData#jabber_dyndata.id}.
+   NewParam = subst(Param, DynVars),
+        updatejab(DynVars, NewParam#jabber{id = JabDynData#jabber_dyndata.id}).
 
 init_dynparams() ->
     #dyndata{proto=#jabber_dyndata{id=ts_user_server:get_idle()}}.
@@ -105,3 +105,19 @@ init_dynparams() ->
 %%----------------------------------------------------------------------
 subst(Req=#jabber{data=Data}, DynData) ->
     Req#jabber{data=ts_search:subst(Data,DynData)}.
+
+
+%%----------------------------------------------------------------------
+%% Func: updatejab/2
+%%  takes dyn vars and adds them to jabber record
+%%  'nonce' used for sip-digest auth
+%%  'sid' session-id used for digest auth
+%%----------------------------------------------------------------------
+updatejab([],Param) -> Param;
+updatejab([{nonce, Val}|Rest], Param)->
+   updatejab(Rest, Param#jabber{nonce = Val});
+updatejab([{sid, Val}|Rest], Param)->
+   updatejab(Rest, Param#jabber{sid = Val});
+updatejab([_|Rest], Param)->
+   updatejab(Rest, Param).
+

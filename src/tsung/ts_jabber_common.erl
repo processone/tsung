@@ -116,7 +116,6 @@ get_message(#jabber{type = 'iq:roster:get', id = Id,username=User,domain=Domain}
 get_message(Jabber=#jabber{type = 'raw'}) ->
     raw(Jabber);
 
-
 get_message(Jabber=#jabber{username = Name, passwd= Passwd, id=Id}) ->
     FullName = Name ++ Id,
     FullPasswd = Passwd ++ Id,
@@ -128,8 +127,14 @@ get_message(Jabber=#jabber{username = Name, passwd= Passwd, id=Id}) ->
 %%----------------------------------------------------------------------
 get_message2(Jabber=#jabber{type = 'register'}) ->
     registration(Jabber);
-get_message2(Jabber=#jabber{type = 'authenticate'}) ->
-    auth(Jabber).
+get_message2(Jabber=#jabber{type = 'auth_get'}) ->
+    auth_get(Jabber);
+get_message2(Jabber=#jabber{type = 'auth_set_plain'}) ->
+    auth_set_plain(Jabber);
+get_message2(Jabber=#jabber{type = 'auth_set_digest', sid=Sid}) ->
+    auth_set_digest(Jabber,Sid);
+get_message2(Jabber=#jabber{type = 'auth_set_sip', domain=Realm, nonce=Nonce}) ->
+    auth_set_sip(Jabber,Nonce,Realm).
 
 
 
@@ -152,26 +157,99 @@ connect(#jabber{domain=Domain}) ->
 close () -> list_to_binary("</stream:stream>").
 
 %%----------------------------------------------------------------------
-%% generic Authentication message (auth or register)
+%% Func: auth_get/1
 %%----------------------------------------------------------------------
-auth(#jabber{username=Name,passwd=Passwd})->
-	auth(Name, Passwd, "auth").
+auth_get(#jabber{username=Name,passwd=Passwd})->
+	auth_get(Name, Passwd, "auth").
 
-auth(Username, Passwd, Type) ->
+%%----------------------------------------------------------------------
+%% Func: auth_get/3
+%%----------------------------------------------------------------------
+auth_get(Username, Passwd, Type) ->
+ list_to_binary([
+   "<iq id='", ts_msg_server:get_id(list),
+   "' type='get' >",
+   "<query xmlns='jabber:iq:", Type, "'>",
+   "<username>", Username, "</username></query></iq>"]).
+
+%%----------------------------------------------------------------------
+%% Func: auth_set_plain/1
+%%----------------------------------------------------------------------
+auth_set_plain(#jabber{username=Name,passwd=Passwd})->
+	auth_set_plain(Name, Passwd, "auth").
+
+
+%%----------------------------------------------------------------------
+%% Func: auth_set_plain/3
+%%----------------------------------------------------------------------
+auth_set_plain(Username, Passwd, Type) ->
  list_to_binary([
    "<iq id='", ts_msg_server:get_id(list),
    "' type='set' >",
    "<query xmlns='jabber:iq:", Type, "'>",
-   "<username>", Username, "</username>", 
-   "<resource>Tsung</resource>",
+   "<username>", Username, "</username>",
+   "<resource>tsunami</resource>",
    "<password>", Passwd, "</password></query></iq>"]).
+
+
+%%----------------------------------------------------------------------
+%% Func: auth_set_digest/2
+%%----------------------------------------------------------------------
+auth_set_digest(#jabber{username=Name,passwd=Passwd}, Sid)->
+        auth_set_digest(Name, Passwd, "auth", Sid).
+
+
+%%----------------------------------------------------------------------
+%% Func: auth_set_digest/4
+%%----------------------------------------------------------------------
+auth_set_digest(Username, Passwd, Type, Sid) ->
+ {Digest} = ts_digest:digest(Sid, Passwd),
+ list_to_binary([
+   "<iq id='", ts_msg_server:get_id(list),
+   "' type='set' >",
+   "<query xmlns='jabber:iq:", Type, "'>",
+   "<username>", Username, "</username>",
+   "<resource>tsunami</resource>",
+   "<digest>", Digest, "</digest></query></iq>"]).
+
+
+%%----------------------------------------------------------------------
+%% Func: auth_set_sip/3
+%%----------------------------------------------------------------------
+auth_set_sip(#jabber{username=Name,passwd=Passwd,domain=Domain}, Nonce, Realm)->
+        auth_set_sip(Name, Passwd, Domain, "auth", Nonce, Realm).
+
+%%----------------------------------------------------------------------
+%% Func: auth_set_sip/6
+%%----------------------------------------------------------------------
+auth_set_sip(Username, Passwd, Domain, Type, Nonce, Realm) ->
+ Jid = Username ++ "@" ++ Realm,
+ {SipDigest,Integrity} = ts_digest:sip_digest(Nonce, Jid, Realm, Passwd),
+ list_to_binary([
+   "<iq id='", ts_msg_server:get_id(list),
+   "' type='set' >",
+   "<query xmlns='jabber:iq:", Type, "'>",
+        "<username>", Jid, "</username>",
+        "<resource>tsunami</resource>",
+        "<x xmlns='xmpp:assert' version='1.0'>",
+                "<ContextInfo><ServiceValue><Realm>", Domain,
+                "</Realm></ServiceValue></ContextInfo>",
+                "<TokenInfo><SubjectValue>",
+                        "<Username>", Jid, "</Username>",
+                        "<Password type='sip-digest' encoding='hex'>", SipDigest,
+                                "</Password>",
+                        "<Nonce encoding='hex'>", Nonce, "</Nonce>",
+                        "<Integrity encoding='hex'>", Integrity, "</Integrity>",
+        "</SubjectValue></TokenInfo></x></query></iq>"]).
+
+
 
 %%----------------------------------------------------------------------
 %% Func: registration/1
 %% Purpose: register message
 %%----------------------------------------------------------------------
 registration(#jabber{username=Name,passwd=Passwd})->
-	auth(Name, Passwd, "register").
+	auth_set_plain(Name, Passwd, "register").
 
 %%----------------------------------------------------------------------
 %% Func: message/3
@@ -279,6 +357,4 @@ raw(#jabber{data=undefined}) ->
     << >>;
 raw(#jabber{data=Data}) when is_list(Data) ->
     list_to_binary(Data).
-
-
 
