@@ -128,7 +128,9 @@
     id          NMTOKEN #IMPLIED
     size        NMTOKEN "0"
     data        CDATA   #IMPLIED
-    type        NMTOKEN #REQUIRED>
+    type        NMTOKEN #REQUIRED
+    show        (away|chat|dnd|xa) "chat"
+    status      CDATA   "Available">
 
 <!ELEMENT pgsql (#PCDATA) >
 <!ATTLIST pgsql

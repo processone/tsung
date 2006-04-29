@@ -55,6 +55,8 @@ parse_config(Element = #xmlElement{name=jabber},
     Dest= ts_config:getAttr(atom,Element#xmlElement.attributes, destination,random),
     Size= ts_config:getAttr(integer,Element#xmlElement.attributes, size,0),
     Data= ts_config:getAttr(string,Element#xmlElement.attributes, data,undefined),
+    Show= ts_config:getAttr(string,Element#xmlElement.attributes, show, "chat"),
+    Status= ts_config:getAttr(string,Element#xmlElement.attributes, status, "Available"),
     Type= list_to_atom(TypeStr),
 
 	Domain  =ts_config:get_default(Tab, jabber_domain_name, jabber_domain),
@@ -72,7 +74,9 @@ parse_config(Element = #xmlElement{name=jabber},
                                     data   = Data,
                                     type   = Type,
                                     dest   = Dest,
-                                    size   = Size
+                                    size   = Size,
+                                    show   = Show,
+                                    status   = Status
 							   }
 				},
     ts_config:mark_prev_req(Id-1, Tab, CurS),

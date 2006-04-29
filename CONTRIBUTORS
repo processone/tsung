@@ -13,7 +13,8 @@ o Mickaël Rémond <mickael.remond@erlang-fr.org>: erlang server monitoring;
   various patches for HTTP; configure support; SOAP support; initial
   dynamic substitution implementation.
 
-o Jason Tucker: Solaris testing and fixes, jabber patches (sip_digest, ...).
+o Jason Tucker: Solaris testing and fixes, jabber patches (sip_digest,
+  roster and presence enhancements ).
 
 o Jonathan Bresler: Jabber testing and bug reporting
 o Gordon Guthrie: tips for ssh setup on Suse

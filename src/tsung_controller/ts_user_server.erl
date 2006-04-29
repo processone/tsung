@@ -37,6 +37,7 @@
 	 get_offline/0,
 	 get_online/1,
 	 add_to_online/1,
+	 remove_from_online/1,
 	 remove_connected/1,
 	 get_first/0]).
 
@@ -120,6 +121,11 @@ add_to_online(Id) when  is_list(Id) ->
     add_to_online(list_to_integer(Id));
 add_to_online(Id) when is_integer(Id)->
     gen_server:cast({global, ?MODULE}, {add_to_online, Id}). 
+
+remove_from_online(Id) when  is_list(Id) ->
+    remove_from_online(list_to_integer(Id));
+remove_from_online(Id) when is_integer(Id)->
+    gen_server:cast({global, ?MODULE}, {remove_from_online, Id}). 
 
 stop()->
     gen_server:call({global, ?MODULE}, stop).
@@ -230,22 +236,22 @@ handle_call(stop, _From, State)->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_cast({remove_connected, Id}, State=#state{offline=Offline,online=Online}) ->
-    {ok, LastOnline} = ets_iterator_del(Online,Id,State#state.last_online),
+handle_cast({remove_connected, Id}, State=#state{online=Online,offline=Offline,connected=Connected}) ->
+    %% session config may not include presence:final, so we need to check/delete from Online to be safe
+    {noreply, LastOnline} = ets_delete_online(Online,Id,State),
+    ets:delete(Connected,Id),
     ets:insert(Offline, {Id,2}),
-    %% reset the last_online entries if it's equal to Id
-    case State#state.last_online of
-        Id ->
-            ?LOGF("Reset last id (~p) because its offline ~n",[Id],?INFO),
-            {noreply, State#state{last_online=LastOnline}};
-        _ ->
-            {noreply, State}
-    end;
+    {noreply, State#state{last_online=LastOnline}};
 
 handle_cast({add_to_online, Id}, State=#state{online=Online, connected=Connected}) ->
     ets:delete(Connected,Id), %FIXME: check is user is indeed in the connected list ?
     ets:insert(Online, {Id,1}),
     {noreply, State#state{last_online=Id}};
+
+handle_cast({remove_from_online, Id}, State=#state{online=Online,connected=Connected}) ->
+    {noreply, LastOnline} = ets_delete_online(Online,Id,State),
+    ets:insert(Connected, {Id,1}),
+    {noreply, State#state{last_online=LastOnline}};
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -365,4 +371,24 @@ ets_iterator_next(Ets, Iterator, Key) ->
             ets_iterator_next(Ets, Key, Key);
         Next ->
             {ok, Next}
+    end.
+
+%%%----------------------------------------------------------------------
+%%% Func: ets_delete_online/3
+%%% Purpose: verify user is in Online table, delete, and update last_online if necessary
+%%%----------------------------------------------------------------------
+ets_delete_online(Online,Id,State) ->
+    case ets:lookup(Online,Id) of
+        [] ->
+            {noreply, State#state.last_online};
+        [_|_] ->
+            {ok, LastOnline} = ets_iterator_del(Online,Id,State#state.last_online),
+            %% reset the last_online entries if it's equal to Id
+            case State#state.last_online of
+                Id ->
+                    ?LOGF("Reset last id (~p) because its offline ~n",[Id],?INFO),
+                    {noreply, LastOnline};
+                _ ->
+                    {noreply, State#state.last_online}
+            end
     end.

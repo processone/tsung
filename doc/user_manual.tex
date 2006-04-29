@@ -38,6 +38,7 @@ PostgreSQL, and Jabber servers.
 
 It is distributed under the GNU General Public License version 2.
 
+
 \subsection{What is Erlang and why is it important for Tsung ?}
 
 \program{Tsung's} main strength is its ability to simulate a huge number of
@@ -70,8 +71,16 @@ More informations on Erlang on \url{http://www.erlang.org} and
 
 History:
 \begin{itemize}
-\item \program{Tsung} is being developed since 2001 (it was called
-  IDX-Tsunami at this time)
+\item \program{Tsung} development was started by Nicolas Niclausse in
+  2001 as a distributed jabber load stress tool for internal use at
+  \url{http://IDEALX.com/}.  It has evolved as an open-source
+  multi-protocol load testing tool several months later. The HTTP
+  support was added in 2003, and this tool has been used for several
+  industrial projects.  It is now hosted by Erlang-projects, and
+  supported by \url{http://process-one.net/}. The list of contributors
+  is available in the source archive
+  (\url{https://svn.process-one.net/tsung/trunk/CONTRIBUTORS}).
+
 \item It is an industrial strength implementation of a \emph{stochastic model}
 for real users simulation. User events distribution is based on a
 Poisson Process. More information on this topic in:
@@ -90,12 +99,20 @@ Volume 46, Issue 2-3, October 2001}.
 \program{Tsung} has been used for very high load tests:
  
 \begin{itemize}
-\item \emph{Jabber} protocol: 10 000 simultaneous users.
+\item \emph{Jabber} protocol: 
+  \begin{itemize}
+  \item 90 000 simultaneous jabber users on a
+  4-node tsung cluster (3xSun V240 + 1 Sun V440)
+\item 10 000 simultaneous users.
   \program{Tsung} was running on a 3-computers cluster (CPU
   800Mhz)
-\item \emph{HTTP and HTTPS} protocol: 12 000 simultaneous users.
+  \end{itemize}
+\item \emph{HTTP and HTTPS} protocol:
+  \begin{itemize}
+  \item 12 000 simultaneous users.
   \program{Tsung} were running on a 4-computers cluster. The
   tested platform reached 3 000 requests per second.
+  \end{itemize}
 \end{itemize}
 
 \program{Tsung} has been used  at: 
@@ -107,6 +124,7 @@ Volume 46, Issue 2-3, October 2001}.
 for Petroleum 
 \item \emph{LibertySurf}
 \end{itemize}
+
 
 \section{Features}
 
@@ -166,7 +184,8 @@ distribution (currently exponential)
 \subsection{Jabber related features}
 
 \begin{itemize}
-\item Authentication, presence and register messages 
+\item Authentication (plaintext, digest and sip-digest)
+\item presence and register messages 
 \item Chat messages to online or offline users 
 \item Roster set and get requests 
 \item Global users\verb|'| synchronization can be set on specific actions
@@ -327,7 +346,7 @@ can also benchmark HTTP Proxy server. To do that, you must add in the
 
 It's the same approach as HTTP: first you start to record one or more
 sessions with the recorder: 
-\command{idx-tsunami -p pgsql  recorder}
+\command{tsung -p pgsql  recorder}
 
 This will start a proxy listening to port 8090 and will proxy requests
 to 127.0.0.0:5432.
@@ -342,9 +361,10 @@ There are two differences between HTTP and Jabber testing:
   sessions by hand (an example is provided in
   \ref{sec:sessions:jabber}).
 \item the jabber plugin does not parse XML; instead it uses packet
-  acknowledgments. The rest of this paragraph will explain this
-  feature.
+  acknowledgments. 
 \end{enumerate}
+
+\subsection{Acknowledgements of messages}
 
 Since the jabber plugin does not parse XML (historically, it was for
 performance reasons), you must have a way to tell when a request is
@@ -383,11 +403,93 @@ If you do not specify maxnumber, the global ack will be reset every
 \varname{global\_number} users
 \end{description}
 
-You can send messages to offline or online users. A user is considered
-online when he has send a \varname{presence:initial} message
-(\emph{warn:} this is new in \strong{1.2.0}, in earlier version, it
-was considered online as soon as it was connected).
+\subsection{Status: Offline, Connected and Online}
 
+You can send messages to offline or online users. A user is considered
+online when he has send a \userinput{presence:initial} message (before
+this message , the state of the user is \varname{connected}).
+
+If you want to switch back to \varname{connected} before going
+\varname{offline}, you can use a \userinput{presence:initial} message:
+
+\userinput{presence:initial} does two things:
+\begin{enumerate}
+\item It removes the client from the list of Online users, and moves
+  them into the list of Connected users.
+\item  It sends a broadcast presence update of type='unavailable'.
+\end{enumerate}
+
+\userinput{presence:initial} is optional.
+
+\emph{warn:} this is new in \strong{1.2.0}, in earlier version, only 2
+status were available: online and offline; a user was considered
+online as soon as it was connected.
+
+\subsection{Authentication}
+
+Below are configuration examples for the possible authentication
+methods.  Note: the regular expressions used here are only examples -
+they may need to be altered depending on how a particular server
+implimentation composes messages (see also ~\ref{sec:jabber-options}
+for password settings).
+
+
+\begin{itemize}
+\item \strong{plain authentication} - sends cleartext passwords:
+\begin{Verbatim}
+  <session probability="100" name="jabber-plain" type="ts_jabber">
+
+    <request> <jabber type="connect" ack="no_ack"></jabber> </request>
+
+    <thinktime value="2"></thinktime> 
+
+    <transaction name="auth_plain">
+      <request> <jabber type="auth_get" ack="local"></jabber> </request>
+      <request> <jabber type="auth_set_plain" ack="local"></jabber> </request>
+    </transaction>
+    ...
+  </session>
+\end{Verbatim}
+\item \strong{digest authentication}  as described in XMPP JEP-0078: Non-SASL Authentication
+   \url{http://www.jabber.org/jeps/jep-0078.html}
+\begin{Verbatim}
+  <session probability="100" name="jabber-digest" type="ts_jabber">
+
+    <!-- regexp captures stream ID returned by server -->
+    <request>
+      <dyn_variable name="sid" regexp="&lt;stream:stream id=&quot;\(.*\)&quot; xmlns:stream"/>
+      <jabber type="connect" ack="local"></jabber>
+    </request>
+
+    <thinktime value="2"></thinktime>
+
+    <transaction name="auth_digest">
+      <request> <jabber type="auth_get" ack="local"></jabber> </request>
+      <request subst='true'> <jabber type="auth_set_digest" ack="local"></jabber> </request>
+    </transaction>
+    ...
+  </session>
+\end{Verbatim}
+\item \strong{sip-digest authentication}
+\begin{Verbatim}
+  <session probability="100" name="jabber-sipdigest" type="ts_jabber">
+
+    <request> <jabber type="connect" ack="no_ack"></jabber> </request>
+
+    <thinktime value="2"></thinktime>
+
+    <transaction name="auth_sipdigest">
+      <!-- regexp captures nonce value returned by server -->
+      <request>
+        <dyn_variable name="nonce" regexp="&lt;Nonce encoding=&quot;hex&quot;&gt;\(.*\)&lt;\/Nonce&gt;"/>
+        <jabber type="auth_get" ack="local"></jabber>
+      </request>
+      <request subst='true'> <jabber type="auth_set_sip" ack="local"></jabber> </request>
+    </transaction>
+    ...
+  </session>
+\end{Verbatim}
+\end{itemize}
 
 \section{Using the proxy recorder}
 
@@ -398,7 +500,7 @@ the default plugin. For PostgreSQL, use \userinput{pgsql}.
 
 The proxy is listening to port 8090. The recorded session is
 created as \file{~/.tsung/tsung_recorderYYYMMDD-HH:MM.xml}; if it doesn't
-work, take a look at \file{~/.tsung/log/tsung.log-tsunami_recorder@hostname}
+work, take a look at \file{~/.tsung/log/tsung.log-tsung_recorder@hostname}
 
 
 To stop it, use \command{tsung stop\_recorder}.
@@ -593,6 +695,7 @@ those set in session configuration tags if override is true.
 \end{Verbatim}
 
 \subsubsection{Jabber options}
+\label{sec:jabber-options}
 
 Default values for specific protocols can be defined. Here is an
 example of option values for Jabber:
@@ -636,10 +739,27 @@ value (the sum of all probabilities must be equal to 100)
 
 \subsection{Sessions}
 
-\subsubsection{Overview and examples}
 
 Sessions define the content of the scenario itself. They describe
 the requests to execute.
+
+
+Each session has a given probability. This is used to decide which
+session a new user will execute. The sum of all session\verb|'|s
+probabilities must be 100.
+
+A transaction is just a way to have customized statistics. Say if you
+want to know the response time of the login page of your website, you
+just have to put all the requests of this page (HTML + embedded
+pictures) within a transaction. In the example above, the transaction
+called \varname{index\_request} will gives you in the
+statistics/reports the mean response time to get
+\userinput{index.en.html + header.gif}. Be warn that If you have a
+thinktime inside the transaction, the thinktime will be part of the
+response time.
+
+\subsubsection{HTTP}
+
 
 This example shows several features of the HTTP protocol support in
 Tsung: GET and POST request, basic authentication, transaction for
@@ -686,19 +806,7 @@ statistics definition, ...
 </sessions>
 \end{Verbatim}
 
-Each session has a given probability. This is used to decide which
-session a new user will execute. The sum of all session\verb|'|s
-probabilities must be 100.
-
-A transaction is just a way to have customized statistics. Say if you
-want to know the response time of the login page of your website, you
-just have to put all the requests of this page (HTML + embedded
-pictures) within a transaction. In the example above, the transaction
-called \varname{index\_request} will gives you in the
-statistics/reports the mean response time to get
-\userinput{index.en.html + header.gif}. Be warn that If you have a
-thinktime inside the transaction, the thinktime will be part of the
-response time.
+\subsubsection{Jabber}
 
 \label{sec:sessions:jabber}
 \par Here is an example of a session definition for the Jabber protocol:
@@ -716,11 +824,6 @@ response time.
 
     <request> <jabber type="presence:initial" ack="no_ack"/> </request>
 
-    <thinktime value="2"></thinktime>
-
-    <transaction name="roster">
-      <request><jabber type="iq:roster:get" ack="local"> </jabber> </request>
-    </transaction>
 
     <thinktime value="30"></thinktime>
 
@@ -740,6 +843,101 @@ response time.
     </transaction>
   </session>
 </sessions>
+\end{Verbatim}
+
+\paragraph{Roster}
+
+What you can do with rosters using Tsung: 
+
+You can
+\begin{enumerate}
+\item  Add a new contact to their roster
+   - The new contact is added to the \userinput{Tsung Group} group, and their name matches their JID
+\item  Send a \userinput{subscribe} presence notification to the new contact's JID
+   - This results in a \emph{pending} subscription
+ \item  Rename a roster contact
+    This changes the previously added contact's name from the default JID, to \userinput{Tsung Testuser}
+  \item Delete the previously added contact.
+\end{enumerate}
+
+Note that when you add a new contact, the contact JID is stored and used for the operations that follow. It is recommended that for each session which is configured to perform these operations, only do so once. In other words, you would NOT want to ADD more than one new contact per session. If you want to alter the rate that these roster functions are used during your test, it is best to use the session 'probablity' factor to shape this.
+
+The nice thing about this is that when you test run is complete, your roster tables should look the same as before you started the test. So, if you set it up properly, you can have pre-loaded roster entries before the test, and then use these methods to dynamically add, modify, and remove roster entries during the test as well. 
+
+Example roster modification setup:
+
+\begin{Verbatim}
+<session probability="100" name="jabber-rostermod" type="ts_jabber">
+
+    <!-- connect, authenticate, roster 'get', etc... -->
+
+    <transaction name="rosteradd">
+      <request> <jabber type="iq:roster:add" ack="no_ack" destination="online"></jabber> </request>
+      <request> <jabber type="presence:subscribe" ack="no_ack"/> </request>
+    </transaction>
+
+    <!-- ... -->
+
+    <transaction name="rosterrename">
+      <request> <jabber type="iq:roster:rename" ack="no_ack"></jabber> </request>
+    </transaction>
+
+    <!-- ... -->
+
+    <transaction name="rosterdelete">
+      <request> <jabber type="iq:roster:remove" ack="no_ack"></jabber> </request>
+    </transaction>
+
+    <!-- remainder of session... -->
+
+  </session>
+\end{Verbatim}
+
+
+\paragraph{Presence}
+\begin{itemize}
+\item \varname{type} can be either \userinput{presence:broadcast} or \userinput{presence:directed}.
+\item \varname{show} value must be either \userinput{away}, \userinput{chat}, \userinput{dnd}, or \userinput{xa}.
+\item \varname{status} value can be any text.
+\end{itemize}
+For more info, see section 2.2 of RFC 3921.
+
+If you omit the \varname{show} or \varname{status} attributes, they default to \userinput{chat} and \userinput{Available} respectively.
+
+Example of broadcast presence (broadcast to members of your roster):
+\begin{Verbatim}
+    <request> <jabber type="presence:broadcast" show="away" status="Be right back..." ack="no_ack"/> </request>
+    <thinktime value="5"></thinktime>
+
+    <request> <jabber type="presence:broadcast" show="chat" status="Available to chat" ack="no_ack"/> </request>
+    <thinktime value="5"></thinktime>
+
+    <request> <jabber type="presence:broadcast" show="dnd" status="Don't bother me!" ack="no_ack"/> </request>
+    <thinktime value="5"></thinktime>
+
+    <request> <jabber type="presence:broadcast" show="xa" status="I may never come back..." ack="no_ack"/> </request>
+    <thinktime value="5"></thinktime>
+
+    <request> <jabber type="presence:broadcast" ack="no_ack"/> </request>
+    <thinktime value="5"></thinktime>
+\end{Verbatim}
+
+Example of directed presence (sent to random \userinput{online} users):
+\begin{Verbatim}
+    <request> <jabber type="presence:directed" show="away" status="Be right back..." ack="no_ack"/> </request>
+    <thinktime value="5"></thinktime>
+
+    <request> <jabber type="presence:directed" show="chat" status="Available to chat" ack="no_ack"/> </request>
+    <thinktime value="5"></thinktime>
+
+    <request> <jabber type="presence:directed" show="dnd" status="Don't bother me!" ack="no_ack"/> </request>
+    <thinktime value="5"></thinktime>
+
+    <request> <jabber type="presence:directed" show="xa" status="I may never come back..." ack="no_ack"/> </request>
+    <thinktime value="5"></thinktime>
+
+    <request> <jabber type="presence:directed" ack="no_ack"/> </request>
+    <thinktime value="5"></thinktime>
 \end{Verbatim}
 
 \subsubsection{Dynamic substitutions}

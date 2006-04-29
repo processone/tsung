@@ -37,7 +37,9 @@
 				 username, %% first chars of username (will append id dynamically)
 				 passwd,   %% first chars of passwd (will append id dynamically)
 				 nonce,    %% used to generate sip-digest passwd
-				 sid       %% used to generate digest passwd
+				 sid,      %% used to generate digest passwd
+				 show,     %% presence <show/> - see RFC 3921, section 2.2
+				 status    %% presence <status/> - see RFC 3921, section 2.2
 				}).
 
 -define(setroster_intensity, 1/(ts_utils:get_val(setroster)*1000)).

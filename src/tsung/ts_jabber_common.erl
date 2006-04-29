@@ -49,10 +49,15 @@ get_message(#jabber{type = 'presence'}) ->
 get_message(#jabber{type = 'presence:initial', id=Id}) ->
     ts_user_server:add_to_online(Id),
     presence();
-get_message(Jabber=#jabber{type = 'presence:directed', id=Id}) ->
-    case ts_user_server:get_one_connected(Id) of
+get_message(#jabber{type = 'presence:final', id=Id}) ->
+    ts_user_server:remove_from_online(Id),
+    presence(unavailable);
+get_message(#jabber{type = 'presence:broadcast', show=Show, status=Status}) ->
+    presence(broadcast, Show, Status);
+get_message(Jabber=#jabber{type = 'presence:directed', id=Id, show=Show, status=Status}) ->
+    case ts_user_server:get_online(Id) of
         {ok, Dest} ->
-            presence(directed,  Jabber#jabber{dest=Dest});
+            presence(directed, Dest, Jabber, Show, Status);
         {error, no_online} ->
             ts_mon:add({ count, error_no_online }),
             << >>
@@ -65,8 +70,9 @@ get_message(Jabber=#jabber{dest=previous}) ->
     get_message(Jabber#jabber{dest=Dest});
 get_message(Jabber=#jabber{type = 'presence:roster'}) ->
     presence(roster, Jabber);
-get_message(Jabber=#jabber{type = 'presence:subscribe'}) ->
-    presence("subscribe", Jabber);
+get_message(#jabber{type = 'presence:subscribe'}) -> %% must be called AFTER iq:roster:add
+    RosterJid = get(rosterjid),
+    presence(subscribe, RosterJid);
 get_message(Jabber=#jabber{type = 'chat', id=Id, dest=online, domain=Domain})->
     case ts_user_server:get_online(Id) of 
         {ok, Dest} ->
@@ -93,23 +99,28 @@ get_message(Jabber=#jabber{type = 'chat', dest=unique, domain=Domain})->
 get_message(Jabber=#jabber{type = 'chat', id=Id, dest = Dest, domain=Domain}) ->
     ?DebugF("~w -> ~w ~n", [Id,  Dest]),
     message(Dest, Jabber, Domain);
-get_message(#jabber{type = 'iq:roster:set', id=Id, dest = online,username=User,domain=Domain}) ->
-    case ts_user_server:get_online(Id) of 
+get_message(#jabber{type = 'iq:roster:add', id=Id, dest = online,username=User,domain=Domain}) ->
+    case ts_user_server:get_online(Id) of
         {ok, Dest} ->
-            request(roster_set, User, Domain, Dest);
+            request(roster_add, User, Domain, Dest);
         {error, no_online} ->
             ts_mon:add({ count, error_no_online }),
             << >>
     end;
-get_message(#jabber{type = 'iq:roster:set',dest = offline,username=User,domain=Domain})->
-    case ts_user_server:get_offline() of 
+get_message(#jabber{type = 'iq:roster:add',dest = offline,username=User,domain=Domain})->
+    case ts_user_server:get_offline() of
         {ok, Dest} ->
-            put(previous, Dest),
-            request(roster_set, User, Domain, Dest);
+            request(roster_add, User, Domain, Dest);
         {error, no_offline} ->
             ts_mon:add({ count, error_no_offline }),
             << >>
     end;
+get_message(#jabber{type = 'iq:roster:rename'})-> %% must be called AFTER iq:roster:add
+        RosterJid = get(rosterjid),
+        request(roster_rename, RosterJid);
+get_message(#jabber{type = 'iq:roster:remove'})-> %% must be called AFTER iq:roster:add
+        RosterJid = get(rosterjid),
+        request(roster_remove, RosterJid);
 get_message(#jabber{type = 'iq:roster:get', id = Id,username=User,domain=Domain}) ->
     request(roster_get, User, Domain, Id);
 
@@ -188,7 +199,7 @@ auth_set_plain(Username, Passwd, Type) ->
    "' type='set' >",
    "<query xmlns='jabber:iq:", Type, "'>",
    "<username>", Username, "</username>",
-   "<resource>tsunami</resource>",
+   "<resource>tsung</resource>",
    "<password>", Passwd, "</password></query></iq>"]).
 
 
@@ -209,7 +220,7 @@ auth_set_digest(Username, Passwd, Type, Sid) ->
    "' type='set' >",
    "<query xmlns='jabber:iq:", Type, "'>",
    "<username>", Username, "</username>",
-   "<resource>tsunami</resource>",
+   "<resource>tsung</resource>",
    "<digest>", Digest, "</digest></query></iq>"]).
 
 
@@ -230,7 +241,7 @@ auth_set_sip(Username, Passwd, Domain, Type, Nonce, Realm) ->
    "' type='set' >",
    "<query xmlns='jabber:iq:", Type, "'>",
         "<username>", Jid, "</username>",
-        "<resource>tsunami</resource>",
+        "<resource>tsung</resource>",
         "<x xmlns='xmpp:assert' version='1.0'>",
                 "<ContextInfo><ServiceValue><Realm>", Domain,
                 "</Realm></ServiceValue></ContextInfo>",
@@ -292,16 +303,23 @@ presence() ->
 	list_to_binary([ "<presence id='",ts_msg_server:get_id(list),"' />"]).
 
 %%----------------------------------------------------------------------
+%% Func: presence/1
+%%----------------------------------------------------------------------
+presence(unavailable)->
+    list_to_binary([ "<presence type='unavailable'/>"]).
+
+%%----------------------------------------------------------------------
+%% Func: presence/2
+%%----------------------------------------------------------------------
 presence(Type, Jabber=#jabber{dest=Dest}) when is_integer(Dest)->
     presence(Type, Jabber#jabber{dest=integer_to_list(Dest)}) ;
 presence(roster, Jabber)->
     presence(subscribed, Jabber);
-presence(directed, #jabber{dest= Dest,domain=Domain, username=UserName})->
-    DestName = UserName ++ Dest,
-    list_to_binary([
-          "<presence id='",ts_msg_server:get_id(list),
-          "' to='", DestName, "@" , Domain , "'>",
-          "<show>chat</show><status>tsung load gen</status></presence>"]);
+presence(subscribe, RosterJid)->
+     list_to_binary([
+           "<presence id='",ts_msg_server:get_id(list),
+           "' to='", RosterJid,
+           "' type='subscribe'/>"]);
 presence(Type, Jabber) when is_atom(Type)->
     presence(atom_to_list(Type), Jabber);
 presence(Type, #jabber{dest=Dest, domain=Domain, username=UserName})->
@@ -311,19 +329,54 @@ presence(Type, #jabber{dest=Dest, domain=Domain, username=UserName})->
 	  "' to='", DestName, "@" , Domain,
 	  "' type='",Type,"'/>"]).
 
+%%----------------------------------------------------------------------
+%% Func: presence/3
+%%----------------------------------------------------------------------
+presence(broadcast, Show, Status) ->
+    list_to_binary([ "<presence id='",ts_msg_server:get_id(list),"'>",
+        "<show>", Show, "</show><status>", Status, "</status></presence>"]).
+    
+%%----------------------------------------------------------------------
+%% Func: presence/4
+%%----------------------------------------------------------------------
+presence(directed, Dest, Jabber, Show, Status) when is_integer(Dest) ->
+    presence(directed, integer_to_list(Dest), Jabber, Show, Status);
+presence(directed, Dest, #jabber{username=UserName,domain=Domain}, Show, Status) ->
+    DestName = UserName ++ Dest,
+    list_to_binary([
+          "<presence id='",ts_msg_server:get_id(list),
+          "' to='", DestName, "@" , Domain , "'>",
+          "<show>", Show, "</show><status>", Status, "</status></presence>"]).
 
+%%----------------------------------------------------------------------
+%% Func: request/2
+%%----------------------------------------------------------------------
+request(roster_rename, RosterJid) ->
+        list_to_binary([
+                "<iq id='" ,ts_msg_server:get_id(list),
+                "' type='set'><query xmlns='jabber:iq:roster'><item jid='"
+                ,RosterJid,
+                "' name='Tsung Testuser'><group>Tsung Group</group></item></query></iq>"]);
+request(roster_remove, RosterJid) ->
+        list_to_binary([
+                "<iq id='" ,ts_msg_server:get_id(list),
+                "' type='set'><query xmlns='jabber:iq:roster'><item jid='"
+                ,RosterJid,
+                "' subscription='remove'/></query></iq>"]).
 %%----------------------------------------------------------------------
 %% Func: request/4
 %%----------------------------------------------------------------------
-request(roster_set, UserName, Domain, Id) when is_integer(Id)->
-    request(roster_set, UserName, Domain, integer_to_list(Id));
-request(roster_set, UserName, Domain, Id)->
-	Name = UserName ++ Id,
-	list_to_binary([
-		"<iq id='" ,ts_msg_server:get_id(list),
-		"' type='set'>","<query xmlns='jabber:iq:roster'><item jid='",
-		Name,"@",Domain,
-		"' name='gg1000'/><group>Tsung</group></query></iq>"]);
+request(roster_add, UserName, Domain, Id) when is_integer(Id)->
+    request(roster_add, UserName, Domain, integer_to_list(Id));
+request(roster_add, UserName, Domain, Id)->
+        Name = UserName ++ Id,
+        RosterJid = Name ++ "@" ++ Domain,
+        _ = put(rosterjid,RosterJid),
+        list_to_binary([
+                "<iq id='" ,ts_msg_server:get_id(list),
+                "' type='set'>","<query xmlns='jabber:iq:roster'><item jid='",
+                RosterJid,
+                "' name='",RosterJid,"'><group>Tsung Group</group></item></query></iq>"]);
 request(roster_get, _UserName, _Domain, _Id)->
 	list_to_binary([
 	  "<iq id='" ,ts_msg_server:get_id(list),
