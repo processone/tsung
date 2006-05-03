@@ -31,8 +31,8 @@ RECORDER_PLUGIN="http"
 ERL_RSH=" -rsh ssh "
 ERL_OPTS=" +A 1 @ERL_OPTS@ "
 COOKIE='tsung'
-ERTS_RUN=`$ERL -version 2>&1 | tr -d '[A-Za-z] (),\f\n\r'`
-ERTS_BOOT=`grep erts $TSUNGPATH/../priv/tsung.rel | tr -d 'a-z{}"" ,\n'`
+ERTS_RUN=`$ERL -version 2>&1 | tr -cd 0123456789.`
+ERTS_BOOT=`grep erts $TSUNGPATH/../priv/tsung.rel | tr -cd 0123456789.`
 
 stop() {
     $ERL $ERL_OPTS $ERL_RSH -noshell  -sname killer -setcookie $COOKIE -pa $TSUNGPATH -pa $CONTROLLERPATH -s tsung_controller stop_all $HOST -s init stop
