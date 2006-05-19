@@ -517,7 +517,7 @@ rrd_update(LogDir,[{Key, Val} | Tail]) when is_integer(Key)->
 rrd_update(LogDir,[{Key, Val} | Tail]) when is_atom(Key)->
     KeyStr = atom_to_list(Key),
     rrd_update(LogDir,[{KeyStr, Val} | Tail]);
-rrd_update(LogDir,[{Key,{Type, [Mean,Var,Max,Min,_Count|_]}} | Tail]) when is_list(Key),is_integer(Mean) or is_float(Mean)->
+rrd_update(LogDir,[{Key,{_Type, [Mean,_Var,_Max,_Min,_Count|_]}} | Tail]) when is_list(Key),is_integer(Mean) or is_float(Mean)->
     File=filename:join(LogDir, Key  ++ ".rrd"),
     rrdtool:update(#rrd_update{filename=File,
                                updates=[#rrd_supdate{values=[Mean]}]}),

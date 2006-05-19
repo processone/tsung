@@ -81,5 +81,5 @@ tohex(A)->
 %%%    values <10 as only 1 character, ie. "0F" is simply returned as
 %%%    "F". For our digest, we need these leading zeros to be present.
 %%% ----------------------------------------------------------------------
-padhex(S=[Char]) -> "0" ++ S;
+padhex(S=[_Char]) -> "0" ++ S;
 padhex(String) -> String.

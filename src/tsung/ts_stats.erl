@@ -104,7 +104,7 @@ normal(#normal{mean=M,stddev=S}) ->
     normal_boxm(M,S,0,0,1).
 
 %%% use the polar form of the Box-Muller transformation
-normal_boxm(M,S,X1,X2,W) when W < 1->
+normal_boxm(M,S,X1,_X2,W) when W < 1->
     W2 = sqrt( (-2.0 * log( W ) ) / W ),
     Y1 = X1 * W2,
     M + Y1 * S;

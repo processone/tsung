@@ -176,7 +176,7 @@ auth_get(#jabber{username=Name,passwd=Passwd})->
 %%----------------------------------------------------------------------
 %% Func: auth_get/3
 %%----------------------------------------------------------------------
-auth_get(Username, Passwd, Type) ->
+auth_get(Username, _Passwd, Type) ->
  list_to_binary([
    "<iq id='", ts_msg_server:get_id(list),
    "' type='get' >",

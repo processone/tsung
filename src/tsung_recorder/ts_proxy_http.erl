@@ -242,7 +242,7 @@ record_request(State=#state_rec{prev_host=Host, prev_port=Port, prev_scheme=Sche
                 {RelURL, Port, Host, Scheme};
             #url{path=RelURL,host=Host,port=Port,querypart=Args,scheme=Scheme}->
                 {RelURL++"?"++Args, Port, Host, Scheme};
-            #url{path=RelURL,host=Host2,port=Port2,querypart=Args,scheme=Sc2}->
+            #url{host=Host2,port=Port2,scheme=Sc2}->
                 {FullURL,Port2,Host2,Sc2 }
         end,
     Fd = State#state_rec.logfd,

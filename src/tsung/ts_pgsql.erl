@@ -88,7 +88,7 @@ get_message(Req=#pgsql_request{type=authenticate, auth_method=?PG_AUTH_MD5,passw
     ?LOGF("PGSQL: Must authenticate with md5 (passwd= ~p) ~n",[PassString],?DEB),
     MD5Hash = encode_md5(PassString, Req#pgsql_request.username, Salt),
     encode_message(password, MD5Hash);
-get_message(#pgsql_request{type=authenticate, auth_method=AuthType,passwd=PassString}) ->
+get_message(#pgsql_request{type=authenticate, auth_method=AuthType}) ->
     ?LOGF("PGSQL: Authentication method not implemented ! [~p] ~n",[AuthType],?ERR),
     <<>>.
 

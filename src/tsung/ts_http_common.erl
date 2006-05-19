@@ -183,7 +183,7 @@ parse(Data, State=#state_rcv{session=HTTP}) when HTTP#http.status == none;
 			{State#state_rcv{session= Http, ack_done = false, 
 							 datasize = TotalSize,
 							 dyndata= DynData}, [], true};
-		{ok, Http=#http{status=100}, _} -> % Status 100 Continue, ignore.
+		{ok, #http{status=100}, _} -> % Status 100 Continue, ignore.
             %% FIXME: not tested
 			{State#state_rcv{ack_done=false,session=#http{}},[],false};
 		{ok, Http, Tail} ->
