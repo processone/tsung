@@ -48,103 +48,15 @@
   par une distribution exponentielle (par conséquent, le processus
   d'arrivée est un processus de Poisson).
 
-  Le trafic peut être "dumpé" dans un fichier, afin de pouvoir
-  effectuer toutes sortes d'analyse après coup (option 'dumptrafic'
-  dans le fichier de configuration XML). Attention, cette option peux
-  ralentir considérablement les injecteurs en cas de très forte
-  charge.
 
   Voir également le site  http://tsung.erlang-projects.org/
 
   NEW: Un manuel utilisateur est maintenant disponible en anglais:
   http://tsung.erlang-projects.org/user_manual.html
 
-  2.  Installation
+  2.  Installation & Configuration
 
-  2.1.  Dépendances
-  
-  - nécessite Erlang/OTP R9C-0 (http://www.erlang.org/download.html)
-
-  - xmerl-0.19 (http://sowap.sourceforge.net/download.html). Un paquet
-    debian binaire est disponible à l'adresse 
-    http://tsung.erlang-projects.org/dist/
-
-  - le module extended regexp est utilisé pour les variables
-    dynamiques: gregexp.erl est disponible à
-     http://www.cellicium.com/erlang/contribs/ . Ce module est
-     inclus dans les distributions sources et binaires de
-     tsung. Ce module est diffusé en license EPL .
-
-  - gnuplot et perl5 (optionel, utilisé pour les sorties graphiques du script 
-    tsung_stats.pl). Le Template Toolkit est utilisé pour les rapports en HTML
-    (cf. http://template-toolkit.org/)
-  
-  - les tests distribués utilisent un accès ssh non intéractif pour
-    démarrer Erlang à distance. Il faut donc utiliser une clé RSA/DSA,
-    sans passphrase ou en avec ssh-agent)
-	
-  2.2.  Compilation et Installation
-
-  ./configure (ceci détecte l'endroit où erlang est installé)
-  make
-  make install
-
-  Comment l'utiliser:
-    1a/ Éditer un fichier ~/.tsung/tsung.xml (toutes les
-    options sont décrites en commentaires dans le fichier d'exemple
-    /usr/share/doc/tsung/examples/tsung.xml).
-
-    1b/ Lire le fichier doc/Jabber.txt pour des informations spécifiques à 
-    Jabber.
-
-    2/ utilisez le script "tsung --start" pour démarrer le 
-    test de charge (man tsung pour avoir les options disponibles)
-
-    3/ Lorsque c'est terminé (tsung --stop pour forcer l'arrêt), le
-    script tsung_stats.pl (/usr/lib/tsung/bin/tsung_stats.pl)
-    génère une synthèse des temps de réponses;
-    ce script peut également générer des graphes avec l'option --plot.
-
- 	   Depuis la version 0.2.0, les statistique peuvent être calculés
- 	   en temps réel (mise à jour toutes les 10 secondes par défaut)
- 	   avec les options --stats and --plot option. Le script va
- 	   générer des graphes au format postscript en utilisant
- 	   gnuplot. L'option --stats requiert en argement le nomdu fichier
- 	   de log, par défaut 'tsung.log-YYYY:MM:DD-HH:mm'
-		   
-	   Les mesures suivantes sont disponibles:
-		- response_time (temps de réponse pour chaque requête)
-		- page_resptime (response time pour chaque ensemble de requête)
-		- connect (durée pour effectuer la connexion)
-		- reconnect (nombre de reconnexion)
-		- size (taille des réponses)
-		- session (durée d'une session)
-		- users (nombre d'utilisateurs simultanés)
-
-       mesures spécifiques à HTTP :
-		  - un compteur pour chaque type de réponse (200, 404, etc.)
-  
-       Depuis la version v1.0.beta1, il est possible de customiser
-       les mesures en définissant des "transactions" dans les
-       sessions. L'option --extra est nécessaire pour afficher les
-       statistiques os_mon (cpu, mémoire libre)
-
-       Depuis la version v1.0.beta3, un rapport HTML peut être générer
-       en utilisant l'option --html. Ceci utilise le Template
-       Toolkit. Le répertoire contenenant les templates est
-       ~/tsung/templates ou /usr/share/tsung/template ou
-       encore peut être configuré par --tdir <dir>
- 
-      Ex: > cd ~/.tsung/log/2004YYYY-XX:XX
-          > tsung_stats.pl --stats tsung.log --plot --html
-
-    4/ Pour utiliser le proxy enregistreur de sessions HTTP depuis un
-    navigateur, il faut d'abord démarrer le proxy avec la commande
-    'tsung recorder'. Celui-ci démmare le proxy qui écoute sur le
-    port 8090. Il suffit ensuite de paramétrer le navigateur pour
-    utiliser ce proxy. Toutes les requêtes et les 'thinktimes' seront
-    enregistrées dans un fichier directement au format XML. Une fois
-    terminé, lancer la commande 'tsung stop_recorder'.
+  cf. http://tsung.erlang-projects.org/user_manual.html
 
 
 
@@ -157,9 +69,8 @@
 
   2.4.  Portabilité
 
-    Ce logiciel n'a été testé que sous Linux. Il devrait néanmoins
-    fonctionner sous toute plate-forme supporté par Erlang (Solaris et
-    FreeBSD en particulier).
+    Ce logiciel a été testé sous Linux, Solaris, FreeBSD. Il devrait
+    fonctionner sous toute plate-forme supporté par Erlang.
 
 
 
