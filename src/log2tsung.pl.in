@@ -173,13 +173,15 @@ print '<tsung loglevel="notice" dumptraffic="false" version="1.0">
       <ip value="192.168.0.2"></ip>
     </client>
 </clients>
-
-<server host="myservername" port="80" type="tcp"></server>
+<servers>
+ <server host="myservername" port="80" type="tcp"></server>
+</servers>
 
 <arrivalphase phase="1" duration="10" unit="minute">
    <users interarrival="0.1" unit="second"></users>
 </arrivalphase>
 
+<sessions>
 ';
 my $real_visit = 0;
 foreach my $key (keys %$visite) {
@@ -214,7 +216,7 @@ foreach my $key (sort {$visite->{$a}->{'id'} cmp $visite->{$b}->{'id'}} keys %$v
         print "$tsung</session>\n";
     }
 }
-print '</tsung>';
+print '</sessions></tsung>';
 if ($verbose) {
     select STDERR;
     print "real_visit = $real_visit\n";
@@ -257,7 +259,7 @@ print "this script is part of tsung version $tagvsn
 
 Written by Nicolas Niclausse
 
-Copyright (C) 2004 Nicolas Niclausse
+Copyright (C) 2004-2006 Nicolas Niclausse
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
