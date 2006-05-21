@@ -47,7 +47,7 @@
 <!ATTLIST arrivalphase
      duration NMTOKEN #REQUIRED
      phase    NMTOKEN #REQUIRED
-     unit     (hour | minute | second) #REQUIRED>
+     unit     (hour | minute | second | millisecond) #REQUIRED>
 
 <!ELEMENT users EMPTY>
 <!ATTLIST users
