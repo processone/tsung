@@ -1,7 +1,7 @@
 DNA define([AC_CACHE_LOAD], )dnl
 dnl define([AC_CACHE_SAVE], )dnl
 
-AC_INIT([tsung], m4_normalize(m4_include([vsn.mk])),[idx-tsunami@lists.IDEALX.org])
+AC_INIT([tsung], m4_normalize(m4_include([vsn.mk])),[tsung-users@process-one.net])
 AC_CONFIG_SRCDIR(src/tsung/tsung.erl)
 dnl AM_INIT_AUTOMAKE()
 

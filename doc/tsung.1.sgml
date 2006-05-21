@@ -132,8 +132,8 @@ A distributed multi-protocol load testing tool.
 
   <refsect1>
     <title>Bugs</title> <para> Please reports bugs to the mailing list
-    <email>idx-tsunami@lists.idealx.org</email>, see
-    <address>http://lists.idealx.org/info/idx-tsunami</address> for
+    <email>tsung-users@process-one.net</email>, see
+    <address>https://lists.process-one.net/mailman/listinfo/tsung-users</address> for
     archives.
     </para>
   </refsect1>
