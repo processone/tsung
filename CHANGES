@@ -1,30 +1,38 @@
 1.1.0 -> 1.2.0 Major feature enhancements (XX XXX 2006)
     - change name: idx-tsunami is now called tsung 
     - add new plugin: pgsql for postgresql load testing
-    - add plugin architecture in recorder; add pgsql plugin
     - new: it's now possible to set multiple servers (selected at runtime 
       by round robin)
     - add size_rcv stats
+    - fix beams communication problem introduced in new erlang releases.
     - import snmp_mgr src from R9C2 to enable SNMP with R10B
     - rebuild boot scripts if erlang version is different from compile time
     - many DTD improvements
     - improved match: add loop|abort|restart on (no)match behavior,
       multiple match tags is now possible (suggested by msmith@truelink.com)
     - freemem and packet stats for Solaris (jasonwtucker@gmail.com)
-    - fix presence:roster request
-    - add presence:directed request for jabber (jasonwtucker@gmail.com)
-    - fix online: must use presence:initial to switch to online status
     - fix several small problems with 'use_controller_vm' option
-    - fix regression in recorder for WWW-Authentication 
-      (anders.nygren@gmail.com)
-    - fix single user agent case.
     - ip is no more mandatory (default is 0.0.0.0)
     - clients and monitoring can use hosts list defined in environment
       variables, for use with batch schedulers (openpbs/torque, LSF and OAR)
     - performance improvements in stats engine for very high load 
       (use session_cache)
+    Recorder:
+    - add plugin architecture in recorder; add pgsql plugin
+    - fix regression in recorder for WWW-Authentication 
+      (anders.nygren@gmail.com)
     - close client socket when connection:closed is ask by the server
       (this should enable https recording with IE)
+    Jabber:
+    - fix presence:roster request
+    - add presence:directed request for jabber (jasonwtucker@gmail.com)
+    - roster enhancements (jasonwtucker@gmail.com)
+    - sip-digest authentication (jasonwtucker@gmail.com)
+    - fix online: must use presence:initial to switch to online status
+    - add pubsub support (mickael.remond@process-one.net)
+    Http:
+    - fix single user agent case.
+    - minor fixes for HTTP parsing
 
 1.0.3 -> 1.1.0 Major feature enhancements (5 Sep 2005)
     - new feature: HTTP proxy load testing in now possible (set
