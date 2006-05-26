@@ -127,7 +127,63 @@ get_message(#jabber{type = 'iq:roster:get', id = Id,username=User,domain=Domain}
 get_message(Jabber=#jabber{type = 'raw'}) ->
     raw(Jabber);
 
-get_message(Jabber=#jabber{username = Name, passwd= Passwd, id=Id}) ->
+%% -- Pubsub benchmark support --
+%% For node creation, data contains the pubsub nodename (relative to user
+%% hierarchy or absolute, optional)
+get_message(#jabber{type = 'pubsub:create', id=Id, username=User, 
+                    data=Data, domain = Domain}) ->
+    Username = User ++ Id,
+    create_pubsub_node(Domain, Username, Data);
+%% For node subscription, data contain the pubsub nodename (relative to user
+%% hierarchy or absolute)
+get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=User,
+                    dest=online, data=Data, domain = Domain}) ->
+    case ts_user_server:get_online(Id) of 
+        {ok, Dest} ->
+            UserFrom = User ++ Id,
+            UserTo = User ++ integer_to_list(Dest),
+            subscribe_pubsub_node(Domain, UserFrom, UserTo, Data);
+        {error, no_online} ->
+            ts_mon:add({ count, error_no_online }),
+            << >>
+    end;
+get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=User,
+                    dest=offline, data=Data, domain = Domain}) ->
+    case ts_user_server:get_offline() of 
+        {ok, Dest} ->
+            UserFrom = User ++ Id,
+            UserTo = User ++ integer_to_list(Dest),
+            subscribe_pubsub_node(Domain, UserFrom, UserTo, Data);
+        {error, no_offline} ->
+            ts_mon:add({ count, error_no_offline }),
+            << >>
+    end;
+%% For node publication, data contain the pubsub nodename (relative to user
+%% hierarchy or absolute)
+get_message(#jabber{type = 'pubsub:publish', size=Size, id=Id, 
+                    username=User, dest=online, data=Data,
+                    domain = Domain}) ->
+    case ts_user_server:get_online(Id) of 
+        {ok, Dest} ->
+            Username = User ++ Id,
+            publish_pubsub_node(Domain, Username, Data, Size);
+        {error, no_online} ->
+            ts_mon:add({ count, error_no_online }),
+            << >>
+    end;
+get_message(#jabber{type = 'pubsub:publish', size=Size, id=Id, 
+                    username=User, dest=offline, data=Data,
+                    domain = Domain}) ->
+    case ts_user_server:get_offline() of 
+        {ok, Dest} ->
+            Username = User ++ Id,
+            publish_pubsub_node(Domain, Username, Data, Size);
+        {error, no_offline} ->
+            ts_mon:add({ count, error_no_offline }),
+            << >>
+    end;
+
+get_message(Jabber=#jabber{username=Name, passwd=Passwd, id=Id}) ->
     FullName = Name ++ Id,
     FullPasswd = Passwd ++ Id,
 	get_message2(Jabber#jabber{username=FullName,passwd=FullPasswd}).
@@ -145,8 +201,10 @@ get_message2(Jabber=#jabber{type = 'auth_set_plain'}) ->
 get_message2(Jabber=#jabber{type = 'auth_set_digest', sid=Sid}) ->
     auth_set_digest(Jabber,Sid);
 get_message2(Jabber=#jabber{type = 'auth_set_sip', domain=Realm, nonce=Nonce}) ->
-    auth_set_sip(Jabber,Nonce,Realm).
-
+    auth_set_sip(Jabber,Nonce,Realm);
+get_message2(#jabber{type = Type}) ->
+    ?LOGF("Unknown message type: ~p~n", [Type], ?ERR),
+    {error, unknown_message}.
 
 
 
@@ -411,3 +469,59 @@ raw(#jabber{data=undefined}) ->
 raw(#jabber{data=Data}) when is_list(Data) ->
     list_to_binary(Data).
 
+%%%----------------------------------------------------------------------
+%%% Func: create_pubsub_node/3
+%%% Create a pubsub node: Generate XML packet
+%%% If node name is undefined (data attribute), we create a pubsub instant
+%%% node.
+%%% Nodenames are relative to the User pubsub hierarchy (ejabberd); they are
+%%% absolute with leading slash.
+%%%----------------------------------------------------------------------
+create_pubsub_node(Domain, Username, Node) ->
+    Result = list_to_binary(["<iq to='pubsub.", Domain, "' type='set' id='",
+		    ts_msg_server:get_id(list),"'>"
+		    "<pubsub xmlns='http://jabber.org/protocol/pubsub'>"
+		    "<create", pubsub_node_attr(Node, Domain, Username),
+		    "/></pubsub></iq>"]),
+    Result.
+%% Generate pubsub node attribute
+pubsub_node_attr(undefined, _Domain, _Username) -> " ";
+pubsub_node_attr([$/|AbsNode], _Domain, _Username) -> 
+    [" node='/", AbsNode,"'"];
+pubsub_node_attr(Node, Domain, Username) -> 
+    [" node='/home/", Domain, "/", Username, "/", Node,"'"].
+
+%%%----------------------------------------------------------------------
+%%% Func: subscribe_pubsub_node/4
+%%% Subscribe to a pubsub node: Generate XML packet
+%%% If node name is undefined (data attribute), we subscribe to target user
+%%% root node
+%%% Nodenames are relative to the User pubsub hierarchy (ejabberd); they are
+%%% absolute with leading slash.
+%%%----------------------------------------------------------------------
+subscribe_pubsub_node(Domain, UserFrom, UserTo, undefined) ->
+    subscribe_pubsub_node(Domain, UserFrom, UserTo, "");
+subscribe_pubsub_node(Domain, UserFrom, UserTo, Node) ->
+    list_to_binary(["<iq to='pubsub.", Domain, "' type='set' id='",
+		    ts_msg_server:get_id(list),"'>"
+		    "<pubsub xmlns='http://jabber.org/protocol/pubsub'>"
+		    "<subscribe", pubsub_node_attr(Node, Domain, UserTo),
+		    " jid='", UserFrom, "@", Domain, "'/>"
+		    "</pubsub></iq>"]).
+
+%%%----------------------------------------------------------------------
+%%% Func: publish_pubsub_node/4
+%%% Publish an item to a pubsub node
+%%% Nodenames are relative to the User pubsub hierarchy (ejabberd); they are
+%%% absolute with leading slash.
+%%%----------------------------------------------------------------------
+publish_pubsub_node(Domain, Username, undefined, Size) ->
+    publish_pubsub_node(Domain, Username, "", Size);
+publish_pubsub_node(Domain, Username, Node, Size) ->
+    Result = list_to_binary(["<iq to='pubsub.", Domain, "' type='set' id='",
+		    ts_msg_server:get_id(list),"'>"
+		    "<pubsub xmlns='http://jabber.org/protocol/pubsub'>"
+		    "<publish", pubsub_node_attr(Node, Domain, Username),">"
+		    "<item>", garbage(Size),"</item></publish>"
+		    "</pubsub></iq>"]),
+    Result.
