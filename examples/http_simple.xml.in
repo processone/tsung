@@ -4,7 +4,7 @@
 
   <!-- Client side setup -->
   <clients>
-    <client host="localhost"/>
+    <client host="localhost" use_controller_vm="true"/>
   </clients>
   
   <!-- Server side setup -->
