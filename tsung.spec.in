@@ -9,7 +9,7 @@ Version: %{version}
 Release: %{release}
 Source0: http://tsung.idealx.org/dist/%{name}-%{version}.tar.gz
 License: GPL
-Vendor: IDEALX S.A.S.
+Vendor: Process-one
 Packager: Nicolas Niclausse <nicolas@niclux.org>
 Group: Development/Tools
 BuildArch: noarch
@@ -29,7 +29,7 @@ Prefix: %{_prefix}
  sessions, supports GET and POST methods, Cookies, and Basic
  WWW-authentication. It also has support for SSL.
  .
- More information is available at http://tsung.idealx.org/ .
+ More information is available at http://tsung.erlang-projects.org/ .
 
 %prep
 %setup
