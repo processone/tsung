@@ -1,4 +1,4 @@
-1.1.0 -> 1.2.0 Major feature enhancements (XX XXX 2006)
+1.1.0 -> 1.2.0 Major feature enhancements (29 May 2006)
     - change name: idx-tsunami is now called tsung 
     - add new plugin: pgsql for postgresql load testing
     - new: it's now possible to set multiple servers (selected at runtime 
@@ -25,7 +25,8 @@
       (this should enable https recording with IE)
     Jabber:
     - fix presence:roster request
-    - add presence:directed request for jabber (jasonwtucker@gmail.com)
+    - add presence:directed , presence:broadcast & presence:final requests
+      for jabber (jasonwtucker@gmail.com)
     - roster enhancements (jasonwtucker@gmail.com)
     - sip-digest authentication (jasonwtucker@gmail.com)
     - fix online: must use presence:initial to switch to online status
