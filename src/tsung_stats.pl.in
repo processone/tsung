@@ -219,7 +219,7 @@ sub parse_stats_file {
                 $category->{$type} = "os_mon_packets";
             } elsif ($type =~ /^\d+$/) {
                 $category->{$type} = "http_status";
-            } elsif ($type eq "request" or $type eq "page" or $type eq "session" or  $type eq "connect") {
+            } elsif ($type eq "request" or $type eq "page" or $type eq "session" or  $type eq "connect" or $type eq "async_rcv") {
                 $category->{$type} = "stats";
             } elsif ($type =~ /^tr_/ or $type eq "page") {
                 $category->{$type} = "transaction";
@@ -302,7 +302,7 @@ sub parse_stats_file {
 			push @match, "$key.txt";
 		} elsif ($key =~ /^error/) {
 			push @errors, "$key.txt";
-		} elsif ($key =~ /request$/ or $key eq "connect") {
+		} elsif ($key =~ /request$/ or $key eq "connect" or $key eq "async_rcv") {
 			push @tps, "$key.txt";
 		} elsif ($key =~ /^tr_/ or $key eq "page") {
 			push @transactions, "$key.txt";
