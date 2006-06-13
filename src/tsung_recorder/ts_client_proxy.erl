@@ -207,6 +207,9 @@ send({sslsocket,A,B},String, Plugin) ->
     {ok, RealString } = Plugin:rewrite_ssl({request,String}),
     ?LOGF("Sending data to ssl socket ~p ~p (~p)~n", [A, B, RealString],?DEB),
     ssl:send({sslsocket,A,B}, RealString);
+send(undefined,_,_) ->
+    ?LOG("No socket ! Error ~n",?CRIT),
+    erlang:error(error_no_socket_open);
 send(Socket,String,_) ->
     gen_tcp:send(Socket,String).
 

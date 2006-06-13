@@ -60,12 +60,7 @@ rewrite_ssl(Data)->{ok, Data}.
 %%--------------------------------------------------------------------
 parse(State=#proxy{parse_status=Status},_,_SSocket,String=[0,0,0,8,4,210,22,47]) when Status==new ->
     ?LOG("SSL req: ~n",?DEB),
-    {ok, Socket} = gen_tcp:connect(?config(pgsql_server),?config(pgsql_port),
-                                   [{active, once},
-                                    {recbuf, ?tcp_buffer},
-                                    {sndbuf, ?tcp_buffer}
-                                   ]),
-    ?LOGF("ok, connected  ~p~n",[Socket],?DEB),
+    Socket = connect(undefined),
     ts_client_proxy:send(Socket, String, ?MODULE),
     {ok, State#proxy{buffer=[],serversock = Socket }};
 parse(State=#proxy{parse_status=Status},_,ServerSocket,String) when Status==new ->
@@ -78,8 +73,9 @@ parse(State=#proxy{parse_status=Status},_,ServerSocket,String) when Status==new 
     Req = get_db_user(Res),
     ?LOGF("Received data from client: split = ~p~n",[Res],?DEB),
     ts_proxy_recorder:dorecord({Req#pgsql_request{type=connect}}),
-    ts_client_proxy:send(ServerSocket, Data, ?MODULE),
-    {ok, State#proxy{parse_status=open, buffer=[]} };
+    Socket = connect(ServerSocket),
+    ts_client_proxy:send(Socket, Data, ?MODULE),
+    {ok, State#proxy{parse_status=open, buffer=[], serversock = Socket} };
 parse(State=#proxy{},_,ServerSocket,String) ->
     NewString = lists:append(State#proxy.buffer, String),
     Data = list_to_binary(NewString),
@@ -166,3 +162,12 @@ record_request(State=#state_rec{logfd=Fd},
     {ok,State}.
 
 
+connect(undefined) ->
+    {ok, Socket} = gen_tcp:connect(?config(pgsql_server),?config(pgsql_port),
+                                   [{active, once},
+                                    {recbuf, ?tcp_buffer},
+                                    {sndbuf, ?tcp_buffer}
+                                   ]),
+    ?LOGF("ok, connected  ~p~n",[Socket],?DEB),
+    Socket;
+connect(Socket) -> Socket.
