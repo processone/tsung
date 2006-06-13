@@ -3,13 +3,13 @@
 .\" <http://shell.ipoline.com/~elmert/comp/docbook2X/> 
 .\" Please send any bug reports, improvements, comments, patches, 
 .\" etc. to Steve Cheng <steve@ggi-project.org>.
-.TH "TSUNG" "1" "21 mai 2006" "" ""
+.TH "TSUNG" "1" "13 juin 2006" "" ""
 
 .SH NAME
 tsung \- A distributed multi-protocol load testing tool.
 .SH SYNOPSIS
 
-\fBtsung\fR [ \fB-f configuration file\fR ] [ \fB-l log file\fR ] [ \fB-r command\fR ] [ \fB-p plugin\fR ] [ \fBstart|stop|restart|debug|status|recorder|stop_recorder\fR ]
+\fBtsung\fR [ \fB-f configuration file\fR ] [ \fB-l log file\fR ] [ \fB-r command\fR ] [ \fB-p plugin\fR ] [ \fB-P port\fR ] [ \fB-i IP\fR ] [ \fBstart|stop|restart|debug|status|recorder|stop_recorder\fR ]
 
 .SH "DESCRIPTION"
 .PP
@@ -60,13 +60,19 @@ http://tsung.erlang-projects.org/user_manual.html
 specifies the configuration file to use. The default file name is \fI~/.tsung/tsung.xml\fR
 .TP
 \fB-l\fR
-specifies the log file to use. The default log file name is \fI~/tsung/log/tsung.log\fR
+Specifies the log file to use. The default log file name is \fI~/tsung/log/tsung.log\fR
 .TP
 \fB-r\fR
 Specifies an alternative to ssh (rsh for ex.) for starting a slave node on a remote host
 .TP
 \fB-p\fR
 Specifies the plugin used for the recorder. Default is http, available: http, pgsql
+.TP
+\fB-P\fR
+Listening port for the recorder. Default is 8090
+.TP
+\fB-i\fR
+For the pgsql recorder: server IP 
 .SH "BUGS"
 .PP
 Please reports bugs to the mailing list

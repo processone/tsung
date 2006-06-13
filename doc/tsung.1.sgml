@@ -34,6 +34,8 @@ A distributed multi-protocol load testing tool.
       <arg><option>-l</option> log file</arg>
       <arg><option>-r</option> command</arg>
       <arg><option>-p</option> plugin</arg>
+      <arg><option>-P</option> port</arg>
+      <arg><option>-i</option> IP</arg>
       <arg>start|stop|restart|debug|status|recorder|stop_recorder</arg>
     </cmdsynopsis>
   </refsynopsisdiv>
@@ -111,7 +113,7 @@ A distributed multi-protocol load testing tool.
       <varlistentry>
 	<term><option>-l</option></term>
         <listitem>
-          <para>specifies the log file to use. The default log file name is <filename>~/tsung/log/tsung.log</filename></para>
+          <para>Specifies the log file to use. The default log file name is <filename>~/tsung/log/tsung.log</filename></para>
         </listitem>
       </varlistentry>
     </variablelist>
@@ -125,6 +127,18 @@ A distributed multi-protocol load testing tool.
       <term><option>-p</option></term>
       <listitem>
         <para> Specifies the plugin used for the recorder. Default is http, available: http, pgsql</para>
+      </listitem>
+    </varlistentry>
+      <varlistentry>
+      <term><option>-P</option></term>
+      <listitem>
+        <para> Listening port for the recorder. Default is 8090</para>
+      </listitem>
+    </varlistentry>
+      <varlistentry>
+      <term><option>-i</option></term>
+      <listitem>
+        <para> For the pgsql recorder: server IP </para>
       </listitem>
     </varlistentry>
   </variablelist>
