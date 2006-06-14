@@ -54,7 +54,7 @@ parse_config(Element = #xmlElement{name=pgsql},
 
     Request = case ts_config:getAttr(atom, Element#xmlElement.attributes, type) of 
                   sql ->
-                      [ValRaw]= ts_config:getText(Element#xmlElement.content),
+                      ValRaw = ts_config:getText(Element#xmlElement.content),
                       SQL = ts_utils:clean_str(ValRaw),
                       ?LOGF("Got SQL query: ~p~n",[SQL], ?NOTICE),
                       #pgsql_request{sql=SQL, type= sql};

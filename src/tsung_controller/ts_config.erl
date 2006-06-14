@@ -310,7 +310,7 @@ parse(Element=#xmlElement{name=match,attributes=Attrs},
     MaxLoop    = getAttr(integer, Attrs, max_loop, 20),
     MaxRestart = getAttr(integer, Attrs, max_restart, 3),
     SleepLoop  = getAttr(integer, Attrs, sleep_loop, 5),
-    [ValRaw]   = ts_config:getText(Element#xmlElement.content),
+    ValRaw     = ts_config:getText(Element#xmlElement.content),
     RegExp     = ts_utils:clean_str(ValRaw),
     NewMatch   = #match{regexp=RegExp, do=Do,'when'=When,sleep_loop=SleepLoop * 1000,
                         max_restart=MaxRestart, max_loop=MaxLoop },
@@ -425,7 +425,7 @@ getTypeAttr(Type, String) ->
 %%% Function: getText/1
 %%% Purpose:  get the text of the XML node
 %%%----------------------------------------------------------------------
-getText([#xmlText{value=Value}|_]) -> build_list(string:strip(Value, both));
+getText([#xmlText{value=Value}|_]) -> string:strip(Value, both);
 getText(_Other) -> "".
 
 %%%----------------------------------------------------------------------
@@ -436,11 +436,6 @@ to_seconds("second", Val)-> Val;
 to_seconds("minute", Val)-> Val*60;
 to_seconds("hour",   Val)-> Val*3600;
 to_seconds("millisecond", Val)-> Val/1000.
-
-%% Default separator is '%'
-build_list(String) -> build_list(String, "%").
-build_list(String, Sep) ->
-    string:tokens(String, Sep).
 
 %%%----------------------------------------------------------------------
 %%% Function: get_default/2
