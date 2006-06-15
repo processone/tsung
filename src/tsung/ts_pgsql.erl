@@ -202,7 +202,8 @@ process_head(<<Code:8/integer, Size:4/integer-unit:8, Tail/binary>>) ->
             ?LOGF("PGSQL: Pair=~p ~n",[Pair],?DEB),
             {ok, Pair, Data };
         false -> more
-    end.
+    end;
+process_head(_) -> more.
 
 %%----------------------------------------------------------------------
 %% Function: encode_message/2
