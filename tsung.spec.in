@@ -3,11 +3,11 @@
 %define release 1
 
 Summary: A distributed multi-protocol load testing tool.
-URL: http://tsung.idealx.org/
+URL: http://tsung.erlang-projects.org/
 Name: %{name}
 Version: %{version}
 Release: %{release}
-Source0: http://tsung.idealx.org/dist/%{name}-%{version}.tar.gz
+Source0: http://tsung.erlang-projects.org/dist/%{name}-%{version}.tar.gz
 License: GPL
 Vendor: Process-one
 Packager: Nicolas Niclausse <nicolas@niclux.org>
