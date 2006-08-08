@@ -3,13 +3,13 @@
 .\" <http://shell.ipoline.com/~elmert/comp/docbook2X/> 
 .\" Please send any bug reports, improvements, comments, patches, 
 .\" etc. to Steve Cheng <steve@ggi-project.org>.
-.TH "TSUNG" "1" "13 juin 2006" "" ""
+.TH "TSUNG" "1" "08 août 2006" "" ""
 
 .SH NAME
 tsung \- A distributed multi-protocol load testing tool.
 .SH SYNOPSIS
 
-\fBtsung\fR [ \fB-f configuration file\fR ] [ \fB-l log file\fR ] [ \fB-r command\fR ] [ \fB-p plugin\fR ] [ \fB-P port\fR ] [ \fB-i IP\fR ] [ \fBstart|stop|restart|debug|status|recorder|stop_recorder\fR ]
+\fBtsung\fR [ \fB-f configuration file\fR ] [ \fB-l log file\fR ] [ \fB-r command\fR ] [ \fB-p plugin\fR ] [ \fB-L listen port\fR ] [ \fB-I IP\fR ] [ \fB-P port\fR ] [ \fBstart|stop|restart|debug|status|recorder|stop_recorder\fR ]
 
 .SH "DESCRIPTION"
 .PP
@@ -68,11 +68,14 @@ Specifies an alternative to ssh (rsh for ex.) for starting a slave node on a rem
 \fB-p\fR
 Specifies the plugin used for the recorder. Default is http, available: http, pgsql
 .TP
-\fB-P\fR
+\fB-L\fR
 Listening port for the recorder. Default is 8090
 .TP
-\fB-i\fR
-For the pgsql recorder: server IP 
+\fB-I\fR
+For the pgsql recorder: server IP. default is 127.0.0.1 
+.TP
+\fB-P\fR
+For the pgsql recorder: server port. Default is 5432
 .SH "BUGS"
 .PP
 Please reports bugs to the mailing list

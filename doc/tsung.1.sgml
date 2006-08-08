@@ -34,8 +34,9 @@ A distributed multi-protocol load testing tool.
       <arg><option>-l</option> log file</arg>
       <arg><option>-r</option> command</arg>
       <arg><option>-p</option> plugin</arg>
+      <arg><option>-L</option> listen port</arg>
+      <arg><option>-I</option> IP</arg>
       <arg><option>-P</option> port</arg>
-      <arg><option>-i</option> IP</arg>
       <arg>start|stop|restart|debug|status|recorder|stop_recorder</arg>
     </cmdsynopsis>
   </refsynopsisdiv>
@@ -130,15 +131,21 @@ A distributed multi-protocol load testing tool.
       </listitem>
     </varlistentry>
       <varlistentry>
-      <term><option>-P</option></term>
+      <term><option>-L</option></term>
       <listitem>
         <para> Listening port for the recorder. Default is 8090</para>
       </listitem>
     </varlistentry>
       <varlistentry>
-      <term><option>-i</option></term>
+      <term><option>-I</option></term>
       <listitem>
-        <para> For the pgsql recorder: server IP </para>
+        <para> For the pgsql recorder: server IP. default is 127.0.0.1 </para>
+      </listitem>
+    </varlistentry>
+      <varlistentry>
+      <term><option>-P</option></term>
+      <listitem>
+        <para> For the pgsql recorder: server port. Default is 5432</para>
       </listitem>
     </varlistentry>
   </variablelist>

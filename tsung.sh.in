@@ -16,6 +16,7 @@ VERSION=@PACKAGE_VERSION@
 
 LISTEN_PORT=8090
 PGSQL_SERVER_IP=127.0.0.1
+PGSQL_SERVER_PORT=5432
 NAME=tsung
 CONTROLLER=tsung_controller
 RECORDER=tsung_recorder
@@ -91,6 +92,7 @@ recorder() {
     -tsung_recorder plugin ts_proxy_$RECORDER_PLUGIN \
     -tsung_recorder proxy_log_file \"$MAIN_DIR/tsung_recorder.xml\" \
     -tsung_recorder pgsql_server \"${PGSQL_SERVER_IP}\" \
+    -tsung_recorder pgsql_port ${PGSQL_SERVER_PORT} \
     -tsung_recorder proxy_listen_port $LISTEN_PORT &
     echo $! > /tmp/tsung_recorder.pid
 }
@@ -159,7 +161,7 @@ usage() {
     exit
 }
 
-while getopts ":f:p:l:d:r:i:P:" Option
+while getopts ":f:p:l:d:r:i:P:L:I:" Option
 do
     case $Option in
         f) CONF_OPT_FILE=$OPTARG;;
@@ -167,8 +169,9 @@ do
         d) DEBUG_LEVEL=$OPTARG;;
         r) ERL_RSH=" -rsh $OPTARG ";;
         p) RECORDER_PLUGIN=$OPTARG;;
-        i) PGSQL_SERVER_IP=$OPTARG;;
-        P) LISTEN_PORT=$OPTARG;;
+        I) PGSQL_SERVER_IP=$OPTARG;;
+        P) PGSQL_SERVER_PORT=$OPTARG;;
+        L) LISTEN_PORT=$OPTARG;;
         *) usage ;;
     esac
 done	
