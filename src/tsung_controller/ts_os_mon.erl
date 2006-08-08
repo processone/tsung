@@ -331,21 +331,20 @@ get_os_data(freemem, _OS) ->
 
 %% Return packets sent/received on network interface
 get_os_data(packets, {unix, linux}) ->
-	%% FIXME: handle more than one ethernet interface
-    Result = os:cmd("cat /proc/net/dev | grep eth0"), 
-    [_, _RecvBytes, RecvPackets, _, _, _, _, _, _, _SentBytes, SentPackets, _, _, _, _, _,_] = 
-        string:tokens(Result, " \n:"),
-    {list_to_integer(RecvPackets), list_to_integer(SentPackets)};
+	%% get the cumulative traffic of all ethX interfaces
+    {ok, Lines} = ts_utils:file_to_list("/proc/net/dev"),
+    Eth = [io_lib:fread("~6s:~d~d~d~d~d~d~d~d~d~d", X) || X<-Lines, string:str(X,"eth") /= 0],
+    Fun = fun (A, {Rcv, Sent}) ->
+                  {ok,[_,_RcvBytes,RcvPkt,_,_,_,_,_,_,_SentBytes,SentPkt],_}=A,
+                  {Rcv+RcvPkt,Sent+SentPkt}
+          end,
+    lists:foldl(Fun, {0,0}, Eth);
 
 %% solaris, contributed by Jason Tucker
 get_os_data(packets, {unix, sunos}) ->
     Result = os:cmd("netstat -in 1 1 | tail -1"),
     [_, _, _, _, _, RecvPackets, _, SentPackets | _] = string:tokens(Result, " "),
     {list_to_integer(RecvPackets), list_to_integer(SentPackets)};
-
-%{ok, IODev} =file:open("/proc/net/dev",[read]),
-%parse_procnetdev(IODev) ->
-%    parse_procnetdev(io:get_line(IODev,""))
 
 get_os_data(packets, _OS) ->
     {0, 0 }. % FIXME: not implemented for other arch.
@@ -379,14 +378,14 @@ stop_beam([{_Pid, Node}|Nodes]) ->
 %%--------------------------------------------------------------------
 load_code(Nodes) ->
     ?LOGF("loading tsung monitor on nodes ~p~n", [Nodes], ?NOTICE),
-    {?MODULE, Binary, _File} = code:get_object_code(?MODULE),
-    Res1 = rpc:multicall(Nodes, code, load_binary, [?MODULE, ?MODULE, Binary], infinity),
-    {ts_mon, Binary2, _File2} = code:get_object_code(ts_mon),
-    Res2 = rpc:multicall(Nodes, code, load_binary, [ts_mon, ts_mon, Binary2], infinity),
-
-    Res3 = rpc:multicall(Nodes, ?MODULE, client_start, [], infinity),
+    LoadCode = fun(Mod)-> 
+                       {_, Binary, _} = code:get_object_code(Mod),
+                       rpc:multicall(Nodes, code, load_binary, [Mod, Mod, Binary], infinity)
+               end,
+    LoadRes = lists:map(LoadCode, [ts_mon, ?MODULE, ts_utils]),
+    Res = rpc:multicall(Nodes, ?MODULE, client_start, [], infinity),
     %% first value of load call is garbage
-    ?LOGF("load_code - ~p ~p ~p~n", [Res1, Res2, Res3],?DEB),
+    ?LOGF("load_code: ~p start: ~p ~n", [LoadRes, Res],?DEB),
     ok.
 
 %%--------------------------------------------------------------------
