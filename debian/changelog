@@ -1,3 +1,9 @@
+tsung (1.2.1-1) unstable; urgency=low
+
+  * work in progress
+
+ -- Nicolas Niclausse <nicolas.niclausse@niclux.org>  Mon, 8 Aug 2006 08:11:05 +0200
+
 tsung (1.2.0-1) unstable; urgency=low
 
   * New upstream release
