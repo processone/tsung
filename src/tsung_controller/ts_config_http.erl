@@ -63,10 +63,7 @@ parse_config(Element = #xmlElement{name=http},
                             content_type, "application/x-www-form-urlencoded"),
     Date     = ts_config:getAttr(string, Element#xmlElement.attributes, 
                                  'if_modified_since', undefined),
-    Method = case ts_config:getAttr(Element#xmlElement.attributes, method) of 
-                 "GET" -> get;
-                 "POST"-> post
-             end,
+    Method = list_to_atom(httpd_util:to_lower(ts_config:getAttr(string, Element#xmlElement.attributes, method))),
             
     Request = #http_request{url         = URL,
                             method      = Method,

@@ -38,6 +38,8 @@
 -export([
          http_get/1,
          http_post/1,
+         http_body/2,
+         http_no_body/2,
          parse/2,
          parse_req/1,
          parse_req/2
@@ -45,13 +47,19 @@
 
 %%----------------------------------------------------------------------
 %% Func: http_get/1
+%%----------------------------------------------------------------------
+http_get(Args) ->
+    http_no_body(?GET, Args).
+
+%%----------------------------------------------------------------------
+%% Func: http_get/1
 %% Args: #http_request
 %%----------------------------------------------------------------------
-http_get(#http_request{url=URL, version=Version, cookie=Cookie, user_agent=UA,
+http_no_body(Method,#http_request{url=URL, version=Version, cookie=Cookie, user_agent=UA,
                        get_ims_date=undefined, soap_action=SOAPAction,
                        host_header=Host, userid=UserId, passwd=Passwd})->
     ?DebugF("GET ~p~n",[URL]),
-	list_to_binary([?GET, " ", URL," ", "HTTP/", Version, ?CRLF, 
+	list_to_binary([Method, " ", URL," ", "HTTP/", Version, ?CRLF, 
                     "Host: ", Host, ?CRLF,
                     user_agent(UA),
                     authenticate(UserId,Passwd),
@@ -59,11 +67,11 @@ http_get(#http_request{url=URL, version=Version, cookie=Cookie, user_agent=UA,
                     set_cookie_header({Cookie, Host, URL}),
                     ?CRLF]);
 
-http_get(#http_request{url=URL, version=Version, cookie=Cookie,user_agent=UA,
+http_no_body(Method,#http_request{url=URL, version=Version, cookie=Cookie,user_agent=UA,
                        get_ims_date=Date, soap_action=SOAPAction,
                        host_header=Host, userid=UserId, passwd=Passwd}) ->
     ?DebugF("GET ~p~n",[URL]),
-	list_to_binary([?GET, " ", URL," ", "HTTP/", Version, ?CRLF,
+	list_to_binary([Method, " ", URL," ", "HTTP/", Version, ?CRLF,
                     ["If-Modified-Since: ", Date, ?CRLF],
                     "Host: ", Host, ?CRLF,
                     user_agent(UA),
@@ -74,15 +82,22 @@ http_get(#http_request{url=URL, version=Version, cookie=Cookie,user_agent=UA,
 
 %%----------------------------------------------------------------------
 %% Func: http_post/1
+%%----------------------------------------------------------------------
+http_post(Args) ->
+    http_body(?POST, Args).
+
+%%----------------------------------------------------------------------
+%% Func: http_body/2
 %% Args: #http_request
 %%----------------------------------------------------------------------
-http_post(#http_request{url=URL, version=Version, cookie=Cookie,user_agent=UA,
-                        soap_action=SOAPAction, content_type=ContentType,
+http_body(Method,#http_request{url=URL, version=Version, cookie=Cookie,
+                        user_agent=UA, soap_action=SOAPAction, 
+                        content_type=ContentType,
                         body=Content, host_header=Host,
                         userid=UserId, passwd=Passwd}) ->
 	ContentLength=integer_to_list(size(Content)),
 	?DebugF("Content Length of POST: ~p~n.", [ContentLength]),
-	Headers = [?POST, " ", URL," ", "HTTP/", Version, ?CRLF,
+	Headers = [Method, " ", URL," ", "HTTP/", Version, ?CRLF,
                "Host: ", Host, ?CRLF,
                user_agent(UA),
                authenticate(UserId,Passwd),

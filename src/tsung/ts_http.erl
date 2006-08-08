@@ -62,10 +62,19 @@ new_session() ->
 %% Returns: binary
 %%----------------------------------------------------------------------
 get_message(Req=#http_request{method=get}) ->
-	ts_http_common:http_get(Req);
+	ts_http_common:http_no_body(?GET, Req);
+
+get_message(Req=#http_request{method=head}) ->
+	ts_http_common:http_no_body(?HEAD, Req);
+
+get_message(Req=#http_request{method=delete}) ->
+	ts_http_common:http_no_body(?DELETE, Req);
 
 get_message(Req=#http_request{method=post}) ->
-	ts_http_common:http_post(Req).
+	ts_http_common:http_body(?POST, Req);
+
+get_message(Req=#http_request{method=put}) ->
+	ts_http_common:http_body(?PUT, Req).
 
 %%----------------------------------------------------------------------
 %% Function: parse/2
