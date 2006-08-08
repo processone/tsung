@@ -431,9 +431,10 @@ update_stats({sample_counter, [0, 0, 0, 0, 0, Last]}, Value) ->
     New = Value-Last,
 	{sample_counter,[New, 0, New, New, 1, Value]};
 update_stats({sample_counter,[Mean, Var, Max, Min, Count, Last]}, Value) ->
-	{NewMean, NewVar, _} = ts_stats:meanvar(Mean, Var, [Value-Last], Count),
-	NewMax = lists:max([Max, Value]),
-	NewMin = lists:min([Min, Value]),
+    New = Value-Last,
+	{NewMean, NewVar, _} = ts_stats:meanvar(Mean, Var, [New], Count),
+	NewMax = lists:max([Max, New]),
+	NewMin = lists:min([Min, New]),
 	{sample_counter,[NewMean, NewVar, NewMax, NewMin, Count+1, Value]}.
 
 %%----------------------------------------------------------------------
