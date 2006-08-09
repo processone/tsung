@@ -270,10 +270,9 @@ handle_call({get_client_config, Host}, _From, State) ->
                         Config#config.clients, State#state.total_weight,
                         Host) of
         {ok,List,Max} ->
-            {reply, {ok, {List, StartDate,Max}},
-             State#state{start_date = StartDate}};
+            {reply,{ok,{List,StartDate,Max}},State#state{start_date=StartDate}};
         _ ->
-            {reply, {error, notfound}, State}
+            {reply,{error, notfound}, State}
     end;
 
 %%
@@ -289,8 +288,7 @@ handle_call({status}, _From, State) ->
 
 handle_call(Request, _From, State) ->
     ?LOGF("Unknown call ~p !~n",[Request],?ERR),
-    Reply = ok,
-    {reply, Reply, State}.
+    {reply, ok, State}.
 
 %%--------------------------------------------------------------------
 %% Function: handle_cast/2
