@@ -299,28 +299,37 @@ handle_next_request(Profile, State) ->
     Count = State#state_rcv.count-1,
 	Type  = State#state_rcv.clienttype,
 
-	%% does the next message change the server setup ?
-    case Profile of 
-        #ts_request{host=undefined, port= undefined, scheme= undefined} ->
-            {Host,Port,Protocol,Socket} = {State#state_rcv.host,State#state_rcv.port,
-                                           State#state_rcv.protocol,State#state_rcv.socket};
-        #ts_request{host=Host, port= Port, scheme= Protocol} ->
-			%% need to reconnect if the server/port/scheme has changed
-			Socket = case {State#state_rcv.host,State#state_rcv.port,
-                           State#state_rcv.protocol} of
-                         {Host, Port, Protocol} -> % server setup unchanged
-                             State#state_rcv.socket;
-                         _ ->
-                             ?Debug("Change server configuration inside a session ~n"),
-                             ts_utils:close_socket(State#state_rcv.protocol,
-                                                   State#state_rcv.socket),
-                             none
-                     end
+    {PrevHost, PrevPort, PrevProto} = case Profile of 
+        #ts_request{host=undefined, port=undefined, scheme=undefined} ->
+            %% host/port/scheme not defined in request, use the current ones.
+            {State#state_rcv.host,State#state_rcv.port, State#state_rcv.protocol};
+        #ts_request{host=H1, port=P1, scheme=S1} ->
+            {H1,P1,S1}
     end,
 
-    Param = Type:add_dynparams(Profile#ts_request.subst,
-                               State#state_rcv.dyndata,
-                               Profile#ts_request.param, {Host, Port}),
+    {Param, {Host,Port,Protocol}} = 
+        case Type:add_dynparams(Profile#ts_request.subst,
+                                State#state_rcv.dyndata,
+                                Profile#ts_request.param,
+                                {PrevHost, PrevPort}) of
+            {Par, NewServer} -> % substitution has changed server setup
+                ?DebugF("Dynparam, new server:  ~p~n",[NewServer]),
+                {Par, NewServer};
+            P ->
+                {P, {PrevHost, PrevPort, PrevProto}}
+        end,
+
+    %% need to reconnect if the server/port/scheme has changed
+    Socket = case {State#state_rcv.host,State#state_rcv.port,State#state_rcv.protocol} of
+                 {Host, Port, Protocol} -> % server setup unchanged
+                     State#state_rcv.socket;
+                 _ ->
+                     ?Debug("Change server configuration inside a session ~n"),
+                     ts_utils:close_socket(State#state_rcv.protocol,
+                                           State#state_rcv.socket),
+                     none
+             end,
+
     Message = Type:get_message(Param),
     Now = now(),
 
@@ -348,7 +357,7 @@ handle_next_request(Profile, State) ->
                                                timestamp= Now },
                     case Profile#ts_request.ack of 
                         no_ack -> 
-                            {PTimeStamp, DynVars} = update_stats(NewState),
+                            {PTimeStamp, _} = update_stats(NewState),
                             handle_next_action(NewState#state_rcv{ack_done=true, page_timestamp=PTimeStamp});
                         global -> 
                             ts_timer:connected(self()),

@@ -98,12 +98,26 @@ parse_config(Element, Conf) ->
 %%          this is used for ex. for Cookies in HTTP
 %% Args: Subst (true|false), DynData = #dyndata, Param = #http_request, 
 %%                                               Host  = String
+%% Returns: #http_request or { #http_request, {Host, Port, Scheme}}
 %%----------------------------------------------------------------------
 add_dynparams(false, DynData, Param, HostData) ->
     add_dynparams(DynData#dyndata.proto, Param, HostData);
-add_dynparams(true, DynData, Param, HostData) ->
+add_dynparams(true, DynData, Param=#http_request{url=OldUrl}, HostData) ->
     NewParam = subst(Param, DynData#dyndata.dynvars),
-    add_dynparams(DynData#dyndata.proto,NewParam, HostData).
+    case NewParam#http_request.url of 
+        OldUrl -> 
+            add_dynparams(DynData#dyndata.proto,NewParam, HostData);
+        "http" ++ _Rest -> % URL has changed and is absolute
+            URL=ts_config_http:parse_URL(NewParam#http_request.url),
+            ?DebugF("URL dynamic subst: ~p~n",[URL]),
+            NewPort = ts_config_http:set_port(URL),
+            {add_dynparams(DynData#dyndata.proto,
+                          NewParam#http_request{host_header=undefined},
+                          { URL#url.host, NewPort}),
+             {URL#url.host, NewPort,ts_config_http:set_scheme(URL#url.scheme)}};
+        _ -> % Same host:port
+            add_dynparams(DynData#dyndata.proto,NewParam, HostData)
+    end.
 
 %% Function: add_dynparams/3
 add_dynparams(DynData,Param=#http_request{host_header=undefined}, {Host,Port})->
