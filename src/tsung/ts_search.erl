@@ -160,7 +160,7 @@ match([Match=#match{regexp=RegExp, do=Action, 'when'=When}| Tail], String, Count
 %% Args:  #match, Counts, Stats
 %% Update the request counter after a match: 
 %%   - if loop is true, we must start again the same request, so add 1 to count
-%%   - if restart is true, we must start again the all session, set count to MaxCount
+%%   - if restart is true, we must start again the whole session, set count to MaxCount
 %%   - if stop is true, set count to 0
 %%----------------------------------------------------------------------
 setcount(#match{do=continue}, {Count, _MaxC}, Stats)-> 
