@@ -30,7 +30,8 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
--export([parse_config/2, parse_URL/1, set_port/1, check_user_agent_sum/1]).
+-export([parse_config/2, parse_URL/1, set_port/1, set_scheme/1, 
+         check_user_agent_sum/1]).
 
 -include("ts_profile.hrl").
 -include("ts_http.hrl").
@@ -51,7 +52,7 @@ parse_config(Element = #xmlElement{name=http},
              Config=#config{curid = Id, session_tab = Tab, servers = Servers,
                             sessions = [CurS | _], dynvar=DynVar,
 							subst    = SubstFlag, match=MatchRegExp}) ->
-    Version  = ts_config:getAttr(Element#xmlElement.attributes, version),
+    Version  = ts_config:getAttr(string,Element#xmlElement.attributes, version, "1.1"),
     URL      = ts_config:getAttr(Element#xmlElement.attributes, url),
     Contents = ts_config:getAttr(Element#xmlElement.attributes, contents),
     UseProxy = case ets:lookup(Tab,{http_use_server_as_proxy}) of 
