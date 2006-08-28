@@ -327,11 +327,13 @@ registration(#jabber{username=Name,passwd=Passwd})->
 message(Dest, Jabber, Service) when is_integer(Dest) ->
 	message(integer_to_list(Dest),Jabber, Service);
 message(Dest, #jabber{size=Size,data=undefined, username=Username}, Service) when is_integer(Size) ->
+    put(previous, Dest),
     list_to_binary([
                     "<message id='",ts_msg_server:get_id(list), "' to='",
                     Username, Dest, "@", Service,
                     "'><body>",garbage(Size), "</body></message>"]);
 message(Dest, #jabber{data=Data, username=Username}, Service) when is_list(Data) ->
+    put(previous, Dest),
     list_to_binary([
                     "<message id='",ts_msg_server:get_id(list), "' to='",
                     Username, Dest, "@", Service,
