@@ -1,3 +1,22 @@
+1.2.0 -> 1.2.1 Minor bugfixes and enhancements (XX XXX 2006)
+    Bugfix:
+    - [TSUN-5]  get traffic from all interfaces instead of only eth0
+      in erlang os monitoring (Linux)
+    - [TSUN-18 the pgsql recorder fails if the client doesn't try
+      first an SSL connection
+    - [TSUN-19] a % character in some requests (eg. type=sql for
+      pgsql) make the config_server crash.
+    - [TSUN-20] pgsql client fails while parsing data from server
+    - [TSUN-21] substitution in URL is not working properly when a new server
+      or port is set
+    - [TSUN-23] set default http version (1.1)
+    - [TSUN-24] destination=previous doesn't work (jabber)
+    Improvement:
+    - [TSUN-15] listen port is now customizable with the command line
+    - [TSUN-17] add option to setup postgresql server IP and port at runtime
+      for the recorder
+    - [TSUN-22] add support for PUT, DELETE and HEAD methods for http
+
 1.1.0 -> 1.2.0 Major feature enhancements (29 May 2006)
     - change name: idx-tsunami is now called tsung 
     - add new plugin: pgsql for postgresql load testing
