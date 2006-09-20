@@ -13,8 +13,8 @@ Vendor: Process-one
 Packager: Nicolas Niclausse <nicolas@niclux.org>
 Group: Development/Tools
 BuildArch: noarch
-BuildRequires: erlang-otp, xmerl >= 0.19
-Requires: erlang-otp >= R9C_0, xmerl >= 0.19
+BuildRequires: erlang
+Requires: erlang
 BuildRoot: %{_tmppath}/%{name}-buildroot
 Prefix: %{_prefix}
 
@@ -59,6 +59,8 @@ rm -rf $RPM_BUILD_ROOT
 %doc /usr/share/man/man1/tsung.1.gz
 
 %changelog
+* Wed Sep 20 2006 Nicolas Niclausse <Nicolas.Niclausse@sophia.inria.fr> 1.2.1-1
+- update 'requires': erlang (as in fedora extra) instead of erlang-otp
 * Wed Apr 27 2005 Nicolas Niclausse <nicolas.niclausse@niclux.org> 1.0.2-1
 - new release
 * Thu Nov  18 2004 Nicolas Niclausse <nicolas.niclausse@niclux.org> 1.0.1-1
