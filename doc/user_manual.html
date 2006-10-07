@@ -9,7 +9,7 @@
 
 <TITLE>Tsung User's manual</TITLE>
 
-<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-15">
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <META name="GENERATOR" content="hevea 1.08">
 <STYLE type="text/css">
 .toc{list-style:none;}
@@ -23,16 +23,51 @@ BLOCKQUOTE{margin-left:4ex;margin-right:4ex;text-align:left;}
 .part{margin:auto;text-align:center}
 </STYLE>
 
-<link rel="stylesheet" href="IDXDOC.css">
+<style type="text/css">
+<!--
+body        {font-size: 90%; margin-right:40px; margin-left:40px; font-family:Sans-Serif; color:#000000; background-color:#ffffff;}
+p, .n       {font-size: 90%; font-family:Sans-Serif; color:#000000; background-color:#ffffff;}
+h1          {font-size: 200%; color:#800000; background-color:#ffffff;}
+h2          {font-size:150%; color:#000080; background-color:#ffffff;}
+h3          {font-family:Sans-Serif; font-size: 120%; font-weight:bold; color:#000080; background-color:#ffffff;}
+h4          {font-family:Sans-Serif; font-size:100%; font-weight:bold; color:#000080; background-color:#ffffff;}
+h5          {font-family:Sans-Serif; font-size:100%; font-weight:bold; color:#000000;  background-color:#ffffff; margin-bottom: 0;}
+form        {margin-bottom:-5px;}
+textarea    {color:#333333;  background-color:#ffffff; width:90%;}
+table       {font-size:90%;}
+dl,ul,ol    {margin-top: 2pt; margin-bottom: 2pt;}
+tt, pre     {font-family:monospace; color:#666666; background-color:#ffffff;}
+pre {
+    background-color: #ffffee;
+    white-space:pre;
+    border-style:solid;
+    border-width:thin;
+    border-color:#999999;
+    color:#333333;
+//    padding:3px;
+	margin-bottom: -1pt;
+    width:100%;
+}
+
+a:link      {color:#800000; background-color: #ffffff;}
+a:visited   {color:#006600; background-color: #ffffff;}
+a:active    {color:green; background-color: #ffffff;}
+a:hover     {background:#ffffaa;}
+
+.piedpage, .entete {
+    font-family:Sans-Serif; font-size:90%; font-style:italic; color:#0000ff; background-color: #ffffff;
+        text-align: center;
+}
+-->
+</style>
 </HEAD>
 
 <BODY >
-<!--HEVEA command line is: /usr/bin/hevea -fix -I /home/nniclausse/cvs/projetdoc/common//styles -exec xxdate.exe -pedantic IDXDOC-DOTORG.hva user_manual.tex -->
+<!--HEVEA command line is: /usr/bin/hevea -fix -I /home/nniclausse/cvs/projetdoc/common//styles -exec xxdate.exe -pedantic TSUNG.hva user_manual.tex -->
 <!--HTMLHEAD-->
 
 
   <DIV class="entete">
-  Copyright 2005 &copy; Nicolas Niclausse. - 
   &nbsp;<A href="http://tsung.erlang-projects.org/">http://tsung.erlang-projects.org/</A>
   </DIV>
   <HR>
@@ -49,10 +84,10 @@ BLOCKQUOTE{margin-left:4ex;margin-right:4ex;text-align:left;}
  
  <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1>
 <TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2">Version:</TD>
-<TD ALIGN=left NOWRAP>653</TD>
+<TD ALIGN=left NOWRAP>693</TD>
 </TR>
 <TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2">Date :</TD>
-<TD ALIGN=left NOWRAP>	21st					May,&nbsp;2006</TD>
+<TD ALIGN=left NOWRAP>						7th										October,&nbsp;2006</TD>
 </TR></TABLE>
  </DIV>
 
@@ -118,30 +153,31 @@ BLOCKQUOTE{margin-left:4ex;margin-right:4ex;text-align:left;}
 <UL CLASS="toc"><LI CLASS="li-toc">
 <A HREF="#htoc35">8.6.1&nbsp;&nbsp;HTTP</A>
 <LI CLASS="li-toc"><A HREF="#htoc36">8.6.2&nbsp;&nbsp;Jabber</A>
-<LI CLASS="li-toc"><A HREF="#htoc37">8.6.3&nbsp;&nbsp;Dynamic substitutions</A>
-<LI CLASS="li-toc"><A HREF="#htoc38">8.6.4&nbsp;&nbsp;Reading external file</A>
-<LI CLASS="li-toc"><A HREF="#htoc39">8.6.5&nbsp;&nbsp;Dynamic variables</A>
-<LI CLASS="li-toc"><A HREF="#htoc40">8.6.6&nbsp;&nbsp;Checking the server's response</A>
+<LI CLASS="li-toc"><A HREF="#htoc37">8.6.3&nbsp;&nbsp;PostgreSQL</A>
+<LI CLASS="li-toc"><A HREF="#htoc38">8.6.4&nbsp;&nbsp;Dynamic substitutions</A>
+<LI CLASS="li-toc"><A HREF="#htoc39">8.6.5&nbsp;&nbsp;Reading external file</A>
+<LI CLASS="li-toc"><A HREF="#htoc40">8.6.6&nbsp;&nbsp;Dynamic variables</A>
+<LI CLASS="li-toc"><A HREF="#htoc41">8.6.7&nbsp;&nbsp;Checking the server's response</A>
 </UL>
 </UL>
-<LI CLASS="li-toc"><A HREF="#htoc41">9&nbsp;&nbsp;Statistics and reports</A>
+<LI CLASS="li-toc"><A HREF="#htoc42">9&nbsp;&nbsp;Statistics and reports</A>
 <UL CLASS="toc"><LI CLASS="li-toc">
-<A HREF="#htoc42">9.1&nbsp;&nbsp;Available stats</A>
-<LI CLASS="li-toc"><A HREF="#htoc43">9.2&nbsp;&nbsp;Design</A>
-<LI CLASS="li-toc"><A HREF="#htoc44">9.3&nbsp;&nbsp;Generating the report</A>
-<LI CLASS="li-toc"><A HREF="#htoc45">9.4&nbsp;&nbsp;tsung summary</A>
-<LI CLASS="li-toc"><A HREF="#htoc46">9.5&nbsp;&nbsp;Graphical overview</A>
+<A HREF="#htoc43">9.1&nbsp;&nbsp;Available stats</A>
+<LI CLASS="li-toc"><A HREF="#htoc44">9.2&nbsp;&nbsp;Design</A>
+<LI CLASS="li-toc"><A HREF="#htoc45">9.3&nbsp;&nbsp;Generating the report</A>
+<LI CLASS="li-toc"><A HREF="#htoc46">9.4&nbsp;&nbsp;tsung summary</A>
+<LI CLASS="li-toc"><A HREF="#htoc47">9.5&nbsp;&nbsp;Graphical overview</A>
 </UL>
-<LI CLASS="li-toc"><A HREF="#htoc47">10&nbsp;&nbsp;References</A>
-<LI CLASS="li-toc"><A HREF="#htoc48">11&nbsp;&nbsp;Acknowledgments</A>
-<LI CLASS="li-toc"><A HREF="#htoc49">A&nbsp;&nbsp;Frequently Asked Questions</A>
+<LI CLASS="li-toc"><A HREF="#htoc48">10&nbsp;&nbsp;References</A>
+<LI CLASS="li-toc"><A HREF="#htoc49">11&nbsp;&nbsp;Acknowledgments</A>
+<LI CLASS="li-toc"><A HREF="#htoc50">A&nbsp;&nbsp;Frequently Asked Questions</A>
 <UL CLASS="toc"><LI CLASS="li-toc">
-<A HREF="#htoc50">A.1&nbsp;&nbsp;Tsung crashes when I start it </A>
-<LI CLASS="li-toc"><A HREF="#htoc51">A.2&nbsp;&nbsp;Tsung still doesn't start ...</A>
-<LI CLASS="li-toc"><A HREF="#htoc52">A.3&nbsp;&nbsp;Tsung still crashes/fails when I start it !</A>
-<LI CLASS="li-toc"><A HREF="#htoc53">A.4&nbsp;&nbsp;What is the format of the stats file tsung.log ?</A>
-<LI CLASS="li-toc"><A HREF="#htoc54">A.5&nbsp;&nbsp;How can I specify the number of concurrent users ?</A>
-<LI CLASS="li-toc"><A HREF="#htoc55">A.6&nbsp;&nbsp;SNMP monitoring doesn't work ?!</A>
+<A HREF="#htoc51">A.1&nbsp;&nbsp;Tsung crashes when I start it </A>
+<LI CLASS="li-toc"><A HREF="#htoc52">A.2&nbsp;&nbsp;Tsung still doesn't start ...</A>
+<LI CLASS="li-toc"><A HREF="#htoc53">A.3&nbsp;&nbsp;Tsung still crashes/fails when I start it !</A>
+<LI CLASS="li-toc"><A HREF="#htoc54">A.4&nbsp;&nbsp;What is the format of the stats file tsung.log ?</A>
+<LI CLASS="li-toc"><A HREF="#htoc55">A.5&nbsp;&nbsp;How can I specify the number of concurrent users ?</A>
+<LI CLASS="li-toc"><A HREF="#htoc56">A.6&nbsp;&nbsp;SNMP monitoring doesn't work ?!</A>
 </UL>
 </UL>
 
@@ -286,7 +322,7 @@ distribution (currently exponential)
 
 <UL CLASS="itemize"><LI CLASS="li-itemize">
 HTTP/1.0 and HTTP/1.1 support
-<LI CLASS="li-itemize">GET and POST requests 
+<LI CLASS="li-itemize">GET, POST, PUT, DELETE and HEAD requests 
 <LI CLASS="li-itemize">Cookies: Automatic cookies management 
 <LI CLASS="li-itemize"><CODE>'</CODE>GET If-modified since<CODE>'</CODE> type of request 
 <LI CLASS="li-itemize">WWW-authentication Basic 
@@ -372,14 +408,11 @@ MacOS-X).<BR>
 <H3 CLASS="subsection"><A NAME="htoc13">3.1</A>&nbsp;&nbsp;Dependencies</H3><!--SEC END -->
 
 <UL CLASS="itemize"><LI CLASS="li-itemize">
-Erlang/OTP R9C-0 and up (included R10B-8)
+Erlang/OTP R10B-0 and up
  (<A HREF="http://www.erlang.org/download.html"><TT>http://www.erlang.org/download.html</TT></A>). RedHat users can
- download a R9C-2 rpm at
- <A HREF="http://www.erlang-projects.org/Public/rpmdeb/rpm_erlang_otp_r9c-2/view"><TT>http://www.erlang-projects.org/Public/rpmdeb/rpm_erlang_otp_r9c-2/view</TT></A>.
-<LI CLASS="li-itemize">With Erlang R9C, you also need xmerl-0.19 (included in Erlang
- R10B) (<A HREF="http://sowap.sourceforge.net/download.html"><TT>http://sowap.sourceforge.net/download.html</TT></A>). Debian and
- Redhat binaries are provided at
- <A HREF="http://tsung.erlang-projects.org/dist/"><TT>http://tsung.erlang-projects.org/dist/</TT></A>
+ download a R10B-8 rpm at
+ <A HREF="http://tsung.erlang-projects.org/dist/redhat"><TT>http://tsung.erlang-projects.org/dist/redhat</TT></A>. Erlang is now
+ part of fedora extra repository.
  <LI CLASS="li-itemize">extended regexp module (used for dynamic variables):
  gregexp.erl available at
  <A HREF="http://www.cellicium.com/erlang/contribs/"><TT>http://www.cellicium.com/erlang/contribs/</TT></A> . The module is
@@ -436,8 +469,8 @@ Erlang/OTP R9C-0 and up (included R10B-8)
 <H3 CLASS="subsection"><A NAME="htoc15">3.3</A>&nbsp;&nbsp;Configuration</H3><!--SEC END -->
 
 The default configuration file is <TT>~/.tsung/tsung.xml</TT> (
-there is a sample file
-<TT>/usr/share/doc/tsung/examples/tsung.xml</TT>).<BR>
+there are several sample files in 
+<TT>/usr/share/doc/tsung/examples</TT>).<BR>
 <BR>
 Log files are saved in <TT>~/.tsung/log/</TT> . A new subdirectory
 is created for each test using the current date as name
@@ -488,7 +521,7 @@ the number of simultaneous users for each given phase.
 <H3 CLASS="subsection"><A NAME="htoc19">4.2</A>&nbsp;&nbsp;benchmarking a proxy server</H3><!--SEC END -->
 
 By default, the HTTP plugin is used to benchmark HTTP servers. But you
-can also benchmark HTTP Proxy server. To do that, you must add in the
+can also benchmark HTTP Proxy servers. To do that, you must add in the
 <TT>options</TT> section:<BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -528,6 +561,12 @@ sessions with the recorder:
 <BR>
 This will start a proxy listening to port 8090 and will proxy requests
 to 127.0.0.0:5432.<BR>
+<BR>
+To choose another port and/or address:
+<TT>tsung -L 5432 -I 10.6.1.1 -P 5433 -p pgsql recorder</TT><BR>
+<BR>
+This will start a proxy listening to port 5432 and will proxy requests
+to 10.6.1.1:5433.<BR>
 <BR>
 <!--TOC section Jabber benchmark approach-->
 
@@ -660,15 +699,15 @@ online when he has send a <FONT COLOR=purple>presence:initial</FONT> message (be
 this message , the state of the user is <TT>connected</TT>).<BR>
 <BR>
 If you want to switch back to <TT>connected</TT> before going
-<TT>offline</TT>, you can use a <FONT COLOR=purple>presence:initial</FONT> message:<BR>
+<TT>offline</TT>, you can use a <FONT COLOR=purple>presence:final</FONT> message:<BR>
 <BR>
-<FONT COLOR=purple>presence:initial</FONT> does two things:
+<FONT COLOR=purple>presence:final</FONT> does two things:
 <OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
 It removes the client from the list of Online users, and moves
  them into the list of Connected users.
 <LI CLASS="li-enumerate">It sends a broadcast presence update of type='unavailable'.
 </OL>
-<FONT COLOR=purple>presence:initial</FONT> is optional.<BR>
+<FONT COLOR=purple>presence:final</FONT> is optional.<BR>
 <BR>
 <EM>warn:</EM> this is new in <B>1.2.0</B>, in earlier version, only 2
 status were available: online and offline; a user was considered
@@ -681,7 +720,7 @@ online as soon as it was connected.<BR>
 Below are configuration examples for the possible authentication
 methods. Note: the regular expressions used here are only examples -
 they may need to be altered depending on how a particular server
-implimentation composes messages (see also &nbsp;<A HREF="#sec:jabber-options">8.5.1</A>
+implementation composes messages (see also &nbsp;<A HREF="#sec:jabber-options">8.5.1</A>
 for password settings).
 <UL CLASS="itemize"><LI CLASS="li-itemize">
 <B>plain authentication</B> - sends cleartext passwords:
@@ -1047,7 +1086,7 @@ advanced distributed testing:<BR>
  Several virtual IP can be used to simulate more machines. This is
  very useful when a load-balancer use the client<CODE>'</CODE>s IP to
  distribute the traffic among a cluster of servers. <B>New in
- 1.1.1:</B> IP is not mandatory. If not specified, the default IP will
+ 1.1.1:</B> IP is no longer mandatory. If not specified, the default IP will
  be used.<BR>
 <BR>
 In this example, a second machine is used in the Tsung cluster,
@@ -1136,15 +1175,15 @@ The load progression is set-up by defining several arrival phases:<BR>
 <TR><TD><PRE CLASS="verbatim">
  &lt;load&gt;
   &lt;arrivalphase phase="1" duration="10" unit="minute"&gt;
-    &lt;users interarrival="2" unit="second"&gt; &lt;/users&gt;
+    &lt;users interarrival="2" unit="second"&gt;&lt;/users&gt;
   &lt;/arrivalphase&gt;
 
   &lt;arrivalphase phase="2" duration="10" unit="minute"&gt;
-    &lt;users interarrival="1" unit="second"&gt; &lt;/users&gt;
+    &lt;users interarrival="1" unit="second"&gt;&lt;/users&gt;
   &lt;/arrivalphase&gt;
 
   &lt;arrivalphase phase="3" duration="10" unit="minute"&gt;
-    &lt;users interarrival="0.1" unit="second"&gt; &lt;/users&gt;
+    &lt;users interarrival="0.1" unit="second"&gt;&lt;/users&gt;
   &lt;/arrivalphase&gt;
  &lt;/load&gt;
 </PRE></TD>
@@ -1627,9 +1666,80 @@ Example of directed presence (sent to random <FONT COLOR=purple>online</FONT> us
 </TR></TABLE></TD>
 </TR></TABLE></TD>
 </TR></TABLE><BR>
+<!--TOC subsubsection PostgreSQL-->
+
+<H4 CLASS="subsubsection"><A NAME="htoc37">8.6.3</A>&nbsp;&nbsp;PostgreSQL</H4><!--SEC END -->
+
+For postgresql, 4 types of requests are available: 
+<OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
+connect (to a given database with a given username
+<LI CLASS="li-enumerate">authenticate (with password or not)
+<LI CLASS="li-enumerate">sql
+<LI CLASS="li-enumerate">close
+</OL>
+This example shows most of the features of a PostgreSQL session:<BR>
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
+<TR><TD><TABLE BORDER=0 CELLPADDING=0
+ CELLSPACING=0>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+<TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
+<TR><TD><PRE CLASS="verbatim">
+  &lt;session probability="100" name="pgsql-example" type="ts_pgsql"&gt;
+    &lt;transaction name="connection"&gt;
+      &lt;request&gt;
+        &lt;pgsql type="connect" database="bench" username="bench" /&gt;
+      &lt;/request&gt;
+    &lt;/transaction&gt;
+
+    &lt;request&gt;&lt;pgsql type="authenticate" password="sesame"/&gt;&lt;/request&gt;
+
+    &lt;thinktime value="12"/&gt;
+
+    &lt;request&gt;&lt;pgsql type="sql"&gt;SELECT * from accounts;&lt;/pgsql&gt;&lt;/request&gt;
+
+    &lt;thinktime value="20"/&gt;
+
+    &lt;request&gt;&lt;pgsql type="sql"&gt;SELECT * from users;&lt;/pgsql&gt;&lt;/request&gt;
+
+    &lt;request&gt;&lt;pgsql type='sql'&gt;&lt;![CDATA[SELECT n.nspname as "Schema",
+  c.relname as "Name",
+  CASE c.relkind WHEN 'r' THEN 'table' WHEN 'v' THEN 'view' WHEN 'i' THEN 'index' WHEN 'S' THEN 'sequence' WHEN 's' THEN '%_toto_% END as "Type",
+  u.usename as "Owner"
+FROM pg_catalog.pg_class c
+     LEFT JOIN pg_catalog.pg_user u ON u.usesysid = c.relowner
+     LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+WHERE c.relkind IN ('r','v','S','')
+      AND n.nspname NOT IN ('pg_catalog', 'pg_toast')
+      AND pg_catalog.pg_table_is_visible(c.oid)
+ORDER BY 1,2;]]&gt;&lt;/pgsql&gt;&lt;/request&gt;
+
+    &lt;request&gt;&lt;pgsql type="close"&gt;&lt;/pgsql&gt;&lt;/request&gt;
+
+  &lt;/session&gt;
+</PRE></TD>
+</TR></TABLE></TD>
+<TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR></TABLE></TD>
+</TR></TABLE><BR>
 <!--TOC subsubsection Dynamic substitutions-->
 
-<H4 CLASS="subsubsection"><A NAME="htoc37">8.6.3</A>&nbsp;&nbsp;Dynamic substitutions</H4><!--SEC END -->
+<H4 CLASS="subsubsection"><A NAME="htoc38">8.6.4</A>&nbsp;&nbsp;Dynamic substitutions</H4><!--SEC END -->
 
 Dynamic substitution are mark-up placed in element of the scenario.
 For HTTP, this mark-up can be placed in basic authentication (www_authenticate
@@ -1759,7 +1869,7 @@ If you want to set unique id, you can use the built-in function
 </TR></TABLE><BR>
 <!--TOC subsubsection Reading external file-->
 
-<H4 CLASS="subsubsection"><A NAME="htoc38">8.6.4</A>&nbsp;&nbsp;Reading external file</H4><!--SEC END -->
+<H4 CLASS="subsubsection"><A NAME="htoc39">8.6.5</A>&nbsp;&nbsp;Reading external file</H4><!--SEC END -->
 
 <B>New in 1.0.3</B>: A new module <TT>ts_file_server</TT> is available. You
 can use it to read external files. For example, if you need to read user
@@ -1871,7 +1981,7 @@ first line of the file will be the next line.<BR>
 <BR>
 <!--TOC subsubsection Dynamic variables-->
 
-<H4 CLASS="subsubsection"><A NAME="htoc39">8.6.5</A>&nbsp;&nbsp;Dynamic variables</H4><!--SEC END -->
+<H4 CLASS="subsubsection"><A NAME="htoc40">8.6.6</A>&nbsp;&nbsp;Dynamic variables</H4><!--SEC END -->
 
 In some cases, you may want to use a value given by the server in a
 response later in the session, and this value is <B>dynamically
@@ -2014,7 +2124,7 @@ hand, for example to get the title of a HTML page:
 </TR></TABLE><BR>
 <!--TOC subsubsection Checking the server's response-->
 
-<H4 CLASS="subsubsection"><A NAME="htoc40">8.6.6</A>&nbsp;&nbsp;Checking the server's response</H4><!--SEC END -->
+<H4 CLASS="subsubsection"><A NAME="htoc41">8.6.7</A>&nbsp;&nbsp;Checking the server's response</H4><!--SEC END -->
 
 With the tag <TT>match</TT> in a <TT>request</TT> tag, you can check
 the server's response against a given string, and do some actions
@@ -2106,12 +2216,12 @@ You can also do the action on "nomatch" instead of "match".<BR>
 <BR>
 <!--TOC section Statistics and reports-->
 
-<H2 CLASS="section"><A NAME="htoc41">9</A>&nbsp;&nbsp;Statistics and reports</H2><!--SEC END -->
+<H2 CLASS="section"><A NAME="htoc42">9</A>&nbsp;&nbsp;Statistics and reports</H2><!--SEC END -->
 
 <A NAME="sec:statistics-reports"></A>
 <!--TOC subsection Available stats-->
 
-<H3 CLASS="subsection"><A NAME="htoc42">9.1</A>&nbsp;&nbsp;Available stats</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc43">9.1</A>&nbsp;&nbsp;Available stats</H3><!--SEC END -->
 
 <UL CLASS="itemize"><LI CLASS="li-itemize">
 request (response time for each request)
@@ -2137,7 +2247,7 @@ counter for each response status (200, 404, etc.)
 </UL>
 <!--TOC subsection Design-->
 
-<H3 CLASS="subsection"><A NAME="htoc43">9.2</A>&nbsp;&nbsp;Design</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc44">9.2</A>&nbsp;&nbsp;Design</H3><!--SEC END -->
 
 A bit of explanation on the design and internals of the statistics engine:<BR>
 <BR>
@@ -2162,7 +2272,7 @@ estimated bandwidth usage).
 </UL>
 <!--TOC subsection Generating the report-->
 
-<H3 CLASS="subsection"><A NAME="htoc44">9.3</A>&nbsp;&nbsp;Generating the report</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc45">9.3</A>&nbsp;&nbsp;Generating the report</H3><!--SEC END -->
 
 cd to the log directory of your test (say
 <TT>~/.tsung/log/20040325-16:33/</TT>) and use the script
@@ -2199,7 +2309,7 @@ cd to the log directory of your test (say
 <BR>
 <!--TOC subsection tsung summary-->
 
-<H3 CLASS="subsection"><A NAME="htoc45">9.4</A>&nbsp;&nbsp;tsung summary</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc46">9.4</A>&nbsp;&nbsp;tsung summary</H3><!--SEC END -->
 
 <BLOCKQUOTE CLASS="figure"><DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV>
  <DIV CLASS="center">
@@ -2214,7 +2324,7 @@ cd to the log directory of your test (say
 <DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV></BLOCKQUOTE>
 <!--TOC subsection Graphical overview-->
 
-<H3 CLASS="subsection"><A NAME="htoc46">9.5</A>&nbsp;&nbsp;Graphical overview</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc47">9.5</A>&nbsp;&nbsp;Graphical overview</H3><!--SEC END -->
 
 <BLOCKQUOTE CLASS="figure"><DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV>
  <DIV CLASS="center">
@@ -2229,7 +2339,7 @@ cd to the log directory of your test (say
 <DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV></BLOCKQUOTE>
 <!--TOC section References-->
 
-<H2 CLASS="section"><A NAME="htoc47">10</A>&nbsp;&nbsp;References</H2><!--SEC END -->
+<H2 CLASS="section"><A NAME="htoc48">10</A>&nbsp;&nbsp;References</H2><!--SEC END -->
 
 <UL CLASS="itemize"><LI CLASS="li-itemize">
 <EM>Tsung</EM> home page: <A HREF="http://tsung.erlang-projects.org/"><TT>http://tsung.erlang-projects.org/</TT></A>
@@ -2242,7 +2352,7 @@ Joe Armstrong, Stockholm, 2003 <SUP><A NAME="text3" HREF="#note3">3</A></SUP>
 </UL>
 <!--TOC section Acknowledgments-->
 
-<H2 CLASS="section"><A NAME="htoc48">11</A>&nbsp;&nbsp;Acknowledgments</H2><!--SEC END -->
+<H2 CLASS="section"><A NAME="htoc49">11</A>&nbsp;&nbsp;Acknowledgments</H2><!--SEC END -->
 
 The first version of this document was based on a talk given by Mickael
 Rémond<SUP><A NAME="text4" HREF="#note4">4</A></SUP> during an Object
@@ -2251,11 +2361,11 @@ Web benchmarking workshop in April 2004 (more info at
 <BR>
 <!--TOC section Frequently Asked Questions-->
 
-<H2 CLASS="section"><A NAME="htoc49">A</A>&nbsp;&nbsp;Frequently Asked Questions</H2><!--SEC END -->
+<H2 CLASS="section"><A NAME="htoc50">A</A>&nbsp;&nbsp;Frequently Asked Questions</H2><!--SEC END -->
 
 <!--TOC subsection Tsung crashes when I start it -->
 
-<H3 CLASS="subsection"><A NAME="htoc50">A.1</A>&nbsp;&nbsp;Tsung crashes when I start it </H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc51">A.1</A>&nbsp;&nbsp;Tsung crashes when I start it </H3><!--SEC END -->
 
 Does your Erlang system has ssl support enabled ?<BR>
 <BR>
@@ -2293,7 +2403,7 @@ to test it:
 </TR></TABLE><BR>
 <!--TOC subsection Tsung still doesn't start ...-->
 
-<H3 CLASS="subsection"><A NAME="htoc51">A.2</A>&nbsp;&nbsp;Tsung still doesn't start ...</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc52">A.2</A>&nbsp;&nbsp;Tsung still doesn't start ...</H3><!--SEC END -->
 
 Most of the time, when a crash happened at startup without any traffic 
 generated, the problem arise because the main Erlang controller node cannot 
@@ -2498,7 +2608,7 @@ to the erlang executable (thanks to Gordon Guthrie for reporting this).<BR>
 <BR>
 <!--TOC subsection Tsung still crashes/fails when I start it !-->
 
-<H3 CLASS="subsection"><A NAME="htoc52">A.3</A>&nbsp;&nbsp;Tsung still crashes/fails when I start it !</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc53">A.3</A>&nbsp;&nbsp;Tsung still crashes/fails when I start it !</H3><!--SEC END -->
 
 First look at the log file
 <TT>~/.tsung/log/XXX/tsung_controller@yourhostname'</TT> to see
@@ -2519,7 +2629,7 @@ an erlang shell on the <TT>tsung_controller</TT> node. Use
 Erlang.
 <!--TOC subsection What is the format of the stats file tsung.log ?-->
 
-<H3 CLASS="subsection"><A NAME="htoc53">A.4</A>&nbsp;&nbsp;What is the format of the stats file tsung.log ?</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc54">A.4</A>&nbsp;&nbsp;What is the format of the stats file tsung.log ?</H3><!--SEC END -->
 <BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -2578,7 +2688,7 @@ or for HTTP returns code, size ...<BR>
 <BR>
 <!--TOC subsection How can I specify the number of concurrent users ?-->
 
-<H3 CLASS="subsection"><A NAME="htoc54">A.5</A>&nbsp;&nbsp;How can I specify the number of concurrent users ?</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc55">A.5</A>&nbsp;&nbsp;How can I specify the number of concurrent users ?</H3><!--SEC END -->
 
 You can't. But it's on purpose: the load generated by
 <EM>Tsung</EM> is dependent on the arrival time between new
@@ -2594,7 +2704,7 @@ XML config file).<BR>
 <BR>
 <!--TOC subsection SNMP monitoring doesn't work ?!-->
 
-<H3 CLASS="subsection"><A NAME="htoc55">A.6</A>&nbsp;&nbsp;SNMP monitoring doesn't work ?!</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc56">A.6</A>&nbsp;&nbsp;SNMP monitoring doesn't work ?!</H3><!--SEC END -->
 
 It use SNMP v1 and the 'public' community. It has been tested with
 <A HREF="http://net-snmp.sourceforge.net/"><TT>http://net-snmp.sourceforge.net/</TT></A>.<BR>
@@ -2686,8 +2796,7 @@ work. This is fixed in erlang R9C-1 and up.<BR>
 
 <DIV class="piedpage">
 <HR>
-<P>Copyright © 2005 Nicolas Niclausse
- «&nbsp;Linux&nbsp;» is the property of Linus Torvalds. All other trademarks belong to their respective owners.
+<P>  Copyright 2004-2006 &copy; Nicolas Niclausse
 </DIV>
 
 <!--ENDHTML-->

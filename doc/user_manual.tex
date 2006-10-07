@@ -171,7 +171,7 @@ distribution (currently exponential)
 
 \begin{itemize}
 \item HTTP/1.0 and HTTP/1.1 support
-\item GET and POST requests 
+\item GET, POST, PUT, DELETE and HEAD requests 
 \item Cookies: Automatic cookies management 
 \item \verb|'|GET If-modified since\verb|'| type of request 
 \item WWW-authentication Basic 
@@ -287,8 +287,8 @@ MacOS-X).
 \subsection{Configuration}
 
 The default configuration file is \file{~/.tsung/tsung.xml} (
-there is a sample file
-\file{/usr/share/doc/tsung/examples/tsung.xml}).
+there are several sample files in 
+\file{/usr/share/doc/tsung/examples}).
 
 Log files are saved in \file{~/.tsung/log/} . A new subdirectory
 is created for each test using the current date as name
@@ -332,7 +332,7 @@ the number of simultaneous users for each given phase.
 \subsection{benchmarking a proxy server}
 
 By default, the HTTP plugin is used to benchmark HTTP servers. But you
-can also benchmark HTTP Proxy server. To do that, you must add in the
+can also benchmark HTTP Proxy servers. To do that, you must add in the
 \varname{options} section:
 
 \begin{Verbatim}
@@ -413,16 +413,16 @@ online when he has send a \userinput{presence:initial} message (before
 this message , the state of the user is \varname{connected}).
 
 If you want to switch back to \varname{connected} before going
-\varname{offline}, you can use a \userinput{presence:initial} message:
+\varname{offline}, you can use a \userinput{presence:final} message:
 
-\userinput{presence:initial} does two things:
+\userinput{presence:final} does two things:
 \begin{enumerate}
 \item It removes the client from the list of Online users, and moves
   them into the list of Connected users.
 \item  It sends a broadcast presence update of type='unavailable'.
 \end{enumerate}
 
-\userinput{presence:initial} is optional.
+\userinput{presence:final} is optional.
 
 \emph{warn:} this is new in \strong{1.2.0}, in earlier version, only 2
 status were available: online and offline; a user was considered
@@ -433,7 +433,7 @@ online as soon as it was connected.
 Below are configuration examples for the possible authentication
 methods.  Note: the regular expressions used here are only examples -
 they may need to be altered depending on how a particular server
-implimentation composes messages (see also ~\ref{sec:jabber-options}
+implementation composes messages (see also ~\ref{sec:jabber-options}
 for password settings).
 
 
@@ -611,7 +611,7 @@ advanced distributed testing:
  Several virtual IP can be used to simulate more machines. This is
  very useful when a load-balancer use the client\verb|'|s IP to
  distribute the traffic among a cluster of servers. \strong{New in
-   1.1.1:} IP is not mandatory. If not specified, the default IP will
+   1.1.1:} IP is no longer mandatory. If not specified, the default IP will
  be used.
  
  In this example, a second machine is used in the Tsung cluster,
@@ -941,6 +941,53 @@ Example of directed presence (sent to random \userinput{online} users):
 
     <request> <jabber type="presence:directed" ack="no_ack"/> </request>
     <thinktime value="5"></thinktime>
+\end{Verbatim}
+
+\subsubsection{PostgreSQL}
+
+For postgresql, 4 types of requests are available: 
+\begin{enumerate}
+\item connect (to a given database with a given username
+\item authenticate (with password or not)
+\item sql
+\item close
+\end{enumerate}
+
+This example shows most of the features of a PostgreSQL session:
+
+\begin{Verbatim}
+  <session probability="100" name="pgsql-example" type="ts_pgsql">
+    <transaction name="connection">
+      <request>
+        <pgsql type="connect" database="bench" username="bench" />
+      </request>
+    </transaction>
+
+    <request><pgsql type="authenticate" password="sesame"/></request>
+
+    <thinktime value="12"/>
+
+    <request><pgsql type="sql">SELECT * from accounts;</pgsql></request>
+
+    <thinktime value="20"/>
+
+    <request><pgsql type="sql">SELECT * from users;</pgsql></request>
+
+    <request><pgsql type='sql'><![CDATA[SELECT n.nspname as "Schema",
+  c.relname as "Name",
+  CASE c.relkind WHEN 'r' THEN 'table' WHEN 'v' THEN 'view' WHEN 'i' THEN 'index' WHEN 'S' THEN 'sequence' WHEN 's' THEN '%_toto_% END as "Type",
+  u.usename as "Owner"
+FROM pg_catalog.pg_class c
+     LEFT JOIN pg_catalog.pg_user u ON u.usesysid = c.relowner
+     LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+WHERE c.relkind IN ('r','v','S','')
+      AND n.nspname NOT IN ('pg_catalog', 'pg_toast')
+      AND pg_catalog.pg_table_is_visible(c.oid)
+ORDER BY 1,2;]]></pgsql></request>
+
+    <request><pgsql type="close"></pgsql></request>
+
+  </session>
 \end{Verbatim}
 
 \subsubsection{Dynamic substitutions}
