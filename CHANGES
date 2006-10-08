@@ -1,4 +1,4 @@
-1.2.0 -> 1.2.1 Minor bugfixes and enhancements (XX XXX 2006)
+1.2.0 -> 1.2.1 Minor bugfixes and enhancements (07 Oct 2006)
     Bugfix:
     - [TSUN-5]  get traffic from all interfaces instead of only eth0
       in erlang os monitoring (Linux)
