@@ -36,9 +36,9 @@
          now_sec/0, node_to_hostname/1, add_time/2, keyumerge/3,
          level2int/1, mkey1search/2, close_socket/2, datestr/0, datestr/1,
          erl_system_args/0, erl_system_args/1, setsubdir/1, export_text/1,
-         foreach_parallel/2, spawn_par/3, inet_setopts/3,
+         foreach_parallel/2, spawn_par/3, inet_setopts/3, resolve/2,
          stop_all/2, stop_all/3, stop_all/4, join/2, split2/2, split2/3,
-         make_dir_rec/1, is_ip/1, from_https/1, to_https/1,
+         make_dir_rec/1, is_ip/1, from_https/1, to_https/1, keymax/2,
          check_sum/3, check_sum/5, clean_str/1, file_to_list/1]).
 
 level2int("debug")     -> ?DEB;
@@ -497,3 +497,38 @@ keyumerge(N,[A|Rest],B)->
     % remove old values if it exists
     NewB = lists:keydelete(Key, N, B),
     keyumerge(N,Rest, [A|NewB]).
+
+%%----------------------------------------------------------------------
+%% Func: keymax/2
+%% Purpose: Return Max of Nth element of a list of tuples
+%% Returns: Number
+%%----------------------------------------------------------------------
+keymax(N,[L])-> element(N,L);
+keymax(N,[E|Tail])->
+    keymax(N,Tail,element(N,E)).
+
+keymax(N,[],Max)-> Max;
+keymax(N,[E|Tail],Max)->
+    keymax(N,Tail,lists:max([Max,element(N,E)])).
+
+%%--------------------------------------------------------------------
+%% Function: resolve/2
+%% Description: return cached hostname or gethostbyaddr for given ip
+%%--------------------------------------------------------------------
+resolve(Ip, Cache) ->
+    case lists:keysearch(Ip, 1, Cache) of
+        {value, {Ip, ReverseHostname}} ->
+            {ReverseHostname, Cache};
+        false ->
+            case inet:gethostbyaddr(Ip) of
+                {ok, {hostent,ReverseHostname,_,inet,_,_}} ->
+                    %% cache dns result and return it
+                    ?LOGF("Add ~p -> ~p to DNS cache ~n", [Ip, ReverseHostname],?DEB),
+                    {ReverseHostname, [{Ip, ReverseHostname} | Cache]};
+                {error, Reason} ->
+                    ?LOGF("DNS resolution error on ~p: ~p~n", [Ip, Reason],?WARN),
+                    %% cache dns name as IP : {ip, ip} and return Ip
+                    NewCache = lists:keymerge(1, Cache, [{Ip, Ip}]),
+                    {Ip, NewCache}
+            end
+    end.

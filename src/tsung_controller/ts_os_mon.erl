@@ -50,9 +50,10 @@
 -record(state, {erlang_pids=[], snmp_pids=[], timer,
                 interval,  % get data every 'interval' msec, default
                            % value is ?INTERVAL
-                mon_server % monitoring server to which every data is
+                mon_server,% monitoring server to which every data is
                            % sent to (can be a pid or a registered
                            % process )
+                dnscache=[]
                }).
 
 -include_lib("snmp/include/snmp_types.hrl").
@@ -78,7 +79,7 @@
 %% FIXME: make this customizable in the XML config file
 
 -define(SNMP_PORT, 161).
--define(SNMP_COMMUNITY, public).
+-define(SNMP_COMMUNITY, "public").
 
 -define(SNMP_CPU_RAW_USER, [1,3,6,1,4,1,2021,11,50,0]).
 -define(SNMP_CPU_RAW_SYSTEM, [1,3,6,1,4,1,2021,11,52,0]).
@@ -221,21 +222,22 @@ handle_info({timeout, _Ref, send_snmp_request},  State ) ->
 % response from the SNMP server    
 handle_info({snmp_msg, Msg, Ip, _Udp}, State) ->
     PDU = snmp_mgr_misc:get_pdu(Msg),
-    case PDU#pdu.type of 
-        'get-response' ->
-            ?LOGF("Got SNMP PDU ~p from ~p~n",[PDU, Ip],?DEB),
-            %% FIXME: resolve the address once and cache the result ?
-            {ok,{hostent,Hostname,_,inet,_,_}} = inet:gethostbyaddr(Ip),
-            analyse_snmp_data(PDU#pdu.varbinds, Hostname, State);
-        _ ->
-            skip
-    end,
+    NewCache = case PDU#pdu.type of 
+                   'get-response' ->
+                       ?LOGF("Got SNMP PDU ~p from ~p~n",[PDU, Ip],?DEB),
+                       {Hostname, Cache2} = ts_utils:resolve(Ip, State#state.dnscache),
+                       analyse_snmp_data(PDU#pdu.varbinds, Hostname, State),
+                       Cache2;
+                   _ ->
+                       ?LOGF("Got unknown SNMP data ~p from ~p~n",[PDU, Ip],?WARN),
+                       State#state.dnscache   
+               end,
     case  State#state.timer of 
         undefined ->
             erlang:start_timer(State#state.interval, self(), send_snmp_request ),
-            {noreply, State#state{timer=on}};
+            {noreply, State#state{timer=on, dnscache=NewCache}};
         _ ->
-            {noreply, State}
+            {noreply, State#state{dnscache=NewCache}}
     end;
 
 handle_info({'EXIT', From, Reason}, State) ->
@@ -400,7 +402,7 @@ active_host([{HostStr, snmp} | HostList], State=#state{snmp_pids=PidList}) ->
     ?LOGF("Starting SNMP mgr on ~p~n", [Host], ?DEB),
     {ok, Pid} = snmp_mgr:start_link([{agent, Host},
                                      {agent_udp, ?SNMP_PORT},
-%%%                                     {community, ?SNMP_COMMUNITY},
+                                     {community, ?SNMP_COMMUNITY},
                                      {receive_type, msg},
                                      quiet
                                     ]),
@@ -438,10 +440,12 @@ active_host([{Host, erlang}| HostList], State=#state{erlang_pids=PidList}) ->
 analyse_snmp_data(Args, Host, State) ->
     analyse_snmp_data(Args, Host, [], State).
 
+%% Function: analyse_snmp_data/4
 analyse_snmp_data([], _Host, Resp, State) ->
     send(State#state.mon_server,Resp);
 
-analyse_snmp_data([#varbind{value='NULL'}| Tail], Host, Stats, State) ->
+analyse_snmp_data([Val=#varbind{value='NULL'}| Tail], Host, Stats, State) ->
+    ?LOGF("SNMP: Skip void result (~p) ~n", [Val],?DEB),
     analyse_snmp_data(Tail, Host, Stats, State);
 
 %% FIXME: this may not be accurate: if we lost packets (the server is
@@ -462,7 +466,8 @@ analyse_snmp_data([User=#varbind{oid=?SNMP_CPU_RAW_USER}| Tail], Host, Stats, St
 
 analyse_snmp_data([#varbind{oid=OID, value=Val}| Tail], Host, Stats, State) ->
     {Type, Name, Value}= oid_to_statname(OID, Host, Val),
-    analyse_snmp_data(Tail, Host, [{Type, Name, Value}| Stats], State).
+    ?LOGF("Analyse SNMP: ~p:~p:~p ~n", [Type, Name, Value],?DEB),
+   analyse_snmp_data(Tail, Host, [{Type, Name, Value}| Stats], State).
 
 %%--------------------------------------------------------------------
 %% Function: oid_to_statname/3
