@@ -1,0 +1,241 @@
+%% Nicolas Niclausse 2002
+%% $Id: TSUNG.hva,v 1.7 2003/08/28 08:25:20 nniclausse Exp $
+
+\ifstyleloaded\relax
+\else
+\input{article.hva}
+\styleloadedtrue
+% HTML HEADERS
+\htmlhead{
+\begin{rawhtml}
+  <DIV class="entete">
+  &nbsp;<A href="http://tsung.erlang-projects.org/">http://tsung.erlang-projects.org/</A>
+  </DIV>
+  <HR>
+\end{rawhtml}
+}
+\htmlfoot{
+\begin{rawhtml}
+<DIV class="piedpage">
+<HR>
+<P>  Copyright 2004-2006 &copy; Nicolas Niclausse
+</DIV>
+
+\end{rawhtml}
+}
+% our style
+
+\newcommand{\RequirePackage}[1]{\usepackage{#1}}
+\RequirePackage[colorlinks=false]{hyperref}
+\RequirePackage{url}
+\RequirePackage{xspace}
+
+\RequirePackage[T1]{fontenc}
+\RequirePackage[cyr]{aeguill}
+\RequirePackage{ae}
+\RequirePackage{a4wide}
+\RequirePackage{fancyhdr}
+\RequirePackage{lastpage}
+\RequirePackage{color}
+\RequirePackage{colortbl}           % Cf. _LaTeX par la pratique_, p. 300...
+\RequirePackage{nopageno}
+\RequirePackage[latin1]{inputenc}
+\RequirePackage[francais]{babel}
+\RequirePackage{tabularx}
+\RequirePackage{hhline}
+\RequirePackage{textcomp}
+
+% hevea specific
+\input{urlhref.hva}
+
+\RequirePackage[debugshow,final]{graphics}
+\RequirePackage{fancyvrb} % paquetage verbatim évolué
+\fvset{fontsize=\scriptsize,frame=single}
+
+\newcommand{\GreyShade}{0.95}
+\newcommand{\GrayShade}{\GreyShade}
+
+%\ifpdf
+\RequirePackage{graphicx}
+%\else
+%  \RequirePackage{graphicx}
+%\DeclareGraphicsExtensions{.jpg,.png}
+%\fi
+
+
+\setlength{\voffset}{-.4in}
+\setlength{\headheight}{14.5mm}
+\setlength{\headheight}{25pt}
+
+\definecolor{idxgreen}{rgb}{0.22,0.50,0.18}%#39812F
+
+ Headers
+\pagestyle{fancy}
+\renewcommand{\sectionmark}[1]{\markboth{#1}{}}
+\newcommand{\subsectionmark}[1]{\markright{#1}}
+\rhead{\emph{\leftmark\\\rightmark}}
+\rfoot{\small{Page \thepage\//\pageref{LastPage}}}
+\rhead{\leftmark}
+\newcommand{\footrulewidth}{0.2pt}
+\lfoot{}
+
+\newcommand{\CartoucheGeneral}{%
+  \begin{center}
+  \newcolumntype{Y}{>{\columncolor[gray]{\GrayShade}}l}
+  \begin{tabular}{|Yl|}
+  \hline 
+   Version:          & \idxversion      \\
+   Date : & \today \\
+  \hline 
+  \end{tabular}
+  \end{center}
+}
+
+%\newcommand{\logo}[1]{%
+%\includegraphics[width=30mm]{logo_tsung}
+%}
+
+\newcommand{\@maketitle}{%
+ \usebox{\addressbox}%		
+	\vspace*{1cm} 
+    \begin{flushright}%
+      \fontsize{14}{18}\selectfont%
+      	 \usebox{\titlebox} \\	
+	 \usebox{\numberbox}\\
+	 \usebox{\datebox}
+	 \usebox{\authorbox}\\[2ex]%
+
+    \end{flushright}%
+
+    \CartoucheGeneral
+  \par
+}
+
+\renewcommand{\maketitle}{%
+{\newcommand{\checkbox}[2]
+  {\ifthenelse{\equal{\usebox{##2}}{}}
+    {}
+    {\@open{##1}{ALIGN=center}\usebox{##2}\@close{##1}}}%
+\checkbox{H1}{\@title}
+\checkbox{H3}{\@author}
+\checkbox{H3}{\@date}
+\checkbox{}{\CartoucheGeneral}}
+}
+
+\newcommand{\docreldate}[1]{%
+  \newcommand{\idxreldate}{#1}
+}
+
+%%
+\newcommand{\raisebox}[2]{%
+}
+\newcommand{\parbox}[1]{%
+}
+
+\newcommand{\docref}[1]{%
+  \newcommand{\idxref}{\texttt{#1}}
+}
+\newcommand{\doctitle}[1]{\title{#1}}
+\newcommand{\docdate}{\heveadate{}}
+\newcommand{\docversion}[1]{%
+  \newcommand{\idxversion}{#1}
+}
+\newcommand{\doccopyright}[1]{#1}
+\newcommand{\addauthor}[3]{%
+\author{\@author\\ #1 #2 \texttt{(#3)}}
+}
+
+% french for frbib
+%\iffrench
+%\renewcommand{\ifFTR}{\iftrue}
+%\fi
+% use already existing png files
+%\renewcommand{\heveaimageext}{.png}
+\renewcommand{\includegraphics}[2][]{\imgsrc{images/#2.png}}
+
+\newcommand{\Abstract}[1]{%
+\\
+\begin{center}
+  \begin{tabular}{|p|}
+  \hline 
+  \textit{#1}
+\end{tabular}
+\end{center}
+}
+% remove hypertarget, redondant with \label 
+%\renewcommand{\hypertarget}[2]{}
+% trademark (replace by blank)
+\newcommand{\Pisymbol}[2]{}
+\newcommand{\vref}[1]{\ref{#1}}
+
+%% change tables border used for fancyvrb
+\def\verb@framesize{1}
+
+% add css
+\let\oldmeta=\@meta
+\renewcommand{\@meta}{%
+\oldmeta
+\begin{rawhtml}
+<style type="text/css">
+<!--
+body        {font-size: 90%; margin-right:40px; margin-left:40px; font-family:Sans-Serif; color:#000000; background-color:#ffffff;}
+p, .n       {font-size: 90%; font-family:Sans-Serif; color:#000000; background-color:#ffffff;}
+h1          {font-size: 200%; color:#800000; background-color:#ffffff;}
+h2          {font-size:150%; color:#000080; background-color:#ffffff;}
+h3          {font-family:Sans-Serif; font-size: 120%; font-weight:bold; color:#000080; background-color:#ffffff;}
+h4          {font-family:Sans-Serif; font-size:100%; font-weight:bold; color:#000080; background-color:#ffffff;}
+h5          {font-family:Sans-Serif; font-size:100%; font-weight:bold; color:#000000;  background-color:#ffffff; margin-bottom: 0;}
+form        {margin-bottom:-5px;}
+textarea    {color:#333333;  background-color:#ffffff; width:90%;}
+table       {font-size:90%;}
+dl,ul,ol    {margin-top: 2pt; margin-bottom: 2pt;}
+tt, pre     {font-family:monospace; color:#666666; background-color:#ffffff;}
+pre {
+    background-color: #ffffee;
+    white-space:pre;
+    border-style:solid;
+    border-width:thin;
+    border-color:#999999;
+    color:#333333;
+//    padding:3px;
+	margin-bottom: -1pt;
+    width:100%;
+}
+
+a:link      {color:#800000; background-color: #ffffff;}
+a:visited   {color:#006600; background-color: #ffffff;}
+a:active    {color:green; background-color: #ffffff;}
+a:hover     {background:#ffffaa;}
+
+.piedpage, .entete {
+    font-family:Sans-Serif; font-size:90%; font-style:italic; color:#0000ff; background-color: #ffffff;
+        text-align: center;
+}
+-->
+</style>
+\end{rawhtml}}
+\fi
+
+\def\ie{\textit{ie.} }
+\def\ieme{ième }
+\newcommand{\guillem}[1]{«#1»}
+
+\newcommand{\familyName}[1]{\textsc{#1}}
+\newcommand{\strong}[1]{\textbf{#1}}
+
+\newcommand{\file}{\begingroup \urlstyle{tt}\Url}
+\newcommand{\computeroutput}[1]{\textsf{#1}}
+\newcommand{\userinput}[1]{\textsf{#1}}
+\newcommand{\program}[1]{\emph{#1}}
+\newcommand{\command}[1]{\texttt{#1}}
+\newcommand{\varname}[1]{\texttt{#1}}
+\newcommand{\foreign}[1]{\emph{#1}}
+\newcommand{\keycap}[1]{\texttt{#1}}
+
+\newcommand{\email}[1]{\mailto{#1}}
+\newcommand{\unix}[1]{Unix}
+\newcommand{\linux}[1]{Linux}
+\newcommand{\opnsrc}[1]{\textsf{Open Source}}
+
+\newcommand{\FIXME}[1]{\strong{FIXME: #1}}
+

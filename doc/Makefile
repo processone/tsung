@@ -17,7 +17,7 @@ STYLE=$(TOPDIR)/styles
 CSS=IDXDOC.css
 
 # classe et styles hevea
-HEVEA_INC=IDXDOC-DOTORG.hva
+HEVEA_INC=TSUNG.hva
 HEVEAOPTS=-fix -I $(STYLE) -exec xxdate.exe -pedantic
 LANGUAGE=
 
