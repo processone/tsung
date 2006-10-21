@@ -191,7 +191,8 @@ handle_call({read_config, ConfigFile}, _From, State) ->
                     ets:insert(Tab, {{LastSess#session.id, size}, LastReqId}),
                     %% start the file server (if defined) using a separate process (it can be long)
                     spawn(?MODULE, start_file_server, [Config#config.file_server]),
-                    {reply, ok, State#state{config=Config, total_weight = Sum}};
+                    NewConfig=loop_load(Config),
+                    {reply, ok, State#state{config=NewConfig, total_weight = Sum}};
                 {error, Reason} ->
                     ?LOGF("Error while checking config: ~p~n",[Reason],?EMERG),
                     {reply, {error, Reason}, State}
@@ -572,3 +573,25 @@ load_app(Name) when atom(Name) ->
 		    {error, {file:format_error(Reason), FName}}
 	    end
     end.
+
+%%----------------------------------------------------------------------
+%% Func: loop_load/1
+%% Args: #config
+%% Returns: #config    
+%% Purpose: duplicate phases 'load_loop' times. 
+%%----------------------------------------------------------------------
+loop_load(Config=#config{load_loop=0}) -> Config;
+loop_load(Config=#config{load_loop=Loop,arrivalphases=Arrival}) when is_integer(Loop) ->
+    loop_load(Config, ts_utils:keymax(#arrivalphase.phase, Arrival), Arrival ).
+
+%% We have a list of n phases: duplicate the list and increase by the
+%% max to get a new unique id for all phases. Here we don't care about
+%% the order, so we start with the last iteration (Loop* Max)
+loop_load(Config=#config{load_loop=0},_,Current) ->
+    Config#config{arrivalphases = Current};
+loop_load(Config=#config{load_loop=Loop, arrivalphases=Arrival},Max,Current) ->
+	Fun= fun(Phase) -> Phase+Max*Loop end,
+    NewArrival = lists:keymap(Fun,#arrivalphase.phase,Arrival),
+    loop_load(Config#config{load_loop=Loop-1},Max,lists:append(Current, NewArrival)).
+    
+                 

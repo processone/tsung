@@ -125,6 +125,12 @@ parse(Element = #xmlElement{name=monitor, attributes=Attrs},
 		Conf#config{monitor_hosts = lists:append(MHList, NewMon)},
 		Element#xmlElement.content);
 
+%% 
+parse(Element = #xmlElement{name=load, attributes=Attrs}, Conf) ->
+    Loop = getAttr(integer, Attrs, loop, 0),
+    lists:foldl(fun parse/2,	Conf#config{load_loop=Loop},
+                Element#xmlElement.content);
+
 
 %% Parsing the Client element
 parse(Element = #xmlElement{name=client, attributes=Attrs},

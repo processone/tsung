@@ -53,6 +53,7 @@
           curid = 0, %% temporary var (current request id (can be transaction))
           cur_req_id = 0, %% temporary var (current real request id)
           file_server, % filename for file_server
+          load_loop, %% loop phases if > 0
           ssl_ciphers = negociate
 		}).
 

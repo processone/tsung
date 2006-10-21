@@ -43,6 +43,10 @@
      type (snmp | erlang) "erlang">
 
 <!ELEMENT load (arrivalphase+)>
+<!ATTLIST load 
+     loop     NMTOKEN "0"
+     >
+
 <!ELEMENT arrivalphase (users)>
 <!ATTLIST arrivalphase
      duration NMTOKEN #REQUIRED
