@@ -34,21 +34,22 @@
 -include("ts_jabber.hrl").
 
 -export([init_dynparams/0,
-		 add_dynparams/4,
-		 get_message/1,
-		 session_defaults/0,
+         add_dynparams/4,
+         get_message/1,
+         session_defaults/0,
          subst/2,
          parse/2,
+         parse_bidi/2,
          parse_config/2,
          new_session/0]).
 
 %%----------------------------------------------------------------------
 %% Function: session_default/0
-%% Purpose: default parameters for session (ack_type and persistent)
-%% Returns: {ok, "parse"|"no_ack"|"local", "true"|"false"} 
+%% Purpose: default parameters for session (persistent & bidirectional)
+%% Returns: {ok, true|false} 
 %%----------------------------------------------------------------------
 session_defaults() ->
-	{ok, true}.
+	{ok, true, true}.
 
 %%----------------------------------------------------------------------
 %% Function: new_session/0
@@ -77,6 +78,8 @@ get_message(Req=#jabber{}) ->
 %% no parsing in jabber. use only ack
 parse(_Data, State) ->
 	State.
+
+parse_bidi(Data, State) -> {nodata, State}.
 
 %%
 parse_config(Element, Conf) ->

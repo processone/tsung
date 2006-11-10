@@ -233,12 +233,17 @@ parse(Element = #xmlElement{name=session, attributes=Attrs},
     Id = length(SList),
     Type        = getAttr(atom,Attrs, type),
 
-    {ok, Persistent_def} = Type:session_defaults(),
+    {Persistent_def, Bidi_def} = 
+        case Type:session_defaults() of
+            {ok, Pdef, Bdef} -> {Pdef, Bdef};
+            {ok, Pdef} -> {Pdef, false}
+        end,
 
     Persistent  = getAttr(atom,Attrs, persistent, Persistent_def),
+    Bidi        = getAttr(atom,Attrs, bidi, Bidi_def),
     Name        = getAttr(Attrs, name),
     ?LOGF("Session name for id ~p is ~p~n",[Id+1, Name],?NOTICE),
-    ?LOGF("Session type: persistent=~p~n",[Persistent],?NOTICE),
+    ?LOGF("Session type: persistent=~p, bidi=~p~n",[Persistent,Bidi],?NOTICE),
     Probability = getAttr(float_or_integer, Attrs, probability),
     case Id of 
         0 -> ok; % first session 
@@ -252,6 +257,7 @@ parse(Element = #xmlElement{name=session, attributes=Attrs},
                                                  popularity   = Probability,
                                                  type         = Type,
                                                  persistent   = Persistent,
+                                                 bidi         = Bidi,
                                                  ssl_ciphers  = Conf#config.ssl_ciphers
                                                 }
                                         |SList],

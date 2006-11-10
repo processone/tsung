@@ -53,12 +53,13 @@
 
 % state of ts_client_rcv gen_server
 -record(state_rcv, 
-		{socket=none, %  
+        {socket=none, %  
          ip,          % local ip to bind to
 		 timeout,	  % ?
-		 host,	      % hostname (or IP) of remote server
+         host,	      % hostname (or IP) of remote server
          port,        % server port
-		 protocol,	  % gen_udp, gen_tcp or ssl
+         protocol,	  % gen_udp, gen_tcp or ssl
+         bidi = false,% true if bidirectional protocol
          ssl_ciphers, % for ssl only
          profile,     % session id
          request,     % current request specs
@@ -75,12 +76,12 @@
 		 buffer = <<>>, % buffer when we have to keep the response (we need
                      % all the response to do pattern matching)
 		 session,    % record of session status; depends on 'clienttype'
-		 datasize=0,
-		 dyndata=[], % persistent data dynamically added during the
+         datasize=0,
+         dyndata=[], % persistent data dynamically added during the
                      % session (Cookies for examples)
-		 clienttype, % module name (ts_jabber, etc.)
+         clienttype, % module name (ts_jabber, etc.)
          transactions=[], % current transactions
-		 dump        % type of dump (full, light, none)
+         dump        % type of dump (full, light, none)
 		}).
 
 -define(restart_sleep, 2000).

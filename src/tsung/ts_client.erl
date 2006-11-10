@@ -30,6 +30,10 @@
 
 -behaviour(gen_fsm). % two state: wait_ack | think
 
+%%% if bidi is true (for bidirectional), the server can send data
+%%% to the client at anytime (full bidirectional protocal, as jabber
+%%% for ex)
+
 -include("ts_profile.hrl").
 -include("ts_config.hrl").
 
@@ -70,6 +74,7 @@ next({Pid}) ->
 %%----------------------------------------------------------------------
 init({#session{id           = Profile,
                persistent   = Persistent,
+               bidi         = Bidi,
                ssl_ciphers  = Ciphers,
                type         = CType}, Count, IP, Server}) ->
 	?DebugF("Init ... started with count = ~p~n",[Count]),
@@ -83,6 +88,7 @@ init({#session{id           = Profile,
     {ok, think, #state_rcv{ port       = Server#server.port,
                             host       = Server#server.host,
                             profile    = Profile,
+                            bidi       = Bidi,
                             protocol   = Server#server.type,
                             clienttype = CType,
                             session    = CType:new_session(),
@@ -203,17 +209,26 @@ handle_info(timeout, StateName, State ) ->
     ?LOGF("Error: timeout receive in state ~p~n",[StateName], ?ERR),
     ts_mon:add({ count, timeout }),
     {stop, normal, State};
-% no parse
-handle_info({NetEvent, _Socket, Data}, think, State = #state_rcv{request=Req} ) 
-  when (Req#ts_request.ack /= parse) and ((NetEvent == tcp) or (NetEvent==ssl)) ->
+% bidirectional protocol
+handle_info({NetEvent, Socket, Data}, think,State=#state_rcv{request=Req,
+  clienttype=Type, bidi=true})  when ((NetEvent == tcp) or (NetEvent==ssl)) ->
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     ts_mon:add({ sum, size, size(Data)}),
-    ?LOGF("Data receive from socket in state think, ack=~p, skip~n", 
-         [Req#ts_request.ack],?NOTICE),
-    ?DebugF("Data was ~p~n",[Data]),
-    NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol, State#state_rcv.socket,
+    Proto = State#state_rcv.protocol,
+    ?LOG("Data received from socket (bidi) in state think~n",?INFO),
+    NewState = case Type:parse_bidi(Data, State) of
+                   {nodata, State2} -> 
+                       ?LOG("Bidi: no data ~n",?DEB),
+                       State2;
+                   {Data, State2} ->
+                       %%FIXME: data size stats
+                       ?LOG("Bidi: send data back to server~n",?DEB),
+                       send(Proto,Socket,Data), %FIXME: handle errors ?
+                       State2
+               end,
+    NewSocket = ts_utils:inet_setopts(Proto, State#state_rcv.socket,
                                       [{active, once}]),
-    {next_state, think, State#state_rcv{socket=NewSocket}};
+    {next_state, think, NewState#state_rcv{socket=NewSocket}};
 handle_info({NetEvent, _Socket, Data}, think, State) 
   when (NetEvent == tcp) or (NetEvent==ssl) ->
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),

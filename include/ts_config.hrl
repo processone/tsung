@@ -73,6 +73,7 @@
           popularity,
           type,
           persistent   = false,
+          bidi         = false,
           ssl_ciphers  = negociate,
           size 
         }).
