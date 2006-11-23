@@ -220,10 +220,10 @@ handle_info({NetEvent, Socket, Data}, think,State=#state_rcv{request=Req,
                    {nodata, State2} -> 
                        ?LOG("Bidi: no data ~n",?DEB),
                        State2;
-                   {Data, State2} ->
+                   {Data2, State2} ->
                        %%FIXME: data size stats
                        ?LOG("Bidi: send data back to server~n",?DEB),
-                       send(Proto,Socket,Data), %FIXME: handle errors ?
+                       send(Proto,Socket,Data2), %FIXME: handle errors ?
                        State2
                end,
     NewSocket = ts_utils:inet_setopts(Proto, State#state_rcv.socket,
