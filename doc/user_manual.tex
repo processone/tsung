@@ -941,6 +941,15 @@ Example of directed presence (sent to random \userinput{online} users):
     <thinktime value="5"></thinktime>
 \end{Verbatim}
 
+\paragraph{raw XML}
+You can send raw XML date to the server using the \varname{raw} type:
+\begin{Verbatim}
+<jabber type="raw" ack="no_ack" data="&lt;stream&gt;foo&lt;/stream&gt;"></jabber>
+\end{Verbatim}
+
+Beware: you must encode XML characters like \userinput{<}
+,\userinput{>}, \userinput{\&}, etc.
+
 \subsubsection{PostgreSQL}
 
 For postgresql, 4 types of requests are available: 
@@ -1064,7 +1073,7 @@ Now you can build you own function to use it, for example:
 -module(readcsv).
 -export([user/1]).
 
-user(Pid)->
+user({Pid,DynVar})->
     {ok,Line} = ts_file_server:get_next_line(), 
     [Username, Passwd] = string:tokens(Line,";"),
     "username=" ++ Username ++"&amp;passwd=" ++ Passwd.
