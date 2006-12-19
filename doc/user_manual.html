@@ -84,10 +84,10 @@ a:hover     {background:#ffffaa;}
  
  <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1>
 <TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2">Version:</TD>
-<TD ALIGN=left NOWRAP>693</TD>
+<TD ALIGN=left NOWRAP>703</TD>
 </TR>
 <TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2">Date :</TD>
-<TD ALIGN=left NOWRAP>						7th										October,&nbsp;2006</TD>
+<TD ALIGN=left NOWRAP>						19th												December,&nbsp;2006</TD>
 </TR></TABLE>
  </DIV>
 
@@ -347,7 +347,6 @@ Authentication (plaintext, digest and sip-digest)
 
 <H3 CLASS="subsection"><A NAME="htoc9">2.4</A>&nbsp;&nbsp;PostgreSQL related features</H3><!--SEC END -->
 
-<B>Warning:</B> This pluging is still experimental.
 <UL CLASS="itemize"><LI CLASS="li-itemize">
 Basic Authentication
 <LI CLASS="li-itemize">Basic Queries (Extended queries not yet supported)
@@ -1666,6 +1665,42 @@ Example of directed presence (sent to random <FONT COLOR=purple>online</FONT> us
 </TR></TABLE></TD>
 </TR></TABLE></TD>
 </TR></TABLE><BR>
+<!--TOC paragraph raw XML-->
+
+<H5 CLASS="paragraph">raw XML</H5><!--SEC END -->
+
+You can send raw XML date to the server using the <TT>raw</TT> type:
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
+<TR><TD><TABLE BORDER=0 CELLPADDING=0
+ CELLSPACING=0>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+<TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
+<TR><TD><PRE CLASS="verbatim">
+&lt;jabber type="raw" ack="no_ack" data="&amp;lt;stream&amp;gt;foo&amp;lt;/stream&amp;gt;"&gt;&lt;/jabber&gt;
+</PRE></TD>
+</TR></TABLE></TD>
+<TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR></TABLE></TD>
+</TR></TABLE><BR>
+Beware: you must encode XML characters like <FONT COLOR=purple>&lt;</FONT>
+,<FONT COLOR=purple>&gt;</FONT>, <FONT COLOR=purple>&amp;</FONT>, etc.<BR>
+<BR>
 <!--TOC subsubsection PostgreSQL-->
 
 <H4 CLASS="subsubsection"><A NAME="htoc37">8.6.3</A>&nbsp;&nbsp;PostgreSQL</H4><!--SEC END -->
@@ -1924,7 +1959,7 @@ Now you can build you own function to use it, for example:<BR>
 -module(readcsv).
 -export([user/1]).
 
-user(Pid)-&gt;
+user({Pid,DynVar})-&gt;
     {ok,Line} = ts_file_server:get_next_line(), 
     [Username, Passwd] = string:tokens(Line,";"),
     "username=" ++ Username ++"&amp;amp;passwd=" ++ Passwd.
