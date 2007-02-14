@@ -326,7 +326,7 @@ handle_cast({newbeam, Host, []}, State=#state{last_beam_id = NodeId,
         {error, Reason} ->
             ?LOGF("Can't start launcher application ~p (reason: ~p) ! Aborting!~n",[Host, Reason],?EMERG),
             ts_mon:abort(),
-            {stop, normal}
+            {stop, normal, State}
     end;
 
 %% use_controller_vm and max number of concurrent users reached , big trouble !
@@ -369,7 +369,7 @@ handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
         {error, Reason} ->
             ?LOGF("Can't start newbeam on host ~p (reason: ~p) ! Aborting!~n",[Host, Reason],?EMERG),
             ts_mon:abort(),
-            {stop, normal}
+            {stop, normal, State}
     end;
 
 handle_cast({end_launching, _Node}, State=#state{ending_beams=Beams}) ->
