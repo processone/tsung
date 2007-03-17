@@ -80,6 +80,7 @@ TEMPLATES = $(wildcard $(ESRC)/templates/*.thtml)
 TMP       = $(wildcard *~) $(wildcard src/*~) $(wildcard inc/*~)
 INC_FILES = $(wildcard $(INC)/*.hrl)
 LIBSRC    = $(wildcard $(ESRC)/lib/*.erl)
+TESTSRC    = $(wildcard $(ESRC)/test/*.erl)
 SRC       = $(wildcard $(ESRC)/$(APPLICATION)/*.erl)
 CONTROLLER_SRC  = $(wildcard $(ESRC)/$(CONTROLLER_APPLICATION)/*.erl)
 RECORDER_SRC    = $(wildcard $(ESRC)/$(RECORDER_APPLICATION)/*.erl)
@@ -99,6 +100,8 @@ CONTROLLER_TARGET   = $(addsuffix .beam, $(basename \
              $(addprefix $(EBIN)/, $(notdir $(CONTROLLER_SRC)))))
 RECORDER_TARGET   = $(addsuffix .beam, $(basename \
              $(addprefix $(EBIN)/, $(notdir $(RECORDER_SRC)))))
+TEST_TARGET   = $(addsuffix .beam, $(basename \
+             $(addprefix $(EBIN)/, $(notdir $(TESTSRC)))))
 DEBIAN    = debian/changelog debian/control debian/compat debian/copyright debian/docs debian/tsung.dirs debian/rules
 
 SRC_APPFILES   = $(ESRC)/$(APPLICATION)/$(APPLICATION).app.src $(ESRC)/$(APPLICATION)/$(APPLICATION).rel.src
@@ -130,6 +133,11 @@ DIST_COMMON=Makefile.in $(CONFFILE_SRC) $(PERL_SCRIPTS_SRC) tsung.sh.in tsung.sp
 .PHONY: doc
 
 tsung: Makefile config.status $(PERL_SCRIPTS) tsung.sh tsung.spec $(TARGET) $(RECORDER_TARGET) $(CONTROLLER_TARGET) $(LIB_TARGET)
+
+buildtest: $(TEST_TARGET)
+
+test: buildtest $(CONFFILE)
+	erl -pa ./ebin -s eunit test ts_test_all -s init stop
 
 all: clean tsung
 
@@ -331,6 +339,10 @@ snapshot:
 
 builder.beam: priv/builder.erl 
 	@$(CC) -W0 $(OPT) -I $(INC) $<
+
+ebin/%.beam: src/test/%.erl $(INC_FILES)
+	@echo  "Compiling test $< ... "
+	@$(CC) -W0 $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -o ebin $<
 
 ebin/%.beam: src/lib/%.erl $(INC_FILES)
 	@echo  "Compiling  $< ... "
