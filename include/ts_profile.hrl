@@ -51,7 +51,18 @@
          scheme      % override global server type (ssl or gen_tcp) 
         }).
 
-% state of ts_client_rcv gen_server
+% protocol options
+-record(proto_opts,
+        {ssl_ciphers, % for ssl only
+         retry_timeout,
+         idle_timeout,
+         tcp_rcv_size, % tcp buffers size
+         tcp_snd_size,
+         udp_rcv_size, % udp buffers size
+         udp_snd_size}).
+
+
+% state of ts_client gen_server
 -record(state_rcv, 
         {socket=none, %  
          ip,          % local ip to bind to
@@ -59,8 +70,9 @@
          host,	      % hostname (or IP) of remote server
          port,        % server port
          protocol,	  % gen_udp, gen_tcp or ssl
+         proto_opts = #proto_opts{},  % 
          bidi = false,% true if bidirectional protocol
-         ssl_ciphers, % for ssl only
+         
          profile,     % session id
          request,     % current request specs
          persistent,  % if true, don't exit when connexion is closed

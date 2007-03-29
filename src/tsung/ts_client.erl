@@ -85,6 +85,13 @@ init({#session{id           = Profile,
 	StartTime= now(),
     ts_mon:newclient({self(), StartTime}),
     set_thinktime(?short_timeout),
+    ProtoOpts = #proto_opts{ssl_ciphers  = Ciphers,
+                            retry_timeout= ?config(client_retry_timeout),
+                            idle_timeout = ?config(tcp_timeout),
+                            tcp_rcv_size = ?config(rcv_size),
+                            tcp_snd_size = ?config(snd_size),
+                            udp_rcv_size = ?config(rcv_size),
+                            udp_snd_size = ?config(snd_size)},
     {ok, think, #state_rcv{ port       = Server#server.port,
                             host       = Server#server.host,
                             profile    = Profile,
@@ -94,9 +101,8 @@ init({#session{id           = Profile,
                             session    = CType:new_session(),
                             persistent = Persistent,
                             starttime  = StartTime,
-                            timeout    = ?config(tcp_timeout),
                             dump       = ?config(dump),
-                            ssl_ciphers= Ciphers,
+                            proto_opts = ProtoOpts,
                             count      = Count,
                             ip         = IP,
                             maxcount   = Count,
@@ -160,7 +166,8 @@ handle_info({NetEvent, _Socket, Data}, wait_ack, State) when NetEvent==tcp;
             NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol,
                                               NewState#state_rcv.socket,
                                               [{active, once} | Opts]),
-            {next_state, wait_ack, NewState#state_rcv{socket=NewSocket}, NewState#state_rcv.timeout}
+            TimeOut=(NewState#state_rcv.proto_opts)#proto_opts.idle_timeout,
+            {next_state, wait_ack, NewState#state_rcv{socket=NewSocket}, TimeOut}
     end;
 %% inet close messages; persistent session, waiting for ack
 handle_info({NetEvent, _Socket}, wait_ack, 
@@ -349,7 +356,7 @@ handle_next_request(Profile, State) ->
     Now = now(),
 
 	%% reconnect if needed
-    Proto = {Protocol,State#state_rcv.ssl_ciphers},
+    Proto = {Protocol,State#state_rcv.proto_opts},
 	case reconnect(Socket,Host,Port,Proto,State#state_rcv.ip) of
 		{ok, NewSocket} ->
             case catch send(Protocol, NewSocket, Message) of
@@ -423,9 +430,11 @@ finish_session(State) ->
 %%          send a message, restart in a few moment (this time we will
 %%          reconnect before sending)
 %%----------------------------------------------------------------------
-handle_close_while_sending(State=#state_rcv{persistent=true,protocol=Proto})->
+handle_close_while_sending(State=#state_rcv{persistent = true,
+                                            protocol   = Proto,
+                                            proto_opts = PO})->
     ts_utils:close_socket(Proto, State#state_rcv.socket),
-    Think = ?config(client_retry_timeout),
+    Think = PO#proto_opts.retry_timeout,
     ?LOGF("Server must have closed connection upon us, waiting ~p msec~n",
           [Think], ?NOTICE),
     set_thinktime(Think),
@@ -447,10 +456,10 @@ set_profile(MaxCount, Count, ProfileId) when is_integer(ProfileId) ->
 %%          {stop, Reason}
 %% purpose: try to reconnect if this is needed (when the socket is set to none)
 %%----------------------------------------------------------------------
-reconnect(none, ServerName, Port, {Protocol, Ciphers}, IP) ->
+reconnect(none, ServerName, Port, {Protocol, Proto_opts}, IP) ->
 	?DebugF("Try to (re)connect to: ~p:~p from ~p using protocol ~p~n",
             [ServerName,Port,IP,Protocol]),
-	Opts = protocol_options(Protocol, Ciphers)  ++ [{ip, IP}],
+	Opts = protocol_options(Protocol, Proto_opts)  ++ [{ip, IP}],
     Before= now(),
     case Protocol:connect(ServerName, Port, Opts) of
 		{ok, Socket} -> 
@@ -484,24 +493,24 @@ send(gen_udp,Socket,Message) -> gen_udp:send(Socket,Message).
 %% Func: protocol_options/1
 %% Purpose: set connection's options for the given protocol
 %%----------------------------------------------------------------------
-protocol_options(ssl,negociate) ->
+protocol_options(ssl,#proto_opts{ssl_ciphers=negociate}) ->
     [binary, {active, once} ];
-protocol_options(ssl,Ciphers) ->
+protocol_options(ssl,#proto_opts{ssl_ciphers=Ciphers}) ->
     ?DebugF("cipher is ~p~n",[Ciphers]),
     [binary, {active, once}, {ciphers, Ciphers} ];
 
-protocol_options(gen_tcp,_) ->
+protocol_options(gen_tcp,#proto_opts{tcp_rcv_size=Rcv, tcp_snd_size=Snd}) ->
 	[binary, 
 	 {active, once},
-	 {recbuf, ?config(rcv_size)},
-	 {sndbuf, ?config(snd_size)},
+	 {recbuf, Rcv},
+	 {sndbuf, Snd},
 	 {keepalive, true} %% FIXME: should be an option
 	];
-protocol_options(gen_udp,_) ->
+protocol_options(gen_udp,#proto_opts{udp_rcv_size=Rcv, udp_snd_size=Snd}) ->
 	[binary, 
 	 {active, once},
-	 {recbuf, ?config(rcv_size)},
-	 {sndbuf, ?config(snd_size)},
+	 {recbuf, Rcv},
+	 {sndbuf, Snd},
 	 {keepalive, true} %% FIXME: should be an option
 	].
 	
