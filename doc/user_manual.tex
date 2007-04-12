@@ -1115,8 +1115,8 @@ form like:
 with:
 \begin{Verbatim}
  <request>
-   <http url="/testtsung.html" method="GET" version="1.0"></http>
    <dyn_variable name="random_num" ></dyn_variable>
+   <http url="/testtsung.html" method="GET" version="1.0"></http>
  </request>
 \end{Verbatim}
 
@@ -1138,9 +1138,9 @@ If the dynamic value is not a form variable, you can set a regexp by
 hand, for example to get the title of a HTML page:
 \begin{Verbatim}
     <request>
-      <http url="/testtsung.html" method="GET" version="1.0"></http>
       <dyn_variable name="mytitlevar" 
                     regexp="&lt;title&gt;\(.*\)&lt;/title&gt;"/>
+      <http url="/testtsung.html" method="GET" version="1.0"></http>
     </request>
 \end{Verbatim}
 
