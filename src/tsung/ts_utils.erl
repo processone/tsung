@@ -58,14 +58,17 @@ level2int("emergency") -> ?EMERG.
 %%----------------------------------------------------------------------
 %% Func: get_val/1
 %% Purpose: return environnement variable value for the current application
-%% Returns: Value | undef_var
+%% Returns: Value | {undef_var, Var}
 %%----------------------------------------------------------------------
 get_val(Var) ->
 	case application:get_env(Var) of 
 		{ok, Val} ->
 			ensure_string(Var, Val);
-		_ ->
-			undef_var
+		undefined -> % undef, application not started, try to get var from stdlib
+            case application:get_env(stdlib,Var) of 
+                undefined -> {undef_var, Var};
+                {ok,Val}  -> ensure_string(Var, Val)
+            end
 	end.
 
 
