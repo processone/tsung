@@ -76,10 +76,7 @@
 
 
 %% SNMP definitions
-%% FIXME: make this customizable in the XML config file
-
--define(SNMP_PORT, 161).
--define(SNMP_COMMUNITY, "public").
+%% FIXME: make this customizable in the XML config file ?
 
 -define(SNMP_CPU_RAW_USER, [1,3,6,1,4,1,2021,11,50,0]).
 -define(SNMP_CPU_RAW_SYSTEM, [1,3,6,1,4,1,2021,11,52,0]).
@@ -172,10 +169,7 @@ init({Mon_Server, Interval}) ->
 	process_flag(trap_exit,true), 
 	{ok, #state{mon_server=Mon_Server, interval=Interval}};
 init(_) ->
-    ?LOG(" os_mon started",?NOTICE),
-    %% to get the EXIT signal from spawn processes on remote nodes
-	process_flag(trap_exit,true), 
-	{ok, #state{mon_server={global, ts_mon}, interval=?INTERVAL}}.
+    init({{global, ts_mon},?INTERVAL}).
 
 %%--------------------------------------------------------------------
 %% Function: handle_call/3
@@ -397,13 +391,14 @@ load_code(Nodes) ->
 active_host([], State) ->
     State;
 %% monitoring using snmp
-active_host([{HostStr, snmp} | HostList], State=#state{snmp_pids=PidList}) ->
+active_host([{HostStr, {snmp, Port,Community,Version}} | HostList], State=#state{snmp_pids=PidList}) ->
     {ok, Host} = inet:getaddr(HostStr, inet),
     ?LOGF("Starting SNMP mgr on ~p~n", [Host], ?DEB),
     {ok, Pid} = snmp_mgr:start_link([{agent, Host},
-                                     {agent_udp, ?SNMP_PORT},
-                                     {community, ?SNMP_COMMUNITY},
+                                     {agent_udp, Port},
+                                     {community, Community},
                                      {receive_type, msg},
+                                     Version,
                                      quiet
                                     ]),
     %% since snmp_mgr can handle only a single snmp server, change the

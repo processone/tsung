@@ -113,7 +113,12 @@ parse(Element = #xmlElement{name=server, attributes=Attrs}, Conf=#config{servers
 parse(Element = #xmlElement{name=monitor, attributes=Attrs},
       Conf = #config{monitor_hosts=MHList}) ->
     Host = getAttr(Attrs, host),
-    Type = getAttr(atom, Attrs, type, erlang),
+    Type = case getAttr(atom, Attrs, type, erlang) of
+               erlang -> erlang;
+               snmp -> {snmp, ?config(snmp_port),
+                              ?config(snmp_community),
+                              ?config(snmp_version)}
+           end,
     NewMon = case getAttr(atom, Attrs, batch, false) of 
                  true ->
                      Nodes = lists:usort(get_batch_nodes(list_to_atom(Host))),

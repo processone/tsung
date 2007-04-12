@@ -27,6 +27,11 @@
 					 {thinktime_value, "5"}, % default value = 5sec
 					 {thinktime_override, "false"},
 					 {thinktime_random, "false"},
+
+					 {snmp_port, 161},
+					 {snmp_version, v2},
+					 {snmp_community, "public"},
+
 					 {dumpstats_interval, 10000},
 					 {dump, none},          %% full or light or none
 					 {stats_backend, none}, %% text|rrdtool
