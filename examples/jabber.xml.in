@@ -28,7 +28,7 @@
  </options>
 
   <sessions>
-   <session probability="100" name="jabber-example" type="ts_jabber">
+   <session probability="50" name="jabber-example" type="ts_jabber">
 
     <request> <jabber type="connect" ack="no_ack"></jabber> </request>
     <thinktime value="2"></thinktime>
@@ -63,6 +63,76 @@
     </transaction>
 
   </session>
+
+  <session probability="20" name="jabber-plain" type="ts_jabber">
+
+    <request> <jabber type="connect" ack="no_ack"></jabber> </request>
+
+    <thinktime value="2"></thinktime> 
+
+    <transaction name="auth_plain">
+      <request> <jabber type="auth_get" ack="local"></jabber> </request>
+      <request> <jabber type="auth_set_plain" ack="local"></jabber> </request>
+    </transaction>
+
+    <thinktime value="30"></thinktime>
+
+    <transaction name="close">
+      <request> <jabber type="close" ack="no_ack"></jabber> </request>
+    </transaction>
+
+  </session>
+
+	
+
+  <session probability="20" name="jabber-digest" type="ts_jabber">
+
+    <!-- regexp captures stream ID returned by server -->
+    <request>
+      <dyn_variable name="sid" regexp="&lt;stream:stream id=&quot;\(.*\)&quot; xmlns:stream"/>
+      <jabber type="connect" ack="local"></jabber>
+    </request>
+
+    <thinktime value="2"></thinktime>
+
+    <transaction name="auth_digest">
+      <request> <jabber type="auth_get" ack="local"></jabber> </request>
+      <request subst='true'> <jabber type="auth_set_digest" ack="local"></jabber> </request>
+    </transaction>
+    <thinktime value="30"></thinktime>
+
+    <transaction name="close">
+      <request> <jabber type="close" ack="no_ack"></jabber> </request>
+    </transaction>
+  </session>
+
+	
+	
+
+  <session probability="10" name="jabber-sipdigest" type="ts_jabber">
+
+    <request> <jabber type="connect" ack="no_ack"></jabber> </request>
+
+    <thinktime value="2"></thinktime>
+
+    <transaction name="auth_sipdigest">
+      <!-- regexp captures nonce value returned by server -->
+      <request>
+        <dyn_variable name="nonce" regexp="&lt;Nonce encoding=&quot;hex&quot;&gt;\(.*\)&lt;\/Nonce&gt;"/>
+        <jabber type="auth_get" ack="local"></jabber>
+      </request>
+      <request subst='true'> <jabber type="auth_set_sip" ack="local"></jabber> </request>
+    </transaction>
+    <thinktime value="30"></thinktime>
+
+    <transaction name="close">
+      <request> <jabber type="close" ack="no_ack"></jabber> </request>
+    </transaction>
+  </session>
+
+	
+
+
  </sessions>
 </tsung>
 

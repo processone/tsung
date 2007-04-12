@@ -23,6 +23,7 @@ read_config_pgsql_test() ->
     ?assertMatch({ok, Config}, ts_config:read("./examples/pgsql.xml")).
 read_config_jabber_test() ->
     myset_env(),
+    ts_user_server:start([]),
     ?assertMatch({ok, Config}, ts_config:read("./examples/jabber.xml")).
 
 
