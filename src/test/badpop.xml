@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<!DOCTYPE tsung SYSTEM "/home/nniclaus/share/tsung/tsung-1.0.dtd">
+<tsung loglevel="notice" version="1.0">
+
+  <clients>
+    <client host="localhost" use_controller_vm="true"></client>
+  </clients>
+
+ <servers> <server host="127.0.0.1" port="5222" type="tcp"></server> </servers>
+
+ <monitoring>
+    <monitor host="foo" type="snmp"/>
+ </monitoring>
+
+  <load>
+   <arrivalphase phase="1" duration="1" unit="minute">
+    <users interarrival="2" unit="second"></users>
+   </arrivalphase>
+  </load>
+
+ <options></options>
+
+  <sessions>
+   <session probability="50" name="jabber-example" type="ts_jabber">
+    <transaction name="offline">
+      <request> <jabber type="chat" ack="no_ack" size="56" destination="offline"></jabber> </request>
+    </transaction>
+    <thinktime value="30"></thinktime>
+  </session>
+
+  <session probability="19" name="jabber-plain" type="ts_jabber">
+    <request> <jabber type="connect" ack="no_ack"></jabber> </request>
+  </session>
+
+  <session probability="20" name="jabber-digest" type="ts_jabber">
+    <transaction name="close">
+      <request> <jabber type="close" ack="no_ack"></jabber> </request>
+    </transaction>
+  </session>
+
+  <session probability="10" name="jabber-sipdigest" type="ts_jabber">
+    <request> <jabber type="connect" ack="no_ack"></jabber> </request>
+  </session>
+ </sessions>
+</tsung>
+

@@ -25,6 +25,12 @@ read_config_jabber_test() ->
     myset_env(),
     ts_user_server:start([]),
     ?assertMatch({ok, Config}, ts_config:read("./examples/jabber.xml")).
+read_config_badpop_test() ->
+    myset_env(),
+    ts_user_server:start([]),
+    {ok, Config} = ts_config:read("./src/test/badpop.xml"),
+    ?assertMatch({error,[{error,{bad_sum,_,_}}]}, ts_config_server:check_config(Config)).
+    
 
 
 myset_env()->
