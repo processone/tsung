@@ -9,7 +9,7 @@
 
 <TITLE>Tsung User's manual</TITLE>
 
-<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
 <META name="GENERATOR" content="hevea 1.08">
 <STYLE type="text/css">
 .toc{list-style:none;}
@@ -63,7 +63,7 @@ a:hover     {background:#ffffaa;}
 </HEAD>
 
 <BODY >
-<!--HEVEA command line is: /usr/bin/hevea -fix -I /home/nniclausse/cvs/projetdoc/common//styles -exec xxdate.exe -pedantic TSUNG.hva user_manual.tex -->
+<!--HEVEA command line is: hevea -fix -I /user/nniclaus/home/cvs/projetdoc/common//styles -exec xxdate.exe -pedantic TSUNG.hva user_manual.tex -->
 <!--HTMLHEAD-->
 
 
@@ -84,10 +84,10 @@ a:hover     {background:#ffffaa;}
  
  <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1>
 <TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2">Version:</TD>
-<TD ALIGN=left NOWRAP>703</TD>
+<TD ALIGN=left NOWRAP>710</TD>
 </TR>
 <TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2">Date :</TD>
-<TD ALIGN=left NOWRAP>						19th												December,&nbsp;2006</TD>
+<TD ALIGN=left NOWRAP>						12th				April,&nbsp;2007</TD>
 </TR></TABLE>
  </DIV>
 
@@ -2071,8 +2071,8 @@ with:
 <TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
 <TR><TD><PRE CLASS="verbatim">
  &lt;request&gt;
-   &lt;http url="/testtsung.html" method="GET" version="1.0"&gt;&lt;/http&gt;
    &lt;dyn_variable name="random_num" &gt;&lt;/dyn_variable&gt;
+   &lt;http url="/testtsung.html" method="GET" version="1.0"&gt;&lt;/http&gt;
  &lt;/request&gt;
 </PRE></TD>
 </TR></TABLE></TD>
@@ -2140,9 +2140,9 @@ hand, for example to get the title of a HTML page:
 <TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
 <TR><TD><PRE CLASS="verbatim">
     &lt;request&gt;
-      &lt;http url="/testtsung.html" method="GET" version="1.0"&gt;&lt;/http&gt;
       &lt;dyn_variable name="mytitlevar" 
                     regexp="&amp;lt;title&amp;gt;\(.*\)&amp;lt;/title&amp;gt;"/&gt;
+      &lt;http url="/testtsung.html" method="GET" version="1.0"&gt;&lt;/http&gt;
     &lt;/request&gt;
 </PRE></TD>
 </TR></TABLE></TD>
