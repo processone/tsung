@@ -42,9 +42,14 @@ else
  ifeq ($(TYPE),native)
    OPT:=+native
   else
-   OPT =
+   OPT = +strict_record_tests
   endif	
 endif
+
+ifeq ($(TYPE),test)
+OPT =+export_all
+endif
+
 INC = ./include
 CC  = $(ERLC)
 
@@ -136,7 +141,12 @@ tsung: Makefile config.status $(PERL_SCRIPTS) tsung.sh tsung.spec $(TARGET) $(RE
 
 buildtest: $(TEST_TARGET)
 
-test: buildtest $(CONFFILE)
+fulltest:  clean test
+
+test: 
+	$(MAKE) TYPE=test dotest
+
+dotest: tsung buildtest $(CONFFILE)
 	erl -pa ./ebin -s eunit test ts_test_all -s init stop
 
 all: clean tsung
