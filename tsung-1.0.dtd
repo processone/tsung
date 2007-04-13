@@ -36,11 +36,17 @@
 <!ATTLIST ip value NMTOKEN #REQUIRED>
 
 <!ELEMENT monitoring ( monitor+ )>
-<!ELEMENT monitor EMPTY>
+<!ELEMENT monitor ( snmp? )>
 <!ATTLIST monitor
      host NMTOKEN #REQUIRED
      batch (true | false) "false"
      type (snmp | erlang) "erlang">
+
+<!ELEMENT snmp EMPTY>
+<!ATTLIST snmp
+     version   (v1 | v2) "v1"
+     community NMTOKEN "public"
+     port      NMTOKEN "161">
 
 <!ELEMENT load (arrivalphase+)>
 <!ATTLIST load 

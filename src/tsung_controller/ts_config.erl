@@ -114,10 +114,24 @@ parse(Element = #xmlElement{name=monitor, attributes=Attrs},
       Conf = #config{monitor_hosts=MHList}) ->
     Host = getAttr(Attrs, host),
     Type = case getAttr(atom, Attrs, type, erlang) of
-               erlang -> erlang;
-               snmp -> {snmp, ?config(snmp_port),
-                              ?config(snmp_community),
-                              ?config(snmp_version)}
+               erlang ->
+                   erlang;
+               snmp ->
+                   case lists:keysearch(snmp,#xmlElement.name,
+                                        Element#xmlElement.content) of
+                       {value, SnmpEl=#xmlElement{} } ->
+                           Port = getAttr(integer,SnmpEl#xmlElement.attributes,
+                                                    port, ?config(snmp_port)),
+                           Community = getAttr(string,SnmpEl#xmlElement.attributes,
+                                                         community, ?config(snmp_community)),
+                           Version = getAttr(atom,SnmpEl#xmlElement.attributes,
+                                                       version, ?config(snmp_version)),
+                           {snmp, Port, Community, Version};
+                       _ ->
+                           {snmp,?config(snmp_port),
+                            ?config(snmp_community),
+                            ?config(snmp_version)}
+                   end
            end,
     NewMon = case getAttr(atom, Attrs, batch, false) of 
                  true ->
@@ -327,7 +341,7 @@ parse(Element=#xmlElement{name=match,attributes=Attrs},
     MaxLoop    = getAttr(integer, Attrs, max_loop, 20),
     MaxRestart = getAttr(integer, Attrs, max_restart, 3),
     SleepLoop  = getAttr(integer, Attrs, sleep_loop, 5),
-    ValRaw     = ts_config:getText(Element#xmlElement.content),
+    ValRaw     = getText(Element#xmlElement.content),
     RegExp     = ts_utils:clean_str(ValRaw),
     NewMatch   = #match{regexp=RegExp, do=Do,'when'=When,sleep_loop=SleepLoop * 1000,
                         max_restart=MaxRestart, max_loop=MaxLoop },
@@ -409,7 +423,7 @@ parse(_Element, Conf = #config{}) ->
 
 %%%----------------------------------------------------------------------
 %%% Function: getAttr/2
-%%% Purpose:  search the attibute list for the given one
+%%% Purpose:  search the attribute list for the given one
 %%%----------------------------------------------------------------------
 getAttr(Attr, Name) -> getAttr(string, Attr, Name, "").
 getAttr(Type, Attr, Name) -> getAttr(Type, Attr, Name, "").
