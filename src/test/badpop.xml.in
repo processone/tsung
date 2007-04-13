@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!DOCTYPE tsung SYSTEM "/home/nniclaus/share/tsung/tsung-1.0.dtd">
+<!DOCTYPE tsung SYSTEM "@prefix@/share/@PACKAGE_NAME@/@DTD@">
 <tsung loglevel="notice" version="1.0">
 
   <clients>
@@ -9,7 +9,9 @@
  <servers> <server host="127.0.0.1" port="5222" type="tcp"></server> </servers>
 
  <monitoring>
-    <monitor host="foo" type="snmp"/>
+    <monitor host="foo" type="snmp">
+      <snmp version="v2" community="public"/>
+    </monitor>
  </monitoring>
 
   <load>
