@@ -91,6 +91,8 @@ CONTROLLER_SRC  = $(wildcard $(ESRC)/$(CONTROLLER_APPLICATION)/*.erl)
 RECORDER_SRC    = $(wildcard $(ESRC)/$(RECORDER_APPLICATION)/*.erl)
 CONFFILE_SRC = $(wildcard examples/*.xml.in)
 CONFFILE = $(basename $(CONFFILE_SRC))
+TEST_CONFFILE_SRC = $(wildcard src/test/*.xml.in)
+TEST_CONFFILE = $(basename $(TEST_CONFFILE_SRC))
 USERMANUAL = doc/user_manual.html  doc/IDXDOC.css
 USERMANUAL_IMG = $(wildcard doc/images/*.png)
 USERMANUAL_SRC = doc/user_manual.tex
@@ -146,7 +148,7 @@ fulltest:  clean test
 test: 
 	$(MAKE) TYPE=test dotest
 
-dotest: tsung buildtest $(CONFFILE)
+dotest: tsung buildtest $(CONFFILE) $(TEST_CONFFILE)
 	erl -pa ./ebin -s eunit test ts_test_all -s init stop
 
 all: clean tsung
@@ -333,7 +335,7 @@ release: Makefile tsung.spec doc
 		$(RECORDER_SRC) $(RECORDER_SRC_APPFILES) $(TEMPLATES) \
 		doc/*.erl doc/*.txt doc/*.fig doc/*.png doc/Makefile doc/*.sgml doc/*.1 \
 		$(USERMANUAL) $(USERMANUAL_SRC) $(USERMANUAL_IMG) $(DTD) \
-		COPYING README LISEZMOI TODO $(CONFFILE_SRC) \
+		COPYING README LISEZMOI TODO $(CONFFILE_SRC) $(TEST_CONFFILE_SRC) \
 		priv/builder.erl tsung.sh.in vsn.mk \
 		$(DEBIAN)  $(PERL_SCRIPTS_SRC) CONTRIBUTORS CHANGES \
 		configure configure.in config.guess config.sub Makefile.in \
