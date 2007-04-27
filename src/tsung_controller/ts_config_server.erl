@@ -550,6 +550,10 @@ start_file_server(FileName) ->
     ?LOGF("Reading file ~s~n",[FileName],?NOTICE),
     ts_file_server:read(FileName).
 
+%%----------------------------------------------------------------------
+%% Func: check_config/1
+%% Returns: ok | {error, ErrorList}    
+%%----------------------------------------------------------------------
 check_config(Config)->
     Pop= ts_utils:check_sum(Config#config.sessions, #session.popularity, ?SESSION_POP_ERROR_MSG),
     %% FIXME: we should not depend on a protocol specific feature here

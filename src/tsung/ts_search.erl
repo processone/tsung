@@ -41,6 +41,7 @@
 %%          by the result of the call to Mod:Fun(Pid) where Pid is the
 %%          Pid of the client The substitution tag are intended to
 %%          be used in tsung.xml scenarii files.
+%% Returns: new string 
 %% ----------------------------------------------------------------------
 subst(Atom, _DynVar) when atom(Atom) ->
     Atom;

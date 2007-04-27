@@ -35,11 +35,11 @@
 
 %%--------------------------------------------------------------------
 %% External exports
--export([start/0, get_req/2, get_user_agent/0]).
+-export([start/0, get_req/2, get_user_agent/0, add/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
-         add/1, code_change/3]).
+         code_change/3]).
 
 
 -record(state, {
@@ -64,14 +64,27 @@ start() ->
     ?LOG("Starting~n",?INFO),
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
+%%--------------------------------------------------------------------
+%% Function: get_req/2
+%% Description: get next request from session 'Id'
+%%--------------------------------------------------------------------
 get_req(Id, Count)->
 	gen_server:call(?MODULE,{get_req, Id, Count}).
 
+%%--------------------------------------------------------------------
+%% Function: get_user_agent/0
+%%--------------------------------------------------------------------
 get_user_agent()->
 	gen_server:call(?MODULE,{get_user_agent}).
 
+%%--------------------------------------------------------------------
+%% Function: add/1
+%% Description: Add stats data. Will be accumulated sent periodically
+%%              to ts_mon
+%%--------------------------------------------------------------------
 add(Data) ->
 	gen_server:cast(?MODULE, {add, Data}).
+
 %%====================================================================
 %% Server functions
 %%====================================================================
