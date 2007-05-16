@@ -214,14 +214,15 @@ erl_system_args(basic)->
                   atom_to_list(erlang:get_cookie()) ]);
 erl_system_args(extended)->
     BasicArgs  = erl_system_args(basic),
-	Shared = case init:get_argument(shared) of 
-                 error     -> " ";
-                 {ok,[[]]} -> " -shared "
+    SetArg = fun(A) -> case init:get_argument(A) of 
+                           error     -> " ";
+                           {ok,[[]]} -> " -" ++atom_to_list(A)++" ";
+                           {ok,[[Val|_]]} when is_list(Val)-> " -" ++atom_to_list(A)++Val++" "
+                       end 
              end,
-	Hybrid = case init:get_argument(hybrid) of 
-                 error     -> " ";
-                 {ok,[[]]} -> " -hybrid "
-             end,
+	Shared = SetArg(shared),
+	Hybrid = SetArg(hybrid),
+	Smp = SetArg(smp),
     Inet = case init:get_argument(kernel) of
                {ok,[["inetrc",InetRcFile]]} -> 
                    ?LOGF("Get inetrc= ~p~n",[InetRcFile],?NOTICE),
@@ -232,7 +233,7 @@ erl_system_args(extended)->
               "5.3" ++ _Tail     -> " +Mea r10b ";
               _ -> " "
           end,
-    lists:append([BasicArgs, Shared, Hybrid, Mea, Inet]).
+    lists:append([BasicArgs, Shared, Hybrid, Smp, Mea, Inet]).
 
 %%----------------------------------------------------------------------
 %% setsubdir/1
@@ -287,7 +288,7 @@ stop_all(Host, Name) ->
 	stop_all(Host, Name, "Tsung").
 
 stop_all([Host],Name,MsgName)  ->
-    VoidFun = fun(A)-> ok end,
+    VoidFun = fun(_A)-> ok end,
     stop_all([Host],Name,MsgName, VoidFun ).
 
 stop_all([Host],Name,MsgName,Fun) when atom(Host) ->
@@ -510,7 +511,7 @@ keymax(N,[L])-> element(N,L);
 keymax(N,[E|Tail])->
     keymax(N,Tail,element(N,E)).
 
-keymax(N,[],Max)-> Max;
+keymax(_N,[],Max)-> Max;
 keymax(N,[E|Tail],Max)->
     keymax(N,Tail,lists:max([Max,element(N,E)])).
 
