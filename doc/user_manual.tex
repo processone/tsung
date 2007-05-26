@@ -440,7 +440,7 @@ for password settings).
 \begin{Verbatim}
   <session probability="100" name="jabber-plain" type="ts_jabber">
 
-    <request> <jabber type="connect" ack="no_ack"></jabber> </request>
+    <request> <jabber type="connect" ack="local"></jabber> </request>
 
     <thinktime value="2"></thinktime> 
 
@@ -475,7 +475,7 @@ for password settings).
 \begin{Verbatim}
   <session probability="100" name="jabber-sipdigest" type="ts_jabber">
 
-    <request> <jabber type="connect" ack="no_ack"></jabber> </request>
+    <request> <jabber type="connect" ack="local"></jabber> </request>
 
     <thinktime value="2"></thinktime>
 
@@ -815,7 +815,7 @@ statistics definition, ...
 <sessions>
  <session probability="70" name="jabber-example" type="ts_jabber">
 
-    <request> <jabber type="connect" ack="no_ack" /> </request>
+    <request> <jabber type="connect" ack="local" /> </request>
 
     <thinktime value="2"></thinktime>
 
