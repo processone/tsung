@@ -17,7 +17,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
 %%%  the EPL license and distribute linked combinations including
@@ -26,7 +26,7 @@
 %%%-------------------------------------------------------------------
 %%% File    : ts_config_server.erl
 %%% Author  : Nicolas Niclausse <nicolas@niclux.org>
-%%% Description : 
+%%% Description :
 %%%
 %%% Created :  4 Dec 2003 by Nicolas Niclausse <nicolas@niclux.org>
 %%%-------------------------------------------------------------------
@@ -61,7 +61,7 @@
 
 -record(state, {config,
                 logdir,
-                start_date,       % 
+                start_date,       %
                 hostname,         % controller hostname
                 last_beam_id = 0, % last tsung beam id (used to set nodenames)
                 ending_beams = 0, % number of beams with no new users to start
@@ -84,7 +84,7 @@ status() ->
 
 %%--------------------------------------------------------------------
 %% Function: newbeam/1
-%% Description: start a new beam 
+%% Description: start a new beam
 %%--------------------------------------------------------------------
 newbeam(Host)->
 	gen_server:cast({global, ?MODULE},{newbeam, Host, [] }).
@@ -106,7 +106,7 @@ get_req(Id, Count)->
 
 %%--------------------------------------------------------------------
 %% Function: get_user_agents/0
-%% Description: 
+%% Description:
 %% Returns: List
 %%--------------------------------------------------------------------
 get_user_agents()->
@@ -145,7 +145,7 @@ get_next_session(Host)->
 
 endlaunching(Node) ->
 	gen_server:cast({global, ?MODULE},{end_launching, Node}).
-    
+
 
 %%====================================================================
 %% Server functions
@@ -177,8 +177,8 @@ init([LogDir]) ->
 %%--------------------------------------------------------------------
 handle_call({read_config, ConfigFile}, _From, State) ->
     case catch ts_config:read(ConfigFile) of
-        {ok, Config=#config{session_tab=Tab,curid=LastReqId,sessions=[LastSess| _]}} -> 
-            case check_config(Config) of 
+        {ok, Config=#config{session_tab=Tab,curid=LastReqId,sessions=[LastSess| _]}} ->
+            case check_config(Config) of
                 ok ->
                     application:set_env(tsung_controller, clients, Config#config.clients),
                     application:set_env(tsung_controller, dump, Config#config.dump),
@@ -199,31 +199,31 @@ handle_call({read_config, ConfigFile}, _From, State) ->
                     {reply, {error, Reason}, State}
             end;
         {error, {{case_clause, {error, enoent}},
-                  [{xmerl_scan, fetch_DTD, 2}|_]}} -> 
-                ?LOG("Error while parsing XML: DTD not found !~n",?EMERG),
-                {reply, {error, dtd_not_found}, State};
-        {error, Reason} -> 
+                  [{xmerl_scan, fetch_DTD, 2}|_]}} ->
+            ?LOG("Error while parsing XML: DTD not found !~n",?EMERG),
+            {reply, {error, dtd_not_found}, State};
+        {error, Reason} ->
             ?LOGF("Error while parsing XML config file: ~p~n",[Reason],?EMERG),
             {reply, {error, Reason}, State};
-        {'EXIT', Reason} -> 
+        {'EXIT', Reason} ->
             ?LOGF("Error while parsing XML config file: ~p~n",[Reason],?EMERG),
             {reply, {error, Reason}, State}
     end;
 
 %% get Nth request from given session Id
-handle_call({get_req, Id, N}, From, State) ->
+handle_call({get_req, Id, N}, _From, State) ->
     Config = State#state.config,
 	Tab    = Config#config.session_tab,
-    ?DebugF("look for ~p th request in session ~p for ~p~n",[N,Id,From]),
-	case ets:lookup(Tab, {Id, N}) of 
-		[{_, Session}] -> 
-            ?DebugF("ok, found ~p for ~p~n",[Session,From]),
+    ?DebugF("look for ~p th request in session ~p for ~p~n",[N,Id,_From]),
+	case ets:lookup(Tab, {Id, N}) of
+		[{_, Session}] ->
+            ?DebugF("ok, found ~p for ~p~n",[Session,_From]),
 			{reply, Session, State};
 		Other ->
 			{reply, {error, Other}, State}
 	end;
 
-%% 
+%%
 handle_call({get_user_agents}, _From, State) ->
     Config = State#state.config,
     case ets:lookup(Config#config.session_tab, {http_user_agent, value}) of
@@ -232,24 +232,24 @@ handle_call({get_user_agents}, _From, State) ->
         [{_Key, UserAgents}] ->
             {reply, UserAgents, State}
     end;
-    
+
 %% get a new session id and an ip for the given node
-handle_call({get_next_session, HostName}, From, State) ->
+handle_call({get_next_session, HostName}, _From, State) ->
     Config = State#state.config,
 	Tab    = Config#config.session_tab,
 
     {value, Client} = lists:keysearch(HostName, #client.host, Config#config.clients),
-    
+
     {ok,IP,TmpPos} = choose_client_ip(Client,State#state.lastips),
     {ok, Server, NewPos} = choose_server(Config#config.servers, TmpPos),
-    
-    ?DebugF("get new session for ~p~n",[From]),
+
+    ?DebugF("get new session for ~p~n",[_From]),
 	NewState=State#state{lastips=NewPos},
     case choose_session(Config#config.sessions) of
         {ok, Session=#session{id=Id}} ->
             ?LOGF("Session ~p choosen~n",[Id],?INFO),
-            case ets:lookup(Tab, {Id, size}) of 
-                [{_, Size}] -> 
+            case ets:lookup(Tab, {Id, size}) of
+                [{_, Size}] ->
                     {reply, {ok, {Session, Size, IP, Server}}, NewState};
                 Other ->
                     {reply, {error, Other}, NewState}
@@ -258,12 +258,12 @@ handle_call({get_next_session, HostName}, From, State) ->
 			{reply, {error, Other}, NewState}
     end;
 
-%% 
+%%
 handle_call({get_client_config, Host}, _From, State) ->
     ?DebugF("get_client_config from ~p~n",[Host]),
     Config = State#state.config,
     %% set start date if not done yet
-    StartDate = case State#state.start_date of 
+    StartDate = case State#state.start_date of
                     undefined ->
                         ts_utils:add_time(now(), ?config(warm_time));
                     Date -> Date
@@ -302,7 +302,7 @@ handle_call(Request, _From, State) ->
 %% start the launcher on the current beam
 handle_cast({newbeam, Host, []}, State=#state{last_beam_id = NodeId,
                                               hostname=LocalHost,
-                                              config = Config}) 
+                                              config = Config})
   when Config#config.use_controller_vm and ( ( LocalHost == Host ) or ( Host == 'localhost' )) ->
     ?LOGF("Start a launcher on the controller beam ~p~n", [LocalHost], ?NOTICE),
     LogDir = encode_filename(State#state.logdir),
@@ -316,7 +316,7 @@ handle_cast({newbeam, Host, []}, State=#state{last_beam_id = NodeId,
     RepKeyFun = fun(Tuple, List) ->  lists:keyreplace(element(1, Tuple), 1, List, Tuple) end,
     Env = lists:foldl(RepKeyFun, OldEnv, NewEnv),
     NewAppSpec = lists:keyreplace(env, 1, AppSpec, {env, Env}),
-     
+
     ok = application:load({application, tsung, NewAppSpec}),
     case application:start(tsung) of
         ok ->
@@ -338,17 +338,17 @@ handle_cast({newbeam, Host, _}, State=#state{ hostname=LocalHost,config=Config})
     erlang:display(Msg),
     {noreply, State};
 
-%% start a launcher on a new beam with slave module 
+%% start a launcher on a new beam with slave module
 handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
     Name = "tsung" ++ integer_to_list(NodeId),
     {ok, [[BootController]]}    = init:get_argument(boot),
-    ?DebugF("BootController ~p~n", [BootController]), 
+    ?DebugF("BootController ~p~n", [BootController]),
     {ok, [[?TSUNGPATH,PathVar]]}    = init:get_argument(boot_var),
-    ?DebugF("BootPathVar ~p~n", [PathVar]), 
+    ?DebugF("BootPathVar ~p~n", [PathVar]),
     {ok, [[PA1],[PA2]]}    = init:get_argument(pa), % ugly
-    ?DebugF("PA list ~p ~p~n", [PA1,PA2]), 
+    ?DebugF("PA list ~p ~p~n", [PA1,PA2]),
     {ok, Boot, _} = regexp:gsub(BootController,"tsung_controller","tsung"),
-    ?DebugF("Boot ~p~n", [Boot]), 
+    ?DebugF("Boot ~p~n", [Boot]),
 	Sys_Args= ts_utils:erl_system_args(),
     LogDir = encode_filename(State#state.logdir),
     Args = lists:append([ Sys_Args," -boot ", Boot,
@@ -359,10 +359,10 @@ handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
         " -tsung dump ", atom_to_list(?config(dump)),
         " -tsung log_file ", LogDir
         ]),
-    ?LOGF("starting newbeam on host ~p from ~p with Args ~p~n", [Host, State#state.hostname, Args], ?INFO), 
+    ?LOGF("starting newbeam on host ~p from ~p with Args ~p~n", [Host, State#state.hostname, Args], ?INFO),
     case slave:start_link(Host, Name, Args) of
         {ok, Node} ->
-            ?LOGF("started newbeam on node ~p ~n", [Node], ?NOTICE), 
+            ?LOGF("started newbeam on node ~p ~n", [Node], ?NOTICE),
             Res = net_adm:ping(Node),
             ?LOGF("ping ~p ~p~n", [Node,Res], ?NOTICE),
             ts_launcher:launch({Node, Arrivals}),
@@ -433,7 +433,7 @@ choose_server(ServerList, RRVal) ->
 %% Func: choose_rr/4
 %% Args: List, Key, Dict, Default
 %% Purpose: choose an value in list in a round robin way. Use last
-%%          value stored in dict with key Key. 
+%%          value stored in dict with key Key.
 %           Return Default if list is empty
 %% Returns: {ok, Val, NewDict}
 %%----------------------------------------------------------------------
@@ -444,8 +444,8 @@ choose_rr([Val],_,RR,_) -> % only one value
 choose_rr(List,Key,undefined,Def) ->
 	choose_rr(List,Key, dict:new(),Def);
 choose_rr(List,Key,RRval,_) ->
-    case dict:find(Key, RRval) of 
-		{ok, NextVal} -> 
+    case dict:find(Key, RRval) of
+		{ok, NextVal} ->
 			NewRR = dict:update_counter(Key,1,RRval),
 			I = (NextVal rem length(List))+1, % round robin
 			{ok, lists:nth(I, List), NewRR};
@@ -476,7 +476,7 @@ choose_session([#session{popularity=P} | SList], Rand, Cur) ->
 %% Func: get_client_cfg/4
 %% Args: list of #arrivalphase, list of #client, String
 %% Purpose: set parameters for given host client
-%% Returns: {ok, {Intensity = float, Users=integer, StartDate = tuple}} 
+%% Returns: {ok, {Intensity = float, Users=integer, StartDate = tuple}}
 %%          | {error, Reason}
 %%----------------------------------------------------------------------
 get_client_cfg(Arrival, Clients, TotalWeight, Host) ->
@@ -488,14 +488,14 @@ get_client_cfg([], Clients, _TotalWeight, Host, Cur) ->
     {value, Client} = lists:keysearch(Host, #client.host, Clients),
     Max = Client#client.maxusers,
     {ok, lists:reverse(Cur), Max};
-get_client_cfg([Arrival=#arrivalphase{duration = Duration, 
-                                      intensity= PhaseIntensity, 
+get_client_cfg([Arrival=#arrivalphase{duration = Duration,
+                                      intensity= PhaseIntensity,
                                       maxnumber= MaxNumber } | AList],
                Clients, TotalWeight, Host, Cur) ->
     {value, Client} = lists:keysearch(Host, #client.host, Clients),
     Weight = Client#client.weight,
     ClientIntensity = PhaseIntensity * Weight / TotalWeight,
-    NUsers = case MaxNumber of 
+    NUsers = case MaxNumber of
                  infinity -> %% only use the duration to set the number of users
                      Duration * 1000 * ClientIntensity;
                  _ ->
@@ -509,15 +509,15 @@ get_client_cfg([Arrival=#arrivalphase{duration = Duration,
 
 %%----------------------------------------------------------------------
 %% Func: encode_filename/1
-%% Purpose: kludge: the command line erl doesn't like special characters 
+%% Purpose: kludge: the command line erl doesn't like special characters
 %%   in strings when setting up environnement variables for application,
-%%   so we encode these characters ! 
+%%   so we encode these characters !
 %%----------------------------------------------------------------------
 encode_filename(String) when is_list(String)->
     Transform=[{"\/","_47"},{"\-","_45"}, {"\:","_58"}, {",","_44"}],
     lists:foldl(fun replace_str/2, "ts_encoded" ++ String, Transform);
 encode_filename(Term) -> Term.
-    
+
 
 %%----------------------------------------------------------------------
 %% Func: decode_filename/1
@@ -529,7 +529,7 @@ decode_filename("ts_encoded" ++ String)->
 replace_str({A,B},X) ->
     {ok, Str, _} = regexp:gsub(X,A,B),
     Str.
-    
+
 %%----------------------------------------------------------------------
 %% Func: print_info/0 Print system info
 %%----------------------------------------------------------------------
@@ -539,17 +539,16 @@ print_info() ->
     ?LOGF("SYSINFO:Current path: ~s~n",[code:which(tsung)],?NOTICE).
 
 %%----------------------------------------------------------------------
-%% Func: start_file_server/1    
+%% Func: start_file_server/1
 %%----------------------------------------------------------------------
-start_file_server(undefined) ->
+start_file_server([]) ->
     ?LOG("No File server defined, skip~n",?DEB);
-start_file_server(FileName) ->
+start_file_server(Filenames) ->
     ?LOG("Starting File server~n",?INFO),
     FileSrv  = {ts_file_server, {ts_file_server, start, []}, transient, 2000,
                 worker, [ts_msg_server]},
     supervisor:start_child(ts_controller_sup, FileSrv),
-    ?LOGF("Reading file ~s~n",[FileName],?NOTICE),
-    ts_file_server:read(FileName).
+    ts_file_server:read(Filenames).
 
 %%----------------------------------------------------------------------
 %% Func: check_config/1
@@ -563,7 +562,7 @@ check_config(Config)->
         []        -> ok;
         ErrorList -> {error, ErrorList}
     end.
-                 
+
 
 load_app(Name) when atom(Name) ->
     FName = atom_to_list(Name) ++ ".app",
@@ -574,7 +573,7 @@ load_app(Name) when atom(Name) ->
 	    case file:consult(FullName) of
 		{ok, [Application]} ->
 		    {ok, Application};
-		{error, Reason} -> 
+		{error, Reason} ->
 		    {error, {file:format_error(Reason), FName}}
 	    end
     end.
@@ -582,8 +581,8 @@ load_app(Name) when atom(Name) ->
 %%----------------------------------------------------------------------
 %% Func: loop_load/1
 %% Args: #config
-%% Returns: #config    
-%% Purpose: duplicate phases 'load_loop' times. 
+%% Returns: #config
+%% Purpose: duplicate phases 'load_loop' times.
 %%----------------------------------------------------------------------
 loop_load(Config=#config{load_loop=0}) -> Config;
 loop_load(Config=#config{load_loop=Loop,arrivalphases=Arrival}) when is_integer(Loop) ->
@@ -598,5 +597,3 @@ loop_load(Config=#config{load_loop=Loop, arrivalphases=Arrival},Max,Current) ->
 	Fun= fun(Phase) -> Phase+Max*Loop end,
     NewArrival = lists:keymap(Fun,#arrivalphase.phase,Arrival),
     loop_load(Config#config{load_loop=Loop-1},Max,lists:append(Current, NewArrival)).
-    
-                 

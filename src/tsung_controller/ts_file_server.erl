@@ -33,43 +33,71 @@
 -behaviour(gen_server).
 
 %% External exports
--export([start/0, get_random_line/0, get_next_line/0, get_all_lines/0, stop/0,
+-export([start/0,
+         get_random_line/0,
+         get_random_line/1,
+         get_next_line/0,
+         get_next_line/1,
+         get_all_lines/0,
+         get_all_lines/1,
+         stop/0,
          read/1, read/2]).
-
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
          code_change/3]).
 
--record(state, {items,    %% lists of lines read from a file
-				open = 0,
-				size,     %% total number of lines
-                current=-1   %% current line in file
-			   }).
+-record(file, {items,       %% lists of lines read from a file
+               size,        %% total number of lines
+               current=-1   %% current line in file
+              }).
+
+-record(state, {files}).
+
+-define(DICT, dict).
 
 -include("ts_profile.hrl").
+-include("ts_config.hrl").
+-include("xmerl.hrl").
+
 
 %%%----------------------------------------------------------------------
 %%% API
 %%%----------------------------------------------------------------------
-read(Filename) ->
-	gen_server:call({global, ?MODULE}, {read, Filename}, ?config(file_server_timeout)).
 
-read(Filename,Timeout) ->
-	gen_server:call({global, ?MODULE}, {read, Filename}, Timeout).
+%%----------------------------------------------------------------------
+%% Func: parse_config/2
+%% Args: Element, Config
+%% Returns: List
+%% Purpose: parse a request defined in the XML config file
+%%----------------------------------------------------------------------
+
+read(Filenames) ->
+    gen_server:call({global, ?MODULE}, {read, Filenames}, ?config(file_server_timeout)).
+
+read(Filenames, Timeout) ->
+    gen_server:call({global, ?MODULE}, {read, Filenames}, Timeout).
 
 start() ->
-	?LOG("Starting~n",?DEB),
-	gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
+    ?LOG("Starting~n",?DEB),
+    gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
 
-get_random_line()->
-	gen_server:call({global, ?MODULE},get_random_line).
 
-get_next_line()->
-	gen_server:call({global, ?MODULE},get_next_line).
 
-get_all_lines()->
-	gen_server:call({global, ?MODULE},get_all_lines).
+get_random_line(FileID)->
+    gen_server:call({global, ?MODULE}, {get_random_line, FileID}).
+get_random_line() ->
+    get_random_line(default).
+
+get_next_line(FileID)->
+    gen_server:call({global, ?MODULE}, {get_next_line, FileID}).
+get_next_line() ->
+    get_next_line(default).
+
+get_all_lines(FileID)->
+    gen_server:call({global, ?MODULE}, {get_all_lines, FileID}).
+get_all_lines() ->
+    get_all_lines(default).
 
 stop()->
     gen_server:call({global, ?MODULE}, stop).
@@ -86,7 +114,7 @@ stop()->
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
 init([]) ->
-	{ok, #state{}}.
+    {ok, #state{files=?DICT:new()}}.
 
 
 %%----------------------------------------------------------------------
@@ -98,36 +126,27 @@ init([]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_call(get_all_lines, _From, State) ->
-	Reply = {ok, State#state.items},
-	{reply, Reply, State};
+handle_call({get_all_lines, FileID}, _From, State) ->
+    FileDesc = ?DICT:fetch(FileID, State#state.files),
+    Reply = {ok, FileDesc#file.items},
+    {reply, Reply, State};
 
-handle_call(get_random_line, _From, State) ->
-	I = random:uniform(State#state.size),
-	Reply = {ok,  lists:nth(I, State#state.items)},
-	{reply, Reply, State};
+handle_call({get_random_line, FileID}, _From, State) ->
+    FileDesc = ?DICT:fetch(FileID, State#state.files),
+    I = random:uniform(FileDesc#file.size),
+    Reply = {ok, lists:nth(I, FileDesc#file.items)},
+    {reply, Reply, State};
 
-handle_call(get_next_line, _From, State) ->
-	I = (State#state.current + 1)  rem State#state.size,
-	Reply = {ok,  lists:nth(I+1, State#state.items)},
-	{reply, Reply, State#state{current=I}};
+handle_call({get_next_line, FileID}, _From, State) ->
+    FileDesc = ?DICT:fetch(FileID, State#state.files),
+    I = (FileDesc#file.current + 1) rem FileDesc#file.size,
+    Reply = {ok, lists:nth(I+1, FileDesc#file.items)},
+    NewFileDesc = FileDesc#file{current=I},
+    {reply, Reply,
+     State#state{files=?DICT:store(FileID, NewFileDesc, State#state.files)}};
 
-handle_call({read, Filename}, _From, State) when State#state.open == 0 ->
-	?LOGF("Opening file ~p~n",[Filename],?INFO),
-    {Status, File} = file:open(Filename, read),
-    case Status of
-        error ->
-            ?LOGF("Error while opening ~p file ~p~n",[File, Filename],?ERR),
-			{reply, {error, File}, State};
-        _ ->
-            List_items = read_item(File, []),
-            % Close the config file
-            file:close(File),
-			{reply, ok, State#state{items = List_items, open= 1, size=length(List_items)}}
-    end;
-handle_call({read, Filename}, _From, State) ->
-	?LOGF("~p already opened~n",[Filename],?INFO),
-	{reply, {error, already_open}, State};
+handle_call({read, Filenames}, _From, State) ->
+    lists:foldl(fun open_file/2, {reply, ok, State}, Filenames);
 
 handle_call(stop, _From, State)->
     {stop, normal, ok, State}.
@@ -139,7 +158,7 @@ handle_call(stop, _From, State)->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
 handle_cast(_Msg, State) ->
-	{noreply, State}.
+    {noreply, State}.
 
 %%----------------------------------------------------------------------
 %% Func: handle_info/2
@@ -148,7 +167,7 @@ handle_cast(_Msg, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
 handle_info(_Info, State) ->
-	{noreply, State}.
+    {noreply, State}.
 
 %%----------------------------------------------------------------------
 %% Func: terminate/2
@@ -156,7 +175,7 @@ handle_info(_Info, State) ->
 %% Returns: any (ignored by gen_server)
 %%----------------------------------------------------------------------
 terminate(_Reason, _State) ->
-	ok.
+    ok.
 
 %%--------------------------------------------------------------------
 %% Func: code_change/3
@@ -171,27 +190,52 @@ code_change(_OldVsn, State, _Extra) ->
 %%%----------------------------------------------------------------------
 
 %%----------------------------------------------------------------------
+%% Open a file and return a new state
+%%----------------------------------------------------------------------
+open_file({ID, Path}, {reply, Result, State}) ->
+    case ?DICT:find(ID, State#state.files) of
+        {ok, _} ->
+            ?LOGF("File with id ~p already opened (path is ~p)~n",[ID, Path], ?WARN),
+            {reply, {error, already_open}, State};
+        error ->
+            ?LOGF("Opening file ~p~n",[Path], ?INFO),
+            {Status, File} = file:open(Path, read),
+            case Status of
+                error ->
+                    ?LOGF("Error while opening ~p file ~p~n",[File, Path], ?ERR),
+                    {reply, {error, File}, State};
+                _ ->
+                    List_items = read_item(File, []),
+                    file:close(File), % Close the config file
+                    FileDesc = #file{items = List_items, size=length(List_items)},
+                    {reply, Result,
+                     State#state{files = ?DICT:store(ID, FileDesc, State#state.files)}}
+            end
+    end.
+
+
+%%----------------------------------------------------------------------
 %% Treate one line of the file
 %% Lines starting by '#' are skipped
 %%----------------------------------------------------------------------
 read_item(File, L)->
-    % Read one line
+    %% Read one line
     Line = io:get_line(File, ""),
     case Line of
         eof ->
             L;
-		_->
-			Tokens = string:tokens(Line, "\n"),
+        _->
+            Tokens = string:tokens(Line, "\n"),
             case Tokens of
                 [] ->
                     read_item(File, L);
-				
+                
                 ["#" | _] ->
                     read_item(File, L);
-				
-				[Value] ->
-                    %%% FIXME: maybe we should use an ets table instead ?
-					List = lists:append(L, [Value]),
-					read_item(File, List)
-			end
+                
+                [Value] ->
+                    %% FIXME: maybe we should use an ets table instead ?
+                    List = lists:append(L, [Value]),
+                    read_item(File, List)
+            end
     end.

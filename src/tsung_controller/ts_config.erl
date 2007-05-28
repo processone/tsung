@@ -15,7 +15,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
 %%%  the EPL license and distribute linked combinations including
@@ -25,7 +25,7 @@
 %%% File    : config.erl
 %%% Author  : Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%% Purpose : Read the tsung XML config file. Currently, it
-%%%           work by parsing the #xmlElement record by hand ! 
+%%%           work by parsing the #xmlElement record by hand !
 %%%           TODO: learn how to use xmerl correctly
 %%% Created : 3 Dec 2003 by Nicolas Niclausse <nicolas@niclux.org>
 %%%----------------------------------------------------------------------
@@ -81,7 +81,7 @@ parse(Element = #xmlElement{parents = [], attributes=Attrs}, Conf=#config{}) ->
     Loglevel = getAttr(string, Attrs, loglevel, "notice"),
     Dump     = getAttr(string, Attrs, dumptraffic, "false"),
     BackEnd  = getAttr(atom, Attrs, backend, text),
-    DumpType = case Dump of 
+    DumpType = case Dump of
                    "false" -> none;
                    "true"  -> full;
                    "light" -> light
@@ -96,7 +96,7 @@ parse(Element = #xmlElement{parents = [], attributes=Attrs}, Conf=#config{}) ->
 parse(Element = #xmlElement{name=server, attributes=Attrs}, Conf=#config{servers=ServerList}) ->
     Server = getAttr(Attrs, host),
     Port   = getAttr(integer, Attrs, port),
-    Type = case getAttr(Attrs, type) of 
+    Type = case getAttr(Attrs, type) of
                "ssl" -> ssl;
                "tcp" -> gen_tcp;
                "udp" -> gen_udp
@@ -133,7 +133,7 @@ parse(Element = #xmlElement{name=monitor, attributes=Attrs},
                             ?config(snmp_version)}
                    end
            end,
-    NewMon = case getAttr(atom, Attrs, batch, false) of 
+    NewMon = case getAttr(atom, Attrs, batch, false) of
                  true ->
                      Nodes = lists:usort(get_batch_nodes(list_to_atom(Host))),
                      lists:map(fun(N)-> {N, Type} end, Nodes);
@@ -144,7 +144,7 @@ parse(Element = #xmlElement{name=monitor, attributes=Attrs},
 		Conf#config{monitor_hosts = lists:append(MHList, NewMon)},
 		Element#xmlElement.content);
 
-%% 
+%%
 parse(Element = #xmlElement{name=load, attributes=Attrs}, Conf) ->
     Loop = getAttr(integer, Attrs, loop, 0),
     lists:foldl(fun parse/2,	Conf#config{load_loop=Loop},
@@ -227,11 +227,11 @@ parse(Element = #xmlElement{name=arrivalphase, attributes=Attrs},
             ?LOGF("Client config error: phase ~p already defined, abort !~n",[Phase],?EMERG),
             throw({error, already_defined_phase})
     end;
-        
+
 %% Parsing the users element
 parse(Element = #xmlElement{name=users, attributes=Attrs},
       Conf = #config{arrivalphases=[CurA | AList]}) ->
-    
+
     Max = getAttr(integer,Attrs, maxnumber, infinity),
 	?LOGF("Maximum number of users ~p~n",[Max],?INFO),
 
@@ -252,7 +252,7 @@ parse(Element = #xmlElement{name=session, attributes=Attrs},
     Id = length(SList),
     Type        = getAttr(atom,Attrs, type),
 
-    {Persistent_def, Bidi_def} = 
+    {Persistent_def, Bidi_def} =
         case Type:session_defaults() of
             {ok, Pdef, Bdef} -> {Pdef, Bdef};
             {ok, Pdef} -> {Pdef, false}
@@ -264,13 +264,13 @@ parse(Element = #xmlElement{name=session, attributes=Attrs},
     ?LOGF("Session name for id ~p is ~p~n",[Id+1, Name],?NOTICE),
     ?LOGF("Session type: persistent=~p, bidi=~p~n",[Persistent,Bidi],?NOTICE),
     Probability = getAttr(float_or_integer, Attrs, probability),
-    case Id of 
-        0 -> ok; % first session 
-        _ -> 
+    case Id of
+        0 -> ok; % first session
+        _ ->
             %% add total requests count in previous session in ets table
-            ets:insert(Tab, {{Id, size}, PrevReqId}) 
+            ets:insert(Tab, {{Id, size}, PrevReqId})
     end,
-            
+
     lists:foldl(fun parse/2,
                 Conf#config{sessions = [#session{id           = Id + 1,
                                                  popularity   = Probability,
@@ -352,7 +352,7 @@ parse(Element=#xmlElement{name=match,attributes=Attrs},
 %%% Parsing the option element
 parse(Element = #xmlElement{name=option, attributes=Attrs},
       Conf = #config{session_tab = Tab}) ->
-    case getAttr(atom,Attrs, type) of
+    case getAttr(atom, Attrs, type) of
         "" ->
             case getAttr(Attrs, name) of
                 "thinktime" ->
@@ -371,26 +371,28 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                                  Element#xmlElement.content);
                 "file_server" ->
                     FileName = getAttr(Attrs, value),
-                    lists:foldl( fun parse/2, Conf#config{file_server=FileName},
+                    Id       = getAttr(atom, Attrs, id,default),
+                    lists:foldl( fun parse/2,
+                                 Conf#config{file_server=[{Id, FileName} | Conf#config.file_server]},
                                  Element#xmlElement.content);
-                _ ->                    
+                _ ->
                     lists:foldl( fun parse/2, Conf, Element#xmlElement.content)
             end;
         Module ->
             Module:parse_config(Element, Conf)
     end;
-            
-            
+
+
 
 %%% Parsing the thinktime element
 parse(Element = #xmlElement{name=thinktime, attributes=Attrs},
-      Conf = #config{cur_req_id=ReqId, curid=Id, session_tab = Tab, 
+      Conf = #config{cur_req_id=ReqId, curid=Id, session_tab = Tab,
                      sessions = [CurS |_]}) ->
     DefThink = get_default(Tab,{thinktime, value},thinktime_value),
     DefRandom = get_default(Tab,{thinktime, random},thinktime_random),
-    {Think, Randomize} = 
+    {Think, Randomize} =
         case get_default(Tab,{thinktime, override},thinktime_override) of
-            "true" -> 
+            "true" ->
                 {DefThink, DefRandom};
             "false" ->
                 CurThink = getAttr(integer, Attrs, value,DefThink),
@@ -408,8 +410,8 @@ parse(Element = #xmlElement{name=thinktime, attributes=Attrs},
     ets:insert(Tab,{{CurS#session.id, Id+1}, {thinktime, RealThink}}),
     [{Key, Msg}] = ets:lookup(Tab,{CurS#session.id, ReqId}),
     ets:insert(Tab,{Key, Msg#ts_request{thinktime=RealThink}}),
-    
-    lists:foldl( fun parse/2, Conf#config{curthink=Think,curid=Id+1}, 
+
+    lists:foldl( fun parse/2, Conf#config{curthink=Think,curid=Id+1},
                  Element#xmlElement.content);
 
 %% Parsing other elements
@@ -474,7 +476,7 @@ to_seconds("millisecond", Val)-> Val/1000.
 get_default(Tab, Key,ConfigName) when not is_tuple(Key) ->
     get_default(Tab, {Key, value},ConfigName);
 get_default(Tab, Key,ConfigName) ->
-    case ets:lookup(Tab,Key) of 
+    case ets:lookup(Tab,Key) of
 		[] ->
 			?config(ConfigName);
 		[{_, SName}] ->
@@ -493,7 +495,7 @@ mark_prev_req(0, _, _)  ->
 mark_prev_req(Id, Tab, CurS) ->
     %% if the previous msg is a #ts_request request, set endpage to
     %% false, we are the current last request of the page
-	case ets:lookup(Tab,{CurS#session.id, Id}) of 
+	case ets:lookup(Tab,{CurS#session.id, Id}) of
 		[{Key, Msg=#ts_request{}}] ->
 			ets:insert(Tab,{Key, Msg#ts_request{endpage=false}});
 		[{_, {transaction,_,_}}] ->% transaction, continue to search back
@@ -508,9 +510,9 @@ get_batch_nodes(lsf)->
     case os:getenv("LSB_HOSTS") of
         false ->
             [];
-        Nodes -> 
+        Nodes ->
             lists:map(fun shortnames/1, string:tokens(Nodes, " "))
-
+    
     end;
 get_batch_nodes(oar) -> get_batch_nodes2("OAR_NODEFILE");
 get_batch_nodes(torque) -> get_batch_nodes2("PBS_NODEFILE").

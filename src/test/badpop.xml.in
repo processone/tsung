@@ -20,7 +20,10 @@
    </arrivalphase>
   </load>
 
- <options></options>
+ <options>
+   <option name="file_server"  value="/tmp/random"></option>
+   <option name="file_server"  id="random" value="/tmp/random2"></option>
+ </options>
 
   <sessions>
    <session probability="50" name="jabber-example" type="ts_jabber">

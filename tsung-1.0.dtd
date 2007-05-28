@@ -71,6 +71,7 @@
     name     NMTOKEN #REQUIRED
     override (true | false) #IMPLIED
     random   (true | false) #IMPLIED
+    id       NMTOKEN #IMPLIED
     type     (ts_http | ts_jabber | ts_pgsql) #IMPLIED
     value    CDATA #IMPLIED>
 
@@ -109,7 +110,7 @@
 <!ELEMENT transaction (request+)>
 <!ATTLIST transaction name NMTOKEN #REQUIRED>
 
-<!ELEMENT http ( www_authenticate?, soap? )>
+<!ELEMENT http ( www_authenticate?, soap?)>
 <!ATTLIST http
     contents          CDATA #IMPLIED
     content_type      CDATA #IMPLIED

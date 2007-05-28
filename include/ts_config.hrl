@@ -48,14 +48,15 @@
           sessions=[],
           session_tab,
           use_controller_vm = false, % if true, start the first launcher in the
-                                     % same vm as the controller if possible
-          curthink, %% temporary var (current request think)
-          curid = 0, %% temporary var (current request id (can be transaction))
-          cur_req_id = 0, %% temporary var (current real request id)
-          file_server, % filename for file_server
-          load_loop, %% loop phases if > 0
+                                                % same vm as the controller if possible
+          curthink,  % temporary var (current request think)
+          curid = 0, % temporary var (current request id (can be transaction))
+          cur_req_id = 0,  % temporary var (current real request id)
+          file_server= [], % filenames for file_server
+          load_loop,       % loop phases if > 0
           ssl_ciphers = negociate
 		}).
+
 
 -record(client,	
         {host,
