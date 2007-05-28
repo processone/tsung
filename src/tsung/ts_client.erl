@@ -15,7 +15,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 %%%  Created : 15 Feb 2001 by Nicolas Niclausse <nicolas@niclux.org>
 
 %%%  In addition, as a special exception, you have the permission to
@@ -49,15 +49,15 @@
 %%% API
 %%%----------------------------------------------------------------------
 
-%% Start a new session 
+%% Start a new session
 start(Opts) ->
 	?DebugF("Starting with opts: ~p~n",[Opts]),
 	gen_fsm:start_link(?MODULE, Opts, []).
 
-%%---------------------------------------------------------------------- 	 
-%% Func: next/1 	 
+%%----------------------------------------------------------------------
+%% Func: next/1
 %% Purpose: continue with the next request (use for global ack)
-%%---------------------------------------------------------------------- 	 
+%%----------------------------------------------------------------------
 next({Pid}) ->
     gen_fsm:send_event(Pid, next_msg).
 
@@ -113,21 +113,21 @@ init({#session{id           = Profile,
 %% Func: StateName/2
 %% Returns: {next_state, NextStateName, NextStateData}          |
 %%          {next_state, NextStateName, NextStateData, Timeout} |
-%%          {stop, Reason, NewStateData}                         
+%%          {stop, Reason, NewStateData}
 %%--------------------------------------------------------------------
 wait_ack(next_msg,State=#state_rcv{request=R}) when R#ts_request.ack==global->
-    NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol, 
+    NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol,
                                       State#state_rcv.socket,
                                       [{active, once} ]),
     {PageTimeStamp, _} = update_stats(State),
-    handle_next_action(State#state_rcv{socket=NewSocket, 
+    handle_next_action(State#state_rcv{socket=NewSocket,
                                        page_timestamp=PageTimeStamp}).
 
 %%--------------------------------------------------------------------
 %% Func: handle_event/3
 %% Returns: {next_state, NextStateName, NextStateData}          |
 %%          {next_state, NextStateName, NextStateData, Timeout} |
-%%          {stop, Reason, NewStateData}                         
+%%          {stop, Reason, NewStateData}
 %%--------------------------------------------------------------------
 handle_event(Event, SName, StateData) ->
 	?LOGF("Unknown event (~p) received in state ~p, abort",[Event,SName],?ERR),
@@ -140,7 +140,7 @@ handle_event(Event, SName, StateData) ->
 %%          {reply, Reply, NextStateName, NextStateData}          |
 %%          {reply, Reply, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}                          |
-%%          {stop, Reason, Reply, NewStateData}                    
+%%          {stop, Reason, Reply, NewStateData}
 %%--------------------------------------------------------------------
 handle_sync_event(_Event, _From, StateName, StateData) ->
     Reply = ok,
@@ -155,12 +155,12 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %% inet data
 handle_info({NetEvent, _Socket, Data}, wait_ack, State) when NetEvent==tcp;
                                                              NetEvent==ssl ->
-    case handle_data_msg(Data, State) of 
+    case handle_data_msg(Data, State) of
         {NewState=#state_rcv{ack_done=true}, Opts} ->
-            NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol, 
+            NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol,
                                               NewState#state_rcv.socket,
                                               [{active, once} | Opts]),
-            handle_next_action(NewState#state_rcv{socket=NewSocket, 
+            handle_next_action(NewState#state_rcv{socket=NewSocket,
                                                   ack_done=false});
         {NewState, Opts} ->
             NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol,
@@ -170,7 +170,7 @@ handle_info({NetEvent, _Socket, Data}, wait_ack, State) when NetEvent==tcp;
             {next_state, wait_ack, NewState#state_rcv{socket=NewSocket}, TimeOut}
     end;
 %% inet close messages; persistent session, waiting for ack
-handle_info({NetEvent, _Socket}, wait_ack, 
+handle_info({NetEvent, _Socket}, wait_ack,
             State = #state_rcv{persistent=true}) when NetEvent==tcp_closed;
                                                       NetEvent==ssl_closed ->
 	?LOG("connection closed while waiting for ack",?INFO),
@@ -179,7 +179,7 @@ handle_info({NetEvent, _Socket}, wait_ack,
     handle_next_action(NewState#state_rcv{socket=none});
 
 %% inet close messages; persistent session
-handle_info({NetEvent, Socket}, think, 
+handle_info({NetEvent, Socket}, think,
             State = #state_rcv{persistent=true}) when NetEvent==tcp_closed;
                                                       NetEvent==ssl_closed ->
 	?LOG("connection closed, stay alive (persistent)",?INFO),
@@ -217,14 +217,14 @@ handle_info(timeout, StateName, State ) ->
     ts_mon:add({ count, timeout }),
     {stop, normal, State};
 % bidirectional protocol
-handle_info({NetEvent, Socket, Data}, think,State=#state_rcv{request=Req,
+handle_info({NetEvent, Socket, Data}, think,State=#state_rcv{request=_Req,
   clienttype=Type, bidi=true})  when ((NetEvent == tcp) or (NetEvent==ssl)) ->
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     ts_mon:add({ sum, size, size(Data)}),
     Proto = State#state_rcv.protocol,
     ?LOG("Data received from socket (bidi) in state think~n",?INFO),
     NewState = case Type:parse_bidi(Data, State) of
-                   {nodata, State2} -> 
+                   {nodata, State2} ->
                        ?LOG("Bidi: no data ~n",?DEB),
                        State2;
                    {Data2, State2} ->
@@ -236,7 +236,7 @@ handle_info({NetEvent, Socket, Data}, think,State=#state_rcv{request=Req,
     NewSocket = ts_utils:inet_setopts(Proto, State#state_rcv.socket,
                                       [{active, once}]),
     {next_state, think, NewState#state_rcv{socket=NewSocket}};
-handle_info({NetEvent, _Socket, Data}, think, State) 
+handle_info({NetEvent, _Socket, Data}, think, State)
   when (NetEvent == tcp) or (NetEvent==ssl) ->
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     ts_mon:add({ count, error_unknown_data }),
@@ -292,9 +292,9 @@ handle_next_action(State) ->
             ?LOGF("Starting new transaction ~p (now~p)~n", [Tname,Now], ?INFO),
             TrList = State#state_rcv.transactions,
             NewState = State#state_rcv{transactions=[{Tname,Now}|TrList],
-                                   count=Count}, 
+                                   count=Count},
             handle_next_action(NewState);
-        {transaction, stop, Tname} ->      
+        {transaction, stop, Tname} ->
             Now = now(),
             ?LOGF("Stopping transaction ~p (~p)~n", [Tname, Now], ?INFO),
             TrList = State#state_rcv.transactions,
@@ -302,9 +302,9 @@ handle_next_action(State) ->
             Elapsed = ts_utils:elapsed(Tr, Now),
             ts_mon:add({sample, Tname, Elapsed}),
             NewState = State#state_rcv{transactions=lists:keydelete(Tname,1,TrList),
-                                   count=Count}, 
+                                   count=Count},
             handle_next_action(NewState);
-        Profile=#ts_request{} ->                                        
+        Profile=#ts_request{} ->
             handle_next_request(Profile, State);
         Other ->
             ?LOGF("Error: set profile return value is ~p (count=~p)~n",[Other,Count],?ERR),
@@ -321,7 +321,7 @@ handle_next_request(Profile, State) ->
     Count = State#state_rcv.count-1,
 	Type  = State#state_rcv.clienttype,
 
-    {PrevHost, PrevPort, PrevProto} = case Profile of 
+    {PrevHost, PrevPort, PrevProto} = case Profile of
         #ts_request{host=undefined, port=undefined, scheme=undefined} ->
             %% host/port/scheme not defined in request, use the current ones.
             {State#state_rcv.host,State#state_rcv.port, State#state_rcv.protocol};
@@ -329,7 +329,7 @@ handle_next_request(Profile, State) ->
             {H1,P1,S1}
     end,
 
-    {Param, {Host,Port,Protocol}} = 
+    {Param, {Host,Port,Protocol}} =
         case Type:add_dynparams(Profile#ts_request.subst,
                                 State#state_rcv.dyndata,
                                 Profile#ts_request.param,
@@ -360,8 +360,8 @@ handle_next_request(Profile, State) ->
 	case reconnect(Socket,Host,Port,Proto,State#state_rcv.ip) of
 		{ok, NewSocket} ->
             case catch send(Protocol, NewSocket, Message) of
-                ok -> 
-                    PageTimeStamp = case State#state_rcv.page_timestamp of 
+                ok ->
+                    PageTimeStamp = case State#state_rcv.page_timestamp of
                                         0 -> Now; %first request of a page
                                         _ -> %page already started
                                             State#state_rcv.page_timestamp
@@ -377,23 +377,23 @@ handle_next_request(Profile, State) ->
                                                page_timestamp= PageTimeStamp,
                                                send_timestamp= Now,
                                                timestamp= Now },
-                    case Profile#ts_request.ack of 
-                        no_ack -> 
+                    case Profile#ts_request.ack of
+                        no_ack ->
                             {PTimeStamp, _} = update_stats(NewState),
                             handle_next_action(NewState#state_rcv{ack_done=true, page_timestamp=PTimeStamp});
-                        global -> 
+                        global ->
                             ts_timer:connected(self()),
                             {next_state, wait_ack, NewState};
-                        _ -> 
+                        _ ->
                             {next_state, wait_ack, NewState}
                         end;
-                {error, closed} -> 
+                {error, closed} ->
                     ?LOG("connection close while sending message !~n", ?WARN),
                     handle_close_while_sending(State#state_rcv{socket=NewSocket,
                                                                protocol=Protocol,
                                                                host=Host,
                                                                port=Port});
-                {error, Reason} -> 
+                {error, Reason} ->
                     ?LOGF("Error: Unable to send data, reason: ~p~n",[Reason],?ERR),
                     CountName="error_send_"++atom_to_list(Reason),
                     ts_mon:add({ count, list_to_atom(CountName) }),
@@ -441,7 +441,7 @@ handle_close_while_sending(State=#state_rcv{persistent = true,
     {next_state, think, State#state_rcv{socket=none}};
 handle_close_while_sending(State) ->
     {stop, error, State}.
-    
+
 
 %%----------------------------------------------------------------------
 %% Func: set_profile/2
@@ -449,7 +449,7 @@ handle_close_while_sending(State) ->
 %%----------------------------------------------------------------------
 set_profile(MaxCount, Count, ProfileId) when is_integer(ProfileId) ->
     ts_session_cache:get_req(ProfileId, MaxCount-Count+1).
-     
+
 %%----------------------------------------------------------------------
 %% Func: reconnect/4
 %% Returns: {Socket   }          |
@@ -462,7 +462,7 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, IP) ->
 	Opts = protocol_options(Protocol, Proto_opts)  ++ [{ip, IP}],
     Before= now(),
     case Protocol:connect(ServerName, Port, Opts) of
-		{ok, Socket} -> 
+		{ok, Socket} ->
             Elapsed = ts_utils:elapsed(Before, now()),
 			ts_mon:add({ sample, connect, Elapsed }),
 			?Debug("(Re)connected~n"),
@@ -482,7 +482,7 @@ reconnect(Socket, _Server, _Port, _Protocol, _IP) ->
 %% Func: send/3
 %% Purpose: this fonction is used to avoid the costly M:fun form of function
 %% call, see http://www.erlang.org/doc/r9b/doc/efficiency_guide/
-%% FIXME: is it really faster ? 
+%% FIXME: is it really faster ?
 %%----------------------------------------------------------------------
 send(gen_tcp,Socket,Message) -> gen_tcp:send(Socket,Message);
 send(ssl,Socket,Message)     -> ssl:send(Socket,Message);
@@ -500,28 +500,28 @@ protocol_options(ssl,#proto_opts{ssl_ciphers=Ciphers}) ->
     [binary, {active, once}, {ciphers, Ciphers} ];
 
 protocol_options(gen_tcp,#proto_opts{tcp_rcv_size=Rcv, tcp_snd_size=Snd}) ->
-	[binary, 
+	[binary,
 	 {active, once},
 	 {recbuf, Rcv},
 	 {sndbuf, Snd},
 	 {keepalive, true} %% FIXME: should be an option
 	];
 protocol_options(gen_udp,#proto_opts{udp_rcv_size=Rcv, udp_snd_size=Snd}) ->
-	[binary, 
+	[binary,
 	 {active, once},
 	 {recbuf, Rcv},
 	 {sndbuf, Snd},
 	 {keepalive, true} %% FIXME: should be an option
 	].
-	
+
 %%----------------------------------------------------------------------
 %% Func: set_thinktime/1
 %% Purpose: set a timer for thinktime if it is not infinite
 %%----------------------------------------------------------------------
 set_thinktime(infinity) -> ok;
-set_thinktime({random, Think}) -> 
+set_thinktime({random, Think}) ->
 	set_thinktime(round(ts_stats:exponential(1/Think)));
-set_thinktime(Think) -> 
+set_thinktime(Think) ->
 %% dot not use timer:send_after because it does not scale well:
 %% http://www.erlang.org/ml-archive/erlang-questions/200202/msg00024.html
 	?DebugF("thinktime of ~p~n",[Think]),
@@ -542,7 +542,7 @@ handle_data_msg(Data, State=#state_rcv{request=Req}) when Req#ts_request.ack==no
 handle_data_msg(Data,State=#state_rcv{request=Req, clienttype=Type, maxcount=MaxCount})
   when Req#ts_request.ack==parse->
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
-	
+
     {NewState, Opts, Close} = Type:parse(Data, State),
     NewBuffer=set_new_buffer(Req, State#state_rcv.buffer, Data),
 
@@ -563,7 +563,7 @@ handle_data_msg(Data,State=#state_rcv{request=Req, clienttype=Type, maxcount=Max
                                          count = NewCount,
                                          dyndata = NewDynData,
                                          buffer = <<>>}, Opts};
-                false -> 
+                false ->
                     {NewState#state_rcv{ page_timestamp = PageTimeStamp,
                                          count = NewCount,
                                          datasize = 0,
@@ -579,12 +579,12 @@ handle_data_msg(closed,State) ->
     {State,[]};
 
 %% ack = global
-handle_data_msg(Data,State=#state_rcv{request=Req,datasize=OldSize}) 
+handle_data_msg(Data,State=#state_rcv{request=Req,datasize=OldSize})
   when Req#ts_request.ack==global ->
     %% FIXME: we do not report size now (but after receiving the
     %% global ack), the size stats may be not very accurate.
     %% FIXME: should we set buffer and parse for dynvars ?
-    DataSize = size(Data), 
+    DataSize = size(Data),
     {State#state_rcv{ datasize = OldSize + DataSize},[]};
 
 %% local ack, set ack_done to true
@@ -626,7 +626,7 @@ update_stats(State=#state_rcv{page_timestamp=PageTime,send_timestamp=SendTime}) 
     DynVars = ts_search:parse_dynvar(Profile#ts_request.dynvar_specs,
                                      State#state_rcv.buffer),
 	case Profile#ts_request.endpage of
-		true -> % end of a page, compute page reponse time 
+		true -> % end of a page, compute page reponse time
 			PageElapsed = ts_utils:elapsed(PageTime, Now),
 			ts_mon:add(lists:append([Stats,[{sample, page, PageElapsed}]])),
 			{0, DynVars};
@@ -644,4 +644,3 @@ concat_dynvars(DynVars, DynData=#dyndata{dynvars=undefined}) ->
     DynData#dyndata{dynvars=DynVars};
 concat_dynvars(DynVars, DynData=#dyndata{dynvars=OldDynVars}) ->
     DynData#dyndata{dynvars=ts_utils:keyumerge(1,DynVars,OldDynVars)}.
-    

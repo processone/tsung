@@ -15,7 +15,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 
 %%% In addition, as a special exception, you have the permission to
 %%% link the code of this program with any library released under
@@ -61,11 +61,11 @@ level2int("emergency") -> ?EMERG.
 %% Returns: Value | {undef_var, Var}
 %%----------------------------------------------------------------------
 get_val(Var) ->
-	case application:get_env(Var) of 
+	case application:get_env(Var) of
 		{ok, Val} ->
 			ensure_string(Var, Val);
 		undefined -> % undef, application not started, try to get var from stdlib
-            case application:get_env(stdlib,Var) of 
+            case application:get_env(stdlib,Var) of
                 undefined -> {undef_var, Var};
                 {ok,Val}  -> ensure_string(Var, Val)
             end
@@ -93,7 +93,7 @@ debug(From, Message, Level) ->
 
 debug(From, Message, Args, Level) ->
 	Debug_level = ?config(debug_level),
-	if 
+	if
 		Level =< Debug_level ->
 			error_logger:info_msg("~20s:(~p:~p) "++ Message,
 					  [From, Level, self()] ++ Args);
@@ -127,7 +127,7 @@ clean_str(String) ->
 	Str2 = string:strip(Str1),
 	Str3 = string:strip(Str2, both, 10),
 	string:strip(Str3).
-    
+
 
 %%----------------------------------------------------------------------
 %% Func: init_seed/0
@@ -172,11 +172,11 @@ mkey1search(List, Key) ->
 		fun({MatchKey, Value}, Acc) when MatchKey == Key ->
 			[Value | Acc];
 		   ({_OtherKey, _Value}, Acc) ->
-			Acc 
+			Acc
 		end,
 		[],
 		List),
-    case Results of 
+    case Results of
 	[] -> undefined;
 	Results -> lists:reverse(Results)
     end.
@@ -206,7 +206,7 @@ datestr({{Y,M,D},{H,Min,_S}})->
 erl_system_args()->
     erl_system_args(extended).
 erl_system_args(basic)->
-	Rsh = case  init:get_argument(rsh) of 
+	Rsh = case  init:get_argument(rsh) of
               {ok,[["ssh"]]}  -> " -rsh ssh ";
               _ -> " "
           end,
@@ -220,7 +220,7 @@ erl_system_args(extended)->
                            {ok,[[Val|_]]} when is_list(Val)-> " -" ++atom_to_list(A)++Val++" "
                        end 
              end,
-	Shared = SetArg(shared),
+    Shared = SetArg(shared),
 	Hybrid = SetArg(hybrid),
 	Smp = SetArg(smp),
     Inet = case init:get_argument(kernel) of
@@ -266,7 +266,7 @@ export_text(T) ->
 
 export_text(Bin, Cont) when is_binary(Bin) ->
     export_text(binary_to_list(Bin), Cont);
-export_text([], Exported) -> 
+export_text([], Exported) ->
     lists:flatten(lists:reverse(Exported));
 export_text([$< | T], Cont) ->
     export_text(T, [?LT | Cont]);
@@ -289,12 +289,12 @@ stop_all(Host, Name) ->
 
 stop_all([Host],Name,MsgName)  ->
     VoidFun = fun(_A)-> ok end,
-    stop_all([Host],Name,MsgName, VoidFun ).
+    stop_all([Host],Name,MsgName, VoidFun).
 
 stop_all([Host],Name,MsgName,Fun) when atom(Host) ->
     _List= net_adm:world_list([Host]),
     global:sync(),
-	case global:whereis_name(Name) of 
+	case global:whereis_name(Name) of
 		undefined ->
 			Msg = MsgName ++" is not running on " ++ atom_to_list(Host),
 			erlang:display(Msg);
@@ -311,7 +311,7 @@ stop_all(_,_,_,_)->
 %% Purpose: create directory. Missing parent directories ARE created
 %%----------------------------------------------------------------------
 make_dir_rec(DirName) when list(DirName) ->
-    case  file:read_file_info(DirName) of 
+    case  file:read_file_info(DirName) of
         {ok, #file_info{type=directory}} ->
             ok;
         {error,enoent} ->
@@ -324,7 +324,7 @@ make_dir_rec(_Path, []) ->
     ok;
 make_dir_rec(Path, [Parent|Childs]) ->
     CurrentDir=filename:join([Path,Parent]),
-    case  file:read_file_info(CurrentDir) of 
+    case  file:read_file_info(CurrentDir) of
         {ok, #file_info{type=directory}} ->
             make_dir_rec(CurrentDir, Childs);
         {error,enoent} ->
@@ -342,10 +342,10 @@ make_dir_rec(Path, [Parent|Childs]) ->
 is_ip(String) when list(String) ->
     EightBit="(2[0-4][0-9]|25[0-5]|1[0-9][0-9]|[0-9][0-9]|[0-9])",
     RegExp = lists:append(["^",EightBit,"\.",EightBit,"\.",EightBit,"\.",EightBit,"$"]), %"
-    case regexp:first_match(String, RegExp) of 
+    case regexp:first_match(String, RegExp) of
        {match,_,_} -> true;
        _ -> false
-    end;                            
+    end;
 is_ip(_) -> false.
 
 %%----------------------------------------------------------------------
@@ -365,13 +365,13 @@ to_https(_) -> {error, bad_input}.
 
 from_https(String) when is_list(String)->
     {ok,NewString,RepCount} = regexp:gsub(String,"https://","http://{"),
-    case RepCount of 
+    case RepCount of
         0    -> ok;
         Count-> ?LOGF("substitute https: ~p times~n",[Count],?DEB)
     end,
     {ok, NewString};
 from_https(_) -> {error, bad_input}.
-    
+
 
 %% A Perl-style join --- concatenates all strings in Strings,
 %% separated by Sep.
@@ -451,7 +451,7 @@ inet_setopts(Type, Socket,  Opts)  when ( (Type == udp) or (Type == gen_udp)) ->
 
 %%----------------------------------------------------------------------
 %% Func: check_sum/3
-%% Purpose: check sum of int equals 100. 
+%% Purpose: check sum of int equals 100.
 %% Args: List of tuples, index of int in tuple, Error msg
 %% Returns ok | {error, {bad_sum, Msg}}
 %%----------------------------------------------------------------------
