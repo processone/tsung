@@ -52,7 +52,8 @@
                 intensity,
                 phase_nusers,   % total number of users to start in the current phase
                 phase_duration, % expected phase duration
-                phase_start, % timestamp
+                phase_start,    % timestamp
+                short_timeout = ?short_timeout,
                 maxusers %% if maxusers are currently active, launch a
                          %% new beam to handle the new users
                }).
@@ -106,6 +107,8 @@ init([]) ->
 %%----------------------------------------------------------------------
 wait({launch, Args, Hostname}, State) ->
     wait({launch, Args}, State#state{myhostname = Hostname});
+%% starting without configuration. We must ask the config server for
+%% the configuration of this launcher.
 wait({launch, []}, State) ->
 	MyHostName = State#state.myhostname,
 	?LOGF("Launch msg receive (~p)~n",[MyHostName], ?NOTICE),
@@ -132,6 +135,8 @@ wait({launch, []}, State) ->
                                      phase_start = PhaseStart,
                                      intensity=Intensity,maxusers=Max }, Warm};
 
+%% start with a already known configuration. This case occurs when a
+%% beam is started by a launcher (maxclients reached)
 wait({launch, {[{Intensity, Users}| Rest], Max}}, State) ->
     ?LOGF("Starting with ~p users to do in the current phase (max is ~p)~n",
           [Users, Max],?DEB),
@@ -143,7 +148,7 @@ wait({launch, {[{Intensity, Users}| Rest], Max}}, State) ->
                                        phase_duration=Duration,
                                        phase_start = now(),
                                        intensity = Intensity, maxusers=Max},
-     ?short_timeout}.
+     State#state.short_timeout}.
 
 launcher(_Event, #state{nusers = 0, phases = [] }) ->
 	?LOG("no more clients to start, wait  ~n",?INFO),
