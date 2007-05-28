@@ -30,7 +30,6 @@ read_config_badpop_test() ->
     ts_user_server:start([]),
     {ok, Config} = ts_config:read("./src/test/badpop.xml"),
     ?assertMatch({error,[{error,{bad_sum,_,_}}]}, ts_config_server:check_config(Config)).
-    
 
 
 myset_env()->
