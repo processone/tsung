@@ -90,7 +90,8 @@ newbeam(Host)->
 	gen_server:cast({global, ?MODULE},{newbeam, Host, [] }).
 %%--------------------------------------------------------------------
 %% Function: newbeam/2
-%% Description: start a new beam with given config.
+%% Description: start a new beam with given config. Use by launcher
+%%  when maxclient is reached. In this case, the arrival rate is known
 %%--------------------------------------------------------------------
 newbeam(Host, {Arrivals, MaxUsers})->
 	gen_server:cast({global, ?MODULE},{newbeam, Host, {Arrivals, MaxUsers} }).
