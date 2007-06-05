@@ -169,6 +169,10 @@ handle_info({NetEvent, _Socket, Data}, wait_ack, State) when NetEvent==tcp;
             TimeOut=(NewState#state_rcv.proto_opts)#proto_opts.idle_timeout,
             {next_state, wait_ack, NewState#state_rcv{socket=NewSocket}, TimeOut}
     end;
+handle_info({udp, Socket,_IP,_InPortNo, Data}, wait_ack, State) ->
+	?DebugF("UDP packet received: size=~p ~n",[size(Data)]),
+    %% we don't care about IP,InPortNo, do the same as for a tcp connection:
+    handle_info({tcp, Socket, Data}, wait_ack, State);
 %% inet close messages; persistent session, waiting for ack
 handle_info({NetEvent, _Socket}, wait_ack,
             State = #state_rcv{persistent=true}) when NetEvent==tcp_closed;
@@ -218,7 +222,7 @@ handle_info(timeout, StateName, State ) ->
     {stop, normal, State};
 % bidirectional protocol
 handle_info({NetEvent, Socket, Data}, think,State=#state_rcv{request=_Req,
-  clienttype=Type, bidi=true})  when ((NetEvent == tcp) or (NetEvent==ssl)) ->
+  clienttype=Type, bidi=true,host=Host,port=Port})  when ((NetEvent == tcp) or (NetEvent==ssl)) ->
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     ts_mon:add({ sum, size, size(Data)}),
     Proto = State#state_rcv.protocol,
@@ -230,7 +234,7 @@ handle_info({NetEvent, Socket, Data}, think,State=#state_rcv{request=_Req,
                    {Data2, State2} ->
                        %%FIXME: data size stats
                        ?LOG("Bidi: send data back to server~n",?DEB),
-                       send(Proto,Socket,Data2), %FIXME: handle errors ?
+                       send(Proto,Socket,Data2,Host,Port), %FIXME: handle errors ?
                        State2
                end,
     NewSocket = ts_utils:inet_setopts(Proto, State#state_rcv.socket,
@@ -359,7 +363,7 @@ handle_next_request(Profile, State) ->
     Proto = {Protocol,State#state_rcv.proto_opts},
 	case reconnect(Socket,Host,Port,Proto,State#state_rcv.ip) of
 		{ok, NewSocket} ->
-            case catch send(Protocol, NewSocket, Message) of
+            case catch send(Protocol, NewSocket, Message, Host, Port) of
                 ok ->
                     PageTimeStamp = case State#state_rcv.page_timestamp of
                                         0 -> Now; %first request of a page
@@ -461,7 +465,7 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, IP) ->
             [ServerName,Port,IP,Protocol]),
 	Opts = protocol_options(Protocol, Proto_opts)  ++ [{ip, IP}],
     Before= now(),
-    case Protocol:connect(ServerName, Port, Opts) of
+    case connect(Protocol,ServerName, Port, Opts) of
 		{ok, Socket} ->
             Elapsed = ts_utils:elapsed(Before, now()),
 			ts_mon:add({ sample, connect, Elapsed }),
@@ -479,14 +483,25 @@ reconnect(Socket, _Server, _Port, _Protocol, _IP) ->
 	{ok, Socket}.
 
 %%----------------------------------------------------------------------
-%% Func: send/3
-%% Purpose: this fonction is used to avoid the costly M:fun form of function
-%% call, see http://www.erlang.org/doc/r9b/doc/efficiency_guide/
-%% FIXME: is it really faster ?
+%% Func: send/5
+%% Purpose: wrapper function for send
+%% Return: ok | {error, Reason}
 %%----------------------------------------------------------------------
-send(gen_tcp,Socket,Message) -> gen_tcp:send(Socket,Message);
-send(ssl,Socket,Message)     -> ssl:send(Socket,Message);
-send(gen_udp,Socket,Message) -> gen_udp:send(Socket,Message).
+send(gen_tcp,Socket,Message,_,_) -> gen_tcp:send(Socket,Message);
+send(ssl,Socket,Message,_,_)     -> ssl:send(Socket,Message);
+send(gen_udp,Socket,Message,Host,Port) ->gen_udp:send(Socket,Host,Port,Message).
+
+%%----------------------------------------------------------------------
+%% Func: connect/4
+%% Return: {ok, Socket} | {error, Reason}
+%%----------------------------------------------------------------------
+connect(gen_tcp,Server, Port, Opts) -> gen_tcp:connect(Server, Port, Opts);
+connect(ssl,Server, Port,Opts)      -> ssl:connect(Server, Port, Opts);
+connect(gen_udp,_Server, _Port, Opts)  -> 
+    %%FIXME: temporary hack; we need a unique port for each client using the same source IP
+    ClientPort=random:uniform(64511)+1024, 
+    ?LOGF("Open UDP port number ~p, opts =~p~n",[ClientPort, Opts],?DEB),
+    gen_udp:open(ClientPort,Opts).
 
 
 %%----------------------------------------------------------------------
@@ -510,8 +525,7 @@ protocol_options(gen_udp,#proto_opts{udp_rcv_size=Rcv, udp_snd_size=Snd}) ->
 	[binary,
 	 {active, once},
 	 {recbuf, Rcv},
-	 {sndbuf, Snd},
-	 {keepalive, true} %% FIXME: should be an option
+	 {sndbuf, Snd}
 	].
 
 %%----------------------------------------------------------------------

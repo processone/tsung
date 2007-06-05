@@ -434,7 +434,7 @@ inet_setopts(ssl, Socket, Opts) ->
 			?LOGF("Error while setting ssl options ~p ~p ~n", [Opts, Error], ?ERR),
             none
 	end;
-inet_setopts(Type, Socket,  Opts) when ( (Type == tcp) or (Type == gen_tcp)) ->
+inet_setopts(_Type, Socket,  Opts)->
 	case inet:setopts(Socket, Opts) of
 		ok ->
 			Socket;
@@ -443,11 +443,7 @@ inet_setopts(Type, Socket,  Opts) when ( (Type == tcp) or (Type == gen_tcp)) ->
 		Error ->
 			?LOGF("Error while setting inet options ~p ~p ~n", [Opts, Error], ?ERR),
             none
-	end;
-%% FIXME: UDP not tested
-inet_setopts(Type, Socket,  Opts)  when ( (Type == udp) or (Type == gen_udp)) ->
-	ok = inet:setopts(Socket, Opts),
-    Socket.
+	end.
 
 %%----------------------------------------------------------------------
 %% Func: check_sum/3
