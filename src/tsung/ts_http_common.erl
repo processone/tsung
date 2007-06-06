@@ -68,7 +68,7 @@ http_no_body(Method,#http_request{url=URL, version=Version, cookie=Cookie,
                     set_cookie_header({Cookie, Host, URL}),
                     headers(Headers),
                     ?CRLF]),
-    ?LOGF("Headers~n-------------~n~s~n",[R],?DEB),
+    ?DebugF("Headers~n-------------~n~s~n",[R]),
     R;
 
 http_no_body(Method,#http_request{url=URL, version=Version, cookie=Cookie,
@@ -96,9 +96,8 @@ http_post(Args) ->
 %% Func: http_body/2
 %% Args: #http_request
 %%----------------------------------------------------------------------
-%% XXX TODO custom headers
 http_body(Method,#http_request{url=URL, version=Version,
-                               cookie=Cookie,
+                               cookie=Cookie, headers=Headers,
                                user_agent=UA, soap_action=SOAPAction,
                                content_type=ContentType,
                                body=Content, host_header=Host,
@@ -111,6 +110,7 @@ http_body(Method,#http_request{url=URL, version=Version,
                authenticate(UserId,Passwd),
                soap_action(SOAPAction),
                set_cookie_header({Cookie, Host, URL}),
+               headers(Headers),
                "Content-Type: ", ContentType, ?CRLF,
                "Content-Length: ",ContentLength, ?CRLF,
                ?CRLF
@@ -137,6 +137,7 @@ soap_action(undefined) -> [];
 soap_action(SOAPAction) -> ["SOAPAction: \"", SOAPAction, "\"", ?CRLF].
 
 % user defined headers
+headers([]) ->[];
 headers(Headers) ->
     lists:foldl(fun({Name, Value}, Result) ->
                         [Name, ": ", Value, ?CRLF | Result]
