@@ -1,15 +1,9 @@
+See also: https://support.process-one.net/browse/TSUN
 
-P3 add recorder for jabber
-P3 make SNMP customizable
 P3 better report/graphics generation
 P3 other useful protocols: smtp, ldap ...
 P3 add XML backend for stats
 P3 finish rrdtool backend for stats
-P3 add comments for edoc 
-P3 add unit testing
-P3 more http headers (referer)
-P3 make it work on windows
-P3 fix confusion with ack type and sync/async proto
 
 P4 add a web interface (with an embedded yaws)
 P4 add multiple tcp connections per client (for http)
