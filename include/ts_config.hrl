@@ -30,6 +30,9 @@
 -define(TSUNGPATH, "TSUNGPATH").
 -define(SESSION_POP_ERROR_MSG, "Total sum of session popularity is not equal to 100").
 
+-define(DEF_REGEXP_DYNVAR_BEGIN, "name=(\"|')").%'
+-define(DEF_REGEXP_DYNVAR_END, "(\"|') +value=(\"|')\\([^\"]+\\)(\"|')").%'
+
 -record(config,	{
           name,
           loglevel = ?WARN,

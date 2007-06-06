@@ -13,4 +13,4 @@
 
 test() -> ok.
 
-all_test_() -> [ts_test_recorder, ts_test_config, ts_test_file_server].
+all_test_() -> [ts_test_recorder, ts_test_config, ts_test_file_server, ts_test_search].

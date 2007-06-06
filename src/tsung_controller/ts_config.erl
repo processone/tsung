@@ -306,7 +306,7 @@ parse(Element = #xmlElement{name=transaction, attributes=Attrs},
 parse(#xmlElement{name=dyn_variable, attributes=Attrs},
       Conf=#config{sessions=[CurS|_],dynvar=DynVar}) ->
     StrName  = getAttr(Attrs, name),
-    DefaultRegExp = "name=(\"|')"++ StrName ++"(\"|') +value=(\"|')\\([^\"]+\\)(\"|')",%'
+    DefaultRegExp = ?DEF_REGEXP_DYNVAR_BEGIN++ StrName ++?DEF_REGEXP_DYNVAR_END,%'
     RegExp  = getAttr(string,Attrs, regexp, DefaultRegExp),
     {ok, [{atom,1,Name}],1} = erl_scan:string(StrName),
     ?LOGF("Add new regexp: ~s ~n", [RegExp],?INFO),
