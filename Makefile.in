@@ -331,7 +331,7 @@ release: Makefile tsung.spec doc
 	rm -fr $(distdir)
 	mkdir -p $(distdir)
 	tar zcf tmp.tgz $(SRC) $(SRC_APPFILES) $(INC_FILES) $(LIBSRC) \
-		$(CONTROLLER_SRC) $(CONTROLLER_SRC_APPFILES) \
+		$(CONTROLLER_SRC) $(CONTROLLER_SRC_APPFILES) $(TESTSRC) \
 		$(RECORDER_SRC) $(RECORDER_SRC_APPFILES) $(TEMPLATES) \
 		doc/*.erl doc/*.txt doc/*.fig doc/*.png doc/Makefile doc/*.sgml doc/*.1 \
 		$(USERMANUAL) $(USERMANUAL_SRC) $(USERMANUAL_IMG) $(DTD) \
