@@ -305,7 +305,8 @@ parse(Element = #xmlElement{name=transaction, attributes=Attrs},
 %%% Parsing the dyn_variable element
 parse(#xmlElement{name=dyn_variable, attributes=Attrs},
       Conf=#config{sessions=[CurS|_],dynvar=DynVar}) ->
-    StrName  = getAttr(Attrs, name),
+    StrName  = ts_utils:clean_str(getAttr(Attrs, name)),
+    {ok, [{atom,1,Name}],1} = erl_scan:string("'"++StrName++"'"),
     DefaultRegExp = ?DEF_REGEXP_DYNVAR_BEGIN++ StrName ++?DEF_REGEXP_DYNVAR_END,%'
     RegExp  = getAttr(string,Attrs, regexp, DefaultRegExp),
     {ok, [{atom,1,Name}],1} = erl_scan:string(StrName),
