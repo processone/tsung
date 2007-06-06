@@ -15,7 +15,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 
 %%% In addition, as a special exception, you have the permission to
 %%% link the code of this program with any library released under
@@ -40,12 +40,12 @@
 %%----------------------------------------------------------------------
 %% Function: session_default/0
 %% Purpose: default parameters for session (ack_type and persistent)
-%% Returns: {ok, "parse"|"no_ack"|"local", "true"|"false"} 
+%% Returns: {ok, "parse"|"no_ack"|"local", "true"|"false"}
 %%----------------------------------------------------------------------
 session_defaults() ->
     %% we parse the server response, and continue if the tcp
     %% connection is closed
-	{ok, true}.
+    {ok, true}.
 
 %%----------------------------------------------------------------------
 %% Function: new_session/0
@@ -53,50 +53,50 @@ session_defaults() ->
 %% Returns: record or []
 %%----------------------------------------------------------------------
 new_session() ->
-	#http{}.
+    #http{}.
 
 %%----------------------------------------------------------------------
 %% Function: get_message/21
 %% Purpose: Build a message/request ,
-%% Args:	#http_request
+%% Args:    #http_request
 %% Returns: binary
 %%----------------------------------------------------------------------
 get_message(Req=#http_request{method=get}) ->
-	ts_http_common:http_no_body(?GET, Req);
+    ts_http_common:http_no_body(?GET, Req);
 
 get_message(Req=#http_request{method=head}) ->
-	ts_http_common:http_no_body(?HEAD, Req);
+    ts_http_common:http_no_body(?HEAD, Req);
 
 get_message(Req=#http_request{method=delete}) ->
-	ts_http_common:http_no_body(?DELETE, Req);
+    ts_http_common:http_no_body(?DELETE, Req);
 
 get_message(Req=#http_request{method=post}) ->
-	ts_http_common:http_body(?POST, Req);
+    ts_http_common:http_body(?POST, Req);
 
 get_message(Req=#http_request{method=put}) ->
-	ts_http_common:http_body(?PUT, Req).
+    ts_http_common:http_body(?PUT, Req).
 
 %%----------------------------------------------------------------------
 %% Function: parse/2
 %% Purpose: Parse the given data and return a new state
-%% Args:	Data (binary)
-%%			State (record)
+%% Args:    Data (binary)
+%%            State (record)
 %% Returns: {NewState, Options for socket (list), Close}
 %%----------------------------------------------------------------------
 parse(Data, State) ->
-	ts_http_common:parse(Data, State).
+    ts_http_common:parse(Data, State).
 
 %%----------------------------------------------------------------------
 %% Function: parse_config/2
 %%----------------------------------------------------------------------
 parse_config(Element, Conf) ->
-	ts_config_http:parse_config(Element, Conf).
+    ts_config_http:parse_config(Element, Conf).
 
 %%----------------------------------------------------------------------
 %% Function: add_dynparams/4
 %% Purpose: add dynamic parameters to build the message
 %%          this is used for ex. for Cookies in HTTP
-%% Args: Subst (true|false), DynData = #dyndata, Param = #http_request, 
+%% Args: Subst (true|false), DynData = #dyndata, Param = #http_request,
 %%                                               Host  = String
 %% Returns: #http_request or { #http_request, {Host, Port, Scheme}}
 %%----------------------------------------------------------------------
@@ -104,8 +104,8 @@ add_dynparams(false, DynData, Param, HostData) ->
     add_dynparams(DynData#dyndata.proto, Param, HostData);
 add_dynparams(true, DynData, Param=#http_request{url=OldUrl}, HostData) ->
     NewParam = subst(Param, DynData#dyndata.dynvars),
-    case NewParam#http_request.url of 
-        OldUrl -> 
+    case NewParam#http_request.url of
+        OldUrl ->
             add_dynparams(DynData#dyndata.proto,NewParam, HostData);
         "http" ++ _Rest -> % URL has changed and is absolute
             URL=ts_config_http:parse_URL(NewParam#http_request.url),
@@ -126,17 +126,17 @@ add_dynparams(DynData,Param=#http_request{host_header=undefined}, {Host,Port})->
     add_dynparams(DynData, Param#http_request{host_header=Header},{Host,Port});
 %% no cookies
 add_dynparams(#http_dyndata{cookies=[],user_agent=UA},Param, _) ->
-	Param#http_request{user_agent=UA};
+    Param#http_request{user_agent=UA};
 %% cookies
 add_dynparams(#http_dyndata{cookies=DynData,user_agent=UA}, Param, _) ->
-    %% FIXME: should we use the Port value in the Cookie ? 
-	Param#http_request{cookie=DynData,user_agent=UA}.
+    %% FIXME: should we use the Port value in the Cookie ?
+    Param#http_request{cookie=DynData,user_agent=UA}.
 
 init_dynparams() ->
     %% FIXME: optimization: suppress this call if we don't need
     %% customised users agents
     UserAgent = ts_session_cache:get_user_agent(),
-	#dyndata{proto=#http_dyndata{user_agent=UserAgent}}.
+    #dyndata{proto=#http_dyndata{user_agent=UserAgent}}.
 
 
 %%----------------------------------------------------------------------
@@ -146,8 +146,11 @@ init_dynparams() ->
 %%          userid, passwd, because we see no need for the other HTTP
 %%          request parameters.
 %%----------------------------------------------------------------------
-subst(Req=#http_request{url=URL, body=Body, userid=UserId, passwd=Passwd}, DynData) ->
-    Req#http_request{url    = ts_search:subst(URL, DynData),
-					 body   = ts_search:subst(Body, DynData),
-					 userid = ts_search:subst(UserId, DynData),
-					 passwd = ts_search:subst(Passwd, DynData)}.
+subst(Req=#http_request{url=URL, body=Body, headers = Headers, userid=UserId, passwd=Passwd}, DynData) ->
+    Req#http_request{url = ts_search:subst(URL, DynData),
+             body   = ts_search:subst(Body, DynData),
+             headers = lists:foldl(fun ({Name, Value}, Result) ->
+                                           [{Name, ts_search:subst(Value, DynData)} | Result]
+                                   end, [], Headers),
+             userid = ts_search:subst(UserId, DynData),
+             passwd = ts_search:subst(Passwd, DynData)}.

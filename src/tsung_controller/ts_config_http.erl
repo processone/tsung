@@ -1,7 +1,7 @@
 %%%
 %%%  Copyright © IDEALX S.A.S. 2004
 %%%
-%%%	 Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
+%%%  Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%  Created: 20 Apr 2004 by Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
@@ -30,7 +30,7 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
--export([parse_config/2, parse_URL/1, set_port/1, set_scheme/1, 
+-export([parse_config/2, parse_URL/1, set_port/1, set_scheme/1,
          check_user_agent_sum/1]).
 
 -include("ts_profile.hrl").
@@ -48,24 +48,23 @@
 %% Parsing other elements
 parse_config(Element = #xmlElement{name=dyn_variable}, Conf = #config{}) ->
     ts_config:parse(Element,Conf);
-parse_config(Element = #xmlElement{name=http}, 
+parse_config(Element = #xmlElement{name=http},
              Config=#config{curid = Id, session_tab = Tab, servers = Servers,
                             sessions = [CurS | _], dynvar=DynVar,
-							subst    = SubstFlag, match=MatchRegExp}) ->
+                            subst    = SubstFlag, match=MatchRegExp}) ->
     Version  = ts_config:getAttr(string,Element#xmlElement.attributes, version, "1.1"),
     URL      = ts_config:getAttr(Element#xmlElement.attributes, url),
     Contents = ts_config:getAttr(Element#xmlElement.attributes, contents),
-    UseProxy = case ets:lookup(Tab,{http_use_server_as_proxy}) of 
+    UseProxy = case ets:lookup(Tab,{http_use_server_as_proxy}) of
                    [] -> false;
-                   _ -> true
+                   _  -> true
                end,
     %% Apache Tomcat applications need content-type informations to read post forms
     ContentType = ts_config:getAttr(string,Element#xmlElement.attributes,
-                            content_type, "application/x-www-form-urlencoded"),
-    Date     = ts_config:getAttr(string, Element#xmlElement.attributes, 
-                                 'if_modified_since', undefined),
+                             content_type, "application/x-www-form-urlencoded"),
+    Date   = ts_config:getAttr(string, Element#xmlElement.attributes,
+                               'if_modified_since', undefined),
     Method = list_to_atom(httpd_util:to_lower(ts_config:getAttr(string, Element#xmlElement.attributes, method))),
-            
     Request = #http_request{url         = URL,
                             method      = Method,
                             version     = Version,
@@ -79,21 +78,25 @@ parse_config(Element = #xmlElement{name=http},
                        SOAPAction  = ts_config:getAttr(SoapEl#xmlElement.attributes,
                                                        action),
                        Request#http_request{soap_action=SOAPAction};
-                   _ -> 
+                   _ ->
                        Request
                end,
     PreviousHTTPServer = get_previous_http_server(Tab, CurS#session.id),
-    Msg = case lists:keysearch(www_authenticate,#xmlElement.name,
+    %% Custom HTTP headers
+    Request3 = Request2#http_request{headers = parse_headers(Element#xmlElement.content,
+                                                             Request2#http_request.headers)},
+    %% HTTP Authentication 
+    Msg = case lists:keysearch(www_authenticate, #xmlElement.name,
                                Element#xmlElement.content) of
               {value, AuthEl=#xmlElement{} } ->
-                  UserId  = ts_config:getAttr(string,AuthEl#xmlElement.attributes,
+                  UserId= ts_config:getAttr(string,AuthEl#xmlElement.attributes,
                                               userid, undefined),
-                  Passwd  = ts_config:getAttr(string,AuthEl#xmlElement.attributes, 
+                  Passwd= ts_config:getAttr(string,AuthEl#xmlElement.attributes,
                                               passwd, undefined),
-                  NewReq=Request2#http_request{userid=UserId, passwd=Passwd},
+                  NewReq=Request3#http_request{userid=UserId, passwd=Passwd},
                   set_msg(NewReq, 0, {SubstFlag, MatchRegExp, UseProxy, Servers, PreviousHTTPServer, Tab, CurS#session.id} );
               _ ->
-                  set_msg(Request2, 0, {SubstFlag, MatchRegExp, UseProxy, Servers, PreviousHTTPServer, Tab, CurS#session.id} )
+                  set_msg(Request3, 0, {SubstFlag, MatchRegExp, UseProxy, Servers, PreviousHTTPServer, Tab, CurS#session.id} )
           end,
 
     ts_config:mark_prev_req(Id-1, Tab, CurS),
@@ -119,10 +122,10 @@ parse_config(Element = #xmlElement{name=user_agent}, Conf = #config{session_tab 
     ValRaw = ts_config:getText(Element#xmlElement.content),
     Val = ts_utils:clean_str(ValRaw),
     ?LOGF("Get user agent: ~p ~p ~n",[Proba, Val],?WARN),
-    Previous = case ets:lookup(Tab, {http_user_agent, value}) of 
+    Previous = case ets:lookup(Tab, {http_user_agent, value}) of
                    [] ->
                        [];
-                   [{_Key,Old}] -> 
+                   [{_Key,Old}] ->
                        Old
                end,
     ets:insert(Tab,{{http_user_agent, value}, [{Proba, Val}|Previous]}),
@@ -135,10 +138,25 @@ parse_config(_, Conf = #config{}) ->
     Conf.
 
 get_previous_http_server(Ets, Id) ->
-    case ets:lookup(Ets, {http_server, Id}) of 
+    case ets:lookup(Ets, {http_server, Id}) of
         [] -> [];
         [{_Key,PrevServ}] -> PrevServ
     end.
+
+parse_headers([], Headers) ->
+    Headers;
+parse_headers([Element = #xmlElement{name=http_header} | Tail], Headers) ->
+    Name   = ts_config:getAttr(string, Element#xmlElement.attributes, name),
+    Value  = ts_config:getAttr(string, Element#xmlElement.attributes, value),
+    EncodedValue = case ts_config:getAttr(atom, Element#xmlElement.attributes, encoding, none) of
+                       base64 ->
+                           httpd_util:encode_base64(Value);
+                       none ->
+                           Value
+                   end,
+    parse_headers(Tail, [{Name, EncodedValue} | Headers]);
+parse_headers([_| Tail], Headers) ->
+    parse_headers(Tail, Headers).
 
 %%----------------------------------------------------------------------
 %% Func: set_msg/3
@@ -149,7 +167,7 @@ get_previous_http_server(Ets, Id) ->
 %% if the URL is full (http://...), we parse it and get server host,
 %% port and scheme from the URL and override the global setup of the
 %% server. These informations are stored in the #ts_request record.
-set_msg(HTTP=#http_request{url="http" ++ URL}, 
+set_msg(HTTP=#http_request{url="http" ++ URL},
         ThinkTime, {SubstFlag, MatchRegExp, UseProxy, [Server|_], _PrevHTTPServer, Tab, Id}) ->
     URLrec = parse_URL("http" ++ URL),
     Path = set_query(URLrec),
@@ -163,7 +181,7 @@ set_msg(HTTP=#http_request{url="http" ++ URL},
                      false -> {#server{host=URLrec#url.host, port=Port, type=Scheme},
                                Path}
                  end,
-                                 
+
     set_msg2(HTTP#http_request{url=RealPath, host_header = HostHeader}, ThinkTime,
              #ts_request{ack    = parse,
                          subst  = SubstFlag,
@@ -173,25 +191,25 @@ set_msg(HTTP=#http_request{url="http" ++ URL},
                          port   = RealServer#server.port});
 
 %% relative URL, no previous HTTP server, use proxy, error !
-set_msg(_, _, {_, _, true, _Server, [],_Tab,_Id}) -> 
+set_msg(_, _, {_, _, true, _Server, [],_Tab,_Id}) ->
     ?LOG("Need absolut URL when using a proxy ! Abort",?ERR),
     throw({error, badurl_proxy});
 %% relative URL, no proxy, a single server => we can preset host header at configuration time
-set_msg(HTTPRequest, Think, {SubstFlag, MatchRegExp, false, [Server], [],_Tab,_Id}) -> 
+set_msg(HTTPRequest, Think, {SubstFlag, MatchRegExp, false, [Server], [],_Tab,_Id}) ->
     ?LOG("Relative URL, single server ",?NOTICE),
     URL = server_to_url(Server) ++ HTTPRequest#http_request.url,
     set_msg(HTTPRequest#http_request{url=URL}, Think, {SubstFlag, MatchRegExp, false, [Server], [],_Tab,_Id});
 %% relative URL, no proxy, several servers: don't set host header
 %% since the real server will be choose at run time
-set_msg(HTTPRequest, Think, {SubstFlag, MatchRegExp, false, _Servers, [],_Tab,_Id}) -> 
+set_msg(HTTPRequest, Think, {SubstFlag, MatchRegExp, false, _Servers, [],_Tab,_Id}) ->
     set_msg2(HTTPRequest, Think,
              #ts_request{ack = parse, subst = SubstFlag, match = MatchRegExp });
 %% relative URL, no proxy
-set_msg(HTTPRequest, Think, {SubstFlag, MatchRegExp, false, _Server, {HostHeader,_},_Tab,_Id}) -> 
+set_msg(HTTPRequest, Think, {SubstFlag, MatchRegExp, false, _Server, {HostHeader,_},_Tab,_Id}) ->
     set_msg2(HTTPRequest#http_request{host_header= HostHeader}, Think,
              #ts_request{ack = parse, subst = SubstFlag, match = MatchRegExp });
 %% relative URL, use proxy
-set_msg(HTTPRequest, Think, {SubstFlag, MatchRegExp, true, Server, {HostHeader, PrevScheme},Tab,Id}) -> 
+set_msg(HTTPRequest, Think, {SubstFlag, MatchRegExp, true, Server, {HostHeader, PrevScheme},Tab,Id}) ->
     %% set absolut URL using previous Server used.
     URL = atom_to_list(PrevScheme) ++ "://" ++ HostHeader ++ HTTPRequest#http_request.url,
     set_msg(HTTPRequest#http_request{url=URL}, Think, {SubstFlag, MatchRegExp, true, Server, {HostHeader, PrevScheme},Tab,Id}).
@@ -200,10 +218,10 @@ set_msg(HTTPRequest, Think, {SubstFlag, MatchRegExp, true, Server, {HostHeader, 
 %% Purpose: set param and thinktime in ts_request
 %% Returns: ts_request
 set_msg2(HTTPRequest, 0, Msg) -> % no thinktime, only wait for response
-	Msg#ts_request{ thinktime=infinity,
+    Msg#ts_request{ thinktime=infinity,
                     param = HTTPRequest };
 set_msg2(HTTPRequest, Think, Msg) -> % end of a page, wait before the next one
-	Msg#ts_request{ endpage   = true,
+    Msg#ts_request{ endpage   = true,
                     thinktime = Think,
                     param = HTTPRequest }.
 
@@ -239,7 +257,7 @@ set_port(#url{port=Port}) -> integer_to_list(Port).
 
 set_scheme(http) -> gen_tcp;
 set_scheme(https) -> ssl.
-    
+
 
 set_query(URLrec = #url{querypart=""}) ->
     URLrec#url.path;
@@ -292,8 +310,8 @@ parse_URL(path,[H|T], Acc, URL) ->
 % check if the sum of all user agent probabilities is equal to 100%
 check_user_agent_sum(Tab) ->
     case ets:lookup(Tab, {http_user_agent, value}) of
-        [] -> 
+        [] ->
             ok; % no user agent, will use the default one.
-        [{_Key, UserAgents}] -> 
+        [{_Key, UserAgents}] ->
             ts_utils:check_sum(UserAgents, 1, ?USER_AGENT_ERROR_MSG)
     end.

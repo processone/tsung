@@ -110,7 +110,7 @@
 <!ELEMENT transaction (request+)>
 <!ATTLIST transaction name NMTOKEN #REQUIRED>
 
-<!ELEMENT http ( www_authenticate?, soap?)>
+<!ELEMENT http ( www_authenticate?, soap?, http_header*)>
 <!ATTLIST http
     contents          CDATA #IMPLIED
     content_type      CDATA #IMPLIED
@@ -126,6 +126,12 @@
 <!ATTLIST dyn_variable
     name CDATA #REQUIRED
     regexp CDATA #IMPLIED >
+
+<!ELEMENT http_header EMPTY >
+<!ATTLIST http_header
+    name     CDATA #REQUIRED
+    encoding CDATA #IMPLIED
+    value    CDATA #IMPLIED >
 
 <!ELEMENT www_authenticate EMPTY >
 <!ATTLIST www_authenticate
