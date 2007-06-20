@@ -1,7 +1,7 @@
 %%%
 %%%  Copyright (C) Nicolas Niclausse 2005
 %%%
-%%%	 Author : Nicolas Niclausse <Nicolas.Niclausse@niclux.org>
+%%%  Author : Nicolas Niclausse <Nicolas.Niclausse@niclux.org>
 %%%  Created: 09 Nov 2005 by Nicolas Niclausse <Nicolas.Niclausse@niclux.org>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 
 -module(ts_proxy_pgsql).
 -vc('$Id: ts_proxy_http.erl,v 0.0 2005/11/09 22:20:59 nniclausse Exp $ ').
@@ -107,7 +107,7 @@ parse(State=#proxy{},_,ServerSocket,String) ->
 process_data(<<Code:8/integer, Size:4/integer-unit:8, Tail/binary>>) ->
     ?LOGF("PGSQL: received [~p]  size=~p Pckt size= ~p ~n",[Code, Size, size(Tail)],?DEB),
     RealSize = Size-4,
-    case RealSize =< size(Tail) of 
+    case RealSize =< size(Tail) of
         true ->
             << Packet:RealSize/binary, Data/binary >> = Tail,
             {ok, Pair} = decode_packet(Code, Packet),
@@ -135,7 +135,7 @@ decode_packet($p, Data) ->
     {ok, {password, Password}};
 decode_packet($X, _) ->
     {ok, terminate}.
-    
+
 %%--------------------------------------------------------------------
 %% Func: record_request/2
 %% Purpose: record request given State=#state_rec and Request=#pgsql_request
@@ -144,21 +144,21 @@ decode_packet($X, _) ->
 record_request(State=#state_rec{logfd=Fd},
                #pgsql_request{type=connect, username=User, database=DB})->
     io:format(Fd,"<request><pgsql type='connect' database='~s' username='~s'/>", [DB,User]),
-	io:format(Fd,"</request>~n",[]),
+    io:format(Fd,"</request>~n",[]),
     {ok,State};
 record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=sql, sql=SQL})->
     io:format(Fd,"<request><pgsql type='sql'><![CDATA[~s]]></pgsql>", [SQL]),
-	io:format(Fd,"</request>~n",[]),
+    io:format(Fd,"</request>~n",[]),
     {ok,State};
 record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=close})->
     io:format(Fd,"<request><pgsql type='close'/></request>", []),
     {ok,State};
 record_request(State=#state_rec{logfd=Fd},
                #pgsql_request{type = authenticate , passwd  = Pass }) ->
-    
+
     Fd = State#state_rec.logfd,
     io:format(Fd,"<request><pgsql type='authenticate' password='~s'>", [Pass]),
-	io:format(Fd,"</pgsql></request>~n",[]),
+    io:format(Fd,"</pgsql></request>~n",[]),
     {ok,State}.
 
 

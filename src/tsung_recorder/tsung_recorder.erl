@@ -1,7 +1,7 @@
 %%%
 %%%  Copyright © IDEALX S.A.S. 2003
 %%%
-%%%	 Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
+%%%  Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%  Created: 22 Dec 2003 by Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
 %%%  the EPL license and distribute linked combinations including
@@ -43,30 +43,30 @@
 %% Func: start/2
 %% Returns: {ok, Pid}        |
 %%          {ok, Pid, State} |
-%%          {error, Reason}   
+%%          {error, Reason}
 %%----------------------------------------------------------------------
 start(_Type, _StartArgs) ->
-	error_logger:tty(false),
-	error_logger:logfile({open, ?config(log_file) ++ "-" ++ atom_to_list(node())}),
+    error_logger:tty(false),
+    error_logger:logfile({open, ?config(log_file) ++ "-" ++ atom_to_list(node())}),
     case ts_recorder_sup:start_link() of
-		{ok, Pid} -> 
-			{ok, Pid};
-		Error ->
-			?LOGF("Can't start ! ~p ~n",[Error], ?ERR),
-			Error
+        {ok, Pid} ->
+            {ok, Pid};
+        Error ->
+            ?LOGF("Can't start ! ~p ~n",[Error], ?ERR),
+            Error
     end.
 
 %%----------------------------------------------------------------------
 %% Func: stop/1
-%% Returns: any 
+%% Returns: any
 %%----------------------------------------------------------------------
 stop(_State) ->
     stop.
 
 %%----------------------------------------------------------------------
 %% Func: stop_all/1
-%% Returns: any 
+%% Returns: any
 %%----------------------------------------------------------------------
 stop_all(Arg) ->
-	ts_utils:stop_all(Arg,'ts_proxy_listener', "tsung recorder",
+    ts_utils:stop_all(Arg,'ts_proxy_listener', "tsung recorder",
                       {ts_proxy_recorder, stop}).

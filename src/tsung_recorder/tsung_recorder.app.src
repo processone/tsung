@@ -12,7 +12,7 @@
                        ts_proxy_recorder,
                        ts_proxy_listener
 					  ]},
-	   {env,		[        
+	   {env,		[
 					 {debug_level, 6},
 					 {ts_cookie, "humhum"},
 					 {log_file, "./tsung.log"},
@@ -21,7 +21,7 @@
 					 {pgsql_port, 5432},
 					 {proxy_log_file, "./tsung_recorder"},
 					 {proxy_listen_port, 8090}
-					]},        
+					]},
 	   {applications, [kernel, stdlib, ssl]},
        {mod,          {tsung_recorder, []}}
 	  ]}.

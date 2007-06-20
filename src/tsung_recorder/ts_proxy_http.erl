@@ -1,7 +1,7 @@
 %%%
 %%%  Copyright (C) Nicolas Niclausse 2005
 %%%
-%%%	 Author : Nicolas Niclausse <Nicolas.Niclausse@niclux.org>
+%%%  Author : Nicolas Niclausse <Nicolas.Niclausse@niclux.org>
 %%%  Created: 09 Nov 2005 by Nicolas Niclausse <Nicolas.Niclausse@niclux.org>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 
 -module(ts_proxy_http).
 -vc('$Id: ts_proxy_http.erl,v 0.0 2005/11/09 22:20:59 nniclausse Exp $ ').
@@ -51,7 +51,7 @@ rewrite_serverdata(Data)->
     ts_utils:from_https(Data).
 
 %%--------------------------------------------------------------------
-%% Func: rewrite_serverdata/1
+%% Func: rewrite_ssl/1
 %%--------------------------------------------------------------------
 rewrite_ssl(Data)->
     ts_utils:to_https(Data).
@@ -63,11 +63,11 @@ rewrite_ssl(Data)->
 %%--------------------------------------------------------------------
 parse(State=#proxy{parse_status=Status},_,ServerSocket,String) when Status==new ->
     NewString = lists:append(State#proxy.buffer,String),
-	case ts_http_common:parse_req(NewString) of 
-		{more, _Http, _Head} -> 
+    case ts_http_common:parse_req(NewString) of
+        {more, _Http, _Head} ->
             ?LOGF("Headers incomplete (~p), buffering ~n",[NewString],?DEB),
-			{ok, State#proxy{parse_status=new, buffer=NewString}}; %FIXME: not optimal
-        {ok, Http=#http_request{url=RequestURI, version=HTTPVersion}, Body} -> 
+            {ok, State#proxy{parse_status=new, buffer=NewString}}; %FIXME: not optimal
+        {ok, Http=#http_request{url=RequestURI, version=HTTPVersion}, Body} ->
             ?LOGF("URL ~p ~n",[RequestURI],?DEB),
             ?LOGF("Method ~p ~n",[Http#http_request.method],?DEB),
             ?LOGF("Headers ~p ~n",[Http#http_request.headers],?DEB),
@@ -123,22 +123,22 @@ parse(State=#proxy{parse_status=Status},_,ServerSocket,String) when Status==new 
     end;
 
 parse(State=#proxy{parse_status=body, buffer=Http},_,ServerSocket,String) ->
-	DataSize = length(String),
-	?LOGF("HTTP Body size=~p ~n",[DataSize], ?DEB),
-	Size = State#proxy.body_size + DataSize,
-	CLength = State#proxy.content_length,
+    DataSize = length(String),
+    ?LOGF("HTTP Body size=~p ~n",[DataSize], ?DEB),
+    Size = State#proxy.body_size + DataSize,
+    CLength = State#proxy.content_length,
     ts_client_proxy:send(ServerSocket, String, ?MODULE),
     Buffer=lists:append(Http#http_request.body,String),
     %% Should be checked before
-	case Size of 
-		CLength -> % end of response
+    case Size of
+        CLength -> % end of response
             ?LOG("End of response, recording~n", ?DEB),
             ts_proxy_recorder:dorecord( {Http#http_request{ body=Buffer }} ),
-			{ok, State#proxy{body_size=0,parse_status=new, content_length=0,buffer=[]}};
-		_ ->
+            {ok, State#proxy{body_size=0,parse_status=new, content_length=0,buffer=[]}};
+        _ ->
             ?LOGF("Received ~p bytes of data, wait for ~p, continue~n", [Size,CLength],?DEB),
-			{ok, State#proxy{body_size = Size, buffer = Http#http_request{body=Buffer}}}
-	end;
+            {ok, State#proxy{body_size = Size, buffer = Http#http_request{body=Buffer}}}
+    end;
 
 parse(State=#proxy{parse_status=connect},_,ServerSocket,String) ->
     ?LOGF("Received data from client: ~s~n",[String],?DEB),
@@ -146,7 +146,7 @@ parse(State=#proxy{parse_status=connect},_,ServerSocket,String) ->
     {ok, State}.
 
 
-relative_url("CONNECT"++_Tail,_RequestURI,[])-> 
+relative_url("CONNECT"++_Tail,_RequestURI,[])->
     {ok, []};
 relative_url(NewString,RequestURI,RelURL)->
     [FullURL_noargs|_] = string:tokens(RequestURI,"?"),
@@ -159,7 +159,7 @@ relative_url(NewString,RequestURI,RelURL)->
 %% Purpose: If the socket is not defined, or if the server is not the
 %%          same, connect to the server as specified in URL
 %% Returns: {Socket, RelativeURL (String)}
-%%--------------------------------------------------------------------            
+%%--------------------------------------------------------------------
 check_serversocket(Socket, "http://{" ++ Rest, ClientSock) ->
     check_serversocket(Socket, ts_config_http:parse_URL("https://"++Rest), ClientSock);
 check_serversocket(Socket, "http://%7B" ++ Rest, ClientSock) -> %% for IE.
@@ -175,13 +175,13 @@ check_serversocket(undefined, URL = #url{}, ClientSock) ->
 
     ?LOGF("Connected to server ~p on port ~p (socket is ~p)~n",
           [URL#url.host,Port,Socket],?INFO),
-    case URL#url.scheme of 
+    case URL#url.scheme of
         connect ->
             ?LOGF("CONNECT: Send 'connection established' to client socket (~p)",[ClientSock],?DEB),
             ts_client_proxy:send(ClientSock, "HTTP/1.0 200 Connection established\r\nProxy-agent: tsung\r\n\r\n", ?MODULE),
             { Socket, [] };
         _ ->
-            case URL#url.querypart of 
+            case URL#url.querypart of
                 []    -> {Socket, URL#url.path};
                 Query -> {Socket, URL#url.path++"?"++Query}
             end
@@ -192,30 +192,30 @@ check_serversocket(Socket, URL=#url{host=Host}, _ClientSock) ->
     case ts_client_proxy:peername(Socket) of
         {ok, {RealIP, RealPort}} -> % same as previous URL
             ?LOGF("Reuse socket ~p on URL ~p~n", [Socket, URL],?DEB),
-            case URL#url.querypart of 
+            case URL#url.querypart of
                 []    -> {Socket, URL#url.path};
                 Query -> {Socket, URL#url.path++"?"++Query}
             end;
         Other ->
-            ?LOGF("New server configuration  (~p:~p, was ~p) on URL ~p~n", 
+            ?LOGF("New server configuration  (~p:~p, was ~p) on URL ~p~n",
                   [RealIP, RealPort, Other, URL],?DEB),
-            case Socket of 
+            case Socket of
                 {sslsocket, _, _} -> ssl:close(Socket);
                 _             -> gen_tcp:close(Socket)
             end,
             {ok, NewSocket} = connect(URL#url.scheme, Host,RealPort),
-            case URL#url.querypart of 
+            case URL#url.querypart of
                 []    -> {NewSocket, URL#url.path};
                 Query -> {NewSocket, URL#url.path++"?"++Query}
             end
     end.
 
 connect(Scheme, Host, Port)->
-    case Scheme of 
-        https -> 
+    case Scheme of
+        https ->
             {ok, _} = ssl:connect(Host,Port,
                                  [{active, once}]);
-        _  -> 
+        _  ->
             {ok, _} = gen_tcp:connect(Host,Port,
                                       [{active, once},
                                        {recbuf, ?tcp_buffer},
@@ -233,11 +233,11 @@ record_request(State=#state_rec{prev_host=Host, prev_port=Port, prev_scheme=Sche
                     #http_request{method  = Method, url = RequestURI,
                                   version = HTTPVersion,
                                   headers = ParsedHeader,body=Body}) ->
-    
+
     FullURL = ts_utils:to_https({url, RequestURI}),
 
-    {URL,NewPort,NewHost, NewScheme} = 
-        case ts_config_http:parse_URL(FullURL) of 
+    {URL,NewPort,NewHost, NewScheme} =
+        case ts_config_http:parse_URL(FullURL) of
             #url{path=RelURL,host=Host,port=Port,querypart=[],scheme=Scheme}->
                 {RelURL, Port, Host, Scheme};
             #url{path=RelURL,host=Host,port=Port,querypart=Args,scheme=Scheme}->
@@ -248,14 +248,14 @@ record_request(State=#state_rec{prev_host=Host, prev_port=Port, prev_scheme=Sche
     Fd = State#state_rec.logfd,
     URL2 = ts_utils:export_text(URL),
     io:format(Fd,"<request><http url='~s' version='~s' ", [URL2, HTTPVersion]),
-    case Body of 
+    case Body of
         [] -> ok;
-        _  -> 
+        _  ->
             Body2 = ts_utils:export_text(Body),
             io:format(Fd," contents='~s' ", [Body2]) % must be a POST method
     end,
 
-    %% Content-type recording (This is usefull for SOAP post for example):
+    %% Content-type recording (This is useful for SOAP post for example):
     record_header(Fd,ParsedHeader,"content-type", "content_type='~s' "),
     record_header(Fd,ParsedHeader,"if_modified_since", "if_modified_since='~s' "),
 
@@ -266,10 +266,9 @@ record_request(State=#state_rec{prev_host=Host, prev_port=Port, prev_scheme=Sche
     %% SOAP Support: Need to record use of the SOAPAction header
     record_header(Fd,ParsedHeader,"soapaction",
                   "~n  <soap action='~s'></soap>~n",
-                  fun(A) -> string:strip(A,both,$") end ),
+                  fun(A) -> string:strip(A,both,$") end ), %"
 
-	io:format(Fd,"</http></request>~n",[]),
-
+    io:format(Fd,"</http></request>~n",[]),
     {ok,State#state_rec{prev_port=NewPort,prev_host=NewHost,prev_scheme=NewScheme}}.
 
 %%--------------------------------------------------------------------
@@ -278,10 +277,10 @@ record_request(State=#state_rec{prev_host=Host, prev_port=Port, prev_scheme=Sche
 %% Returns: {User, Passwd}
 %%--------------------------------------------------------------------
 decode_basic_auth(Base64)->
-	AuthStr= httpd_util:decode_base64(Base64),
-	Sep = string:chr(AuthStr,$:),
-	{string:substr(AuthStr,1,Sep-1),string:substr(AuthStr,Sep+1)}.
-	
+    AuthStr= httpd_util:decode_base64(Base64),
+    Sep = string:chr(AuthStr,$:),
+    {string:substr(AuthStr,1,Sep-1),string:substr(AuthStr,Sep+1)}.
+
 %%--------------------------------------------------------------------
 %% Func: record_header/3
 %%--------------------------------------------------------------------
@@ -291,11 +290,11 @@ record_header(Fd, Headers, "authorization", Msg)->
         "Basic " ++ Base64 ->
             {User,Passwd} = decode_basic_auth(Base64),
             io:format(Fd, Msg, [User,Passwd]);
-		_ -> ok
+        _ -> ok
     end;
 record_header(Fd, Headers, HeaderName, Msg)->
     %% record Msg as it is given
-    record_header(Fd, Headers,HeaderName, Msg, fun(A)->A end). 
+    record_header(Fd, Headers,HeaderName, Msg, fun(A)->A end).
 %%--------------------------------------------------------------------
 record_header(Fd, Headers,HeaderName, Msg, Fun)->
     case httpd_util:key1search(Headers,HeaderName) of

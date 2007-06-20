@@ -1,7 +1,7 @@
 %%%
 %%%  Copyright © IDEALX S.A.S. 2003
 %%%
-%%%	 Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
+%%%  Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%  Created: 22 Dec 2003 by Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
@@ -27,7 +27,7 @@
 %%%-------------------------------------------------------------------
 %%% File    : ts_proxy_recorder.erl
 %%% Author  : Nicolas Niclausse <nicolas@niclux.org>
-%%% Description : 
+%%% Description :
 %%%
 %%% Created : 22 Dec 2003 by Nicolas Niclausse <nicolas@niclux.org>
 %%%-------------------------------------------------------------------
@@ -93,20 +93,20 @@ init(Filename) ->
     %% add date to filename
     File = case regexp:gsub(Filename,"\.xml$", Date ++ ".xml") of %% "
                {ok, RealName, _ } -> RealName;
-               _ ->  Date ++ "-" ++ Filename         
+               _ ->  Date ++ "-" ++ Filename
            end,
-    case file:open(File,write) of 
-		{ok, Stream} ->
+    case file:open(File,write) of
+        {ok, Stream} ->
             Plugin = ?config(plugin),
             erlang:display(lists:flatten(["Record file: ",File])),
-			?LOGF("starting recorder with plugin ~s : ~s~n",[Plugin,File],?NOTICE),
-			{ok, #state_rec{ log_file = File,
+            ?LOGF("starting recorder with plugin ~s : ~s~n",[Plugin,File],?NOTICE),
+            {ok, #state_rec{ log_file = File,
                              logfd    = Stream,
                              plugin   = Plugin
-					   }};
-		{error, Reason} ->
-			?LOGF("Can't open log file ~p! ~p~n",[File,Reason], ?ERR),
-			{stop, Reason}
+                            }};
+        {error, Reason} ->
+            ?LOGF("Can't open log file ~p! ~p~n",[File,Reason], ?ERR),
+            {stop, Reason}
     end.
 
 %%--------------------------------------------------------------------

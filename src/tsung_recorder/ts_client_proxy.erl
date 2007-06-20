@@ -1,7 +1,7 @@
 %%%
 %%%  Copyright © IDEALX S.A.S. 2003
 %%%
-%%%	 Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
+%%%  Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%  Created: 22 Dec 2003 by Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
 %%%  the EPL license and distribute linked combinations including
@@ -49,7 +49,7 @@
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
-		 code_change/3, peername/1, send/3]).
+         code_change/3, peername/1, send/3]).
 
 %%====================================================================
 %% External functions
@@ -108,20 +108,20 @@ handle_cast(_Msg, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
 % client data, parse and send it to the server.
-handle_info({tcp, ClientSock, String}, State=#proxy{plugin=Plugin}) 
+handle_info({tcp, ClientSock, String}, State=#proxy{plugin=Plugin})
   when ClientSock == State#proxy.clientsock ->
     ts_utils:inet_setopts(tcp, ClientSock,[{active, once}]),
     {ok, NewState}  = Plugin:parse(State,ClientSock,State#proxy.serversock,String),
     {noreply, NewState, ?lifetime};
 
 % server data, send it to the client
-handle_info({Type, ServerSock, String}, State=#proxy{plugin=Plugin}) 
+handle_info({Type, ServerSock, String}, State=#proxy{plugin=Plugin})
   when ServerSock == State#proxy.serversock, ((Type == tcp) or (Type == ssl)) ->
     ts_utils:inet_setopts(Type, ServerSock,[{active, once}]),
     ?LOGF("Received data from server: ~s~n",[String],?DEB),
     {ok,NewString} = Plugin:rewrite_serverdata(String),
     send(State#proxy.clientsock, NewString, Plugin),
-    case regexp:first_match(NewString, "[cC]onnection: [cC]lose") of 
+    case regexp:first_match(NewString, "[cC]onnection: [cC]lose") of
         nomatch ->
             {noreply, State, ?lifetime};
         _ ->

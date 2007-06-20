@@ -1,7 +1,7 @@
 %%%
 %%%  Copyright © IDEALX S.A.S. 2003
 %%%
-%%%	 Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
+%%%  Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%  Created: 22 Dec 2003 by Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
 %%%  the EPL license and distribute linked combinations including
@@ -26,7 +26,7 @@
 %%%-------------------------------------------------------------------
 %%% File    : ts_proxy_listener.erl
 %%% Author  :  <nicolas.niclaussse@IDEALX.com>
-%%% Description : 
+%%% Description :
 %%% Created : 22 Dec 2003 by Nicolas Niclausse <nicolas@niclux.org>
 %%%-------------------------------------------------------------------
 
@@ -44,9 +44,9 @@
 -include("ts_recorder.hrl").
 
 %% gen_server callbacks
--export([init/1, 
-	 handle_call/3, handle_cast/2, handle_info/2,
-	 terminate/2, code_change/3]).
+-export([init/1,
+         handle_call/3, handle_cast/2, handle_info/2,
+         terminate/2, code_change/3]).
 
 %% API
 
@@ -62,7 +62,7 @@
           acceptloop_pid, % The PID of the companion process that blocks
                                                 % in accept().
           accept_count = 0 % The number of accept()s done so far.
-	 }).
+         }).
 
 %%====================================================================
 %% Server and API functions
@@ -111,7 +111,7 @@ init(_Config) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
 handle_call(stop, _From, State) ->
-    case State#state.acceptsock of 
+    case State#state.acceptsock of
         undefined -> nothing;
         Socket -> ssl:close(Socket)
     end,
@@ -123,7 +123,7 @@ handle_call({accepted, _Tag, ClientSock}, _From, State) ->
         {ok, Pid} ->
             ?LOGF("New connection from~p~n", [inet:peername(ClientSock)],?INFO),
             ok = gen_tcp:controlling_process(ClientSock, Pid);
-        Error -> 
+        Error ->
             ?LOGF("Failed to launch new client ~p~n",[Error],?ERR),
             gen_tcp:close(ClientSock)
     end,
@@ -132,14 +132,14 @@ handle_call({accepted, _Tag, ClientSock}, _From, State) ->
 
 handle_call({accept_error, _Tag, Error}, _From, State) ->
     ?LOGF("accept() failed ~p~n",[Error],?ERR),
-	case Error of
-		{error, esslaccept} ->
-			%% Someone may be testing the app by trying plain telnets.
-			%% Let go.
-			{reply, continue, State};
-		_ ->
-			{stop, Error, stop, State}
-	end;
+    case Error of
+        {error, esslaccept} ->
+            %% Someone may be testing the app by trying plain telnets.
+            %% Let go.
+            {reply, continue, State};
+        _ ->
+            {stop, Error, stop, State}
+    end;
 
 handle_call(_, _From, State) ->
     {noreply, State}.
@@ -169,7 +169,7 @@ handle_info(_Info, State) ->
 %% Returns: any (ignored by gen_server)
 %%--------------------------------------------------------------------
 terminate(_Reason, State) ->
-    case State#state.acceptsock of 
+    case State#state.acceptsock of
         undefined -> nothing;
         Socket -> gen_tcp:close(Socket)
     end,
@@ -204,13 +204,13 @@ activate(State=#state{plugin=Plugin})->
                                 [{reuseaddr, true}, {active, once}]),
             {ok, ServerSock} = gen_tcp:listen(Portno, Opts),
             NewState = State#state
-			 {acceptsock=ServerSock,
-			  acceptloop_pid = spawn_link(?MODULE,
-						      accept_loop,
-						      [self(), unused, ServerSock])},
-	    NewState;
-	_ -> %% Already active
-	    State
+                         {acceptsock=ServerSock,
+                          acceptloop_pid = spawn_link(?MODULE,
+                                                 accept_loop,
+                                                 [self(), unused, ServerSock])},
+            NewState;
+        _ -> %% Already active
+            State
     end.
 
 %%--------------------------------------------------------------------
@@ -227,9 +227,9 @@ accept_loop(PPid, Tag, ServerSock)->
                 gen_server:call(PPid, {accepted, Tag, ClientSock});
             Error ->
                 gen_server:call(PPid, {accept_error, Tag, Error})
-        end 
+        end
         of
-        continue -> 
+        continue ->
             accept_loop(PPid, Tag, ServerSock);
         _->
             normal

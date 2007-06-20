@@ -1,7 +1,7 @@
 %%%
 %%%  Copyright © IDEALX S.A.S. 2003
 %%%
-%%%	 Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
+%%%  Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%  Created: 22 Dec 2003 by Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
 %%%  the EPL license and distribute linked combinations including
@@ -26,7 +26,7 @@
 %%%-------------------------------------------------------------------
 %%% File    : ts_recorder_sup.erl
 %%% Author  :  <nicolas.niclaussse@IDEALX.com>
-%%% Description : 
+%%% Description :
 %%% Created : 22 Dec 2003 by Nicolas Niclausse <nicolas@niclux.org>
 %%%-------------------------------------------------------------------
 
@@ -48,8 +48,8 @@
 %%% API
 %%%----------------------------------------------------------------------
 start_link() ->
-	?LOG("starting supervisor ...~n",?INFO),
-	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+    ?LOG("starting supervisor ...~n",?INFO),
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from supervisor
@@ -59,17 +59,16 @@ start_link() ->
 %% Func: init/1
 %% Returns: {ok,  {SupFlags,  [ChildSpec]}} |
 %%          ignore                          |
-%%          {error, Reason}   
+%%          {error, Reason}
 %%----------------------------------------------------------------------
 init([]) ->
-	?LOG("starting",?INFO),
+    ?LOG("starting",?INFO),
     ClientsSup = {ts_client_proxy_sup, {ts_client_proxy_sup, start_link, []},
                   permanent, 2000, supervisor, [ts_client_proxy_sup]},
-	Recorder = {ts_proxy_recorder, {ts_proxy_recorder, 
-                                    start, [?config(proxy_log_file)]}, 
-				transient, 2000, worker, [ts_proxy_recorder]},
-	Listener = {ts_proxy_listener, {ts_proxy_listener,
-                                  start, []}, 
+    Recorder = {ts_proxy_recorder,
+                {ts_proxy_recorder, start, [?config(proxy_log_file)]},
+                transient, 2000, worker, [ts_proxy_recorder]},
+    Listener = {ts_proxy_listener, {ts_proxy_listener, start, []},
                 transient, 2000, worker, [ts_proxy_listener]},
     {ok,{{one_for_one,?retries,10}, [ClientsSup, Recorder,Listener ]}}.
 

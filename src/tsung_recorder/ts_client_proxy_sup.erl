@@ -15,7 +15,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
 %%%  the EPL license and distribute linked combinations including
@@ -39,7 +39,7 @@
 %%% API
 %%%----------------------------------------------------------------------
 start_link() ->
-	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 start_child(Profile) ->
     supervisor:start_child(?MODULE,[Profile]).
@@ -61,15 +61,15 @@ active_clients()->
 %% Func: init/1
 %% Returns: {ok,  {SupFlags,  [ChildSpec]}} |
 %%          ignore                          |
-%%          {error, Reason}   
+%%          {error, Reason}
 %%----------------------------------------------------------------------
 init([]) ->
-	?LOG("Starting ~n", ?INFO),
+    ?LOG("Starting ~n", ?INFO),
     SupFlags = {simple_one_for_one,1, ?restart_sleep},
-    ChildSpec = [ 
-				  {ts_client_proxy,{ts_client_proxy, start, []},
-				   temporary,2000,worker,[ts_client_proxy]}
-				 ],
+    ChildSpec = [
+                  {ts_client_proxy,{ts_client_proxy, start, []},
+                   temporary,2000,worker,[ts_client_proxy]}
+                 ],
     {ok, {SupFlags, ChildSpec}}.
 
 
