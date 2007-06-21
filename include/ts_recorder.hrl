@@ -22,6 +22,7 @@
           parse_status   = new, %% http status = body|new
           body_size      = 0,
           content_length = 0,
+          parent_proxy   = false,
           buffer = [],
           plugin,
           serversock
