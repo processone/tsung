@@ -61,7 +61,7 @@ rewrite_ssl(Data)->
 %% Purpose: parse HTTP request
 %% Returns: {ok, NewState}
 %%--------------------------------------------------------------------
-parse(State=#proxy{parse_status=Status},_,ServerSocket,String) when Status==new ->
+parse(State=#proxy{parse_status=Status, parent_proxy=Parent},_,ServerSocket,String) when Status==new ->
     NewString = lists:append(State#proxy.buffer,String),
     case ts_http_common:parse_req(NewString) of
         {more, _Http, _Head} ->
@@ -74,10 +74,10 @@ parse(State=#proxy{parse_status=Status},_,ServerSocket,String) when Status==new 
             case httpd_util:key1search(Http#http_request.headers,"content-length") of
                 undefined -> % no body, everything received
                     ts_proxy_recorder:dorecord({Http }),
-                    {NewSocket,RelURL} = check_serversocket(ServerSocket,RequestURI,State#proxy.clientsock),
+                    {NewSocket,RelURL} = check_serversocket(Parent,ServerSocket,RequestURI,State#proxy.clientsock),
                     ?LOGF("Remove server info from url:~p ~p in ~p~n",
                           [RequestURI,RelURL,NewString], ?INFO),
-                    {ok, RealString} = relative_url(NewString,RequestURI,RelURL),
+                    {ok, RealString} = relative_url(Parent,NewString,RequestURI,RelURL),
                     ts_client_proxy:send(NewSocket,RealString, ?MODULE),
                     case Http#http_request.method of
                         'CONNECT' ->
@@ -96,7 +96,7 @@ parse(State=#proxy{parse_status=Status},_,ServerSocket,String) when Status==new 
                     if
                         BodySize == CLength ->  % end of response
                             {NewSocket,RelURL} = check_serversocket(ServerSocket,RequestURI,State#proxy.clientsock),
-                            {ok,RealString,_Count} = regexp:gsub(NewString,RequestURI,RelURL),%FIXME: why not use relative_url ?
+                            {ok,RealString} = relative_url(Parent,NewString,RequestURI,RelURL),
                             ts_client_proxy:send(NewSocket,RealString,?MODULE),
                             ?LOG("End of response, recording~n", ?DEB),
                             ts_proxy_recorder:dorecord({Http#http_request{body=Body}}),
@@ -107,7 +107,7 @@ parse(State=#proxy{parse_status=Status},_,ServerSocket,String) when Status==new 
                             {error, bad_content_length};
                         true ->
                             {NewSocket,RelURL} = check_serversocket(ServerSocket,RequestURI,State#proxy.clientsock),
-                            {ok,RealString,_Count} = regexp:gsub(NewString,RequestURI,RelURL), %FIXME: why not use relative_url ?
+                            {ok,RealString} = relative_url(Parent,NewString,RequestURI,RelURL),
                             ts_client_proxy:send(NewSocket,RealString,?MODULE),
                             ?LOG("More data to come continue before recording~n", ?DEB),
                             {ok, State#proxy{http_version=HTTPVersion,
@@ -146,16 +146,43 @@ parse(State=#proxy{parse_status=connect},_,ServerSocket,String) ->
     {ok, State}.
 
 
-relative_url("CONNECT"++_Tail,_RequestURI,[])->
+%%--------------------------------------------------------------------
+%% Func: relative_url/4
+%%--------------------------------------------------------------------
+relative_url(_,"CONNECT"++_Tail,_RequestURI,[])->
     {ok, []};
-relative_url(NewString,RequestURI,RelURL)->
+relative_url(true,NewString,_RequestURI,_RelURL)->
+    {ok, NewString};
+relative_url(false,NewString,RequestURI,RelURL)->
     [FullURL_noargs|_] = string:tokens(RequestURI,"?"),
     [RelURL_noargs|_]  = string:tokens(RelURL,"?"),
     {ok,RealString,_Count} = regexp:gsub(NewString,FullURL_noargs,RelURL_noargs),
     {ok, RealString}.
 
 %%--------------------------------------------------------------------
-%% Func: check_serversocket/2
+%% Func: check_serversocket/4
+%% Purpose: If the socket is not defined, or if the server is not the
+%%          same, connect to the server as specified in URL
+%%          Check if we use a parent proxy, otherwise use check_serversocket/3
+%% Returns: {Socket, URL (String)}
+%%--------------------------------------------------------------------
+check_serversocket(false, Socket,  URL , ClientSock) ->
+    check_serversocket(Socket,  URL , ClientSock);
+check_serversocket(true, Socket,  "http://{"++URL, ClientSock) ->
+    check_serversocket(true, Socket, "https://"++URL, ClientSock);
+check_serversocket(true, Socket, "http://%7B"++URL, ClientSock) ->
+    check_serversocket(true, Socket, "https://"++URL, ClientSock);
+check_serversocket(true, undefined, URL, _ClientSock) ->
+    ?LOGF("Connecting to parent proxy ~p:~p ...~n",
+          [?config(pgsql_server),?config(pgsql_port)],?WARN),
+    {ok ,Socket} = connect(http,?config(pgsql_server),?config(pgsql_port)),
+    {Socket,URL};
+check_serversocket(true, Socket, URL, _ClientSock) ->
+    {Socket,URL}.
+
+
+%%--------------------------------------------------------------------
+%% Func: check_serversocket/3
 %% Purpose: If the socket is not defined, or if the server is not the
 %%          same, connect to the server as specified in URL
 %% Returns: {Socket, RelativeURL (String)}
@@ -181,10 +208,7 @@ check_serversocket(undefined, URL = #url{}, ClientSock) ->
             ts_client_proxy:send(ClientSock, "HTTP/1.0 200 Connection established\r\nProxy-agent: tsung\r\n\r\n", ?MODULE),
             { Socket, [] };
         _ ->
-            case URL#url.querypart of
-                []    -> {Socket, URL#url.path};
-                Query -> {Socket, URL#url.path++"?"++Query}
-            end
+            {Socket, url_with_query(URL)}
     end;
 check_serversocket(Socket, URL=#url{host=Host}, _ClientSock) ->
     RealPort = ts_config_http:set_port(URL),
@@ -192,10 +216,7 @@ check_serversocket(Socket, URL=#url{host=Host}, _ClientSock) ->
     case ts_client_proxy:peername(Socket) of
         {ok, {RealIP, RealPort}} -> % same as previous URL
             ?LOGF("Reuse socket ~p on URL ~p~n", [Socket, URL],?DEB),
-            case URL#url.querypart of
-                []    -> {Socket, URL#url.path};
-                Query -> {Socket, URL#url.path++"?"++Query}
-            end;
+            {Socket, url_with_query(URL)};
         Other ->
             ?LOGF("New server configuration  (~p:~p, was ~p) on URL ~p~n",
                   [RealIP, RealPort, Other, URL],?DEB),
@@ -203,12 +224,12 @@ check_serversocket(Socket, URL=#url{host=Host}, _ClientSock) ->
                 {sslsocket, _, _} -> ssl:close(Socket);
                 _             -> gen_tcp:close(Socket)
             end,
-            {ok, NewSocket} = connect(URL#url.scheme, Host,RealPort),
-            case URL#url.querypart of
-                []    -> {NewSocket, URL#url.path};
-                Query -> {NewSocket, URL#url.path++"?"++Query}
-            end
+            {ok, NewSocket} = connect(URL#url.scheme, Host, RealPort),
+            {NewSocket, url_with_query(URL)}
     end.
+
+url_with_query(#url{path=Path, querypart=[]})    -> Path;
+url_with_query(#url{path=Path, querypart=Query}) -> Path ++"?"++Query.
 
 connect(Scheme, Host, Port)->
     case Scheme of

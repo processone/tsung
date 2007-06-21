@@ -17,6 +17,7 @@
 					 {ts_cookie, "humhum"},
 					 {log_file, "./tsung.log"},
 					 {plugin, ts_proxy_http},
+                     {parent_proxy, false},
 					 {pgsql_server, "127.0.0.1"},
 					 {pgsql_port, 5432},
 					 {proxy_log_file, "./tsung_recorder"},

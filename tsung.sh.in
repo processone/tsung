@@ -15,6 +15,7 @@ LOG_OPT="log_file \"$LOG_DIR/tsung.log\""
 VERSION=@PACKAGE_VERSION@
 
 LISTEN_PORT=8090
+USE_PARENT_PROXY=false
 PGSQL_SERVER_IP=127.0.0.1
 PGSQL_SERVER_PORT=5432
 NAME=tsung
@@ -57,9 +58,9 @@ recorder_status() {
 checkversion() {
     if [ $ERTS_RUN != $ERTS_BOOT ]
     then
-		echo "Erlang version has changed ! [$ERTS_BOOT] != [$ERTS_RUN]"
-		echo "Must create new boot files (you may have to run this one time as root ! )"
-		makebootfiles
+        echo "Erlang version has changed ! [$ERTS_BOOT] != [$ERTS_RUN]"
+        echo "Must create new boot files (you may have to run this one time as root ! )"
+        makebootfiles
     fi
 }
 
@@ -76,7 +77,7 @@ makebootfiles() {
 }
 
 start() {
-    echo "Starting Tsung"	
+    echo "Starting Tsung"
     $ERL $ERL_OPTS $ERL_RSH -noshell -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT \
     -pa $TSUNGPATH -pa $CONTROLLERPATH \
     -tsung_controller debug_level $DEBUG_LEVEL \
@@ -89,6 +90,7 @@ recorder() {
     -pa $TSUNGPATH -pa $RECORDERPATH -pa $CONTROLLERPATH \
     -tsung_recorder debug_level $DEBUG_LEVEL \
     -tsung_recorder $LOG_OPT \
+    -tsung_recorder parent_proxy $USE_PARENT_PROXY \
     -tsung_recorder plugin ts_proxy_$RECORDER_PLUGIN \
     -tsung_recorder proxy_log_file \"$MAIN_DIR/tsung_recorder.xml\" \
     -tsung_recorder pgsql_server \"${PGSQL_SERVER_IP}\" \
@@ -105,23 +107,23 @@ debug() {
 }
 
 version() {
-    echo "Tsung version $VERSION" 
+    echo "Tsung version $VERSION"
 }
 
 checkconfig() {
-	if [ ! -e $CONF_OPT_FILE ]
-	then
-		echo "Config file $CONF_OPT_FILE doesn't exist, aborting !"
-		exit 1
-	fi
+    if [ ! -e $CONF_OPT_FILE ]
+    then
+        echo "Config file $CONF_OPT_FILE doesn't exist, aborting !"
+        exit 1
+    fi
 }
 
 maindir() {
-	if [ ! -d $MAIN_DIR ]
-	then
-		echo "Creating local Tsung directory $MAIN_DIR"
-		mkdir $MAIN_DIR
-	fi
+    if [ ! -d $MAIN_DIR ]
+    then
+        echo "Creating local Tsung directory $MAIN_DIR"
+        mkdir $MAIN_DIR
+    fi
 }
 
 logdir() {
@@ -157,11 +159,11 @@ checkrunning(){
 
 usage() {
     prog=`basename $0`
-    echo "$prog start|stop|restart|debug|status|recorder|stop_recorder|version"
+    echo "$prog <options> start|stop|restart|debug|status|recorder|stop_recorder|version"
     exit
 }
 
-while getopts ":f:p:l:d:r:i:P:L:I:" Option
+while getopts ":f:p:l:d:r:i:P:L:I:u" Option
 do
     case $Option in
         f) CONF_OPT_FILE=$OPTARG;;
@@ -170,11 +172,12 @@ do
         r) ERL_RSH=" -rsh $OPTARG ";;
         p) RECORDER_PLUGIN=$OPTARG;;
         I) PGSQL_SERVER_IP=$OPTARG;;
+        u) USE_PARENT_PROXY=true;;
         P) PGSQL_SERVER_PORT=$OPTARG;;
         L) LISTEN_PORT=$OPTARG;;
         *) usage ;;
     esac
-done	
+done
 shift $(($OPTIND - 1))
 
 case $1 in

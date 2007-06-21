@@ -74,7 +74,9 @@ start(Socket) ->
 %%          {stop, Reason}
 %%--------------------------------------------------------------------
 init([Socket]) ->
-    {ok, #proxy{clientsock=Socket, plugin=?config(plugin)}}.
+    ?LOGF("Parent proxy: ~p~n",[?config(parent_proxy)],?DEB),
+    {ok, #proxy{clientsock=Socket, plugin=?config(plugin),
+                parent_proxy=?config(parent_proxy)}}.
 
 %%--------------------------------------------------------------------
 %% Function: handle_call/3
