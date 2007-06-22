@@ -95,7 +95,7 @@ parse(State=#proxy{parse_status=Status, parent_proxy=Parent},_,ServerSocket,Stri
                     BodySize = length(Body),
                     if
                         BodySize == CLength ->  % end of response
-                            {NewSocket,RelURL} = check_serversocket(ServerSocket,RequestURI,State#proxy.clientsock),
+                            {NewSocket,RelURL} = check_serversocket(Parent,ServerSocket,RequestURI,State#proxy.clientsock),
                             {ok,RealString} = relative_url(Parent,NewString,RequestURI,RelURL),
                             ts_client_proxy:send(NewSocket,RealString,?MODULE),
                             ?LOG("End of response, recording~n", ?DEB),
@@ -106,7 +106,7 @@ parse(State=#proxy{parse_status=Status, parent_proxy=Parent},_,ServerSocket,Stri
                         BodySize > CLength  ->
                             {error, bad_content_length};
                         true ->
-                            {NewSocket,RelURL} = check_serversocket(ServerSocket,RequestURI,State#proxy.clientsock),
+                            {NewSocket,RelURL} = check_serversocket(Parent,ServerSocket,RequestURI,State#proxy.clientsock),
                             {ok,RealString} = relative_url(Parent,NewString,RequestURI,RelURL),
                             ts_client_proxy:send(NewSocket,RealString,?MODULE),
                             ?LOG("More data to come continue before recording~n", ?DEB),
