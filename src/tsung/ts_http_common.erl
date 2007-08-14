@@ -104,7 +104,7 @@ http_body(Method,#http_request{url=URL, version=Version,
                                userid=UserId, passwd=Passwd}) ->
     ContentLength=integer_to_list(size(Content)),
     ?DebugF("Content Length of POST: ~p~n.", [ContentLength]),
-    Headers = [Method, " ", URL," ", "HTTP/", Version, ?CRLF,
+    H = [Method, " ", URL," ", "HTTP/", Version, ?CRLF,
                "Host: ", Host, ?CRLF,
                user_agent(UA),
                authenticate(UserId,Passwd),
@@ -115,9 +115,8 @@ http_body(Method,#http_request{url=URL, version=Version,
                "Content-Length: ",ContentLength, ?CRLF,
                ?CRLF
               ],
-    R = list_to_binary([Headers, Content ]),
-    ?LOGF("Headers~n-------------~n~s~n",[R],?DEB),
-    R.
+    ?LOGF("Headers~n-------------~n~s~n",[H],?DEB),
+    list_to_binary([H, Content ]).
 
 %%----------------------------------------------------------------------
 %% some HTTP headers functions
