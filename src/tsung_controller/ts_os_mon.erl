@@ -16,14 +16,14 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 
 %%%  Created :  23 Dec 2003 by Mickael Remond <mickael.remond@erlang-fr.org>
 
 %%----------------------------------------------------------------------
 %% HEADER ts_os_mon
 %% COPYRIGHT Mickael Remond (C) 2003
-%% PURPOSE Monitor CPU, memory consumption and network traffic 
+%% PURPOSE Monitor CPU, memory consumption and network traffic
 %%         on a cluster of machines
 %% DESCRIPTION
 %%   TODO ...
@@ -65,7 +65,9 @@
 -export([node_data/0]).
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-	 terminate/2, code_change/3]).
+         terminate/2, code_change/3]).
+
+-define(PROCNET, "/proc/net/dev").
 
 -define(SERVER, ts_os_mon).
 -define(NODE, "os_mon").
@@ -99,7 +101,7 @@
 %%--------------------------------------------------------------------
 activate() ->
     case ts_config_server:get_monitor_hosts() of
-    	[] ->
+        [] ->
            ?LOG("os_mon disabled",?NOTICE),
             ok;
         Hosts ->
@@ -143,9 +145,9 @@ updatestats(Interval,Mon_Server) ->
     Node = atom_to_list(node()),
     {Cpu, FreeMem, RecvPackets, SentPackets} = node_data(),
     send(Mon_Server,[{sample, {cpu, Node}, Cpu},
-				{sample, {freemem, Node}, FreeMem},
-				{sample_counter, {recvpackets, Node}, RecvPackets},
-				{sample_counter, {sentpackets,  Node}, SentPackets}]),
+                     {sample, {freemem, Node}, FreeMem},
+                     {sample_counter, {recvpackets, Node}, RecvPackets},
+                     {sample_counter, {sentpackets,  Node}, SentPackets}]),
 
     timer:sleep(Interval),
     updatestats(Interval,Mon_Server).
@@ -166,8 +168,8 @@ updatestats(Interval,Mon_Server) ->
 init({Mon_Server, Interval}) ->
     ?LOG(" os_mon started",?NOTICE),
     %% to get the EXIT signal from spawn processes on remote nodes
-	process_flag(trap_exit,true), 
-	{ok, #state{mon_server=Mon_Server, interval=Interval}};
+    process_flag(trap_exit,true),
+    {ok, #state{mon_server=Mon_Server, interval=Interval}};
 init(_) ->
     init({{global, ts_mon},?INTERVAL}).
 
@@ -213,10 +215,10 @@ handle_info({timeout, _Ref, send_snmp_request},  State ) ->
     node_data(snmp, State),
     {noreply, State#state{timer=undefined}};
 
-% response from the SNMP server    
+% response from the SNMP server
 handle_info({snmp_msg, Msg, Ip, _Udp}, State) ->
     PDU = snmp_mgr_misc:get_pdu(Msg),
-    NewCache = case PDU#pdu.type of 
+    NewCache = case PDU#pdu.type of
                    'get-response' ->
                        ?LOGF("Got SNMP PDU ~p from ~p~n",[PDU, Ip],?DEB),
                        {Hostname, Cache2} = ts_utils:resolve(Ip, State#state.dnscache),
@@ -224,9 +226,9 @@ handle_info({snmp_msg, Msg, Ip, _Udp}, State) ->
                        Cache2;
                    _ ->
                        ?LOGF("Got unknown SNMP data ~p from ~p~n",[PDU, Ip],?WARN),
-                       State#state.dnscache   
+                       State#state.dnscache
                end,
-    case  State#state.timer of 
+    case  State#state.timer of
         undefined ->
             erlang:start_timer(State#state.interval, self(), send_snmp_request ),
             {noreply, State#state{timer=on, dnscache=NewCache}};
@@ -235,21 +237,21 @@ handle_info({snmp_msg, Msg, Ip, _Udp}, State) ->
     end;
 
 handle_info({'EXIT', From, Reason}, State) ->
-	?LOGF("received exit from ~p with reason ~p~n",[From, Reason],?ERR),
-	%% get node name of died pid
-	case lists:keysearch(From,1,State#state.erlang_pids) of 
-		{value, {From, Node}} ->
-			%% start a new process on this node
-			Pid = spawn_link(Node, ?MODULE, updatestats, [State#state.interval, State#state.mon_server]),
-			%% replace the pid value
-			NewPids = lists:keyreplace(From,1,State#state.erlang_pids,{Pid, Node}),
-			{noreply, State#state{erlang_pids=NewPids}};
-		false -> %% the EXIT is not from a stats pid, do nothing 
-			?LOGF("unknown exit from ~p !~n",[From],?WARN),
-			{noreply, State}
-	end;
+    ?LOGF("received exit from ~p with reason ~p~n",[From, Reason],?ERR),
+    %% get node name of died pid
+    case lists:keysearch(From,1,State#state.erlang_pids) of
+        {value, {From, Node}} ->
+            %% start a new process on this node
+            Pid = spawn_link(Node, ?MODULE, updatestats, [State#state.interval, State#state.mon_server]),
+            %% replace the pid value
+            NewPids = lists:keyreplace(From,1,State#state.erlang_pids,{Pid, Node}),
+            {noreply, State#state{erlang_pids=NewPids}};
+        false -> %% the EXIT is not from a stats pid, do nothing
+            ?LOGF("unknown exit from ~p !~n",[From],?WARN),
+            {noreply, State}
+    end;
 handle_info(Info, State) ->
-	?LOGF("handle info: unknown msg ~p~n",[Info],?WARN),
+    ?LOGF("handle info: unknown msg ~p~n",[Info],?WARN),
     {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -259,7 +261,7 @@ handle_info(Info, State) ->
 %%--------------------------------------------------------------------
 terminate(normal, #state{erlang_pids=Nodes}) ->
     ?LOGF("Terminating ts_os_mon, stop beams: ~p~n",[Nodes],?NOTICE),
-    stop_beam(Nodes),    
+    stop_beam(Nodes),
     ok;
 terminate(_Reason, _State) ->
     ok.
@@ -304,7 +306,7 @@ get_os_data(cpu) -> cpu_sup:util();
 get_os_data(cpu1) -> cpu_sup:avg1()/256;
 
 get_os_data(DataName) -> get_os_data(DataName,os:type()).
-        
+
 %%--------------------------------------------------------------------
 %% Func: get_os_data/2
 %%--------------------------------------------------------------------
@@ -327,14 +329,7 @@ get_os_data(freemem, _OS) ->
 
 %% Return packets sent/received on network interface
 get_os_data(packets, {unix, linux}) ->
-	%% get the cumulative traffic of all ethX interfaces
-    {ok, Lines} = ts_utils:file_to_list("/proc/net/dev"),
-    Eth = [io_lib:fread("~6s:~d~d~d~d~d~d~d~d~d~d", X) || X<-Lines, string:str(X,"eth") /= 0],
-    Fun = fun (A, {Rcv, Sent}) ->
-                  {ok,[_,_RcvBytes,RcvPkt,_,_,_,_,_,_,_SentBytes,SentPkt],_}=A,
-                  {Rcv+RcvPkt,Sent+SentPkt}
-          end,
-    lists:foldl(Fun, {0,0}, Eth);
+    get_os_data(packets, {unix, linux},?PROCNET);
 
 %% solaris, contributed by Jason Tucker
 get_os_data(packets, {unix, sunos}) ->
@@ -345,15 +340,26 @@ get_os_data(packets, {unix, sunos}) ->
 get_os_data(packets, _OS) ->
     {0, 0 }. % FIXME: not implemented for other arch.
 
+%% packets Linux, special case with File as a variable to easy testing
+get_os_data(packets, {unix, linux},File) ->
+    %% get the cumulative traffic of all ethX interfaces
+    {ok, Lines} = ts_utils:file_to_list(File),
+    Eth = [io_lib:fread("~6s:~d~d~d~d~d~d~d~d~d~d", X) || X<-Lines, string:str(X,"eth") /= 0],
+    Fun = fun (A, {Rcv, Sent}) ->
+                  {ok,[_,_RcvBytes,RcvPkt,_,_,_,_,_,_,_SentBytes,SentPkt],_}=A,
+                  {Rcv+RcvPkt,Sent+SentPkt}
+          end,
+    lists:foldl(Fun, {0,0}, Eth).
+
 
 %%--------------------------------------------------------------------
 %% Function: start_beam/1
 %% Purpose: Start an Erlang node on given host
 %%--------------------------------------------------------------------
 start_beam(Host) ->
-	Args = ts_utils:erl_system_args(),
+    Args = ts_utils:erl_system_args(),
     ?LOGF("starting os_mon beam (~p) on host ~p with Args ~p~n",
-          [?NODE,Host, Args], ?INFO), 
+          [?NODE,Host, Args], ?INFO),
     {ok, Node} = slave:start_link(Host, ?NODE, Args),
    ?LOGF("started os_mon newbeam on node ~p~n", [Node], ?INFO),
     {ok, Node}.
@@ -374,7 +380,7 @@ stop_beam([{_Pid, Node}|Nodes]) ->
 %%--------------------------------------------------------------------
 load_code(Nodes) ->
     ?LOGF("loading tsung monitor on nodes ~p~n", [Nodes], ?NOTICE),
-    LoadCode = fun(Mod)-> 
+    LoadCode = fun(Mod)->
                        {_, Binary, _} = code:get_object_code(Mod),
                        rpc:multicall(Nodes, code, load_binary, [Mod, Mod, Binary], infinity)
                end,
@@ -410,10 +416,10 @@ active_host([{HostStr, {snmp, Port,Community,Version}} | HostList], State=#state
 
 %% monitoring using a remote erlang node
 active_host([{Host, erlang}| HostList], State=#state{erlang_pids=PidList}) ->
-	%% because the stats for cpu has to be called from the same
-	%% process (otherwise the same value (mean cpu% since the system
-	%% last boot)  is returned by cpu_sup:util), we spawn a process
-	%% that will do the stats collection and send it to ts_mon
+    %% because the stats for cpu has to be called from the same
+    %% process (otherwise the same value (mean cpu% since the system
+    %% last boot)  is returned by cpu_sup:util), we spawn a process
+    %% that will do the stats collection and send it to ts_mon
     {ok, LocalHost} = ts_utils:node_to_hostname(node()),
     {Pid, RemNode} = case list_to_atom(LocalHost) of
               Host -> % same host, don't start a new beam
@@ -471,11 +477,11 @@ oid_to_statname(?SNMP_CPU_RAW_IDLE, Name, Value) ->
     CountName = {cpu_idle, Name},
     ?DebugF("Adding counter value for ~p~n",[CountName]),
     {sample_counter, CountName, Value/(?INTERVAL/1000)};
-oid_to_statname(?SNMP_MEM_AVAIL, Name, Value)-> 
+oid_to_statname(?SNMP_MEM_AVAIL, Name, Value)->
     CountName = {freemem, Name},
     ?DebugF("Adding counter value for ~p~n",[CountName]),
     {sample,CountName, Value/1000}.
-    
+
 %%--------------------------------------------------------------------
 %% Function: snmp_get/2
 %% Description: ask a list of OIDs to the given snmp_mgr
