@@ -342,11 +342,13 @@ get_os_data(packets, _OS) ->
 
 %% packets Linux, special case with File as a variable to easy testing
 get_os_data(packets, {unix, linux},File) ->
-    %% get the cumulative traffic of all ethX interfaces
     {ok, Lines} = ts_utils:file_to_list(File),
-    Eth = [io_lib:fread("~6s:~d~d~d~d~d~d~d~d~d~d", X) || X<-Lines, string:str(X,"eth") /= 0],
+    %% get the cumulative traffic of all ethX interfaces
+    Eth=[io_lib:fread("~d~d~d~d~d~d~d~d~d~d", X) ||
+        {E,X}<-lists:map(fun(Y)->ts_utils:split2(Y,$:,strip) end ,Lines),
+        string:str(E,"eth") /= 0],
     Fun = fun (A, {Rcv, Sent}) ->
-                  {ok,[_,_RcvBytes,RcvPkt,_,_,_,_,_,_,_SentBytes,SentPkt],_}=A,
+                  {ok,[_RcvBytes,RcvPkt,_,_,_,_,_,_,_SentBytes,SentPkt],_}=A,
                   {Rcv+RcvPkt,Sent+SentPkt}
           end,
     lists:foldl(Fun, {0,0}, Eth).
