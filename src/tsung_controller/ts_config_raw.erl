@@ -48,14 +48,14 @@
 parse_config(Element = #xmlElement{name=dyn_variable}, Conf = #config{}) ->
     ts_config:parse(Element,Conf);
 parse_config(Element = #xmlElement{name=raw},
-             Config=#config{curid = Id, session_tab = Tab, servers = Servers,
+             Config=#config{curid = Id, session_tab = Tab,
                             sessions = [CurS | _], dynvar=DynVar,
-							subst    = SubstFlag, match=MatchRegExp}) ->
+                            subst    = SubstFlag, match=MatchRegExp}) ->
     Ack  = ts_config:getAttr(atom,Element#xmlElement.attributes, ack, no_ack),
     Data  = ts_config:getAttr(string,Element#xmlElement.attributes, data),
 
     ts_config:mark_prev_req(Id-1, Tab, CurS),
-    Msg=#ts_request{ack=Ack, 
+    Msg=#ts_request{ack=Ack,
                     subst   = SubstFlag,
                     match   = MatchRegExp,
                     param=#raw{data=Data}},
