@@ -15,7 +15,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 
 %%% In addition, as a special exception, you have the permission to
 %%% link the code of this program with any library released under
@@ -34,9 +34,9 @@
 -include("ts_raw.hrl").
 
 -export([init_dynparams/0,
-		 add_dynparams/4,
-		 get_message/1,
-		 session_defaults/0,
+         add_dynparams/4,
+         get_message/1,
+         session_defaults/0,
          subst/1,
          parse/2,
          parse_config/2,
@@ -45,10 +45,10 @@
 %%----------------------------------------------------------------------
 %% Function: session_default/0
 %% Purpose: default parameters for session (ack_type and persistent)
-%% Returns: {ok, "true"|"false"} 
+%% Returns: {ok, true|false}
 %%----------------------------------------------------------------------
 session_defaults() ->
-	{ok,true}.
+    {ok,true}.
 
 %%----------------------------------------------------------------------
 %% Function: new_session/0
@@ -56,40 +56,40 @@ session_defaults() ->
 %% Returns: record or []
 %%----------------------------------------------------------------------
 new_session() ->
-	#raw{}.
+    #raw{}.
 %%----------------------------------------------------------------------
 %% Function: get_message/1
 %% Purpose: Build a message/request
-%% Args:	#jabber
+%% Args:    #jabber
 %% Returns: binary
 %%----------------------------------------------------------------------
-get_message(Req=#raw{data=Data}) ->
-	list_to_binary(Data).
+get_message(#raw{data=Data}) ->
+    list_to_binary(Data).
 
 
 %%----------------------------------------------------------------------
 %% Function: parse/3
 %% Purpose: Parse the given data and return a new state
-%% Args:	Data (binary)
-%%			State (record)
+%% Args:    Data (binary)
+%%            State (record)
 %% Returns: NewState (record)
 %%----------------------------------------------------------------------
 %% no parsing . use only ack
 parse(_Data, State) ->
-	State.
+    State.
 
 %%
 parse_config(Element, Conf) ->
-	ts_config_raw:parse_config(Element, Conf).
+    ts_config_raw:parse_config(Element, Conf).
 
 %%----------------------------------------------------------------------
 %% Function: add_dynparams/4
 %% Purpose: add dynamic parameters to build the message
 %%----------------------------------------------------------------------
 add_dynparams(_Subst,[], Param, _Host) ->
-	Param;
-add_dynparams(_Subst,DynData, Param, _Host) ->
-	Param.
+    Param;
+add_dynparams(_Subst, _DynData, Param, _Host) ->
+    Param.
 
 init_dynparams() -> [].
 

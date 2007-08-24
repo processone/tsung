@@ -218,7 +218,7 @@ parse_dynvar(DynVar, Data)  when is_binary(Data) ->
     ?DebugF("Parsing Dyn Variable; data is ~p~n",[String]),
     parse_dynvar(DynVar, String,[]);
 parse_dynvar(DynVar, _Data)  ->
-    ?LOGF("Error while Parsing dyn Variable(~p) ~p~n",[DynVar],?WARN),
+    ?LOGF("Error while Parsing dyn Variable(~p)~n",[DynVar],?WARN),
     [].
     
 

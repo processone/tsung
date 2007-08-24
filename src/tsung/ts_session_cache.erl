@@ -69,13 +69,13 @@ start() ->
 %% Description: get next request from session 'Id'
 %%--------------------------------------------------------------------
 get_req(Id, Count)->
-	gen_server:call(?MODULE,{get_req, Id, Count}).
+    gen_server:call(?MODULE,{get_req, Id, Count}).
 
 %%--------------------------------------------------------------------
 %% Function: get_user_agent/0
 %%--------------------------------------------------------------------
 get_user_agent()->
-	gen_server:call(?MODULE,{get_user_agent}).
+    gen_server:call(?MODULE,{get_user_agent}).
 
 %%--------------------------------------------------------------------
 %% Function: add/1
@@ -83,7 +83,7 @@ get_user_agent()->
 %%              to ts_mon
 %%--------------------------------------------------------------------
 add(Data) ->
-	gen_server:cast(?MODULE, {add, Data}).
+    gen_server:cast(?MODULE, {add, Data}).
 
 %%====================================================================
 %% Server functions
@@ -98,7 +98,7 @@ add(Data) ->
 %%          {stop, Reason}
 %%--------------------------------------------------------------------
 init([]) ->
-	Table = ets:new(sessiontable, [set, private]),
+    Table = ets:new(sessiontable, [set, private]),
     erlang:start_timer(?DUMP_STATS_INTERVAL, self(), dump_stats ),
     {ok, #state{table=Table}}.
 
@@ -113,50 +113,50 @@ init([]) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
 %% get Nth request from given session Id
-handle_call({get_req, Id, N}, From, State) ->
-	Tab = State#state.table,
+handle_call({get_req, Id, N}, _From, State) ->
+    Tab = State#state.table,
     Total = State#state.total+1,
-    ?DebugF("look for ~p th request in session ~p for ~p~n",[N,Id,From]),
-	case ets:lookup(Tab, {Id, N}) of 
-		[{_Key, Session}] -> 
+    ?DebugF("look for ~p th request in session ~p for ~p~n",[N,Id,_From]),
+    case ets:lookup(Tab, {Id, N}) of
+        [{_Key, Session}] ->
             Hit = State#state.hit+1,
             ?DebugF("ok, found in cache for ~p~n",[From]),
             ?DebugF("hitrate is ~.3f~n",[100.0*Hit/Total]),
-			{reply, Session, State#state{hit= Hit, total = Total}};
-		[] -> %% no match, ask the config_server
-            ?DebugF("not found in cache (~p th request in session ~p for ~p)~n",[N,Id,From]),
+            {reply, Session, State#state{hit= Hit, total = Total}};
+        [] -> %% no match, ask the config_server
+            ?DebugF("not found in cache (~p th request in session ~p for ~p)~n",[N,Id,_From]),
             case catch ts_config_server:get_req(Id, N) of
                 {'EXIT',Reason}  ->
                     {reply, {error, Reason}, State};
                 Reply ->
                     %% cache the response FIXME: handle bad response ?
-                    ets:insert(Tab, {{Id, N}, Reply}), 
+                    ets:insert(Tab, {{Id, N}, Reply}),
                     {reply, Reply, State#state{total = Total}}
             end;
-		Other -> %% 
+        Other -> %%
             ?LOGF("error ! (~p)~n",[Other],?WARN),
-			{reply, {error, Other}, State}
-	end;
+            {reply, {error, Other}, State}
+    end;
 
 handle_call({get_user_agent}, _From, State) ->
-	Tab = State#state.table,
-	case ets:lookup(Tab, {http_user_agent, value}) of 
-		[] -> %% no match, ask the config_server
+    Tab = State#state.table,
+    case ets:lookup(Tab, {http_user_agent, value}) of
+        [] -> %% no match, ask the config_server
             ?Debug("user agents not found in cache~n"),
             UserAgents = ts_config_server:get_user_agents(),
             %% cache the response FIXME: handle bad response ?
             ?DebugF("Useragents: got from config_server~p~n",[UserAgents]),
             ets:insert(Tab, {{http_user_agent, value}, UserAgents}),
             {ok, Reply} = choose_user_agent(UserAgents),
-			{reply, Reply, State};
-		[{_, [{_Freq, Value}]}] -> %single user agent defined
-			{reply, Value, State};
-		[{_, empty }] ->
-			{reply, "tsung", State};
-		[{_, UserAgents }] when is_list(UserAgents)->
+            {reply, Reply, State};
+        [{_, [{_Freq, Value}]}] -> %single user agent defined
+            {reply, Value, State};
+        [{_, empty }] ->
+            {reply, "tsung", State};
+        [{_, UserAgents }] when is_list(UserAgents)->
             {ok, Reply} = choose_user_agent(UserAgents),
-			{reply, Reply, State}
-	end;
+            {reply, Reply, State}
+    end;
 
 handle_call(_Request, _From, State) ->
     Reply = ok,
