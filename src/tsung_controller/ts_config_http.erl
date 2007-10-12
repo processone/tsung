@@ -109,7 +109,6 @@ parse_config(Element = #xmlElement{name=http},
 parse_config(Element = #xmlElement{name=option}, Conf = #config{session_tab = Tab}) ->
     case ts_config:getAttr(Element#xmlElement.attributes, name) of
         "user_agent" ->
-            Val = ts_config:getAttr(Element#xmlElement.attributes, value), %FIXME: useless
             lists:foldl( fun(A,B)->parse_config(A,B) end, Conf, Element#xmlElement.content);
         "http_use_server_as_proxy" ->
             Val = ts_config:getAttr(Element#xmlElement.attributes, value),
