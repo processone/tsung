@@ -168,9 +168,7 @@ relative_url(false,NewString,RequestURI,RelURL)->
 %%--------------------------------------------------------------------
 check_serversocket(false, Socket,  URL , ClientSock) ->
     check_serversocket(Socket,  URL , ClientSock);
-check_serversocket(true, Socket,  "http://{"++URL, ClientSock) ->
-    check_serversocket(true, Socket, "https://"++URL, ClientSock);
-check_serversocket(true, Socket, "http://%7B"++URL, ClientSock) ->
+check_serversocket(true, Socket,  "http://ssl-"++URL, ClientSock) ->
     check_serversocket(true, Socket, "https://"++URL, ClientSock);
 check_serversocket(true, undefined, URL, _ClientSock) ->
     ?LOGF("Connecting to parent proxy ~p:~p ...~n",
@@ -187,9 +185,7 @@ check_serversocket(true, Socket, URL, _ClientSock) ->
 %%          same, connect to the server as specified in URL
 %% Returns: {Socket, RelativeURL (String)}
 %%--------------------------------------------------------------------
-check_serversocket(Socket, "http://{" ++ Rest, ClientSock) ->
-    check_serversocket(Socket, ts_config_http:parse_URL("https://"++Rest), ClientSock);
-check_serversocket(Socket, "http://%7B" ++ Rest, ClientSock) -> %% for IE.
+check_serversocket(Socket, "http://ssl-" ++ Rest, ClientSock) ->
     check_serversocket(Socket, ts_config_http:parse_URL("https://"++Rest), ClientSock);
 check_serversocket(Socket, URL, ClientSock) when list(URL)->
     check_serversocket(Socket, ts_config_http:parse_URL(URL), ClientSock);

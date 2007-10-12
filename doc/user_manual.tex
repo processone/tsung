@@ -306,7 +306,7 @@ suggestions or questions about \program{Tsung}.
 \item Record one or more sessions: start the recorder with: \command{tsung
     recorder}, and then configure your browser to use Tsung
   proxy recorder (the listen port is 8090). A session file will be
-  created. For HTTPS recording, use \userinput{http://\{} instead of
+  created. For HTTPS recording, use \userinput{http://ssl-} instead of
     \userinput{https://} in your browser.
 \item Edit / organize scenario, by adding recorded sessions in the
   configuration file.
@@ -796,7 +796,7 @@ statistics definition, ...
       </http> </request>
     <request>
        <http url="/bla" method="GET" version="1.1"
-             contents="bla=blu&name=glop">
+             contents="bla=blu&amp;name=glop">
        <www_authenticate userid="Aladdin"
                          passwd="open sesame"/></http>
     </request>

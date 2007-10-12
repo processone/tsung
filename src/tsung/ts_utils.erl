@@ -274,9 +274,9 @@ export_text([$> | T], Cont) ->
     export_text(T, [?GT | Cont]);
 export_text([$& | T], Cont) ->
     export_text(T, [?AMP | Cont]);
-export_text([$' | T], Cont) ->
+export_text([$' | T], Cont) -> %'
     export_text(T, [?APOS | Cont]);
-export_text([$" | T], Cont) ->
+export_text([$" | T], Cont) -> %"
     export_text(T, [?QUOT | Cont]);
 export_text([C | T], Cont) ->
     export_text(T, [C | Cont]).
@@ -352,19 +352,16 @@ is_ip(_) -> false.
 %% to_https/1
 %% Purpose: rewrite https URL, to act as a pure non ssl proxy
 %%----------------------------------------------------------------------
-to_https({url, "http://{"++Rest})-> "https://" ++ Rest;
-to_https({url, "http://%7B"++Rest})-> "https://" ++ Rest;
+to_https({url, "http://ssl-"++Rest})-> "https://" ++ Rest;
 to_https({url, URL})-> URL;
 to_https({request, String}) when is_list(String) ->
-    {ok,TmpString,_} = regexp:gsub(String,"http://{","https://"),
-    {ok,NewString,_} = regexp:gsub(TmpString,"http://%7B","https://"),
-    {ok,TmpString2,_} = regexp:gsub(NewString,"Host: {","Host: "),
-    {ok,RealString,_} = regexp:gsub(TmpString2,"Host: %7B","Host: "),
+    {ok,TmpString,_} = regexp:gsub(String,"http://ssl-","https://"),
+    {ok,RealString,_} = regexp:gsub(TmpString,"Host: ssl-","Host: "),
     {ok, RealString};
 to_https(_) -> {error, bad_input}.
 
 from_https(String) when is_list(String)->
-    {ok,NewString,RepCount} = regexp:gsub(String,"https://","http://{"),
+    {ok,NewString,RepCount} = regexp:gsub(String,"https://","http://ssl-"),
     case RepCount of
         0    -> ok;
         Count-> ?LOGF("substitute https: ~p times~n",[Count],?DEB)
@@ -425,25 +422,25 @@ spawn_par(Fun, PidFrom, Args) ->
 inet_setopts(_, none, _) -> %socket was closed before
     none;
 inet_setopts(ssl, Socket, Opts) ->
-	case ssl:setopts(Socket, Opts) of
-		ok ->
-			Socket;
-		{error, closed} ->
-			none;
-		Error ->
-			?LOGF("Error while setting ssl options ~p ~p ~n", [Opts, Error], ?ERR),
+    case ssl:setopts(Socket, Opts) of
+        ok ->
+            Socket;
+        {error, closed} ->
+            none;
+        Error ->
+            ?LOGF("Error while setting ssl options ~p ~p ~n", [Opts, Error], ?ERR),
             none
-	end;
+    end;
 inet_setopts(_Type, Socket,  Opts)->
-	case inet:setopts(Socket, Opts) of
-		ok ->
-			Socket;
-		{error, closed} ->
-			none;
-		Error ->
-			?LOGF("Error while setting inet options ~p ~p ~n", [Opts, Error], ?ERR),
+    case inet:setopts(Socket, Opts) of
+        ok ->
+            Socket;
+        {error, closed} ->
+            none;
+        Error ->
+            ?LOGF("Error while setting inet options ~p ~p ~n", [Opts, Error], ?ERR),
             none
-	end.
+    end.
 
 %%----------------------------------------------------------------------
 %% Func: check_sum/3
@@ -472,11 +469,11 @@ check_sum(RecList, Index, Total, Epsilon, ErrorMsg) ->
 file_to_list(FileName) ->
     case file:open(FileName, read) of
         {error, Reason} ->
-			{error, Reason};
+            {error, Reason};
         {ok , File} ->
             Lines = read_lines(File),
             file:close(File),
-			{ok, Lines}
+            {ok, Lines}
     end.
 
 read_lines(FD) ->read_lines(FD,io:get_line(FD,""),[]).
