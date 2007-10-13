@@ -628,6 +628,8 @@ advanced distributed testing:
 
 \subsection{Monitoring}
 
+\subsubsection{Erlang}
+
 \par Scenarios can contain optional monitoring informations. For example,
 here is a cluster monitoring definition based on Erlang agents, for
 a cluster of 6 computers:
@@ -643,9 +645,27 @@ a cluster of 6 computers:
   </monitoring>
 \end{Verbatim}
 
+\subsubsection{SNMP}
 The type keyword snmp can replace the erlang keyword, if SNMP monitoring
 is preferred. They can be mixed. erlang is the default value for
-monitoring.
+monitoring. Since version 1.2.2, you can customize the snmp version,
+community and port number.
+
+\begin{Verbatim}
+  <monitoring>
+    <monitor host="geronimo" type="snmp"/>
+    <monitor host="f14-2" type="erlang"></monitor>
+    <monitor host="db" type="snmp">
+      <snmp version="v2" community="mycommunity" port="11161"/>
+    </monitor>
+  </monitoring>
+\end{Verbatim}
+
+The default version is \userinput{v1}, default community
+\userinput{public} and default port \userinput{161}.
+
+
+
 
 \par Note: For Erlang monitoring, monitored computers need to be
 accessible through the network. SSH (or rsh) needs to be configured to
@@ -679,11 +699,17 @@ new user will be created every second, and for the last 10 minutes,
 10 users will be generated every second. The test will finish when
 all users have ended their session.
 
+The complete sequence can be executed several times using the
+\varname{loop} attribute in the \varname{load} tag
+(\userinput{loop='2'} means the sequence will be looped twice, so the
+complete load will be executed 3 times) (feature available since
+version 1.2.2).
+
 The load generated in terms of HTTP requests / seconds will also
 depend on the mean number of requests within a session (if you have a
 mean value of 100 requests per session and 10 new users per seconds,
 the theoretical average throughput will be 1000 requests/ sec).
- 
+
 \subsection{Setting options}
 
 \par Default values can be set-up globally: thinktime between requests
@@ -764,7 +790,7 @@ response time.
 
 This example shows several features of the HTTP protocol support in
 Tsung: GET and POST request, basic authentication, transaction for
-statistics definition, ...
+statistics definition, conditional request (IF MODIFIED SINCE), ...
 
 
 \begin{Verbatim}
@@ -805,6 +831,17 @@ statistics definition, ...
   <session name="backoffice" probability="30" ...>
   ... </session>
 </sessions>
+\end{Verbatim}
+
+\strong{New in 1.2.2:} You can add any HTTP header now, as in:
+\begin{Verbatim}
+   <request>
+       <http url="/bla" method="GET" contents="bla=blu&amp;name=glop">
+         <www_authenticate userid="Aladdin" passwd="open sesame"/>
+         <http_header name="Cache-Control" value="no-cache"/>
+         <http_header name="Referer" value="http://www.w3.org/"/>
+      </http>
+   </request>
 \end{Verbatim}
 
 \subsubsection{Jabber}
@@ -1067,6 +1104,13 @@ You have to add this in the xml configuration file:
  <option name="file_server"  value="/tmp/userlist.csv"></option>
 \end{Verbatim}
 
+\strong{New in 1.2.2}: You can read several files, using the \varname{id}
+attribute to identify each file:
+\begin{Verbatim}
+ <option name="file_server"  value="/tmp/userlist.csv"></option>
+ <option name="file_server" id='random' value="/tmp/randomnumbers.csv"></option>
+\end{Verbatim}
+
 Now you can build you own function to use it, for example:
 
 \begin{Verbatim}
@@ -1074,13 +1118,14 @@ Now you can build you own function to use it, for example:
 -export([user/1]).
 
 user({Pid,DynVar})->
-    {ok,Line} = ts_file_server:get_next_line(), 
+    {ok,Line} = ts_file_server:get_next_line(),
     [Username, Passwd] = string:tokens(Line,";"),
     "username=" ++ Username ++"&amp;passwd=" ++ Passwd.
 \end{Verbatim}
 
+(If the file has an id set to \userinput{random}, change the call to: \texttt{ts\_file\_server:get\_next\_line(random)}.)
 
-In your session, use something like: 
+Then use something like this in your session:
 
 \begin{Verbatim}
   <request subst="true">
@@ -1527,6 +1572,9 @@ work. This is fixed in erlang R9C-1 and up.
  is_options_ok([]) -> true.
 \end{Verbatim}
 
+\section{CHANGELOG}
+\fvset{numbers=none,frame=lines,fontsize=\small,fontfamily=courier,fontshape=sl}
+\VerbatimInput{../CHANGES}
 \end{appendix}
 
 \end{document}
