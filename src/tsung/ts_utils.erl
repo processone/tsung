@@ -33,7 +33,7 @@
 
 %% user interface
 -export([debug/3, debug/4, get_val/1, init_seed/0, chop/1, elapsed/2,
-         now_sec/0, node_to_hostname/1, add_time/2, keyumerge/3,
+         now_sec/0, node_to_hostname/1, add_time/2, keyumerge/3, key1search/2,
          level2int/1, mkey1search/2, close_socket/2, datestr/0, datestr/1,
          erl_system_args/0, erl_system_args/1, setsubdir/1, export_text/1,
          foreach_parallel/2, spawn_par/3, inet_setopts/3, resolve/2,
@@ -61,15 +61,15 @@ level2int("emergency") -> ?EMERG.
 %% Returns: Value | {undef_var, Var}
 %%----------------------------------------------------------------------
 get_val(Var) ->
-	case application:get_env(Var) of
-		{ok, Val} ->
-			ensure_string(Var, Val);
-		undefined -> % undef, application not started, try to get var from stdlib
+    case application:get_env(Var) of
+        {ok, Val} ->
+            ensure_string(Var, Val);
+        undefined -> % undef, application not started, try to get var from stdlib
             case application:get_env(stdlib,Var) of
                 undefined -> {undef_var, Var};
                 {ok,Val}  -> ensure_string(Var, Val)
             end
-	end.
+    end.
 
 
 %% ensure atom to string conversion of environnement variable
@@ -89,17 +89,17 @@ ensure_string(_, Other) ->
 %% Purpose: print debug message if level is high enough
 %%----------------------------------------------------------------------
 debug(From, Message, Level) ->
-	debug(From, Message, [], Level).
+    debug(From, Message, [], Level).
 
 debug(From, Message, Args, Level) ->
-	Debug_level = ?config(debug_level),
-	if
-		Level =< Debug_level ->
-			error_logger:info_msg("~20s:(~p:~p) "++ Message,
-					  [From, Level, self()] ++ Args);
-		true ->
-			nodebug
-	end.
+    Debug_level = ?config(debug_level),
+    if
+        Level =< Debug_level ->
+            error_logger:info_msg("~20s:(~p:~p) "++ Message,
+                                  [From, Level, self()] ++ Args);
+        true ->
+            nodebug
+    end.
 
 %%----------------------------------------------------------------------
 %% Func: elapsed/2
@@ -116,17 +116,17 @@ elapsed({Before1, Before2, Before3}, {After1, After2, After3}) ->
 %% Purpose: remove trailing "\n"
 %%----------------------------------------------------------------------
 chop(String) ->
-	string:strip(String, right, 10).
+    string:strip(String, right, 10).
 
 %%----------------------------------------------------------------------
 %% Func: clean_str/1
 %% Purpose: remove "\n" and space at the beginning and at that end of a string
 %%----------------------------------------------------------------------
 clean_str(String) ->
-	Str1 = string:strip(String, both, 10),
-	Str2 = string:strip(Str1),
-	Str3 = string:strip(Str2, both, 10),
-	string:strip(Str3).
+    Str1 = string:strip(String, both, 10),
+    Str2 = string:strip(Str1),
+    Str3 = string:strip(Str2, both, 10),
+    string:strip(Str3).
 
 
 %%----------------------------------------------------------------------
@@ -134,15 +134,15 @@ clean_str(String) ->
 %%----------------------------------------------------------------------
 init_seed()->
     {A,B,C}=now(),
-	random:seed(A,B,C).
+    random:seed(A,B,C).
 
 %%----------------------------------------------------------------------
 %% Func: now_sec/0
 %% Purpose: returns unix like elapsed time in sec
 %%----------------------------------------------------------------------
 now_sec() ->
-	{MSec, Seconds, _} = now(),
-	Seconds+1000000*MSec.
+    {MSec, Seconds, _} = now(),
+    Seconds+1000000*MSec.
 
 %%----------------------------------------------------------------------
 %% Func: add_time/2
@@ -160,25 +160,33 @@ node_to_hostname(Node) ->
     {ok, Hostname}.
 
 %%----------------------------------------------------------------------
+%% Func: key1search/2
+%% Purpose: wrapper around httpd_utils module funs (maybe one day
+%%          these functions will be added to the stdlib)
+%%----------------------------------------------------------------------
+key1search(Tuple,String)->
+    httpd_util:key1search(Tuple,String).
+
+%%----------------------------------------------------------------------
 %% Func: mkey1search/2
 %% Purpose: multiple key1search:
-%% Take as input list of {Key, Value} tuples (length 2).
-%% Return the list of values corresponding to a given key
-%% It is assumed here that there might be several identical keys in the list
-%% unlike the lists:key... functions.
+%%  Take as input list of {Key, Value} tuples (length 2).
+%%  Return the list of values corresponding to a given key
+%%  It is assumed here that there might be several identical keys in the list
+%%  unlike the lists:key... functions.
 %%----------------------------------------------------------------------
 mkey1search(List, Key) ->
     Results = lists:foldl(
-		fun({MatchKey, Value}, Acc) when MatchKey == Key ->
-			[Value | Acc];
-		   ({_OtherKey, _Value}, Acc) ->
-			Acc
-		end,
-		[],
-		List),
+                fun({MatchKey, Value}, Acc) when MatchKey == Key ->
+                        [Value | Acc];
+                   ({_OtherKey, _Value}, Acc) ->
+                        Acc
+                end,
+                [],
+                List),
     case Results of
-	[] -> undefined;
-	Results -> lists:reverse(Results)
+        [] -> undefined;
+        Results -> lists:reverse(Results)
     end.
 
 %% close socket if it exists
@@ -198,7 +206,7 @@ datestr()->
 %% datestr/1
 %%----------------------------------------------------------------------
 datestr({{Y,M,D},{H,Min,_S}})->
-	io_lib:format("~w~2.10.0b~2.10.0b-~2.10.0b:~2.10.0b",[Y,M,D,H,Min]).
+    io_lib:format("~w~2.10.0b~2.10.0b-~2.10.0b:~2.10.0b",[Y,M,D,H,Min]).
 
 %%----------------------------------------------------------------------
 %% erl_system_args/0
@@ -206,30 +214,30 @@ datestr({{Y,M,D},{H,Min,_S}})->
 erl_system_args()->
     erl_system_args(extended).
 erl_system_args(basic)->
-	Rsh = case  init:get_argument(rsh) of
-              {ok,[["ssh"]]}  -> " -rsh ssh ";
+    Rsh = case  init:get_argument(rsh) of
+              {ok,[[Value]]}  -> " -rsh " ++ Value;
               _ -> " "
           end,
     lists:append([Rsh, " -detached -setcookie  ",
                   atom_to_list(erlang:get_cookie()) ]);
 erl_system_args(extended)->
     BasicArgs  = erl_system_args(basic),
-    SetArg = fun(A) -> case init:get_argument(A) of 
+    SetArg = fun(A) -> case init:get_argument(A) of
                            error     -> " ";
                            {ok,[[]]} -> " -" ++atom_to_list(A)++" ";
                            {ok,[[Val|_]]} when is_list(Val)-> " -" ++atom_to_list(A)++Val++" "
-                       end 
+                       end
              end,
     Shared = SetArg(shared),
-	Hybrid = SetArg(hybrid),
-	Smp = SetArg(smp),
+    Hybrid = SetArg(hybrid),
+    Smp = SetArg(smp),
     Inet = case init:get_argument(kernel) of
-               {ok,[["inetrc",InetRcFile]]} -> 
+               {ok,[["inetrc",InetRcFile]]} ->
                    ?LOGF("Get inetrc= ~p~n",[InetRcFile],?NOTICE),
                    " -kernel inetrc '"++ InetRcFile ++ "'" ;
                _ -> " "
            end,
-	Mea = case  erlang:system_info(version) of 
+    Mea = case  erlang:system_info(version) of
               "5.3" ++ _Tail     -> " +Mea r10b ";
               _ -> " "
           end,
@@ -285,7 +293,7 @@ export_text([C | T], Cont) ->
 %% stop_all/2
 %%----------------------------------------------------------------------
 stop_all(Host, Name) ->
-	stop_all(Host, Name, "Tsung").
+    stop_all(Host, Name, "Tsung").
 
 stop_all([Host],Name,MsgName)  ->
     VoidFun = fun(_A)-> ok end,
@@ -294,17 +302,17 @@ stop_all([Host],Name,MsgName)  ->
 stop_all([Host],Name,MsgName,Fun) when atom(Host) ->
     _List= net_adm:world_list([Host]),
     global:sync(),
-	case global:whereis_name(Name) of
-		undefined ->
-			Msg = MsgName ++" is not running on " ++ atom_to_list(Host),
-			erlang:display(Msg);
-		Pid ->
-			Controller_Node = node(Pid),
+    case global:whereis_name(Name) of
+        undefined ->
+            Msg = MsgName ++" is not running on " ++ atom_to_list(Host),
+            erlang:display(Msg);
+        Pid ->
+            Controller_Node = node(Pid),
             Fun(Controller_Node),
-			slave:stop(Controller_Node)
-	end;
+            slave:stop(Controller_Node)
+    end;
 stop_all(_,_,_,_)->
-	erlang:display("Bad Hostname").
+    erlang:display("Bad Hostname").
 
 %%----------------------------------------------------------------------
 %% make_dir_rec/1
@@ -338,7 +346,7 @@ make_dir_rec(Path, [Parent|Childs]) ->
             {error,Reason}
     end.
 
-%% check if a string is an IP (as "192.168.0.1")
+%% check if a string is an IPv4 address (as "192.168.0.1")
 is_ip(String) when list(String) ->
     EightBit="(2[0-4][0-9]|25[0-5]|1[0-9][0-9]|[0-9][0-9]|[0-9])",
     RegExp = lists:append(["^",EightBit,"\.",EightBit,"\.",EightBit,"\.",EightBit,"$"]), %"

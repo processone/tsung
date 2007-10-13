@@ -61,24 +61,20 @@ rewrite_ssl(Data)->
 %% Purpose: parse HTTP request
 %% Returns: {ok, NewState}
 %%--------------------------------------------------------------------
-parse(State=#proxy{parse_status=Status, parent_proxy=Parent},_,ServerSocket,String) when Status==new ->
-    NewString = lists:append(State#proxy.buffer,String),
-    case ts_http_common:parse_req(NewString) of
+parse(State=#proxy{parse_status=Status, parent_proxy=Parent},_,ServerSocket,NewString) when Status==new ->
+    String = lists:append(State#proxy.buffer,NewString),
+    case ts_http_common:parse_req(String) of
         {more, _Http, _Head} ->
-            ?LOGF("Headers incomplete (~p), buffering ~n",[NewString],?DEB),
-            {ok, State#proxy{parse_status=new, buffer=NewString}}; %FIXME: not optimal
+            ?LOGF("Headers incomplete (~p), buffering ~n",[String],?DEB),
+            {ok, State#proxy{parse_status=new, buffer=String}}; %FIXME: not optimal
         {ok, Http=#http_request{url=RequestURI, version=HTTPVersion}, Body} ->
             ?LOGF("URL ~p ~n",[RequestURI],?DEB),
             ?LOGF("Method ~p ~n",[Http#http_request.method],?DEB),
             ?LOGF("Headers ~p ~n",[Http#http_request.headers],?DEB),
-            case httpd_util:key1search(Http#http_request.headers,"content-length") of
+            case ts_utils:key1search(Http#http_request.headers,"content-length") of
                 undefined -> % no body, everything received
                     ts_proxy_recorder:dorecord({Http }),
-                    {NewSocket,RelURL} = check_serversocket(Parent,ServerSocket,RequestURI,State#proxy.clientsock),
-                    ?LOGF("Remove server info from url:~p ~p in ~p~n",
-                          [RequestURI,RelURL,NewString], ?INFO),
-                    {ok, RealString} = relative_url(Parent,NewString,RequestURI,RelURL),
-                    ts_client_proxy:send(NewSocket,RealString, ?MODULE),
+                    {ok, NewSocket} = check_and_send(String,Parent,ServerSocket,Http,State),
                     case Http#http_request.method of
                         'CONNECT' ->
                             {ok, State#proxy{http_version=HTTPVersion,
@@ -95,9 +91,7 @@ parse(State=#proxy{parse_status=Status, parent_proxy=Parent},_,ServerSocket,Stri
                     BodySize = length(Body),
                     if
                         BodySize == CLength ->  % end of response
-                            {NewSocket,RelURL} = check_serversocket(Parent,ServerSocket,RequestURI,State#proxy.clientsock),
-                            {ok,RealString} = relative_url(Parent,NewString,RequestURI,RelURL),
-                            ts_client_proxy:send(NewSocket,RealString,?MODULE),
+                            {ok, NewSocket} = check_and_send(String,Parent,ServerSocket,Http,State),
                             ?LOG("End of response, recording~n", ?DEB),
                             ts_proxy_recorder:dorecord({Http#http_request{body=Body}}),
                             {ok, State#proxy{http_version = HTTPVersion,
@@ -106,10 +100,8 @@ parse(State=#proxy{parse_status=Status, parent_proxy=Parent},_,ServerSocket,Stri
                         BodySize > CLength  ->
                             {error, bad_content_length};
                         true ->
-                            {NewSocket,RelURL} = check_serversocket(Parent,ServerSocket,RequestURI,State#proxy.clientsock),
-                            {ok,RealString} = relative_url(Parent,NewString,RequestURI,RelURL),
-                            ts_client_proxy:send(NewSocket,RealString,?MODULE),
-                            ?LOG("More data to come continue before recording~n", ?DEB),
+                            {ok, NewSocket} = check_and_send(String,Parent,ServerSocket,Http,State),
+                            ?LOG("More data to come, continue before recording~n", ?DEB),
                             {ok, State#proxy{http_version=HTTPVersion,
                                              content_length = CLength,
                                              body_size = BodySize,
@@ -147,16 +139,27 @@ parse(State=#proxy{parse_status=connect},_,ServerSocket,String) ->
 
 
 %%--------------------------------------------------------------------
+%% Func: check_and_send/5
+%%--------------------------------------------------------------------
+check_and_send(String,Parent,ServerSocket,#http_request{url=RequestURI},State)->
+    {NewSocket,RelURL} = check_serversocket(Parent,ServerSocket,RequestURI,State#proxy.clientsock),
+    ?LOGF("Remove server info from url:~p ~p in ~p~n",
+          [RequestURI,RelURL,String], ?INFO),
+    {ok, RealString} = relative_url(Parent,String,RequestURI,RelURL),
+    ts_client_proxy:send(NewSocket,RealString, ?MODULE),
+    {ok, NewSocket}.
+
+%%--------------------------------------------------------------------
 %% Func: relative_url/4
 %%--------------------------------------------------------------------
 relative_url(_,"CONNECT"++_Tail,_RequestURI,[])->
     {ok, []};
-relative_url(true,NewString,_RequestURI,_RelURL)->
-    {ok, NewString};
-relative_url(false,NewString,RequestURI,RelURL)->
+relative_url(true,String,_RequestURI,_RelURL)->
+    {ok, String};
+relative_url(false,String,RequestURI,RelURL)->
     [FullURL_noargs|_] = string:tokens(RequestURI,"?"),
     [RelURL_noargs|_]  = string:tokens(RelURL,"?"),
-    {ok,RealString,_Count} = regexp:gsub(NewString,FullURL_noargs,RelURL_noargs),
+    {ok,RealString,_Count} = regexp:gsub(String,FullURL_noargs,RelURL_noargs),
     {ok, RealString}.
 
 %%--------------------------------------------------------------------
@@ -303,7 +306,7 @@ decode_basic_auth(Base64)->
 %%--------------------------------------------------------------------
 record_header(Fd, Headers, "authorization", Msg)->
     %% special case for authorization
-    case httpd_util:key1search(Headers,"authorization") of
+    case ts_utils:key1search(Headers,"authorization") of
         "Basic " ++ Base64 ->
             {User,Passwd} = decode_basic_auth(Base64),
             io:format(Fd, Msg, [User,Passwd]);
@@ -314,7 +317,7 @@ record_header(Fd, Headers, HeaderName, Msg)->
     record_header(Fd, Headers,HeaderName, Msg, fun(A)->A end).
 %%--------------------------------------------------------------------
 record_header(Fd, Headers,HeaderName, Msg, Fun)->
-    case httpd_util:key1search(Headers,HeaderName) of
+    case ts_utils:key1search(Headers,HeaderName) of
         undefined -> ok;
         Value     -> io:format(Fd,Msg,[Fun(Value)])
     end.
