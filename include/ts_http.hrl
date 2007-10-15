@@ -15,7 +15,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
 %%%  the EPL license and distribute linked combinations including
@@ -43,48 +43,48 @@
           soap_action % for SOAP support
          }).
 
--record(http_dyndata, 
-        { 
+-record(http_dyndata,
+        {
           user_agent,
           cookies = [] % HTTP Cookies
          }
        ).
 
 -record(url,
-	{scheme,          %% http, https, ...
-	 host, 
-	 port,            %% undefined means use default (80 or 443)
-	 path = [],
-	 querypart = []}).
+        {scheme,          %% http, https, ...
+         host,
+         port,            %% undefined means use default (80 or 443)
+         path = [],
+         querypart = []}).
 
-%% use by the client process to store information about the current request during 
+%% use by the client process to store information about the current request during
 %% the parsing of the response
 -record(http, {content_length= 0,  % HTTP header: content length
-			   body_size     = 0,  % current size of body,
-			   chunk_toread  = -1, % chunk data to be read (-1 = not chunked)
-			   status        = none, % HTTP resp. status :200, etc. 'none' 
+               body_size     = 0,  % current size of body,
+               chunk_toread  = -1, % chunk data to be read (-1 = not chunked)
+               status        = none, % HTTP resp. status :200, etc. 'none'
                                      % if no current cnx.
-			   close         = false, % true if HTTP/1.0 or 'connection: close'
+               close         = false, % true if HTTP/1.0 or 'connection: close'
                                      % has been received
-			   partial=false,    % true if headers are partially received
-			   cookie=[]
-			  }).
+               partial=false,    % true if headers are partially received
+               cookie=[]
+              }).
 
 
 -record(cookie,{
-	    key,           
-	    value,         
-	    quoted,        
-	    comment,
-	    comment_url,
-	    discard,
-	    domain,
-	    max_age,
-	    expires,
-	    path,
-	    port,
-	    secure,
-	    version}).
+          key,
+          value,
+          quoted,
+          comment,
+          comment_url,
+          discard,
+          domain,
+          max_age,
+          expires,
+          path,
+          port,
+          secure,
+          version}).
 
 %% HTTP Protocol
 -define(GET, "GET").

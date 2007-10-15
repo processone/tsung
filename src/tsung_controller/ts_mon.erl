@@ -162,7 +162,7 @@ init([LogDir]) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
 handle_call({start_logger, Machines, DumpType, rrdtool}, From, State) ->
-    case whereis(rrdtool) of 
+    case whereis(rrdtool) of
         undefined ->
             ?LOG("rrdtool port not available, switch to text backend~n",?WARN),
             start_logger({Machines, DumpType, text}, From, State);
@@ -172,7 +172,7 @@ handle_call({start_logger, Machines, DumpType, rrdtool}, From, State) ->
     end;
 handle_call({start_logger, Machines, DumpType, text}, From, State) ->
     start_logger({Machines, DumpType, text}, From, State);
-            
+
 %%% get status
 handle_call({status}, _From, State ) ->
     Request = dict:find(request, State#state.stats),
