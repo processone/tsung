@@ -120,7 +120,7 @@ handle_call({get_req, Id, N}, _From, State) ->
     case ets:lookup(Tab, {Id, N}) of
         [{_Key, Session}] ->
             Hit = State#state.hit+1,
-            ?DebugF("ok, found in cache for ~p~n",[From]),
+            ?DebugF("ok, found in cache for ~p~n",[_From]),
             ?DebugF("hitrate is ~.3f~n",[100.0*Hit/Total]),
             {reply, Session, State#state{hit= Hit, total = Total}};
         [] -> %% no match, ask the config_server
