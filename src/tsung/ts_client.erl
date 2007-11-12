@@ -602,6 +602,9 @@ handle_data_msg(Data,State=#state_rcv{request=Req,datasize=OldSize})
     DataSize = size(Data),
     {State#state_rcv{ datasize = OldSize + DataSize},[]};
 
+%% local ack, special case for jabber: skip keepalive msg (single space char)
+handle_data_msg(<<32>>, State=#state_rcv{clienttype=ts_jabber}) ->
+    {State#state_rcv{ack_done = false},[]};
 %% local ack, set ack_done to true
 handle_data_msg(Data, State=#state_rcv{request=Req, maxcount= MaxCount}) ->
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
