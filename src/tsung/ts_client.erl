@@ -51,8 +51,8 @@
 
 %% Start a new session
 start(Opts) ->
-	?DebugF("Starting with opts: ~p~n",[Opts]),
-	gen_fsm:start_link(?MODULE, Opts, []).
+    ?DebugF("Starting with opts: ~p~n",[Opts]),
+    gen_fsm:start_link(?MODULE, Opts, []).
 
 %%----------------------------------------------------------------------
 %% Func: next/1
@@ -77,12 +77,12 @@ init({#session{id           = Profile,
                bidi         = Bidi,
                ssl_ciphers  = Ciphers,
                type         = CType}, Count, IP, Server}) ->
-	?DebugF("Init ... started with count = ~p~n",[Count]),
-	ts_utils:init_seed(),
+    ?DebugF("Init ... started with count = ~p~n",[Count]),
+    ts_utils:init_seed(),
 
-	?DebugF("Get dynparams for ~p~n",[CType]),
-	DynData = CType:init_dynparams(),
-	StartTime= now(),
+    ?DebugF("Get dynparams for ~p~n",[CType]),
+    DynData = CType:init_dynparams(),
+    StartTime= now(),
     ts_mon:newclient({self(), StartTime}),
     set_thinktime(?short_timeout),
     ProtoOpts = #proto_opts{ssl_ciphers  = Ciphers,
@@ -130,7 +130,7 @@ wait_ack(next_msg,State=#state_rcv{request=R}) when R#ts_request.ack==global->
 %%          {stop, Reason, NewStateData}
 %%--------------------------------------------------------------------
 handle_event(Event, SName, StateData) ->
-	?LOGF("Unknown event (~p) received in state ~p, abort",[Event,SName],?ERR),
+    ?LOGF("Unknown event (~p) received in state ~p, abort",[Event,SName],?ERR),
     {stop, unknown_event, StateData}.
 
 %%--------------------------------------------------------------------
@@ -170,14 +170,14 @@ handle_info({NetEvent, _Socket, Data}, wait_ack, State) when NetEvent==tcp;
             {next_state, wait_ack, NewState#state_rcv{socket=NewSocket}, TimeOut}
     end;
 handle_info({udp, Socket,_IP,_InPortNo, Data}, wait_ack, State) ->
-	?DebugF("UDP packet received: size=~p ~n",[size(Data)]),
+    ?DebugF("UDP packet received: size=~p ~n",[size(Data)]),
     %% we don't care about IP,InPortNo, do the same as for a tcp connection:
     handle_info({tcp, Socket, Data}, wait_ack, State);
 %% inet close messages; persistent session, waiting for ack
 handle_info({NetEvent, _Socket}, wait_ack,
             State = #state_rcv{persistent=true}) when NetEvent==tcp_closed;
                                                       NetEvent==ssl_closed ->
-	?LOG("connection closed while waiting for ack",?INFO),
+    ?LOG("connection closed while waiting for ack",?INFO),
     {NewState, _Opts} = handle_data_msg(closed, State),
     %% socket should be closed in handle_data_msg
     handle_next_action(NewState#state_rcv{socket=none});
@@ -186,26 +186,26 @@ handle_info({NetEvent, _Socket}, wait_ack,
 handle_info({NetEvent, Socket}, think,
             State = #state_rcv{persistent=true}) when NetEvent==tcp_closed;
                                                       NetEvent==ssl_closed ->
-	?LOG("connection closed, stay alive (persistent)",?INFO),
+    ?LOG("connection closed, stay alive (persistent)",?INFO),
     catch ts_utils:close_socket(State#state_rcv.protocol, Socket), % mandatory for ssl
     {next_state, think, State#state_rcv{socket = none}};
 
 %% inet close messages
 handle_info({NetEvent, Socket}, _StateName, State) when NetEvent==tcp_closed;
                                                        NetEvent==ssl_closed ->
-	?LOG("connection closed, abort", ?WARN),
+    ?LOG("connection closed, abort", ?WARN),
     %% the connexion was closed after the last msg was sent, stop quietly
-	ts_mon:add({ count, error_closed }),
+    ts_mon:add({ count, error_closed }),
     ts_utils:close_socket(State#state_rcv.protocol, Socket), % mandatory for ssl
-	{stop, normal, State};
+    {stop, normal, State};
 
 %% inet errors
 handle_info({NetError, _Socket, Reason}, wait_ack, State)  when NetError==tcp_error;
                                                                NetError==ssl_error ->
-	?LOGF("Net error (~p): ~p~n",[NetError, Reason], ?WARN),
+    ?LOGF("Net error (~p): ~p~n",[NetError, Reason], ?WARN),
     CountName="inet_err_"++atom_to_list(Reason),
-	ts_mon:add({ count, list_to_atom(CountName) }),
-	{stop, normal, State};
+    ts_mon:add({ count, list_to_atom(CountName) }),
+    {stop, normal, State};
 
 %% timer expires, no more messages to send
 handle_info({timeout, _Ref, end_thinktime}, think, State= #state_rcv{ count=0 })  ->
@@ -223,7 +223,7 @@ handle_info(timeout, StateName, State ) ->
 % bidirectional protocol
 handle_info({NetEvent, Socket, Data}, think,State=#state_rcv{
   clienttype=Type, bidi=true,host=Host,port=Port})  when ((NetEvent == tcp) or (NetEvent==ssl)) ->
-	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
+    ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     ts_mon:add({ sum, size, size(Data)}),
     Proto = State#state_rcv.protocol,
     ?LOG("Data received from socket (bidi) in state think~n",?INFO),
@@ -243,7 +243,7 @@ handle_info({NetEvent, Socket, Data}, think,State=#state_rcv{
     {next_state, think, NewState#state_rcv{socket=NewSocket}};
 handle_info({NetEvent, _Socket, Data}, think, State)
   when (NetEvent == tcp) or (NetEvent==ssl) ->
-	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
+    ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     ts_mon:add({ count, error_unknown_data }),
     ?LOG("Data receive from socket in state think, stop~n", ?ERR),
     ?DebugF("Data was ~p~n",[Data]),
@@ -261,7 +261,7 @@ handle_info(Msg, StateName, State ) ->
 terminate(normal, _StateName,State) ->
     finish_session(State);
 terminate(Reason, StateName, State) ->
-	?LOGF("Stop in state ~p, reason= ~p~n",[StateName,Reason],?NOTICE),
+    ?LOGF("Stop in state ~p, reason= ~p~n",[StateName,Reason],?NOTICE),
     ts_mon:add({ count, error_unknown }),
     finish_session(State).
 
@@ -286,7 +286,7 @@ handle_next_action(State=#state_rcv{count=0}) ->
     ?LOG("Session ending ~n", ?INFO),
     {stop, normal, State};
 handle_next_action(State) ->
-	Count = State#state_rcv.count-1,
+    Count = State#state_rcv.count-1,
     case set_profile(State#state_rcv.maxcount,State#state_rcv.count,State#state_rcv.profile) of
         {thinktime, Think} ->
             ?DebugF("Starting new thinktime ~p~n", [Think]),
@@ -324,7 +324,7 @@ handle_next_action(State) ->
 %%----------------------------------------------------------------------
 handle_next_request(Profile, State) ->
     Count = State#state_rcv.count-1,
-	Type  = State#state_rcv.clienttype,
+    Type  = State#state_rcv.clienttype,
 
     {PrevHost, PrevPort, PrevProto} = case Profile of
         #ts_request{host=undefined, port=undefined, scheme=undefined} ->
@@ -360,10 +360,10 @@ handle_next_request(Profile, State) ->
     Message = Type:get_message(Param),
     Now = now(),
 
-	%% reconnect if needed
+    %% reconnect if needed
     Proto = {Protocol,State#state_rcv.proto_opts},
-	case reconnect(Socket,Host,Port,Proto,State#state_rcv.ip) of
-		{ok, NewSocket} ->
+    case reconnect(Socket,Host,Port,Proto,State#state_rcv.ip) of
+        {ok, NewSocket} ->
             case catch send(Protocol, NewSocket, Message, Host, Port) of
                 ok ->
                     PageTimeStamp = case State#state_rcv.page_timestamp of
@@ -415,18 +415,18 @@ handle_next_request(Profile, State) ->
                     ts_mon:add({ count, error_send }),
                     {stop, normal, State}
             end;
-		_Error ->
-			{stop, normal, State} %% already log in reconnect
-	end.
+        _Error ->
+            {stop, normal, State} %% already log in reconnect
+    end.
 
 %%----------------------------------------------------------------------
 %% Func: finish_session/1
 %% Args: State
 %%----------------------------------------------------------------------
 finish_session(State) ->
-	Now = now(),
-	Elapsed = ts_utils:elapsed(State#state_rcv.starttime, Now),
-	ts_mon:endclient({self(), Now, Elapsed}).
+    Now = now(),
+    Elapsed = ts_utils:elapsed(State#state_rcv.starttime, Now),
+    ts_mon:endclient({self(), Now, Elapsed}).
 
 %%----------------------------------------------------------------------
 %% Func: handle_close_while_sending/1
@@ -462,26 +462,26 @@ set_profile(MaxCount, Count, ProfileId) when is_integer(ProfileId) ->
 %% purpose: try to reconnect if this is needed (when the socket is set to none)
 %%----------------------------------------------------------------------
 reconnect(none, ServerName, Port, {Protocol, Proto_opts}, IP) ->
-	?DebugF("Try to (re)connect to: ~p:~p from ~p using protocol ~p~n",
+    ?DebugF("Try to (re)connect to: ~p:~p from ~p using protocol ~p~n",
             [ServerName,Port,IP,Protocol]),
-	Opts = protocol_options(Protocol, Proto_opts)  ++ [{ip, IP}],
+    Opts = protocol_options(Protocol, Proto_opts)  ++ [{ip, IP}],
     Before= now(),
     case connect(Protocol,ServerName, Port, Opts) of
-		{ok, Socket} ->
+        {ok, Socket} ->
             Elapsed = ts_utils:elapsed(Before, now()),
-			ts_mon:add({ sample, connect, Elapsed }),
-			?Debug("(Re)connected~n"),
-			{ok, Socket};
-		{error, Reason} ->
-	                {A,B,C,D} = IP,
-			?LOGF("(Re)connect from ~p.~p.~p.~p to ~s:~p, Error: ~p~n",
-			      [A,B,C,D, ServerName, Port, Reason],?ERR),
+            ts_mon:add({ sample, connect, Elapsed }),
+            ?Debug("(Re)connected~n"),
+            {ok, Socket};
+        {error, Reason} ->
+                    {A,B,C,D} = IP,
+            ?LOGF("(Re)connect from ~p.~p.~p.~p to ~s:~p, Error: ~p~n",
+                  [A,B,C,D, ServerName, Port, Reason],?ERR),
             CountName="error_connect_"++atom_to_list(Reason),
-			ts_mon:add({ count, list_to_atom(CountName) }),
-			{stop, normal}
+            ts_mon:add({ count, list_to_atom(CountName) }),
+            {stop, normal}
     end;
 reconnect(Socket, _Server, _Port, _Protocol, _IP) ->
-	{ok, Socket}.
+    {ok, Socket}.
 
 %%----------------------------------------------------------------------
 %% Func: send/5
@@ -498,9 +498,9 @@ send(gen_udp,Socket,Message,Host,Port) ->gen_udp:send(Socket,Host,Port,Message).
 %%----------------------------------------------------------------------
 connect(gen_tcp,Server, Port, Opts) -> gen_tcp:connect(Server, Port, Opts);
 connect(ssl,Server, Port,Opts)      -> ssl:connect(Server, Port, Opts);
-connect(gen_udp,_Server, _Port, Opts)  -> 
+connect(gen_udp,_Server, _Port, Opts)  ->
     %%FIXME: temporary hack; we need a unique port for each client using the same source IP
-    ClientPort=random:uniform(64511)+1024, 
+    ClientPort=random:uniform(64511)+1024,
     ?LOGF("Open UDP port number ~p, opts =~p~n",[ClientPort, Opts],?DEB),
     gen_udp:open(ClientPort,Opts).
 
@@ -516,18 +516,18 @@ protocol_options(ssl,#proto_opts{ssl_ciphers=Ciphers}) ->
     [binary, {active, once}, {ciphers, Ciphers} ];
 
 protocol_options(gen_tcp,#proto_opts{tcp_rcv_size=Rcv, tcp_snd_size=Snd}) ->
-	[binary,
-	 {active, once},
-	 {recbuf, Rcv},
-	 {sndbuf, Snd},
-	 {keepalive, true} %% FIXME: should be an option
-	];
+    [binary,
+     {active, once},
+     {recbuf, Rcv},
+     {sndbuf, Snd},
+     {keepalive, true} %% FIXME: should be an option
+    ];
 protocol_options(gen_udp,#proto_opts{udp_rcv_size=Rcv, udp_snd_size=Snd}) ->
-	[binary,
-	 {active, once},
-	 {recbuf, Rcv},
-	 {sndbuf, Snd}
-	].
+    [binary,
+     {active, once},
+     {recbuf, Rcv},
+     {sndbuf, Snd}
+    ].
 
 %%----------------------------------------------------------------------
 %% Func: set_thinktime/1
@@ -535,11 +535,11 @@ protocol_options(gen_udp,#proto_opts{udp_rcv_size=Rcv, udp_snd_size=Snd}) ->
 %%----------------------------------------------------------------------
 set_thinktime(infinity) -> ok;
 set_thinktime({random, Think}) ->
-	set_thinktime(round(ts_stats:exponential(1/Think)));
+    set_thinktime(round(ts_stats:exponential(1/Think)));
 set_thinktime(Think) ->
 %% dot not use timer:send_after because it does not scale well:
 %% http://www.erlang.org/ml-archive/erlang-questions/200202/msg00024.html
-	?DebugF("thinktime of ~p~n",[Think]),
+    ?DebugF("thinktime of ~p~n",[Think]),
     erlang:start_timer(Think, self(), end_thinktime ).
 
 
@@ -551,12 +551,12 @@ set_thinktime(Think) ->
 %%----------------------------------------------------------------------
 handle_data_msg(Data, State=#state_rcv{request=Req}) when Req#ts_request.ack==no_ack->
     ?Debug("data received while previous msg was no_ack~n"),
-	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
+    ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     {State, []};
 
 handle_data_msg(Data,State=#state_rcv{request=Req, clienttype=Type, maxcount=MaxCount})
   when Req#ts_request.ack==parse->
-	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
+    ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
 
     {NewState, Opts, Close} = Type:parse(Data, State),
     NewBuffer=set_new_buffer(Req, State#state_rcv.buffer, Data),
@@ -604,9 +604,9 @@ handle_data_msg(Data,State=#state_rcv{request=Req,datasize=OldSize})
 
 %% local ack, set ack_done to true
 handle_data_msg(Data, State=#state_rcv{request=Req, maxcount= MaxCount}) ->
-	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
+    ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     NewBuffer= set_new_buffer(Req, State#state_rcv.buffer, Data),
-	DataSize = size(Data),
+    DataSize = size(Data),
     {PageTimeStamp, DynVars} = update_stats(State#state_rcv{datasize=DataSize,
                                                             buffer=NewBuffer}),
     NewCount = ts_search:match(Req#ts_request.match, NewBuffer, {State#state_rcv.count,MaxCount}),
@@ -633,22 +633,22 @@ set_new_buffer(_, OldBuffer, Data) ->
 %% Purpose: update the statistics
 %%----------------------------------------------------------------------
 update_stats(State=#state_rcv{page_timestamp=PageTime,send_timestamp=SendTime}) ->
-	Now = now(),
-	Elapsed = ts_utils:elapsed(SendTime, Now),
-	Stats= [{ sample, request, Elapsed},
-			{ sum, size_rcv, State#state_rcv.datasize}],
+    Now = now(),
+    Elapsed = ts_utils:elapsed(SendTime, Now),
+    Stats= [{ sample, request, Elapsed},
+            { sum, size_rcv, State#state_rcv.datasize}],
     Profile = State#state_rcv.request,
     DynVars = ts_search:parse_dynvar(Profile#ts_request.dynvar_specs,
                                      State#state_rcv.buffer),
-	case Profile#ts_request.endpage of
-		true -> % end of a page, compute page reponse time
-			PageElapsed = ts_utils:elapsed(PageTime, Now),
-			ts_mon:add(lists:append([Stats,[{sample, page, PageElapsed}]])),
-			{0, DynVars};
-		_ ->
-			ts_mon:add(Stats),
-			{PageTime, DynVars}
-	end.
+    case Profile#ts_request.endpage of
+        true -> % end of a page, compute page reponse time
+            PageElapsed = ts_utils:elapsed(PageTime, Now),
+            ts_mon:add(lists:append([Stats,[{sample, page, PageElapsed}]])),
+            {0, DynVars};
+        _ ->
+            ts_mon:add(Stats),
+            {PageTime, DynVars}
+    end.
 
 %%----------------------------------------------------------------------
 %% Func: concat_dynvars/2
