@@ -1363,6 +1363,7 @@ cd to the log directory of your test (say
   \footnote{\url{http://www.editions-eyrolles.com/php.accueil/Ouvrages/ouvrage.php3?ouv_ean13=9782212110791}}
 \item \emph{Making reliable system in presence of software errors}, Doctoral Thesis,
 Joe Armstrong, Stockholm, 2003 \footnote{\url{http://www.sics.se/~joe/thesis/armstrong_thesis_2003.pdf}}
+\item \emph{Tutorial on How to write a Tsung plugin}, written by t ty, \url{http://www.process-one.net/en/wiki/Writing_a_Tsung_plugin/}
 \end{itemize}
 
 \section{Acknowledgments}
@@ -1465,13 +1466,19 @@ You can test this using these simple commands:
 \begin{Verbatim}
 >erl -rsh ssh -sname foo -setcookie mycookie
 
-Eshell V5.4.3 (abort with ^G) 
+Eshell V5.4.3 (abort with ^G)
 (foo@myhostname)1>slave:start(remotehost,bar,"-setcookie mycookie").
-{ok,bar@remotehost}
 \end{Verbatim}
+You should see this: \computeroutput{\{ok,bar@remotehost\}}
 
-Note that you do not need to use the 127.0.0.1 address in the configuration file.  
-It will not work if you use it as the injection interface. The shortname  
+If you got \computeroutput{\{error,timeout\}}, it probably comes from
+a firewall droping erlang packets; indeed erlang virtual machines use
+severals tcp ports (dynamicaly genrated) to communicate.
+The timeout can also comes from the use of SELinux. You should disable it.
+
+
+Note that you do not need to use the 127.0.0.1 address in the configuration file.
+It will not work if you use it as the injection interface. The shortname
 of your client machine should not refer to this address.
 
 \strong{New in 1.1.0}: If you don't use the distributed feature of
