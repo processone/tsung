@@ -12,7 +12,7 @@ Recommends: gnuplot, perl, ssh, libtemplate-perl
 Description: A distributed multi-protocol load testing tool.
  Tsung is a distributed load testing tool.
  It is protocol-independent and can currently be used to stress and 
- benchmark HTTP and Jabber servers. 
+ benchmark HTTP,  Jabber and PostgreSQL servers. 
  It simulates user behaviour using an XML description file, reports
  many measurements in real time (statistics can be customized with
  transactions, and graphics generated using gnuplot). 
