@@ -71,8 +71,13 @@ get_message(Jabber=#jabber{dest=previous}) ->
 get_message(Jabber=#jabber{type = 'presence:roster'}) ->
     presence(roster, Jabber);
 get_message(#jabber{type = 'presence:subscribe'}) -> %% must be called AFTER iq:roster:add
-    RosterJid = get(rosterjid),
-    presence(subscribe, RosterJid);
+    case get(rosterjid) of
+        undefined ->
+            ?LOG("Warn: no jid set for presence subscribe, skip",?WARN),
+            <<>>;
+        RosterJid ->
+            presence(subscribe, RosterJid)
+    end;
 get_message(Jabber=#jabber{type = 'chat', id=Id, dest=online, domain=Domain})->
     case ts_user_server:get_online(Id) of
         {ok, Dest} ->
@@ -116,11 +121,21 @@ get_message(#jabber{type = 'iq:roster:add',dest = offline,username=User,domain=D
             << >>
     end;
 get_message(#jabber{type = 'iq:roster:rename'})-> %% must be called AFTER iq:roster:add
-        RosterJid = get(rosterjid),
-        request(roster_rename, RosterJid);
+    case get(rosterjid) of
+        undefined ->
+            ?LOG("Warn: no jid set for iq:roster:rename msg, skip",?WARN),
+            <<>>;
+        RosterJid ->
+            request(roster_rename, RosterJid)
+    end;
 get_message(#jabber{type = 'iq:roster:remove'})-> %% must be called AFTER iq:roster:add
-        RosterJid = get(rosterjid),
-        request(roster_remove, RosterJid);
+    case get(rosterjid) of
+        undefined ->
+            ?LOG("Warn: no jid set for iq:roster:remove msg, skip",?WARN),
+            <<>>;
+        RosterJid ->
+            request(roster_remove, RosterJid)
+    end;
 get_message(#jabber{type = 'iq:roster:get', id = Id,username=User,domain=Domain}) ->
     request(roster_get, User, Domain, Id);
 
