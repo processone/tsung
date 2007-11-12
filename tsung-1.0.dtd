@@ -79,6 +79,7 @@
 <!ELEMENT session ( request | thinktime | transaction )*>
 <!ATTLIST session
     name         CDATA #REQUIRED
+    bidi         CDATA #IMPLIED
     persistent   (true | false) #IMPLIED
     probability   NMTOKEN #REQUIRED
     type         (ts_jabber | ts_http | ts_raw | ts_pgsql) #REQUIRED>

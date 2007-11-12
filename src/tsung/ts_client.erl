@@ -221,7 +221,7 @@ handle_info(timeout, StateName, State ) ->
     ts_mon:add({ count, timeout }),
     {stop, normal, State};
 % bidirectional protocol
-handle_info({NetEvent, Socket, Data}, think,State=#state_rcv{request=_Req,
+handle_info({NetEvent, Socket, Data}, think,State=#state_rcv{
   clienttype=Type, bidi=true,host=Host,port=Port})  when ((NetEvent == tcp) or (NetEvent==ssl)) ->
 	ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     ts_mon:add({ sum, size, size(Data)}),
@@ -232,7 +232,8 @@ handle_info({NetEvent, Socket, Data}, think,State=#state_rcv{request=_Req,
                        ?LOG("Bidi: no data ~n",?DEB),
                        State2;
                    {Data2, State2} ->
-                       %%FIXME: data size stats
+                       ts_mon:add({ sum, size_sent, size(Data2)}),
+                       ts_mon:sendmes({State#state_rcv.dump, self(), Data2}),
                        ?LOG("Bidi: send data back to server~n",?DEB),
                        send(Proto,Socket,Data2,Host,Port), %FIXME: handle errors ?
                        State2
