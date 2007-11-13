@@ -15,7 +15,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
@@ -35,17 +35,17 @@
 %% Func: start/2
 %% Returns: {ok, Pid}        |
 %%          {ok, Pid, State} |
-%%          {error, Reason}   
+%%          {error, Reason}
 %%----------------------------------------------------------------------
 start(_Type, _StartArgs) ->
-	error_logger:tty(false),
+    error_logger:tty(false),
     {ok, {LogDir, _Name}} = ts_utils:setsubdir(?config(log_file)),
     erlang:display("Log directory is: " ++ LogDir),
     LogFile = filename:join(LogDir, atom_to_list(node()) ++ ".log"),
-    case  error_logger:logfile({open, LogFile }) of 
+    case  error_logger:logfile({open, LogFile }) of
         ok ->
             case ts_controller_sup:start_link(LogDir) of
-                {ok, Pid} -> 
+                {ok, Pid} ->
                     {ok, Pid};
                 Error ->
                     ?LOGF("Can't start ! ~p ~n",[Error], ?ERR),
@@ -59,12 +59,12 @@ start(_Type, _StartArgs) ->
     end.
 
 start_phase(load_config, _StartType, _PhaseArgs) ->
-	case ts_config_server:read_config(?config(config_file)) of 
-		{error,Reason}->
-			erlang:display(["Config Error, aborting ! ", Reason]),
-			init:stop();
-		ok -> ok
-	end;
+    case ts_config_server:read_config(?config(config_file)) of
+        {error,Reason}->
+            erlang:display(["Config Error, aborting ! ", Reason]),
+            init:stop();
+        ok -> ok
+    end;
 start_phase(start_os_monitoring, _StartType, _PhaseArgs) ->
     ts_os_mon:activate();
 start_phase(start_clients, _StartType, _PhaseArgs) ->
@@ -73,19 +73,19 @@ start_phase(start_clients, _StartType, _PhaseArgs) ->
                           ?config(stats_backend)}).
 %%----------------------------------------------------------------------
 %% Func: status/1
-%% Returns: any 
+%% Returns: any
 %%----------------------------------------------------------------------
 status([Host]) when is_atom(Host)->
     _List = net_adm:world_list([Host]),
     global:sync(),
-    Msg = case catch ts_mon:status() of 
+    Msg = case catch ts_mon:status() of
               {Clients, {ok, {sample,[_Mean, _Var, _Max, _Min, Count]}},Interval, Phase}->
                   S1 = io_lib:format("Tsung is running [OK]~n" ++
                                      " Current request rate: ~p req/sec~n" ++
                                      " Current users:        ~p~n",
                                      [Count/Interval, Clients]),
                   {ok, Nodes, Ended_Beams} = ts_config_server:status(),
-                  case {Phase, Nodes == Ended_Beams} of 
+                  case {Phase, Nodes == Ended_Beams} of
                       {error,_} -> %no newphase, first phase
                           S1 ++ " Current phase:        1";
                       { {ok,{count, _}} , true} ->
@@ -99,18 +99,18 @@ status([Host]) when is_atom(Host)->
               {'EXIT', {noproc, _}} ->
                   "Tsung is not started"
           end,
-    io:format("~s~n",[Msg]).  
+    io:format("~s~n",[Msg]).
 
 %%----------------------------------------------------------------------
 %% Func: stop/1
-%% Returns: any 
+%% Returns: any
 %%----------------------------------------------------------------------
 stop(_State) ->
     stop.
 
 %%----------------------------------------------------------------------
 %% Func: stop_all/0
-%% Returns: any 
+%% Returns: any
 %%----------------------------------------------------------------------
 stop_all(Arg) ->
-	ts_utils:stop_all(Arg,'ts_mon').
+    ts_utils:stop_all(Arg,'ts_mon').
