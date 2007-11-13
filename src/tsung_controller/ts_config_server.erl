@@ -355,6 +355,7 @@ handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
         " -boot_var ", ?TSUNGPATH, " ",PathVar,
         " -pa ", PA1,
         " -pa ", PA2,
+        " +A 2 +K true ",
         " -tsung debug_level ", integer_to_list(?config(debug_level)),
         " -tsung dump ", atom_to_list(?config(dump)),
         " -tsung log_file ", LogDir
