@@ -1,7 +1,7 @@
 %%%
 %%%  Copyright © IDEALX S.A.S. 2003
 %%%
-%%%	 Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
+%%%  Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%  Created: 04 Dec 2003 by Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
@@ -49,7 +49,7 @@
 %% External exports
 -export([start_link/1, read_config/1, get_req/2, get_next_session/1,
          get_client_config/1, newbeam/1, newbeam/2,
-		 get_monitor_hosts/0, encode_filename/1, decode_filename/1,
+         get_monitor_hosts/0, encode_filename/1, decode_filename/1,
          endlaunching/1, status/0, start_file_server/1, get_user_agents/0]).
 
 %%debug
@@ -80,21 +80,21 @@ start_link(LogDir) ->
     gen_server:start_link({global, ?MODULE}, ?MODULE, [LogDir], []).
 
 status() ->
-	gen_server:call({global, ?MODULE}, {status}).
+    gen_server:call({global, ?MODULE}, {status}).
 
 %%--------------------------------------------------------------------
 %% Function: newbeam/1
 %% Description: start a new beam
 %%--------------------------------------------------------------------
 newbeam(Host)->
-	gen_server:cast({global, ?MODULE},{newbeam, Host, [] }).
+    gen_server:cast({global, ?MODULE},{newbeam, Host, [] }).
 %%--------------------------------------------------------------------
 %% Function: newbeam/2
 %% Description: start a new beam with given config. Use by launcher
 %%  when maxclient is reached. In this case, the arrival rate is known
 %%--------------------------------------------------------------------
 newbeam(Host, {Arrivals, MaxUsers})->
-	gen_server:cast({global, ?MODULE},{newbeam, Host, {Arrivals, MaxUsers} }).
+    gen_server:cast({global, ?MODULE},{newbeam, Host, {Arrivals, MaxUsers} }).
 
 %%--------------------------------------------------------------------
 %% Function: get_req/2
@@ -102,7 +102,7 @@ newbeam(Host, {Arrivals, MaxUsers})->
 %% Returns: #message | {error, Reason}
 %%--------------------------------------------------------------------
 get_req(Id, Count)->
-	gen_server:call({global, ?MODULE},{get_req, Id, Count}).
+    gen_server:call({global, ?MODULE},{get_req, Id, Count}).
 
 %%--------------------------------------------------------------------
 %% Function: get_user_agents/0
@@ -110,7 +110,7 @@ get_req(Id, Count)->
 %% Returns: List
 %%--------------------------------------------------------------------
 get_user_agents()->
-	gen_server:call({global, ?MODULE},{get_user_agents}).
+    gen_server:call({global, ?MODULE},{get_user_agents}).
 
 %%--------------------------------------------------------------------
 %% Function: read_config/1
@@ -118,7 +118,7 @@ get_user_agents()->
 %% Returns: ok | {error, Reason}
 %%--------------------------------------------------------------------
 read_config(ConfigFile)->
-	gen_server:call({global,?MODULE},{read_config, ConfigFile},?config_timeout).
+    gen_server:call({global,?MODULE},{read_config, ConfigFile},?config_timeout).
 
 %%--------------------------------------------------------------------
 %% Function: get_client_config/1
@@ -126,7 +126,7 @@ read_config(ConfigFile)->
 %% Returns: {ok, {ArrivalList, StartDate, MaxUsers}} | {error, notfound}
 %%--------------------------------------------------------------------
 get_client_config(Host)->
-	gen_server:call({global,?MODULE},{get_client_config, Host}, ?config_timeout).
+    gen_server:call({global,?MODULE},{get_client_config, Host}, ?config_timeout).
 
 %%--------------------------------------------------------------------
 %% Function: get_monitor_hosts/0
@@ -141,10 +141,10 @@ get_monitor_hosts()->
 %% Returns: {ok, Session ID, Session Size (integer), IP (tuple)}
 %%--------------------------------------------------------------------
 get_next_session(Host)->
-	gen_server:call({global, ?MODULE},{get_next_session, Host}).
+    gen_server:call({global, ?MODULE},{get_next_session, Host}).
 
 endlaunching(Node) ->
-	gen_server:cast({global, ?MODULE},{end_launching, Node}).
+    gen_server:cast({global, ?MODULE},{end_launching, Node}).
 
 
 %%====================================================================
@@ -160,7 +160,7 @@ endlaunching(Node) ->
 %%          {stop, Reason}
 %%--------------------------------------------------------------------
 init([LogDir]) ->
-	ts_utils:init_seed(),
+    ts_utils:init_seed(),
     {ok, MyHostName} = ts_utils:node_to_hostname(node()),
     ?LOGF("Config server started, logdir is ~p~n ",[LogDir],?NOTICE),
     {ok, #state{logdir=LogDir, hostname=list_to_atom(MyHostName)}}.
@@ -213,15 +213,15 @@ handle_call({read_config, ConfigFile}, _From, State) ->
 %% get Nth request from given session Id
 handle_call({get_req, Id, N}, _From, State) ->
     Config = State#state.config,
-	Tab    = Config#config.session_tab,
+    Tab    = Config#config.session_tab,
     ?DebugF("look for ~p th request in session ~p for ~p~n",[N,Id,_From]),
-	case ets:lookup(Tab, {Id, N}) of
-		[{_, Session}] ->
+    case ets:lookup(Tab, {Id, N}) of
+        [{_, Session}] ->
             ?DebugF("ok, found ~p for ~p~n",[Session,_From]),
-			{reply, Session, State};
-		Other ->
-			{reply, {error, Other}, State}
-	end;
+            {reply, Session, State};
+        Other ->
+            {reply, {error, Other}, State}
+    end;
 
 %%
 handle_call({get_user_agents}, _From, State) ->
@@ -236,7 +236,7 @@ handle_call({get_user_agents}, _From, State) ->
 %% get a new session id and an ip for the given node
 handle_call({get_next_session, HostName}, _From, State) ->
     Config = State#state.config,
-	Tab    = Config#config.session_tab,
+    Tab    = Config#config.session_tab,
 
     {value, Client} = lists:keysearch(HostName, #client.host, Config#config.clients),
 
@@ -244,7 +244,7 @@ handle_call({get_next_session, HostName}, _From, State) ->
     {ok, Server, NewPos} = choose_server(Config#config.servers, TmpPos),
 
     ?DebugF("get new session for ~p~n",[_From]),
-	NewState=State#state{lastips=NewPos},
+    NewState=State#state{lastips=NewPos},
     case choose_session(Config#config.sessions) of
         {ok, Session=#session{id=Id}} ->
             ?LOGF("Session ~p choosen~n",[Id],?INFO),
@@ -254,8 +254,8 @@ handle_call({get_next_session, HostName}, _From, State) ->
                 Other ->
                     {reply, {error, Other}, NewState}
             end;
-		Other ->
-			{reply, {error, Other}, NewState}
+        Other ->
+            {reply, {error, Other}, NewState}
     end;
 
 %%
@@ -334,7 +334,7 @@ handle_cast({newbeam, Host, []}, State=#state{last_beam_id = NodeId,
 handle_cast({newbeam, Host, _}, State=#state{ hostname=LocalHost,config=Config})
   when Config#config.use_controller_vm and ( ( LocalHost == Host ) or ( Host == 'localhost' )) ->
     Msg ="Maximum number of concurrent users in a single VM reached and 'use_controller_vm' is true, can't start new beam !!!~n",
-	?LOG(Msg, ?EMERG),
+    ?LOG(Msg, ?EMERG),
     erlang:display(Msg),
     {noreply, State};
 
@@ -349,7 +349,7 @@ handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
     ?DebugF("PA list ~p ~p~n", [PA1,PA2]),
     {ok, Boot, _} = regexp:gsub(BootController,"tsung_controller","tsung"),
     ?DebugF("Boot ~p~n", [Boot]),
-	Sys_Args= ts_utils:erl_system_args(),
+    Sys_Args= ts_utils:erl_system_args(),
     LogDir = encode_filename(State#state.logdir),
     Args = lists:append([ Sys_Args," -boot ", Boot,
         " -boot_var ", ?TSUNGPATH, " ",PathVar,
@@ -442,18 +442,18 @@ choose_rr([],_, RR, Def) -> % no val, return default
 choose_rr([Val],_,RR,_) -> % only one value
     {ok, Val, RR};
 choose_rr(List,Key,undefined,Def) ->
-	choose_rr(List,Key, dict:new(),Def);
+    choose_rr(List,Key, dict:new(),Def);
 choose_rr(List,Key,RRval,_) ->
     case dict:find(Key, RRval) of
-		{ok, NextVal} ->
-			NewRR = dict:update_counter(Key,1,RRval),
-			I = (NextVal rem length(List))+1, % round robin
-			{ok, lists:nth(I, List), NewRR};
-		error -> % first use of this key, init index to 1
-			Dict = dict:store(Key,1,RRval),
-			Val = lists:nth(1,List),
-			{ok, Val, Dict}
-	end.
+        {ok, NextVal} ->
+            NewRR = dict:update_counter(Key,1,RRval),
+            I = (NextVal rem length(List))+1, % round robin
+            {ok, lists:nth(I, List), NewRR};
+        error -> % first use of this key, init index to 1
+            Dict = dict:store(Key,1,RRval),
+            Val = lists:nth(1,List),
+            {ok, Val, Dict}
+    end.
 
 %%----------------------------------------------------------------------
 %% Func: choose_session/1
@@ -501,9 +501,9 @@ get_client_cfg([Arrival=#arrivalphase{duration = Duration,
                  _ ->
                      lists:min([MaxNumber, Duration*1000*ClientIntensity])
              end,
-	%% TODO: store the max number of clients
+    %% TODO: store the max number of clients
     ?LOGF("New arrival phase ~p for client ~p: will start ~p users~n",
-		  [Arrival#arrivalphase.phase, Host, NUsers],?NOTICE),
+          [Arrival#arrivalphase.phase, Host, NUsers],?NOTICE),
     get_client_cfg(AList, Clients, TotalWeight, Host,
                    [{ClientIntensity, round(NUsers)} | Cur]).
 
@@ -552,7 +552,7 @@ start_file_server(Filenames) ->
 
 %%----------------------------------------------------------------------
 %% Func: check_config/1
-%% Returns: ok | {error, ErrorList}    
+%% Returns: ok | {error, ErrorList}
 %%----------------------------------------------------------------------
 check_config(Config)->
     Pop= ts_utils:check_sum(Config#config.sessions, #session.popularity, ?SESSION_POP_ERROR_MSG),
@@ -567,15 +567,15 @@ check_config(Config)->
 load_app(Name) when atom(Name) ->
     FName = atom_to_list(Name) ++ ".app",
     case code:where_is_file(FName) of
-	non_existing ->
-	    {error, {file:format_error({error,enoent}), FName}};
-	FullName ->
-	    case file:consult(FullName) of
-		{ok, [Application]} ->
-		    {ok, Application};
-		{error, Reason} ->
-		    {error, {file:format_error(Reason), FName}}
-	    end
+    non_existing ->
+        {error, {file:format_error({error,enoent}), FName}};
+    FullName ->
+        case file:consult(FullName) of
+        {ok, [Application]} ->
+            {ok, Application};
+        {error, Reason} ->
+            {error, {file:format_error(Reason), FName}}
+        end
     end.
 
 %%----------------------------------------------------------------------
@@ -594,6 +594,6 @@ loop_load(Config=#config{load_loop=Loop,arrivalphases=Arrival}) when is_integer(
 loop_load(Config=#config{load_loop=0},_,Current) ->
     Config#config{arrivalphases = Current};
 loop_load(Config=#config{load_loop=Loop, arrivalphases=Arrival},Max,Current) ->
-	Fun= fun(Phase) -> Phase+Max*Loop end,
+    Fun= fun(Phase) -> Phase+Max*Loop end,
     NewArrival = lists:keymap(Fun,#arrivalphase.phase,Arrival),
     loop_load(Config#config{load_loop=Loop-1},Max,lists:append(Current, NewArrival)).
