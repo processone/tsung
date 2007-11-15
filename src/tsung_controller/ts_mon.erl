@@ -62,7 +62,7 @@
                 dump_interval,%
                 dumpfile,     % file used when dumptrafic is set light or full
                 client=0,     % number of clients currently running
-                maxclient=0,  % max of simultaneous clients 
+                maxclient=0,  % max of simultaneous clients
                 stats,        % dict keeping stats info
                 stop = false, % true if we should stop
                 laststats,    % values of last printed stats
@@ -90,6 +90,11 @@ start_clients({Machines, Dump, BackEnd}) ->
 stop() ->
     gen_server:cast({global, ?MODULE}, {stop}).
 
+add(nocache, Data) ->
+    gen_server:cast({global, ?MODULE}, {add, Data}).
+add(Data) ->
+    ts_session_cache:add(Data).
+
 status() ->
     gen_server:call({global, ?MODULE}, {status}).
 
@@ -115,10 +120,6 @@ rcvmes({_, _, closed}) -> skip;
 rcvmes({_Type, Who, What})  ->
     gen_server:cast({global, ?MODULE}, {rcvmsg, Who, now(), What}).
 
-add(nocache, Data) ->
-    gen_server:cast({global, ?MODULE}, {add, Data}).
-add(Data) ->
-    ts_session_cache:add(Data).
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from gen_server
@@ -136,7 +137,7 @@ init([LogDir]) ->
     Base = filename:basename(?config(log_file)),
     backup_config(LogDir, ?config(config_file)),
     Filename = filename:join(LogDir, Base),
-    case file:open(Filename,write) of 
+    case file:open(Filename,write) of
         {ok, Stream} ->
             ?LOG("starting monitor~n",?NOTICE),
             Tab = dict:new(),
@@ -178,7 +179,8 @@ handle_call({status}, _From, State ) ->
     Request = dict:find(request, State#state.stats),
     Interval = ts_utils:elapsed(State#state.lastdate, now()) / 1000,
     Phase = dict:find(newphase, State#state.stats),
-    Reply = { State#state.client, Request, Interval, Phase},
+    Connected = dict:find(connected, State#state.stats),
+    Reply = { State#state.client, Request, Connected, Interval, Phase},
     {reply, Reply, State};
 
 handle_call(Request, _From, State) ->
@@ -347,21 +349,21 @@ start_logger({Machines, DumpType, BackEnd}, _From, State) ->
 %% Purpose: update or add value in dictionnary
 %% Returns: Dict
 %%----------------------------------------------------------------------
-add_stats_data({sample, Type, Value}, Stats)  ->
+add_stats_data({sample, Name, Value}, Stats)  ->
     MyFun = fun (OldVal) -> update_stats(OldVal, Value) end,
-    dict:update(Type, MyFun, update_stats({sample, []},Value), Stats);
+    dict:update(Name, MyFun, update_stats({sample, []},Value), Stats);
 %% continuous incrementing counters
-add_stats_data({sample_counter, Type, Value}, Stats) ->
+add_stats_data({sample_counter, Name, Value}, Stats) ->
     MyFun = fun (OldVal) -> update_stats(OldVal, Value) end,
-    dict:update(Type, MyFun, update_stats({sample_counter, []},Value), Stats);
+    dict:update(Name, MyFun, update_stats({sample_counter, []},Value), Stats);
 %% increase by one when called
-add_stats_data({count, Type}, Stats)  ->
-    Add = fun ({CurType, OldVal}) -> {CurType, OldVal+1} end,
-    dict:update(Type, Add, {count, 1}, Stats);
+add_stats_data({count, Name}, Stats)  ->
+    Add = fun ({Type, OldVal}) -> {Type, OldVal+1} end,
+    dict:update(Name, Add, {count, 1}, Stats);
 %% cumulative counter
-add_stats_data({sum, Type, Val}, Stats)  ->
-    Add = fun ({CurType, OldVal}) -> {CurType, OldVal+Val} end,
-    dict:update(Type, Add, {sum, Val}, Stats);
+add_stats_data({sum, Name, Val}, Stats)  ->
+    Add = fun ({Type, OldVal}) -> {Type, OldVal+Val} end,
+    dict:update(Name, Add, {sum, Val}, Stats);
 add_stats_data(Data, Stats) ->
     ?LOGF("Wrong stats data ! ~p~n",[Data], ?WARN),
     Stats.

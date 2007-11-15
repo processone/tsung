@@ -178,6 +178,7 @@ handle_info({NetEvent, _Socket}, wait_ack,
             State = #state_rcv{persistent=true}) when NetEvent==tcp_closed;
                                                       NetEvent==ssl_closed ->
     ?LOG("connection closed while waiting for ack",?INFO),
+    set_connected_status(false),
     {NewState, _Opts} = handle_data_msg(closed, State),
     %% socket should be closed in handle_data_msg
     handle_next_action(NewState#state_rcv{socket=none});
@@ -187,6 +188,7 @@ handle_info({NetEvent, Socket}, think,
             State = #state_rcv{persistent=true}) when NetEvent==tcp_closed;
                                                       NetEvent==ssl_closed ->
     ?LOG("connection closed, stay alive (persistent)",?INFO),
+    set_connected_status(false),
     catch ts_utils:close_socket(State#state_rcv.protocol, Socket), % mandatory for ssl
     {next_state, think, State#state_rcv{socket = none}};
 
@@ -196,15 +198,17 @@ handle_info({NetEvent, Socket}, _StateName, State) when NetEvent==tcp_closed;
     ?LOG("connection closed, abort", ?WARN),
     %% the connexion was closed after the last msg was sent, stop quietly
     ts_mon:add({ count, error_closed }),
+    set_connected_status(false),
     ts_utils:close_socket(State#state_rcv.protocol, Socket), % mandatory for ssl
-    {stop, normal, State};
+    {stop, normal, State#state_rcv{socket = none}};
 
 %% inet errors
 handle_info({NetError, _Socket, Reason}, wait_ack, State)  when NetError==tcp_error;
                                                                NetError==ssl_error ->
     ?LOGF("Net error (~p): ~p~n",[NetError, Reason], ?WARN),
-    CountName="inet_err_"++atom_to_list(Reason),
+    CountName="error_inet_"++atom_to_list(Reason),
     ts_mon:add({ count, list_to_atom(CountName) }),
+    set_connected_status(false),
     {stop, normal, State};
 
 %% timer expires, no more messages to send
@@ -354,6 +358,7 @@ handle_next_request(Profile, State) ->
                      ?Debug("Change server configuration inside a session ~n"),
                      ts_utils:close_socket(State#state_rcv.protocol,
                                            State#state_rcv.socket),
+                     set_connected_status(false),
                      none
              end,
 
@@ -425,6 +430,7 @@ handle_next_request(Profile, State) ->
 %%----------------------------------------------------------------------
 finish_session(State) ->
     Now = now(),
+    set_connected_status(false),
     Elapsed = ts_utils:elapsed(State#state_rcv.starttime, Now),
     ts_mon:endclient({self(), Now, Elapsed}).
 
@@ -439,6 +445,7 @@ handle_close_while_sending(State=#state_rcv{persistent = true,
                                             protocol   = Proto,
                                             proto_opts = PO})->
     ts_utils:close_socket(Proto, State#state_rcv.socket),
+    set_connected_status(false),
     Think = PO#proto_opts.retry_timeout,
     ?LOGF("Server must have closed connection upon us, waiting ~p msec~n",
           [Think], ?NOTICE),
@@ -470,6 +477,7 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, IP) ->
         {ok, Socket} ->
             Elapsed = ts_utils:elapsed(Before, now()),
             ts_mon:add({ sample, connect, Elapsed }),
+            set_connected_status(true),
             ?Debug("(Re)connected~n"),
             {ok, Socket};
         {error, Reason} ->
@@ -498,7 +506,7 @@ send(gen_udp,Socket,Message,Host,Port) ->gen_udp:send(Socket,Host,Port,Message).
 %%----------------------------------------------------------------------
 connect(gen_tcp,Server, Port, Opts) -> gen_tcp:connect(Server, Port, Opts);
 connect(ssl,Server, Port,Opts)      -> ssl:connect(Server, Port, Opts);
-connect(gen_udp,_Server, _Port, Opts)  ->
+connect(gen_udp,_Server, _Port, Opts) ->
     %%FIXME: temporary hack; we need a unique port for each client using the same source IP
     ClientPort=random:uniform(64511)+1024,
     ?LOGF("Open UDP port number ~p, opts =~p~n",[ClientPort, Opts],?DEB),
@@ -572,6 +580,7 @@ handle_data_msg(Data,State=#state_rcv{request=Req, clienttype=Type, maxcount=Max
                 true ->
                     ?Debug("Close connection required by protocol~n"),
                     ts_utils:close_socket(State#state_rcv.protocol,State#state_rcv.socket),
+                    set_connected_status(false),
                     {NewState#state_rcv{ page_timestamp = PageTimeStamp,
                                          socket = none,
                                          datasize = 0,
@@ -628,6 +637,26 @@ set_new_buffer(_, Buffer,closed) ->
 set_new_buffer(_, OldBuffer, Data) ->
     ?Debug("Bufferize response~n"),
     << OldBuffer/binary, Data/binary >>.
+
+%%----------------------------------------------------------------------
+%% Func: set_connected_status/1
+%% Args: true|false
+%% Returns: -
+%% Purpose: update the statistics for connected users
+%%----------------------------------------------------------------------
+set_connected_status(S) ->
+    set_connected_status(S,get(connected)).
+set_connected_status(true, true) ->
+    ok;
+set_connected_status(true, Old) when Old==undefined; Old==false ->
+    put(connected,true),
+    ts_mon:add(nocache,{sum, connected, 1});
+set_connected_status(false, true) ->
+    put(connected,false),
+    ts_mon:add(nocache,{sum, connected, -1});
+set_connected_status(false, Old) when Old==undefined; Old==false ->
+    ok.
+
 
 %%----------------------------------------------------------------------
 %% Func: update_stats/1

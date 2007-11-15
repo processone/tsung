@@ -79,22 +79,24 @@ status([Host]) when is_atom(Host)->
     _List = net_adm:world_list([Host]),
     global:sync(),
     Msg = case catch ts_mon:status() of
-              {Clients, {ok, {sample,[_Mean, _Var, _Max, _Min, Count]}},Interval, Phase}->
+              {Clients, {ok, {sample,[_Mean, _Var, _Max, _Min, Count]}},
+                        {ok, {sum, Connected}}, Interval, Phase} ->
                   S1 = io_lib:format("Tsung is running [OK]~n" ++
-                                     " Current request rate: ~p req/sec~n" ++
-                                     " Current users:        ~p~n",
-                                     [Count/Interval, Clients]),
+                                     " Current request rate:    ~p req/sec~n" ++
+                                     " Current users:           ~p~n" ++
+                                     " Current connected users: ~p ~n",
+                                     [Count/Interval, Clients, Connected]),
                   {ok, Nodes, Ended_Beams} = ts_config_server:status(),
                   case {Phase, Nodes == Ended_Beams} of
                       {error,_} -> %no newphase, first phase
-                          S1 ++ " Current phase:        1";
+                          S1 ++ " Current phase:           1";
                       { {ok,{count, _}} , true} ->
-                          S1 ++ " Current phase:        last, waiting for pending clients";
+                          S1 ++ " Current phase:           last, waiting for pending clients";
                       { {ok,{count, P}} , _} ->
                           NPhases = (P div Nodes) + 1,
                           io_lib:format("~s Current phase:        ~p",[S1,NPhases])
                   end;
-              {_,  error, _,_} ->
+              {_,  error, _,_,_} ->
                   "Tsung is initializing, please wait ...";
               {'EXIT', {noproc, _}} ->
                   "Tsung is not started"
