@@ -27,7 +27,7 @@
 %%% common functions used by http clients to parse config
 
 -module(ts_config_raw).
--vc('$Id: ts_config_raw.erl 686 2006-08-09 20:16:42Z nniclausse $ ').
+-vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
 -export([parse_config/2]).

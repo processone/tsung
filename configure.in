@@ -78,6 +78,14 @@ else
   ERL_OPTS="+Mea r10b"
 fi
 
+AC_MSG_CHECKING(for '-hybrid' option)
+if ! $ERL -noshell -hybrid -s init stop 2> /dev/null; then
+  AC_MSG_RESULT(no)
+else
+  AC_MSG_RESULT(yes)
+  ERL_OPTS="-hybrid $ERL_OPTS"
+fi
+
 AC_MSG_CHECKING(for '-shared' option)
 if ! $ERL -noshell -shared -s init stop 2> /dev/null; then
   AC_MSG_RESULT(no)

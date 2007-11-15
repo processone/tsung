@@ -21,7 +21,7 @@
 %%%  the EPL license and distribute linked combinations including
 %%%  the two.
 
--vc('$Id: ts_raw.hrl,v 1.4 2004/08/10 15:53:15 nic Exp $ ').
+-vc('$Id$ ').
 -author('nicolas.niclausse@IDEALX.com').
 
 -record(raw, {

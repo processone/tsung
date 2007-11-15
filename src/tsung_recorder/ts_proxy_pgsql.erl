@@ -20,7 +20,7 @@
 %%%
 
 -module(ts_proxy_pgsql).
--vc('$Id: ts_proxy_http.erl,v 0.0 2005/11/09 22:20:59 nniclausse Exp $ ').
+-vc('$Id$ ').
 -author('Nicolas.Niclausse@niclux.org').
 
 -include("ts_profile.hrl").

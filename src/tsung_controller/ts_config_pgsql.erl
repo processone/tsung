@@ -27,7 +27,7 @@
 %%% common functions used by pgsql clients to parse config
 
 -module(ts_config_pgsql).
--vc('$Id: ts_config_http.erl 534 2005-09-19 11:20:53Z nic $ ').
+-vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
 -export([parse_config/2]).

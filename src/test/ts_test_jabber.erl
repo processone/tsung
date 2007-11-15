@@ -20,7 +20,7 @@
 %%% 
 
 -module(ts_test_jabber).
--vc('$Id: ts_test_jabber.erl,v 0.0 2007/03/17 15:16:19 nniclausse Exp $ ').
+-vc('$Id$ ').
 -author('Nicolas.Niclausse@niclux.org').
 
 -compile(export_all).

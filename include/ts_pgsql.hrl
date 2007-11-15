@@ -24,7 +24,7 @@
 %%%  the two.
 
 
--vc('$Id: ts_http.hrl 498 2005-08-09 14:04:21Z nic $ ').
+-vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
 %% use by the client to create the request
