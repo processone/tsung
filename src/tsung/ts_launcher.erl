@@ -15,7 +15,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
 %%%  the EPL license and distribute linked combinations including
@@ -44,11 +44,11 @@
 
 %% gen_fsm callbacks
 -export([init/1, launcher/2,  wait/2, finish/2, handle_event/3,
-		 handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
+         handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
 
 -record(state, {nusers,
                 phases =[],
-				myhostname,
+                myhostname,
                 intensity,
                 phase_nusers,   % total number of users to start in the current phase
                 phase_duration, % expected phase duration
@@ -66,21 +66,21 @@
 %% Function: start/0
 %%--------------------------------------------------------------------
 start() ->
-	?LOG("starting ~n", ?INFO),
-	gen_fsm:start_link({local, ?MODULE}, ?MODULE, [], []).
+    ?LOG("starting ~n", ?INFO),
+    gen_fsm:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 %%--------------------------------------------------------------------
 %% Function: launch/1
 %%--------------------------------------------------------------------
 %% Start clients with given interarrival (can be empty list)
 launch({Node, Arrivals}) ->
-	?LOGF("starting on node ~p~n",[[Node]], ?INFO),
-	gen_fsm:send_event({?MODULE, Node}, {launch, Arrivals});
+    ?LOGF("starting on node ~p~n",[[Node]], ?INFO),
+    gen_fsm:send_event({?MODULE, Node}, {launch, Arrivals});
 
 % same erlang beam case
 launch({Node, Host, Arrivals}) ->
-	?LOGF("starting on node ~p~n",[[Node]], ?INFO),
-	gen_fsm:send_event({?MODULE, Node}, {launch, Arrivals, atom_to_list(Host)}).
+    ?LOGF("starting on node ~p~n",[[Node]], ?INFO),
+    gen_fsm:send_event({?MODULE, Node}, {launch, Arrivals, atom_to_list(Host)}).
 
 
 %%%----------------------------------------------------------------------
@@ -92,44 +92,44 @@ launch({Node, Host, Arrivals}) ->
 %% Returns: {ok, StateName, StateData}          |
 %%          {ok, StateName, StateData, Timeout} |
 %%          ignore                              |
-%%          {stop, StopReason}                   
+%%          {stop, StopReason}
 %%----------------------------------------------------------------------
 init([]) ->
     ts_utils:init_seed(),
     {ok, MyHostName} = ts_utils:node_to_hostname(node()),
-	{ok, wait, #state{myhostname=MyHostName}}.
+    {ok, wait, #state{myhostname=MyHostName}}.
 
 %%----------------------------------------------------------------------
 %% Func: StateName/2
 %% Returns: {next_state, NextStateName, NextStateData}          |
 %%          {next_state, NextStateName, NextStateData, Timeout} |
-%%          {stop, Reason, NewStateData}                         
+%%          {stop, Reason, NewStateData}
 %%----------------------------------------------------------------------
 wait({launch, Args, Hostname}, State) ->
     wait({launch, Args}, State#state{myhostname = Hostname});
 %% starting without configuration. We must ask the config server for
 %% the configuration of this launcher.
 wait({launch, []}, State) ->
-	MyHostName = State#state.myhostname,
-	?LOGF("Launch msg receive (~p)~n",[MyHostName], ?NOTICE),
+    MyHostName = State#state.myhostname,
+    ?LOGF("Launch msg receive (~p)~n",[MyHostName], ?NOTICE),
     check_registered(),
-    {ok, {[{Intensity, Users}| Rest], StartDate, Max}} = 
+    {ok, {[{Intensity, Users}| Rest], StartDate, Max}} =
         ts_config_server:get_client_config(MyHostName),
-	Warm_timeout=case ts_utils:elapsed(now(), StartDate) of 
-					 WaitBeforeStart when WaitBeforeStart>0 -> 
-						 round(ts_stats:exponential(Intensity) + WaitBeforeStart);
-					 _Neg -> 
-						 ?LOG("Negative Warm timeout !!! Check if client "++
-							  " machines are synchronized (ntp ?)~n"++
-							  "Anyway, start launcher NOW! ~n", ?WARN),
-						 1
-					  end,
+    Warm_timeout=case ts_utils:elapsed(now(), StartDate) of
+                     WaitBeforeStart when WaitBeforeStart>0 ->
+                         round(ts_stats:exponential(Intensity) + WaitBeforeStart);
+                     _Neg ->
+                         ?LOG("Negative Warm timeout !!! Check if client "++
+                              " machines are synchronized (ntp ?)~n"++
+                              "Anyway, start launcher NOW! ~n", ?WARN),
+                         1
+                      end,
     Warm = lists:min([Warm_timeout,?config(max_warm_delay)]),
-	?LOGF("Activate launcher (~p users) in ~p msec ~n",[Users, Warm], ?NOTICE),
+    ?LOGF("Activate launcher (~p users) in ~p msec ~n",[Users, Warm], ?NOTICE),
     Duration = Users/Intensity,
-	?LOGF("Expected duration of first phase: ~p sec ~n",[Duration/1000], ?NOTICE),
+    ?LOGF("Expected duration of first phase: ~p sec ~n",[Duration/1000], ?NOTICE),
     PhaseStart = ts_utils:add_time(now(), Warm div 1000),
-	{next_state,launcher,State#state{phases = Rest, nusers = Users,
+    {next_state,launcher,State#state{phases = Rest, nusers = Users,
                                      phase_nusers = Users,
                                      phase_duration=Duration,
                                      phase_start = PhaseStart,
@@ -141,9 +141,9 @@ wait({launch, {[{Intensity, Users}| Rest], Max}}, State) ->
     ?LOGF("Starting with ~p users to do in the current phase (max is ~p)~n",
           [Users, Max],?DEB),
     Duration = Users/Intensity,
-	?LOGF("Expected duration of phase: ~p sec ~n",[Duration/1000], ?NOTICE),
+    ?LOGF("Expected duration of phase: ~p sec ~n",[Duration/1000], ?NOTICE),
     check_registered(),
-	{next_state, launcher, State#state{phases = Rest, nusers = Users, 
+    {next_state, launcher, State#state{phases = Rest, nusers = Users,
                                        phase_nusers = Users,
                                        phase_duration=Duration,
                                        phase_start = now(),
@@ -151,7 +151,7 @@ wait({launch, {[{Intensity, Users}| Rest], Max}}, State) ->
      State#state.short_timeout}.
 
 launcher(_Event, #state{nusers = 0, phases = [] }) ->
-	?LOG("no more clients to start, wait  ~n",?INFO),
+    ?LOG("no more clients to start, wait  ~n",?INFO),
     ts_config_server:endlaunching(node()),
     {next_state, finish, #state{}, ?check_noclient_timeout};
 
@@ -175,7 +175,7 @@ launcher(timeout, State=#state{nusers    = Users,
                             PhaseLength = NewUsers/NewIntensity,
                             ?LOGF("Start a new arrival phase (~p ~p); expected duration=~p sec~n",
                                   [NewUsers, NewIntensity, Duration/1000], ?NOTICE),
-                            {next_state,launcher,State#state{phases = Rest, 
+                            {next_state,launcher,State#state{phases = Rest,
                                                              nusers = NewUsers,
                                                              phase_nusers = NewUsers,
                                                              phase_duration=PhaseLength,
@@ -190,7 +190,7 @@ launcher(timeout, State=#state{nusers    = Users,
                             %% to keep the rate of new users as expected,
                             %% remove the time to launch a client to the next
                             %% wait.
-                            NewWait = case Wait > LaunchDuration of 
+                            NewWait = case Wait > LaunchDuration of
                                           true -> round(Wait - LaunchDuration);
                                           false -> 0
                                       end,
@@ -225,17 +225,17 @@ finish(timeout, State) ->
 %%          {reply, Reply, NextStateName, NextStateData}          |
 %%          {reply, Reply, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}                          |
-%%          {stop, Reason, Reply, NewStateData}                    
+%%          {stop, Reason, Reply, NewStateData}
 %%----------------------------------------------------------------------
 
 %%----------------------------------------------------------------------
 %% Func: handle_event/3
 %% Returns: {next_state, NextStateName, NextStateData}          |
 %%          {next_state, NextStateName, NextStateData, Timeout} |
-%%          {stop, Reason, NewStateData}                         
+%%          {stop, Reason, NewStateData}
 %%----------------------------------------------------------------------
 handle_event(_Event, StateName, StateData) ->
-	{next_state, StateName, StateData}.
+    {next_state, StateName, StateData}.
 
 %%----------------------------------------------------------------------
 %% Func: handle_sync_event/4
@@ -244,20 +244,20 @@ handle_event(_Event, StateName, StateData) ->
 %%          {reply, Reply, NextStateName, NextStateData}          |
 %%          {reply, Reply, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}                          |
-%%          {stop, Reason, Reply, NewStateData}                    
+%%          {stop, Reason, Reply, NewStateData}
 %%----------------------------------------------------------------------
 handle_sync_event(_Event, _From, StateName, StateData) ->
-	Reply = ok,
-	{reply, Reply, StateName, StateData}.
+    Reply = ok,
+    {reply, Reply, StateName, StateData}.
 
 %%----------------------------------------------------------------------
 %% Func: handle_info/3
 %% Returns: {next_state, NextStateName, NextStateData}          |
 %%          {next_state, NextStateName, NextStateData, Timeout} |
-%%          {stop, Reason, NewStateData}                         
+%%          {stop, Reason, NewStateData}
 %%----------------------------------------------------------------------
 handle_info(_Info, StateName, StateData) ->
-	{next_state, StateName, StateData}.
+    {next_state, StateName, StateData}.
 
 %%----------------------------------------------------------------------
 %% Func: terminate/3
@@ -265,8 +265,8 @@ handle_info(_Info, StateName, StateData) ->
 %% Returns: any
 %%----------------------------------------------------------------------
 terminate(Reason, _StateName, _StateData) ->
-	?LOGF("launcher terminating for reason~p~n",[Reason], ?INFO),
-	ok.
+    ?LOGF("launcher terminating for reason~p~n",[Reason], ?INFO),
+    ok.
 
 %%--------------------------------------------------------------------
 %% Func: code_change/4
@@ -292,7 +292,7 @@ change_phase(0, [], _, _) ->
     {stop};
 change_phase(N,NewPhases,Current,{Total, PhaseUsers}) when Current>Total ->
     Percent = 100*N/PhaseUsers,
-    case {Percent > ?MAX_PHASE_EXCEED_PERCENT, N > ?MAX_PHASE_EXCEED_NUSERS} of 
+    case {Percent > ?MAX_PHASE_EXCEED_PERCENT, N > ?MAX_PHASE_EXCEED_NUSERS} of
         {true,true} ->
             ?LOGF("Phase duration exceeded, more than ~p% (~.1f%) of users were not launched in time (~p users), tsung may be overloaded !~n",
                   [?MAX_PHASE_EXCEED_PERCENT,Percent,N],?WARN);
@@ -314,12 +314,12 @@ change_phase(_N, _, _Current, {_Total, _}) ->
 %%% Func: check_max_raised/1
 %%%----------------------------------------------------------------------
 check_max_raised(State=#state{phases=Phases,maxusers=Max,nusers=Users,
-							  intensity=Intensity})->
+                              intensity=Intensity})->
     ActiveClients =  ts_client_sup:active_clients(),
     case ActiveClients >= Max of
         true ->
             ?LOG("Max number of concurrent clients reached, must start a new beam~n", ?NOTICE),
-            Args = case Users of 
+            Args = case Users of
                        0 ->  Phases;
                        _ -> [{Intensity,Users-1}|Phases]
                    end,
@@ -336,7 +336,7 @@ check_max_raised(State=#state{phases=Phases,maxusers=Max,nusers=Users,
 do_launch({Intensity, MyHostName})->
     %%Get one client
     %%set the profile of the client
-    case catch ts_config_server:get_next_session(MyHostName) of 
+    case catch ts_config_server:get_next_session(MyHostName) of
         {timeout, _ } ->
             ?LOG("get_next_session failed (timeout), skip this session !~n", ?ERR),
             error;
