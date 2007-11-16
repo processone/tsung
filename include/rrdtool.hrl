@@ -1,7 +1,7 @@
 %%%
 %%%  Copyright © IDEALX S.A.S. 2004
 %%%
-%%%	 Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
+%%%  Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%  Created: 06 May 2004 by Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
@@ -37,7 +37,7 @@
 % [DS:ds-name:DST:heartbeat:min:max]
 -record(rrd_ds, {name,
                  type = "GAUGE",  % GAUGE|COUNTER|DERIVE|ABSOLUTE
-                 heartbeat = 600, % 10mn 
+                 heartbeat = 600, % 10mn
                  min = "U",
                  max = "U" }).
 

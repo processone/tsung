@@ -15,7 +15,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
 %%%  the EPL license and distribute linked combinations including
@@ -27,19 +27,19 @@
 -record(jabber_dyndata, {id}).
 
 -record(jabber, {dest,
-				 size,
+                 size,
                  data,
-				 type,
-				 jud_param,
-				 cle,
-				 id = 0,
-				 domain,   %% jabber domain
-				 username, %% first chars of username (will append id dynamically)
-				 passwd,   %% first chars of passwd (will append id dynamically)
-				 nonce,    %% used to generate sip-digest passwd
-				 sid,      %% used to generate digest passwd
-				 show,     %% presence <show/> - see RFC 3921, section 2.2
-				 status    %% presence <status/> - see RFC 3921, section 2.2
-				}).
+                 type,
+                 jud_param,
+                 cle,
+                 id = 0,
+                 domain,   %% jabber domain
+                 username, %% first chars of username (will append id dynamically)
+                 passwd,   %% first chars of passwd (will append id dynamically)
+                 nonce,    %% used to generate sip-digest passwd
+                 sid,      %% used to generate digest passwd
+                 show,     %% presence <show/> - see RFC 3921, section 2.2
+                 status    %% presence <status/> - see RFC 3921, section 2.2
+                }).
 
 -define(setroster_intensity, 1/(ts_utils:get_val(setroster)*1000)).

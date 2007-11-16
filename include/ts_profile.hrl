@@ -15,7 +15,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
 %%%  the EPL license and distribute linked combinations including
@@ -42,13 +42,13 @@
         {thinktime,
          ack,
          subst=false,
-         match=undefined, 
+         match=undefined,
          dynvar_specs=undefined, % undefined | [{VarName, Regexp} |...]
          param,
          endpage=false,
          host,       % override global server hostname
          port,       % override global server port
-         scheme      % override global server type (ssl or gen_tcp) 
+         scheme      % override global server type (ssl or gen_tcp)
         }).
 
 % protocol options
@@ -63,16 +63,16 @@
 
 
 % state of ts_client gen_server
--record(state_rcv, 
-        {socket=none, %  
+-record(state_rcv,
+        {socket=none, %
          ip,          % local ip to bind to
-		 timeout,	  % ?
-         host,	      % hostname (or IP) of remote server
+         timeout,     % ?
+         host,        % hostname (or IP) of remote server
          port,        % server port
-         protocol,	  % gen_udp, gen_tcp or ssl
-         proto_opts = #proto_opts{},  % 
+         protocol,    % gen_udp, gen_tcp or ssl
+         proto_opts = #proto_opts{},  %
          bidi = false,% true if bidirectional protocol
-         
+
          profile,     % session id
          request,     % current request specs
          persistent,  % if true, don't exit when connexion is closed
@@ -80,21 +80,21 @@
          starttime,   % date of the beginning of the session
          count,       % number of requests waiting to be sent
          maxcount,       % number of requests waiting to be sent
-		 ack_done=false, % 'true' if the ack was sent, else 'false' (unused if ack=no_ack)
-		 send_timestamp,  % date when the 'request' was sent 
-		 page_timestamp=0,  % date when the first 'request' of a page was sent 
-		 acc=[],     % Accumulator to store temporary unparsable data
+         ack_done=false, % 'true' if the ack was sent, else 'false' (unused if ack=no_ack)
+         send_timestamp,  % date when the 'request' was sent
+         page_timestamp=0,  % date when the first 'request' of a page was sent
+         acc=[],     % Accumulator to store temporary unparsable data
                      % (Waiting for more data)
-		 buffer = <<>>, % buffer when we have to keep the response (we need
+         buffer = <<>>, % buffer when we have to keep the response (we need
                      % all the response to do pattern matching)
-		 session,    % record of session status; depends on 'clienttype'
+         session,    % record of session status; depends on 'clienttype'
          datasize=0,
          dyndata=[], % persistent data dynamically added during the
                      % session (Cookies for examples)
          clienttype, % module name (ts_jabber, etc.)
          transactions=[], % current transactions
          dump        % type of dump (full, light, none)
-		}).
+        }).
 
 -define(restart_sleep, 2000).
 -define(infinity_timeout, 15000).
@@ -121,9 +121,9 @@
 %% errors messages
 
 -define(LOGF(Msg, Args, Level),
-		ts_utils:debug(?MODULE, Msg, Args, Level)).
+        ts_utils:debug(?MODULE, Msg, Args, Level)).
 -define(LOG(Msg, Level),
-		ts_utils:debug(?MODULE, Msg, Level)).
+        ts_utils:debug(?MODULE, Msg, Level)).
 
 %% Debug messages can be completely disabled if DEBUG is not defined
 -ifdef(DEBUG).
@@ -138,11 +138,11 @@
     -define(Debug(Msg), ok).
 -endif.
 
--define(EMERG, 0). % The system is unusable. 
+-define(EMERG, 0). % The system is unusable.
 -define(ALERT, 1). % Action should be taken immediately to address the problem.
--define(CRIT, 2).  % A critical condition has occurred. 
--define(ERR, 3).   % An error has occurred. 
--define(WARN, 4).  % A significant event that may require attention has occurred. 
--define(NOTICE, 5).% An event that does not affect system operation has occurred. 
--define(INFO, 6).  % An normal operation has occurred. 
+-define(CRIT, 2).  % A critical condition has occurred.
+-define(ERR, 3).   % An error has occurred.
+-define(WARN, 4).  % A significant event that may require attention has occurred.
+-define(NOTICE, 5).% An event that does not affect system operation has occurred.
+-define(INFO, 6).  % An normal operation has occurred.
 -define(DEB, 7).   % Debugging info

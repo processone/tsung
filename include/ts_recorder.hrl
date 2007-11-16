@@ -7,7 +7,7 @@
                     logfd,       % logfile IODevice
                     prev_port,   % previous port
                     prev_scheme, % previous scheme
-                    prev_host,   % previous hostname 
+                    prev_host,   % previous hostname
                     timestamp=0, % last request date
                     plugin,
                     thinktime_low = 1000 % dot not record thinktime less than this

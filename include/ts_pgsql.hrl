@@ -17,7 +17,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
 %%%  the EPL license and distribute linked combinations including
@@ -38,9 +38,9 @@
           sql
          }).
 
-%% 
--record(pgsql_dyndata, 
-        { 
+%%
+-record(pgsql_dyndata,
+        {
           auth_method,
           username, % FIXME: add this at config time in #pgsql_request ?
           salt
@@ -48,13 +48,13 @@
        ).
 
 %% unused
--record(pgsql, 
-        { 
+-record(pgsql,
+        {
           fixme
          }
        ).
 
-%%% Version 3.0 of the protocol. 
+%%% Version 3.0 of the protocol.
 %%% Supported in postgres from version 7.4
 -define(PROTOCOL_MAJOR, 3).
 -define(PROTOCOL_MINOR, 0).

@@ -1,7 +1,7 @@
 %%%
 %%%  Copyright © IDEALX S.A.S. 2003
 %%%
-%%%	 Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
+%%%  Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%  Created: 03 Dec 2003 by Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
 %%%  the EPL license and distribute linked combinations including
@@ -33,7 +33,7 @@
 -define(DEF_REGEXP_DYNVAR_BEGIN, "name=(\"|')").%'
 -define(DEF_REGEXP_DYNVAR_END, "(\"|') ([^>]* )?value=(\"|')\\([^\"]*\\)(\"|')").%'
 
--record(config,	{
+-record(config, {
           name,
           loglevel = ?WARN,
           dump = none,
@@ -58,16 +58,17 @@
           file_server= [], % filenames for file_server
           load_loop,       % loop phases if > 0
           ssl_ciphers = negociate
-		}).
+         }).
 
 
--record(client,	
+-record(client,
         {host,
          weight   = 1,
          maxusers,
          ip       = []
         }).
--record(server,	
+
+-record(server,
         {host,
          port,
          type
@@ -79,7 +80,7 @@
           persistent   = false,
           bidi         = false,
           ssl_ciphers  = negociate,
-          size 
+          size
         }).
 
 -record(arrivalphase,
