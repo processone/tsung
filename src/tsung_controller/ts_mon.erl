@@ -194,17 +194,6 @@ handle_call(Request, _From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_cast({sendmsg, _, _, _}, State = #state{type = none}) ->
-    {noreply, State};
-
-handle_cast({sendmsg, Who, When, What}, State = #state{type=light,dumpfile=Log}) ->
-    io:format(Log,"Send:~w:~w:~-44s~n",[When,Who, binary_to_list(What)]),
-    {noreply, State};
-
-handle_cast({sendmsg, Who, When, What}, State=#state{dumpfile=Log}) ->
-    io:format(Log,"Send:~w:~w:~s~n",[When,Who,binary_to_list(What)]),
-    {noreply, State};
-
 handle_cast({add, Data}, State) when is_list(Data) ->
     NewStats = lists:foldl(fun add_stats_data/2, State#state.stats, Data ),
     {noreply,State#state{stats=NewStats}};
@@ -213,25 +202,8 @@ handle_cast({add, Data}, State) when is_tuple(Data) ->
     NewStats = add_stats_data(Data, State#state.stats),
     {noreply,State#state{stats=NewStats}};
 
-handle_cast({dumpstats}, State) ->
-    export_stats(State),
-    NewStats = reset_all_stats(State#state.stats),
-    {noreply, State#state{laststats = NewStats, stats=NewStats,lastdate=now()}};
-
-handle_cast({rcvmsg, _, _, _}, State = #state{type=none}) ->
-    {noreply, State};
-
-handle_cast({rcvmsg, Who, When, What}, State = #state{type=light, dumpfile=Log}) ->
-    io:format(Log,"Recv:~w:~w:~-44s~n",[When,Who, binary_to_list(What)]),
-    {noreply, State};
-
-handle_cast({rcvmsg, Who, When, What}, State=#state{dumpfile=Log}) ->
-    io:format(Log, "Recv:~w:~w:~s~n",[When,Who,binary_to_list(What)]),
-    {noreply, State};
-
 handle_cast({newclient, Who, When}, State) ->
     Clients =  State#state.client+1,
-    Max= lists:max([Clients,State#state.maxclient]),
     Tab = State#state.stats,
     Add = fun ({count,OldVal}) -> {count,OldVal+1} end,
     NewTab = dict:update(users_count, Add, {count,1}, Tab),
@@ -242,7 +214,12 @@ handle_cast({newclient, Who, When}, State) ->
             io:format(State#state.dumpfile,"NewClient:~w:~w~n",[When, Who]),
             io:format(State#state.dumpfile,"load:~w~n",[Clients])
     end,
-    {noreply, State#state{client = Clients, maxclient=Max, stats=NewTab}};
+    case Clients > State#state.maxclient of 
+        true ->
+            {noreply, State#state{client = Clients, maxclient=Clients, stats=NewTab}};
+        false ->
+            {noreply, State#state{client = Clients, stats=NewTab}}
+    end;
 
 handle_cast({endclient, Who, When, Elapsed}, State) ->
     Clients =  State#state.client-1,
@@ -267,6 +244,34 @@ handle_cast({endclient, Who, When, Elapsed}, State) ->
         _ ->
             {noreply, State#state{client = Clients, stats=NewTab}}
     end;
+
+handle_cast({dumpstats}, State) ->
+    export_stats(State),
+    NewStats = reset_all_stats(State#state.stats),
+    {noreply, State#state{laststats = NewStats, stats=NewStats,lastdate=now()}};
+
+
+handle_cast({sendmsg, _, _, _}, State = #state{type = none}) ->
+    {noreply, State};
+
+handle_cast({sendmsg, Who, When, What}, State = #state{type=light,dumpfile=Log}) ->
+    io:format(Log,"Send:~w:~w:~-44s~n",[When,Who, binary_to_list(What)]),
+    {noreply, State};
+
+handle_cast({sendmsg, Who, When, What}, State=#state{dumpfile=Log}) ->
+    io:format(Log,"Send:~w:~w:~s~n",[When,Who,binary_to_list(What)]),
+    {noreply, State};
+
+handle_cast({rcvmsg, _, _, _}, State = #state{type=none}) ->
+    {noreply, State};
+
+handle_cast({rcvmsg, Who, When, What}, State = #state{type=light, dumpfile=Log}) ->
+    io:format(Log,"Recv:~w:~w:~-44s~n",[When,Who, binary_to_list(What)]),
+    {noreply, State};
+
+handle_cast({rcvmsg, Who, When, What}, State=#state{dumpfile=Log}) ->
+    io:format(Log, "Recv:~w:~w:~s~n",[When,Who,binary_to_list(What)]),
+    {noreply, State};
 
 handle_cast({stop}, State = #state{client = 0}) ->
     ts_os_mon:stop(),
@@ -371,13 +376,6 @@ add_stats_data(Data, Stats) ->
 %%----------------------------------------------------------------------
 %% Func: export_stats/2
 %%----------------------------------------------------------------------
-export_stats(State=#state{backend=rrdtool,laststats=Last, stats=Dict}) ->
-    New_Keys = dict:fetch_keys(Dict) -- dict:fetch_keys(Last),
-    ?DebugF("create new rrd keys [~p]~n",[New_Keys]),
-    rrd_create(State#state.log_dir, New_Keys, State#state.dump_interval),
-    Res = dict:to_list(State#state.stats),
-    rrd_update(State#state.log_dir,Res);
-
 export_stats(State=#state{backend=text}) ->
     DateStr = ts_utils:now_sec(),
     io:format(State#state.log,"# stats: dump at ~w~n",[DateStr]),
@@ -385,7 +383,15 @@ export_stats(State=#state{backend=text}) ->
     %% print number of simultaneous users
     io:format(State#state.log, "stats: ~p ~p ~p~n", [users, State#state.client,
                                                      State#state.maxclient]),
-    print_dist_list(Res, State#state.laststats , State#state.log).
+    print_dist_list(Res, State#state.laststats , State#state.log);
+
+export_stats(State=#state{backend=rrdtool,laststats=Last, stats=Dict}) ->
+    New_Keys = dict:fetch_keys(Dict) -- dict:fetch_keys(Last),
+    ?DebugF("create new rrd keys [~p]~n",[New_Keys]),
+    rrd_create(State#state.log_dir, New_Keys, State#state.dump_interval),
+    Res = dict:to_list(State#state.stats),
+    rrd_update(State#state.log_dir,Res).
+
 
 %%----------------------------------------------------------------------
 %% Func: export_stats/2
@@ -423,10 +429,17 @@ update_stats({sample, []}, New) ->
     {sample, [New, 0, New, New, 1]};
 update_stats({sample, [Mean, Var, Max, Min, Count]}, Value) ->
     {NewMean, NewVar, _} = ts_stats:meanvar(Mean, Var, [Value], Count),
-    NewMax = lists:max([Max, Value]),
-    NewMin = lists:min([Min, Value]),
-    {sample, [NewMean, NewVar, NewMax, NewMin, Count+1]};
-
+    case Value > Max of
+        true -> % new max, min unchanged
+            {sample, [NewMean, NewVar, Value, Min, Count+1]};
+        false ->
+            case Value < Min of
+                true ->
+                    {sample, [NewMean, NewVar, Max, Value, Count+1]};
+                false ->
+                    {sample, [NewMean, NewVar, Max, Min, Count+1]}
+            end
+    end;
 update_stats({sample_counter,[]}, New) -> %% first call, store the initial value
     {sample_counter, [0, 0, 0, 0, 0, New]};
 update_stats({sample_counter, [0, 0, 0, 0, 0, Last]}, Value) ->
@@ -435,9 +448,17 @@ update_stats({sample_counter, [0, 0, 0, 0, 0, Last]}, Value) ->
 update_stats({sample_counter,[Mean, Var, Max, Min, Count, Last]}, Value) ->
     New = Value-Last,
     {NewMean, NewVar, _} = ts_stats:meanvar(Mean, Var, [New], Count),
-    NewMax = lists:max([Max, New]),
-    NewMin = lists:min([Min, New]),
-    {sample_counter,[NewMean, NewVar, NewMax, NewMin, Count+1, Value]}.
+    case New > Max of
+        true -> % new max, min unchanged
+            {sample_counter,[NewMean, NewVar, New, Min, Count+1, Value]};
+        false ->
+            case Value < Min of
+                true ->
+                    {sample_counter,[NewMean, NewVar, Max, New, Count+1, Value]};
+                false ->
+                    {sample_counter,[NewMean, NewVar, Max, Min, Count+1, Value]}
+            end
+    end.
 
 %%----------------------------------------------------------------------
 %% Func: reset_all_stats/2
