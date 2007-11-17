@@ -228,7 +228,7 @@ handle_info(timeout, StateName, State ) ->
 handle_info({NetEvent, Socket, Data}, think,State=#state_rcv{
   clienttype=Type, bidi=true,host=Host,port=Port})  when ((NetEvent == tcp) or (NetEvent==ssl)) ->
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
-    ts_mon:add({ sum, size, size(Data)}),
+    ts_mon:add({ sum, size_rcv, size(Data)}),
     Proto = State#state_rcv.protocol,
     ?LOG("Data received from socket (bidi) in state think~n",?INFO),
     NewState = case Type:parse_bidi(Data, State) of
