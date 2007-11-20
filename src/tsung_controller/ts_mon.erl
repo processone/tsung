@@ -21,16 +21,13 @@
 %%%  the EPL license and distribute linked combinations including
 %%%  the two.
 
-%%%  Created :  8 Feb 2001 by Nicolas Niclausse <nicolas@niclux.org>
 
 %%----------------------------------------------------------------------
-%% HEADER ts_mon
-%% COPYRIGHT IDEALX (C) 2001
-%% PURPOSE monitor and log events and stats
-%% DESCRIPTION
-%%   TODO ...
+%% @copyright 2001 IDEALX
+%% @author Nicolas Niclausse <nicolas@niclux.org>
+%% @since 8 Feb 2001
+%% @doc monitor and log events and stats
 %%----------------------------------------------------------------------
-
 
 -module(ts_mon).
 -author('nicolas@niclux.org').
@@ -48,7 +45,7 @@
          rcvmes/1, add/1, add/2, dumpstats/0
         ]).
 
--export([update_stats/2]).
+-export([update_stats/3]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
@@ -176,11 +173,11 @@ handle_call({start_logger, Machines, DumpType, text}, From, State) ->
 
 %%% get status
 handle_call({status}, _From, State ) ->
-    Request = dict:find(request, State#state.stats),
+    Request = dict:find({request, sample}, State#state.stats),
     Interval = ts_utils:elapsed(State#state.lastdate, now()) / 1000,
-    Phase = dict:find(newphase, State#state.stats),
-    Connected = dict:find(connected, State#state.stats),
-    Reply = { State#state.client, Request, Connected, Interval, Phase},
+    Phase = dict:find({newphase, count}, State#state.stats),
+    Connected = dict:find({connected, sum}, State#state.stats),
+    Reply = { State#state.client, Request,Connected, Interval, Phase},
     {reply, Reply, State};
 
 handle_call(Request, _From, State) ->
@@ -205,8 +202,7 @@ handle_cast({add, Data}, State) when is_tuple(Data) ->
 handle_cast({newclient, Who, When}, State) ->
     Clients =  State#state.client+1,
     Tab = State#state.stats,
-    Add = fun ({count,OldVal}) -> {count,OldVal+1} end,
-    NewTab = dict:update(users_count, Add, {count,1}, Tab),
+    NewTab = dict:update_counter({users_count, count}, 1, Tab),
 
     case State#state.type of
         none -> ok;
@@ -214,7 +210,7 @@ handle_cast({newclient, Who, When}, State) ->
             io:format(State#state.dumpfile,"NewClient:~w:~w~n",[When, Who]),
             io:format(State#state.dumpfile,"load:~w~n",[Clients])
     end,
-    case Clients > State#state.maxclient of 
+    case Clients > State#state.maxclient of
         true ->
             {noreply, State#state{client = Clients, maxclient=Clients, stats=NewTab}};
         false ->
@@ -224,12 +220,12 @@ handle_cast({newclient, Who, When}, State) ->
 handle_cast({endclient, Who, When, Elapsed}, State) ->
     Clients =  State#state.client-1,
     Tab = State#state.stats,
-    Add = fun ({count,OldVal}) -> {count,OldVal+1} end,
-    New1Tab = dict:update(finish_users_count, Add, {count,1}, Tab),
+    New1Tab = dict:update_counter({finish_users_count, count}, 1, Tab),
 
     %% update session sample
-    MyFun = fun (OldV) -> update_stats(OldV, Elapsed) end,
-    NewTab = dict:update(session, MyFun, update_stats({sample,[]},Elapsed), New1Tab),
+    MyFun = fun (OldV) -> update_stats(sample, OldV, Elapsed) end,
+    Init = [Elapsed, 0, Elapsed, Elapsed, 1], % initial value of the sample
+    NewTab = dict:update({session, sample}, MyFun, Init, New1Tab),
 
     case State#state.type of
         none ->
@@ -354,24 +350,17 @@ start_logger({Machines, DumpType, BackEnd}, _From, State) ->
 %% Purpose: update or add value in dictionnary
 %% Returns: Dict
 %%----------------------------------------------------------------------
-add_stats_data({sample, Name, Value}, Stats)  ->
-    MyFun = fun (OldVal) -> update_stats(OldVal, Value) end,
-    dict:update(Name, MyFun, update_stats({sample, []},Value), Stats);
 %% continuous incrementing counters
-add_stats_data({sample_counter, Name, Value}, Stats) ->
-    MyFun = fun (OldVal) -> update_stats(OldVal, Value) end,
-    dict:update(Name, MyFun, update_stats({sample_counter, []},Value), Stats);
+add_stats_data({Type, Name,Value},Stats) when Type==sample;
+                                              Type==sample_counter ->
+    MyFun = fun (OldVal) -> update_stats(Type, OldVal, Value) end,
+    dict:update({Name,Type}, MyFun, update_stats(Type, [], Value), Stats);
 %% increase by one when called
 add_stats_data({count, Name}, Stats)  ->
-    Add = fun ({Type, OldVal}) -> {Type, OldVal+1} end,
-    dict:update(Name, Add, {count, 1}, Stats);
+    dict:update_counter({Name, count}, 1, Stats);
 %% cumulative counter
 add_stats_data({sum, Name, Val}, Stats)  ->
-    Add = fun ({Type, OldVal}) -> {Type, OldVal+Val} end,
-    dict:update(Name, Add, {sum, Val}, Stats);
-add_stats_data(Data, Stats) ->
-    ?LOGF("Wrong stats data ! ~p~n",[Data], ?WARN),
-    Stats.
+    dict:update_counter({Name, sum}, Val, Stats).
 
 %%----------------------------------------------------------------------
 %% Func: export_stats/2
@@ -379,11 +368,12 @@ add_stats_data(Data, Stats) ->
 export_stats(State=#state{backend=text}) ->
     DateStr = ts_utils:now_sec(),
     io:format(State#state.log,"# stats: dump at ~w~n",[DateStr]),
-    Res = dict:to_list(State#state.stats),
     %% print number of simultaneous users
-    io:format(State#state.log, "stats: ~p ~p ~p~n", [users, State#state.client,
+    io:format(State#state.log, "stats: ~p ~p ~p~n", [users,
+                                                     State#state.client,
                                                      State#state.maxclient]),
-    print_dist_list(Res, State#state.laststats , State#state.log);
+    Param = {State#state.laststats,State#state.log},
+    dict:fold(fun print_dist_list/3, Param, State#state.stats);
 
 export_stats(State=#state{backend=rrdtool,laststats=Last, stats=Dict}) ->
     New_Keys = dict:fetch_keys(Dict) -- dict:fetch_keys(Last),
@@ -394,74 +384,73 @@ export_stats(State=#state{backend=rrdtool,laststats=Last, stats=Dict}) ->
 
 
 %%----------------------------------------------------------------------
-%% Func: export_stats/2
-%% Args: Stats, Last, Logfile
+%% Func: print_dist_list/3
+%% @spec (Key::tuple(), Value::List, {Last, Logfile}) -> {Last, Logfile}
+%% @doc print statistics in text format in Logfile
 %%----------------------------------------------------------------------
-print_dist_list([], _, _) ->
-    done;
-print_dist_list([{Key,{_Type,[Mean,0,Max,Min,Count|_]}}|Tail],LastRes,Logfile)->
+print_dist_list({Name,_Type}, [Mean,0,Max,Min,Count|_], {LastRes,Logfile})->
     io:format(Logfile, "stats: ~p ~p ~p ~p ~p ~p~n",
-              [Key, Count, Mean, 0, Max, Min ]),
-    print_dist_list(Tail, LastRes, Logfile);
-print_dist_list([{Key,{_Type,[Mean,Var,Max,Min,Count|_]}}|Tail],LastRes,Logfile)->
+              [Name, Count, Mean, 0, Max, Min ]),
+    {LastRes, Logfile};
+print_dist_list({Name,_Type},[Mean,Var,Max,Min,Count|_],{LastRes,Logfile})->
     StdVar = math:sqrt(Var/Count),
     io:format(Logfile, "stats: ~p ~p ~p ~p ~p ~p~n",
-              [Key, Count, Mean, StdVar, Max, Min ]),
-    print_dist_list(Tail, LastRes, Logfile);
-print_dist_list([{Key, {_Type, [Sample,Last]}} | Tail], LastRes, Logfile) ->
-    io:format(Logfile, "stats: ~p ~p ~p~n", [Key, Sample, Last ]),
-    print_dist_list(Tail, LastRes, Logfile);
-print_dist_list([{Key, {_Type, Value}} | Tail], LastRes, Logfile) ->
-    case dict:find(Key, LastRes) of
-        {ok,  {_, OldVal}} ->
-            PrevVal = OldVal ;
-        error ->
-            PrevVal = 0
-    end,
-    io:format(Logfile, "stats: ~p ~p ~p~n", [Key, Value-PrevVal, Value]),
-    print_dist_list(Tail, LastRes, Logfile).
+              [Name, Count, Mean, StdVar, Max, Min ]),
+    {LastRes, Logfile};
+print_dist_list({Name, _Type}, [Value,Last], {LastRes, Logfile}) ->
+    io:format(Logfile, "stats: ~p ~p ~p~n", [Name, Value, Last ]),
+    {LastRes, Logfile};
+print_dist_list({Name, Type}, Value, {LastRes, Logfile}) ->
+    PrevVal = case dict:find({Name, Type}, LastRes) of
+                  {ok, OldVal} -> OldVal;
+                  error        -> 0
+              end,
+    io:format(Logfile, "stats: ~p ~p ~p~n", [Name, Value-PrevVal, Value]),
+    {LastRes, Logfile}.
 
 
 %%----------------------------------------------------------------------
-%% Func: update_stats/2
+%% update_stats/3
+%% @spec (Type::atom, List, Value::[integer() | float()]) -> List
+%% @doc update the mean and variance for the given sample
 %%----------------------------------------------------------------------
-update_stats({sample, []}, New) ->
-    {sample, [New, 0, New, New, 1]};
-update_stats({sample, [Mean, Var, Max, Min, Count]}, Value) ->
+update_stats(sample, [], New) ->
+    [New, 0, New, New, 1];
+update_stats(sample, [Mean, Var, Max, Min, Count], Value) ->
     {NewMean, NewVar, _} = ts_stats:meanvar(Mean, Var, [Value], Count),
     case Value > Max of
         true -> % new max, min unchanged
-            {sample, [NewMean, NewVar, Value, Min, Count+1]};
+            [NewMean, NewVar, Value, Min, Count+1];
         false ->
             case Value < Min of
                 true ->
-                    {sample, [NewMean, NewVar, Max, Value, Count+1]};
+                    [NewMean, NewVar, Max, Value, Count+1];
                 false ->
-                    {sample, [NewMean, NewVar, Max, Min, Count+1]}
+                    [NewMean, NewVar, Max, Min, Count+1]
             end
     end;
-update_stats({sample_counter,[]}, New) -> %% first call, store the initial value
-    {sample_counter, [0, 0, 0, 0, 0, New]};
-update_stats({sample_counter, [0, 0, 0, 0, 0, Last]}, Value) ->
+update_stats(sample_counter,[], New) -> %% first call, store the initial value
+    [0, 0, 0, 0, 0, New];
+update_stats(sample_counter, [0, 0, 0, 0, 0, Last], Value) ->
     New = Value-Last,
-    {sample_counter,[New, 0, New, New, 1, Value]};
-update_stats({sample_counter,[Mean, Var, Max, Min, Count, Last]}, Value) ->
+    [New, 0, New, New, 1, Value];
+update_stats(sample_counter,[Mean, Var, Max, Min, Count, Last], Value) ->
     New = Value-Last,
     {NewMean, NewVar, _} = ts_stats:meanvar(Mean, Var, [New], Count),
     case New > Max of
         true -> % new max, min unchanged
-            {sample_counter,[NewMean, NewVar, New, Min, Count+1, Value]};
+            [NewMean, NewVar, New, Min, Count+1, Value];
         false ->
             case Value < Min of
                 true ->
-                    {sample_counter,[NewMean, NewVar, Max, New, Count+1, Value]};
+                    [NewMean, NewVar, Max, New, Count+1, Value];
                 false ->
-                    {sample_counter,[NewMean, NewVar, Max, Min, Count+1, Value]}
+                    [NewMean, NewVar, Max, Min, Count+1, Value]
             end
     end.
 
 %%----------------------------------------------------------------------
-%% Func: reset_all_stats/2
+%% Func: reset_all_stats/1
 %%----------------------------------------------------------------------
 reset_all_stats(Dict)->
     MyFun = fun (_Key, OldVal) -> reset_stats(OldVal) end,
@@ -469,25 +458,22 @@ reset_all_stats(Dict)->
 
 %%----------------------------------------------------------------------
 %% Func: reset_stats/1
-%% Purpose: reset all stats except min and max
+%% @doc reset all stats except min and max and lastvalue.
 %%----------------------------------------------------------------------
-reset_stats({Type,[]}) ->
-    {Type, [0, 0, 0, 0, 0]};
-reset_stats({Type, [_Mean, _Var, Max, Min, _Count, Last]}) ->
-    {Type, [0, 0, Max, Min, 0, Last]};
-reset_stats({Type, [_Mean, _Var, Max, Min, _Count]}) ->
-    {Type, [0, 0, Max, Min, 0]};
-reset_stats({Type, [_Sample, LastValue]}) ->
-    {Type, [0, LastValue]};
-reset_stats({Type, LastValue}) ->
-    {Type, LastValue};
-reset_stats(Args) ->
-    ?LOGF("resetting  unknown stats~p~n",[Args],?WARN),
-    Args.
+reset_stats([]) ->  % FIXME: useful ?!
+    [0, 0, 0, 0, 0];
+reset_stats([_Mean, _Var, Max, Min, _Count, Last]) ->
+    [0, 0, Max, Min, 0, Last];
+reset_stats([_Mean, _Var, Max, Min, _Count]) ->
+    [0, 0, Max, Min, 0];
+reset_stats([_Sample, LastValue]) ->
+    [0, LastValue];
+reset_stats(LastValue) ->
+    LastValue.
 
 %%----------------------------------------------------------------------
 %% Func: start_launchers/2
-%% start the launcher on clients nodes
+%% @doc start the launcher on clients nodes
 %%----------------------------------------------------------------------
 start_launchers(Machines) ->
     ?DebugF("Need to start tsung client on ~p~n",[Machines]),
@@ -499,7 +485,7 @@ start_launchers(Machines) ->
 
 %%----------------------------------------------------------------------
 %% Func: backup_config/2
-%% Purpose: copy a backup copy of the config file in the log directory
+%% @doc copy a backup copy of the config file in the log directory
 %%   This is useful to have an history of all parameters of a test.
 %%----------------------------------------------------------------------
 backup_config(Dir, Config) ->
@@ -509,7 +495,7 @@ backup_config(Dir, Config) ->
 %%----------------------------------------------------------------------
 %% Func: rrd_create/2
 %% Args: LogDir, List of Names, Interval
-%% FIXME: Not yet operationnal
+%% TODO: unfinished, does not work.
 %%----------------------------------------------------------------------
 rrd_create(_, [], _) -> ok;
 rrd_create(LogDir, [NameI|Rest], Interval) when is_integer(NameI)->
@@ -532,7 +518,7 @@ rrd_create(LogDir, [Name|Rest], Interval) when is_list(Name)->
 %%----------------------------------------------------------------------
 %% Func: rrd_update/2
 %% Args: LogDir, Stats
-%% FIXME: Not yet operationnal
+%% TODO: unfinished, does not work.
 %%----------------------------------------------------------------------
 rrd_update(_,[]) -> ok;
 rrd_update(LogDir,[{Key, Val} | Tail]) when is_integer(Key)->
