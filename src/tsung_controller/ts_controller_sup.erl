@@ -15,7 +15,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
 %%%  the EPL license and distribute linked combinations including
@@ -39,8 +39,8 @@
 %%% API
 %%%----------------------------------------------------------------------
 start_link(LogDir) ->
-	?LOG("starting supervisor ...~n",?INFO),
-	supervisor:start_link({local, ?MODULE}, ?MODULE, [LogDir]).
+    ?LOG("starting supervisor ...~n",?INFO),
+    supervisor:start_link({local, ?MODULE}, ?MODULE, [LogDir]).
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from supervisor
@@ -50,27 +50,27 @@ start_link(LogDir) ->
 %% Func: init/1
 %% Returns: {ok,  {SupFlags,  [ChildSpec]}} |
 %%          ignore                          |
-%%          {error, Reason}   
+%%          {error, Reason}
 %%----------------------------------------------------------------------
 init([LogDir]) ->
-	?LOG("starting",?INFO),
-    Config = {ts_config_server, {ts_config_server, start_link, 
+    ?LOG("starting",?INFO),
+    Config = {ts_config_server, {ts_config_server, start_link,
                                  [LogDir]}, transient, 2000,
               worker, [ts_config_server]},
-    Stats_Mon = {ts_mon, {ts_mon, start, [LogDir]}, transient, 2000, 
+    Stats_Mon = {ts_mon, {ts_mon, start, [LogDir]}, transient, 2000,
                  worker, [ts_mon]},
-    Os_Mon = {ts_os_mon, {ts_os_mon, start, []}, transient, 2000, 
-			   worker, [ts_os_mon]},
+    Os_Mon = {ts_os_mon, {ts_os_mon, start, []}, transient, 2000,
+               worker, [ts_os_mon]},
     Timer = {ts_timer, {ts_timer, start, [?config(nclients)]}, transient, 2000,
-			   worker, [ts_timer]},
+               worker, [ts_timer]},
     Msg  = {ts_msg_server, {ts_msg_server, start, []}, transient, 2000,
-			   worker, [ts_msg_server]},
+               worker, [ts_msg_server]},
     User = {ts_user_server, {ts_user_server, start,
-						  [[?config(nclients_deb), ?config(nclients_fin),
-							?config(nclients)]]},
-			transient, 2000, worker, [ts_user_server]},
+                          [[?config(nclients_deb), ?config(nclients_fin),
+                            ?config(nclients)]]},
+            transient, 2000, worker, [ts_user_server]},
     {ok,{{one_for_one,?retries,10},
-		 [Config, Stats_Mon, Timer, Msg, User, Os_Mon]}}.
+         [Config, Stats_Mon, Timer, Msg, User, Os_Mon]}}.
 
 %%%----------------------------------------------------------------------
 %%% Internal functions
