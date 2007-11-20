@@ -160,7 +160,7 @@ sub plot_stats {
         }
     }
     close GP;
-    system("$gnuplot $gplotdir/graphes-$datatype.gplot");
+    system("$gnuplot $gplotdir/graphes-$datatype.gplot") and warn "Error while running gnuplot: $!";
 }
 
 sub max {
