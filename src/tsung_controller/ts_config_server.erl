@@ -53,7 +53,7 @@
          endlaunching/1, status/0, start_file_server/1, get_user_agents/0]).
 
 %%debug
--export([choose_client_ip/2, choose_session/1]).
+-export([choose_client_ip/1, choose_session/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
@@ -240,22 +240,21 @@ handle_call({get_next_session, HostName}, _From, State) ->
 
     {value, Client} = lists:keysearch(HostName, #client.host, Config#config.clients),
 
-    {ok,IP,TmpPos} = choose_client_ip(Client,State#state.lastips),
-    {ok, Server, NewPos} = choose_server(Config#config.servers, TmpPos),
+    {ok,IP} = choose_client_ip(Client),
+    {ok, Server} = choose_server(Config#config.servers),
 
     ?DebugF("get new session for ~p~n",[_From]),
-    NewState=State#state{lastips=NewPos},
     case choose_session(Config#config.sessions) of
         {ok, Session=#session{id=Id}} ->
             ?LOGF("Session ~p choosen~n",[Id],?INFO),
             case ets:lookup(Tab, {Id, size}) of
                 [{_, Size}] ->
-                    {reply, {ok, {Session, Size, IP, Server}}, NewState};
+                    {reply, {ok, {Session, Size, IP, Server}}, State};
                 Other ->
-                    {reply, {error, Other}, NewState}
+                    {reply, {error, Other}, State}
             end;
         Other ->
-            {reply, {error, Other}, NewState}
+            {reply, {error, Other}, State}
     end;
 
 %%
@@ -412,49 +411,44 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 
 %%----------------------------------------------------------------------
-%% Func: choose_client_ip/2
+%% Func: choose_client_ip/1
 %% Args: #client, Dict
 %% Purpose: choose an IP for a client
 %% Returns: {ok, IP, NewDict} IP=IPv4 address {A1,A2,A3,A4}
 %%----------------------------------------------------------------------
 %% FIXME: and for IPV6 ?
-choose_client_ip(#client{ip = IPList, host=Host},RRval) ->
-    choose_rr(IPList, Host, RRval, {0,0,0,0}).
+choose_client_ip(#client{ip = IPList, host=Host}) ->
+    choose_rr(IPList, Host, {0,0,0,0}).
 
 %%----------------------------------------------------------------------
-%% Func: choose_server/2
-%% Args: List, Dict
+%% Func: choose_server/1
+%% Args: List
 %% Purpose: choose a server for a new client
-%% Returns: {ok, #server, NewDict}
+%% Returns: {ok, #server}
 %%----------------------------------------------------------------------
-choose_server(ServerList, RRVal) ->
-    choose_rr(ServerList, server, RRVal, #server{}).
+choose_server(ServerList) ->
+    choose_rr(ServerList, server, #server{}).
 
 %%----------------------------------------------------------------------
-%% Func: choose_rr/4
-%% Args: List, Key, Dict, Default
+%% Func: choose_rr/3
+%% Args: List, Key, Default
 %% Purpose: choose an value in list in a round robin way. Use last
-%%          value stored in dict with key Key.
+%%          value stored in the process dictionnary
 %           Return Default if list is empty
-%% Returns: {ok, Val, NewDict}
+%% Returns: {ok, Val}
 %%----------------------------------------------------------------------
-choose_rr([],_, RR, Def) -> % no val, return default
-    {ok, Def, RR};
-choose_rr([Val],_,RR,_) -> % only one value
-    {ok, Val, RR};
-choose_rr(List,Key,undefined,Def) ->
-    choose_rr(List,Key, dict:new(),Def);
-choose_rr(List,Key,RRval,_) ->
-    case dict:find(Key, RRval) of
-        {ok, NextVal} ->
-            NewRR = dict:update_counter(Key,1,RRval),
-            I = (NextVal rem length(List))+1, % round robin
-            {ok, lists:nth(I, List), NewRR};
-        error -> % first use of this key, init index to 1
-            Dict = dict:store(Key,1,RRval),
-            Val = lists:nth(1,List),
-            {ok, Val, Dict}
-    end.
+choose_rr([],_, Def) -> % no val, return default
+    {ok, Def};
+choose_rr([Val],_,_) -> % only one value
+    {ok, Val};
+choose_rr(List, Key, _) ->
+    I = case get({rr,Key}) of
+          undefined -> 1 ; % first use of this key, init index to 1
+          Val when is_integer(Val) ->
+            (Val rem length(List))+1 % round robin
+    end,
+    put({rr, Key},I),
+    {ok, lists:nth(I, List)}.
 
 %%----------------------------------------------------------------------
 %% Func: choose_session/1
