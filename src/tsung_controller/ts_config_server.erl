@@ -48,7 +48,7 @@
 %%--------------------------------------------------------------------
 %% External exports
 -export([start_link/1, read_config/1, get_req/2, get_next_session/1,
-         get_client_config/1, newbeam/1, newbeam/2,
+         get_client_config/1, newbeam/1, newbeam/2, start_slave/4,
          get_monitor_hosts/0, encode_filename/1, decode_filename/1,
          endlaunching/1, status/0, start_file_server/1, get_user_agents/0]).
 
@@ -161,6 +161,7 @@ endlaunching(Node) ->
 %%--------------------------------------------------------------------
 init([LogDir]) ->
     ts_utils:init_seed(),
+    process_flag(trap_exit,true),
     {ok, MyHostName} = ts_utils:node_to_hostname(node()),
     ?LOGF("Config server started, logdir is ~p~n ",[LogDir],?NOTICE),
     {ok, #state{logdir=LogDir, hostname=list_to_atom(MyHostName)}}.
@@ -360,18 +361,8 @@ handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
         " -tsung log_file ", LogDir
         ]),
     ?LOGF("starting newbeam on host ~p from ~p with Args ~p~n", [Host, State#state.hostname, Args], ?INFO),
-    case slave:start_link(Host, Name, Args) of
-        {ok, Node} ->
-            ?LOGF("started newbeam on node ~p ~n", [Node], ?NOTICE),
-            Res = net_adm:ping(Node),
-            ?LOGF("ping ~p ~p~n", [Node,Res], ?NOTICE),
-            ts_launcher:launch({Node, Arrivals}),
-            {noreply, State#state{last_beam_id = NodeId +1}};
-        {error, Reason} ->
-            ?LOGF("Can't start newbeam on host ~p (reason: ~p) ! Aborting!~n",[Host, Reason],?EMERG),
-            ts_mon:abort(),
-            {stop, normal, State}
-    end;
+    spawn_link(?MODULE, start_slave, [Host, Name, Args, Arrivals]),
+    {noreply, State#state{last_beam_id = NodeId +1}};
 
 handle_cast({end_launching, _Node}, State=#state{ending_beams=Beams}) ->
     {noreply, State#state{ending_beams = Beams+1}};
@@ -387,7 +378,15 @@ handle_cast(Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-handle_info(_Info, State) ->
+handle_info({'EXIT', _Pid, {slave_failure,timeout}}, State) ->
+    ts_mon:abort(),
+    ?LOG("Abort ! ~n",?EMERG),
+    {stop, normal, State};
+handle_info({'EXIT', Pid, normal}, State) ->
+    ?LOGF("spawned process termination (~p) ~n",[Pid],?INFO),
+    {noreply, State};
+handle_info(Info, State) ->
+    ?LOGF("Unknown info ~p ! ~n",[Info],?WARN),
     {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -592,3 +591,18 @@ loop_load(Config=#config{load_loop=Loop, arrivalphases=Arrival},Max,Current) ->
     Fun= fun(Phase) -> Phase+Max*Loop end,
     NewArrival = lists:keymap(Fun,#arrivalphase.phase,Arrival),
     loop_load(Config#config{load_loop=Loop-1},Max,lists:append(Current, NewArrival)).
+
+%%
+%% @doc start a remote beam
+%%
+start_slave(Host, Name, Args, Arrivals)->
+    case slave:start(Host, Name, Args) of
+        {ok, Node} ->
+            ?LOGF("started newbeam on node ~p ~n", [Node], ?NOTICE),
+            Res = net_adm:ping(Node),
+            ?LOGF("ping ~p ~p~n", [Node,Res], ?NOTICE),
+            ts_launcher:launch({Node, Arrivals});
+        {error, Reason} ->
+            ?LOGF("Can't start newbeam on host ~p (reason: ~p) ! Aborting!~n",[Host, Reason],?EMERG),
+            exit({slave_failure, Reason})
+    end.
