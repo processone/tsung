@@ -57,8 +57,10 @@ init([LogDir]) ->
     Config = {ts_config_server, {ts_config_server, start_link,
                                  [LogDir]}, transient, 2000,
               worker, [ts_config_server]},
-    Stats_Mon = {ts_mon, {ts_mon, start, [LogDir]}, transient, 2000,
+    Mon = {ts_mon, {ts_mon, start, [LogDir]}, transient, 2000,
                  worker, [ts_mon]},
+    Stats_Mon = {ts_stats_mon, {ts_stats_mon, start, []}, transient, 2000,
+                 worker, [ts_stats_mon]},
     Os_Mon = {ts_os_mon, {ts_os_mon, start, []}, transient, 2000,
                worker, [ts_os_mon]},
     Timer = {ts_timer, {ts_timer, start, [?config(nclients)]}, transient, 2000,
@@ -70,7 +72,7 @@ init([LogDir]) ->
                             ?config(nclients)]]},
             transient, 2000, worker, [ts_user_server]},
     {ok,{{one_for_one,?retries,10},
-         [Config, Stats_Mon, Timer, Msg, User, Os_Mon]}}.
+         [Config, Mon, Stats_Mon, Timer, Msg, User, Os_Mon]}}.
 
 %%%----------------------------------------------------------------------
 %%% Internal functions

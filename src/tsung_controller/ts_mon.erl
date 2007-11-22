@@ -26,7 +26,9 @@
 %% @copyright 2001 IDEALX
 %% @author Nicolas Niclausse <nicolas@niclux.org>
 %% @since 8 Feb 2001
-%% @doc monitor and log events and stats
+%%
+%% @doc monitor and log events: arrival and departure of users, new
+%% connections, os_mon and send/rcv message (when dump is set to true)
 %%----------------------------------------------------------------------
 
 -module(ts_mon).
@@ -40,12 +42,9 @@
 -include("rrdtool.hrl").
 
 %% External exports
--export([start/1, stop/0, newclient/1, endclient/1, sendmes/1,
-         start_clients/1, abort/0, status/0,
-         rcvmes/1, add/1, add/2, dumpstats/0
+-export([start/1, stop/0, newclient/1, endclient/1, sendmes/1, add/2,
+         start_clients/1, abort/0, status/0, rcvmes/1, add/1, dumpstats/0
         ]).
-
--export([update_stats/3]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
@@ -87,8 +86,9 @@ start_clients({Machines, Dump, BackEnd}) ->
 stop() ->
     gen_server:cast({global, ?MODULE}, {stop}).
 
-add(nocache, Data) ->
+add(nocache,Data) ->
     gen_server:cast({global, ?MODULE}, {add, Data}).
+
 add(Data) ->
     ts_session_cache:add(Data).
 
@@ -173,7 +173,7 @@ handle_call({start_logger, Machines, DumpType, text}, From, State) ->
 
 %%% get status
 handle_call({status}, _From, State ) ->
-    Request = dict:find({request, sample}, State#state.stats),
+    Request = ts_stats_mon:status(),
     Interval = ts_utils:elapsed(State#state.lastdate, now()) / 1000,
     Phase = dict:find({newphase, count}, State#state.stats),
     Connected = dict:find({connected, sum}, State#state.stats),
@@ -192,11 +192,11 @@ handle_call(Request, _From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
 handle_cast({add, Data}, State) when is_list(Data) ->
-    NewStats = lists:foldl(fun add_stats_data/2, State#state.stats, Data ),
+    NewStats = lists:foldl(fun ts_stats_mon:add_stats_data/2, State#state.stats, Data ),
     {noreply,State#state{stats=NewStats}};
 
 handle_cast({add, Data}, State) when is_tuple(Data) ->
-    NewStats = add_stats_data(Data, State#state.stats),
+    NewStats = ts_stats_mon:add_stats_data(Data, State#state.stats),
     {noreply,State#state{stats=NewStats}};
 
 handle_cast({newclient, Who, When}, State) ->
@@ -223,7 +223,7 @@ handle_cast({endclient, Who, When, Elapsed}, State) ->
     New1Tab = dict:update_counter({finish_users_count, count}, 1, Tab),
 
     %% update session sample
-    MyFun = fun (OldV) -> update_stats(sample, OldV, Elapsed) end,
+    MyFun = fun (OldV) -> ts_stats_mon:update_stats(sample, OldV, Elapsed) end,
     Init = [Elapsed, 0, Elapsed, Elapsed, 1], % initial value of the sample
     NewTab = dict:update({session, sample}, MyFun, Init, New1Tab),
 
@@ -243,7 +243,7 @@ handle_cast({endclient, Who, When, Elapsed}, State) ->
 
 handle_cast({dumpstats}, State) ->
     export_stats(State),
-    NewStats = reset_all_stats(State#state.stats),
+    NewStats = ts_stats_mon:reset_all_stats(State#state.stats),
     {noreply, State#state{laststats = NewStats, stats=NewStats,lastdate=now()}};
 
 
@@ -328,6 +328,7 @@ start_logger({Machines, DumpType, BackEnd}, _From, State) ->
     ?LOGF("Activate clients with ~p backend~n",[BackEnd],?NOTICE),
     timer:apply_interval(State#state.dump_interval, ?MODULE, dumpstats, [] ),
     start_launchers(Machines),
+    ts_stats_mon:set_output(BackEnd,State#state.log),
     case DumpType of
         none ->
             {reply, ok, State#state{backend=BackEnd, type=DumpType}};
@@ -346,23 +347,6 @@ start_logger({Machines, DumpType, BackEnd}, _From, State) ->
     end.
 
 %%----------------------------------------------------------------------
-%% Func: add_stats_data/2
-%% Purpose: update or add value in dictionnary
-%% Returns: Dict
-%%----------------------------------------------------------------------
-%% continuous incrementing counters
-add_stats_data({Type, Name,Value},Stats) when Type==sample;
-                                              Type==sample_counter ->
-    MyFun = fun (OldVal) -> update_stats(Type, OldVal, Value) end,
-    dict:update({Name,Type}, MyFun, update_stats(Type, [], Value), Stats);
-%% increase by one when called
-add_stats_data({count, Name}, Stats)  ->
-    dict:update_counter({Name, count}, 1, Stats);
-%% cumulative counter
-add_stats_data({sum, Name, Val}, Stats)  ->
-    dict:update_counter({Name, sum}, Val, Stats).
-
-%%----------------------------------------------------------------------
 %% Func: export_stats/2
 %%----------------------------------------------------------------------
 export_stats(State=#state{backend=text}) ->
@@ -373,103 +357,8 @@ export_stats(State=#state{backend=text}) ->
                                                      State#state.client,
                                                      State#state.maxclient]),
     Param = {State#state.laststats,State#state.log},
-    dict:fold(fun print_dist_list/3, Param, State#state.stats);
-
-export_stats(State=#state{backend=rrdtool,laststats=Last, stats=Dict}) ->
-    New_Keys = dict:fetch_keys(Dict) -- dict:fetch_keys(Last),
-    ?DebugF("create new rrd keys [~p]~n",[New_Keys]),
-    rrd_create(State#state.log_dir, New_Keys, State#state.dump_interval),
-    Res = dict:to_list(State#state.stats),
-    rrd_update(State#state.log_dir,Res).
-
-
-%%----------------------------------------------------------------------
-%% Func: print_dist_list/3
-%% @spec (Key::tuple(), Value::List, {Last, Logfile}) -> {Last, Logfile}
-%% @doc print statistics in text format in Logfile
-%%----------------------------------------------------------------------
-print_dist_list({Name,_Type}, [Mean,0,Max,Min,Count|_], {LastRes,Logfile})->
-    io:format(Logfile, "stats: ~p ~p ~p ~p ~p ~p~n",
-              [Name, Count, Mean, 0, Max, Min ]),
-    {LastRes, Logfile};
-print_dist_list({Name,_Type},[Mean,Var,Max,Min,Count|_],{LastRes,Logfile})->
-    StdVar = math:sqrt(Var/Count),
-    io:format(Logfile, "stats: ~p ~p ~p ~p ~p ~p~n",
-              [Name, Count, Mean, StdVar, Max, Min ]),
-    {LastRes, Logfile};
-print_dist_list({Name, _Type}, [Value,Last], {LastRes, Logfile}) ->
-    io:format(Logfile, "stats: ~p ~p ~p~n", [Name, Value, Last ]),
-    {LastRes, Logfile};
-print_dist_list({Name, Type}, Value, {LastRes, Logfile}) ->
-    PrevVal = case dict:find({Name, Type}, LastRes) of
-                  {ok, OldVal} -> OldVal;
-                  error        -> 0
-              end,
-    io:format(Logfile, "stats: ~p ~p ~p~n", [Name, Value-PrevVal, Value]),
-    {LastRes, Logfile}.
-
-
-%%----------------------------------------------------------------------
-%% update_stats/3
-%% @spec (Type::atom, List, Value::[integer() | float()]) -> List
-%% @doc update the mean and variance for the given sample
-%%----------------------------------------------------------------------
-update_stats(sample, [], New) ->
-    [New, 0, New, New, 1];
-update_stats(sample, [Mean, Var, Max, Min, Count], Value) ->
-    {NewMean, NewVar, _} = ts_stats:meanvar(Mean, Var, [Value], Count),
-    case Value > Max of
-        true -> % new max, min unchanged
-            [NewMean, NewVar, Value, Min, Count+1];
-        false ->
-            case Value < Min of
-                true ->
-                    [NewMean, NewVar, Max, Value, Count+1];
-                false ->
-                    [NewMean, NewVar, Max, Min, Count+1]
-            end
-    end;
-update_stats(sample_counter,[], New) -> %% first call, store the initial value
-    [0, 0, 0, 0, 0, New];
-update_stats(sample_counter, [0, 0, 0, 0, 0, Last], Value) ->
-    New = Value-Last,
-    [New, 0, New, New, 1, Value];
-update_stats(sample_counter,[Mean, Var, Max, Min, Count, Last], Value) ->
-    New = Value-Last,
-    {NewMean, NewVar, _} = ts_stats:meanvar(Mean, Var, [New], Count),
-    case New > Max of
-        true -> % new max, min unchanged
-            [NewMean, NewVar, New, Min, Count+1, Value];
-        false ->
-            case Value < Min of
-                true ->
-                    [NewMean, NewVar, Max, New, Count+1, Value];
-                false ->
-                    [NewMean, NewVar, Max, Min, Count+1, Value]
-            end
-    end.
-
-%%----------------------------------------------------------------------
-%% Func: reset_all_stats/1
-%%----------------------------------------------------------------------
-reset_all_stats(Dict)->
-    MyFun = fun (_Key, OldVal) -> reset_stats(OldVal) end,
-    dict:map(MyFun, Dict).
-
-%%----------------------------------------------------------------------
-%% Func: reset_stats/1
-%% @doc reset all stats except min and max and lastvalue.
-%%----------------------------------------------------------------------
-reset_stats([]) ->  % FIXME: useful ?!
-    [0, 0, 0, 0, 0];
-reset_stats([_Mean, _Var, Max, Min, _Count, Last]) ->
-    [0, 0, Max, Min, 0, Last];
-reset_stats([_Mean, _Var, Max, Min, _Count]) ->
-    [0, 0, Max, Min, 0];
-reset_stats([_Sample, LastValue]) ->
-    [0, LastValue];
-reset_stats(LastValue) ->
-    LastValue.
+    dict:fold(fun ts_stats_mon:print_stats_txt/3, Param, State#state.stats),
+    ts_stats_mon:dumpstats().
 
 %%----------------------------------------------------------------------
 %% Func: start_launchers/2
@@ -492,49 +381,3 @@ backup_config(Dir, Config) ->
     Backup = filename:basename(Config),
     {ok, _} = file:copy(Config, filename:join(Dir,Backup)).
 
-%%----------------------------------------------------------------------
-%% Func: rrd_create/2
-%% Args: LogDir, List of Names, Interval
-%% TODO: unfinished, does not work.
-%%----------------------------------------------------------------------
-rrd_create(_, [], _) -> ok;
-rrd_create(LogDir, [NameI|Rest], Interval) when is_integer(NameI)->
-    Name=integer_to_list(NameI),
-    rrd_create(LogDir, [Name|Rest], Interval);
-rrd_create(LogDir, [NameA|Rest], Interval) when is_atom(NameA)->
-    Name=atom_to_list(NameA),
-    rrd_create(LogDir, [Name|Rest], Interval);
-rrd_create(LogDir, [Name|Rest], Interval) when is_list(Name)->
-    ?DebugF("rrd_create called with ~p ~p~n",[Name, Rest]),
-    File=filename:join(LogDir, Name  ++ ".rrd"),
-    ?LOGF("Adding new rrd database ~p in file ~p~n",[Name, File],?INFO),
-    Step = Interval div 1000, % convert in sec
-    rrdtool:create(#rrd_create{filename=File,
-                                    step=Step,
-                                    ds=[#rrd_ds{name="main"}], %FIXME
-                                    rra=[#rrd_rra{rows=2880,cf="LAST"}]}),
-    rrd_create(LogDir,Rest, Interval).
-
-%%----------------------------------------------------------------------
-%% Func: rrd_update/2
-%% Args: LogDir, Stats
-%% TODO: unfinished, does not work.
-%%----------------------------------------------------------------------
-rrd_update(_,[]) -> ok;
-rrd_update(LogDir,[{Key, Val} | Tail]) when is_integer(Key)->
-    KeyStr = integer_to_list(Key),
-    rrd_update(LogDir,[{KeyStr, Val} | Tail]);
-rrd_update(LogDir,[{Key, Val} | Tail]) when is_atom(Key)->
-    KeyStr = atom_to_list(Key),
-    rrd_update(LogDir,[{KeyStr, Val} | Tail]);
-rrd_update(LogDir,[{Key,{_Type, [Mean,_Var,_Max,_Min,_Count|_]}} | Tail]) when is_list(Key),is_integer(Mean) or is_float(Mean)->
-    File=filename:join(LogDir, Key  ++ ".rrd"),
-    rrdtool:update(#rrd_update{filename=File,
-                               updates=[#rrd_supdate{values=[Mean]}]}),
-    rrd_update(LogDir, Tail);
-rrd_update(LogDir,[{Key,{_Type, Val}} | Tail]) when is_list(Key),
-                                                   is_integer(Val) or is_float(Val)->
-    File=filename:join(LogDir, Key  ++ ".rrd"),
-    rrdtool:update(#rrd_update{filename=File,
-                               updates=[#rrd_supdate{values=[Val]}]}),
-    rrd_update(LogDir, Tail).

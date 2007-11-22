@@ -189,7 +189,7 @@ handle_info({timeout, _Ref, dump_stats}, State = #state{stats =[]}) ->
     {noreply, State};
 
 handle_info({timeout, _Ref, dump_stats}, State =#state{stats= List}) ->
-    ts_mon:add(nocache, List),
+    ts_stats_mon:add(List),
     erlang:start_timer(?DUMP_STATS_INTERVAL, self(), dump_stats ),
     {noreply, State#state{stats=[]}};
 
