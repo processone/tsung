@@ -41,7 +41,7 @@
 %%          by the result of the call to Mod:Fun(Pid) where Pid is the
 %%          Pid of the client The substitution tag are intended to
 %%          be used in tsung.xml scenarii files.
-%% Returns: new string 
+%% Returns: new string
 %% ----------------------------------------------------------------------
 subst(Atom, _DynVar) when atom(Atom) ->
     Atom;
@@ -75,7 +75,7 @@ extract_variable([$%,$%|Tail], undefined, Acc, _Var) ->
     subst(Tail, undefined, lists:reverse("undefined") ++ Acc);
 extract_variable([$%,$%|Tail], DynVar, Acc, Var) ->
     VarName = list_to_atom(lists:reverse(Var)),
-    case lists:keysearch(VarName,1,DynVar) of 
+    case lists:keysearch(VarName,1,DynVar) of
         {value, {VarName, Result}} ->
             ?DebugF("found value ~p for name ~p~n",[Result,VarName]),
             subst(Tail, DynVar,lists:reverse(Result) ++ Acc);
@@ -83,19 +83,19 @@ extract_variable([$%,$%|Tail], DynVar, Acc, Var) ->
             ?LOGF("DynVar: no value found for var ~p~n",[VarName],?WARN),
             subst(Tail, DynVar,lists:reverse("undefined") ++ Acc)
     end;
-            
+
 extract_variable([H|Tail],DynVar,Acc,Mod) ->
     extract_variable(Tail,DynVar,Acc,[H|Mod]).
 
 %% Search for the function string and do the real substitution before
 %% keeping on the parsing
 extract_function([], _DynVar, Acc, _Mod, _Fun) ->
-    lists:reverse(Acc);    
+    lists:reverse(Acc);
 extract_function([$%,$%|Tail], DynVar, Acc, Mod, Fun) ->
     ?DebugF("found function name: ~p~n",[lists:reverse(Fun)]),
     Module = list_to_atom(Mod),
     Function = list_to_atom(lists:reverse(Fun)),
-    Result = case Module:Function({self(), DynVar }) of 
+    Result = case Module:Function({self(), DynVar }) of
                  Int when is_integer(Int) ->
                      lists:reverse(integer_to_list(Int));
                  Str when is_list(Str) ->
@@ -105,7 +105,7 @@ extract_function([$%,$%|Tail], DynVar, Acc, Mod, Fun) ->
                      []
              end,
     subst(Tail, DynVar, lists:reverse(Result) ++ Acc);
-        
+
 extract_function([H|Tail],DynVar,  Acc, Mod, Fun) ->
     extract_function(Tail, DynVar, Acc, Mod, [H|Fun]).
 
@@ -119,17 +119,17 @@ match([], _Data, {Count, _MaxC}) -> Count;
 match(Match, Data, Counts)  when is_binary(Data)->
     ?DebugF("Matching Data size ~p~n",[size(Data)]),
     match(Match, binary_to_list(Data), Counts, []);
-match(Match, Data, Counts)  -> 
+match(Match, Data, Counts)  ->
     match(Match, Data, Counts, []).
 
 %% Func: match/4
-match([], _Data, {Count, _MaxC}, Stats) ->  
+match([], _Data, {Count, _MaxC}, Stats) ->
     %% all matches done, add stats, and return Count unchanged (continue)
     ts_mon:add(Stats),
     Count;
 match([Match=#match{regexp=RegExp, do=Action, 'when'=When}| Tail], String, Counts, Stats)->
     case regexp:first_match(String, RegExp) of
-        {When,_, _} -> 
+        {When,_, _} ->
             ?LOGF("Ok Match (regexp=~p) do=~p~n",[RegExp,Action], ?INFO),
             setcount(Match, Counts, [{count, match}| Stats]);
         When -> % nomatch
@@ -137,7 +137,7 @@ match([Match=#match{regexp=RegExp, do=Action, 'when'=When}| Tail], String, Count
             setcount(Match, Counts, [{count, nomatch} | Stats]);
         {match,_, _} ->
             ?LOGF("Ok Match (regexp=~p)~n",[RegExp], ?INFO),
-            case Action of 
+            case Action of
                 loop    -> put(loop_count, 0);
                 restart -> put(restart_count, 0);
                 _       -> ok
@@ -145,7 +145,7 @@ match([Match=#match{regexp=RegExp, do=Action, 'when'=When}| Tail], String, Count
             match(Tail, String, Counts, [{count, match} | Stats]);
         nomatch ->
             ?LOGF("Bad Match (regexp=~p)~n",[RegExp], ?INFO),
-            case Action of 
+            case Action of
                 loop    -> put(loop_count, 0);
                 restart -> put(restart_count, 0);
                 _       -> ok
@@ -159,18 +159,18 @@ match([Match=#match{regexp=RegExp, do=Action, 'when'=When}| Tail], String, Count
 %%----------------------------------------------------------------------
 %% Func: setcount/3
 %% Args:  #match, Counts, Stats
-%% Update the request counter after a match: 
+%% Update the request counter after a match:
 %%   - if loop is true, we must start again the same request, so add 1 to count
 %%   - if restart is true, we must start again the whole session, set count to MaxCount
 %%   - if stop is true, set count to 0
 %%----------------------------------------------------------------------
-setcount(#match{do=continue}, {Count, _MaxC}, Stats)-> 
+setcount(#match{do=continue}, {Count, _MaxC}, Stats)->
     ts_mon:add(Stats),
     Count;
-setcount(#match{do=restart, max_restart=MaxRestart}, {_Count, MaxC}, Stats)-> 
+setcount(#match{do=restart, max_restart=MaxRestart}, {_Count, MaxC}, Stats)->
     CurRestart = get(restart_count),
     ?LOGF("Restart on (no)match ~p~n",[CurRestart], ?INFO),
-    case CurRestart of 
+    case CurRestart of
         undefined ->
             put(restart_count,1),
             ts_mon:add([{count, match_restart} | Stats]),
@@ -179,7 +179,7 @@ setcount(#match{do=restart, max_restart=MaxRestart}, {_Count, MaxC}, Stats)->
             ?LOG("Max restart reached, abort ! ~n", ?WARN),
             ts_mon:add([{count, match_restart_abort} | Stats]),
             0;
-        Val -> 
+        Val ->
             put(restart_count, Val +1),
             ts_mon:add([{count, match_restart} | Stats]),
             MaxC
@@ -188,7 +188,7 @@ setcount(#match{do=loop,max_loop=MaxLoop,sleep_loop=Sleep},{Count,_MaxC},Stats)-
     CurLoop = get(loop_count),
     ?LOGF("Loop on (no)match ~p~n",[CurLoop], ?INFO),
     ts_mon:add([{count, match_loop} | Stats]),
-    case CurLoop of 
+    case CurLoop of
         undefined ->
             put(loop_count,1),
             timer:sleep(Sleep),
@@ -197,7 +197,7 @@ setcount(#match{do=loop,max_loop=MaxLoop,sleep_loop=Sleep},{Count,_MaxC},Stats)-
             ?LOG("Max Loop reached, abort loop on request! ~n", ?WARN),
             put(loop_count, 0),
             Count;
-        Val -> 
+        Val ->
             put(loop_count, Val +1),
             timer:sleep(Sleep),
             Count + 1
@@ -207,10 +207,10 @@ setcount(#match{do=abort}, _, Stats) ->
     0.
 
 %%----------------------------------------------------------------------
-%% Func: parse_dynvar/2 
+%% Func: parse_dynvar/2
 %% Args: DynVar, Data
 %% Purpose: look for dynamic variables in Data
-%% Returns: List 
+%% Returns: List
 %%----------------------------------------------------------------------
 parse_dynvar(undefined, _Data) -> [];
 parse_dynvar(DynVar, Data)  when is_binary(Data) ->
@@ -220,7 +220,7 @@ parse_dynvar(DynVar, Data)  when is_binary(Data) ->
 parse_dynvar(DynVar, _Data)  ->
     ?LOGF("Error while Parsing dyn Variable(~p)~n",[DynVar],?WARN),
     [].
-    
+
 
 parse_dynvar([], _String, ValuesList) -> ValuesList;
 parse_dynvar([{VarName, RegExp}| DynVars], String, ValuesList) ->
@@ -235,4 +235,4 @@ parse_dynvar([{VarName, RegExp}| DynVars], String, ValuesList) ->
 parse_dynvar(Args, _String, _Values) ->
     ?LOGF("Bad args while parsing Dyn Var (~p)~n", [Args], ?ERR),
     [].
-    
+
