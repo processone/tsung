@@ -15,7 +15,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
 %%%  the EPL license and distribute linked combinations including
@@ -29,17 +29,17 @@
 -include("ts_profile.hrl").
 
 %%-compile(export_all).
--export([reset/1, 
-	 get_unique_id/1,
-	 get_really_unique_id/1,
-	 get_id/0,
-	 get_idle/0,
-	 get_offline/0,
-	 get_online/1,
-	 add_to_online/1,
-	 remove_from_online/1,
-	 remove_connected/1,
-	 get_first/0]).
+-export([reset/1,
+         get_unique_id/1,
+         get_really_unique_id/1,
+         get_id/0,
+         get_idle/0,
+         get_offline/0,
+         get_online/1,
+         add_to_online/1,
+         remove_from_online/1,
+         remove_connected/1,
+         get_first/0]).
 
 -behaviour(gen_server).
 
@@ -50,7 +50,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 -record(state, {
-          offline,        %ets table 
+          offline,        %ets table
           last_offline,
           connected,      %ets table
           last_connected,
@@ -65,7 +65,7 @@
 %%% API
 %%%----------------------------------------------------------------------
 start(Args) ->
-	?LOGF("Starting with args ~p ~n",[Args],?INFO),
+    ?LOGF("Starting with args ~p ~n",[Args],?INFO),
     gen_server:start_link({global, ?MODULE}, ?MODULE, Args, []).
 
 reset(NFin)->
@@ -80,10 +80,10 @@ get_unique_id({Pid, _DynData})->
     [ID1,ID2,ID3] = string:tokens(ID, [$<,$.,$>]),
     %% here we assume that the node name is tsungXX@whatever
     NodeId = case string:tokens(atom_to_list(node()),[$@,$g]) of
-                 ["tsun", "_controller"|_] -> 
+                 ["tsun", "_controller"|_] ->
                      "0"; % when the launcher is run on the controller
-                 ["tsun", Id|_] -> 
-                     Id 
+                 ["tsun", Id|_] ->
+                     Id
              end,
     %% all ID's must be < 65536 !
     ?DebugF("got unique id from ~p",[[ID1, ID3, NodeId, ID2]]),
@@ -103,7 +103,7 @@ get_idle()->
 get_online(Id) when is_list(Id) ->
     get_online(list_to_integer(Id));
 get_online(Id) when is_integer(Id) ->
-    gen_server:call({global, ?MODULE}, {get_online, Id}). 
+    gen_server:call({global, ?MODULE}, {get_online, Id}).
 
 get_offline()->
     gen_server:call({global, ?MODULE}, get_offline).
@@ -115,17 +115,17 @@ get_first()->
 remove_connected(Id) when  is_list(Id) ->
     remove_connected(list_to_integer(Id));
 remove_connected(Id) when is_integer(Id)->
-    gen_server:cast({global, ?MODULE}, {remove_connected, Id}). 
+    gen_server:cast({global, ?MODULE}, {remove_connected, Id}).
 
 add_to_online(Id) when  is_list(Id) ->
     add_to_online(list_to_integer(Id));
 add_to_online(Id) when is_integer(Id)->
-    gen_server:cast({global, ?MODULE}, {add_to_online, Id}). 
+    gen_server:cast({global, ?MODULE}, {add_to_online, Id}).
 
 remove_from_online(Id) when  is_list(Id) ->
     remove_from_online(list_to_integer(Id));
 remove_from_online(Id) when is_integer(Id)->
-    gen_server:cast({global, ?MODULE}, {remove_from_online, Id}). 
+    gen_server:cast({global, ?MODULE}, {remove_from_online, Id}).
 
 stop()->
     gen_server:call({global, ?MODULE}, stop).
@@ -143,7 +143,7 @@ stop()->
 %%----------------------------------------------------------------------
 init(_Args) ->
     ts_utils:init_seed(),
-	?LOG("ok, started unconfigured~n", ?INFO),
+    ?LOG("ok, started unconfigured~n", ?INFO),
     {ok, #state{}}.
 
 
@@ -164,20 +164,20 @@ handle_call(get_id, _From, State) ->
 
 %%Get one id in the users whos have to be connected
 handle_call(get_idle, _From, State=#state{offline=Offline,connected=Connected}) ->
-    case ets:first(Offline) of 
+    case ets:first(Offline) of
         '$end_of_table' ->
-			?LOG("No more free users !~n", ?WARN),
+            ?LOG("No more free users !~n", ?WARN),
             {reply, {error, no_free_userid}, State};
         Key when is_integer(Key) ->
             {ok,NextOffline} = ets_iterator_del(Offline,Key,State#state.last_offline),
-			?DebugF("New nextoffline is ~p~n",[NextOffline]),
+            ?DebugF("New nextoffline is ~p~n",[NextOffline]),
             ets:insert(Connected, {Key,1}),
-            case State#state.first_client of 
+            case State#state.first_client of
                 undefined ->
                     {reply, Key, State#state{first_client=Key,last_connected=Key,
                                              last_offline=NextOffline}};
                 _Id ->
-                    {reply, Key, State#state{last_connected=Key, 
+                    {reply, Key, State#state{last_connected=Key,
                                              last_offline=NextOffline}}
             end;
         Error ->
@@ -185,7 +185,7 @@ handle_call(get_idle, _From, State=#state{offline=Offline,connected=Connected}) 
             {reply, {error, no_free_userid}, State}
     end;
 
-%%Get one offline id 
+%%Get one offline id
 handle_call(get_offline, _From, State=#state{offline=Offline,last_offline=Prev}) ->
     case ets_iterator_next(Offline, Prev) of
         {error, _Reason} ->
@@ -225,7 +225,7 @@ handle_call( {get_online, Id}, _From, State=#state{ online     = Online,
             ?DebugF("Choose online user ~p for ~p ~n",[Next, Id]),
             {reply, {ok, Next}, State#state{last_online=Next}}
     end;
-    
+
 handle_call(stop, _From, State)->
     {stop, normal, ok, State}.
 
@@ -296,7 +296,7 @@ fill_offline(N, Tab) when is_integer(N) ->
 %%%----------------------------------------------------------------------
 list_to_id(L, Base) ->
     list_to_id(lists:reverse(L), 0, 1, Base).
-                
+
 list_to_id([], Sum, _, _) -> {ok, Sum};
 list_to_id([Id|Tail], Sum, Mult, Base) when is_list(Id)->
     list_to_id([list_to_integer(Id)|Tail], Sum, Mult, Base);
@@ -309,19 +309,19 @@ list_to_id(Val,_,_,_) ->
     {error, {badinput, Val}}.
 
 %%%----------------------------------------------------------------------
-%%% Func: ets_iterator_del/3 
+%%% Func: ets_iterator_del/3
 %%% Args: Ets, Key, Iterator
 %%% Purpose: delete entry Key from Ets, update iterator if needed
 %%% Returns: {ok, Key} or {ok, undefined}
 %%%----------------------------------------------------------------------
 
-% iterator  equal key:it will no longer be valid 
-ets_iterator_del(Ets, Key, Key) -> 
+% iterator  equal key:it will no longer be valid
+ets_iterator_del(Ets, Key, Key) ->
     Next = ets:next(Ets,Key),
     ets:delete(Ets,Key),
-    case Next of 
+    case Next of
         '$end_of_table' ->
-            case ets:first(Ets) of 
+            case ets:first(Ets) of
                 '$end_of_table' ->
                     {ok, undefined};
                 NewIter ->
@@ -333,7 +333,7 @@ ets_iterator_del(Ets, Key, Key) ->
 ets_iterator_del(Ets, Key, Iterator) ->
     ets:delete(Ets,Key),
     {ok, Iterator}.
-    
+
 %%%----------------------------------------------------------------------
 %%% Func: ets_iterator_next/2
 %%% Args: Ets, Iterator
@@ -349,11 +349,11 @@ ets_iterator_next(Ets, Iterator) ->
 %%% Purpose: get next key, must be different from 'Key'
 %%%----------------------------------------------------------------------
 ets_iterator_next(Ets, undefined, Key) ->
-    case ets:first(Ets) of 
+    case ets:first(Ets) of
         '$end_of_table' ->
             {error, empty_ets};
         Key ->
-            case ets:next(Ets,Key) of 
+            case ets:next(Ets,Key) of
                 '$end_of_table' ->
                     {error, empty_ets};
                 Iter ->
@@ -363,8 +363,8 @@ ets_iterator_next(Ets, undefined, Key) ->
             {ok, NewIter}
     end;
 ets_iterator_next(Ets, Iterator, Key) ->
-    case ets:next(Ets,Iterator) of 
-        '$end_of_table' -> 
+    case ets:next(Ets,Iterator) of
+        '$end_of_table' ->
             %% start again from the beginnig
             ets_iterator_next(Ets, undefined, Key);
         Key -> % not this one, try again
