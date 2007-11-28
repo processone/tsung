@@ -1,7 +1,7 @@
 %%%
 %%%  Copyright © IDEALX S.A.S. 2004
 %%%
-%%%	 Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
+%%%  Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%  Created: 20 Apr 2004 by Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
@@ -59,11 +59,11 @@ parse_config(Element = #xmlElement{name=jabber},
     Status= ts_config:getAttr(string,Element#xmlElement.attributes, status, "Available"),
     Type= list_to_atom(TypeStr),
 
-	Domain  =ts_config:get_default(Tab, jabber_domain_name, jabber_domain),
-	UserName=ts_config:get_default(Tab, jabber_username, jabber_username),
-	Passwd  =ts_config:get_default(Tab, jabber_passwd, jabber_passwd),
+    Domain  =ts_config:get_default(Tab, jabber_domain_name, jabber_domain),
+    UserName=ts_config:get_default(Tab, jabber_username, jabber_username),
+    Passwd  =ts_config:get_default(Tab, jabber_passwd, jabber_passwd),
 
-	Msg=#ts_request{ack   = Ack,
+    Msg=#ts_request{ack   = Ack,
                     dynvar_specs= DynVar,
                     endpage = true,
                     subst   = SubstFlag,
@@ -77,8 +77,8 @@ parse_config(Element = #xmlElement{name=jabber},
                                     size   = Size,
                                     show   = Show,
                                     status   = Status
-							   }
-				},
+                                   }
+                   },
     ts_config:mark_prev_req(Id-1, Tab, CurS),
     ets:insert(Tab,{{CurS#session.id, Id}, Msg}),
     lists:foldl( fun(A,B) -> ts_config:parse(A,B) end,
@@ -108,7 +108,7 @@ parse_config(Element = #xmlElement{name=option}, Conf = #config{session_tab = Ta
     lists:foldl( fun(A,B) -> ts_config:parse(A,B) end, Conf, Element#xmlElement.content);
 %% Parsing other elements
 parse_config(Element = #xmlElement{}, Conf = #config{}) ->
-    lists:foldl( fun(A,B) -> ts_config:parse(A,B) end, Conf, Element#xmlElement.content);
+    ts_config:parse(Element,Conf);
 %% Parsing non #xmlElement elements
 parse_config(_, Conf = #config{}) ->
     Conf.

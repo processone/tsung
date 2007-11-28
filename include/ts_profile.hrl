@@ -42,7 +42,7 @@
         {thinktime,
          ack,
          subst=false,
-         match=undefined,
+         match=[],
          dynvar_specs=undefined, % undefined | [{VarName, Regexp} |...]
          param,
          endpage=false,

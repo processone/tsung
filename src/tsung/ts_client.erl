@@ -630,7 +630,7 @@ handle_data_msg(Data, State=#state_rcv{request=Req, maxcount= MaxCount}) ->
 %%----------------------------------------------------------------------
 %% Func: set_new_buffer/3
 %%----------------------------------------------------------------------
-set_new_buffer(#ts_request{match=undefined, dynvar_specs=undefined},_,_) ->
+set_new_buffer(#ts_request{match=[], dynvar_specs=undefined},_,_) ->
     << >>;
 set_new_buffer(_, Buffer,closed) ->
     Buffer;
