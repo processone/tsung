@@ -47,7 +47,7 @@
          getText/1,
          parse/2,
          get_default/3,
-		 mark_prev_req/3,
+         mark_prev_req/3,
          get_batch_nodes/1
         ]).
 
@@ -69,7 +69,7 @@ read(Filename) ->
             {ok, parse(Root, #config{session_tab = Table})};
         {error,Reason} ->
             {error, Reason};
-		{'EXIT',Reason} ->
+        {'EXIT',Reason} ->
             {error, Reason}
     end.
 
@@ -103,11 +103,11 @@ parse(Element = #xmlElement{name=server, attributes=Attrs}, Conf=#config{servers
            end,
 
     lists:foldl(fun parse/2,
-		Conf#config{servers = [#server{host=Server,
+        Conf#config{servers = [#server{host=Server,
                                        port=Port,
                                        type=Type
                                      }|ServerList]},
-		Element#xmlElement.content);
+        Element#xmlElement.content);
 
 %% Parsing the cluster monitoring element (monitor)
 parse(Element = #xmlElement{name=monitor, attributes=Attrs},
@@ -141,13 +141,13 @@ parse(Element = #xmlElement{name=monitor, attributes=Attrs},
                      [{Host, Type}]
              end,
     lists:foldl(fun parse/2,
-		Conf#config{monitor_hosts = lists:append(MHList, NewMon)},
-		Element#xmlElement.content);
+        Conf#config{monitor_hosts = lists:append(MHList, NewMon)},
+        Element#xmlElement.content);
 
 %%
 parse(Element = #xmlElement{name=load, attributes=Attrs}, Conf) ->
     Loop = getAttr(integer, Attrs, loop, 0),
-    lists:foldl(fun parse/2,	Conf#config{load_loop=Loop},
+    lists:foldl(fun parse/2,    Conf#config{load_loop=Loop},
                 Element#xmlElement.content);
 
 
@@ -203,7 +203,7 @@ parse(Element = #xmlElement{name=ip, attributes=Attrs},
     {ok, IP } = inet:getaddr(StrIP,inet),
 
     lists:foldl(fun parse/2,
-		Conf#config{clients = [CurClient#client{ip = [IP|IPList]}
+        Conf#config{clients = [CurClient#client{ip = [IP|IPList]}
                                |CList]},
                 Element#xmlElement.content);
 
@@ -214,7 +214,7 @@ parse(Element = #xmlElement{name=arrivalphase, attributes=Attrs},
     Phase     = getAttr(integer,Attrs, phase),
     IDuration  = getAttr(integer, Attrs, duration),
     Unit  = getAttr(string,Attrs, unit, "second"),
-	D = to_seconds(Unit, IDuration),
+    D = to_seconds(Unit, IDuration),
     case lists:keysearch(Phase,#arrivalphase.phase,AList) of
         false ->
             lists:foldl(fun parse/2,
@@ -233,14 +233,14 @@ parse(Element = #xmlElement{name=users, attributes=Attrs},
       Conf = #config{arrivalphases=[CurA | AList]}) ->
 
     Max = getAttr(integer,Attrs, maxnumber, infinity),
-	?LOGF("Maximum number of users ~p~n",[Max],?INFO),
+    ?LOGF("Maximum number of users ~p~n",[Max],?INFO),
 
     InterArrival  = getAttr(float_or_integer,Attrs, interarrival),
     Unit  = getAttr(string,Attrs, unit, "second"),
     Intensity= 1/(1000 * to_seconds(Unit,InterArrival)),
 
     lists:foldl(fun parse/2,
-		Conf#config{arrivalphases = [CurA#arrivalphase{maxnumber = Max,
+        Conf#config{arrivalphases = [CurA#arrivalphase{maxnumber = Max,
                                                         intensity=Intensity}
                                |AList]},
                 Element#xmlElement.content);
@@ -313,7 +313,7 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
     ?LOGF("Add new regexp: ~s ~n", [RegExp],?INFO),
     %% precompilation of the regexp
     {ok, RegExpStr} = gregexp:parse(lists:flatten(RegExp)),
-    NewDynVar = case DynVar of 
+    NewDynVar = case DynVar of
                     undefined ->[{Name, RegExpStr}];
                     _->[{Name, RegExpStr}|DynVar]
                 end,
@@ -402,7 +402,7 @@ parse(Element = #xmlElement{name=thinktime, attributes=Attrs},
         end,
     RealThink = case Randomize of
                     "true" ->
-						{random, Think * 1000};
+                        {random, Think * 1000};
                     "false" ->
                         round(Think * 1000)
                 end,
@@ -478,11 +478,11 @@ get_default(Tab, Key,ConfigName) when not is_tuple(Key) ->
     get_default(Tab, {Key, value},ConfigName);
 get_default(Tab, Key,ConfigName) ->
     case ets:lookup(Tab,Key) of
-		[] ->
-			?config(ConfigName);
-		[{_, SName}] ->
-			SName
-	end.
+        [] ->
+            ?config(ConfigName);
+        [{_, SName}] ->
+            SName
+    end.
 
 %%%----------------------------------------------------------------------
 %%% Function: mark_prev_req/3
@@ -492,17 +492,17 @@ get_default(Tab, Key,ConfigName) ->
 %%%   a thinktime between them
 %%%----------------------------------------------------------------------
 mark_prev_req(0, _, _)  ->
-	ok;
+    ok;
 mark_prev_req(Id, Tab, CurS) ->
     %% if the previous msg is a #ts_request request, set endpage to
     %% false, we are the current last request of the page
-	case ets:lookup(Tab,{CurS#session.id, Id}) of
-		[{Key, Msg=#ts_request{}}] ->
-			ets:insert(Tab,{Key, Msg#ts_request{endpage=false}});
-		[{_, {transaction,_,_}}] ->% transaction, continue to search back
-			mark_prev_req(Id-1, Tab, CurS);
-		_ -> ok
-	end.
+    case ets:lookup(Tab,{CurS#session.id, Id}) of
+        [{Key, Msg=#ts_request{}}] ->
+            ets:insert(Tab,{Key, Msg#ts_request{endpage=false}});
+        [{_, {transaction,_,_}}] ->% transaction, continue to search back
+            mark_prev_req(Id-1, Tab, CurS);
+        _ -> ok
+    end.
 
 
 get_batch_nodes(pbs) ->
@@ -513,7 +513,6 @@ get_batch_nodes(lsf)->
             [];
         Nodes ->
             lists:map(fun shortnames/1, string:tokens(Nodes, " "))
-    
     end;
 get_batch_nodes(oar) -> get_batch_nodes2("OAR_NODEFILE");
 get_batch_nodes(torque) -> get_batch_nodes2("PBS_NODEFILE").

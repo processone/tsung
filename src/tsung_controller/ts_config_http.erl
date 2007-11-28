@@ -85,7 +85,7 @@ parse_config(Element = #xmlElement{name=http},
     %% Custom HTTP headers
     Request3 = Request2#http_request{headers = parse_headers(Element#xmlElement.content,
                                                              Request2#http_request.headers)},
-    %% HTTP Authentication 
+    %% HTTP Authentication
     Msg = case lists:keysearch(www_authenticate, #xmlElement.name,
                                Element#xmlElement.content) of
               {value, AuthEl=#xmlElement{} } ->

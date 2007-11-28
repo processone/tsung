@@ -50,9 +50,9 @@ parse_config(Element = #xmlElement{name=dyn_variable}, Conf = #config{}) ->
 parse_config(Element = #xmlElement{name=pgsql},
              Config=#config{curid = Id, session_tab = Tab,
                             sessions = [CurS | _], dynvar=DynVar,
-							subst    = SubstFlag, match=MatchRegExp}) ->
+                            subst    = SubstFlag, match=MatchRegExp}) ->
 
-    Request = case ts_config:getAttr(atom, Element#xmlElement.attributes, type) of 
+    Request = case ts_config:getAttr(atom, Element#xmlElement.attributes, type) of
                   sql ->
                       ValRaw = ts_config:getText(Element#xmlElement.content),
                       SQL = ts_utils:clean_str(ValRaw),
