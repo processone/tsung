@@ -96,7 +96,7 @@ get_really_unique_id({Pid, DynData}) ->
     Sec = ts_utils:now_sec(),
     io_lib:format("~B~s~B",[Sec,"-",get_unique_id({Pid, DynData})]).
 
-%% get an idle id, and add it to the connected table
+%% get an idle id (offline), and add it to the connected table
 get_idle()->
     gen_server:call({global, ?MODULE}, get_idle).
 
@@ -105,6 +105,7 @@ get_online(Id) when is_list(Id) ->
 get_online(Id) when is_integer(Id) ->
     gen_server:call({global, ?MODULE}, {get_online, Id}).
 
+%% get an offline id, don't change the connected table.
 get_offline()->
     gen_server:call({global, ?MODULE}, get_offline).
 
@@ -164,8 +165,8 @@ handle_call(get_id, _From, State) ->
 
 %%Get one id in the users whos have to be connected
 handle_call(get_idle, _From, State=#state{offline=Offline,connected=Connected}) ->
-    case ets:first(Offline) of
-        '$end_of_table' ->
+    case State#state.last_offline of
+        undefined ->
             ?LOG("No more free users !~n", ?WARN),
             {reply, {error, no_free_userid}, State};
         Key when is_integer(Key) ->
@@ -191,19 +192,19 @@ handle_call(get_offline, _From, State=#state{offline=Offline,last_offline=Prev})
         {error, _Reason} ->
             {reply, {error, no_offline}, State};
         {ok, Next} ->
-            ?DebugF("Choose offline user ~p~n",[Next]),
-            {reply, {ok, Next}, State#state{last_offline=Next}}
+            ?DebugF("Choose offline user ~p~n",[Prev]),
+            {reply, {ok, Prev}, State#state{last_offline=Next}}
     end;
 
 handle_call(get_first, _From, State) ->
     {reply, State#state.first_client, State};
 
 handle_call({reset, NFin}, _From, _State) ->
-    Offline = ets:new(offline,[set, private]),
+    Offline = ets:new(offline,[ordered_set, private]),
     Online  = ets:new(online, [set, private]),
     Connected  = ets:new(connected, [set, private]),
 
-    ?LOG("Reset offline and online lists ~n",?NOTICE),
+    ?LOGF("Reset offline and online lists (maxid=~p)~n",[NFin],?NOTICE),
     fill_offline(NFin, Offline),
     First = ets:first(Offline),
     State2 = #state{offline=Offline, first_client = undefined,
@@ -214,7 +215,7 @@ handle_call({reset, NFin}, _From, _State) ->
                     online =Online, userid_max=NFin},
     {reply, ok, State2};
 
-%%% Get a connected id different from 'Id'
+%%% Get a online id different from 'Id'
 handle_call( {get_online, Id}, _From, State=#state{ online     = Online,
                                                     last_online = Prev}) ->
     case ets_iterator_next(Online, Prev, Id) of
@@ -241,12 +242,23 @@ handle_cast({remove_connected, Id}, State=#state{online=Online,offline=Offline,c
     {noreply, LastOnline} = ets_delete_online(Online,Id,State),
     ets:delete(Connected,Id),
     ets:insert(Offline, {Id,2}),
-    {noreply, State#state{last_online=LastOnline}};
+    case State#state.last_offline of
+        undefined -> % Offline table was empty
+            {noreply, State#state{last_online=LastOnline, last_offline=Id}};
+            _ ->
+            {noreply, State#state{last_online=LastOnline}}
+    end;
 
 handle_cast({add_to_online, Id}, State=#state{online=Online, connected=Connected}) ->
-    ets:delete(Connected,Id), %FIXME: check is user is indeed in the connected list ?
-    ets:insert(Online, {Id,1}),
-    {noreply, State#state{last_online=Id}};
+    case ets:member(Connected,Id) of
+        true ->
+            ets:delete(Connected,Id),
+            ets:insert(Online, {Id,1}),
+            {noreply, State#state{last_online=Id}};
+        false ->
+            ?LOGF("add_to_online: warn, id ~p is not connected,do not add to online~n",[Id],?NOTICE),
+            {noreply, State}
+    end;
 
 handle_cast({remove_from_online, Id}, State=#state{online=Online,connected=Connected}) ->
     {noreply, LastOnline} = ets_delete_online(Online,Id,State),
