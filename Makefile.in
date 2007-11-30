@@ -38,12 +38,12 @@ export ERL_COMPILER_OPTIONS
 
 ifeq ($(TYPE),debug)
 OPT =+debug_info -DDEBUG
-else 
+else
  ifeq ($(TYPE),native)
    OPT:=+native
   else
    OPT = +strict_record_tests
-  endif	
+  endif
 endif
 
 ifeq ($(TYPE),test)
@@ -58,7 +58,7 @@ EBIN = ./ebin
 ifeq ($(TYPE),snapshot)
 DAY=$(shell date +"%Y%m%d")
 distdir = $(PACKAGE)-$(VERSION)-$(DAY)
-else 
+else
 distdir = $(PACKAGE)-$(VERSION)
 endif
 
@@ -70,6 +70,8 @@ SHARE_DIR = $(datadir)/tsung/
 TEMPLATES_DIR = $(datadir)/$(TEMPLATES_SUBDIR)
 MAN_DIR   = $(datadir)/man/man1/
 DOC_DIR   = $(datadir)/doc/tsung
+
+BUILDER_LOG   = /tmp/builder-tsung.log
 
 ERLANG_LIB_DIR = $(libdir)/erlang/lib
 
@@ -149,7 +151,7 @@ test:
 	$(MAKE) TYPE=test dotest
 
 dotest: tsung buildtest $(CONFFILE) $(TEST_CONFFILE)
-	erl -pa ./ebin -s eunit test ts_test_all -s init stop
+	$(ERL) -pa ./ebin -s eunit test ts_test_all -s init stop
 
 all: clean tsung
 
@@ -262,7 +264,7 @@ priv/tsung.boot: builder.beam  $(SRC_APPFILES)
 	@echo -n "build main app boot script ... "
 	@(cd temp/lib/$(APPLICATION)-$(VERSION) \
 	 && echo $(BUILD_OPTIONS) > $(BUILD_OPTIONS_FILE) \
-	 && $(ERL) -s builder go -s init stop > /dev/null 2>&1 \
+	 && $(ERL) -s builder go -s init stop >> $(BUILDER_LOG) 2>&1 \
 	)
 	@rm -rf temp
 	@echo "done"
@@ -279,7 +281,7 @@ priv/tsung_controller.boot: builder.beam $(CONTROLLER_SRC_APPFILES)
 	@echo -n "build controller boot script ... "
 	@(cd temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION) \
 	 && echo $(BUILD_OPTIONS) > $(BUILD_OPTIONS_FILE) \
-	 && $(ERL) -s builder go -s init stop  > /dev/null 2>&1 \
+	 && $(ERL) -s builder go -s init stop >> $(BUILDER_LOG) 2>&1 \
 	)
 	@rm -rf temp
 	@echo "done"
@@ -296,7 +298,7 @@ priv/tsung_recorder.boot: builder.beam $(RECORDER_SRC_APPFILES)
 	@echo -n "build recorder boot script ... "
 	@(cd temp/lib/$(RECORDER_APPLICATION)-$(VERSION) \
 	 && echo $(BUILD_OPTIONS) > $(BUILD_OPTIONS_FILE) \
-	 && $(ERL) -noshell -s builder go -s init stop  > /dev/null 2>&1 \
+	 && $(ERL) -noshell -s builder go -s init stop  >> $(BUILDER_LOG) 2>&1 \
 	)
 	@rm -rf temp
 	@echo "done"
