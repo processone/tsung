@@ -124,7 +124,7 @@ http_body(Method,#http_request{url=URL, version=Version,
 authenticate(undefined,_)-> [];
 authenticate(_,undefined)-> [];
 authenticate(UserId,Passwd)->
-    AuthStr = httpd_util:encode_base64(lists:append([UserId,":",Passwd])),
+    AuthStr = ts_utils:encode_base64(lists:append([UserId,":",Passwd])),
     ["Authorization: Basic ",AuthStr,?CRLF].
 
 user_agent(undefined) ->

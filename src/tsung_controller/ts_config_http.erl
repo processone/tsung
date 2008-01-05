@@ -64,7 +64,7 @@ parse_config(Element = #xmlElement{name=http},
                              content_type, "application/x-www-form-urlencoded"),
     Date   = ts_config:getAttr(string, Element#xmlElement.attributes,
                                'if_modified_since', undefined),
-    Method = list_to_atom(httpd_util:to_lower(ts_config:getAttr(string, Element#xmlElement.attributes, method))),
+    Method = list_to_atom(ts_utils:to_lower(ts_config:getAttr(string, Element#xmlElement.attributes, method))),
     Request = #http_request{url         = URL,
                             method      = Method,
                             version     = Version,
@@ -149,7 +149,7 @@ parse_headers([Element = #xmlElement{name=http_header} | Tail], Headers) ->
     Value  = ts_config:getAttr(string, Element#xmlElement.attributes, value),
     EncodedValue = case ts_config:getAttr(atom, Element#xmlElement.attributes, encoding, none) of
                        base64 ->
-                           httpd_util:encode_base64(Value);
+                           ts_utils:encode_base64(Value);
                        none ->
                            Value
                    end,

@@ -297,7 +297,7 @@ record_request(State=#state_rec{prev_host=Host, prev_port=Port, prev_scheme=Sche
 %% Returns: {User, Passwd}
 %%--------------------------------------------------------------------
 decode_basic_auth(Base64)->
-    AuthStr= httpd_util:decode_base64(Base64),
+    AuthStr= ts_utils:decode_base64(Base64),
     Sep = string:chr(AuthStr,$:),
     {string:substr(AuthStr,1,Sep-1),string:substr(AuthStr,Sep+1)}.
 

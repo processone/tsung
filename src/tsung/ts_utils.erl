@@ -39,7 +39,8 @@
          foreach_parallel/2, spawn_par/3, inet_setopts/3, resolve/2,
          stop_all/2, stop_all/3, stop_all/4, join/2, split2/2, split2/3,
          make_dir_rec/1, is_ip/1, from_https/1, to_https/1, keymax/2,
-         check_sum/3, check_sum/5, clean_str/1, file_to_list/1]).
+         check_sum/3, check_sum/5, clean_str/1, file_to_list/1,
+        decode_base64/1, encode_base64/1, to_lower/1]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -158,6 +159,40 @@ add_time({MSec, Seconds, MicroSec}, SecToAdd) when is_integer(SecToAdd)->
 node_to_hostname(Node) ->
     [_Nodename, Hostname] = string:tokens( atom_to_list(Node), "@"),
     {ok, Hostname}.
+
+to_lower(String)->
+    case check_httpd_old_version() of
+        false ->
+            string:to_lower(String);
+        true  ->
+            httpd_util:to_lower(String)
+    end.
+
+encode_base64(String)->
+    case check_httpd_old_version() of
+        false ->
+            base64:encode_to_string(String);
+        true  ->
+            httpd_util:encode_base64(String)
+    end.
+
+decode_base64(Base64)->
+    case check_httpd_old_version() of
+        false ->
+            base64:decode_to_string(Base64);
+        true ->
+            httpd_util:decode_base64(Base64)
+    end.
+
+%% check erlang version to know if we need to use the old httpd_utils functions
+check_httpd_old_version()->
+    case erlang:system_info(version) of
+        [$5,$.,Maj, $.,Min] when Maj > $5 orelse (Maj == $5 andalso Min > $3 )->
+            false;
+        _  ->
+            true
+    end.
+    
 
 %%----------------------------------------------------------------------
 %% Func: key1search/2

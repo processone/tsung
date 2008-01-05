@@ -71,7 +71,7 @@ shahex(Clear) ->
 %%%----------------------------------------------------------------------
 tohex(A)->
     Fun = fun(X)->
-                  httpd_util:to_lower(padhex(httpd_util:integer_to_hexlist(X)))
+                  ts_utils:to_lower(padhex(httpd_util:integer_to_hexlist(X)))
           end,
     lists:flatten( lists:map(Fun, A) ).
 

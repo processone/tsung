@@ -10,6 +10,7 @@
 -compile(export_all).
 
 -include("ts_http.hrl").
+-include("ts_profile.hrl").
 -include_lib("eunit/include/eunit.hrl").
 -import(ts_http_common,[parse_req/1, parse_req/2]).
 
@@ -50,3 +51,12 @@ parse_http_request6_test() ->
 parse_http_request7_test() ->
     Req= "GET http://www.niclux.org/ HTTP/1.1\r\nHost: www.niclux.org\r\nUser-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.7.5) Gecko/20041209 Firefox/1.0 (Ubuntu) (Ubuntu package 1.0-2ubuntu4-warty99)\r\nAccept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5\r\nAccept-Language: fr-fr,en-us;q=0.7,en;q=0.3\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-15,utf-8;q=0.7,*;q=0.7\r\nKeep-Alive: 300\r\nProxy-Connection: keep-alive\r\n\r\n",
     ?assertMatch({ok, #http_request{method='GET', version="1.1"}, []},parse_req(Req)).
+
+decode_base64_test()->
+    Base="QWxhZGRpbjpvcGVuIHNlc2FtZQ==",
+    ?assertMatch({"Aladdin","open sesame"}, ts_proxy_http:decode_basic_auth(Base)).
+    
+%%TODO: should be in ts_test_http
+encode_base64_test()->
+    Base="QWxhZGRpbjpvcGVuIHNlc2FtZQ==",
+    ?assertMatch(["Authorization: Basic ",Base,?CRLF], ts_http_common:authenticate("Aladdin","open sesame")).
