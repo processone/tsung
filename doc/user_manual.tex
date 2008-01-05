@@ -879,7 +879,8 @@ statistics definition, conditional request (IF MODIFIED SINCE), ...
     <thinktime value="2"></thinktime>
 
     <transaction name="authenticate">
-      <request> <jabber type="authenticate" ack="local"> </jabber> </request>
+      <request> <jabber type="auth_get" ack="local"></jabber> </request>
+      <request> <jabber type="auth_set_plain" ack="local"></jabber> </request>
     </transaction>
 
     <request> <jabber type="presence:initial" ack="no_ack"/> </request>
