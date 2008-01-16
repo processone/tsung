@@ -43,7 +43,13 @@ stop() {
 
 stop_recorder() {
     $ERL $ERL_OPTS $ERL_RSH -noshell  -sname killer -setcookie $COOKIE -pa $TSUNGPATH -pa $RECORDERPATH -s tsung_recorder stop_all $HOST -s init stop
-    rm $PIDFILE
+    RET=$?
+    if [ $RET == 1 ]; then
+        echo "FAILED"
+    else
+        echo "[OK]"
+        rm $PIDFILE
+    fi
 }
 
 recorder_status() {
@@ -139,6 +145,12 @@ status() {
     $ERL -noshell -sname $SNAME -setcookie $COOKIE -pa $TSUNGPATH -pa $CONTROLLERPATH -s tsung_controller status $HOST -s init stop
 }
 
+record_tag() {
+    shift
+    SNAME=tsung_recordtag
+    $ERL -noshell -sname $SNAME -setcookie $COOKIE -pa $TSUNGPATH -pa $RECORDERPATH -run ts_proxy_recorder recordtag $HOST "$*" -s init stop
+}
+
 checkrunning_controller() {
     RES=`status`
     if [ "$RES" != "Tsung is not started" ]; then
@@ -197,6 +209,9 @@ case $1 in
         recorder
         ;;
 
+    record_tag)
+        record_tag $*
+        ;;
     boot)
         checkversion
         ;;

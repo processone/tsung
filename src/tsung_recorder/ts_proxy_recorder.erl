@@ -47,7 +47,7 @@
 
 %%--------------------------------------------------------------------
 %% External exports
--export([start/1, dorecord/1, stop/1]).
+-export([start/1, dorecord/1, recordtag/1, stop/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -61,20 +61,33 @@
 %% Description: Starts the server
 %%--------------------------------------------------------------------
 start(Config) ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, Config, []).
+    gen_server:start_link({global, ?MODULE}, ?MODULE, Config, []).
 
 %%--------------------------------------------------------------------
 %% Function: stop/1
 %%--------------------------------------------------------------------
-stop(Node) ->
-    gen_server:call({?MODULE,Node},{stop}).
+stop(_) ->
+    gen_server:call({global, ?MODULE},{stop}).
 
 %%--------------------------------------------------------------------
 %% Function: dorecord/1
 %% Description: record a new request
 %%--------------------------------------------------------------------
-dorecord(Args) ->
-    gen_server:cast(?MODULE,{record, Args}).
+dorecord(Args)->
+    gen_server:cast({global, ?MODULE},{record, Args}).
+
+%%--------------------------------------------------------------------
+%% Function: recordtag/1
+%% Description: record a string (for use on the command line)
+%%--------------------------------------------------------------------
+recordtag([Host,Args]) when is_list(Host)->
+    recordtag(list_to_atom(Host), Args).
+
+%% @spec recordtag/2
+recordtag(Host, Args) when is_list(Args)->
+    _List = net_adm:world_list([Host]),
+    global:sync(),
+    gen_server:cast({global,?MODULE},{record, Args}).
 
 %%====================================================================
 %% Server functions
@@ -162,7 +175,13 @@ handle_cast({record, {Request}}, State=#state_rec{plugin=Plugin}) ->
     {ok, NewState} = Plugin:record_request(State, Request),
     {noreply, NewState#state_rec{timestamp=TimeStamp}};
 
-handle_cast(_Msg, State) ->
+handle_cast({record, String}, State) when is_list(String)->
+    ?LOGF("Record string ~p~n",[String], ?NOTICE),
+    io:format(State#state_rec.logfd, "~n~s~n", [String]),
+    {noreply, State};
+
+handle_cast(Msg, State) ->
+    ?LOGF("IGNORE Msg ~p~n",[Msg], ?WARN),
     {noreply, State}.
 
 %%--------------------------------------------------------------------

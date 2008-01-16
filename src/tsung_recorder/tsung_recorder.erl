@@ -69,4 +69,4 @@ stop(_State) ->
 %%----------------------------------------------------------------------
 stop_all(Arg) ->
     ts_utils:stop_all(Arg,'ts_proxy_listener', "tsung recorder",
-                      {ts_proxy_recorder, stop}).
+                       fun ts_proxy_recorder:stop/1).
