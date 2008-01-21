@@ -122,10 +122,15 @@ parse(Data, State=#state_rcv{acc = [], dyndata=DynData}) ->
         {ok, {authenticate, 0}, Tail } -> % auth OK, continue to parse resp.
             parse(Tail, State);
 
-        {ok, {error_message, ErrMsg}, << >> } ->
+        {ok, {error_message, ErrMsg}, Tail } ->
             ts_mon:add({ count, pgsql_error_message }),
-            ?LOGF("PGSQL: Got Error Msg from postgresql [~p] ~n",[ErrMsg],?INFO),
-            {State#state_rcv{ack_done = false},[],false};
+            ?LOGF("PGSQL: Got Error Msg from postgresql [~p] ~n",[ErrMsg],?NOTICE),
+            case Tail of
+                << >> ->
+                    {State#state_rcv{ack_done = false},[],false};
+                _ ->
+                    parse(Tail, State)
+            end;
 
         {ok, {authenticate, AuthType}, _ } ->
             NewDynData=DynData#dyndata{proto=#pgsql_dyndata{auth_method=AuthType}},
