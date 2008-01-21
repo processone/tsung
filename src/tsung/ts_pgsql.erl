@@ -1,7 +1,7 @@
 %%%
 %%%  Copyright (C) Nicolas Niclausse 2005
 %%%
-%%%	 Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
+%%%  Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%  Created: 6 Nov 2005 by Nicolas Niclausse <nicolas.niclausse@niclux.org>
 
 %%%  This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 
 %%% In addition, as a special exception, you have the permission to
 %%% link the code of this program with any library released under
@@ -30,7 +30,7 @@
 %%% ---------------------------------------------------------------------
 
 -module(ts_pgsql).
--vc('$Id:$ ').
+-vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
 -include("ts_profile.hrl").
@@ -48,7 +48,7 @@
 %%----------------------------------------------------------------------
 %% Function: session_default/0
 %% Purpose: default parameters for session
-%% Returns: {ok, ack_type = parse|no_ack|local, persistent = true|false} 
+%% Returns: {ok, ack_type = parse|no_ack|local, persistent = true|false}
 %%----------------------------------------------------------------------
 session_defaults() ->
     {ok, true}.
@@ -59,19 +59,19 @@ session_defaults() ->
 %% Returns: record or []
 %%----------------------------------------------------------------------
 new_session() ->
-	#pgsql{}.
+    #pgsql{}.
 
 %%----------------------------------------------------------------------
 %% Function: get_message/21
 %% Purpose: Build a message/request ,
-%% Args:	record
+%% Args:    record
 %% Returns: binary
 %%----------------------------------------------------------------------
 get_message(#pgsql_request{type=connect, database=DB, username=UserName}) ->
     Version = <<?PROTOCOL_MAJOR:16/integer, ?PROTOCOL_MINOR:16/integer>>,
     User = pgsql_util:make_pair(user, UserName),
     Database = pgsql_util:make_pair(database, DB),
-    StartupPacket = <<Version/binary, 
+    StartupPacket = <<Version/binary,
                       User/binary,
                       Database/binary,
                       0>>,
@@ -97,7 +97,7 @@ get_message(#pgsql_request{type=authenticate, auth_method=AuthType}) ->
 %% Function: parse/2
 %% Purpose: parse the response from the server and keep information
 %%          about the response in State#state_rcv.session
-%% Args:	Data (binary), State (#state_rcv)
+%% Args:    Data (binary), State (#state_rcv)
 %% Returns: {NewState, Options for socket (list), Close = true|false}
 %%----------------------------------------------------------------------
 parse(closed, State) ->
@@ -149,7 +149,7 @@ parse(Data, State=#state_rcv{acc=Acc, datasize=DataSize}) ->
 %% Returns:  List
 %%----------------------------------------------------------------------
 parse_config(Element, Conf) ->
-	ts_config_pgsql:parse_config(Element, Conf).
+    ts_config_pgsql:parse_config(Element, Conf).
 
 %%----------------------------------------------------------------------
 %% Function: add_dynparams/4
@@ -167,7 +167,7 @@ add_dynparams(true, DynData, Param, HostData) ->
     add_dynparams(DynData#dyndata.proto,NewParam, HostData).
 
 add_dynparams(DynPgsql, Param, _HostData) ->
-	Param#pgsql_request{auth_method=DynPgsql#pgsql_dyndata.auth_method,
+    Param#pgsql_request{auth_method=DynPgsql#pgsql_dyndata.auth_method,
                         salt=DynPgsql#pgsql_dyndata.salt}.
 
 %%----------------------------------------------------------------------
@@ -176,7 +176,7 @@ add_dynparams(DynPgsql, Param, _HostData) ->
 %% Returns:  #dyndata
 %%----------------------------------------------------------------------
 init_dynparams() ->
-	#dyndata{proto=#pgsql_dyndata{}}.
+    #dyndata{proto=#pgsql_dyndata{}}.
 
 %%----------------------------------------------------------------------
 %% Function: subst/2
@@ -195,7 +195,7 @@ subst(Req=#pgsql_request{sql=SQL}, DynData) ->
 process_head(<<Code:8/integer, Size:4/integer-unit:8, Tail/binary>>) ->
     ?DebugF("PGSQL: received [~p]  size=~p Pckt size= ~p ~n",[Code, Size, size(Tail)]),
     RealSize = Size-4,
-    case RealSize =< size(Tail) of 
+    case RealSize =< size(Tail) of
         true ->
             << Packet:RealSize/binary, Data/binary >> = Tail,
             {ok, Pair} = pgsql_proto:decode_packet(Code, Packet),
@@ -220,13 +220,13 @@ encode_message(Type, Msg)->
 %%----------------------------------------------------------------------
 encode_md5(_Password, _Username, undefined) ->
     ?LOG("PGSQL: No salt for md5 authentication ! ~n",?ERR),
-	ts_mon:add({ count, error_pgsql_nosalt }),
+    ts_mon:add({ count, error_pgsql_nosalt }),
     <<>>;
 encode_md5(Password, Username, Salt) ->
     Md5 = erlang:md5(list_to_binary(Password ++ Username)),
     SaltBin = list_to_binary(Salt),
     List    = binary_to_list( erlang:md5( << Md5/binary, SaltBin/binary >> ) ),
-    ToHex   = fun(A) -> 
+    ToHex   = fun(A) ->
                     Hexa = lists:flatten(io_lib:format("~2.16B",[A])),
                     {ok, Str, _} = regexp:gsub(Hexa," ","0"),
                     Str
