@@ -123,7 +123,7 @@ parse(Data, State=#state_rcv{acc = [], dyndata=DynData}) ->
             parse(Tail, State);
 
         {ok, {error_message, ErrMsg}, Tail } ->
-            ts_mon:add({ count, pgsql_error_message }),
+            ts_mon:add({ count, error_pgsql }),
             ?LOGF("PGSQL: Got Error Msg from postgresql [~p] ~n",[ErrMsg],?NOTICE),
             case Tail of
                 << >> ->
