@@ -187,6 +187,8 @@ decode_base64(Base64)->
 %% check erlang version to know if we need to use the old httpd_utils functions
 check_httpd_old_version()->
     case erlang:system_info(version) of
+        [$5,$.,Maj] when Maj > $5  ->
+            false;
         [$5,$.,Maj, $.,Min] when ( Maj > $5 ) or ((Maj == $5) and Min > $3 ) ->
             false;
         _  ->
