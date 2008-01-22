@@ -253,10 +253,8 @@ MacOS-X).
 \subsection{Dependencies}
 \begin{itemize}
 \item Erlang/OTP R10B-0 and up
-  (\url{http://www.erlang.org/download.html}).  RedHat users can
-  download a R10B-8 rpm at
-  \url{http://tsung.erlang-projects.org/dist/redhat}. Erlang is now
-  part of fedora extra repository.
+  (\url{http://www.erlang.org/download.html}). Erlang is now
+  part of fedora and debian repository.
   \item extended regexp module (used for dynamic variables):
     gregexp.erl available at
     \url{http://www.cellicium.com/erlang/contribs/} . The module is
@@ -296,7 +294,8 @@ is created for each test using the current date as name
 
 Use the Tsung mailing list (see
 \url{https://lists.process-one.net/mailman/listinfo/tsung-users}) if you have
-suggestions or questions about \program{Tsung}.
+suggestions or questions about \program{Tsung}. You can also use the
+bugtracker available at \url{https://support.process-one.net/browse/TSUN}.
 
 \section{HTTP benchmark approach}
 
@@ -509,6 +508,10 @@ To stop it, use \command{tsung stop\_recorder}.
 The recorded session is created as
 \file{~/.tsung/tsung_recorderYYYMMDD-HH:MM.xml}; if it doesn't work,
 take a look at \file{~/.tsung/log/tsung.log-tsung_recorder@hostname}
+
+During the recording, you can add custom tag in the XML file, this can
+be useful to set transactions or comments:
+\command{tsung record\_tag "<transaction name='login'>''}
 
 Once a session has been created, you can insert it in your main config
 file, either by editing by hand the file, or by using an ENTITY
@@ -1276,6 +1279,8 @@ You can also do the action on "nomatch" instead of "match".
 \item  size\_sent (size of requests)
 \item  session (duration of a user's session)
 \item  users (number of simultaneous users)
+\item  connected (number of simultaneous connected users) \strong{new
+  in 1.2.2}
 \item  custom transactions
 \end{itemize}
 
@@ -1290,6 +1295,21 @@ HTTP specific stats:
 \item counter for each response status (200, 404, etc.)
 \end{itemize}
 
+Jabber specific stats:
+\begin{itemize}
+\item \varname{request\_noack} (counter of \varname{no\_ack} requests. Since
+  response time is meaningless with \varname{no\_ack}
+  requests, we keep a separate stats for this. \strong{This was
+    introduced in version 1.2.2} )
+\item \varname{bidi\_msg\_skip} only if bidi is true for a
+  session. counter the number of messages received from the server
+  without doing anything.  \strong{This was
+    introduced in version 1.2.2} )
+\item \varname{bidi\_msg\_sent} only if bidi is true for a
+  session. Count the number of messages sent to the server in response
+  of a message received from from the server. \strong{This was
+    introduced in version 1.2.2} )
+\end{itemize}
 
 \subsection{Design}
 
