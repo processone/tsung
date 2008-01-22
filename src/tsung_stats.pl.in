@@ -50,6 +50,7 @@ GetOptions( "help",\$help,
 my $extra = not $noextra;
 
 my $match =0;
+my $async =0;
 my $errors =0;
 my $maxval;
 my $category;
@@ -226,6 +227,9 @@ sub parse_stats_file {
                 $category->{$type} = "network";
             } elsif ($type =~ /^error/) {
                 $category->{$type} = "error";
+             } elsif ($type =~ /^bidi/ or $type eq "request_noack") {
+                $async = 1;
+                 $category->{$type} = "count";
             } elsif ($type =~ /match/) {
                 $match = 1;
                 $category->{$type} = "match";
@@ -266,6 +270,7 @@ sub parse_stats_file {
     my @users;
     my @users_rate;
     my @transactions;
+    my @async;
     my $key;
     if ($interval != $first_interval) {
         print "warn, last interval ($interval) not equal to the first, use the first one ($first_interval)\n";
@@ -274,6 +279,7 @@ sub parse_stats_file {
     my @col = ("rate","mean","stdvar","max_sample","min_sample");
     my @colcount = ("rate","total");
     my @colusers = ("simultaneous","maximum_simultaneous");
+    my @colasync = ("rate","total");
     foreach $key (keys %{$data}) {
         $key =~ s/\'//g;
         open (TYPE, "> $datadir/$key.txt") or die "$!";
@@ -306,6 +312,8 @@ sub parse_stats_file {
             push @match, "$key.txt";
         } elsif ($key =~ /^error/) {
             push @errors, "$key.txt";
+        } elsif ($key=~ /^bidi/ or $key eq "request_noack") {
+            push @async, "$key.txt";
         } elsif ($key =~ /request$/ or $key eq "connect" or $key eq "async_rcv") {
             push @tps, "$key.txt";
         } elsif ($key =~ /^tr_/ or $key eq "page") {
@@ -327,6 +335,7 @@ sub parse_stats_file {
     plot_stats(\@col,"Transactions",undef,\@transactions,["transactions/sec","msec"],$logy) unless $noplot;
     plot_stats(\@colcount,"Match",undef,\@match,["rate","rate"],$logy) unless $noplot;
     plot_stats(\@colcount,"Event",undef,\@time,["rate","msec"],$logy) unless $noplot;
+    plot_stats(\@colasync,"Async",undef,\@async,["rate","rate"],$logy) unless $noplot;
     plot_stats(\@colcount,"Errors",undef,\@errors,["errors/sec","total"],$logy) unless $noplot;
     plot_stats(\@colusers,"Users",undef,\@users,["value", "total"],$logy) unless $noplot;
     plot_stats(\@colcount,"Users_Arrival",undef,\@users_rate,["number of users/sec", "total"],$logy) unless $noplot;
@@ -394,6 +403,7 @@ sub html_report {
          errors      => $errors,
          http        => $http,
          match       => $match,
+         async       => $async,
          title       => $titre,
          stats_subtitle => "Stats Report ",
          graph_subtitle => "Graphs Report ",

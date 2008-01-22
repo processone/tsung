@@ -31,7 +31,7 @@
 -behaviour(gen_fsm). % two state: wait_ack | think
 
 %%% if bidi is true (for bidirectional), the server can send data
-%%% to the client at anytime (full bidirectional protocal, as jabber
+%%% to the client at anytime (full bidirectional protocol, as jabber
 %%% for ex)
 
 -include("ts_profile.hrl").
@@ -56,7 +56,7 @@ start(Opts) ->
 
 %%----------------------------------------------------------------------
 %% Func: next/1
-%% Purpose: continue with the next request (use for global ack)
+%% Purpose: continue with the next request (used for global ack)
 %%----------------------------------------------------------------------
 next({Pid}) ->
     gen_fsm:send_event(Pid, next_msg).
@@ -236,7 +236,7 @@ handle_info({NetEvent, Socket, Data}, think,State=#state_rcv{
                        ?LOG("Bidi: no data ~n",?DEB),
                        State2;
                    {Data2, State2} ->
-                       ts_mon:add({ sum, size_sent, size(Data2)}),
+                       ts_mon:add([{ sum, size_sent, size(Data2)},{count, async_data_rcv}]),
                        ts_mon:sendmes({State#state_rcv.dump, self(), Data2}),
                        ?LOG("Bidi: send data back to server~n",?DEB),
                        send(Proto,Socket,Data2,Host,Port), %FIXME: handle errors ?
@@ -389,7 +389,7 @@ handle_next_request(Profile, State) ->
                                                timestamp= Now },
                     case Profile#ts_request.ack of
                         no_ack ->
-                            {PTimeStamp, _} = update_stats(NewState),
+                            {PTimeStamp, _} = update_stats_noack(NewState),
                             handle_next_action(NewState#state_rcv{ack_done=true, page_timestamp=PTimeStamp});
                         global ->
                             ts_timer:connected(self()),
@@ -657,6 +657,25 @@ set_connected_status(false, true) ->
 set_connected_status(false, Old) when Old==undefined; Old==false ->
     ok.
 
+
+%%----------------------------------------------------------------------
+%% Func: update_stats_noack/1
+%% Args: State
+%% Returns: {TimeStamp, DynVars}
+%% Purpose: update the statistics for no_ack requests
+%%----------------------------------------------------------------------
+update_stats_noack(State=#state_rcv{page_timestamp=PageTime,request=Profile}) ->
+    Now = now(),
+    Stats= [{ count, request_noack}], % count and not sample because response time is not defined in this case
+    case Profile#ts_request.endpage of
+        true -> % end of a page, compute page reponse time
+            PageElapsed = ts_utils:elapsed(PageTime, Now),
+            ts_mon:add(lists:append([Stats,[{sample, page, PageElapsed}]])),
+            {0, []};
+        _ ->
+            ts_mon:add(Stats),
+            {PageTime, []}
+    end.
 
 %%----------------------------------------------------------------------
 %% Func: update_stats/1

@@ -26,7 +26,8 @@
 <h3>Throughput</h3> 
 
 <table>
-<tr><th>Transactions</th><th>Requests</th></tr>
+<tr><th>Transactions</th><th>Requests</th>
+</tr>
 <tr>
  <td>
  <a href="images/graphes-Transactions-rate.ps">
@@ -39,6 +40,18 @@
   </a>
  </td>
  </tr>
+[% IF async %]
+ <tr>
+    <th>Noack/Bidi</th>
+</tr>
+<tr>
+ <td>
+  <a href="images/graphes-Async-rate.ps">
+   <img class="graph" src="images/graphes-Async-rate.png" alt="req/sec"/>
+  </a>
+ </td>
+ </tr>
+[% END %]
 <tr><th>Network traffic</th><th>New Users</th></tr>
 <tr>
  <td>
