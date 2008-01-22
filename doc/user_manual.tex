@@ -1270,17 +1270,17 @@ You can also do the action on "nomatch" instead of "match".
 \subsection{Available stats}
 
 \begin{itemize}
-\item  request (response time for each request)
-\item  page (response time for each set of requests (a page is a group
-  of request not separated by a thinktime))
-\item  connect (duration of the connection establishment)
-\item  reconnect (number of reconnection)
-\item  size\_rcv (size of responses)
-\item  size\_sent (size of requests)
-\item  session (duration of a user's session)
-\item  users (number of simultaneous users)
-\item  connected (number of simultaneous connected users) \strong{new
-  in 1.2.2}
+\item  \varname{request} Response time for each request.
+\item  \varname{page} Response time for each set of requests (a page is a group
+  of request not separated by a thinktime).
+\item  \varname{connect} Duration of the connection establishment.
+\item  \varname{reconnect} number of reconnection.
+\item  \varname{size\_rcv} Size of responses in bytes.
+\item  \varname{size\_sent} Size of requests in bytes.
+\item  \varname{session} Duration of a user's session.
+\item  \varname{users} Number of simultaneous users.
+\item  \varname{connected} Number of simultaneous connected users. \strong{new
+  in 1.2.2}.
 \item  custom transactions
 \end{itemize}
 
@@ -1297,18 +1297,15 @@ HTTP specific stats:
 
 Jabber specific stats:
 \begin{itemize}
-\item \varname{request\_noack} (counter of \varname{no\_ack} requests. Since
+\item \varname{request\_noack} Counter of \varname{no\_ack} requests. Since
   response time is meaningless with \varname{no\_ack}
-  requests, we keep a separate stats for this. \strong{This was
-    introduced in version 1.2.2} )
-\item \varname{bidi\_msg\_skip} only if bidi is true for a
+  requests, we keep a separate stats for this. \strong{new in 1.2.2}.
+\item \varname{bidi\_msg\_skip} Only if bidi is true for a
   session. counter the number of messages received from the server
-  without doing anything.  \strong{This was
-    introduced in version 1.2.2} )
-\item \varname{bidi\_msg\_sent} only if bidi is true for a
+  without doing anything.  \strong{new in 1.2.2}.
+\item \varname{bidi\_msg\_sent} Only if bidi is true for a
   session. Count the number of messages sent to the server in response
-  of a message received from from the server. \strong{This was
-    introduced in version 1.2.2} )
+  of a message received from from the server. \strong{new in 1.2.2}.
 \end{itemize}
 
 \subsection{Design}
