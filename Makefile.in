@@ -134,7 +134,7 @@ BUILD_OPTIONS =	'[{systools, \
 
 BUILD_OPTIONS_DOT = $(subst $(PWD)/temp/,./,$(BUILD_OPTIONS))
 
-BUILD_OPTIONS_FILE = ./BUILD_OPTIONS 
+BUILD_OPTIONS_FILE = ./BUILD_OPTIONS
 
 DIST_COMMON=Makefile.in $(CONFFILE_SRC) $(PERL_SCRIPTS_SRC) tsung.sh.in tsung.spec.in
 
@@ -147,7 +147,7 @@ buildtest: $(TEST_TARGET)
 
 fulltest:  clean test
 
-test: 
+test:
 	$(MAKE) TYPE=test dotest
 
 dotest: tsung buildtest $(CONFFILE) $(TEST_CONFFILE)
@@ -326,7 +326,7 @@ configure: configure.in $(CONFIGURE_DEPENDENCIES)
 	@echo "running autoconf"
 	@autoconf
 
-doc: 
+doc:
 	$(MAKE) -C doc
 
 release: Makefile tsung.spec doc
@@ -338,7 +338,7 @@ release: Makefile tsung.spec doc
 		doc/*.erl doc/*.txt doc/*.fig doc/*.png doc/Makefile doc/*.sgml doc/*.1 \
 		$(USERMANUAL) $(USERMANUAL_SRC) $(USERMANUAL_IMG) $(DTD) \
 		COPYING README LISEZMOI TODO $(CONFFILE_SRC) $(TEST_CONFFILE_SRC) \
-		priv/builder.erl tsung.sh.in vsn.mk \
+		priv/builder.erl tsung.sh.in vsn.mk  src/test/*.csv src/test/*.txt \
 		$(DEBIAN)  $(PERL_SCRIPTS_SRC) CONTRIBUTORS CHANGES \
 		configure configure.in config.guess config.sub Makefile.in \
 		install-sh tsung.spec.in tsung.spec
@@ -351,7 +351,7 @@ release: Makefile tsung.spec doc
 snapshot:
 	$(MAKE) TYPE=snapshot release
 
-builder.beam: priv/builder.erl 
+builder.beam: priv/builder.erl
 	@$(CC) -W0 $(OPT) -I $(INC) $<
 
 ebin/%.beam: src/test/%.erl $(INC_FILES)
