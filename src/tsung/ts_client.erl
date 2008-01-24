@@ -664,7 +664,7 @@ set_connected_status(false, Old) when Old==undefined; Old==false ->
 %% Returns: {TimeStamp, DynVars}
 %% Purpose: update the statistics for no_ack requests
 %%----------------------------------------------------------------------
-update_stats_noack(State=#state_rcv{page_timestamp=PageTime,request=Profile}) ->
+update_stats_noack(#state_rcv{page_timestamp=PageTime,request=Profile}) ->
     Now = now(),
     Stats= [{ count, request_noack}], % count and not sample because response time is not defined in this case
     case Profile#ts_request.endpage of
