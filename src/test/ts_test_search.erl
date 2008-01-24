@@ -1,9 +1,9 @@
 %%%-------------------------------------------------------------------
-%%% File    : ts_test_recorder.erl
+%%% File    : ts_test_search.erl
 %%% Author  : Nicolas Niclausse <nicolas@niclux.org>
-%%% Description : 
+%%% Description : unit tests for ts_search module
 %%%
-%%% Created : 20 Mar 2005 by Nicolas Niclausse <nicolas@niclux.org>
+%%% $Id$
 %%%-------------------------------------------------------------------
 -module(ts_test_search).
 
@@ -16,7 +16,7 @@
 
 -define(FORMDATA,"<input type=\"hidden\" name=\"jsf_tree_64\" id=\"jsf_tree_64\" value=\"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA\">").
 
-test()-> 
+test()->
     ok.
 parse_dyn_var_test() ->
     myset_env(),
@@ -39,13 +39,20 @@ parse_dyn_var3_test() ->
     Regexp = ?DEF_REGEXP_DYNVAR_BEGIN++ StrName ++?DEF_REGEXP_DYNVAR_END,%'
     ?assertMatch([{random,"42"}], ts_search:parse_dynvar([{random, Regexp }],list_to_binary(Data))).
 
+parse_dyn_var4_test() ->
+    myset_env(),
+    Data="<hidden name='random' value='42'></form>",
+    StrName="random",
+    Regexp = ?DEF_REGEXP_DYNVAR_BEGIN++ StrName ++?DEF_REGEXP_DYNVAR_END,%'
+    ?assertMatch([{random,"42"}], ts_search:parse_dynvar([{random, Regexp }],list_to_binary(Data))).
+
 parse_subst1_test() ->
     myset_env(),
     Data=?FORMDATA,
     StrName="jsf_tree_64",
     Regexp = ?DEF_REGEXP_DYNVAR_BEGIN++ StrName ++?DEF_REGEXP_DYNVAR_END,%'
     [{Name,Value}] = ts_search:parse_dynvar([{'jsf_tree_64', Regexp }],list_to_binary(Data)),
-    ?assertMatch(Value, ts_search:subst("%%_jsf_tree_64%%",[{Name,Value}])).
+    ?assertMatch("H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA", ts_search:subst("%%_jsf_tree_64%%",[{Name,Value}])).
 
 myset_env()->
     application:set_env(stdlib,debug_level,0).
