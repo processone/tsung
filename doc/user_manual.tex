@@ -1147,7 +1147,7 @@ file called \file{readcsv.erl}:
 user({Pid,DynVar})->
     {ok,Line} = ts_file_server:get_next_line(),
     [Username, Passwd] = string:tokens(Line,";"),
-    "username=" ++ Username ++"&amp;password=" ++ Passwd.
+    "username=" ++ Username ++"&password=" ++ Passwd.
 \end{Verbatim}
 
 The output of the function will be a string \userinput{username=USER\&password=PASSWORD}
