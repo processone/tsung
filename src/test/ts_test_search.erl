@@ -9,6 +9,8 @@
 
 -compile(export_all).
 
+-export([marketplace/1,namespace/1,sessionBucket/1, new/1]).
+
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("ts_profile.hrl").
 -include_lib("ts_config.hrl").
@@ -54,5 +56,38 @@ parse_subst1_test() ->
     [{Name,Value}] = ts_search:parse_dynvar([{'jsf_tree_64', Regexp }],list_to_binary(Data)),
     ?assertMatch("H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA", ts_search:subst("%%_jsf_tree_64%%",[{Name,Value}])).
 
+parse_extract_fun1_test() ->
+    myset_env(),
+    Data="/echo?symbol=%%ts_test_search:new%%",
+    ?assertMatch("/echo?symbol=IBM", ts_search:subst(Data,[])).
+
+parse_extract_fun2_test() ->
+    myset_env(),
+    Data="/stuff/%%ts_test_search:namespace%%/%%ts_test_search:marketplace%%/%%ts_test_search:sessionBucket%%/01/2000?keyA1=dataA1&amp;keyB1=dataB1",
+    ?assertMatch("/stuff/namespace2/6/91/01/2000?keyA1=dataA1&amp;keyB1=dataB1", ts_search:subst(Data,[])).
+
+    
 myset_env()->
-    application:set_env(stdlib,debug_level,0).
+    myset_env(0).
+myset_env(Level)->
+    application:set_env(stdlib,debug_level,Level).
+
+new({Pid, DynData}) ->
+    case random:uniform(3) of
+        1 -> "IBM";
+        2 -> "MSFT";
+        3 -> "RHAT"
+    end.
+
+marketplace({Pid,DynData}) ->
+    integer_to_list( random:uniform(7) ).
+
+namespace({Pid,DynData}) ->
+    "namespace" ++ integer_to_list(random:uniform(3)).
+
+sessionBucket({Pid,DynData}) ->
+    case random:uniform(96) of
+        96 -> "00";
+        X when X < 10  -> "0" ++ integer_to_list( X );
+        X -> integer_to_list( X )
+    end.
