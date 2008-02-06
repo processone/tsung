@@ -149,7 +149,14 @@ add_dynparams(true,#dyndata{proto=JabDynData, dynvars=DynVars}, Param, _Host) ->
         updatejab(DynVars, NewParam#jabber{id = JabDynData#jabber_dyndata.id}).
 
 init_dynparams() ->
-    #dyndata{proto=#jabber_dyndata{id=ts_user_server:get_idle()}}.
+    case ts_user_server:get_idle() of
+        {error, no_free_userid} ->
+            ts_mon:add({ count, error_no_free_userid }),
+            exit(no_free_userid);
+        Id->
+            #dyndata{proto=#jabber_dyndata{id=Id}}
+    end.
+
 
 
 %%----------------------------------------------------------------------
