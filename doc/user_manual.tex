@@ -496,8 +496,8 @@ for password settings).
 
 The recorder has two plugins: one for HTTP and one for PostgreSQL.
 
-To start it, \command{tsung -p PLUGIN recorder}. \userinput{http} is
-the default plugin. For PostgreSQL, use \userinput{pgsql}.
+To start it, run \command{tsung -p <PLUGIN> recorder}, where \varname{PLUGIN} can be
+\userinput{http} or  \userinput{pgsql} for PostgreSQL. The default plugin is \userinput{http}.
 
 
 The proxy is listening to port 8090. You can change the port with
@@ -1073,7 +1073,7 @@ request tag has the attribute \userinput{subst="true"}.
 
 When a substitution is requested, the substitution mark-up is replaced by
 the result of the call to the Erlang function:
-\userinput{Module:Function({Pid, DynData})} where Pid is the Erlang process
+\userinput{Module:Function(\{Pid, DynData\})} where Pid is the Erlang process
 id of the current virtual user and DynData the list of all Dynamic
 variables (\strong{Warn: before version 1.1.0, the argument was just the
   Pid !}).
