@@ -151,7 +151,7 @@ test:
 	$(MAKE) TYPE=test dotest
 
 dotest: tsung buildtest $(CONFFILE) $(TEST_CONFFILE)
-	$(ERL) -pa ./ebin -s eunit test ts_test_all -s init stop
+	$(ERL) -noshell -pa ./ebin -s eunit test ts_test_all -s init stop
 
 all: clean tsung
 
