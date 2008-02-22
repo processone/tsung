@@ -38,7 +38,7 @@ A distributed multi-protocol load testing tool.
       <arg><option>-I</option> IP</arg>
       <arg><option>-P</option> port</arg>
       <arg><option>-u</option> </arg>
-      <arg>start|stop|restart|debug|status|recorder|stop_recorder</arg>
+      <arg>start|stop|restart|debug|status|recorder|record_tag|stop_recorder</arg>
     </cmdsynopsis>
   </refsynopsisdiv>
 
@@ -69,27 +69,45 @@ A distributed multi-protocol load testing tool.
       <varlistentry>
         <term><option>start</option></term>
         <listitem>
-          <para>start tsung load testing</filename></para>
+          <para>start tsung load testing</para>
         </listitem>
+      </varlistentry>
+       <varlistentry>
         <term><option>debug</option></term>
         <listitem>
-          <para>start tsung with an erlang shell</filename></para>
+          <para>start tsung with an erlang shell</para>
         </listitem>
+      </varlistentry>
+       <varlistentry>
         <term><option>stop</option></term>
         <listitem>
-          <para>stop tsung</filename></para>
+          <para>stop tsung</para>
         </listitem>
+      </varlistentry>
+       <varlistentry>
         <term><option>recorder</option></term>
         <listitem>
           <para>start the proxy recorder (listening port is 8090). By default the HTTP recorder is started. With the -p option, you can select another plugin. The resulting files will be created as <filename>~/.tsung/tsung_recorderYYYMMDD-HH:MM.xml</filename>; if it doesn't work, take a look at <filename>~/.tsung/log/tsung.log-tsunami_recorder@hostname</filename> </para>
         </listitem>
+      </varlistentry>
+       <varlistentry>
         <term><option>stop_recorder</option></term>
         <listitem>
-          <para>stop the proxy recorder</filename></para>
+          <para>stop the proxy recorder</para>
         </listitem>
-        <term><option>status</option></term>
+       </varlistentry>
+       <varlistentry>
+       <term><option>status</option></term>
         <listitem>
-          <para>print current status of tsung</filename></para>
+          <para>print current status of tsung</para>
+        </listitem>
+      </varlistentry>
+       <varlistentry>
+        <term><option>record_tag</option> value</term>
+        <listitem>
+          <para>add a string (comment or tag) while recording a
+          session. This is useful for example to add transaction tag
+          while recording a session. </para>
         </listitem>
       </varlistentry>
     </variablelist>
@@ -118,7 +136,6 @@ A distributed multi-protocol load testing tool.
           <para>Specifies the log file to use. The default log file name is <filename>~/tsung/log/tsung.log</filename></para>
         </listitem>
       </varlistentry>
-    </variablelist>
       <varlistentry>
       <term><option>-r</option></term>
       <listitem>
@@ -179,6 +196,7 @@ A distributed multi-protocol load testing tool.
       <email>nicolas@niclux.org</email>. Contributors list
       is available in
       <filename>/usr/share/doc/tsung/CONTRIBUTORS</filename>
+</para>
   </refsect1>
   
 </refentry>

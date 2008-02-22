@@ -3,13 +3,13 @@
 .\" <http://shell.ipoline.com/~elmert/comp/docbook2X/> 
 .\" Please send any bug reports, improvements, comments, patches, 
 .\" etc. to Steve Cheng <steve@ggi-project.org>.
-.TH "TSUNG" "1" "07 novembre 2007" "" ""
+.TH "TSUNG" "1" "30 janvier 2008" "" ""
 
 .SH NAME
 tsung \- A distributed multi-protocol load testing tool.
 .SH SYNOPSIS
 
-\fBtsung\fR [ \fB-f configuration file\fR ] [ \fB-l log file\fR ] [ \fB-r command\fR ] [ \fB-p plugin\fR ] [ \fB-L listen port\fR ] [ \fB-I IP\fR ] [ \fB-P port\fR ] [ \fB-u \fR ] [ \fBstart|stop|restart|debug|status|recorder|stop_recorder\fR ]
+\fBtsung\fR [ \fB-f configuration file\fR ] [ \fB-l log file\fR ] [ \fB-r command\fR ] [ \fB-p plugin\fR ] [ \fB-L listen port\fR ] [ \fB-I IP\fR ] [ \fB-P port\fR ] [ \fB-u \fR ] [ \fBstart|stop|restart|debug|status|recorder|record_tag|stop_recorder\fR ]
 
 .SH "DESCRIPTION"
 .PP
@@ -48,6 +48,11 @@ stop the proxy recorder
 .TP
 \fBstatus\fR
 print current status of tsung
+.TP
+\fBrecord_tag value\fR
+add a string (comment or tag) while recording a
+session. This is useful for example to add transaction tag
+while recording a session. 
 .SH "MANUAL"
 .PP
 A manual should be available at
