@@ -79,7 +79,7 @@ else
 fi
 
 AC_MSG_CHECKING(for '-hybrid' option)
-if ! $ERL -noshell -hybrid -s init stop 2> /dev/null; then
+if ! $ERL -noshell -hybrid -smp 2  -s init stop 2> /dev/null; then
   AC_MSG_RESULT(no)
 else
   AC_MSG_RESULT(yes)
@@ -87,7 +87,7 @@ else
 fi
 
 AC_MSG_CHECKING(for '-shared' option)
-if ! $ERL -noshell -shared -s init stop 2> /dev/null; then
+if ! $ERL -noshell -shared -smp 2 -s init stop 2> /dev/null; then
   AC_MSG_RESULT(no)
 else 
   AC_MSG_RESULT(yes)
