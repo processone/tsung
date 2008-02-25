@@ -403,6 +403,15 @@ If you do not specify maxnumber, the global ack will be reset every
 \varname{global\_number} users
 \end{description}
 
+\strong{New in 1.2.2:} This version adds an new option for a
+session. if you set the attribute \varname{bidi} (for bidirectional)
+in the \varname{session} tag: \userinput{<session ... bidi='true'>},
+then incoming messages from the server will be analysed. Currently,
+only roster subscription requests are handled: if a user received a
+subscription request (\userinput{<presence ... type='subscribe'>}), it
+will respond with a \userinput{<presence ... type='subscribed'>}
+message.
+
 \subsection{Status: Offline, Connected and Online}
 
 You can send messages to offline or online users. A user is considered
