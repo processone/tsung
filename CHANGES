@@ -1,3 +1,33 @@
+1.2.1 -> 1.2.2 Minor bugfixes and enhancements (23 Feb 2008)
+Bugfix:
+    * [TSUN-30] - SNMP monitoring gives an error
+    * [TSUN-31] - dyn_variable usage
+    * [TSUN-35] - udp is not working
+    * [TSUN-36] - default regexp for dyn_variable doesn't work in all case
+    * [TSUN-38] - server monitoring crash if an ethernet interface's name is more than 6 chars long
+    * [TSUN-39] - https recording doesn't work with most browsers
+    * [TSUN-43] - session should not terminate if rosterjid is not defined
+    * [TSUN-49] - <match> doesn't work with jabber plugin
+    * [TSUN-51] - tsung does not work with R12B (httpd_util funs removed)
+    * [TSUN-53] - postgresql errors not reported in all cases
+    * [TSUN-55] - no error counter when userid_max is reached
+Improvements:
+    * [TSUN-14] - no_ack messages and asynchronous msg sent by the server are not available in the reports
+    * [TSUN-27] - handle bidirectional protocols
+    * [TSUN-28] - Refactoring needed to ease the change of the userid / password generation code
+    * [TSUN-29] - Multiple file_server support
+    * [TSUN-32] - make snmp server options tunable
+    * [TSUN-34] - add costum http headers
+    * [TSUN-44] - tsung should ignore whitespace keepalive from xmpp server
+    * [TSUN-45] - add kernel-poll support for better performance
+    * [TSUN-46] - add number of open connections in statistics
+    * [TSUN-47] - ts_mon can be a bottleneck during very high load testing
+    * [TSUN-50] - use the whole range of Id (from 0 to userid_max) before reusing already used Ids
+New Features:
+    * [TSUN-26] - Ability to loop on a given sequence of phase
+    * [TSUN-52] - Adding comment during script capture
+    * [TSUN-41] - add support for parent proxy for http only (not https)
+
 1.2.0 -> 1.2.1 Minor bugfixes and enhancements (07 Oct 2006)
     Bugfix:
     - [TSUN-5]  get traffic from all interfaces instead of only eth0
