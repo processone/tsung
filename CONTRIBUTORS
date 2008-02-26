@@ -18,8 +18,7 @@ o Jérome Sautret: Multiple file patch for file_server, costum header
   for HTTP, bug reports
 
 o Jason Tucker: Solaris testing and fixes, jabber patches (sip_digest,
-  roster and presence enhancements ).
-
+  roster and presence enhancements, bidi support for presence:subscribe ).
 
 
 o Jonathan Bresler: Jabber testing and bug reporting
