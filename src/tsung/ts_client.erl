@@ -245,6 +245,17 @@ handle_info({NetEvent, Socket, Data}, think,State=#state_rcv{
     NewSocket = ts_utils:inet_setopts(Proto, State#state_rcv.socket,
                                       [{active, once}]),
     {next_state, think, NewState#state_rcv{socket=NewSocket}};
+% bidi is false, but parse is also false: continue even if we get data
+handle_info({NetEvent, _Socket, Data}, think, State = #state_rcv{request=Req} )
+  when (Req#ts_request.ack /= parse) and ((NetEvent == tcp) or (NetEvent==ssl)) ->
+    ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
+    ts_mon:add({ sum, size_rcv, size(Data)}),
+    ?LOGF("Data receive from socket in state think, ack=~p, skip~n",
+          [Req#ts_request.ack],?NOTICE),
+    ?DebugF("Data was ~p~n",[Data]),
+    NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol, State#state_rcv.socket,
+                                      [{active, once}]),
+    {next_state, think, State#state_rcv{socket=NewSocket}};
 handle_info({NetEvent, _Socket, Data}, think, State)
   when (NetEvent == tcp) or (NetEvent==ssl) ->
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
