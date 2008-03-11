@@ -40,7 +40,7 @@
          stop_all/2, stop_all/3, stop_all/4, join/2, split2/2, split2/3,
          make_dir_rec/1, is_ip/1, from_https/1, to_https/1, keymax/2,
          check_sum/3, check_sum/5, clean_str/1, file_to_list/1,
-        decode_base64/1, encode_base64/1, to_lower/1]).
+        decode_base64/1, encode_base64/1, to_lower/1, release_is_newer_or_eq/1]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -185,16 +185,12 @@ decode_base64(Base64)->
     end.
 
 %% check erlang version to know if we need to use the old httpd_utils functions
-check_httpd_old_version()->
-    case erlang:system_info(version) of
-        [$5,$.,Maj] when Maj > $5  ->
-            false;
-        [$5,$.,Maj, $.,Min] when ( Maj > $5 ) or ((Maj == $5) and Min > $3 ) ->
-            false;
-        _  ->
-            true
-    end.
-    
+check_httpd_old_version()-> not release_is_newer_or_eq("5.5.4").
+
+% return true if current version of erlang is newer or equal
+release_is_newer_or_eq(Release)->
+    erlang:system_info(version) >= Release.
+
 
 %%----------------------------------------------------------------------
 %% Func: key1search/2

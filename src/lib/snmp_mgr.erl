@@ -186,10 +186,10 @@ init({Options, CallerPid}) ->
 	    TrapUdp  = get_value(trap_udp, Options, 5000),
 	    Dir      = get_value(dir, Options, "."),
 	    SecLevel = get_value(sec_level, Options, noAuthNoPriv),
-        MiniMIB  = case erlang:system_info(version) of
-                       "5.5" ++ _Tail ->
+        MiniMIB  = case ts_utils:release_is_newer_or_eq("5.5") of
+                       true ->
                            snmp_mini_mib:create(Mibs);
-                       _ ->
+                       false ->
                            snmp_misc:make_mini_mib(Mibs)
                    end,
 	    Version  = case lists:member(v2,Options) of
