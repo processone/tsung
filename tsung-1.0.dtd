@@ -10,7 +10,7 @@
 
 <!ATTLIST tsung 
      dumptraffic (true | false | light) "false"
-     backend     (text | rrdtool) "text"
+     backend     (text | rrdtool | fullstats) "text"
      loglevel    (emergency|critical|error|warning|notice|info|debug) "notice"
      version     NMTOKEN #IMPLIED>
 

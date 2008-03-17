@@ -51,10 +51,14 @@
         code_change/3]).
 
 -define(DUMP_FILENAME,"tsung.dump").
+-define(FULLSTATS_FILENAME,"tsung-fullstats.log").
+-define(DELAYED_WRITE_SIZE,524288). % 512KB
+-define(DELAYED_WRITE_DELAY,30000). % 30 sec
 
 -record(state, {log,          % log fd
                 backend,      % type of backend: text|rrdtool
                 log_dir,      % log directory
+                fullstats,    % fullstats log filename
                 dump_interval,%
                 dumpfile,     % file used when dumptrafic is set light or full
                 client=0,     % number of clients currently running
@@ -138,10 +142,10 @@ init([LogDir]) ->
         {ok, Stream} ->
             ?LOG("starting monitor~n",?NOTICE),
             Tab = dict:new(),
-            {ok, #state{ log     = Stream,
+            {ok, #state{ log       = Stream,
                          dump_interval = ?config(dumpstats_interval),
-                         log_dir = LogDir,
-                         stats   = Tab,
+                         log_dir   = LogDir,
+                         stats     = Tab,
                          lastdate  = now(),
                          laststats = Tab
                        }};
@@ -168,8 +172,8 @@ handle_call({start_logger, Machines, DumpType, rrdtool}, From, State) ->
             ?LOG("rrdtool port OK !~n",?DEB),
             start_logger({Machines, DumpType, rrdtool}, From, State)
     end;
-handle_call({start_logger, Machines, DumpType, text}, From, State) ->
-    start_logger({Machines, DumpType, text}, From, State);
+handle_call({start_logger, Machines, DumpType, Backend}, From, State) ->
+    start_logger({Machines, DumpType, Backend}, From, State);
 
 %%% get status
 handle_call({status}, _From, State ) ->
@@ -192,10 +196,18 @@ handle_call(Request, _From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
 handle_cast({add, Data}, State) when is_list(Data) ->
+    case State#state.backend of
+        fullstats -> io:format(State#state.fullstats,"~p~n",[Data]);
+        _Other   -> ok
+    end,
     NewStats = lists:foldl(fun ts_stats_mon:add_stats_data/2, State#state.stats, Data ),
     {noreply,State#state{stats=NewStats}};
 
 handle_cast({add, Data}, State) when is_tuple(Data) ->
+    case State#state.backend of
+        fullstats -> io:format(State#state.fullstats,"~p~n",[Data]);
+        _Other   -> ok
+    end,
     NewStats = ts_stats_mon:add_stats_data(Data, State#state.stats),
     {noreply,State#state{stats=NewStats}};
 
@@ -304,6 +316,7 @@ terminate(Reason, State) ->
     export_stats(State),
     io:format(State#state.log,"EndMonitor:~w~n",[now()]),
     file:close(State#state.log),
+    file:close(State#state.fullstats),
     slave:stop(node()),
     ok.
 
@@ -324,32 +337,48 @@ code_change(_OldVsn, StateData, _Extra) ->
 %% Purpose: open log files and start timer
 %% Returns: {reply, ok, State} | {stop, Reason, State}
 %%----------------------------------------------------------------------
-start_logger({Machines, DumpType, BackEnd}, _From, State) ->
-    ?LOGF("Activate clients with ~p backend~n",[BackEnd],?NOTICE),
+%% fulltext backend: reopen log file with compression enable and delayed_write
+start_logger({Machines, DumpType, fullstats}, _From, State) ->
+    Filename = filename:join(State#state.log_dir,?FULLSTATS_FILENAME),
+    ?LOG("Open file with delayed_write for fullstats backend~n",?NOTICE),
+    case file:open(Filename,[write, {delayed_write, ?DELAYED_WRITE_SIZE, ?DELAYED_WRITE_DELAY}]) of
+        {ok, Stream} ->
+            ?LOG("Activate clients with fullstats backend~n",?NOTICE),
+            timer:apply_interval(State#state.dump_interval, ?MODULE, dumpstats, [] ),
+            start_launchers(Machines),
+            ts_stats_mon:set_output(fullstats,{State#state.log, Stream}),
+            start_dump(State#state{type=DumpType, backend=fullstats, fullstats=Stream});
+        {error, Reason} ->
+            ?LOGF("Can't open mon log file ~p! ~p~n",[Filename,Reason], ?ERR),
+            {stop, Reason, State}
+    end;
+
+start_logger({Machines, DumpType, Backend}, _From, State) ->
+    ?LOGF("Activate clients with ~p backend~n",[Backend],?NOTICE),
     timer:apply_interval(State#state.dump_interval, ?MODULE, dumpstats, [] ),
     start_launchers(Machines),
-    ts_stats_mon:set_output(BackEnd,State#state.log),
-    case DumpType of
-        none ->
-            {reply, ok, State#state{backend=BackEnd, type=DumpType}};
-        _ ->
-            Filename = filename:join(State#state.log_dir,?DUMP_FILENAME),
-            case file:open(Filename,write) of
-                {ok, Stream} ->
-                    ?LOG("dump file opened, starting monitor~n",?INFO),
-                    {reply, ok, State#state{dumpfile=Stream,
-                                            type=DumpType,
-                                            backend=BackEnd}};
-                {error, Reason} ->
-                    ?LOGF("Can't open mon dump file! ~p~n",[Reason], ?ERR),
-                    {reply, ok, State#state{type=none, backend=BackEnd}}
-            end
+    ts_stats_mon:set_output(text,{State#state.log,[]}),
+    start_dump(State#state{type=DumpType, backend=text}).
+
+%% @spec start_dump(State::record(state)) -> {reply, Reply, State}
+%% @doc open file for dumping traffic
+start_dump(State=#state{type=none}) ->
+    {reply, ok, State};
+start_dump(State) ->
+    Filename = filename:join(State#state.log_dir,?DUMP_FILENAME),
+    case file:open(Filename,[write, {delayed_write, ?DELAYED_WRITE_SIZE, ?DELAYED_WRITE_DELAY}]) of
+        {ok, Stream} ->
+            ?LOG("dump file opened, starting monitor~n",?INFO),
+            {reply, ok, State#state{dumpfile=Stream}};
+        {error, Reason} ->
+            ?LOGF("Can't open mon dump file! ~p~n",[Reason], ?ERR),
+            {reply, ok, State#state{type=none}}
     end.
 
 %%----------------------------------------------------------------------
 %% Func: export_stats/2
 %%----------------------------------------------------------------------
-export_stats(State=#state{backend=text}) ->
+export_stats(State) ->
     DateStr = ts_utils:now_sec(),
     io:format(State#state.log,"# stats: dump at ~w~n",[DateStr]),
     %% print number of simultaneous users
@@ -380,4 +409,3 @@ start_launchers(Machines) ->
 backup_config(Dir, Config) ->
     Backup = filename:basename(Config),
     {ok, _} = file:copy(Config, filename:join(Dir,Backup)).
-

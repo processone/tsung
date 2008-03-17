@@ -22,7 +22,7 @@
 
 
 %%----------------------------------------------------------------------
-%% @copyright 2007 Nicolas Niclausse
+%% @copyright 2007-2008 Nicolas Niclausse
 %% @author Nicolas Niclausse <nicolas@niclux.org>
 %% @since 20 Nov 2007
 %% @doc computes statistics for request, page, connect, transactions,
@@ -49,8 +49,9 @@
         code_change/3]).
 
 -record(state, {log,          % log fd
-                backend,      % type of backend: text|rrdtool
+                backend,      % type of backend: text|rrdtool|fullstats
                 dump_interval,%
+                fullstats,    % fullstats filename
                 stats,        % dict keeping stats info
                 laststats     % values of last printed stats
                }).
@@ -126,15 +127,23 @@ handle_call(Request, _From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
 handle_cast({add, Data}, State) when is_list(Data) ->
+    case State#state.backend of
+        fullstats -> io:format(State#state.fullstats,"~p~n",[Data]);
+        _Other   -> ok
+    end,
     NewStats = lists:foldl(fun add_stats_data/2, State#state.stats, Data ),
     {noreply,State#state{stats=NewStats}};
 
 handle_cast({add, Data}, State) when is_tuple(Data) ->
+    case State#state.backend of
+        fullstats -> io:format(State#state.fullstats,"~p~n",[Data]);
+        _Other   -> ok
+    end,
     NewStats = add_stats_data(Data, State#state.stats),
     {noreply,State#state{stats=NewStats}};
 
-handle_cast({set_output, BackEnd, Stream}, State) ->
-    {noreply,State#state{backend=BackEnd, log=Stream}};
+handle_cast({set_output, BackEnd, {Stream, StreamFull}}, State) ->
+    {noreply,State#state{backend=BackEnd, log=Stream, fullstats=StreamFull}};
 
 handle_cast({dumpstats}, State) ->
     export_stats(State),
@@ -199,7 +208,7 @@ add_stats_data({sum, Name, Val}, Stats)  ->
 %%----------------------------------------------------------------------
 %% Func: export_stats/2
 %%----------------------------------------------------------------------
-export_stats(State=#state{backend=text}) ->
+export_stats(State=#state{backend=Backend}) ->
     %% print number of simultaneous users
     Param = {State#state.laststats,State#state.log},
     dict:fold(fun print_stats_txt/3, Param, State#state.stats).
