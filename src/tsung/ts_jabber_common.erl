@@ -347,7 +347,7 @@ message(Dest, #jabber{size=Size,data=undefined, username=User}, Service) when is
     list_to_binary([
                     "<message id='",ts_msg_server:get_id(list), "' to='",
                     Username, "@", Service,
-                    "'><body>",garbage(Size), "</body></message>"]);
+                    "'><body>",ts_utils:randomstr_noflat(Size), "</body></message>"]);
 message(Dest, #jabber{data=Data, username=User}, Service) when is_list(Data) ->
     put(previous, Dest),
     Username = username(User,Dest),
@@ -357,21 +357,12 @@ message(Dest, #jabber{data=Data, username=User}, Service) when is_list(Data) ->
                     "'><body>",Data, "</body></message>"]).
 
 %%----------------------------------------------------------------------
-%% Func:    garbage/1
-%% Purpose: generate list of given size. Implemented by duplicating list
-%% of length 10 to be faster
+%% @spec garbage/1
+%% @depracated use {@link ts_utils:randomstr/1} or
+%%                 {@link ts_utils:randomstr_noflat/1} instead
 %%----------------------------------------------------------------------
-garbage(Size) when Size >= 10 ->
-    Msg= lists:duplicate(Size div 10,"0123456789"),
-    case Size rem 10 of
-        0->
-            Msg;
-        Rest ->
-            lists:append(Msg,garbage(Rest))
-    end;
 garbage(Size)->
-    lists:duplicate(Size rem 10,"a").
-
+    ts_utils:randomstr_noflat(Size).
 
 %%----------------------------------------------------------------------
 %% Func: presence/0
@@ -541,7 +532,7 @@ publish_pubsub_node(Domain, Username, Node, Size) ->
             ts_msg_server:get_id(list),"'>"
             "<pubsub xmlns='http://jabber.org/protocol/pubsub'>"
             "<publish", pubsub_node_attr(Node, Domain, Username),">"
-            "<item>", garbage(Size),"</item></publish>"
+            "<item>", ts_utils:randomstr_noflat(Size),"</item></publish>"
             "</pubsub></iq>"]),
     Result.
 

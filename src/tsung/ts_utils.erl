@@ -40,7 +40,8 @@
          stop_all/2, stop_all/3, stop_all/4, join/2, split2/2, split2/3,
          make_dir_rec/1, is_ip/1, from_https/1, to_https/1, keymax/2,
          check_sum/3, check_sum/5, clean_str/1, file_to_list/1,
-        decode_base64/1, encode_base64/1, to_lower/1, release_is_newer_or_eq/1]).
+         decode_base64/1, encode_base64/1, to_lower/1, release_is_newer_or_eq/1,
+         randomstr/1,randomstr_noflat/1]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -55,6 +56,8 @@ level2int("emergency") -> ?EMERG.
 -define(AMP,"&amp;").
 -define(GT,"&gt;").
 -define(LT,"&lt;").
+-define(DUPSTR_SIZE,20).
+-define(DUPSTR,"qxvmvtglimieyhemzlxc").
 
 %%----------------------------------------------------------------------
 %% Func: get_val/1
@@ -198,7 +201,12 @@ release_is_newer_or_eq(Release)->
 %%          these functions will be added to the stdlib)
 %%----------------------------------------------------------------------
 key1search(Tuple,String)->
-    httpd_util:key1search(Tuple,String).
+    case release_is_newer_or_eq("5.7") of %% should be removed in R13B
+        true ->
+            proplists:get_value(String,Tuple);
+        false ->
+            httpd_util:key1search(Tuple,String)
+    end.
 
 %%----------------------------------------------------------------------
 %% Func: mkey1search/2
@@ -570,3 +578,26 @@ resolve(Ip, Cache) ->
                     {Ip, NewCache}
             end
     end.
+
+%%----------------------------------------------------------------------
+%% @spec randomstr_noflat/1
+%% @doc generate pseudo-random list of given size. Implemented by
+%% duplicating list of fixed size to be faster. unflatten version
+%%----------------------------------------------------------------------
+randomstr_noflat(Size) when is_integer(Size) andalso Size >= ?DUPSTR_SIZE ->
+    Msg= lists:duplicate(Size div ?DUPSTR_SIZE,?DUPSTR),
+    case Size rem ?DUPSTR_SIZE of
+        0->
+            Msg;
+        Rest ->
+            lists:append(Msg,randomstr_noflat(Rest))
+    end;
+randomstr_noflat(Size)  when is_integer(Size) andalso Size >= 0 ->
+    lists:nthtail(?DUPSTR_SIZE-Size, ?DUPSTR).
+
+%%----------------------------------------------------------------------
+%% @spec randomstr/1
+%% @doc same as randomstr_noflat/1, but returns a flat list.
+%%----------------------------------------------------------------------
+randomstr(Size) when is_integer(Size) andalso Size >= 0 ->
+    lists:flatten(randomstr_noflat(Size)).
