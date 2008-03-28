@@ -179,7 +179,15 @@ while getopts ":f:p:l:d:r:i:P:L:I:u" Option
 do
     case $Option in
         f) CONF_OPT_FILE=$OPTARG;;
-        l) LOG_OPT="log_file \"$OPTARG\" ";;
+        l) # must add absolute path
+            echo "$OPTARG" | grep -q "^/"
+            RES=$?
+            if [ "$RES" == 0 ]; then
+                LOG_OPT="log_file \"$OPTARG\" "
+            else
+                LOG_OPT="log_file \"$PWD/$OPTARG\" "
+            fi
+            ;;
         d) DEBUG_LEVEL=$OPTARG;;
         r) ERL_RSH=" -rsh $OPTARG ";;
         p) RECORDER_PLUGIN=$OPTARG;;

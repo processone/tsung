@@ -508,7 +508,7 @@ get_client_cfg([Arrival=#arrivalphase{duration = Duration,
 %%   so we encode these characters !
 %%----------------------------------------------------------------------
 encode_filename(String) when is_list(String)->
-    Transform=[{"\/","_47"},{"\-","_45"}, {"\:","_58"}, {",","_44"}],
+    Transform=[{"\\.","_46"},{"\/","_47"},{"\-","_45"}, {"\:","_58"}, {",","_44"}],
     lists:foldl(fun replace_str/2, "ts_encoded" ++ String, Transform);
 encode_filename(Term) -> Term.
 
@@ -517,7 +517,7 @@ encode_filename(Term) -> Term.
 %% Func: decode_filename/1
 %%----------------------------------------------------------------------
 decode_filename("ts_encoded" ++ String)->
-    Transform=[{"_47","\/"},{"_45","\-"}, {"_58","\:"}, {"_44",","}],
+    Transform=[{"_46","."},{"_47","\/"},{"_45","\-"}, {"_58","\:"}, {"_44",","}],
     lists:foldl(fun replace_str/2, String, Transform).
 
 replace_str({A,B},X) ->
