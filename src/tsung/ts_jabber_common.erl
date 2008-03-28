@@ -347,7 +347,7 @@ message(Dest, #jabber{size=Size,data=undefined, username=User}, Service) when is
     list_to_binary([
                     "<message id='",ts_msg_server:get_id(list), "' to='",
                     Username, "@", Service,
-                    "'><body>",ts_utils:randomstr_noflat(Size), "</body></message>"]);
+                    "'><body>",ts_utils:urandomstr_noflat(Size), "</body></message>"]);
 message(Dest, #jabber{data=Data, username=User}, Service) when is_list(Data) ->
     put(previous, Dest),
     Username = username(User,Dest),
@@ -362,7 +362,7 @@ message(Dest, #jabber{data=Data, username=User}, Service) when is_list(Data) ->
 %%                 {@link ts_utils:randomstr_noflat/1} instead
 %%----------------------------------------------------------------------
 garbage(Size)->
-    ts_utils:randomstr_noflat(Size).
+    ts_utils:urandomstr_noflat(Size).
 
 %%----------------------------------------------------------------------
 %% Func: presence/0
@@ -532,7 +532,7 @@ publish_pubsub_node(Domain, Username, Node, Size) ->
             ts_msg_server:get_id(list),"'>"
             "<pubsub xmlns='http://jabber.org/protocol/pubsub'>"
             "<publish", pubsub_node_attr(Node, Domain, Username),">"
-            "<item>", ts_utils:randomstr_noflat(Size),"</item></publish>"
+            "<item>", ts_utils:urandomstr_noflat(Size),"</item></publish>"
             "</pubsub></iq>"]),
     Result.
 

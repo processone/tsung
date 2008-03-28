@@ -41,7 +41,7 @@
          make_dir_rec/1, is_ip/1, from_https/1, to_https/1, keymax/2,
          check_sum/3, check_sum/5, clean_str/1, file_to_list/1,
          decode_base64/1, encode_base64/1, to_lower/1, release_is_newer_or_eq/1,
-         randomstr/1,randomstr_noflat/1]).
+         randomstr/1,urandomstr/1,urandomstr_noflat/1]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -580,24 +580,32 @@ resolve(Ip, Cache) ->
     end.
 
 %%----------------------------------------------------------------------
-%% @spec randomstr_noflat/1
+%% @spec urandomstr_noflat/1
 %% @doc generate pseudo-random list of given size. Implemented by
 %% duplicating list of fixed size to be faster. unflatten version
 %%----------------------------------------------------------------------
-randomstr_noflat(Size) when is_integer(Size) andalso Size >= ?DUPSTR_SIZE ->
+urandomstr_noflat(Size) when is_integer(Size) andalso Size >= ?DUPSTR_SIZE ->
     Msg= lists:duplicate(Size div ?DUPSTR_SIZE,?DUPSTR),
     case Size rem ?DUPSTR_SIZE of
         0->
             Msg;
         Rest ->
-            lists:append(Msg,randomstr_noflat(Rest))
+            lists:append(Msg,urandomstr_noflat(Rest))
     end;
-randomstr_noflat(Size)  when is_integer(Size) andalso Size >= 0 ->
+urandomstr_noflat(Size)  when is_integer(Size) andalso Size >= 0 ->
     lists:nthtail(?DUPSTR_SIZE-Size, ?DUPSTR).
 
 %%----------------------------------------------------------------------
+%% @spec urandomstr/1
+%% @doc same as urandomstr_noflat/1, but returns a flat list.
+%%----------------------------------------------------------------------
+urandomstr(Size) when is_integer(Size) andalso Size >= 0 ->
+    lists:flatten(urandomstr_noflat(Size)).
+
+%%----------------------------------------------------------------------
 %% @spec randomstr/1
-%% @doc same as randomstr_noflat/1, but returns a flat list.
+%% @doc returns a random string. slow if Size is high.
 %%----------------------------------------------------------------------
 randomstr(Size) when is_integer(Size) andalso Size >= 0 ->
-    lists:flatten(randomstr_noflat(Size)).
+     lists:map(fun (_) -> random:uniform(25) + $a  end, lists:seq(1,Size)).
+
