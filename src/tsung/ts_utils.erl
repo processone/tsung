@@ -266,7 +266,7 @@ erl_system_args(extended)->
     SetArg = fun(A) -> case init:get_argument(A) of
                            error     -> " ";
                            {ok,[[]]} -> " -" ++atom_to_list(A)++" ";
-                           {ok,[[Val|_]]} when is_list(Val)-> " -" ++atom_to_list(A)++Val++" "
+                           {ok,[[Val|_]]} when is_list(Val)-> " -" ++atom_to_list(A)++" "++Val++" "
                        end
              end,
     Shared = SetArg(shared),
