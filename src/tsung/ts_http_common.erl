@@ -55,14 +55,15 @@ http_get(Args) ->
 %% Func: http_get/1
 %% Args: #http_request
 %%----------------------------------------------------------------------
+%% normal request
 http_no_body(Method,#http_request{url=URL, version=Version, cookie=Cookie,
                               headers=Headers, user_agent=UA,
                               get_ims_date=undefined, soap_action=SOAPAction,
                               host_header=Host, userid=UserId, passwd=Passwd})->
-    ?DebugF("GET ~p~n",[URL]),
+    ?DebugF("~p ~p~n",[Method,URL]),
     R = list_to_binary([Method, " ", URL," ", "HTTP/", Version, ?CRLF,
                     "Host: ", Host, ?CRLF,
-                    user_agent(UA),
+                    user_agent(UA,Headers),
                     authenticate(UserId,Passwd),
                     soap_action(SOAPAction),
                     set_cookie_header({Cookie, Host, URL}),
@@ -70,16 +71,16 @@ http_no_body(Method,#http_request{url=URL, version=Version, cookie=Cookie,
                     ?CRLF]),
     ?DebugF("Headers~n-------------~n~s~n",[R]),
     R;
-
+%% if modified since request
 http_no_body(Method,#http_request{url=URL, version=Version, cookie=Cookie,
                              headers=Headers, user_agent=UA,
                              get_ims_date=Date, soap_action=SOAPAction,
                              host_header=Host, userid=UserId, passwd=Passwd}) ->
-    ?DebugF("GET ~p~n",[URL]),
+    ?DebugF("~p ~p~n",[Method, URL]),
     list_to_binary([Method, " ", URL," ", "HTTP/", Version, ?CRLF,
                     ["If-Modified-Since: ", Date, ?CRLF],
                     "Host: ", Host, ?CRLF,
-                    user_agent(UA),
+                    user_agent(UA,Headers),
                     soap_action(SOAPAction),
                     authenticate(UserId,Passwd),
                     set_cookie_header({Cookie, Host, URL}),
@@ -106,7 +107,7 @@ http_body(Method,#http_request{url=URL, version=Version,
     ?DebugF("Content Length of POST: ~p~n.", [ContentLength]),
     H = [Method, " ", URL," ", "HTTP/", Version, ?CRLF,
                "Host: ", Host, ?CRLF,
-               user_agent(UA),
+               user_agent(UA,Headers),
                authenticate(UserId,Passwd),
                soap_action(SOAPAction),
                set_cookie_header({Cookie, Host, URL}),
@@ -127,9 +128,19 @@ authenticate(UserId,Passwd)->
     AuthStr = ts_utils:encode_base64(lists:append([UserId,":",Passwd])),
     ["Authorization: Basic ",AuthStr,?CRLF].
 
-user_agent(undefined) ->
+%%----------------------------------------------------------------------
+%% @spec user_agent(UA::string | undefined, Headers::List)
+%% @doc If headers if defined in <headers>, print this one, otherwise,
+%%      print the given user agent (or the default one if undefined)
+%%----------------------------------------------------------------------
+user_agent(UA,Headers) when length(Headers) > 0 ->
+    case  lists:keysearch("User-Agent", 1, Headers) of
+        {value, _} -> []; % the header will be print by headers()
+        false      -> user_agent(UA,[])
+    end;
+user_agent(undefined,[]) ->
     ["User-Agent: ", ?USER_AGENT, ?CRLF];
-user_agent(UA) ->
+user_agent(UA, []) ->
     ["User-Agent: ", UA, ?CRLF].
 
 soap_action(undefined) -> [];
