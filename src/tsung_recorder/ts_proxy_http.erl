@@ -48,12 +48,14 @@ gettype() -> "ts_http".
 %% Func: rewrite_serverdata/1
 %%--------------------------------------------------------------------
 rewrite_serverdata(Data)->
+    %% FIXME: content length may have changed !
     ts_utils:from_https(Data).
 
 %%--------------------------------------------------------------------
 %% Func: rewrite_ssl/1
 %%--------------------------------------------------------------------
 rewrite_ssl(Data)->
+    %% FIXME: content length may have changed !
     ts_utils:to_https(Data).
 
 %%--------------------------------------------------------------------
@@ -143,7 +145,7 @@ parse(State=#proxy{parse_status=connect},_,ServerSocket,String) ->
 %%--------------------------------------------------------------------
 check_and_send(String,Parent,ServerSocket,#http_request{url=RequestURI},State)->
     {NewSocket,RelURL} = check_serversocket(Parent,ServerSocket,RequestURI,State#proxy.clientsock),
-    ?LOGF("Remove server info from url:~p ~p in ~p~n",
+    ?LOGF("Remove server info from url:[ ~p ]  [ ~p ] in [ ~p ] ~n",
           [RequestURI,RelURL,String], ?INFO),
     {ok, RealString} = relative_url(Parent,String,RequestURI,RelURL),
     ts_client_proxy:send(NewSocket,RealString, ?MODULE),

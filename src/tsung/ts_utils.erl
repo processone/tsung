@@ -404,20 +404,47 @@ is_ip(_) -> false.
 to_https({url, "http://ssl-"++Rest})-> "https://" ++ Rest;
 to_https({url, URL})-> URL;
 to_https({request, String}) when is_list(String) ->
-    {ok,TmpString,_} = regexp:gsub(String,"http://ssl-","https://"),
-    {ok,RealString,_} = regexp:gsub(TmpString,"Host: ssl-","Host: "),
-    {ok, RealString};
+    {ok,TmpString,Count} = regexp:gsub(String,"http://ssl-","https://"),
+    {ok,Tmp2,_} = regexp:gsub(TmpString,"Accept-Encoding: [0-9,a-zA-Z_]+\r\n",""),
+    {ok,RealString,_} = regexp:gsub(Tmp2,"Host: ssl-","Host: "),
+    update_content_length(RealString,-Count);
 to_https(_) -> {error, bad_input}.
 
 from_https(String) when is_list(String)->
+    %% if location is defined, don't count it (not included in Content-Length)
+    Location = case regexp:first_match(String,"Location: https") of
+                   {match,_,_} -> -1;
+                   _           ->  0
+               end,
     {ok,NewString,RepCount} = regexp:gsub(String,"https://","http://ssl-"),
-    case RepCount of
-        0    -> ok;
-        Count-> ?LOGF("substitute https: ~p times~n",[Count],?DEB)
-    end,
-    {ok, NewString};
+    case {RepCount,Location} of
+        {0,_}  -> {ok, NewString};
+        {1,-1} -> {ok, NewString};
+        {Count,Location}->
+            ?LOGF("substitute https: ~p times~n",[Count],?INFO),
+            update_content_length(NewString,Count+Location)
+    end;
 from_https(_) -> {error, bad_input}.
 
+%% @spec update_content_length(String) -> {ok, String}
+%% @doc since the length of URL is changed (https:// to http://ssl- )
+%% we must recalculate Content-Length if it is defined.
+update_content_length(String,Count) ->
+    case gregexp:groups(String,"[cC]ontent-[Ll]ength: \\([0-9]+\\)") of
+        {match,[CType]} ->
+            %% FIXME: What if the response is split into several packets ?
+            %% We add|del 3 chars in the URL (4 "ssl-" minus one (https -> http))
+            NewCType = integer_to_list(list_to_integer(CType) + (Count)*3),
+            ?LOGF("We must update content-length: was ~p, must be ~p~n",
+                  [CType, NewCType],?INFO),
+            {ok,NewString,_} = regexp:sub(String,
+                                           "[Cc]ontent-[Ll]ength: [0-9]+",
+                                           "Content-Length: " ++ NewCType),
+            {ok, NewString};
+        nomatch ->
+            ?LOG("no content-length found~n", ?DEB),
+            {ok, String}
+    end.
 
 %% A Perl-style join --- concatenates all strings in Strings,
 %% separated by Sep.
