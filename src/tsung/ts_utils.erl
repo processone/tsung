@@ -407,8 +407,7 @@ to_https({request, String}) when is_list(String) ->
     {ok,TmpString,Count} = regexp:gsub(String,"http://ssl-","https://"),
     {ok,Tmp2,_} = regexp:gsub(TmpString,"Accept-Encoding: [0-9,a-zA-Z_]+\r\n",""),
     {ok,RealString,_} = regexp:gsub(Tmp2,"Host: ssl-","Host: "),
-    update_content_length(RealString,-Count);
-to_https(_) -> {error, bad_input}.
+    update_content_length(RealString,-Count).
 
 from_https(String) when is_list(String)->
     %% if location is defined, don't count it (not included in Content-Length)
@@ -423,12 +422,12 @@ from_https(String) when is_list(String)->
         {Count,Location}->
             ?LOGF("substitute https: ~p times~n",[Count],?INFO),
             update_content_length(NewString,Count+Location)
-    end;
-from_https(_) -> {error, bad_input}.
+    end.
 
 %% @spec update_content_length(String) -> {ok, String}
 %% @doc since the length of URL is changed (https:// to http://ssl- )
 %% we must recalculate Content-Length if it is defined.
+update_content_length(String,0)     -> {ok, String } ;
 update_content_length(String,Count) ->
     case gregexp:groups(String,"[cC]ontent-[Ll]ength: \\([0-9]+\\)") of
         {match,[CType]} ->

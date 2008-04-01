@@ -73,6 +73,9 @@ get_message(Req=#http_request{method=delete}) ->
 get_message(Req=#http_request{method=post}) ->
     ts_http_common:http_body(?POST, Req);
 
+get_message(Req=#http_request{method=options}) ->
+    ts_http_common:http_no_body(?OPTIONS, Req);
+
 get_message(Req=#http_request{method=put}) ->
     ts_http_common:http_body(?PUT, Req).
 

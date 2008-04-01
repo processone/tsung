@@ -206,7 +206,7 @@ peername(Socket)         -> prim_inet:peername(Socket).
 
 send(_,[],_) -> ok; % no data
 send({sslsocket,A,B},String, Plugin) ->
-    ?LOGF("Received data to send to an ssl socket ~p~n", [String],?DEB),
+    ?LOGF("Received data to send to an ssl socket ~p, using plugin ~p ~n", [String,Plugin],?DEB),
     {ok, RealString } = Plugin:rewrite_ssl({request,String}),
     ?LOGF("Sending data to ssl socket ~p ~p (~p)~n", [A, B, RealString],?DEB),
     ssl:send({sslsocket,A,B}, RealString);

@@ -47,12 +47,14 @@ gettype() -> "ts_webdav".
 %%--------------------------------------------------------------------
 %% Func: rewrite_serverdata/1
 %%--------------------------------------------------------------------
-rewrite_serverdata(Data)-> ts_proxy_http:rewrite_serverdata(Data).
+rewrite_serverdata(Data)->
+    ts_utils:from_https(Data).
 
 %%--------------------------------------------------------------------
 %% Func: rewrite_ssl/1
 %%--------------------------------------------------------------------
-rewrite_ssl(Data)-> ts_proxy_http:rewrite_ssl(Data).
+rewrite_ssl(Data)->
+    ts_utils:to_https(Data).
 
 %%--------------------------------------------------------------------
 %% Func: parse/4
@@ -99,17 +101,18 @@ record_request(State=#state_rec{prev_host=Host, prev_port=Port, prev_scheme=Sche
 
     io:format(Fd,"method='~s'>", [Method]),
 
+    %% authentication
+    ts_proxy_http:record_header(Fd,ParsedHeader,"authorization",
+                  "~n  <www_authenticate userid=~p passwd=~p />"),
      %% webdav
     ts_proxy_http:record_header(Fd,ParsedHeader,"depth", "~n  <http_header name='depth' value='~s'/>~n"),
     ts_proxy_http:record_header(Fd,ParsedHeader,"if", "~n  <http_header name='if' value='~s'/>~n"),
     ts_proxy_http:record_header(Fd,ParsedHeader,"timeout", "~n  <http_header name='timeout' value='~s'/>~n"),
     ts_proxy_http:record_header(Fd,ParsedHeader,"overwrite", "~n  <http_header name='overwrite' value='~s'/>~n"),
+    ts_proxy_http:record_header(Fd,ParsedHeader,"destination", "~n  <http_header name='destination' value='~s'/>~n", fun(A) -> ts_utils:to_https({url, A}) end),
     ts_proxy_http:record_header(Fd,ParsedHeader,"url", "~n  <http_header name='url' value='~s'/>~n"),
     ts_proxy_http:record_header(Fd,ParsedHeader,"lock-tocken", "~n  <http_header name='lock-tocken' value='~s'/>~n"),
 
-    %% authentication
-    ts_proxy_http:record_header(Fd,ParsedHeader,"authorization",
-                  "~n  <www_authenticate userid=~p passwd=~p />"),
 
     io:format(Fd,"</http></request>~n",[]),
     {ok,State#state_rec{prev_port=NewPort,prev_host=NewHost,prev_scheme=NewScheme}}.

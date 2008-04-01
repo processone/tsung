@@ -164,7 +164,7 @@ relative_url(true,String,_RequestURI,_RelURL)->
 relative_url(false,String,RequestURI,RelURL)->
     [FullURL_noargs|_] = string:tokens(RequestURI,"?"),
     [RelURL_noargs|_]  = string:tokens(RelURL,"?"),
-    {ok,RealString,_Count} = regexp:gsub(String,FullURL_noargs,RelURL_noargs),
+    {ok,RealString,_Count} = regexp:sub(String,FullURL_noargs,RelURL_noargs),
     {ok, RealString}.
 
 %%--------------------------------------------------------------------

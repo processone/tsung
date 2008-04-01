@@ -500,9 +500,12 @@ http_method("copy")-> 'COPY';
 http_method("move")-> 'MOVE';
 http_method("lock")-> 'LOCK';
 http_method("unlock")-> 'UNLOCK';
-http_method("mkdcol")-> 'MKCOL';
+http_method("mkcol")-> 'MKCOL';
 http_method("report")-> 'REPORT';
-http_method(_) -> not_implemented.
+http_method("options")-> 'OPTIONS';
+http_method(Method) ->
+    ?LOGF("Unknown  HTTP method: ~p~n", [Method] ,?WARN),
+    not_implemented.
 
 %%--------------------------------------------------------------------
 %% Func: parse_status/2
