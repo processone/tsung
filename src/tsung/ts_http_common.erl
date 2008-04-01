@@ -494,6 +494,14 @@ http_method("head")-> 'HEAD';
 http_method("put")-> 'PUT';
 http_method("delete")-> 'DELETE';
 http_method("connect")-> 'CONNECT';
+http_method("propfind")-> 'PROPFIND';
+http_method("proppatch")-> 'PROPPATCH';
+http_method("copy")-> 'COPY';
+http_method("move")-> 'MOVE';
+http_method("lock")-> 'LOCK';
+http_method("unlock")-> 'UNLOCK';
+http_method("mkdcol")-> 'MKCOL';
+http_method("report")-> 'REPORT';
 http_method(_) -> not_implemented.
 
 %%--------------------------------------------------------------------

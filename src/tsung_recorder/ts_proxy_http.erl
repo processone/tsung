@@ -34,6 +34,9 @@
 -export([rewrite_serverdata/1]).
 -export([rewrite_ssl/1]).
 
+%% for webdav:
+-export([record_header/4, record_header/5]).
+
 %%--------------------------------------------------------------------
 %% Func: socket_opts/0
 %%--------------------------------------------------------------------
@@ -304,7 +307,7 @@ decode_basic_auth(Base64)->
     {string:substr(AuthStr,1,Sep-1),string:substr(AuthStr,Sep+1)}.
 
 %%--------------------------------------------------------------------
-%% Func: record_header/3
+%% Func: record_header/4
 %%--------------------------------------------------------------------
 record_header(Fd, Headers, "authorization", Msg)->
     %% special case for authorization

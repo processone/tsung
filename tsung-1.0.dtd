@@ -76,15 +76,15 @@
     value    CDATA #IMPLIED>
 
 <!ELEMENT sessions (session+)>
-<!ELEMENT session ( request | thinktime | transaction )*>
+<!ELEMENT session ( request | thinktime | transaction | setdynvars )*>
 <!ATTLIST session
     name         CDATA #REQUIRED
     bidi         CDATA #IMPLIED
     persistent   (true | false) #IMPLIED
     probability   NMTOKEN #REQUIRED
-    type         (ts_jabber | ts_http | ts_raw | ts_pgsql) #REQUIRED>
+    type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav) #REQUIRED>
 
-<!ELEMENT request ( match*, dyn_variable*, ( http | jabber | raw | pgsql ) )>
+<!ELEMENT request ( match*, dyn_variable*, ( http | jabber | raw | pgsql | ldap ) )>
 <!ATTLIST request
     subst (true|false) "false"
     >
@@ -108,7 +108,7 @@
     probability NMTOKEN #REQUIRED
     >
 
-<!ELEMENT transaction (request+)>
+<!ELEMENT transaction (request | setdynvars)+>
 <!ATTLIST transaction name NMTOKEN #REQUIRED>
 
 <!ELEMENT http ( www_authenticate?, soap?, http_header*)>
@@ -116,7 +116,7 @@
     contents          CDATA #IMPLIED
     content_type      CDATA #IMPLIED
     if_modified_since CDATA #IMPLIED
-    method            (GET | POST | PUT | DELETE | HEAD) "GET"
+    method            (GET | POST | PUT | DELETE | HEAD | PROPFIND | PROPPATCH | COPY | MOVE | LOCK | UNLOCK | MKCOL | REPORT | VERSION-CONTROL ) "GET"
     url               CDATA #REQUIRED
     version           (1.0 | 1.1) "1.1" >
 
@@ -161,3 +161,47 @@
 <!ATTLIST raw
     ack         (global | local | no_ack) #REQUIRED
     data CDATA #REQUIRED>
+
+
+
+<!ELEMENT ldap (attr* | modification*) >
+<!ATTLIST ldap
+    password     CDATA   #IMPLIED
+    user         CDATA   #IMPLIED
+    type        (bind | unbind | search | start_tls | add | modify ) #REQUIRED 
+    filter       CDATA   #IMPLIED
+    base         CDATA   #IMPLIED
+    scope       (singleLevel | baseObject | wholeSubtree) #IMPLIED 
+	cacertfile       CDATA   #IMPLIED
+	keyfile       CDATA   #IMPLIED
+	certfile      CDATA   #IMPLIED
+	dn		      CDATA   #IMPLIED
+	>
+
+<!ELEMENT modification (attr*) >
+<!ATTLIST modification
+	type CDATA #REQUIRED>
+
+
+<!ELEMENT attr (value+) >
+<!ATTLIST attr
+	type CDATA #REQUIRED>
+
+<!ELEMENT value (#PCDATA) >
+
+
+<!ELEMENT setdynvars (var*) >
+<!ATTLIST setdynvars
+    sourcetype     (random_string | urandom_string | random_number | file | erlang )  #REQUIRED
+    callback       CDATA   #IMPLIED
+	fileid	       CDATA   #IMPLIED
+    order        (iter | random ) #IMPLIED
+	delimiter     CDATA   #IMPLIED
+	length 	    CDATA   #IMPLIED
+	start 	    CDATA   #IMPLIED
+	end 	    CDATA   #IMPLIED
+	>
+<!ELEMENT var (#PCDATA) >
+<!ATTLIST var
+	name CDATA #REQUIRED>
+
