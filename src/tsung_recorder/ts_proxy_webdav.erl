@@ -111,7 +111,7 @@ record_request(State=#state_rec{prev_host=Host, prev_port=Port, prev_scheme=Sche
     ts_proxy_http:record_header(Fd,ParsedHeader,"overwrite", "~n  <http_header name='overwrite' value='~s'/>~n"),
     ts_proxy_http:record_header(Fd,ParsedHeader,"destination", "~n  <http_header name='destination' value='~s'/>~n", fun(A) -> ts_utils:to_https({url, A}) end),
     ts_proxy_http:record_header(Fd,ParsedHeader,"url", "~n  <http_header name='url' value='~s'/>~n"),
-    ts_proxy_http:record_header(Fd,ParsedHeader,"lock-tocken", "~n  <http_header name='lock-tocken' value='~s'/>~n"),
+    ts_proxy_http:record_header(Fd,ParsedHeader,"lock-token", "~n  <http_header name='lock-token' value='~s'/>~n"),
 
 
     io:format(Fd,"</http></request>~n",[]),
