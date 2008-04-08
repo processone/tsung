@@ -35,6 +35,7 @@
           do    = continue, %(continue | loop | stop)
           sleep_loop, % in seconds
           max_loop,
+          loop_back,
           max_restart
        }).
 

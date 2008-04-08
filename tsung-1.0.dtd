@@ -93,6 +93,7 @@
 <!ATTLIST match
     do (continue|loop|abort|restart) "continue"
     when (match|nomatch) "match"
+    loop_back    NMTOKEN "0"
     max_loop    NMTOKEN "20"
     max_restart NMTOKEN "3"
     sleep_loop  NMTOKEN "5"

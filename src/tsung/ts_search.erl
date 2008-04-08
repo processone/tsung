@@ -184,7 +184,7 @@ setcount(#match{do=restart, max_restart=MaxRestart}, {_Count, MaxC}, Stats)->
             ts_mon:add([{count, match_restart} | Stats]),
             MaxC
     end;
-setcount(#match{do=loop,max_loop=MaxLoop,sleep_loop=Sleep},{Count,_MaxC},Stats)->
+setcount(#match{do=loop,loop_back=Back,max_loop=MaxLoop,sleep_loop=Sleep},{Count,_MaxC},Stats)->
     CurLoop = get(loop_count),
     ?LOGF("Loop on (no)match ~p~n",[CurLoop], ?INFO),
     ts_mon:add([{count, match_loop} | Stats]),
@@ -192,7 +192,7 @@ setcount(#match{do=loop,max_loop=MaxLoop,sleep_loop=Sleep},{Count,_MaxC},Stats)-
         undefined ->
             put(loop_count,1),
             timer:sleep(Sleep),
-            Count +1 ;
+            Count +1 + Back ;
         Val when Val >= MaxLoop ->
             ?LOG("Max Loop reached, abort loop on request! ~n", ?WARN),
             put(loop_count, 0),
@@ -200,7 +200,7 @@ setcount(#match{do=loop,max_loop=MaxLoop,sleep_loop=Sleep},{Count,_MaxC},Stats)-
         Val ->
             put(loop_count, Val +1),
             timer:sleep(Sleep),
-            Count + 1
+            Count + 1 + Back
     end;
 setcount(#match{do=abort}, _, Stats) ->
     ts_mon:add([{count, match_stop} | Stats]),
