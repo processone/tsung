@@ -44,7 +44,7 @@
                      {config_file, "./tsung.xml"},
                      {log_file, "./tsung.log"}
                     ]},
-       {applications, [kernel, stdlib, ssl]},
+       {applications, [ @ERLANG_APPLICATIONS@ ]},
        {start_phases, [{load_config, []},{start_os_monitoring,[{timeout,30000}]},
                        {start_clients,[]}]},
        {mod,          {tsung_controller, []}}

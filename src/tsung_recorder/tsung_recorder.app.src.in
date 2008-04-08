@@ -23,6 +23,6 @@
 					 {proxy_log_file, "./tsung_recorder"},
 					 {proxy_listen_port, 8090}
 					]},
-	   {applications, [kernel, stdlib, ssl]},
+	   {applications, [@ERLANG_APPLICATIONS@]},
        {mod,          {tsung_recorder, []}}
 	  ]}.

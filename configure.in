@@ -17,7 +17,7 @@ AC_PATH_PROG(SED, sed)
 AC_ARG_WITH(erlang, [  --with-erlang=PREFIX    path to erlc and erl ])
 AC_PATH_TOOL(ERLC, erlc, , $with_erlang:$with_erlang/bin:$PATH)
 AC_PATH_TOOL(ERL, erl, , $with_erlang:$with_erlang/bin:$PATH)
-   
+
 if test "z$ERLC" == "z" || test "z$ERL" == "z"; then
  AC_MSG_ERROR([erlang not found])
 fi
@@ -29,12 +29,9 @@ dnl check for xmerl include path
 AC_MSG_CHECKING(xmerl.hrl)
 
 cat >>conftest.erl <<_EOF
-   
 -module(conftest).
 -author('nicolas@niclux.org').
-   
 -export([[start/0]]).
-   
 start() ->
         case code:lib_dir("xmerl") of
           {error,bad_name} ->
@@ -43,17 +40,16 @@ start() ->
             file:write_file("conftest.out", XMerlDirS)
         end,
         halt().
-           
 _EOF
-   
+
 if ! $ERLC conftest.erl; then
  AC_MSG_ERROR([could not compile sample program])
 fi
-   
+
 if ! $ERL -s conftest -noshell ; then
       AC_MSG_ERROR([could not run sample program])
 fi
-   
+
 if ! test -f conftest.out; then
        AC_MSG_ERROR([erlang program was not properly executed, (conftest.out was
  not produced)])
@@ -73,7 +69,7 @@ AC_MSG_CHECKING(for '+Mea r10b' option)
 if ! $ERL -noshell +Mea r10b -s init stop 2> /dev/null; then
   AC_MSG_RESULT(no)
   ERL_OPTS=""
-else 
+else
   AC_MSG_RESULT(yes)
   ERL_OPTS="+Mea r10b"
 fi
@@ -89,9 +85,77 @@ fi
 AC_MSG_CHECKING(for '-shared' option)
 if ! $ERL -noshell -shared -smp 2 -s init stop 2> /dev/null; then
   AC_MSG_RESULT(no)
-else 
+else
   AC_MSG_RESULT(yes)
   ERL_OPTS="-shared $ERL_OPTS"
+fi
+
+AC_MSG_CHECKING(ssl application)
+cat >confapp.erl <<_EOF
+
+-module(confapp).
+-author('nicolas@niclux.org').
+-export([[start/1]]).
+start([[Args]]) ->
+        case application:start(Args) of
+          ok ->
+            case Args of
+              crypto ->
+                case catch crypto:md5("toto") of
+                  <<247,29,190,82,98,138,63,131,167,122,180,148,129,117,37, 198>> -> ok;
+                  _ ->
+                   file:write_file("confapp.out", "error\n"),
+                   halt()
+                end;
+              _ -> ok
+            end,
+            file:write_file("confapp.out", "ok\n");
+          Err ->
+            erlang:display([Err]),
+            file:write_file("confapp.out", "error\n")
+        end,
+        halt().
+
+_EOF
+
+if ! $ERLC confapp.erl; then
+ AC_MSG_ERROR([could not compile sample program])
+fi
+
+if ! $ERL -s confapp start ssl -noshell >/dev/null 2>&1 ; then
+      AC_MSG_ERROR([could not run sample program])
+fi
+
+if ! test -f confapp.out; then
+       AC_MSG_ERROR([erlang program was not properly executed, (confapp.out was
+ not produced)])
+fi
+
+ERLANG_SSL=`head -1 < confapp.out`
+if test "$ERLANG_SSL" == "error" ; then
+  AC_MSG_RESULT(no)
+  ERLANG_APPLICATIONS="kernel,stdlib"
+else
+  AC_MSG_RESULT(yes)
+  ERLANG_APPLICATIONS="kernel,stdlib,ssl"
+fi
+
+AC_MSG_CHECKING(crypto application )
+if ! $ERL -s confapp start crypto -noshell  >/dev/null 2>&1 ; then
+      AC_MSG_ERROR([could not run sample program])
+fi
+
+if ! test -f confapp.out; then
+       AC_MSG_ERROR([erlang program was not properly executed, (confapp.out was
+ not produced)])
+fi
+
+ERLANG_SSL=`head -1 < confapp.out`
+if test "$ERLANG_SSL" == "error" ; then
+  AC_MSG_RESULT(no)
+else
+  AC_MSG_RESULT(yes)
+  ERLANG_APPLICATIONS="$ERLANG_APPLICATIONS,crypto"
 fi
 
 AC_SUBST(ERL_OPTS)
@@ -100,12 +164,13 @@ AC_SUBST(SED)
 AC_SUBST(ERL)
 AC_SUBST(ERLC)
 AC_SUBST(ERLDIR)
+AC_SUBST(ERLANG_APPLICATIONS)
 AC_SUBST(DTD,[tsung-1.0.dtd])
 AC_SUBST(TEMPLATES_SUBDIR,[tsung/templates])
 
 AC_PROG_MAKE_SET
 AC_PROG_INSTALL
 
-AC_CONFIG_FILES([Makefile tsung.spec tsung.sh examples/*.xml src/tsung_stats.pl src/log2tsung.pl])
+AC_CONFIG_FILES([Makefile tsung.spec tsung.sh examples/*.xml src/tsung_stats.pl src/log2tsung.pl src/tsung_controller/tsung_controller.app.src src/tsung_recorder/tsung_recorder.app.src src/tsung/tsung.app.src])
 
 AC_OUTPUT

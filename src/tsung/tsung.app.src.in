@@ -69,6 +69,6 @@
                      {jabber_domain, "mydomain.com"}
 
 					]},        
-	   {applications, [kernel, stdlib, ssl]},
+	   {applications, [ @ERLANG_APPLICATIONS@]},
        {mod,          {tsung, []}}
 	  ]}.
