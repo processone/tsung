@@ -108,7 +108,7 @@ init(Filename) ->
                {ok, RealName, _ } -> RealName;
                _ ->  Date ++ "-" ++ Filename
            end,
-    case file:open(File,write) of
+    case file:open(File,[write]) of
         {ok, Stream} ->
             Plugin = ?config(plugin),
             erlang:display(lists:flatten(["Record file: ",File])),

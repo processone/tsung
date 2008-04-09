@@ -138,7 +138,7 @@ init([LogDir]) ->
     Base = filename:basename(?config(log_file)),
     backup_config(LogDir, ?config(config_file)),
     Filename = filename:join(LogDir, Base),
-    case file:open(Filename,write) of
+    case file:open(Filename,[write]) of
         {ok, Stream} ->
             ?LOG("starting monitor~n",?NOTICE),
             Tab = dict:new(),

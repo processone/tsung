@@ -199,7 +199,7 @@ open_file({ID, Path}, {reply, Result, State}) ->
             {reply, {error, already_open}, State};
         error ->
             ?LOGF("Opening file ~p~n",[Path], ?INFO),
-            {Status, File} = file:open(Path, read),
+            {Status, File} = file:open(Path, [read] ),
             case Status of
                 error ->
                     ?LOGF("Error while opening ~p file ~p~n",[File, Path], ?ERR),
@@ -229,10 +229,8 @@ read_item(File, L)->
             case Tokens of
                 [] ->
                     read_item(File, L);
-                
                 ["#" | _] ->
                     read_item(File, L);
-                
                 [Value] ->
                     %% FIXME: maybe we should use an ets table instead ?
                     List = lists:append(L, [Value]),

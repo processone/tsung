@@ -562,7 +562,7 @@ load_app(Name) when atom(Name) ->
     FName = atom_to_list(Name) ++ ".app",
     case code:where_is_file(FName) of
     non_existing ->
-        {error, {file:format_error({error,enoent}), FName}};
+        {error, {file:format_error(error_enoent), FName}};
     FullName ->
         case file:consult(FullName) of
         {ok, [Application]} ->

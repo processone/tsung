@@ -542,7 +542,7 @@ check_sum(RecList, Index, Total, Epsilon, ErrorMsg) ->
 %% Returns {ok, List} | {error, Reason}
 %%----------------------------------------------------------------------
 file_to_list(FileName) ->
-    case file:open(FileName, read) of
+    case file:open(FileName, [read]) of
         {error, Reason} ->
             {error, Reason};
         {ok , File} ->
