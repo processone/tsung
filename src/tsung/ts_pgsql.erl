@@ -70,6 +70,7 @@ new_session() ->
 get_message(#pgsql_request{type=connect, database=DB, username=UserName}) ->
     Version = <<?PROTOCOL_MAJOR:16/integer, ?PROTOCOL_MINOR:16/integer>>,
     User = pgsql_util:make_pair(user, UserName),
+    put(username,UserName), %% needed for md5
     Database = pgsql_util:make_pair(database, DB),
     StartupPacket = <<Version/binary,
                       User/binary,
@@ -78,16 +79,17 @@ get_message(#pgsql_request{type=connect, database=DB, username=UserName}) ->
     PacketSize = 4 + size(StartupPacket),
     <<PacketSize:32/integer, StartupPacket/binary>>;
 get_message(#pgsql_request{type=sql,sql=Query}) ->
-    encode_message(squery, Query);
+    pgsql_proto:encode_message(squery, Query);
 get_message(#pgsql_request{type=close}) ->
-    encode_message(terminate, "");
-get_message(#pgsql_request{type=authenticate, auth_method=?PG_AUTH_PASSWD,passwd=PassString}) ->
+    pgsql_proto:encode_message(terminate, "");
+get_message(#pgsql_request{type=authenticate, auth_method={?PG_AUTH_PASSWD, _Salt},passwd=PassString}) ->
     ?LOGF("PGSQL: Must authenticate (passwd= ~p) ~n",[PassString],?DEB),
-    encode_message(password, list_to_binary(PassString));
-get_message(Req=#pgsql_request{type=authenticate, auth_method=?PG_AUTH_MD5,passwd=PassString, salt=Salt}) ->
-    ?LOGF("PGSQL: Must authenticate with md5 (passwd= ~p) ~n",[PassString],?DEB),
-    MD5Hash = encode_md5(PassString, Req#pgsql_request.username, Salt),
-    encode_message(password, MD5Hash);
+    pgsql_proto:encode_message(pass_plain, PassString);
+get_message(#pgsql_request{type=authenticate, auth_method= {?PG_AUTH_MD5, Salt},passwd=PassString}) ->
+    User=get(username),
+    ?LOGF("PGSQL: Must authenticate user ~p with md5 (passwd= ~p, salt=~p) ~n",
+          [User,PassString,Salt],?DEB),
+    pgsql_proto:encode_message(pass_md5, {User,PassString,Salt});
 get_message(#pgsql_request{type=authenticate, auth_method=AuthType}) ->
     ?LOGF("PGSQL: Authentication method not implemented ! [~p] ~n",[AuthType],?ERR),
     <<>>.
@@ -119,7 +121,7 @@ parse(Data, State=#state_rcv{acc = [], dyndata=DynData}) ->
             ts_mon:add({ count, pgsql_failed_transaction }),
             {State#state_rcv{ack_done = true},[],false};
 
-        {ok, {authenticate, 0}, Tail } -> % auth OK, continue to parse resp.
+        {ok, {authenticate, {0, _Salt}}, Tail } -> % auth OK, continue to parse resp.
             parse(Tail, State);
 
         {ok, {error_message, ErrMsg}, Tail } ->
@@ -172,6 +174,7 @@ add_dynparams(true, DynData, Param, HostData) ->
     add_dynparams(DynData#dyndata.proto,NewParam, HostData).
 
 add_dynparams(DynPgsql, Param, _HostData) ->
+    ?DebugF("Dyndata=~p, param=~p~n",[DynPgsql, Param]),
     Param#pgsql_request{auth_method=DynPgsql#pgsql_dyndata.auth_method,
                         salt=DynPgsql#pgsql_dyndata.salt}.
 
@@ -209,31 +212,3 @@ process_head(<<Code:8/integer, Size:4/integer-unit:8, Tail/binary>>) ->
         false -> more
     end;
 process_head(_) -> more.
-
-%%----------------------------------------------------------------------
-%% Function: encode_message/2
-%%----------------------------------------------------------------------
-encode_message(password, Password) when is_binary(Password)->
-    pgsql_proto:encode(?PG_PASSWORD_MSG, << Password/binary, 0:8/integer >> );
-encode_message(Type, Msg)->
-    pgsql_proto:encode_message(Type, Msg).
-
-
-%%----------------------------------------------------------------------
-%% Function: encode_md5/3
-%% Algo: "md5" + MD5( MD5(Password + UserName) + Salt) as hexadecimal (-> 32 bytes)
-%%----------------------------------------------------------------------
-encode_md5(_Password, _Username, undefined) ->
-    ?LOG("PGSQL: No salt for md5 authentication ! ~n",?ERR),
-    ts_mon:add({ count, error_pgsql_nosalt }),
-    <<>>;
-encode_md5(Password, Username, Salt) ->
-    Md5 = erlang:md5(list_to_binary(Password ++ Username)),
-    SaltBin = list_to_binary(Salt),
-    List    = binary_to_list( erlang:md5( << Md5/binary, SaltBin/binary >> ) ),
-    ToHex   = fun(A) ->
-                    Hexa = lists:flatten(io_lib:format("~2.16B",[A])),
-                    {ok, Str, _} = regexp:gsub(Hexa," ","0"),
-                    Str
-            end,
-    list_to_binary("md5" ++ lists:map(ToHex, List)).

@@ -2,8 +2,6 @@
 %%% Author  : Christian Sunesson <chrisu@kth.se>
 %%% Description : PostgreSQL protocol driver
 %%% Created :  9 May 2005
-%%%
-%%% Nicolas Niclausse 8/11/2005: export encode and encode_message
 
 %%% This is the protocol handling part of the PostgreSQL driver, it turns packages into
 %%% erlang term messages and back.
@@ -64,16 +62,19 @@ run(Options) ->
 		    [self(), Options]),
     {ok, Db}.
 
+%% TODO: We should use states instead of process dictionary
 init(DriverPid, Options) ->
     put(options, Options), % connection setup options
     put(driver, DriverPid), % driver's process id
 
     %%io:format("Init~n", []),
+    %% Default values: We connect to localhost on the standard TCP/IP
+    %% port.
     Host = option(host, "localhost"),
     Port = option(port, 5432),
 
     case socket({tcp, Host, Port}) of 
-	{ok, Sock } ->
+	{ok, Sock} ->
 	    connect(Sock);
 	Error ->
 	    Reason = {init, Error},
@@ -84,6 +85,7 @@ init(DriverPid, Options) ->
 connect(Sock) ->
     %%io:format("Connect~n", []),
     %% Connection settings for database-login.
+    %% TODO: Check if the default values are relevant:
     UserName = option(user, "cos"),
     DatabaseName = option(database, "template1"),
     
@@ -110,7 +112,7 @@ authenticate(Sock) ->
 	%% Error response
 	{error_message, Message} ->
 	    exit({authentication, Message});
-	{authenticate, AuthMethod} ->
+	{authenticate, {AuthMethod, Salt}} ->
 	    case AuthMethod of 
 		0 -> % Auth ok
 		    setup(Sock, []);
@@ -118,17 +120,20 @@ authenticate(Sock) ->
 		    exit({nyi, auth_kerberos4});
 		2 -> % Kerberos 5
 		    exit({nyi, auth_kerberos5});
-		3 -> % Password
-		    PassString = option(password, ""),
-		    PassWordLen = length(PassString) + 5,
-		    Password = <<PassWordLen:32/integer,
-				PassString, 0:32/integer>>,
-		    ok = send(Sock, Password),
+		3 -> % Plaintext password
+		    Password = option(password, ""),
+		    EncodedPass = encode_message(pass_plain, Password),
+		    ok = send(Sock, EncodedPass),
 		    authenticate(Sock);
 		4 -> % Hashed password
 		    exit({nyi, auth_crypt});
 		5 -> % MD5 password
-		    exit({nyi, auth_md5});
+		    Password = option(password, ""),
+		    User = option(user, ""),
+		    EncodedPass = encode_message(pass_md5,
+						 {User, Password, Salt}),
+		    ok = send(Sock, EncodedPass),
+		    authenticate(Sock);
 		_ ->
 		    exit({authentication, {unknown, AuthMethod}})
 	    end;
@@ -233,6 +238,14 @@ idle(Sock, Pid) ->
 	    Packet = encode_message(squery, Query),
 	    ok = send(Sock, Packet),
 	    {ok, Result} = process_squery([]),
+	    case lists:keymember(error, 1, Result) of
+		true ->
+		    RBPacket = encode_message(squery, "ROLLBACK"),
+		    ok = send(Sock, RBPacket),
+		    {ok, RBResult} = process_squery([]);
+		_ ->
+		    ok
+	    end,
 	    Pid ! {pgsql, Ref, Result},
 	    idle(Sock, Pid);
 	%% Extended query
@@ -339,6 +352,8 @@ process_squery(Log) ->
 	    process_squery([Command|Log]);
 	{pgsql, {ready_for_query, Status}} ->
 	    {ok, lists:reverse(Log)};
+	{pgsql, {error_message, Error}} ->
+	    process_squery([{error, Error}|Log]);
 	{pgsql, Any} ->
 	    process_squery(Log)
     end.
@@ -499,8 +514,8 @@ decode_packet(Code, Packet) ->
 	?PG_NOTICE_RESPONSE ->
 	    Ret(notice_response, []);
 	?PG_AUTHENTICATE ->
-	    <<AuthMethod:32/integer, _Rest/binary>> = Packet,
-	    Ret(authenticate, AuthMethod);
+	    <<AuthMethod:32/integer, Salt/binary>> = Packet,
+	    Ret(authenticate, {AuthMethod, Salt});
 	?PG_PARSE_COMPLETE ->
 	    Ret(parse_complete, []);
 	?PG_BIND_COMPLETE ->
@@ -531,6 +546,12 @@ encode(Code, Packet) ->
     <<Code:8/integer, Len:4/integer-unit:8, Packet/binary>>.
 
 %% Encode a message of a given type.
+encode_message(pass_plain, Password) ->
+		Pass = pgsql_util:pass_plain(Password),
+		encode($p, Pass);
+encode_message(pass_md5, {User, Password, Salt}) ->
+		Pass = pgsql_util:pass_md5(User, Password, Salt),
+		encode($p, Pass);
 encode_message(terminate, _) ->
     encode($X, <<>>);
 encode_message(squery, Query) -> % squery as in simple query.

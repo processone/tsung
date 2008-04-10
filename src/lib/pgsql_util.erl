@@ -1,10 +1,8 @@
 %%% File    : pgsql_util.erl
 %%% Author  : Christian Sunesson
 %%% Description : utility functions used in implementation of 
-%%% postgresql driver.
+%%%               postgresql driver.
 %%% Created : 11 May 2005 by Blah <cos@local>
-
-%%% Nicolas Niclausse, 8/11/2005 : add split_pair_rec/1 fun
 
 -module(pgsql_util).
 
@@ -25,6 +23,11 @@
 -export([errordesc/1]).
 
 -export([zip/2]).
+
+%% Constructing authentication messages.
+-export([pass_plain/1, pass_md5/3]).
+-import(erlang, [md5/1]).
+-export([hexlist/2]).
 
 %% Lookup key in a plist stored in process dictionary under 'options'.
 %% Default is returned if there is no value for Key in the plist.
@@ -74,12 +77,15 @@ recv_byte(Sock, Timeout) ->
     case gen_tcp:recv(Sock, 1, Timeout) of
 	{ok, <<Byte:1/integer-unit:8>>} ->
 	    {ok, Byte};
-	E={error, Reason} ->
+	E={error, _Reason} ->
 	    throw(E)
     end.
 
-string(String) ->
+%% Convert String to binary
+string(String) when list(String) ->
     Bin = list_to_binary(String),
+    <<Bin/binary, 0/integer>>;
+string(Bin) when binary(Bin) ->
     <<Bin/binary, 0/integer>>.
 
 %%% Two zero terminated strings.
@@ -87,11 +93,13 @@ make_pair(Key, Value) when atom(Key) ->
     make_pair(atom_to_list(Key), Value);
 make_pair(Key, Value) when atom(Value) ->
     make_pair(Key, atom_to_list(Value));
-make_pair(Key, Value) ->
+make_pair(Key, Value) when list(Key), list(Value) ->
     BinKey = list_to_binary(Key),
     BinValue = list_to_binary(Value),
-    <<BinKey/binary, 0/integer, 
-     BinValue/binary, 0/integer>>.
+    make_pair(BinKey, BinValue);
+make_pair(Key, Value) when binary(Key), binary(Value) ->
+    <<Key/binary, 0/integer, 
+     Value/binary, 0/integer>>.
 
 split_pair(Bin) when binary(Bin) ->
     split_pair(binary_to_list(Bin));
@@ -125,7 +133,7 @@ count_string(<<>>, N) ->
     {N, <<>>};
 count_string(<<0/integer, Rest/binary>>, N) ->
     {N, Rest};
-count_string(<<C/integer, Rest/binary>>, N) ->
+count_string(<<_C/integer, Rest/binary>>, N) ->
     count_string(Rest, N+1).
 
 to_string(Bin) when binary(Bin) ->    
@@ -163,7 +171,7 @@ datacoldescs(N,
 	     <<Len:32/integer, Data:Len/binary, Rest/binary>>, 
 	     Descs) when N >= 0 ->
     datacoldescs(N-1, Rest, [Data|Descs]);
-datacoldescs(N, _, Descs) ->
+datacoldescs(_N, _, Descs) ->
     lists:reverse(Descs).
 
 decode_descs(Cols) ->
@@ -197,7 +205,7 @@ decode_col({_Name, _Format, _ColNumber, Oid, _Size, _Modifier, _TableOID}, Value
 errordesc(Bin) ->
     errordesc(Bin, []).
 
-errordesc(<<0/integer, Rest/binary>>, Lines) ->
+errordesc(<<0/integer, _Rest/binary>>, Lines) ->
     lists:reverse(Lines);
 errordesc(<<Code/integer, Rest/binary>>, Lines) ->
     {String, Count} = to_string(Rest),
@@ -238,3 +246,50 @@ zip(List1, List2, Result) when List1 =:= [];
     lists:reverse(Result);
 zip([H1|List1], [H2|List2], Result) ->
     zip(List1, List2, [{H1, H2}|Result]).
+
+%%% Authentication utils
+
+pass_plain(Password) ->
+	Pass = [Password, 0],
+	list_to_binary(Pass). 
+
+%% MD5 authentication patch from
+%%    Juhani Rankimies <juhani@juranki.com>
+%% (patch slightly rewritten, new bugs are mine :] /Christian Sunesson)
+
+%%
+%% MD5(MD5(password + user) + salt)
+%%
+
+pass_md5(User, Password, Salt) ->
+    Digest = hex(md5([Password, User])),
+    Encrypt = hex(md5([Digest, Salt])),
+    Pass = ["md5", Encrypt, 0],
+    list_to_binary(Pass).
+
+hex(B) when binary(B) ->
+    hexlist(binary_to_list(B), []).
+
+hexlist([], Acc) ->
+    lists:reverse(Acc);
+hexlist([N|Rest], Acc) ->
+    HighNibble = (N band 16#f0) bsr 4,
+    LowNibble = (N band 16#0f),
+    hexlist(Rest, [hexdigit(LowNibble), hexdigit(HighNibble)|Acc]).
+
+hexdigit(0) -> $0;
+hexdigit(1) -> $1;
+hexdigit(2) -> $2;
+hexdigit(3) -> $3;
+hexdigit(4) -> $4;
+hexdigit(5) -> $5;
+hexdigit(6) -> $6;
+hexdigit(7) -> $7;
+hexdigit(8) -> $8;
+hexdigit(9) -> $9;
+hexdigit(10) -> $a;
+hexdigit(11) -> $b;
+hexdigit(12) -> $c;
+hexdigit(13) -> $d;
+hexdigit(14) -> $e;
+hexdigit(15) -> $f.
