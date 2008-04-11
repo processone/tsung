@@ -415,6 +415,37 @@ parse(Element = #xmlElement{name=thinktime, attributes=Attrs},
     lists:foldl( fun parse/2, Conf#config{curthink=Think,curid=Id+1},
                  Element#xmlElement.content);
 
+
+%% Parsing the setdynvars element
+parse(Element = #xmlElement{name=setdynvars, attributes=Attrs},
+      Conf = #config{session_tab = Tab, sessions=[CurS|_], curid=Id}) ->
+
+    Vars = [ getAttr(atom,Attr,name,none) || #xmlElement{name=var,attributes=Attr} <- Element#xmlElement.content],
+    Action = case getAttr(string,Attrs,sourcetype,"erlang") of
+                 "erlang" ->
+                     [Module,Callback] = string:tokens(getAttr(string,Attrs,callback,none),":"),
+                     {setdynvars,erlang,{list_to_atom(Module),list_to_atom(Callback)},Vars};
+                 "file"   ->
+                     Order = getAttr(atom,Attrs,order,iter),
+                     FileId = getAttr(atom,Attrs,fileid,none),
+                     Delimiter = getAttr(string,Attrs,delimiter,";"),
+                     {setdynvars,file,{Order,FileId,Delimiter},Vars};
+
+                 "random_string" ->
+                     Length = getAttr(integer,Attrs,length,20),
+                     {setdynvars,random,{string,Length},Vars};
+                 "urandom_string" ->
+                     Length = getAttr(integer,Attrs,length,20),
+                     {setdynvars,random,{string,Length},Vars};
+                 "random_number" ->
+                     Start = getAttr(integer,Attrs,start,1),
+                     End = getAttr(integer,Attrs,'end',10),
+                     {setdynvars,random,{number,Start,End},Vars}
+             end,
+    ?LOGF("Add setdynvars in session ~p as id ~p",[CurS#session.id,Id+1],?INFO),
+    ets:insert(Tab, {{CurS#session.id, Id+1}, Action}),
+    Conf#config{curid=Id+1};
+
 %% Parsing other elements
 parse(Element = #xmlElement{}, Conf = #config{}) ->
     lists:foldl(fun parse/2, Conf, Element#xmlElement.content);

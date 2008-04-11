@@ -89,12 +89,13 @@ get_unique_id({Pid, _DynData})->
     ?DebugF("got unique id from ~p",[[ID1, ID3, NodeId, ID2]]),
     {ok, Int} = list_to_id([ID1, ID3, NodeId, ID2],65536),
     ?DebugF("id=~p",[Int]),
-    Int.
+    [integer_to_list(Int)].
 
 %% return a really unique id, one that is unique across runs.
 get_really_unique_id({Pid, DynData}) ->
     Sec = ts_utils:now_sec(),
-    io_lib:format("~B~s~B",[Sec,"-",get_unique_id({Pid, DynData})]).
+    ?DebugF("Sec=~p",[Sec]),
+    [[integer_to_list(Sec),"-",get_unique_id({Pid, DynData})]].
 
 %% get an idle id (offline), and add it to the connected table
 get_idle()->

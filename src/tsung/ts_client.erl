@@ -157,13 +157,13 @@ handle_info({NetEvent, _Socket, Data}, wait_ack, State) when NetEvent==tcp;
                                                              NetEvent==ssl ->
     case handle_data_msg(Data, State) of
         {NewState=#state_rcv{ack_done=true}, Opts} ->
-            NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol,
+            NewSocket = ts_utils:inet_setopts(NewState#state_rcv.protocol,
                                               NewState#state_rcv.socket,
                                               [{active, once} | Opts]),
             handle_next_action(NewState#state_rcv{socket=NewSocket,
                                                   ack_done=false});
         {NewState, Opts} ->
-            NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol,
+            NewSocket = ts_utils:inet_setopts(NewState#state_rcv.protocol,
                                               NewState#state_rcv.socket,
                                               [{active, once} | Opts]),
             TimeOut=(NewState#state_rcv.proto_opts)#proto_opts.idle_timeout,
@@ -324,6 +324,12 @@ handle_next_action(State) ->
             NewState = State#state_rcv{transactions=lists:keydelete(Tname,1,TrList),
                                    count=Count},
             handle_next_action(NewState);
+        {setdynvars,SourceType,Args,Vars} ->
+            Result = set_dynvars(SourceType,Args,Vars,State#state_rcv.dyndata),
+            NewDynVars = lists:zip(Vars,Result),
+            NewDynData = concat_dynvars(NewDynVars, State#state_rcv.dyndata),
+            ?DebugF("set dynvars: ~p ~p~n",[NewDynVars, NewDynData]),
+            handle_next_action(State#state_rcv{dyndata = NewDynData, count=Count});
         Profile=#ts_request{} ->
             handle_next_request(Profile, State);
         Other ->
@@ -332,6 +338,29 @@ handle_next_action(State) ->
     end.
 
 
+%%----------------------------------------------------------------------
+%% @spec set_dynvars (Type::erlang|random|urandom|file, Args::tuple(),
+%%                    Variables::List(), DynData:record(dyndata)) -> List()
+%% @doc setting the value of several dynamic variables at once.
+%%----------------------------------------------------------------------
+set_dynvars(erlang,{Module,Callback},_Vars,DynData) ->
+    Module:Callback({self(),DynData#dyndata.dynvars});
+set_dynvars(random,{number,Start,End},Vars,_DynData) ->
+    lists:map(fun(_) -> integer_to_list(Start+random:uniform(End-Start)) end,Vars);
+set_dynvars(random,{string,Length},Vars,_DynData) ->
+    R = fun(_) -> ts_utils:randomstr(Length) end,
+    lists:map(R,Vars);
+set_dynvars(urandom,{string,Length},Vars,_DynData) ->
+    %% not random, but much master
+    RS= ts_utils:randomstr(Length),
+    N=length(Vars),
+    lists:duplicate(N,RS);
+set_dynvars(file,{random,FileId,Delimiter},_Vars,_DynData) ->
+    {ok,Line} = ts_file_server:get_random_line(FileId),
+    string:tokens(Line,Delimiter);
+set_dynvars(file,{iter,FileId,Delimiter},_Vars,_DynData) ->
+    {ok,Line} = ts_file_server:get_next_line(FileId),
+    string:tokens(Line,Delimiter).
 
 %%----------------------------------------------------------------------
 %% Func: handle_next_request/2
