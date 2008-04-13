@@ -624,19 +624,37 @@ handle_data_msg(Data,State=#state_rcv{request=Req, clienttype=Type, maxcount=Max
                     {NewState#state_rcv{ page_timestamp = PageTimeStamp,
                                          socket = none,
                                          datasize = 0,
+                                         size_mon_thresh= ?size_mon_thresh,
                                          count = NewCount,
                                          dyndata = NewDynData,
                                          buffer = <<>>}, Opts};
                 false ->
                     {NewState#state_rcv{ page_timestamp = PageTimeStamp,
                                          count = NewCount,
+                                         size_mon_thresh= ?size_mon_thresh,
                                          datasize = 0,
                                          dyndata = NewDynData,
                                          buffer = <<>>}, Opts}
             end;
         _ ->
             ?DebugF("Response: continue:~p~n",[NewState#state_rcv.datasize]),
-            {NewState#state_rcv{buffer=NewBuffer}, Opts}
+            %% For size_rcv stats, we don't want to update this stats
+            %% for every packet received (ts_mon will be overloaded),
+            %% so we will update the stats at the end of the
+            %% request. But this is a probleme with very big response
+            %% (several megabytes for ex.), because it will create
+            %% artificial spikes in the stats (O B/sec for a long time
+            %% and lot's of MB/s at the end of the req). So we update
+            %% the stats each time a 512Ko threshold is raised.
+            case NewState#state_rcv.datasize > NewState#state_rcv.size_mon_thresh of 
+                true -> 
+                    ?Debug("Threshold raised, update size_rcv stats~n"),
+                    ts_mon:add({ sum, size_rcv, ?size_mon_thresh}),
+                    NewThresh=NewState#state_rcv.size_mon_thresh+ ?size_mon_thresh,
+                    {NewState#state_rcv{buffer=NewBuffer,size_mon_thresh=NewThresh}, Opts};
+                false->
+                    {NewState#state_rcv{buffer=NewBuffer}, Opts}
+            end
     end;
 
 handle_data_msg(closed,State) ->
@@ -726,8 +744,15 @@ update_stats_noack(#state_rcv{page_timestamp=PageTime,request=Profile}) ->
 update_stats(State=#state_rcv{page_timestamp=PageTime,send_timestamp=SendTime}) ->
     Now = now(),
     Elapsed = ts_utils:elapsed(SendTime, Now),
-    Stats= [{ sample, request, Elapsed},
-            { sum, size_rcv, State#state_rcv.datasize}],
+    Stats = case   State#state_rcv.size_mon_thresh > ?size_mon_thresh of
+                true ->
+                    LastSize=State#state_rcv.datasize-State#state_rcv.size_mon_thresh+?size_mon_thresh,
+                    [{ sample, request, Elapsed},
+                     { sum, size_rcv, LastSize}];
+                false->
+                    [{ sample, request, Elapsed},
+                     { sum, size_rcv, State#state_rcv.datasize}]
+            end,
     Profile = State#state_rcv.request,
     DynVars = ts_search:parse_dynvar(Profile#ts_request.dynvar_specs,
                                      State#state_rcv.buffer),

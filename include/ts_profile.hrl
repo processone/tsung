@@ -62,6 +62,7 @@
          udp_rcv_size, % udp buffers size
          udp_snd_size}).
 
+-define(size_mon_thresh, 524288). % 512KB
 
 % state of ts_client gen_server
 -record(state_rcv,
@@ -90,6 +91,7 @@
                      % all the response to do pattern matching)
          session,    % record of session status; depends on 'clienttype'
          datasize=0,
+         size_mon_thresh=?size_mon_thresh, % if rcv data is > to this, update stats
          dyndata=[], % persistent data dynamically added during the
                      % session (Cookies for examples)
          clienttype, % module name (ts_jabber, etc.)
