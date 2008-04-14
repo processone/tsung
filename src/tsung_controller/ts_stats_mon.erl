@@ -208,7 +208,7 @@ add_stats_data({sum, Name, Val}, Stats)  ->
 %%----------------------------------------------------------------------
 %% Func: export_stats/2
 %%----------------------------------------------------------------------
-export_stats(State=#state{backend=Backend}) ->
+export_stats(State=#state{backend=_Backend}) ->
     %% print number of simultaneous users
     Param = {State#state.laststats,State#state.log},
     dict:fold(fun print_stats_txt/3, Param, State#state.stats).
@@ -218,14 +218,14 @@ export_stats(State=#state{backend=Backend}) ->
 %% @spec (Key::tuple(), Value::List, {Last, Logfile}) -> {Last, Logfile}
 %% @doc print statistics in text format in Logfile
 %%----------------------------------------------------------------------
-print_stats_txt({Name,_Type}, [Mean,0,Max,Min,Count|_], {LastRes,Logfile})->
-    io:format(Logfile, "stats: ~p ~p ~p ~p ~p ~p~n",
-              [Name, Count, Mean, 0, Max, Min ]),
+print_stats_txt({Name,_Type}, [Mean,0,Max,Min,Count,MeanFB,CountFB|_], {LastRes,Logfile})->
+    io:format(Logfile, "stats: ~p ~p ~p ~p ~p ~p ~p ~p~n",
+              [Name, Count, Mean, 0, Max, Min,MeanFB,CountFB ]),
     {LastRes, Logfile};
-print_stats_txt({Name,_Type},[Mean,Var,Max,Min,Count|_],{LastRes,Logfile})->
+print_stats_txt({Name,_Type},[Mean,Var,Max,Min,Count,MeanFB,CountFB|_],{LastRes,Logfile})->
     StdVar = math:sqrt(Var/Count),
-    io:format(Logfile, "stats: ~p ~p ~p ~p ~p ~p~n",
-              [Name, Count, Mean, StdVar, Max, Min ]),
+    io:format(Logfile, "stats: ~p ~p ~p ~p ~p ~p ~p ~p~n",
+              [Name, Count, Mean, StdVar, Max, Min, MeanFB,CountFB]),
     {LastRes, Logfile};
 print_stats_txt({Name, _Type}, [Value,Last], {LastRes, Logfile}) ->
     io:format(Logfile, "stats: ~p ~p ~p~n", [Name, Value, Last ]),
@@ -245,37 +245,37 @@ print_stats_txt({Name, Type}, Value, {LastRes, Logfile}) ->
 %% @doc update the mean and variance for the given sample
 %%----------------------------------------------------------------------
 update_stats(sample, [], New) ->
-    [New, 0, New, New, 1];
-update_stats(sample, [Mean, Var, Max, Min, Count], Value) ->
+    [New, 0, New, New, 1,0,0];
+update_stats(sample, [Mean, Var, Max, Min, Count,MeanFB,CountFB], Value) ->
     {NewMean, NewVar, _} = ts_stats:meanvar(Mean, Var, [Value], Count),
     case Value > Max of
         true -> % new max, min unchanged
-            [NewMean, NewVar, Value, Min, Count+1];
+            [NewMean, NewVar, Value, Min, Count+1,MeanFB,CountFB];
         false ->
             case Value < Min of
                 true ->
-                    [NewMean, NewVar, Max, Value, Count+1];
+                    [NewMean, NewVar, Max, Value, Count+1,MeanFB,CountFB];
                 false ->
-                    [NewMean, NewVar, Max, Min, Count+1]
+                    [NewMean, NewVar, Max, Min, Count+1,MeanFB,CountFB]
             end
     end;
 update_stats(sample_counter,[], New) -> %% first call, store the initial value
-    [0, 0, 0, 0, 0, New];
-update_stats(sample_counter, [0, 0, 0, 0, 0, Last], Value) ->
+    [0, 0, 0, 0, 0, 0,0,New];
+update_stats(sample_counter, [0, 0, 0, 0, 0, MeanFB,CountFB,Last], Value) ->
     New = Value-Last,
-    [New, 0, New, New, 1, Value];
-update_stats(sample_counter,[Mean, Var, Max, Min, Count, Last], Value) ->
+    [New, 0, New, New, 1, MeanFB,CountFB,Value];
+update_stats(sample_counter,[Mean, Var, Max, Min, Count, MeanFB,CountFB,Last], Value) ->
     New = Value-Last,
     {NewMean, NewVar, _} = ts_stats:meanvar(Mean, Var, [New], Count),
     case New > Max of
         true -> % new max, min unchanged
-            [NewMean, NewVar, New, Min, Count+1, Value];
+            [NewMean, NewVar, New, Min, Count+1, MeanFB,CountFB,Value];
         false ->
             case Value < Min of
                 true ->
-                    [NewMean, NewVar, Max, New, Count+1, Value];
+                    [NewMean, NewVar, Max, New, Count+1, MeanFB,CountFB,Value];
                 false ->
-                    [NewMean, NewVar, Max, Min, Count+1, Value]
+                    [NewMean, NewVar, Max, Min, Count+1, MeanFB,CountFB,Value]
             end
     end.
 
@@ -291,11 +291,17 @@ reset_all_stats(Dict)->
 %% @doc reset all stats except min and max and lastvalue.
 %%----------------------------------------------------------------------
 reset_stats([]) ->  % FIXME: useful ?!
-    [0, 0, 0, 0, 0];
-reset_stats([_Mean, _Var, Max, Min, _Count, Last]) ->
-    [0, 0, Max, Min, 0, Last];
-reset_stats([_Mean, _Var, Max, Min, _Count]) ->
-    [0, 0, Max, Min, 0];
+    [0, 0, 0, 0, 0, 0, 0];
+reset_stats([_Mean, _Var, Max, Min, 0, _MeanFB,0,Last]) ->
+    [0, 0, Max, Min, 0, 0, 0,Last];
+reset_stats([Mean, _Var, Max, Min, Count, MeanFB,CountFB,Last]) ->
+    NewCount=CountFB+Count,
+    NewMean=(CountFB*MeanFB+Count*Mean)/NewCount,
+    [0, 0, Max, Min, 0, NewMean,NewCount,Last];
+reset_stats([Mean, _Var, Max, Min, Count,MeanFB,CountFB]) ->
+    NewCount=CountFB+Count,
+    NewMean=(CountFB*MeanFB+Count*Mean)/NewCount,
+    [0, 0, Max, Min, 0,NewMean,NewCount];
 reset_stats([_Sample, LastValue]) ->
     [0, LastValue];
 reset_stats(LastValue) ->

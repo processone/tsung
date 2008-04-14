@@ -236,7 +236,7 @@ handle_cast({endclient, Who, When, Elapsed}, State) ->
 
     %% update session sample
     MyFun = fun (OldV) -> ts_stats_mon:update_stats(sample, OldV, Elapsed) end,
-    Init = [Elapsed, 0, Elapsed, Elapsed, 1], % initial value of the sample
+    Init = [Elapsed, 0, Elapsed, Elapsed, 1,0,0], % initial value of the sample
     NewTab = dict:update({session, sample}, MyFun, Init, New1Tab),
 
     case State#state.type of
@@ -337,7 +337,7 @@ code_change(_OldVsn, StateData, _Extra) ->
 %% Purpose: open log files and start timer
 %% Returns: {reply, ok, State} | {stop, Reason, State}
 %%----------------------------------------------------------------------
-%% fulltext backend: reopen log file with compression enable and delayed_write
+%% fulltext backend: open log file with compression enable and delayed_write
 start_logger({Machines, DumpType, fullstats}, _From, State) ->
     Filename = filename:join(State#state.log_dir,?FULLSTATS_FILENAME),
     ?LOG("Open file with delayed_write for fullstats backend~n",?NOTICE),
