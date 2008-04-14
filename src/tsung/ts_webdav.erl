@@ -20,7 +20,7 @@
 
 -module(ts_webdav).
 -vc('$Id: ts_webdav.erl,v 0.0 2008/03/12 12:47:07 nniclaus Exp $ ').
--author('nniclaus@sophia.inria.fr').
+-author('nicolas.niclausse@niclux.org').
 
 -include("ts_profile.hrl").
 -include("ts_http.hrl").
@@ -39,7 +39,7 @@ new_session() -> #http{}.
 
 %% we should implement methods defined in rfc4918
 
-get_message(Req=#http_request{method=Method, url=URL}) when Method == propfind;
+get_message(Req=#http_request{method=Method}) when Method == propfind;
                                                    Method == proppatch;
                                                    Method == copy;
                                                    Method == move;
