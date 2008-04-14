@@ -12,13 +12,13 @@
 
   1.2.  Qu'est-ce que ce logiciel fait?
 
-  Le propos de Tsung est de simuler des utilisateurs afin de
-  tester la montée en charge et les performances d'applications
-  client/serveur (basées sur IP). Actuellement, les protocoles
-  HTTP et Jabber sont implémentés, et Tsung est très facilement
-  extensible (voir le fichier doc/Design.txt pour une description
-  de l'implémentation et des possibilités d'extensions). Tsung
-  utilise le langage Erlang.
+  Le propos de Tsung est de simuler des utilisateurs afin de tester la
+  montée en charge et les performances d'applications client/serveur
+  (basées sur IP). Actuellement, les protocoles HTTP, Jabber,
+  PostgreSQL, WEBDAV et LDAP sont implémentés, et Tsung est très
+  facilement extensible (voir le fichier doc/Design.txt pour une
+  description de l'implémentation et des possibilités
+  d'extensions). Tsung utilise le langage Erlang.
 
   Ce logiciel est capable de simuler plusieurs milliers d'utilisateurs
   simultanément, et ceux-ci peuvent être répartis sur plusieurs
@@ -51,7 +51,7 @@
 
   Voir également le site  http://tsung.erlang-projects.org/
 
-  NEW: Un manuel utilisateur est maintenant disponible en anglais:
+  Un manuel utilisateur est disponible en anglais:
   http://tsung.erlang-projects.org/user_manual.html
 
   2.  Installation & Configuration
@@ -61,10 +61,10 @@
 
 
   2.3.  Problèmes/Bugs
- 
+
     Envoyez vos questions/rapports à la liste de diffusion
        https://lists.process-one.net/mailman/listinfo/tsung-users
-    
+
     ou directement à l'auteur, <nicolas@niclux.org>
 
   2.4.  Portabilité

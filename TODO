@@ -1,15 +1,1 @@
-See also: https://support.process-one.net/browse/TSUN
-
-P3 better report/graphics generation
-P3 other useful protocols: smtp, ldap ...
-P3 add XML backend for stats
-P3 finish rrdtool backend for stats
-
-P4 add a web interface (with an embedded yaws)
-P4 add multiple tcp connections per client (for http)
-
-P5 learn how to really use xmerl 
-P5 groupchat for Jabber
-P5 handle http/1.1 pipelining
-
-- cache ssl session ID => NOT SUPPORTED BY SSL APPLICATION
+See  https://support.process-one.net/browse/TSUN

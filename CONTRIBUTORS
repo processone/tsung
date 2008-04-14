@@ -20,6 +20,7 @@ o Jérome Sautret: Multiple file patch for file_server, costum header
 o Jason Tucker: Solaris testing and fixes, jabber patches (sip_digest,
   roster and presence enhancements, bidi support for presence:subscribe ).
 
+o Pablo Polvorin: LDAP plugin, set_dynvars patch.
 
 o Jonathan Bresler: Jabber testing and bug reporting
 o Dimitri Fontaine: SNMP & postgresql testing, patch for snmp.
@@ -29,5 +30,5 @@ o Johann Messner: Bug reports
 o Anders Nygren: Documentation updates/suggestions, fix for recorder
 o Adam Spotton: Bug reports and tests (status, HTTP proxy load testing)
 o Matthew Schulkind: small fix to freemem computation
-o tty: plugin tutorial
+o t ty: plugin tutorial
 o Jesper Wilhelmsson: testing
