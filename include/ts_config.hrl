@@ -57,7 +57,7 @@
           cur_req_id = 0,  % temporary var (current real request id)
           file_server= [], % filenames for file_server
           load_loop,       % loop phases if > 0
-          ssl_ciphers = negociate
+          proto_opts
          }).
 
 
@@ -79,7 +79,7 @@
           type,
           persistent   = false,
           bidi         = false,
-          ssl_ciphers  = negociate,
+          proto_opts,
           size
         }).
 

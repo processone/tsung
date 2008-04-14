@@ -340,8 +340,8 @@ do_launch({Intensity, MyHostName})->
         {timeout, _ } ->
             ?LOG("get_next_session failed (timeout), skip this session !~n", ?ERR),
             error;
-        {ok, Profile} ->
-            ts_client_sup:start_child(Profile),
+        {ok, Session} ->
+            ts_client_sup:start_child(Session),
             X = ts_stats:exponential(Intensity),
             ?DebugF("client launched, wait ~p ms before launching next client~n",[X]),
             {ok, X};

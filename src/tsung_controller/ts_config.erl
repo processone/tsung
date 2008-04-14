@@ -66,7 +66,7 @@ read(Filename) ->
         {Root = #xmlElement{}, _Tail} ->  % xmerl-0.19
             ?LOGF("Reading config file: ~s~n", [Filename], ?NOTICE),
             Table = ets:new(sessiontable, [ordered_set, protected]),
-            {ok, parse(Root, #config{session_tab = Table})};
+            {ok, parse(Root, #config{session_tab = Table, proto_opts=#proto_opts{}})};
         {error,Reason} ->
             {error, Reason};
         {'EXIT',Reason} ->
@@ -277,7 +277,7 @@ parse(Element = #xmlElement{name=session, attributes=Attrs},
                                                  type         = Type,
                                                  persistent   = Persistent,
                                                  bidi         = Bidi,
-                                                 ssl_ciphers  = Conf#config.ssl_ciphers
+                                                 proto_opts   = Conf#config.proto_opts
                                                 }
                                         |SList],
                             curid=0, cur_req_id=0},% re-initialize request id
@@ -368,7 +368,45 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     lists:foldl( fun parse/2, Conf, Element#xmlElement.content);
                 "ssl_ciphers" ->
                     Cipher = getAttr(string,Attrs, value, negociate),
-                    lists:foldl( fun parse/2, Conf#config{ssl_ciphers=Cipher},
+                    OldProto =  Conf#config.proto_opts,
+                    NewProto =  OldProto#proto_opts{ssl_ciphers=Cipher},
+                    lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                 Element#xmlElement.content);
+                "tcp_rcv_buffer" ->
+                    Size = getAttr(integer,Attrs, value, ?config(rcv_size)),
+                    OldProto =  Conf#config.proto_opts,
+                    NewProto =  OldProto#proto_opts{tcp_rcv_size=Size},
+                    lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                 Element#xmlElement.content);
+                "udp_rcv_buffer" ->
+                    Size = getAttr(integer,Attrs, value, ?config(rcv_size)),
+                    OldProto =  Conf#config.proto_opts,
+                    NewProto =  OldProto#proto_opts{udp_rcv_size=Size},
+                    lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                 Element#xmlElement.content);
+                "tcp_snd_buffer" ->
+                    Size = getAttr(integer,Attrs, value, ?config(snd_size)),
+                    OldProto =  Conf#config.proto_opts,
+                    NewProto =  OldProto#proto_opts{tcp_snd_size=Size},
+                    lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                 Element#xmlElement.content);
+                "udp_snd_buffer" ->
+                    Size = getAttr(integer,Attrs, value, ?config(snd_size)),
+                    OldProto =  Conf#config.proto_opts,
+                    NewProto =  OldProto#proto_opts{udp_snd_size=Size},
+                    lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                 Element#xmlElement.content);
+                "tcp_timeout" ->
+                    Size = getAttr(integer,Attrs, value, ?config(tcp_timeout)),
+                    OldProto =  Conf#config.proto_opts,
+                    NewProto =  OldProto#proto_opts{idle_timeout=Size},
+                    lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                 Element#xmlElement.content);
+                "retry_timeout" ->
+                    Size = getAttr(integer,Attrs, value, ?config(client_retry_timeout)),
+                    OldProto =  Conf#config.proto_opts,
+                    NewProto =  OldProto#proto_opts{retry_timeout=Size},
+                    lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
                                  Element#xmlElement.content);
                 "file_server" ->
                     FileName = getAttr(Attrs, value),
@@ -376,7 +414,8 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     lists:foldl( fun parse/2,
                                  Conf#config{file_server=[{Id, FileName} | Conf#config.file_server]},
                                  Element#xmlElement.content);
-                _ ->
+                Other ->
+                    ?LOGF("Unknown option ~p !~n",[Other], ?WARN),
                     lists:foldl( fun parse/2, Conf, Element#xmlElement.content)
             end;
         Module ->

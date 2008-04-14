@@ -54,11 +54,11 @@
 
 % protocol options
 -record(proto_opts,
-        {ssl_ciphers, % for ssl only
-         retry_timeout,
-         idle_timeout,
-         tcp_rcv_size, % tcp buffers size
-         tcp_snd_size,
+        {ssl_ciphers = negociate, % for ssl only
+         retry_timeout = 10, % retry sending in microsec
+         idle_timeout = 600000,
+         tcp_rcv_size = 32768, % tcp buffers size
+         tcp_snd_size = 32768,
          udp_rcv_size, % udp buffers size
          udp_snd_size}).
 
