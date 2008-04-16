@@ -278,11 +278,13 @@ erl_system_args(extended)->
                    " -kernel inetrc '"++ InetRcFile ++ "'" ;
                _ -> " "
            end,
+    Threads= "+A "++integer_to_list(erlang:system_info(thread_pool_size))++" ",
+    ProcessMax="+P "++integer_to_list(erlang:system_info(process_limit))++" ",
     Mea = case  erlang:system_info(version) of
               "5.3" ++ _Tail     -> " +Mea r10b ";
               _ -> " "
           end,
-    lists:append([BasicArgs, Shared, Hybrid, Smp, Mea, Inet]).
+    lists:append([BasicArgs, Shared, Hybrid, Smp, Mea, Inet, Threads,ProcessMax]).
 
 %%----------------------------------------------------------------------
 %% setsubdir/1
@@ -610,7 +612,7 @@ resolve(Ip, Cache) ->
 %% @doc generate pseudo-random list of given size. Implemented by
 %% duplicating list of fixed size to be faster. unflatten version
 %%----------------------------------------------------------------------
-urandomstr_noflat(Size) when is_integer(Size) andalso Size >= ?DUPSTR_SIZE ->
+urandomstr_noflat(Size) when is_integer(Size) and Size >= ?DUPSTR_SIZE ->
     Msg= lists:duplicate(Size div ?DUPSTR_SIZE,?DUPSTR),
     case Size rem ?DUPSTR_SIZE of
         0->
@@ -618,20 +620,20 @@ urandomstr_noflat(Size) when is_integer(Size) andalso Size >= ?DUPSTR_SIZE ->
         Rest ->
             lists:append(Msg,urandomstr_noflat(Rest))
     end;
-urandomstr_noflat(Size)  when is_integer(Size) andalso Size >= 0 ->
+urandomstr_noflat(Size)  when is_integer(Size) and Size >= 0 ->
     lists:nthtail(?DUPSTR_SIZE-Size, ?DUPSTR).
 
 %%----------------------------------------------------------------------
 %% @spec urandomstr/1
 %% @doc same as urandomstr_noflat/1, but returns a flat list.
 %%----------------------------------------------------------------------
-urandomstr(Size) when is_integer(Size) andalso Size >= 0 ->
+urandomstr(Size) when is_integer(Size) and Size >= 0 ->
     lists:flatten(urandomstr_noflat(Size)).
 
 %%----------------------------------------------------------------------
 %% @spec randomstr/1
 %% @doc returns a random string. slow if Size is high.
 %%----------------------------------------------------------------------
-randomstr(Size) when is_integer(Size) andalso Size >= 0 ->
+randomstr(Size) when is_integer(Size) and Size >= 0 ->
      lists:map(fun (_) -> random:uniform(25) + $a  end, lists:seq(1,Size)).
 
