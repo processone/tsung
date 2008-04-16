@@ -97,7 +97,7 @@ record_request(State=#state_rec{prev_host=Host, prev_port=Port, prev_scheme=Sche
 
     %% Content-type recording (This is useful for SOAP post for example):
     ts_proxy_http:record_header(Fd,ParsedHeader,"content-type", "content_type='~s' "),
-    ts_proxy_http:record_header(Fd,ParsedHeader,"if_modified_since", "if_modified_since='~s' "),
+    ts_proxy_http:record_header(Fd,ParsedHeader,"if-modified-since", "if_modified_since='~s' "),
 
     io:format(Fd,"method='~s'>", [Method]),
 
