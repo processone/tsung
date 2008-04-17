@@ -66,7 +66,29 @@ parse_extract_fun2_test() ->
     Data="/stuff/%%ts_test_search:namespace%%/%%ts_test_search:marketplace%%/%%ts_test_search:sessionBucket%%/01/2000?keyA1=dataA1&amp;keyB1=dataB1",
     ?assertMatch("/stuff/namespace2/6/91/01/2000?keyA1=dataA1&amp;keyB1=dataB1", ts_search:subst(Data,[])).
 
-    
+dynvars_urandom_test() ->
+    myset_env(),
+    ?assertMatch(["qxvmvtglimieyhemzlxc"],ts_client:set_dynvars(urandom,{string,20},[toto],[])).
+
+dynvars_urandom_neg_test() ->
+    myset_env(),
+    ?assertError(function_clause,ts_client:set_dynvars(urandom,{string,-3},[toto],[])).
+
+dynvars_urandom2_test() ->
+    myset_env(),
+    ?assertMatch(["qxvmvtglimieyhemzlxc","qxvmvtglimieyhemzlxc"],ts_client:set_dynvars(urandom,{string,20},[toto,tutu],[])).
+
+dynvars_random_test() ->
+    myset_env(),
+    [String] = ts_client:set_dynvars(random,{string,20},[toto],[]),
+    ?assertMatch(20,length(String)).
+
+dynvars_random2_test() ->
+    myset_env(),
+    [String,String2] = ts_client:set_dynvars(random,{string,20},[toto,titi],[]),
+    ?assertMatch({20,20},{length(String),length(String2)}).
+
+
 myset_env()->
     myset_env(0).
 myset_env(Level)->

@@ -475,7 +475,7 @@ parse(Element = #xmlElement{name=setdynvars, attributes=Attrs},
                      {setdynvars,random,{string,Length},Vars};
                  "urandom_string" ->
                      Length = getAttr(integer,Attrs,length,20),
-                     {setdynvars,random,{string,Length},Vars};
+                     {setdynvars,urandom,{string,Length},Vars};
                  "random_number" ->
                      Start = getAttr(integer,Attrs,start,1),
                      End = getAttr(integer,Attrs,'end',10),

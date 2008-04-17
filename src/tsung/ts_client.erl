@@ -345,7 +345,7 @@ set_dynvars(random,{string,Length},Vars,_DynData) ->
     lists:map(R,Vars);
 set_dynvars(urandom,{string,Length},Vars,_DynData) ->
     %% not random, but much master
-    RS= ts_utils:randomstr(Length),
+    RS= ts_utils:urandomstr(Length),
     N=length(Vars),
     lists:duplicate(N,RS);
 set_dynvars(file,{random,FileId,Delimiter},_Vars,_DynData) ->
