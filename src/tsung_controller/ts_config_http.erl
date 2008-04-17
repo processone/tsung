@@ -236,8 +236,8 @@ server_to_url(#server{port=Port, host= Host, type= ssl})->
 %%--------------------------------------------------------------------
 %% Func: set_host_header/1
 %%--------------------------------------------------------------------
-set_host_header(#url{host=Host,scheme=https,port=undefined})  -> Host ++":443";
-set_host_header(#url{host=Host,scheme=http,port=undefined})   -> Host;
+%% if port is undefined, don't need to set port, because it use the default (80 or 443)
+set_host_header(#url{host=Host,port=undefined})   -> Host;
 set_host_header(#url{host=Host,port=Port}) when is_integer(Port) ->
     Host ++ ":" ++ integer_to_list(Port);
 set_host_header(#url{host=Host,port=Port}) when is_list(Port) ->
