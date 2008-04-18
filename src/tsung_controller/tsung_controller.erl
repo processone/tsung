@@ -79,7 +79,7 @@ status([Host]) when is_atom(Host)->
     _List = net_adm:world_list([Host]),
     global:sync(),
     Msg = case catch ts_mon:status() of
-              {Clients, {ok, [_Mean, _Var, _Max, _Min, Count]},
+              {Clients, {ok, [_Mean, _Var, _Max, _Min, Count,_MeanFB,_CountFB]},
                         {ok, Connected}, Interval, Phase} ->
                   S1 = io_lib:format("Tsung is running [OK]~n" ++
                                      " Current request rate:    ~p req/sec~n" ++
