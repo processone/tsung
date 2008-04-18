@@ -3,6 +3,7 @@
 
 <!ELEMENT information (name|description|username|organisation)*>
 
+
 <!ELEMENT name (#PCDATA)>
 <!ELEMENT description (#PCDATA)>
 <!ELEMENT username (#PCDATA)>
@@ -115,6 +116,7 @@
 <!ELEMENT http ( www_authenticate?, soap?, http_header*)>
 <!ATTLIST http
     contents          CDATA #IMPLIED
+    contents_from_file CDATA #IMPLIED
     content_type      CDATA #IMPLIED
     if_modified_since CDATA #IMPLIED
     method            (GET | POST | PUT | DELETE | HEAD | PROPFIND | PROPPATCH | COPY | MOVE | LOCK | UNLOCK | MKCOL | OPTIONS | REPORT | VERSION-CONTROL ) "GET"

@@ -54,7 +54,14 @@ parse_config(Element = #xmlElement{name=http},
                             subst    = SubstFlag, match=MatchRegExp}) ->
     Version  = ts_config:getAttr(string,Element#xmlElement.attributes, version, "1.1"),
     URL      = ts_config:getAttr(Element#xmlElement.attributes, url),
-    Contents = ts_config:getAttr(Element#xmlElement.attributes, contents),
+    Contents = case  ts_config:getAttr(string, Element#xmlElement.attributes, contents_from_file) of
+                   [] ->
+                       C=ts_config:getAttr(Element#xmlElement.attributes, contents),
+                       list_to_binary(C);
+                   FileName ->
+                       {ok, FileContent} = file:read_file(FileName),
+                       FileContent
+               end,
     UseProxy = case ets:lookup(Tab,{http_use_server_as_proxy}) of
                    [] -> false;
                    _  -> true
@@ -70,7 +77,7 @@ parse_config(Element = #xmlElement{name=http},
                             version     = Version,
                             get_ims_date= Date,
                             content_type= ContentType,
-                            body        = list_to_binary(Contents)},
+                            body        = Contents},
     %% SOAP Support: Add SOAPAction header to the message
     Request2 = case lists:keysearch(soap,#xmlElement.name,
                                     Element#xmlElement.content) of
