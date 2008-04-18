@@ -201,11 +201,13 @@ sub parse_stats_file {
             } else {
                 $type =~ s/\{(\S+)\,\"(\S+)\"\}/$1:os_mon\@$2/g;
             }
-            my ($rate,$mean) = split(/\s+/,$values);
+            my ($rate,$mean,$stdvar,$max,$min,$meanfb,$countfb) = split(/\s+/,$values);
             if ($interval) {
                 $rate /= $interval;
                 $maxval->{'rate'}->{$type} = &max($rate, $maxval->{'rate'}->{$type});
-                $maxval->{'mean'}->{$type} = &max($mean, $maxval->{'mean'}->{$type});
+                $maxval->{'maxmean'}->{$type} = &max($mean, $maxval->{'maxmean'}->{$type});
+                $maxval->{'mean'}->{$type} = $meanfb;
+                $maxval->{'count'}->{$type} = &max($countfb, $maxval->{'count'}->{$type});
                 $maxval->{'minmean'}->{$type} = &min($mean, $maxval->{'minmean'}->{$type}) if $rate;
             }
             if ($type =~ /^cpu:/ ) {
@@ -372,10 +374,21 @@ sub html_report {
             $xml_conf= $file;
         }
     }
+    foreach my $type ("mean", "maxmean", "minmean") {
+        foreach my $data (keys % {$maxval->{$type}} ) {
+            next if ($data =~ m/^size/);
+            if ($data =~ m/os_mon/) {
+                $maxval->{$type}->{$data} = sprintf "%.2f",$maxval->{$type}->{$data};
+                next;
+            }
+            next if not ($data eq "session" or $data eq "connect" or $data eq "request" or $data eq "page" or $data =~ m/^tr_/);
+            $maxval->{$type}->{$data} = &formattime($maxval->{$type}->{$data});
+        }
+    }
     foreach my $size ("size_rcv", "size_sent") {
         if ($maxval->{rate}->{$size}) {
-            $maxval->{rate}->{$size} = sprintf("%.2f",$maxval->{rate}->{$size}*8/1024);
-            $maxval->{mean}->{$size} = sprintf("%.2f",$maxval->{mean}->{$size}/(1024*1024));
+            $maxval->{rate}->{$size} = &formatsize($maxval->{rate}->{$size}*8,"bits");
+            $maxval->{maxmean}->{$size} = &formatsize($maxval->{maxmean}->{$size},"B");
         } else {
             warn "$size is equal to 0 !\n";
         }
@@ -439,6 +452,40 @@ sub    affiche() {
     my $name = shift;
     my $value = shift;
     return sprintf "#%7s = %.3f",$name,$value;
+}
+
+sub formattime {
+    my $value = shift;
+    return unless $value;
+    $value /=1000;
+    if ($value < 0.001) {
+        sprintf "%.3f msec",$value*1000;
+    } elsif ($value < 0.1) {
+        sprintf "%.2f msec",$value*1000;
+    } elsif ($value < 10) {
+        sprintf "%.3f sec",$value;
+    } elsif ($value > 3600) {
+        my $h = int($value / 3600);
+        my $mn= int(($value -$h*3600) / 60);
+        $value = $value-($h*3600+$mn*60);
+        sprintf "%d h %dmn  %dsec",$h,$mn, $value;
+    } else {
+        sprintf "%.1f sec",$value;
+    }
+}
+sub formatsize {
+    my $value = shift;
+    my $unit = shift;
+    return unless $value;
+    if ($value < 1024) {
+        sprintf "%d $unit",$value;
+    } elsif ($value < 1024*1024) {
+        sprintf "%.2f K$unit",$value/1024;
+    } elsif ($value < 1024*1024*1024) {
+        sprintf "%.2f M$unit",$value/(1024*1024);
+    } else {
+        sprintf "%.2f G$unit",$value/(1024*1024*1024);
+    }
 }
 
 sub version {
