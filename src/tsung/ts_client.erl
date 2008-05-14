@@ -409,7 +409,7 @@ ctrl_struct_impl({repeat,RepeatName, While,Rel,VarName,Value,Target,Max},DynData
     ?DebugF("Repeat (name=~p) iteration: ~p~n",[RepeatName,Iteration]),
     case Iteration > Max of
         true ->
-            ?LOGF("Max repeat (name=~p) reached ~p~n",[VarName,VarValue],?NOTICE),
+            ?LOGF("Max repeat (name=~p) reached ~p~n",[VarName,Iteration],?NOTICE),
             ts_mon:add({ count, max_repeat}),
             {next,DynData};
         false ->
