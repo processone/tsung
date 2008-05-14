@@ -273,12 +273,25 @@ record_request(State=#state_rec{prev_host=Host, prev_port=Port, prev_scheme=Sche
     Fd = State#state_rec.logfd,
     URL2 = ts_utils:export_text(URL),
     io:format(Fd,"<request><http url='~s' version='~s' ", [URL2, HTTPVersion]),
-    case Body of
-        [] -> ok;
-        _  ->
-            Body2 = ts_utils:export_text(Body),
-            io:format(Fd," contents='~s' ", [Body2]) % must be a POST method
-    end,
+    NewId = case Body of
+                [] -> 
+                    State#state_rec.ext_file_id;
+                _  ->
+                    Id=State#state_rec.ext_file_id,
+                    case ts_utils:key1search(ParsedHeader,"content-type") of
+                        "multipart/form-data" ++ _Tail->
+                            FileName=append_to_filename(State#state_rec.log_file,".xml","-"++integer_to_list(Id)++".bin"),
+                            ?LOGF("multipart/form-data, write body data in external binary file ~s~n",[FileName],?NOTICE),
+                            ok = file:write_file(FileName,list_to_binary(Body)),
+                            io:format(Fd," contents_from_file='~s' ", [FileName]),
+                            Id+1;
+                        _CT ->
+                            Body2 = ts_utils:export_text(Body),
+                            ?LOG("Write body data in XML encoded string ~n",?NOTICE),
+                            io:format(Fd," contents='~s' ", [Body2]),
+                            Id
+                    end
+            end,
 
     %% Content-type recording (This is useful for SOAP post for example):
     record_header(Fd,ParsedHeader,"content-type", "content_type='~s' "),
@@ -294,7 +307,7 @@ record_request(State=#state_rec{prev_host=Host, prev_port=Port, prev_scheme=Sche
                   fun(A) -> string:strip(A,both,$") end ), %"
 
     io:format(Fd,"</http></request>~n",[]),
-    {ok,State#state_rec{prev_port=NewPort,prev_host=NewHost,prev_scheme=NewScheme}}.
+    {ok,State#state_rec{prev_port=NewPort,ext_file_id=NewId,prev_host=NewHost,prev_scheme=NewScheme}}.
 
 %%--------------------------------------------------------------------
 %% Func: decode_basic_auth/1
@@ -326,4 +339,11 @@ record_header(Fd, Headers,HeaderName, Msg, Fun)->
         undefined -> ok;
         Value     -> io:format(Fd,Msg,[Fun(Value)])
     end.
+
+append_to_filename(Filename, From, To) ->
+    case regexp:gsub(Filename,From,To ) of
+        {ok, RealName, _ } -> RealName;
+        _ ->  Filename ++"." ++ To
+    end.
+
 

@@ -115,6 +115,7 @@ init(Filename) ->
             ?LOGF("starting recorder with plugin ~s : ~s~n",[Plugin,File],?NOTICE),
             {ok, #state_rec{ log_file = File,
                              logfd    = Stream,
+                             ext_file_id=1,
                              plugin   = Plugin
                             }};
         {error, Reason} ->
