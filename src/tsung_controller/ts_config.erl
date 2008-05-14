@@ -302,6 +302,55 @@ parse(Element = #xmlElement{name=transaction, attributes=Attrs},
     ets:insert(Tab, {{CurS#session.id, NewId+1}, {transaction,stop,Name}}),
     NewConf#config{curid=NewId+1} ;
 
+%%%% Parsing the 'for' element
+parse(_Element = #xmlElement{name=for, attributes=Attrs,content=Content},
+      Conf = #config{session_tab = Tab, sessions=[CurS|_], curid=Id}) ->
+    VarName = getAttr(atom,Attrs,var),
+    InitValue = getAttr(Attrs,from),
+    EndValue = getAttr(Attrs,to),
+    Increment = getAttr(integer,Attrs,incr,1),
+    InitialAction = {ctrl_struct, {for_start, InitValue, VarName}},
+    ?LOGF("Add for_start action in session ~p as id ~p",
+          [CurS#session.id,Id+1],?INFO),
+    ets:insert(Tab,{{CurS#session.id,Id+1},InitialAction}),
+    NewConf = lists:foldl(fun parse/2, Conf#config{curid=Id+1}, Content),
+    NewId = NewConf#config.curid,
+    EndAction= {ctrl_struct,{for_end,VarName,EndValue,Increment,Id+2}},
+    %%Id+2 -> id of the first action inside the loop
+    %%       (id+1 is the for_start action)
+    ?LOGF("Add for_end action in session ~p as id ~p, Jump to:~p",
+          [CurS#session.id,NewId+1,Id+2],?INFO),
+    ets:insert(Tab, {{CurS#session.id,NewId+1},EndAction}),
+    NewConf#config{curid=NewId+1};
+
+%%%% Parsing the 'repeat' element
+%%%% Last child element must be either 'while' or 'until'
+parse(_Element = #xmlElement{name=repeat,attributes=Attrs,content=Content},
+    Conf = #config{session_tab = Tab, sessions=[CurS|_], curid=Id}) ->
+    MaxRepeat = getAttr(integer,Attrs,max_repeat,20),
+    RepeatName = getAttr(atom,Attrs,name),
+    [LastElement|_] = lists:reverse([E || E=#xmlElement{} <- Content]),
+    case LastElement of
+        #xmlElement{name=While,attributes=WhileAttrs}
+        when (While == 'while') or (While == 'until')->
+            {Rel,Value} = case getAttr(string,WhileAttrs,eq,none) of
+                              none -> {neq,getAttr(string,WhileAttrs,neq)};
+                              X ->  {eq,X}
+                          end,
+                          %either <while .. eq=".."/> or <while ..neq=".."/>
+            Var = getAttr(atom,WhileAttrs,var),
+            NewConf = lists:foldl(fun parse/2, Conf#config{curid=Id}, Content),
+            NewId = NewConf#config.curid,
+            EndAction = {ctrl_struct,{repeat,RepeatName, While,Rel,Var,Value,Id+1, MaxRepeat}},
+                                 %Id+1 -> id of the first action inside the loop
+            ?LOGF("Add repeat action in session ~p as id ~p, Jump to: ~p",
+                  [CurS#session.id,NewId+1,Id+1],?INFO),
+            ets:insert(Tab,{{CurS#session.id,NewId+1},EndAction}),
+            NewConf#config{curid=NewId+1};
+        _ -> throw({invalid_xml,"Last element inside a <repeat/> loop must be "
+                                "<while/> or <until/>"})
+    end;
+
 %%% Parsing the dyn_variable element
 parse(#xmlElement{name=dyn_variable, attributes=Attrs},
       Conf=#config{sessions=[CurS|_],dynvar=DynVar}) ->

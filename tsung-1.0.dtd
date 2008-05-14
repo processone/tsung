@@ -77,7 +77,8 @@
     value    CDATA #IMPLIED>
 
 <!ELEMENT sessions (session+)>
-<!ELEMENT session ( request | thinktime | transaction | setdynvars )*>
+<!ELEMENT session ( request | thinktime | transaction | setdynvars | for |
+repeat)*>
 <!ATTLIST session
     name         CDATA #REQUIRED
     bidi         CDATA #IMPLIED
@@ -110,7 +111,7 @@
     probability NMTOKEN #REQUIRED
     >
 
-<!ELEMENT transaction (request | setdynvars)+>
+<!ELEMENT transaction (request | setdynvars | for | repeat)+>
 <!ATTLIST transaction name NMTOKEN #REQUIRED>
 
 <!ELEMENT http ( www_authenticate?, soap?, http_header*)>
@@ -207,4 +208,29 @@
 <!ELEMENT var (#PCDATA) >
 <!ATTLIST var
 	name CDATA #REQUIRED>
+
+<!ELEMENT for (request | thinktime | transaction | setdynvars | for | repeat)+>
+<!ATTLIST for
+    var      CDATA      #REQUIRED
+    from     NMTOKEN    #REQUIRED
+    to       NMTOKEN    #REQUIRED
+    incr     NMTOKEN   "1">
+
+<!ELEMENT repeat (request | thinktime | transaction | setdynvars | for | repeat
+| while | until)+>
+<!ATTLIST repeat
+    name      NMTOKEN    #REQUIRED
+    max_repeat  NMTOKEN   "20">
+
+<!ELEMENT while EMPTY>
+<!ATTLIST while
+    var CDATA #REQUIRED
+    eq CDATA #IMPLIED
+    neq CDATA #IMPLIED >
+
+<!ELEMENT until EMPTY>
+<!ATTLIST until
+    var CDATA #REQUIRED
+    eq CDATA #IMPLIED
+    neq CDATA #IMPLIED >
 

@@ -323,6 +323,8 @@ handle_next_action(State) ->
             NewDynData = concat_dynvars(NewDynVars, State#state_rcv.dyndata),
             ?DebugF("set dynvars: ~p ~p~n",[NewDynVars, NewDynData]),
             handle_next_action(State#state_rcv{dyndata = NewDynData, count=Count});
+        {ctrl_struct,CtrlData} ->
+            ctrl_struct(CtrlData,State,Count);
         Profile=#ts_request{} ->
             handle_next_request(Profile, State);
         Other ->
@@ -354,6 +356,86 @@ set_dynvars(file,{random,FileId,Delimiter},_Vars,_DynData) ->
 set_dynvars(file,{iter,FileId,Delimiter},_Vars,_DynData) ->
     {ok,Line} = ts_file_server:get_next_line(FileId),
     string:tokens(Line,Delimiter).
+
+%% @spec ctrl_struct(CtrlData::term(),State::record(state_rcv),Count::integer)
+%% @doc Common code for flow control actions (repeat,for)
+%%      Count is the next action-id, if this action doesn't result
+%%      in a jump to another place
+ctrl_struct(CtrlData,State,Count) ->
+    case ctrl_struct_impl(CtrlData,State#state_rcv.dyndata) of
+        {next,NewDynData} ->
+            handle_next_action(State#state_rcv{dyndata=NewDynData,count=Count});
+        {jump,Target,NewDynData} ->
+            %%UGLY HACK:
+            %% because set_profile/3 works by counting down starting at maxcount,
+            %% we need to calculate the correct value to actually make a jump to
+            %% the desired target.
+            %% In set_profile/3, actionId = MaxCount-Count+1 =>
+            %% Count = MaxCount-Target +1
+            Next = State#state_rcv.maxcount - Target + 1,
+            handle_next_action(State#state_rcv{dyndata=NewDynData,count=Next})
+    end.
+
+
+%%----------------------------------------------------------------------
+%% @spec ctrl_struct_impl(ControlStruct::term(),DynData:record(dyndata)) -> Result
+%% @type Result = {next,NewDynData::record(dyndata)}
+%%                | {jump,Target::integer(),NewDynData::record(dyndata)}
+%% @doc return {next,NewDynData} to continue with the sequential flow,
+%%             {jump,Target,NewDynData} to jump to action number 'Target'
+%%----------------------------------------------------------------------
+ctrl_struct_impl({for_start,InitialValue,VarName},DynData) ->
+    NewDynData = concat_dynvars([{VarName,InitialValue}],DynData),
+    {next,NewDynData};
+ctrl_struct_impl({for_end,VarName,EndValue,Increment,Target},DynData) ->
+    case lists:keysearch(VarName,1,DynData#dyndata.dynvars) of
+        {value,{VarName,EndValue}} -> % Reach final value, end loop
+            {next,DynData};
+        {value,{VarName,Value}} ->  % New iteration
+            NewValue = integer_to_list(list_to_integer(Value) + Increment),
+            NewDynData = concat_dynvars([{VarName,NewValue}],DynData),
+            {jump,Target,NewDynData}
+    end;
+
+ctrl_struct_impl({repeat,RepeatName, _,_,_,_,_,_},DynData=#dyndata{dynvars=undefined}) ->
+    Msg= list_to_atom("error_repeat_"++atom_to_list(RepeatName)++"_undef"),
+    ts_mon:add({ count, Msg}),
+    {next,DynData};
+ctrl_struct_impl({repeat,RepeatName, While,Rel,VarName,Value,Target,Max},DynData) ->
+    Iteration = case lists:keysearch(RepeatName,1,DynData#dyndata.dynvars) of
+                    {value,{RepeatName,Val}} -> Val;
+                    false ->  1
+                end,
+    ?DebugF("Repeat (name=~p) iteration: ~p~n",[RepeatName,Iteration]),
+    case Iteration > Max of
+        true ->
+            ?LOGF("Max repeat (name=~p) reached ~p~n",[VarName,VarValue],?NOTICE),
+            ts_mon:add({ count, max_repeat}),
+            {next,DynData};
+        false ->
+            case lists:keysearch(VarName,1,DynData#dyndata.dynvars) of
+                {value,{VarName,VarValue}} ->
+                    ?DebugF("Repeat (name=~p) found; value is ~p~n",[VarName,VarValue]),
+                    Jump = need_jump(While,rel(Rel,Value,VarValue)),
+                    NewValue = 1 + Iteration,
+                    NewDynData = concat_dynvars([{RepeatName,NewValue}],DynData),
+                   jump_if(Jump,Target,NewDynData);
+                false ->
+                    Msg= list_to_atom("error_repeat_"++RepeatName++"undef"),
+                    ts_mon:add({ count, Msg}),
+                    {next,DynData}
+            end
+    end.
+
+rel('eq',A,B)  -> A == B;
+rel('neq',A,B) -> A /= B.
+
+need_jump('while',F) -> F;
+need_jump('until',F) -> not F.
+
+jump_if(true,Target,DynData)   -> {jump,Target,DynData};
+jump_if(false,_Target,DynData) -> {next,DynData}.
+
 
 %%----------------------------------------------------------------------
 %% Func: handle_next_request/2
