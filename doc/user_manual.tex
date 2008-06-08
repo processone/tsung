@@ -1,6 +1,6 @@
 %%% user_manual.tex --- 
 
-%% Author: XX.YY@IDEALX.com
+%% Author: Nicolas Niclausse
 %% Version: $Id$
 
 \def\RCS$#1: #2 ${\expandafter\def\csname RCS#1\endcsname{#2}}
@@ -142,8 +142,8 @@ for Petroleum
 \item \emph{Distributed}: the load can be distributed on a cluster of
 client machines 
 \item \emph{Multi-Protocols} using a plug-in system: HTTP (both standard
-web traffic and SOAP),  Jabber and Postgresql are currently supported. LDAP and
-SMTP are on the TODO list. 
+web traffic and SOAP),  Webdav, Jabber and Postgresql are currently
+supported. An experimental LDAP plugin was included in the 1.3.0 release. 
 \item \emph{SSL} support 
 \item \emph{Several IP addresses} can be used on a single machine using
 the underlying OS IP Aliasing 
@@ -166,9 +166,6 @@ distribution (currently exponential)
 
 \subsection{HTTP related features}
 
-\par 
-
-
 \begin{itemize}
 \item HTTP/1.0 and HTTP/1.1 support
 \item GET, POST, PUT, DELETE and HEAD requests 
@@ -179,6 +176,15 @@ distribution (currently exponential)
 \item SOAP support using the HTTP mode (the SOAPAction HTTP header is
   handled).
 \item HTTP server or proxy server load testing.
+\end{itemize}
+
+\subsection{WEBDAV related features}
+
+The Webdav plugin is a superset of the  HTTP plugin. It adds the
+following features:
+
+\begin{itemize}
+\item FIXME
 \end{itemize}
 
 \subsection{Jabber related features}
@@ -195,9 +201,17 @@ distribution (currently exponential)
 \subsection{PostgreSQL related features}
 
 \begin{itemize}
-\item Basic Authentication
+\item Basic and MD5 Authentication
 \item Basic Queries (Extended queries not yet supported)
 \item Proxy mode to record sessions
+\end{itemize}
+
+\subsection{LDAP related features}
+
+\begin{itemize}
+\item bind
+\item add, modify and search queries
+\item starttls (only with R12B-0 erlang and up)
 \end{itemize}
 
 \subsection{Complete reports set}
@@ -265,6 +279,11 @@ MacOS-X).
     \url{http://jungerl.sourceforge.net/} . The module is
     included in the source and binary distribution of \program{Tsung}. It
     is released under the EPL License.
+  \item eldap module  (for the ldap plugin):
+    sources available at
+    \url{http://jungerl.sourceforge.net/} . The module is
+    included in the source and binary distribution of \program{Tsung}. It
+    is released under the GPL License.
    \item  gnuplot and perl5 (optional; for graphical output with
     \command{tsung\_stats.pl} script).  The Template Toolkit is used for HTML
     reports (see \url{http://template-toolkit.org/})
@@ -326,6 +345,12 @@ the number of simultaneous users for each given phase.
 \item Analyze results, change parameters and relaunch another benchmark 
 \end{enumerate}
 
+\section{WEBDAV benchmark approach}
+
+It's the same approach as HTTP: first you start to record one or more
+sessions with the recorder: 
+\command{tsung -p webdav  recorder}
+
 \subsection{benchmarking a proxy server}
 
 By default, the HTTP plugin is used to benchmark HTTP servers. But you
@@ -363,6 +388,12 @@ There are two differences between HTTP and Jabber testing:
 \item the jabber plugin does not parse XML; instead it uses packet
   acknowledgments. 
 \end{enumerate}
+
+\section{Jabber benchmark approach}
+
+
+There is no recorder for Jabber, so you have to write your sessions by
+hand (an example is provided in \ref{sec:sessions:ldap}).
 
 \subsection{Acknowledgements of messages}
 
@@ -504,10 +535,10 @@ for password settings).
 \section{Using the proxy recorder}
 
 
-The recorder has two plugins: one for HTTP and one for PostgreSQL.
+The recorder has three plugins: for HTTP, WABDAV and for PostgreSQL.
 
 To start it, run \command{tsung -p <PLUGIN> recorder}, where \varname{PLUGIN} can be
-\userinput{http} or  \userinput{pgsql} for PostgreSQL. The default plugin is \userinput{http}.
+\userinput{http}, \userinput{webdav} or  \userinput{pgsql} for PostgreSQL. The default plugin is \userinput{http}.
 
 
 The proxy is listening to port 8090. You can change the port with
@@ -543,7 +574,7 @@ For PostgreSQL, the proxy will connect to the server at IP 127.0.0.1
 and port 5432. Use \userinput{-I serverIP} to change the IP and
 \userinput{-P portnumber} to change the port.
 
-\subsection{HTTP}
+\subsection{HTTP and WEBDAV}
 
 For HTTPS recording, use \userinput{http://ssl-} instead of
 \userinput{https://} in your browser
