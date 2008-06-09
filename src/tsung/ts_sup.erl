@@ -15,7 +15,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 
 %%% In addition, as a special exception, you have the permission to
 %%% link the code of this program with any library released under
@@ -41,8 +41,8 @@
 %%% API
 %%%----------------------------------------------------------------------
 start_link() ->
-	?LOG("starting supervisor ...~n",?INFO),
-	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+    ?LOG("starting supervisor ...~n",?INFO),
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from supervisor
@@ -52,19 +52,17 @@ start_link() ->
 %% Func: init/1
 %% Returns: {ok,  {SupFlags,  [ChildSpec]}} |
 %%          ignore                          |
-%%          {error, Reason}   
+%%          {error, Reason}
 %%----------------------------------------------------------------------
 init([]) ->
-	?LOG("starting",?INFO),
+    ?LOG("starting",?INFO),
 
-    ClientsSup = {ts_client_sup, {ts_client_sup, start_link, []}, permanent, 2000, 
-				  supervisor, [ts_client_sup]},
-	Launcher = {ts_launcher, {ts_launcher, 
-								 start, []}, 
-				transient, 2000, worker, [ts_launcher]},
-	SessionCache = {ts_session_cache, {ts_session_cache, 
-								 start, []}, 
-				transient, 2000, worker, [ts_session_cache]},
+    ClientsSup   = {ts_client_sup, {ts_client_sup, start_link, []},
+                    permanent, 2000, supervisor, [ts_client_sup]},
+    Launcher     = {ts_launcher, {ts_launcher, start, []},
+                    transient, 2000, worker, [ts_launcher]},
+    SessionCache = {ts_session_cache, {ts_session_cache, start, []},
+                    transient, 2000, worker, [ts_session_cache]},
     {ok,{{one_for_one,?retries,10}, [SessionCache, ClientsSup, Launcher ]}}.
 
 %%%----------------------------------------------------------------------
