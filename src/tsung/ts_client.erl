@@ -716,13 +716,13 @@ handle_data_msg(Data,State=#state_rcv{request=Req, clienttype=Type, maxcount=Max
             %% For size_rcv stats, we don't want to update this stats
             %% for every packet received (ts_mon will be overloaded),
             %% so we will update the stats at the end of the
-            %% request. But this is a probleme with very big response
+            %% request. But this is a problem with very big response
             %% (several megabytes for ex.), because it will create
             %% artificial spikes in the stats (O B/sec for a long time
             %% and lot's of MB/s at the end of the req). So we update
             %% the stats each time a 512Ko threshold is raised.
-            case NewState#state_rcv.datasize > NewState#state_rcv.size_mon_thresh of 
-                true -> 
+            case NewState#state_rcv.datasize > NewState#state_rcv.size_mon_thresh of
+                true ->
                     ?Debug("Threshold raised, update size_rcv stats~n"),
                     ts_mon:add({ sum, size_rcv, ?size_mon_thresh}),
                     NewThresh=NewState#state_rcv.size_mon_thresh+ ?size_mon_thresh,
