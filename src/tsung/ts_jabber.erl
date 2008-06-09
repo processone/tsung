@@ -173,6 +173,7 @@ subst(Req=#jabber{data=Data}, DynData) ->
 %%  'nonce' used for sip-digest auth
 %%  'sid' session-id used for digest auth
 %%----------------------------------------------------------------------
+updatejab(undefined,Param) -> Param;
 updatejab([],Param) -> Param;
 updatejab([{nonce, Val}|Rest], Param)->
    updatejab(Rest, Param#jabber{nonce = Val});
