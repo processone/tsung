@@ -130,6 +130,7 @@ repeat)*>
 <!ELEMENT dyn_variable EMPTY >
 <!ATTLIST dyn_variable
     name CDATA #REQUIRED
+    xpath CDATA #IMPLIED  
     regexp CDATA #IMPLIED >
 
 <!ELEMENT http_header EMPTY >

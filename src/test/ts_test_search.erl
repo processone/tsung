@@ -25,35 +25,63 @@ parse_dyn_var_test() ->
     Data=?FORMDATA,
     StrName="jsf_tree_64",
     Regexp = ?DEF_REGEXP_DYNVAR_BEGIN++ StrName ++?DEF_REGEXP_DYNVAR_END,%'
-    ?assertMatch([{'jsf_tree_64',"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA"}], ts_search:parse_dynvar([{'jsf_tree_64', Regexp} ],list_to_binary(Data))).
+    ?assertMatch([{'jsf_tree_64',"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA"}], ts_search:parse_dynvar([{regexp,'jsf_tree_64', Regexp} ],list_to_binary(Data))).
+
+parse_dyn_var_xpath_test() ->
+    myset_env(),
+    Data="\r\n\r\n<html><body>"++?FORMDATA++"</body></html>",
+    StrName="jsf_tree_64",
+    XPath = "//input[@name='jsf_tree_64']/@value",
+    ?assertMatch([{'jsf_tree_64',"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA"}], ts_search:parse_dynvar([{xpath,'jsf_tree_64', XPath} ],list_to_binary(Data))).
 
 parse_dyn_var2_test() ->
     myset_env(),
     Data="<input type=\"hidden\" name=\"tree64\" id=\"tree64\" value=\"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA\">",
     StrName="tree64",
     Regexp = ?DEF_REGEXP_DYNVAR_BEGIN++ StrName ++?DEF_REGEXP_DYNVAR_END,%'
-    ?assertMatch([{tree64,"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA"}], ts_search:parse_dynvar([{tree64, Regexp }],list_to_binary(Data))).
+    ?assertMatch([{tree64,"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA"}], ts_search:parse_dynvar([{regexp,tree64, Regexp }],list_to_binary(Data))).
+
+parse_dyn_var_xpath2_test() ->
+    myset_env(),
+    Data="\r\n\r\n<html><body><input type=\"hidden\" name=\"tree64\" id=\"tree64\" value=\"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA\"></body></html>",
+    StrName="tree64",
+    XPath = "//input[@name='tree64']/@value",
+    ?assertMatch([{tree64,"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA"}], ts_search:parse_dynvar([{xpath,tree64, XPath }],list_to_binary(Data))).
 
 parse_dyn_var3_test() ->
     myset_env(),
     Data="<hidden name=\"random\" value=\"42\"></form>",
     StrName="random",
     Regexp = ?DEF_REGEXP_DYNVAR_BEGIN++ StrName ++?DEF_REGEXP_DYNVAR_END,%'
-    ?assertMatch([{random,"42"}], ts_search:parse_dynvar([{random, Regexp }],list_to_binary(Data))).
+    ?assertMatch([{random,"42"}], ts_search:parse_dynvar([{regexp, random, Regexp }],list_to_binary(Data))).
+
+parse_dyn_var_xpath3_test() ->
+    myset_env(),
+    Data="\r\n\r\n<html><body><hidden name=\"random\" value=\"42\"></form></body></html>",
+    StrName="random",
+    XPath = "//hidden[@name='random']/@value",
+    ?assertMatch([{random,"42"}], ts_search:parse_dynvar([{xpath, random, XPath }],list_to_binary(Data))).
 
 parse_dyn_var4_test() ->
     myset_env(),
     Data="<hidden name='random' value='42'></form>",
     StrName="random",
     Regexp = ?DEF_REGEXP_DYNVAR_BEGIN++ StrName ++?DEF_REGEXP_DYNVAR_END,%'
-    ?assertMatch([{random,"42"}], ts_search:parse_dynvar([{random, Regexp }],list_to_binary(Data))).
+    ?assertMatch([{random,"42"}], ts_search:parse_dynvar([{regexp, random, Regexp }],list_to_binary(Data))).
+
+parse_dyn_var_xpath4_test() ->
+    myset_env(),
+    Data="\r\n\r\n<html><body><hidden name='random' value='42'></form></body>/<html>",
+    StrName="random",
+    XPath = "//hidden[@name='random']/@value",
+    ?assertMatch([{random,"42"}], ts_search:parse_dynvar([{xpath, random, XPath }],list_to_binary(Data))).
 
 parse_subst1_test() ->
     myset_env(),
     Data=?FORMDATA,
     StrName="jsf_tree_64",
     Regexp = ?DEF_REGEXP_DYNVAR_BEGIN++ StrName ++?DEF_REGEXP_DYNVAR_END,%'
-    [{Name,Value}] = ts_search:parse_dynvar([{'jsf_tree_64', Regexp }],list_to_binary(Data)),
+    [{Name,Value}] = ts_search:parse_dynvar([{regexp, 'jsf_tree_64', Regexp }],list_to_binary(Data)),
     ?assertMatch("H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA", ts_search:subst("%%_jsf_tree_64%%",[{Name,Value}])).
 
 parse_extract_fun1_test() ->

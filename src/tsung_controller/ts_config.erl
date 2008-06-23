@@ -353,18 +353,36 @@ parse(_Element = #xmlElement{name=repeat,attributes=Attrs,content=Content},
 
 %%% Parsing the dyn_variable element
 parse(#xmlElement{name=dyn_variable, attributes=Attrs},
-      Conf=#config{sessions=[CurS|_],dynvar=DynVar}) ->
+      Conf=#config{sessions=[CurS|_],dynvar=DynVars}) ->
     StrName  = ts_utils:clean_str(getAttr(Attrs, name)),
     {ok, [{atom,1,Name}],1} = erl_scan:string("'"++StrName++"'"),
-    DefaultRegExp = ?DEF_REGEXP_DYNVAR_BEGIN++ StrName ++?DEF_REGEXP_DYNVAR_END,%'
-    RegExp  = getAttr(string,Attrs, regexp, DefaultRegExp),
+    {Type,Expr} = case {getAttr(string,Attrs,regexp,none),
+                        getAttr(string,Attrs,xpath,none)} of
+        {none,none} -> 
+                DefaultRegExp = ?DEF_REGEXP_DYNVAR_BEGIN ++ StrName 
+                                    ++?DEF_REGEXP_DYNVAR_END,
+                {regexp,DefaultRegExp};
+        {none,XPath} ->
+                {xpath,XPath};
+        {RegExp,_} ->
+                {regexp,RegExp}
+    end,
     {ok, [{atom,1,Name}],1} = erl_scan:string(StrName),
-    ?LOGF("Add new regexp: ~s ~n", [RegExp],?INFO),
-    %% precompilation of the regexp
-    {ok, RegExpStr} = gregexp:parse(lists:flatten(RegExp)),
-    NewDynVar = case DynVar of
-                    undefined ->[{Name, RegExpStr}];
-                    _->[{Name, RegExpStr}|DynVar]
+    FlattenExpr =lists:flatten(Expr), 
+    %% precompilation of the exp
+    DynVar = case Type of
+        regexp ->
+            ?LOGF("Add new regexp: ~s ~n", [Expr],?INFO),
+            {ok, CompiledRegExp} = gregexp:parse(FlattenExpr),
+            {regexp,Name,CompiledRegExp};
+        xpath ->
+            ?LOGF("Add new xpath: ~s ~n", [Expr],?INFO),
+            CompiledXPathExp = mochiweb_xpath:compile_xpath(FlattenExpr),
+            {xpath,Name,CompiledXPathExp}
+        end,
+    NewDynVar = case DynVars of
+                    undefined ->[DynVar];
+                    _->[DynVar|DynVars]
                 end,
     ?LOGF("Add new dyn variable=~p in session ~p~n",
          [NewDynVar,CurS#session.id],?INFO),
