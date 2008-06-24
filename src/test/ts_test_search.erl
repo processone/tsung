@@ -16,6 +16,8 @@
 -include_lib("ts_config.hrl").
 
 
+-define(MANY,20).
+
 -define(FORMDATA,"<input type=\"hidden\" name=\"jsf_tree_64\" id=\"jsf_tree_64\" value=\"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA\">").
 
 test()->
@@ -30,7 +32,6 @@ parse_dyn_var_test() ->
 parse_dyn_var_xpath_test() ->
     myset_env(),
     Data="\r\n\r\n<html><body>"++?FORMDATA++"</body></html>",
-    StrName="jsf_tree_64",
     XPath = "//input[@name='jsf_tree_64']/@value",
     ?assertMatch([{'jsf_tree_64',"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA"}], ts_search:parse_dynvar([{xpath,'jsf_tree_64', XPath} ],list_to_binary(Data))).
 
@@ -44,7 +45,6 @@ parse_dyn_var2_test() ->
 parse_dyn_var_xpath2_test() ->
     myset_env(),
     Data="\r\n\r\n<html><body><input type=\"hidden\" name=\"tree64\" id=\"tree64\" value=\"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA\"></body></html>",
-    StrName="tree64",
     XPath = "//input[@name='tree64']/@value",
     ?assertMatch([{tree64,"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA"}], ts_search:parse_dynvar([{xpath,tree64, XPath }],list_to_binary(Data))).
 
@@ -58,7 +58,6 @@ parse_dyn_var3_test() ->
 parse_dyn_var_xpath3_test() ->
     myset_env(),
     Data="\r\n\r\n<html><body><hidden name=\"random\" value=\"42\"></form></body></html>",
-    StrName="random",
     XPath = "//hidden[@name='random']/@value",
     ?assertMatch([{random,"42"}], ts_search:parse_dynvar([{xpath, random, XPath }],list_to_binary(Data))).
 
@@ -72,9 +71,32 @@ parse_dyn_var4_test() ->
 parse_dyn_var_xpath4_test() ->
     myset_env(),
     Data="\r\n\r\n<html><body><hidden name='random' value='42'></form></body>/<html>",
-    StrName="random",
     XPath = "//hidden[@name='random']/@value",
     ?assertMatch([{random,"42"}], ts_search:parse_dynvar([{xpath, random, XPath }],list_to_binary(Data))).
+
+parse_dyn_var_many_test() ->
+    myset_env(),
+    {Data, Res}= setdata(?MANY),
+    RegexpFun = fun(A) -> {regexp,list_to_atom(A), ?DEF_REGEXP_DYNVAR_BEGIN++ A ++?DEF_REGEXP_DYNVAR_END} end,%'
+    B=lists:map(fun(A)->"random"++integer_to_list(A) end, lists:seq(1,?MANY)),
+    C=lists:map(RegexpFun, B),
+    {Time, Out}=timer:tc( ts_search,parse_dynvar,[C,list_to_binary(Data)]),
+    erlang:display([?MANY," regexp:", Time]),
+    ?assertMatch(Res, Out).
+
+parse_dyn_var_many_xpath_test() ->
+    myset_env(),
+    {Data, Res}= setdata(?MANY),
+    B=lists:map(fun(A)->{xpath, list_to_atom("random"++integer_to_list(A)),
+                         "//hidden[@name='random"++integer_to_list(A)++"']/@value"} end, lists:seq(1,?MANY)),
+    {Time, Out}=timer:tc( ts_search,parse_dynvar,[B,list_to_binary(Data)]),
+    erlang:display([?MANY," xpath:", Time]),
+    ?assertMatch(Res, Out).
+
+setdata(N) ->
+    {"\r\n\r\n<html><body><form>"++lists:flatmap(fun(A)->
+                                                         AI=integer_to_list(A),["<hidden name='random",AI,"' value='value",AI,"'>"] end,lists:seq(1,N))
+++"</form></body>/<html>",  lists:reverse(lists:map(fun(A)->{list_to_atom("random"++integer_to_list(A)) , "value"++integer_to_list(A)} end, lists:seq(1,N)))}.
 
 parse_subst1_test() ->
     myset_env(),
