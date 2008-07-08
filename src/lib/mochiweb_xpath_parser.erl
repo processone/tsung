@@ -1,8 +1,7 @@
-%% mochiweb_html_xpath_parser.erl
 %% @author Pablo Polvorin 
 %% @doc Compile XPath expressions.
 %% This module uses the xpath parser of xmerl.. that interface isn't documented
-%% so could change between OTP versions.. its know to work with OTP R12-B2 
+%% so could change between OTP versions.. its know to work with OTP R12B2 
 %% created on 2008-05-07
 -module(mochiweb_xpath_parser).
 
@@ -18,7 +17,7 @@ compile_xpath(XPathString) ->
 %% @doc Utility functions to convert between the *internal* representation of
 %       xpath expressions used in xmerl(using lists and atoms), to a
 %       representation using only binaries, to match the way in
-%       wich the mochiweb html parser represents data 
+%       which the mochiweb html parser represents data 
 simplify({path,Type,Path}) ->
     {path,Type,simplify_path(Path)};
 simplify({comp,Comp,A,B}) ->

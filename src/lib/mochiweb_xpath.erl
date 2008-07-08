@@ -15,11 +15,13 @@
         functions
     }).
 
-%% @spec( string() ) -> compile_xpath()
+
+%% @spec( string() ) -> compiled_xpath()
 compile_xpath(Expr) ->
     mochiweb_xpath_parser:compile_xpath(Expr).
     
-%% Execute the given XPath expression against the given document.
+%% @doc Execute the given XPath expression against the given document, using
+%% the default set of functions. 
 %% @spec execute(XPath,Doc) -> Results
 %% @type XPath =  compiled_xpath() | string()
 %% @type Doc = node()
@@ -31,6 +33,26 @@ execute(XPathString,Doc) when is_list(XPathString) ->
 execute(XPath,Root) ->
     execute(XPath,Root,[]).
 
+%% @doc Execute the given XPath expression against the given document, 
+%%      using the default set of functions plus the user-supplied ones. 
+%%
+%% @see mochiweb_xpath_functions.erl to see how to write functions
+%%
+%% @spec execute(XPath,Doc,Functions) -> Results
+%% @type XPath =  compiled_xpath() | string()
+%% @type Doc = node()
+%% @type Functions = [FunctionDefinition]
+%% @type FunctionDefinition = {FunName,Fun,Signature}
+%% @type FunName = atom()
+%% @type Fun = fun/2
+%% @type Signature = [ArgType]
+%% @type ArgType = node_set | string | number | boolean
+%% @type Results = [node()] | binary() | boolean() | number()
+%% TODO: should pass the user-defined functions when compiling
+%%       the xpath expression (compile_xpath/1). Then the 
+%%       compiled expression would have all its functions 
+%%       resolved, and no function lookup would occur when
+%%       the expression is executed
 execute(XPathString,Doc,Functions) when is_list(XPathString) ->
     XPath = mochiweb_xpath_parser:compile_xpath(XPathString),
     execute(XPath,Doc,Functions);
@@ -116,15 +138,15 @@ axis('child',{wildcard,wildcard},Context) ->
                     
 
 axis(attribute,{name,{Attr,_Prefix,_Local}},Context) ->
-     L = lists:map(fun ({_,Attrs,_}) -> 
+     L = lists:foldl(fun ({_,Attrs,_},Acc) -> 
                      case proplists:get_value(Attr,Attrs) of
-                            undefined -> [];
-                            V -> V
+                            undefined -> Acc;
+                            V -> [V|Acc]
                      end;
-                       (_) -> 
-                       []
-                    end,Context),
-    L;
+                       (_,Acc) -> 
+                       Acc
+                    end,[],Context),
+    lists:reverse(L);
 
 axis('descendant_or_self',{node_type,'node'},Context) ->
     descendant_or_self(Context);
@@ -132,7 +154,10 @@ axis('descendant_or_self',{node_type,'node'},Context) ->
 axis('self',{node_type,'node'},Context) ->
     Context.
 
-    
+%%FIXME:The order of the result is wrong, it doesn't return the nodes in
+%%      document order. Actually the problem isn't here, but in
+%%      axis('child',{Tag,_,_},Ctx). We may need to find a better strategy
+%%      to implement the child axis if document order is important
 descendant_or_self(Ctx) ->
     L = descendant_or_self(Ctx,[]),
     lists:reverse(L).

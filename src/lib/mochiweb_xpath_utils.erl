@@ -1,6 +1,7 @@
 %% xpath_utils.erl
 %% @author Pablo Polvorin 
 %% @doc Utility functions, mainly for type conversion
+%%      Conversion rules taken from http://www.w3.org/TR/1999/REC-xpath-19991116
 %% created on 2008-05-07
 -module(mochiweb_xpath_utils).
 

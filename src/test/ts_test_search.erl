@@ -20,6 +20,8 @@
 
 -define(FORMDATA,"<input type=\"hidden\" name=\"jsf_tree_64\" id=\"jsf_tree_64\" value=\"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA\">").
 
+
+
 test()->
     ok.
 parse_dyn_var_test() ->
@@ -34,6 +36,15 @@ parse_dyn_var_xpath_test() ->
     Data="\r\n\r\n<html><body>"++?FORMDATA++"</body></html>",
     XPath = "//input[@name='jsf_tree_64']/@value",
     ?assertMatch([{'jsf_tree_64',"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA"}], ts_search:parse_dynvar([{xpath,'jsf_tree_64', XPath} ],list_to_binary(Data))).
+
+parse_dyn_var_xpath_with_scripttag_test() ->
+    myset_env(),
+    Data= "\r\n\r\n<html><head><script type=\"text/javascript\"> "
+          " A = B <= C </script>"
+          "</head><body>"++?FORMDATA++"</body></html>",
+    XPath = "//input[@name='jsf_tree_64']/@value",
+    ?assertMatch([{'jsf_tree_64',"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA"}], ts_search:parse_dynvar([{xpath,'jsf_tree_64', XPath} ],list_to_binary(Data))).
+
 
 parse_dyn_var2_test() ->
     myset_env(),
@@ -88,15 +99,69 @@ parse_dyn_var_many_xpath_test() ->
     myset_env(),
     {Data, Res}= setdata(?MANY),
     B=lists:map(fun(A)->{xpath, list_to_atom("random"++integer_to_list(A)),
-                         "//hidden[@name='random"++integer_to_list(A)++"']/@value"} end, lists:seq(1,?MANY)),
+                         "//input[@type='hidden'][@name='random"++integer_to_list(A)++"']/@value"} end, lists:seq(1,?MANY)),
     {Time, Out}=timer:tc( ts_search,parse_dynvar,[B,list_to_binary(Data)]),
     erlang:display([?MANY," xpath:", Time]),
     ?assertMatch(Res, Out).
 
+parse_dyn_var_many_xpath_explicit_test() ->
+    myset_env(),
+    {Data, Res}= setdata(?MANY),
+    B=lists:map(fun(A)->{xpath, list_to_atom("random"++integer_to_list(A)),
+                         "/html/body/form/input[@type='hidden'][@name='random"++integer_to_list(A)++"']/@value"} end, lists:seq(1,?MANY)),
+    {Time, Out}=timer:tc( ts_search,parse_dynvar,[B,list_to_binary(Data)]),
+    erlang:display([?MANY," xpath_explicit:", Time]),
+    ?assertMatch(Res, Out).
+
+parse_dyn_var_many_big_test() ->
+    myset_env(),
+    {Data, Res}= setdata_big(?MANY),
+    RegexpFun = fun(A) -> {regexp,list_to_atom(A), ?DEF_REGEXP_DYNVAR_BEGIN++ A ++?DEF_REGEXP_DYNVAR_END} end,%'
+    B=lists:map(fun(A)->"random"++integer_to_list(A) end, lists:seq(1,?MANY)),
+    C=lists:map(RegexpFun, B),
+    {Time, Out}=timer:tc( ts_search,parse_dynvar,[C,list_to_binary(Data)]),
+    erlang:display([?MANY," regexp_big:", Time]),
+    ?assertMatch(Res, Out).
+
+parse_dyn_var_many_big_xpath_test() ->
+    myset_env(),
+    {Data, Res}= setdata_big(?MANY),
+    B=lists:map(fun(A)->{xpath, list_to_atom("random"++integer_to_list(A)),
+                         "//input[@type='hidden'][@name='random"++integer_to_list(A)++"']/@value"} end, lists:seq(1,?MANY)),
+    {Time, Out}=timer:tc( ts_search,parse_dynvar,[B,list_to_binary(Data)]),
+    erlang:display([?MANY," xpath_big:", Time]),
+    ?assertMatch(Res, Out).
+
+parse_dyn_var_many_big_xpath_explicit_test() ->
+    myset_env(),
+    {Data, Res}= setdata_big(?MANY),
+    B=lists:map(fun(A)->{xpath, list_to_atom("random"++integer_to_list(A)),
+                         "/html/body/form/input[@type='hidden'][@name='random"++integer_to_list(A)++"']/@value"} end, lists:seq(1,?MANY)),
+    {Time, Out}=timer:tc( ts_search,parse_dynvar,[B,list_to_binary(Data)]),
+    erlang:display([?MANY," xpath_explicit_big:", Time]),
+    ?assertMatch(Res, Out).
+
 setdata(N) ->
     {"\r\n\r\n<html><body><form>"++lists:flatmap(fun(A)->
-                                                         AI=integer_to_list(A),["<hidden name='random",AI,"' value='value",AI,"'>"] end,lists:seq(1,N))
+                                           AI=integer_to_list(A),["<input type='hidden' name='random",AI,"'"," value='value",AI,"'>"] end,lists:seq(1,N))
 ++"</form></body>/<html>",  lists:reverse(lists:map(fun(A)->{list_to_atom("random"++integer_to_list(A)) , "value"++integer_to_list(A)} end, lists:seq(1,N)))}.
+
+setdata_big(N) ->
+    Head = "<head><title>ABCDERFDJSJS</title><script type='text/javascript'> "
+           "Some javascript code</script><link rel='shortcut icon' "
+           " href='favicon.ico' type='image/x-icon'></head>", 
+    Fields = lists:flatmap(fun(A)->
+                           AI=integer_to_list(A),
+                           ["<input type='hidden' name='random",AI,"'"," value='value",AI,"'>"]
+                           end,lists:seq(1,N)),
+    Form = "<form>" ++ Fields ++ "</form>",
+    Content = "<div><p>This is a some random content</p>"
+              "<ul><li>item1<li>item2</ul>"
+              "<p>Some more text... not too big really...</p>"
+              "<p>More text inside a paragraph element</p> "
+              "</div>",
+    HTML ="\r\n\r\n<html>" ++ Head ++ "<body>" ++ Content ++ Content ++ Form ++ Content ++ "</body></html>",
+    {HTML,lists:reverse(lists:map(fun(A)->{list_to_atom("random"++integer_to_list(A)) , "value"++integer_to_list(A)} end, lists:seq(1,N)))}.
 
 parse_subst1_test() ->
     myset_env(),
@@ -137,6 +202,23 @@ dynvars_random2_test() ->
     myset_env(),
     [String,String2] = ts_client:set_dynvars(random,{string,20},[toto,titi],[]),
     ?assertMatch({20,20},{length(String),length(String2)}).
+
+%%TODO: out of order..
+%parse_dynvar_xpath_collection_test() ->
+%    myset_env(),
+%    Data="<html><body>"
+%        " <img src=img0'>"
+%         "<div><img src='img1'> "
+%         "      <img src='img2'> "
+%         " </div> "
+%         " <img src='img3'> "
+%         " <img src='img4'></body></html>",
+%    XPath = "//img/@src",
+%    Tree = mochiweb_html:parse(list_to_binary(Data)),
+%    R = mochiweb_xpath:execute(XPath,Tree),
+%    erlang:display(R),
+%    Expected = [<<"img0">>,<<"img1">>,<<"img2">>,<<"img3">>,<<"img4">>],
+%    ?assertMatch(Expected, R).
 
 
 myset_env()->
