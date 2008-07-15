@@ -13,6 +13,7 @@ MAIN_DIR=$HOME/.tsung
 LOG_DIR=$MAIN_DIR/log
 LOG_OPT="log_file \"$LOG_DIR/tsung.log\""
 VERSION=@PACKAGE_VERSION@
+NAMETYPE="-sname"
 
 LISTEN_PORT=8090
 USE_PARENT_PROXY=false
@@ -32,17 +33,17 @@ REC_BOOT_OPT="-boot $INSTALL_DIR/lib/tsung_recorder-$VERSION/priv/tsung_recorder
 DEBUG_LEVEL=5
 RECORDER_PLUGIN="http"
 ERL_RSH=" -rsh ssh "
-ERL_OPTS=" -smp auto +A 2 +K true @ERL_OPTS@ "
+ERL_OPTS=" -smp auto +P 250000 +A 16 +K true @ERL_OPTS@ "
 COOKIE='tsung'
 ERTS_RUN=`$ERL -version 2>&1 | tr -cd 0123456789.`
 ERTS_BOOT=`grep erts $TSUNGPATH/../priv/tsung.rel | tr -cd 0123456789.`
 
 stop() {
-    $ERL $ERL_OPTS $ERL_RSH -noshell  -sname killer -setcookie $COOKIE -pa $TSUNGPATH -pa $CONTROLLERPATH -s tsung_controller stop_all $HOST -s init stop
+    $ERL $ERL_OPTS $ERL_RSH -noshell  $NAMETYPE killer -setcookie $COOKIE -pa $TSUNGPATH -pa $CONTROLLERPATH -s tsung_controller stop_all $HOST -s init stop
 }
 
 stop_recorder() {
-    $ERL $ERL_OPTS $ERL_RSH -noshell  -sname killer -setcookie $COOKIE -pa $TSUNGPATH -pa $RECORDERPATH -s tsung_recorder stop_all $HOST -s init stop
+    $ERL $ERL_OPTS $ERL_RSH -noshell  $NAMETYPE killer -setcookie $COOKIE -pa $TSUNGPATH -pa $RECORDERPATH -s tsung_recorder stop_all $HOST -s init stop
     RET=$?
     if [ $RET == 1 ]; then
         echo "FAILED"
@@ -84,7 +85,7 @@ makebootfiles() {
 
 start() {
     echo "Starting Tsung"
-    $ERL $ERL_OPTS $ERL_RSH -noshell -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT \
+    $ERL $ERL_OPTS $ERL_RSH -noshell $NAMETYPE $CONTROLLER -setcookie $COOKIE  $BOOT_OPT \
     -pa $TSUNGPATH -pa $CONTROLLERPATH \
     -tsung_controller debug_level $DEBUG_LEVEL \
     -tsung_controller config_file \"$CONF_OPT_FILE\" -tsung_controller $LOG_OPT
@@ -92,7 +93,7 @@ start() {
 
 recorder() {
     echo "Starting Tsung recorder on port $LISTEN_PORT"
-    $ERL $ERL_OPTS $ERL_RSH -noshell -sname $RECORDER -setcookie $COOKIE  $REC_BOOT_OPT \
+    $ERL $ERL_OPTS $ERL_RSH -noshell $NAMETYPE $RECORDER -setcookie $COOKIE  $REC_BOOT_OPT \
     -pa $TSUNGPATH -pa $RECORDERPATH -pa $CONTROLLERPATH \
     -tsung_recorder debug_level $DEBUG_LEVEL \
     -tsung_recorder $LOG_OPT \
@@ -106,7 +107,7 @@ recorder() {
 }
 
 debug() {
-    $ERL $ERL_OPTS $ERL_RSH -sname $CONTROLLER -setcookie $COOKIE  $BOOT_OPT \
+    $ERL $ERL_OPTS $ERL_RSH $NAMETYPE $CONTROLLER -setcookie $COOKIE  $BOOT_OPT \
      -pa $TSUNGPATH -pa $CONTROLLERPATH \
      -tsung_controller config_file \"$CONF_OPT_FILE\" \
      -tsung_controller $LOG_OPT
@@ -142,13 +143,13 @@ logdir() {
 
 status() {
     SNAME=tsung_status_$RANDOM
-    $ERL -noshell -sname $SNAME -setcookie $COOKIE -pa $TSUNGPATH -pa $CONTROLLERPATH -s tsung_controller status $HOST -s init stop
+    $ERL -noshell $NAMETYPE $SNAME -setcookie $COOKIE -pa $TSUNGPATH -pa $CONTROLLERPATH -s tsung_controller status $HOST -s init stop
 }
 
 record_tag() {
     shift
     SNAME=tsung_recordtag
-    $ERL -noshell -sname $SNAME -setcookie $COOKIE -pa $TSUNGPATH -pa $RECORDERPATH -run ts_proxy_recorder recordtag $HOST "$*" -s init stop
+    $ERL -noshell $NAMETYPE $SNAME -setcookie $COOKIE -pa $TSUNGPATH -pa $RECORDERPATH -run ts_proxy_recorder recordtag $HOST "$*" -s init stop
 }
 
 checkrunning_controller() {
@@ -175,7 +176,7 @@ usage() {
     exit
 }
 
-while getopts ":f:p:l:d:r:i:P:L:I:u" Option
+while getopts ":f:p:l:d:r:i:P:L:I:u:F" Option
 do
     case $Option in
         f) CONF_OPT_FILE=$OPTARG;;
@@ -193,6 +194,7 @@ do
         p) RECORDER_PLUGIN=$OPTARG;;
         I) PGSQL_SERVER_IP=$OPTARG;;
         u) USE_PARENT_PROXY=true;;
+        F) NAMETYPE="-name";;
         P) PGSQL_SERVER_PORT=$OPTARG;;
         L) LISTEN_PORT=$OPTARG;;
         *) usage ;;
