@@ -91,14 +91,14 @@ get_message(#mysql_request{type=close}) ->
 %% Returns: {NewState, Options for socket (list), Close = true|false}
 %%----------------------------------------------------------------------
 parse(closed, State) ->
-    ?LOGF("Parsing> socket closed ~n",[], ?WARN),
+    ?LOG("Parsing> socket closed ~n", ?WARN),
     {State#state_rcv{ack_done = true, datasize=0}, [], true};
 
 parse(Data, State)->
     <<PacketSize:24/little,_PacketNum:8/little,PacketBody/binary>> = Data,
     case PacketSize =< size(PacketBody) of
         true ->
-            ?LOGF("Parsing> full packet ~n",[], ?DEB),
+            ?LOG("Parsing> full packet ~n",?DEB),
             Request = State#state_rcv.request,
             Param = Request#ts_request.param,
             case Param#mysql_request.type of
@@ -129,22 +129,21 @@ parse_result(Data,State)->
                         0 ->
                             %% No Tabular data
                             <<AffectedRows:8, _Rest2/binary>> = Rest2,
-                            ts_mon:add({ count, ok}),
                             ?LOGF("OK, No Data, Row affected: ~p (~s)~n", [AffectedRows,Data], ?DEB);
                         255 ->
                             <<Errno:16/little, _Marker:8, SQLState:5/binary, Message/binary>>  = Rest2,
                             ?LOGF("Error: ~p ~s ~s ~n", [Errno,SQLState, Message], ?WARN),
+                            %% FIXME: should we stop if an error occurs ?
                             ts_mon:add({ count, list_to_atom("error_mysql_"++integer_to_list(Errno))});
                         254 when size(Rest2) < 9 ->
-                            ?DebugF("EOF: (~p) ~n", [Rest2]);
+                            ?LOGF("EOF: (~p) ~n", [Rest2], ?DEB);
                         _ ->
-                            ts_mon:add({ count, ok}),
                             ?LOGF("OK, Tabular Data, Columns count: ~p (~s)~n", [Fieldcount,Data], ?DEB)
                     end,
                     {State#state_rcv{ack_done = true,datasize=size(Data)},[],false};
                 _ ->
-                   ?LOGF("Bad packet ", [], ?ERR),
-                   ts_mon:add({ count, packet_error}),
+                   ?LOG("Bad packet ", ?ERR),
+                   ts_mon:add({ count, error_mysql_badpacket}),
                    {State#state_rcv{ack_done = true,datasize=size(Data)},[],false}
            end.
 
