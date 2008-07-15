@@ -84,9 +84,9 @@ repeat)*>
     bidi         CDATA #IMPLIED
     persistent   (true | false) #IMPLIED
     probability   NMTOKEN #REQUIRED
-    type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav) #REQUIRED>
+    type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql ) #REQUIRED>
 
-<!ELEMENT request ( match*, dyn_variable*, ( http | jabber | raw | pgsql | ldap ) )>
+<!ELEMENT request ( match*, dyn_variable*, ( http | jabber | raw | pgsql | ldap | mysql ) )>
 <!ATTLIST request
     subst (true|false) "false"
     >
@@ -162,12 +162,17 @@ repeat)*>
     username     CDATA   #IMPLIED
     type        (connect | authenticate | sql | close) #REQUIRED >
 
+<!ELEMENT mysql (#PCDATA) >
+<!ATTLIST mysql
+    password     CDATA   #IMPLIED
+    database     CDATA   #IMPLIED
+    username     CDATA   #IMPLIED
+    type        (connect | authenticate | sql | close) #REQUIRED >
+
 <!ELEMENT raw EMPTY >
 <!ATTLIST raw
     ack         (global | local | no_ack) #REQUIRED
     data CDATA #REQUIRED>
-
-
 
 <!ELEMENT ldap (attr* | modification*) >
 <!ATTLIST ldap
