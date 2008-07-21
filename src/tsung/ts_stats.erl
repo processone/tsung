@@ -15,27 +15,27 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
 %%%  the EPL license and distribute linked combinations including
 %%%  the two.
 
-%%% Random Generators for several probability distributions 
+%%% Random Generators for several probability distributions
 
 -module(ts_stats).
 -created('Date: 2000/10/20 13:58:56 nniclausse Exp ').
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
--export([exponential/1, exponential/2, pareto/2, 
+-export([exponential/1, exponential/2, pareto/2,
          normal/0, normal/1, normal/2,
          invgaussian/2,
-		 mean/1,     mean/3,
-		 variance/1, 
-		 meanvar/4,
-		 stdvar/1]).
+         mean/1, mean/3,
+         variance/1,
+         meanvar/4,
+         stdvar/1]).
 
 -import(math, [log/1, pi/0, sqrt/1, pow/2]).
 
@@ -51,7 +51,7 @@ sample (F, X, Param, 0) ->
     [F(Param) | X] ;
 sample (F, X, Param, N) ->
     sample(F, [F(Param)|X], Param, N-1 ).
-    
+
 %% random sample from an exponential distribution
 exponential(Param) ->
     -math:log(random:uniform())/Param.
@@ -118,7 +118,7 @@ normal_boxm(M,S,_,_,_W) ->
 mean(Esp, [], _) -> Esp;
 
 mean(Esp, [X|H], I) ->
-	Next = I+1,
+    Next = I+1,
     mean((Esp+(X-Esp)/(Next)), H, Next).
 
 %% compute the mean of a list
@@ -131,18 +131,18 @@ mean(H) ->
 meanvar(Esp, Var,[], I) -> {Esp, Var, I};
 
 meanvar(Esp, Var, [X|H], I) ->
-	Next = I+1,
-	C = X - Esp,
-	EspNew = (X+Esp*I)/(Next),
+    Next = I+1,
+    C = X - Esp,
+    EspNew = (X+Esp*I)/(Next),
     meanvar(EspNew, Var+C*(X-EspNew) , H, Next).
 
 %% compute the variance of a list
 variance([]) -> 0;
 variance(H) ->
     {_Mean, Var, I} = meanvar(0, 0, H, 0),
-	Var/I.
+    Var/I.
 
 stdvar(H) ->
-	math:sqrt(variance(H)).
+    math:sqrt(variance(H)).
 
 
