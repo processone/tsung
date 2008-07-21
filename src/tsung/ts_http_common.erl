@@ -62,8 +62,8 @@ http_no_body(Method,#http_request{url=URL, version=Version, cookie=Cookie,
                               host_header=Host, userid=UserId, passwd=Passwd})->
     ?DebugF("~p ~p~n",[Method,URL]),
     R = list_to_binary([Method, " ", URL," ", "HTTP/", Version, ?CRLF,
-                    "Host: ", Host, ?CRLF,
-                    user_agent(UA,Headers),
+                    set_header("Host",Host,Headers, ""),
+                    set_header("User-Agent",UA,Headers, ?USER_AGENT),
                     authenticate(UserId,Passwd),
                     soap_action(SOAPAction),
                     set_cookie_header({Cookie, Host, URL}),
@@ -79,8 +79,8 @@ http_no_body(Method,#http_request{url=URL, version=Version, cookie=Cookie,
     ?DebugF("~p ~p~n",[Method, URL]),
     list_to_binary([Method, " ", URL," ", "HTTP/", Version, ?CRLF,
                     ["If-Modified-Since: ", Date, ?CRLF],
-                    "Host: ", Host, ?CRLF,
-                    user_agent(UA,Headers),
+                    set_header("Host",Host,Headers, ""),
+                    set_header("User-Agent",UA,Headers, ?USER_AGENT),
                     soap_action(SOAPAction),
                     authenticate(UserId,Passwd),
                     set_cookie_header({Cookie, Host, URL}),
@@ -106,8 +106,8 @@ http_body(Method,#http_request{url=URL, version=Version,
     ContentLength=integer_to_list(size(Content)),
     ?DebugF("Content Length of POST: ~p~n.", [ContentLength]),
     H = [Method, " ", URL," ", "HTTP/", Version, ?CRLF,
-               "Host: ", Host, ?CRLF,
-               user_agent(UA,Headers),
+               set_header("Host",Host,Headers, ""),
+               set_header("User-Agent",UA,Headers, ?USER_AGENT),
                authenticate(UserId,Passwd),
                soap_action(SOAPAction),
                set_cookie_header({Cookie, Host, URL}),
@@ -129,19 +129,19 @@ authenticate(UserId,Passwd)->
     ["Authorization: Basic ",AuthStr,?CRLF].
 
 %%----------------------------------------------------------------------
-%% @spec user_agent(UA::string | undefined, Headers::List)
-%% @doc If headers if defined in <headers>, print this one, otherwise,
-%%      print the given user agent (or the default one if undefined)
+%% @spec set_header(Name::string, Val::string | undefined, Headers::List, Default::string)
+%% @doc If headers is defined in <headers>, print this one, otherwise,
+%%      print the given Value (or the default one if undefined)
 %%----------------------------------------------------------------------
-user_agent(UA,Headers) when length(Headers) > 0 ->
-    case  lists:keysearch("User-Agent", 1, Headers) of
-        {value, _} -> []; % the header will be print by headers()
-        false      -> user_agent(UA,[])
+set_header(Name, Value, Headers, Default) when length(Headers) > 0 ->
+    case  lists:keysearch(Name, 1, Headers) of
+        {value, {_,Val}} -> [Name, ": ", Val, ?CRLF];
+        false      -> set_header(Name,Value,[], Default)
     end;
-user_agent(undefined,[]) ->
-    ["User-Agent: ", ?USER_AGENT, ?CRLF];
-user_agent(UA, []) ->
-    ["User-Agent: ", UA, ?CRLF].
+set_header(Name, undefined, [], Default) ->
+    [Name++": ", Default, ?CRLF];
+set_header(Name, Value, [], _) ->
+    [Name++": ", Value, ?CRLF].
 
 soap_action(undefined) -> [];
 soap_action(SOAPAction) -> ["SOAPAction: \"", SOAPAction, "\"", ?CRLF].
@@ -149,9 +149,13 @@ soap_action(SOAPAction) -> ["SOAPAction: \"", SOAPAction, "\"", ?CRLF].
 % user defined headers
 headers([]) ->[];
 headers(Headers) ->
-    lists:foldl(fun({Name, Value}, Result) ->
-                        [Name, ": ", Value, ?CRLF | Result]
-                end, [], lists:reverse(Headers)).
+    lists:foldl(fun({"Host", _}, Result) ->
+                        Result;
+                   ({"User-Agent", _}, Result) ->
+                        Result;
+                   ({Name, Value}, Result) ->
+                         [Name, ": ", Value, ?CRLF | Result]
+                 end, [], lists:reverse(Headers)).
 
 %%----------------------------------------------------------------------
 %% Function: set_cookie_header/1
