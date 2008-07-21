@@ -127,6 +127,7 @@ handle_info({Type, ServerSock, String}, State=#proxy{plugin=Plugin})
         nomatch ->
             {noreply, State, ?lifetime};
         _ ->
+            ?LOG("Connection close received,set close=true~n",?DEB),
             {noreply, State#proxy{close=true}, ?lifetime}
     end;
 

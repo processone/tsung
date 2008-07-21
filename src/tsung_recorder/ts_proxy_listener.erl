@@ -119,6 +119,7 @@ handle_call(stop, _From, State) ->
     {stop, normal, ok, NewState};
 
 handle_call({accepted, _Tag, ClientSock}, _From, State) ->
+    ?LOGF("New socket:~p~n", [ClientSock],?DEB),
     case ts_client_proxy_sup:start_child(ClientSock) of
         {ok, Pid} ->
             ?LOGF("New connection from~p~n", [inet:peername(ClientSock)],?INFO),
