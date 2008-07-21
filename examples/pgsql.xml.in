@@ -35,7 +35,7 @@
       </request>
     </transaction>
 
-    <thinktime value="12"/>
+    <thinktime value="2"/>
 
     <transaction name="select">
       <request><pgsql type="sql">SELECT * from accounts;</pgsql></request>

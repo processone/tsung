@@ -148,6 +148,7 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %% inet data
 handle_info({NetEvent, _Socket, Data}, wait_ack, State) when NetEvent==tcp;
                                                              NetEvent==ssl ->
+    ?DebugF("TCP data received: size=~p ~n",[size(Data)]),
     case handle_data_msg(Data, State) of
         {NewState=#state_rcv{ack_done=true}, Opts} ->
             NewSocket = ts_utils:inet_setopts(NewState#state_rcv.protocol,
@@ -562,6 +563,7 @@ handle_close_while_sending(State=#state_rcv{persistent = true,
     ts_utils:close_socket(Proto, State#state_rcv.socket),
     set_connected_status(false),
     Think = PO#proto_opts.retry_timeout,
+    %%FIXME: report the error to ts_mon ?
     ?LOGF("Server must have closed connection upon us, waiting ~p msec~n",
           [Think], ?NOTICE),
     set_thinktime(Think),
@@ -659,6 +661,8 @@ protocol_options(gen_udp,#proto_opts{udp_rcv_size=Rcv, udp_snd_size=Snd}) ->
 set_thinktime(infinity) -> ok;
 set_thinktime({random, Think}) ->
     set_thinktime(round(ts_stats:exponential(1/Think)));
+set_thinktime({range, Min, Max}) ->
+    set_thinktime(ts_stats:uniform(Min,Max));
 set_thinktime(Think) ->
 %% dot not use timer:send_after because it does not scale well:
 %% http://www.erlang.org/ml-archive/erlang-questions/200202/msg00024.html

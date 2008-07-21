@@ -30,7 +30,7 @@
 -author('nicolas.niclausse@niclux.org').
 
 -export([exponential/1, exponential/2, pareto/2,
-         normal/0, normal/1, normal/2,
+         normal/0, normal/1, normal/2, uniform/2,
          invgaussian/2,
          mean/1, mean/3,
          variance/1,
@@ -51,6 +51,9 @@ sample (F, X, Param, 0) ->
     [F(Param) | X] ;
 sample (F, X, Param, N) ->
     sample(F, [F(Param)|X], Param, N-1 ).
+
+uniform(Min,Max)->
+    Min+random:uniform(Max-Min).
 
 %% random sample from an exponential distribution
 exponential(Param) ->
@@ -76,14 +79,14 @@ invgaussian([Mu,Lambda],N) ->
 
 invgaussian(Param,N) ->
     sample(fun(X) -> invgaussian(X) end , Param, N).
-    
+
 %% random sample from a Inverse Gaussian distribution
 invgaussian(#invgaussian{mu=Mu, lambda=Lambda}) ->
     Y = Mu*pow(normal(), 2),
     X1 = Mu+Mu*Y/(2*Lambda)-Mu*sqrt(4*Lambda*Y+pow(Y,2))/(2*Lambda),
     U = random:uniform(),
     X = (Mu/(Mu+X1))-U,
-    case X >=0 of 
+    case X >=0 of
         true  -> X1;
         false -> Mu*Mu/X1
     end.
@@ -97,7 +100,7 @@ normal([Mean,StdDev],N) ->
 
 normal(Param,N) ->
     sample(fun(X) -> normal(X) end , Param, N).
-    
+
 normal(N) when integer(N)->
     normal(#normal{},N);
 normal(#normal{mean=M,stddev=S}) ->

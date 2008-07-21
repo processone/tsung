@@ -104,7 +104,10 @@ repeat)*>
 <!ELEMENT thinktime EMPTY>
 <!ATTLIST thinktime
     random (true|false) "false"
-    value  NMTOKEN #REQUIRED>
+    value  NMTOKEN #IMPLIED
+    min    NMTOKEN #IMPLIED
+    max    NMTOKEN #IMPLIED
+    >
 
 <!ELEMENT user_agent (#PCDATA)*>
 <!ATTLIST user_agent

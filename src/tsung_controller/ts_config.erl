@@ -426,8 +426,13 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                 "thinktime" ->
                     Val = getAttr(integer,Attrs, value),
                     ets:insert(Tab,{{thinktime, value}, Val}),
-                    Random = getAttr(string,Attrs, random,
-                                     ?config(thinktime_random)),
+                    Random = case { getAttr(integer, Attrs, min),
+                                    getAttr(integer, Attrs, max)}  of
+                                 {Min, Max } when is_integer(Min), is_integer(Max) ->
+                                     {"range", Min, Max};
+                                 {"",""} ->
+                                     getAttr(string,Attrs, random, ?config(thinktime_random))
+                    end,
                     ets:insert(Tab,{{thinktime, random}, Random}),
                     Override = getAttr(string, Attrs, override,
                                        ?config(thinktime_override)),
@@ -495,20 +500,27 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
 parse(Element = #xmlElement{name=thinktime, attributes=Attrs},
       Conf = #config{cur_req_id=ReqId, curid=Id, session_tab = Tab,
                      sessions = [CurS |_]}) ->
-    DefThink = get_default(Tab,{thinktime, value},thinktime_value),
+    DefThink  = get_default(Tab,{thinktime, value},thinktime_value),
     DefRandom = get_default(Tab,{thinktime, random},thinktime_random),
     {Think, Randomize} =
         case get_default(Tab,{thinktime, override},thinktime_override) of
             "true" ->
                 {DefThink, DefRandom};
             "false" ->
-                CurThink = getAttr(integer, Attrs, value,DefThink),
-                CurRandom=getAttr(string, Attrs,random,DefRandom),
-                {CurThink, CurRandom}
+                case { getAttr(integer, Attrs, min), getAttr(integer, Attrs, max)}  of
+                    {Min, Max } when is_integer(Min), is_integer(Max) ->
+                        {"", {"range", Min, Max} };
+                    {"",""} ->
+                        CurThink  = getAttr(integer, Attrs, value,DefThink),
+                        CurRandom = getAttr(string, Attrs,random,DefRandom),
+                        {CurThink, CurRandom}
+                end
         end,
     RealThink = case Randomize of
                     "true" ->
                         {random, Think * 1000};
+                    {"range", Min2, Max2} ->
+                        {range, Min2 * 1000, Max2 * 1000};
                     "false" ->
                         round(Think * 1000)
                 end,

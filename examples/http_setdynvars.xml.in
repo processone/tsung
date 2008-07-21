@@ -21,7 +21,7 @@
   </load>
 
   <options>
-    <option name="file_server" id='userdb' value="/home/nniclaus/.tsung/test_file_server.csv"/>
+    <option name="file_server" id='userdb' value="/home/nniclaus/.tsung/users-gforge.csv"/>
     <option type="ts_http" name="user_agent">
       <user_agent probability="100">
         Some browser version 42
@@ -60,7 +60,7 @@
         </http>
       </request>
 
-      <thinktime value="5" random="true"/>
+      <thinktime min="2" max="4"></thinktime>
 
       <request subst="true">
         <dyn_variable name="title" regexp="&lt;title&gt;\(.*\)&lt;/title&gt;"/>
