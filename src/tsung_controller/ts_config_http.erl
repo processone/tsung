@@ -101,9 +101,9 @@ parse_config(Element = #xmlElement{name=http},
                   Passwd= ts_config:getAttr(string,AuthEl#xmlElement.attributes,
                                               passwd, undefined),
                   NewReq=Request3#http_request{userid=UserId, passwd=Passwd},
-                  set_msg(NewReq, 0, {SubstFlag, MatchRegExp, UseProxy, Servers, PreviousHTTPServer, Tab, CurS#session.id} );
+                  set_msg(NewReq, {SubstFlag, MatchRegExp, UseProxy, Servers, PreviousHTTPServer, Tab, CurS#session.id} );
               _ ->
-                  set_msg(Request3, 0, {SubstFlag, MatchRegExp, UseProxy, Servers, PreviousHTTPServer, Tab, CurS#session.id} )
+                  set_msg(Request3, {SubstFlag, MatchRegExp, UseProxy, Servers, PreviousHTTPServer, Tab, CurS#session.id} )
           end,
 
     ts_config:mark_prev_req(Id-1, Tab, CurS),
@@ -165,21 +165,21 @@ parse_headers([_| Tail], Headers) ->
     parse_headers(Tail, Headers).
 
 %%----------------------------------------------------------------------
-%% Func: set_msg/3
+%% Func: set_msg/2
 %% Returns: #ts_request record
 %% Purpose: build the #ts_request record from an #http_request,
-%% thinktime and Substition def.
+%%          and Substition def.
 %%----------------------------------------------------------------------
 %% if the URL is full (http://...), we parse it and get server host,
 %% port and scheme from the URL and override the global setup of the
 %% server. These informations are stored in the #ts_request record.
 set_msg(HTTP=#http_request{url="http" ++ URL},
-        ThinkTime, {SubstFlag, MatchRegExp, UseProxy, [Server|_], _PrevHTTPServer, Tab, Id}) ->
-    URLrec = parse_URL("http" ++ URL),
-    Path = set_query(URLrec),
+        {SubstFlag, MatchRegExp, UseProxy, [Server|_], _PrevHTTPServer, Tab, Id}) ->
+    URLrec     = parse_URL("http" ++ URL),
+    Path       = set_query(URLrec),
     HostHeader = set_host_header(URLrec),
-    Port = set_port(URLrec),
-    Scheme = set_scheme(URLrec#url.scheme),
+    Port       = set_port(URLrec),
+    Scheme     = set_scheme(URLrec#url.scheme),
     ets:insert(Tab,{{http_server, Id}, {HostHeader, URLrec#url.scheme}}),
 
     {RealServer, RealPath} = case UseProxy of
@@ -188,7 +188,7 @@ set_msg(HTTP=#http_request{url="http" ++ URL},
                                Path}
                  end,
 
-    set_msg2(HTTP#http_request{url=RealPath, host_header = HostHeader}, ThinkTime,
+    set_msg2(HTTP#http_request{url=RealPath, host_header = HostHeader},
              #ts_request{ack    = parse,
                          subst  = SubstFlag,
                          match  = MatchRegExp,
@@ -197,39 +197,32 @@ set_msg(HTTP=#http_request{url="http" ++ URL},
                          port   = RealServer#server.port});
 
 %% relative URL, no previous HTTP server, use proxy, error !
-set_msg(_, _, {_, _, true, _Server, [],_Tab,_Id}) ->
+set_msg(_, {_, _, true, _Server, [],_Tab,_Id}) ->
     ?LOG("Need absolut URL when using a proxy ! Abort",?ERR),
     throw({error, badurl_proxy});
 %% relative URL, no proxy, a single server => we can preset host header at configuration time
-set_msg(HTTPRequest, Think, {SubstFlag, MatchRegExp, false, [Server], [],_Tab,_Id}) ->
+set_msg(HTTPRequest, {SubstFlag, MatchRegExp, false, [Server], [],_Tab,_Id}) ->
     ?LOG("Relative URL, single server ",?NOTICE),
     URL = server_to_url(Server) ++ HTTPRequest#http_request.url,
-    set_msg(HTTPRequest#http_request{url=URL}, Think, {SubstFlag, MatchRegExp, false, [Server], [],_Tab,_Id});
+    set_msg(HTTPRequest#http_request{url=URL}, {SubstFlag, MatchRegExp, false, [Server], [],_Tab,_Id});
 %% relative URL, no proxy, several servers: don't set host header
 %% since the real server will be choose at run time
-set_msg(HTTPRequest, Think, {SubstFlag, MatchRegExp, false, _Servers, [],_Tab,_Id}) ->
-    set_msg2(HTTPRequest, Think,
+set_msg(HTTPRequest, {SubstFlag, MatchRegExp, false, _Servers, [],_Tab,_Id}) ->
+    set_msg2(HTTPRequest,
              #ts_request{ack = parse, subst = SubstFlag, match = MatchRegExp });
 %% relative URL, no proxy
-set_msg(HTTPRequest, Think, {SubstFlag, MatchRegExp, false, _Server, {HostHeader,_},_Tab,_Id}) ->
-    set_msg2(HTTPRequest#http_request{host_header= HostHeader}, Think,
+set_msg(HTTPRequest, {SubstFlag, MatchRegExp, false, _Server, {HostHeader,_},_Tab,_Id}) ->
+    set_msg2(HTTPRequest#http_request{host_header= HostHeader},
              #ts_request{ack = parse, subst = SubstFlag, match = MatchRegExp });
 %% relative URL, use proxy
-set_msg(HTTPRequest, Think, {SubstFlag, MatchRegExp, true, Server, {HostHeader, PrevScheme},Tab,Id}) ->
+set_msg(HTTPRequest, {SubstFlag, MatchRegExp, true, Server, {HostHeader, PrevScheme},Tab,Id}) ->
     %% set absolut URL using previous Server used.
     URL = atom_to_list(PrevScheme) ++ "://" ++ HostHeader ++ HTTPRequest#http_request.url,
-    set_msg(HTTPRequest#http_request{url=URL}, Think, {SubstFlag, MatchRegExp, true, Server, {HostHeader, PrevScheme},Tab,Id}).
+    set_msg(HTTPRequest#http_request{url=URL}, {SubstFlag, MatchRegExp, true, Server, {HostHeader, PrevScheme},Tab,Id}).
 
 %% Func: set_mgs2/3
-%% Purpose: set param and thinktime in ts_request
-%% Returns: ts_request
-set_msg2(HTTPRequest, 0, Msg) -> % no thinktime, only wait for response
-    Msg#ts_request{ thinktime=infinity,
-                    param = HTTPRequest };
-set_msg2(HTTPRequest, Think, Msg) -> % end of a page, wait before the next one
-    Msg#ts_request{ endpage   = true,
-                    thinktime = Think,
-                    param = HTTPRequest }.
+%% Purpose: set param  in ts_request
+set_msg2(HTTPRequest, Msg) -> Msg#ts_request{ param = HTTPRequest }.
 
 server_to_url(#server{port=80, host= Host, type= gen_tcp})->
     "http://" ++ Host;
@@ -261,7 +254,7 @@ set_port(#url{scheme=http,port=undefined})   -> 80;
 set_port(#url{port=Port}) when is_integer(Port) -> Port;
 set_port(#url{port=Port}) -> integer_to_list(Port).
 
-set_scheme(http) -> gen_tcp;
+set_scheme(http)  -> gen_tcp;
 set_scheme(https) -> ssl.
 
 

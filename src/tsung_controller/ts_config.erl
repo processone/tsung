@@ -527,9 +527,6 @@ parse(Element = #xmlElement{name=thinktime, attributes=Attrs},
     ?LOGF("New thinktime ~p for id (~p:~p)~n",[RealThink, CurS#session.id, Id+1],
           ?INFO),
     ets:insert(Tab,{{CurS#session.id, Id+1}, {thinktime, RealThink}}),
-    [{Key, Msg}] = ets:lookup(Tab,{CurS#session.id, ReqId}),
-    ets:insert(Tab,{Key, Msg#ts_request{thinktime=RealThink}}),
-
     lists:foldl( fun parse/2, Conf#config{curthink=Think,curid=Id+1},
                  Element#xmlElement.content);
 

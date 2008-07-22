@@ -26,8 +26,7 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
--export([ get_random_params/4,
-          get_message/1
+-export([ get_message/1
          ]).
 
 -include("ts_profile.hrl").
@@ -449,27 +448,6 @@ request(roster_get, _UserName, _Domain, _Id)->
     list_to_binary([
       "<iq id='" ,ts_msg_server:get_id(list),
       "' type='get'><query xmlns='jabber:iq:roster'></query></iq>"]).
-
-%%----------------------------------------------------------------------
-%% Func: get_random_params/5
-%% Args: Intensity (inverse of the mean of inter arrival of messages)
-%%       N         : number of messages
-%%----------------------------------------------------------------------
-get_random_params(_Intensity, 1, Size, Type, L) ->
-    L ++ [#ts_request{ ack = no_ack,
-            thinktime = ?config(messages_last_time),
-            param = #jabber {size=Size, type=Type}}];
-
-get_random_params(Intensity, N, Size, Type, L)  ->
-    get_random_params(Intensity, N-1, Size, Type,
-              [#ts_request{ack = no_ack,
-                           thinktime = round(ts_stats:exponential(Intensity)),
-                           param = #jabber {size=Size, type=Type}}
-               | L]).
-
-get_random_params(Intensity, N, Size, Type) when is_integer(N), N >= 0 ->
-    get_random_params(Intensity, N, Size, Type, []).
-
 
 %%%----------------------------------------------------------------------
 %%% Func: raw/1

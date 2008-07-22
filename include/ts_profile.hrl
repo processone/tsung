@@ -40,7 +40,7 @@
        }).
 
 -record(ts_request,
-        {thinktime,
+        {
          ack,
          subst=false,
          match=[],
