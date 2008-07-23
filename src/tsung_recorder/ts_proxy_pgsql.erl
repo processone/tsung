@@ -96,10 +96,7 @@ parse(State=#proxy{},_,ServerSocket,String) ->
                     PwdStr= binary_to_list(Password),
                     ?LOGF("password = ~s~n",[PwdStr],?DEB),
                     ts_proxy_recorder:dorecord({#pgsql_request{type=authenticate, passwd=PwdStr}}),
-                    {ok, State#proxy{buffer=[]}};
-                {ok, Pair, Tail } ->
-                    ?LOGF("parsed data received from client : ~p:~p~n",[Pair, Tail],?DEB),
-                    {ok, State#proxy{ buffer=[]} }
+                    {ok, State#proxy{buffer=[]}}
             end,
     ts_client_proxy:send(ServerSocket, String, ?MODULE),
     Reply.
