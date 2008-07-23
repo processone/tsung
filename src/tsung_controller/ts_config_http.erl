@@ -240,9 +240,6 @@ server_to_url(#server{port=Port, host= Host, type= ssl})->
 set_host_header(#url{host=Host,port=undefined})   -> Host;
 set_host_header(#url{host=Host,port=Port}) when is_integer(Port) ->
     Host ++ ":" ++ integer_to_list(Port);
-set_host_header(#url{host=Host,port=Port}) when is_list(Port) ->
-    Host ++ ":" ++ Port.
-
 
 %%--------------------------------------------------------------------
 %% Func: set_port/1
