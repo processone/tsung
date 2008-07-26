@@ -239,7 +239,7 @@ server_to_url(#server{port=Port, host= Host, type= ssl})->
 %% if port is undefined, don't need to set port, because it use the default (80 or 443)
 set_host_header(#url{host=Host,port=undefined})   -> Host;
 set_host_header(#url{host=Host,port=Port}) when is_integer(Port) ->
-    Host ++ ":" ++ integer_to_list(Port);
+    Host ++ ":" ++ integer_to_list(Port).
 
 %%--------------------------------------------------------------------
 %% Func: set_port/1
