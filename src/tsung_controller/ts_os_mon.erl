@@ -362,9 +362,7 @@ start_beam(Host) ->
     Args = ts_utils:erl_system_args(),
     ?LOGF("starting os_mon beam (~p) on host ~p with Args ~p~n",
           [?NODE,Host, Args], ?INFO),
-    {ok, Node} = slave:start_link(Host, ?NODE, Args),
-   ?LOGF("started os_mon newbeam on node ~p~n", [Node], ?INFO),
-    {ok, Node}.
+    slave:start_link(Host, ?NODE, Args).
 
 %%--------------------------------------------------------------------
 %% Function: stop_beam/1
@@ -396,6 +394,7 @@ load_code(Nodes) ->
 %% Function: active_host/2
 %% Purpose: Activate monitoring
 %%--------------------------------------------------------------------
+%% FIXME: start remote beams in parallel
 active_host([], State) ->
     State;
 %% monitoring using snmp
@@ -423,18 +422,24 @@ active_host([{Host, erlang}| HostList], State=#state{erlang_pids=PidList}) ->
     %% last boot)  is returned by cpu_sup:util), we spawn a process
     %% that will do the stats collection and send it to ts_mon
     {ok, LocalHost} = ts_utils:node_to_hostname(node()),
-    {Pid, RemNode} = case list_to_atom(LocalHost) of
-              Host -> % same host, don't start a new beam
-                  { spawn_link(?MODULE, updatestats, [State#state.interval, State#state.mon_server]), node()};
-              _ ->
-                  {ok, Node} = start_beam(Host),
-                  Pong= net_adm:ping(Node),
-                  ?LOGF("ping ~p: ~p~n", [Node, Pong],?INFO),
-                  load_code([Node]),
-                  { spawn_link(Node, ?MODULE, updatestats, [State#state.interval, State#state.mon_server]),
-                    Node }
-          end,
-    active_host(HostList, State#state{erlang_pids=[{Pid, RemNode}|PidList]}).
+    case list_to_atom(LocalHost) of
+        Host -> % same host, don't start a new beam
+            Pid = spawn_link(?MODULE,updatestats,[State#state.interval,State#state.mon_server]),
+            active_host(HostList, State#state{erlang_pids=[{Pid, node()}|PidList]});
+        _ ->
+            case start_beam(Host) of
+                {ok, Node} ->
+                    Pong = net_adm:ping(Node),
+                    ?LOGF("ping ~p: ~p~n", [Node, Pong],?INFO),
+                    load_code([Node]),
+                    Pid = spawn_link(Node, ?MODULE, updatestats,
+                                     [State#state.interval, State#state.mon_server]),
+                    active_host(HostList, State#state{erlang_pids=[{Pid, Node}|PidList]});
+                Error ->
+                    ?LOGF("Fail to start beam on host ~p (~p)~n", [Host, Error],?ERR),
+                    active_host(HostList, State)
+            end
+    end.
 
 %%--------------------------------------------------------------------
 %% Function: analyse_snmp_data/3
