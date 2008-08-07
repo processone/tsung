@@ -24,7 +24,7 @@
 
 \begin{document}
 \maketitle
-\Abstract{Tsung user's manual}
+% \Abstract{Tsung user's manual}
 \newpage
 \tableofcontents
 
@@ -397,6 +397,8 @@ to 10.6.1.1:5433.
 
 \section{Jabber benchmark approach}
 
+\subsection{Overview}
+
 This paragraph explains how to write a session for Jabber.
 
 There are two differences between HTTP and Jabber testing:
@@ -408,7 +410,6 @@ There are two differences between HTTP and Jabber testing:
   acknowledgments.
 \end{enumerate}
 
-\section{Jabber benchmark approach}
 
 
 There is no recorder for Jabber, so you have to write your sessions by
@@ -1325,12 +1326,35 @@ Then use something like this in your session:
   </request>
 \end{Verbatim}
 
-
 Two functions are available: \varname{ts\_file\_server:get\_next\_line}
 and \varname{ts\_file\_server:get\_random\_line}. For the
 \varname{get\_next\_line} function, when the end of file is reached, the
 first line of the file will be the next line.
 
+\strong{New in 1.3.0}: you no longer have to create an external
+function to parse a simple csv file: you cau use \varname{setdynvars}
+(see next section for detailed documentation):
+
+\begin{Verbatim}
+<setdynvars sourcetype="file" fileid="userlist.csv" delimiter=";" order="iter">
+ <var name="username" />
+ <var name="user_password" />
+</setdynvars>
+\end{Verbatim}
+
+This defines two dynamic variables \varname{username} and
+\varname{user\_password} filled with the next entry from the csv
+file. Using the previous example, the request is now:
+\begin{Verbatim}
+  <request subst="true">
+    <http url='/login.cgi' version='1.0'
+      contents='username=%%_username%%&amp;password=%%_user_password%%&amp;op=login'
+    content_type='application/x-www-form-urlencoded' method='POST'>
+    </http>
+  </request>
+\end{Verbatim}
+
+Much simpler than the old method !
 
 \subsubsection{Dynamic variables}
 
@@ -1378,6 +1402,9 @@ hand, for example to get the title of a HTML page:
       <http url="/testtsung.html" method="GET" version="1.0"></http>
     </request>
 \end{Verbatim}
+
+\strong{Since version 1.3.0}, more powerful variables is implemented:
+FIXME
 
 \subsubsection{Checking the server's response}
 
@@ -1836,6 +1863,27 @@ work. This is fixed in erlang R9C-1 and up.
      {error,{invalid_option,InvOpt}};
  is_options_ok([]) -> true.
 \end{Verbatim}
+
+\section{Errors list}
+
+\begin{description}
+\item[error\_closed]
+\item[error\_inet\_XXX]
+\item[error\_unknown\_data]
+\item[error\_unknown\_msg]
+\item[error\_unknown]
+\item[error\_repeat\_<REPEATNAME>]
+\item[error\_send\_XXX]
+\item[error\_send]
+\item[error\_connect\_XXX]
+\item[error\_no\_online jabber]
+\item[error\_no\_offline jabber]
+\item[error\_no\_free\_userid]
+\item[error\_next\_session]
+\item[error\_mysql\_<ERRNO>]
+\item[error\_mysql\_badpacket]
+\item[error\_pgsql]
+\end{description}
 
 \section{CHANGELOG}
 \fvset{numbers=none,frame=lines,fontsize=\small,fontfamily=courier,fontshape=sl}

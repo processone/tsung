@@ -84,19 +84,12 @@ a:hover     {background:#ffffaa;}
  
  <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1>
 <TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2">Version:</TD>
-<TD ALIGN=left NOWRAP>852</TD>
+<TD ALIGN=left NOWRAP>876</TD>
 </TR>
 <TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2">Date :</TD>
-<TD ALIGN=left NOWRAP>						6th								August,&nbsp;2008</TD>
+<TD ALIGN=left NOWRAP>						7th								August,&nbsp;2008</TD>
 </TR></TABLE>
  </DIV>
-
-<BR>
-<DIV CLASS="center">
- <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1>
-<TR><TD VALIGN=top ALIGN=left><I>Tsung user's manual</I></TD>
-</TR></TABLE>
-</DIV>
 
 <!--TOC section Contents-->
 
@@ -136,56 +129,56 @@ a:hover     {background:#ffffaa;}
 </UL>
 <LI CLASS="li-toc"><A HREF="#htoc24">5&nbsp;&nbsp;PostgreSQL benchmark approach</A>
 <LI CLASS="li-toc"><A HREF="#htoc25">6&nbsp;&nbsp;Jabber benchmark approach</A>
-<LI CLASS="li-toc"><A HREF="#htoc26">7&nbsp;&nbsp;Jabber benchmark approach</A>
 <UL CLASS="toc"><LI CLASS="li-toc">
-<A HREF="#htoc27">7.1&nbsp;&nbsp;Acknowledgements of messages</A>
-<LI CLASS="li-toc"><A HREF="#htoc28">7.2&nbsp;&nbsp;Status: Offline, Connected and Online</A>
-<LI CLASS="li-toc"><A HREF="#htoc29">7.3&nbsp;&nbsp;Authentication</A>
+<A HREF="#htoc26">6.1&nbsp;&nbsp;Overview</A>
+<LI CLASS="li-toc"><A HREF="#htoc27">6.2&nbsp;&nbsp;Acknowledgements of messages</A>
+<LI CLASS="li-toc"><A HREF="#htoc28">6.3&nbsp;&nbsp;Status: Offline, Connected and Online</A>
+<LI CLASS="li-toc"><A HREF="#htoc29">6.4&nbsp;&nbsp;Authentication</A>
 </UL>
-<LI CLASS="li-toc"><A HREF="#htoc30">8&nbsp;&nbsp;Using the proxy recorder</A>
+<LI CLASS="li-toc"><A HREF="#htoc30">7&nbsp;&nbsp;Using the proxy recorder</A>
 <UL CLASS="toc"><LI CLASS="li-toc">
-<A HREF="#htoc31">8.1&nbsp;&nbsp;PostgreSQL</A>
-<LI CLASS="li-toc"><A HREF="#htoc32">8.2&nbsp;&nbsp;HTTP and WEBDAV</A>
+<A HREF="#htoc31">7.1&nbsp;&nbsp;PostgreSQL</A>
+<LI CLASS="li-toc"><A HREF="#htoc32">7.2&nbsp;&nbsp;HTTP and WEBDAV</A>
 </UL>
-<LI CLASS="li-toc"><A HREF="#htoc33">9&nbsp;&nbsp;Understanding tsung.xml configuration file</A>
+<LI CLASS="li-toc"><A HREF="#htoc33">8&nbsp;&nbsp;Understanding tsung.xml configuration file</A>
 <UL CLASS="toc"><LI CLASS="li-toc">
-<A HREF="#htoc34">9.1&nbsp;&nbsp;File structure</A>
-<LI CLASS="li-toc"><A HREF="#htoc35">9.2&nbsp;&nbsp;Clients and server</A>
-<LI CLASS="li-toc"><A HREF="#htoc36">9.3&nbsp;&nbsp;Monitoring</A>
+<A HREF="#htoc34">8.1&nbsp;&nbsp;File structure</A>
+<LI CLASS="li-toc"><A HREF="#htoc35">8.2&nbsp;&nbsp;Clients and server</A>
+<LI CLASS="li-toc"><A HREF="#htoc36">8.3&nbsp;&nbsp;Monitoring</A>
 <UL CLASS="toc"><LI CLASS="li-toc">
-<A HREF="#htoc37">9.3.1&nbsp;&nbsp;Erlang</A>
-<LI CLASS="li-toc"><A HREF="#htoc38">9.3.2&nbsp;&nbsp;SNMP</A>
+<A HREF="#htoc37">8.3.1&nbsp;&nbsp;Erlang</A>
+<LI CLASS="li-toc"><A HREF="#htoc38">8.3.2&nbsp;&nbsp;SNMP</A>
 </UL>
-<LI CLASS="li-toc"><A HREF="#htoc39">9.4&nbsp;&nbsp;Defining the load progression</A>
-<LI CLASS="li-toc"><A HREF="#htoc40">9.5&nbsp;&nbsp;Setting options</A>
+<LI CLASS="li-toc"><A HREF="#htoc39">8.4&nbsp;&nbsp;Defining the load progression</A>
+<LI CLASS="li-toc"><A HREF="#htoc40">8.5&nbsp;&nbsp;Setting options</A>
 <UL CLASS="toc"><LI CLASS="li-toc">
-<A HREF="#htoc41">9.5.1&nbsp;&nbsp;Jabber options</A>
-<LI CLASS="li-toc"><A HREF="#htoc42">9.5.2&nbsp;&nbsp;HTTP options</A>
+<A HREF="#htoc41">8.5.1&nbsp;&nbsp;Jabber options</A>
+<LI CLASS="li-toc"><A HREF="#htoc42">8.5.2&nbsp;&nbsp;HTTP options</A>
 </UL>
-<LI CLASS="li-toc"><A HREF="#htoc43">9.6&nbsp;&nbsp;Sessions</A>
+<LI CLASS="li-toc"><A HREF="#htoc43">8.6&nbsp;&nbsp;Sessions</A>
 <UL CLASS="toc"><LI CLASS="li-toc">
-<A HREF="#htoc44">9.6.1&nbsp;&nbsp;HTTP</A>
-<LI CLASS="li-toc"><A HREF="#htoc45">9.6.2&nbsp;&nbsp;Jabber</A>
-<LI CLASS="li-toc"><A HREF="#htoc46">9.6.3&nbsp;&nbsp;PostgreSQL</A>
-<LI CLASS="li-toc"><A HREF="#htoc47">9.6.4&nbsp;&nbsp;MySQL</A>
-<LI CLASS="li-toc"><A HREF="#htoc48">9.6.5&nbsp;&nbsp;LDAP</A>
-<LI CLASS="li-toc"><A HREF="#htoc49">9.6.6&nbsp;&nbsp;Dynamic substitutions</A>
-<LI CLASS="li-toc"><A HREF="#htoc50">9.6.7&nbsp;&nbsp;Reading external file</A>
-<LI CLASS="li-toc"><A HREF="#htoc51">9.6.8&nbsp;&nbsp;Dynamic variables</A>
-<LI CLASS="li-toc"><A HREF="#htoc52">9.6.9&nbsp;&nbsp;Checking the server's response</A>
-<LI CLASS="li-toc"><A HREF="#htoc53">9.6.10&nbsp;&nbsp;Loops</A>
+<A HREF="#htoc44">8.6.1&nbsp;&nbsp;HTTP</A>
+<LI CLASS="li-toc"><A HREF="#htoc45">8.6.2&nbsp;&nbsp;Jabber</A>
+<LI CLASS="li-toc"><A HREF="#htoc46">8.6.3&nbsp;&nbsp;PostgreSQL</A>
+<LI CLASS="li-toc"><A HREF="#htoc47">8.6.4&nbsp;&nbsp;MySQL</A>
+<LI CLASS="li-toc"><A HREF="#htoc48">8.6.5&nbsp;&nbsp;LDAP</A>
+<LI CLASS="li-toc"><A HREF="#htoc49">8.6.6&nbsp;&nbsp;Dynamic substitutions</A>
+<LI CLASS="li-toc"><A HREF="#htoc50">8.6.7&nbsp;&nbsp;Reading external file</A>
+<LI CLASS="li-toc"><A HREF="#htoc51">8.6.8&nbsp;&nbsp;Dynamic variables</A>
+<LI CLASS="li-toc"><A HREF="#htoc52">8.6.9&nbsp;&nbsp;Checking the server's response</A>
+<LI CLASS="li-toc"><A HREF="#htoc53">8.6.10&nbsp;&nbsp;Loops</A>
 </UL>
 </UL>
-<LI CLASS="li-toc"><A HREF="#htoc54">10&nbsp;&nbsp;Statistics and reports</A>
+<LI CLASS="li-toc"><A HREF="#htoc54">9&nbsp;&nbsp;Statistics and reports</A>
 <UL CLASS="toc"><LI CLASS="li-toc">
-<A HREF="#htoc55">10.1&nbsp;&nbsp;Available stats</A>
-<LI CLASS="li-toc"><A HREF="#htoc56">10.2&nbsp;&nbsp;Design</A>
-<LI CLASS="li-toc"><A HREF="#htoc57">10.3&nbsp;&nbsp;Generating the report</A>
-<LI CLASS="li-toc"><A HREF="#htoc58">10.4&nbsp;&nbsp;tsung summary</A>
-<LI CLASS="li-toc"><A HREF="#htoc59">10.5&nbsp;&nbsp;Graphical overview</A>
+<A HREF="#htoc55">9.1&nbsp;&nbsp;Available stats</A>
+<LI CLASS="li-toc"><A HREF="#htoc56">9.2&nbsp;&nbsp;Design</A>
+<LI CLASS="li-toc"><A HREF="#htoc57">9.3&nbsp;&nbsp;Generating the report</A>
+<LI CLASS="li-toc"><A HREF="#htoc58">9.4&nbsp;&nbsp;tsung summary</A>
+<LI CLASS="li-toc"><A HREF="#htoc59">9.5&nbsp;&nbsp;Graphical overview</A>
 </UL>
-<LI CLASS="li-toc"><A HREF="#htoc60">11&nbsp;&nbsp;References</A>
-<LI CLASS="li-toc"><A HREF="#htoc61">12&nbsp;&nbsp;Acknowledgments</A>
+<LI CLASS="li-toc"><A HREF="#htoc60">10&nbsp;&nbsp;References</A>
+<LI CLASS="li-toc"><A HREF="#htoc61">11&nbsp;&nbsp;Acknowledgments</A>
 <LI CLASS="li-toc"><A HREF="#htoc62">A&nbsp;&nbsp;Frequently Asked Questions</A>
 <UL CLASS="toc"><LI CLASS="li-toc">
 <A HREF="#htoc63">A.1&nbsp;&nbsp;Tsung crashes when I start it </A>
@@ -195,7 +188,8 @@ a:hover     {background:#ffffaa;}
 <LI CLASS="li-toc"><A HREF="#htoc67">A.5&nbsp;&nbsp;How can I specify the number of concurrent users ?</A>
 <LI CLASS="li-toc"><A HREF="#htoc68">A.6&nbsp;&nbsp;SNMP monitoring doesn't work ?!</A>
 </UL>
-<LI CLASS="li-toc"><A HREF="#htoc69">B&nbsp;&nbsp;CHANGELOG</A>
+<LI CLASS="li-toc"><A HREF="#htoc69">B&nbsp;&nbsp;Errors list</A>
+<LI CLASS="li-toc"><A HREF="#htoc70">C&nbsp;&nbsp;CHANGELOG</A>
 </UL>
 
 <!--TOC section Introduction-->
@@ -570,7 +564,7 @@ the number of simultaneous users for each given phase.
  <TT>tsung start</TT>
 <LI CLASS="li-enumerate">Wait for the end of the test or stop by hand with
  <TT>tsung stop</TT> (reports can also be generated during the
- test (see § <A HREF="#sec:statistics-reports">10</A>) : the statistics are
+ test (see § <A HREF="#sec:statistics-reports">9</A>) : the statistics are
  updated every 10 seconds). For a brief summary of the current
  activity, use <TT>tsung status</TT>
 <LI CLASS="li-enumerate">Analyze results, change parameters and relaunch another benchmark
@@ -639,26 +633,26 @@ to 10.6.1.1:5433.<BR>
 
 <H2 CLASS="section"><A NAME="htoc25">6</A>&nbsp;&nbsp;Jabber benchmark approach</H2><!--SEC END -->
 
+<!--TOC subsection Overview-->
+
+<H3 CLASS="subsection"><A NAME="htoc26">6.1</A>&nbsp;&nbsp;Overview</H3><!--SEC END -->
+
 This paragraph explains how to write a session for Jabber.<BR>
 <BR>
 There are two differences between HTTP and Jabber testing:
 <OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
 There is no recorder for Jabber, so you have to write your
  sessions by hand (an example is provided in
- <A HREF="#sec:sessions:jabber">9.6.2</A>).
+ <A HREF="#sec:sessions:jabber">8.6.2</A>).
 <LI CLASS="li-enumerate">the jabber plugin does not parse XML; instead it uses packet
  acknowledgments.
 </OL>
-<!--TOC section Jabber benchmark approach-->
-
-<H2 CLASS="section"><A NAME="htoc26">7</A>&nbsp;&nbsp;Jabber benchmark approach</H2><!--SEC END -->
-
 There is no recorder for Jabber, so you have to write your sessions by
-hand (an example is provided in <A HREF="#sec:sessions:jabber">9.6.2</A>).<BR>
+hand (an example is provided in <A HREF="#sec:sessions:jabber">8.6.2</A>).<BR>
 <BR>
 <!--TOC subsection Acknowledgements of messages-->
 
-<H3 CLASS="subsection"><A NAME="htoc27">7.1</A>&nbsp;&nbsp;Acknowledgements of messages</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc27">6.2</A>&nbsp;&nbsp;Acknowledgements of messages</H3><!--SEC END -->
 
 Since the jabber plugin does not parse XML (historically, it was for
 performance reasons), you must have a way to tell when a request is
@@ -776,7 +770,7 @@ message.<BR>
 <BR>
 <!--TOC subsection Status: Offline, Connected and Online-->
 
-<H3 CLASS="subsection"><A NAME="htoc28">7.2</A>&nbsp;&nbsp;Status: Offline, Connected and Online</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc28">6.3</A>&nbsp;&nbsp;Status: Offline, Connected and Online</H3><!--SEC END -->
 
 You can send messages to offline or online users. A user is considered
 online when he has send a <FONT COLOR=purple>presence:initial</FONT> message (before
@@ -799,12 +793,12 @@ online as soon as it was connected.<BR>
 <BR>
 <!--TOC subsection Authentication-->
 
-<H3 CLASS="subsection"><A NAME="htoc29">7.3</A>&nbsp;&nbsp;Authentication</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc29">6.4</A>&nbsp;&nbsp;Authentication</H3><!--SEC END -->
 
 Below are configuration examples for the possible authentication
 methods. Note: the regular expressions used here are only examples -
 they may need to be altered depending on how a particular server
-implementation composes messages (see also &nbsp;<A HREF="#sec:jabber-options">9.5.1</A>
+implementation composes messages (see also &nbsp;<A HREF="#sec:jabber-options">8.5.1</A>
 for password settings).
 <UL CLASS="itemize"><LI CLASS="li-itemize">
 <B>plain authentication</B> - sends cleartext passwords:
@@ -936,7 +930,7 @@ for password settings).
 </TR></TABLE></UL>
 <!--TOC section Using the proxy recorder-->
 
-<H2 CLASS="section"><A NAME="htoc30">8</A>&nbsp;&nbsp;Using the proxy recorder</H2><!--SEC END -->
+<H2 CLASS="section"><A NAME="htoc30">7</A>&nbsp;&nbsp;Using the proxy recorder</H2><!--SEC END -->
 
 The recorder has three plugins: for HTTP, WABDAV and for PostgreSQL.<BR>
 <BR>
@@ -995,7 +989,7 @@ declaration, like:<BR>
 </TR></TABLE><BR>
 <!--TOC subsection PostgreSQL-->
 
-<H3 CLASS="subsection"><A NAME="htoc31">8.1</A>&nbsp;&nbsp;PostgreSQL</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc31">7.1</A>&nbsp;&nbsp;PostgreSQL</H3><!--SEC END -->
 
 For PostgreSQL, the proxy will connect to the server at IP 127.0.0.1
 and port 5432. Use <FONT COLOR=purple>-I serverIP</FONT> to change the IP and
@@ -1003,7 +997,7 @@ and port 5432. Use <FONT COLOR=purple>-I serverIP</FONT> to change the IP and
 <BR>
 <!--TOC subsection HTTP and WEBDAV-->
 
-<H3 CLASS="subsection"><A NAME="htoc32">8.2</A>&nbsp;&nbsp;HTTP and WEBDAV</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc32">7.2</A>&nbsp;&nbsp;HTTP and WEBDAV</H3><!--SEC END -->
 
 For HTTPS recording, use <FONT COLOR=purple>http://ssl-</FONT> instead of
 <FONT COLOR=purple>https://</FONT> in your browser<BR>
@@ -1015,7 +1009,7 @@ the IP and <FONT COLOR=purple>-P portnumber</FONT> to set the port of the parent
 <BR>
 <!--TOC section Understanding tsung.xml configuration file-->
 
-<H2 CLASS="section"><A NAME="htoc33">9</A>&nbsp;&nbsp;Understanding tsung.xml configuration file</H2><!--SEC END -->
+<H2 CLASS="section"><A NAME="htoc33">8</A>&nbsp;&nbsp;Understanding tsung.xml configuration file</H2><!--SEC END -->
 
 The default encoding is utf-8. You can use a different encoding, like in:<BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
@@ -1048,7 +1042,7 @@ The default encoding is utf-8. You can use a different encoding, like in:<BR>
 </TR></TABLE><BR>
 <!--TOC subsection File structure-->
 
-<H3 CLASS="subsection"><A NAME="htoc34">9.1</A>&nbsp;&nbsp;File structure</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc34">8.1</A>&nbsp;&nbsp;File structure</H3><!--SEC END -->
 
 Scenarios are enclosed into Tsung tags:<BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
@@ -1105,7 +1099,7 @@ and set loglevel to <FONT COLOR=purple>debug</FONT>.<BR>
 <BR>
 <!--TOC subsection Clients and server-->
 
-<H3 CLASS="subsection"><A NAME="htoc35">9.2</A>&nbsp;&nbsp;Clients and server</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc35">8.2</A>&nbsp;&nbsp;Clients and server</H3><!--SEC END -->
 
 Scenarios start with clients (Tsung cluster) and server definitions:<BR>
 <BR>
@@ -1214,11 +1208,11 @@ By default, the load is distributed uniformly on all CPU (one cpu
 <BR>
 <!--TOC subsection Monitoring-->
 
-<H3 CLASS="subsection"><A NAME="htoc36">9.3</A>&nbsp;&nbsp;Monitoring</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc36">8.3</A>&nbsp;&nbsp;Monitoring</H3><!--SEC END -->
 
 <!--TOC subsubsection Erlang-->
 
-<H4 CLASS="subsubsection"><A NAME="htoc37">9.3.1</A>&nbsp;&nbsp;Erlang</H4><!--SEC END -->
+<H4 CLASS="subsubsection"><A NAME="htoc37">8.3.1</A>&nbsp;&nbsp;Erlang</H4><!--SEC END -->
 
 Scenarios can contain optional monitoring informations. For example,
 here is a cluster monitoring definition based on Erlang agents, for
@@ -1260,7 +1254,7 @@ a cluster of 6 computers:<BR>
 </TR></TABLE><BR>
 <!--TOC subsubsection SNMP-->
 
-<H4 CLASS="subsubsection"><A NAME="htoc38">9.3.2</A>&nbsp;&nbsp;SNMP</H4><!--SEC END -->
+<H4 CLASS="subsubsection"><A NAME="htoc38">8.3.2</A>&nbsp;&nbsp;SNMP</H4><!--SEC END -->
 
 The type keyword snmp can replace the erlang keyword, if SNMP monitoring
 is preferred. They can be mixed. erlang is the default value for
@@ -1311,7 +1305,7 @@ allow connection without password on. <B>You must use the same
 <BR>
 <!--TOC subsection Defining the load progression-->
 
-<H3 CLASS="subsection"><A NAME="htoc39">9.4</A>&nbsp;&nbsp;Defining the load progression</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc39">8.4</A>&nbsp;&nbsp;Defining the load progression</H3><!--SEC END -->
 
 The load progression is set-up by defining several arrival phases:<BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
@@ -1373,7 +1367,7 @@ the theoretical average throughput will be 1000 requests/ sec).<BR>
 <BR>
 <!--TOC subsection Setting options-->
 
-<H3 CLASS="subsection"><A NAME="htoc40">9.5</A>&nbsp;&nbsp;Setting options</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc40">8.5</A>&nbsp;&nbsp;Setting options</H3><!--SEC END -->
 
 Default values can be set-up globally: thinktime between requests
 in the scenario and ssl cipher algorithms. These values overrides
@@ -1410,7 +1404,7 @@ those set in session configuration tags if override is true.
 </TR></TABLE><BR>
 <!--TOC subsubsection Jabber options-->
 
-<H4 CLASS="subsubsection"><A NAME="htoc41">9.5.1</A>&nbsp;&nbsp;Jabber options</H4><!--SEC END -->
+<H4 CLASS="subsubsection"><A NAME="htoc41">8.5.1</A>&nbsp;&nbsp;Jabber options</H4><!--SEC END -->
 
 <A NAME="sec:jabber-options"></A>
 Default values for specific protocols can be defined. Here is an
@@ -1460,7 +1454,7 @@ global_number = 10000
 </UL>
 <!--TOC subsubsection HTTP options-->
 
-<H4 CLASS="subsubsection"><A NAME="htoc42">9.5.2</A>&nbsp;&nbsp;HTTP options</H4><!--SEC END -->
+<H4 CLASS="subsubsection"><A NAME="htoc42">8.5.2</A>&nbsp;&nbsp;HTTP options</H4><!--SEC END -->
 
 For HTTP, you can set the <TT>UserAgent</TT> values
 (<B>available since Tsung 1.1.0</B>), using a probability for each
@@ -1502,7 +1496,7 @@ value (the sum of all probabilities must be equal to 100)<BR>
 </TR></TABLE><BR>
 <!--TOC subsection Sessions-->
 
-<H3 CLASS="subsection"><A NAME="htoc43">9.6</A>&nbsp;&nbsp;Sessions</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc43">8.6</A>&nbsp;&nbsp;Sessions</H3><!--SEC END -->
 
 Sessions define the content of the scenario itself. They describe
 the requests to execute.<BR>
@@ -1523,7 +1517,7 @@ response time.<BR>
 <BR>
 <!--TOC subsubsection HTTP-->
 
-<H4 CLASS="subsubsection"><A NAME="htoc44">9.6.1</A>&nbsp;&nbsp;HTTP</H4><!--SEC END -->
+<H4 CLASS="subsubsection"><A NAME="htoc44">8.6.1</A>&nbsp;&nbsp;HTTP</H4><!--SEC END -->
 
 This example shows several features of the HTTP protocol support in
 Tsung: GET and POST request, basic authentication, transaction for
@@ -1629,7 +1623,7 @@ statistics definition, conditional request (IF MODIFIED SINCE), ...<BR>
 </TR></TABLE><BR>
 <!--TOC subsubsection Jabber-->
 
-<H4 CLASS="subsubsection"><A NAME="htoc45">9.6.2</A>&nbsp;&nbsp;Jabber</H4><!--SEC END -->
+<H4 CLASS="subsubsection"><A NAME="htoc45">8.6.2</A>&nbsp;&nbsp;Jabber</H4><!--SEC END -->
 
 <A NAME="sec:sessions:jabber"></A>
 
@@ -1770,7 +1764,7 @@ Example roster modification setup:<BR>
 </TR></TABLE></TD>
 </TR></TABLE></TD>
 </TR></TABLE><BR>
-See also <A HREF="#bidi:presence">7.1</A> for automatic handling of subscribing requests.<BR>
+See also <A HREF="#bidi:presence">6.2</A> for automatic handling of subscribing requests.<BR>
 <BR>
 <!--TOC paragraph Presence-->
 
@@ -1930,7 +1924,7 @@ Beware: you must encode XML characters like <FONT COLOR=purple>&lt;</FONT>
 <BR>
 <!--TOC subsubsection PostgreSQL-->
 
-<H4 CLASS="subsubsection"><A NAME="htoc46">9.6.3</A>&nbsp;&nbsp;PostgreSQL</H4><!--SEC END -->
+<H4 CLASS="subsubsection"><A NAME="htoc46">8.6.3</A>&nbsp;&nbsp;PostgreSQL</H4><!--SEC END -->
 
 For postgresql, 4 types of requests are available:
 <OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
@@ -2002,7 +1996,7 @@ ORDER BY 1,2;]]&gt;&lt;/pgsql&gt;&lt;/request&gt;
 </TR></TABLE><BR>
 <!--TOC subsubsection MySQL-->
 
-<H4 CLASS="subsubsection"><A NAME="htoc47">9.6.4</A>&nbsp;&nbsp;MySQL</H4><!--SEC END -->
+<H4 CLASS="subsubsection"><A NAME="htoc47">8.6.4</A>&nbsp;&nbsp;MySQL</H4><!--SEC END -->
 
 For mysql, 4 types of requests are available (same as postgresql):
 <OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
@@ -2058,7 +2052,7 @@ This example shows most of the features of a MySQL session:<BR>
 </TR></TABLE><BR>
 <!--TOC subsubsection LDAP-->
 
-<H4 CLASS="subsubsection"><A NAME="htoc48">9.6.5</A>&nbsp;&nbsp;LDAP</H4><!--SEC END -->
+<H4 CLASS="subsubsection"><A NAME="htoc48">8.6.5</A>&nbsp;&nbsp;LDAP</H4><!--SEC END -->
 <BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -2122,7 +2116,7 @@ This example shows most of the features of a MySQL session:<BR>
 </TR></TABLE><BR>
 <!--TOC subsubsection Dynamic substitutions-->
 
-<H4 CLASS="subsubsection"><A NAME="htoc49">9.6.6</A>&nbsp;&nbsp;Dynamic substitutions</H4><!--SEC END -->
+<H4 CLASS="subsubsection"><A NAME="htoc49">8.6.6</A>&nbsp;&nbsp;Dynamic substitutions</H4><!--SEC END -->
 
 Dynamic substitution are mark-up placed in element of the scenario.
 For HTTP, this mark-up can be placed in basic authentication (www_authenticate
@@ -2252,7 +2246,7 @@ If you want to set unique id, you can use the built-in function
 </TR></TABLE><BR>
 <!--TOC subsubsection Reading external file-->
 
-<H4 CLASS="subsubsection"><A NAME="htoc50">9.6.7</A>&nbsp;&nbsp;Reading external file</H4><!--SEC END -->
+<H4 CLASS="subsubsection"><A NAME="htoc50">8.6.7</A>&nbsp;&nbsp;Reading external file</H4><!--SEC END -->
 
 <B>New in 1.0.3</B>: A new module <TT>ts_file_server</TT> is available. You
 can use it to read external files. For example, if you need to read user
@@ -2401,9 +2395,81 @@ and <TT>ts_file_server:get_random_line</TT>. For the
 <TT>get_next_line</TT> function, when the end of file is reached, the
 first line of the file will be the next line.<BR>
 <BR>
+<B>New in 1.3.0</B>: you no longer have to create an external
+function to parse a simple csv file: you cau use <TT>setdynvars</TT>
+(see next section for detailed documentation):<BR>
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
+<TR><TD><TABLE BORDER=0 CELLPADDING=0
+ CELLSPACING=0>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+<TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
+<TR><TD><PRE CLASS="verbatim">
+&lt;setdynvars sourcetype="file" fileid="userlist.csv" delimiter=";" order="iter"&gt;
+ &lt;var name="username" /&gt;
+ &lt;var name="user_password" /&gt;
+&lt;/setdynvars&gt;
+</PRE></TD>
+</TR></TABLE></TD>
+<TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR></TABLE></TD>
+</TR></TABLE><BR>
+This defines two dynamic variables <TT>username</TT> and
+<TT>user_password</TT> filled with the next entry from the csv
+file. Using the previous example, the request is now:
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
+<TR><TD><TABLE BORDER=0 CELLPADDING=0
+ CELLSPACING=0>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+<TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
+<TR><TD><PRE CLASS="verbatim">
+  &lt;request subst="true"&gt;
+    &lt;http url='/login.cgi' version='1.0'
+      contents='username=%%_username%%&amp;amp;password=%%_user_password%%&amp;amp;op=login'
+    content_type='application/x-www-form-urlencoded' method='POST'&gt;
+    &lt;/http&gt;
+  &lt;/request&gt;
+</PRE></TD>
+</TR></TABLE></TD>
+<TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR></TABLE></TD>
+</TR></TABLE><BR>
+Much simpler than the old method !<BR>
+<BR>
 <!--TOC subsubsection Dynamic variables-->
 
-<H4 CLASS="subsubsection"><A NAME="htoc51">9.6.8</A>&nbsp;&nbsp;Dynamic variables</H4><!--SEC END -->
+<H4 CLASS="subsubsection"><A NAME="htoc51">8.6.8</A>&nbsp;&nbsp;Dynamic variables</H4><!--SEC END -->
 
 In some cases, you may want to use a value given by the server in a
 response later in the session, and this value is <B>dynamically
@@ -2545,9 +2611,12 @@ hand, for example to get the title of a HTML page:
 </TR></TABLE></TD>
 </TR></TABLE></TD>
 </TR></TABLE><BR>
+<B>Since version 1.3.0</B>, more powerful variables is implemented:
+FIXME<BR>
+<BR>
 <!--TOC subsubsection Checking the server's response-->
 
-<H4 CLASS="subsubsection"><A NAME="htoc52">9.6.9</A>&nbsp;&nbsp;Checking the server's response</H4><!--SEC END -->
+<H4 CLASS="subsubsection"><A NAME="htoc52">8.6.9</A>&nbsp;&nbsp;Checking the server's response</H4><!--SEC END -->
 
 With the tag <TT>match</TT> in a <TT>request</TT> tag, you can check
 the server's response against a given string, and do some actions
@@ -2639,7 +2708,7 @@ You can also do the action on "nomatch" instead of "match".<BR>
 <BR>
 <!--TOC subsubsection Loops-->
 
-<H4 CLASS="subsubsection"><A NAME="htoc53">9.6.10</A>&nbsp;&nbsp;Loops</H4><!--SEC END -->
+<H4 CLASS="subsubsection"><A NAME="htoc53">8.6.10</A>&nbsp;&nbsp;Loops</H4><!--SEC END -->
 
 <B>Since 1.3.0</B>, it's now possible to add conditional/unconditional loops in a session:<BR>
 <BR>
@@ -2741,12 +2810,12 @@ The last element of repeat must be either <FONT COLOR=purple>&lt;while&gt;</FONT
 </TR></TABLE><BR>
 <!--TOC section Statistics and reports-->
 
-<H2 CLASS="section"><A NAME="htoc54">10</A>&nbsp;&nbsp;Statistics and reports</H2><!--SEC END -->
+<H2 CLASS="section"><A NAME="htoc54">9</A>&nbsp;&nbsp;Statistics and reports</H2><!--SEC END -->
 
 <A NAME="sec:statistics-reports"></A>
 <!--TOC subsection Available stats-->
 
-<H3 CLASS="subsection"><A NAME="htoc55">10.1</A>&nbsp;&nbsp;Available stats</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc55">9.1</A>&nbsp;&nbsp;Available stats</H3><!--SEC END -->
 
 <UL CLASS="itemize"><LI CLASS="li-itemize">
 <TT>request</TT> Response time for each request.
@@ -2786,7 +2855,7 @@ Jabber specific stats:
 </UL>
 <!--TOC subsection Design-->
 
-<H3 CLASS="subsection"><A NAME="htoc56">10.2</A>&nbsp;&nbsp;Design</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc56">9.2</A>&nbsp;&nbsp;Design</H3><!--SEC END -->
 
 A bit of explanation on the design and internals of the statistics engine:<BR>
 <BR>
@@ -2811,7 +2880,7 @@ estimated bandwidth usage).
 </UL>
 <!--TOC subsection Generating the report-->
 
-<H3 CLASS="subsection"><A NAME="htoc57">10.3</A>&nbsp;&nbsp;Generating the report</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc57">9.3</A>&nbsp;&nbsp;Generating the report</H3><!--SEC END -->
 
 cd to the log directory of your test (say
 <TT>~/.tsung/log/20040325-16:33/</TT>) and use the script
@@ -2848,7 +2917,7 @@ cd to the log directory of your test (say
 <BR>
 <!--TOC subsection tsung summary-->
 
-<H3 CLASS="subsection"><A NAME="htoc58">10.4</A>&nbsp;&nbsp;tsung summary</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc58">9.4</A>&nbsp;&nbsp;tsung summary</H3><!--SEC END -->
 
 Figure <A HREF="#fig:report">1</A> show an exemple of a summary report.
 <BLOCKQUOTE CLASS="figure"><DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV>
@@ -2864,7 +2933,7 @@ Figure <A HREF="#fig:report">1</A> show an exemple of a summary report.
 <DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV></BLOCKQUOTE>
 <!--TOC subsection Graphical overview-->
 
-<H3 CLASS="subsection"><A NAME="htoc59">10.5</A>&nbsp;&nbsp;Graphical overview</H3><!--SEC END -->
+<H3 CLASS="subsection"><A NAME="htoc59">9.5</A>&nbsp;&nbsp;Graphical overview</H3><!--SEC END -->
 
 Figure <A HREF="#fig:graph">2</A> show an exemple of a graphical report.
 <BLOCKQUOTE CLASS="figure"><DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV>
@@ -2880,7 +2949,7 @@ Figure <A HREF="#fig:graph">2</A> show an exemple of a graphical report.
 <DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV></BLOCKQUOTE>
 <!--TOC section References-->
 
-<H2 CLASS="section"><A NAME="htoc60">11</A>&nbsp;&nbsp;References</H2><!--SEC END -->
+<H2 CLASS="section"><A NAME="htoc60">10</A>&nbsp;&nbsp;References</H2><!--SEC END -->
 
 <UL CLASS="itemize"><LI CLASS="li-itemize">
 <EM>Tsung</EM> home page: <A HREF="http://tsung.erlang-projects.org/"><TT>http://tsung.erlang-projects.org/</TT></A>
@@ -2894,7 +2963,7 @@ Joe Armstrong, Stockholm, 2003 <SUP><A NAME="text3" HREF="#note3">3</A></SUP>
 </UL>
 <!--TOC section Acknowledgments-->
 
-<H2 CLASS="section"><A NAME="htoc61">12</A>&nbsp;&nbsp;Acknowledgments</H2><!--SEC END -->
+<H2 CLASS="section"><A NAME="htoc61">11</A>&nbsp;&nbsp;Acknowledgments</H2><!--SEC END -->
 
 The first version of this document was based on a talk given by Mickael
 Rémond<SUP><A NAME="text4" HREF="#note4">4</A></SUP> during an Object
@@ -3331,9 +3400,31 @@ work. This is fixed in erlang R9C-1 and up.<BR>
 </TR></TABLE></TD>
 </TR></TABLE></TD>
 </TR></TABLE><BR>
+<!--TOC section Errors list-->
+
+<H2 CLASS="section"><A NAME="htoc69">B</A>&nbsp;&nbsp;Errors list</H2><!--SEC END -->
+
+<DL CLASS="description" COMPACT=compact><DT CLASS="dt-description">
+<B>error_closed</B><DD CLASS="dd-description">
+<DT CLASS="dt-description"><B>error_inet_XXX</B><DD CLASS="dd-description">
+<DT CLASS="dt-description"><B>error_unknown_data</B><DD CLASS="dd-description">
+<DT CLASS="dt-description"><B>error_unknown_msg</B><DD CLASS="dd-description">
+<DT CLASS="dt-description"><B>error_unknown</B><DD CLASS="dd-description">
+<DT CLASS="dt-description"><B>error_repeat_&lt;REPEATNAME&gt;</B><DD CLASS="dd-description">
+<DT CLASS="dt-description"><B>error_send_XXX</B><DD CLASS="dd-description">
+<DT CLASS="dt-description"><B>error_send</B><DD CLASS="dd-description">
+<DT CLASS="dt-description"><B>error_connect_XXX</B><DD CLASS="dd-description">
+<DT CLASS="dt-description"><B>error_no_online jabber</B><DD CLASS="dd-description">
+<DT CLASS="dt-description"><B>error_no_offline jabber</B><DD CLASS="dd-description">
+<DT CLASS="dt-description"><B>error_no_free_userid</B><DD CLASS="dd-description">
+<DT CLASS="dt-description"><B>error_next_session</B><DD CLASS="dd-description">
+<DT CLASS="dt-description"><B>error_mysql_&lt;ERRNO&gt;</B><DD CLASS="dd-description">
+<DT CLASS="dt-description"><B>error_mysql_badpacket</B><DD CLASS="dd-description">
+<DT CLASS="dt-description"><B>error_pgsql</B><DD CLASS="dd-description">
+</DL>
 <!--TOC section CHANGELOG-->
 
-<H2 CLASS="section"><A NAME="htoc69">B</A>&nbsp;&nbsp;CHANGELOG</H2><!--SEC END -->
+<H2 CLASS="section"><A NAME="htoc70">C</A>&nbsp;&nbsp;CHANGELOG</H2><!--SEC END -->
 
 
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
@@ -3623,7 +3714,7 @@ New Features:
 
 <DIV class="piedpage">
 <HR>
-<P>  Copyright 2004-2006 &copy; Nicolas Niclausse
+<P>  Copyright 2004-2008 &copy; Nicolas Niclausse
 </DIV>
 
 <!--ENDHTML-->
