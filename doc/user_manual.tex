@@ -1764,6 +1764,22 @@ If the erlang shell doesn't start then check what paths sshd was compiled with
 (in SuSE see \file{/etc/ssh/sshd_config}) and symlink from one of the approved paths
 to the erlang executable (thanks to Gordon Guthrie for reporting this).
 
+\subsection{Why do i have error\_connect\_emfile errors ?}
+emfile error means : \emph{too many open files}
+
+This happens usually when you set a high value for \varname{maxusers}
+(\varname{in the <client>} section) (the default value is 800).
+
+
+The errors means that you are running out of file descriptors; you
+must check that \varname{maxusers} is less than the maximum number of
+file descriptors per process in your system (see \command{ulimit -n})
+
+You can either raise the limit of your operating system ( see
+\file{/etc/security/limits.conf} for Linux ) or decrease \varname{maxusers}
+(Tsung will have to start several virtual machine on the same host to
+bypass the maxusers limit).
+
 \subsection{Tsung still crashes/fails  when I start it !}
 First look at the log file
 \file{~/.tsung/log/XXX/tsung_controller@yourhostname'} to see
@@ -1868,7 +1884,7 @@ work. This is fixed in erlang R9C-1 and up.
 
 \begin{description}
 \item[error\_closed]
-\item[error\_inet\_XXX]
+\item[error\_inet\_XXX] \url{http://www.erlang.org/doc/man/inet.html}
 \item[error\_unknown\_data]
 \item[error\_unknown\_msg]
 \item[error\_unknown]
