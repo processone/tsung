@@ -7,6 +7,8 @@ ERL=@ERL@
 ERLC=@ERLC@
 SED=@SED@
 ERL_OPTS=@ERL_OPTS@
+# FIXME
+DIALYZER=dialyzer
 
 ERLDIR=@ERLDIR@
 export ERLDIR
@@ -49,6 +51,7 @@ endif
 ifeq ($(TYPE),test)
 OPT =+export_all
 endif
+
 
 INC = ./include
 CC  = $(ERLC)
@@ -156,6 +159,9 @@ test:
 dotest: tsung buildtest $(CONFFILE) $(TEST_CONFFILE)
 	$(ERL) -noshell -pa ./ebin -s eunit test ts_test_all -s init stop
 
+dialyzer:
+	$(DIALYZER) -r ebin  -I ./include/
+
 all: clean tsung
 
 debug:
@@ -191,34 +197,37 @@ install: doc boot install_recorder install_controller $(CONFFILE)
 	install -d $(LIBDIR)/
 	install -d $(BINDIR)/
 
-	cp $(INC_FILES) $(TARGETDIR)/include
-	cp $(TARGET) $(TARGETDIR)/ebin
-	cp $(LIB_TARGET) $(TARGETDIR)/ebin
-	cp builder.beam $(TARGETDIR)/ebin
+	install -m 0644 $(INC_FILES) $(TARGETDIR)/include/
+	install -m 0644 $(TARGET) $(TARGETDIR)/ebin/
+	install -m 0644 $(LIB_TARGET) $(TARGETDIR)/ebin/
+	install -m 0644 builder.beam $(TARGETDIR)/ebin/
 
-	cp $(TGT_APPFILES_E) $(TARGETDIR)/ebin
-	cp $(TGT_APPFILES_P) $(TARGETDIR)/priv
 
-	cp $(SRC) $(SRC_APPFILES) $(TARGETDIR)/src
+	install -m 0644 $(TGT_APPFILES_E) $(TARGETDIR)/ebin/
+	install -m 0644 $(TGT_APPFILES_P) $(TARGETDIR)/priv/
+
+
+	install -m 0644 $(SRC) $(SRC_APPFILES) $(TARGETDIR)/src/
 	echo $(BUILD_OPTIONS_DOT) > $(TARGETDIR)/BUILD_OPTIONS
+
 
 # install the man page & user's manual
 	install -d $(MAN_DIR)
-	install doc/tsung.1 $(MAN_DIR)
+	install -m 0644 doc/tsung.1 $(MAN_DIR)
 	install -d $(DOC_DIR)/images
-	install $(USERMANUAL) $(DOC_DIR)
-	install $(USERMANUAL_IMG) $(DOC_DIR)/images
+	install -m 0644 $(USERMANUAL) $(DOC_DIR)
+	install -m 0644 $(USERMANUAL_IMG) $(DOC_DIR)/images
 
 # create startup script
-	install tsung.sh $(SCRIPT)
-	install $(PERL_SCRIPTS) $(LIBDIR)/
+	install -m 0755 tsung.sh $(SCRIPT)
+	install -m 0755 $(PERL_SCRIPTS) $(LIBDIR)/
 
 	install -d $(CONFDIR)
-	cp $(CONFFILE) $(CONFDIR)
+	install -m 0644 $(CONFFILE) $(CONFDIR)/
 
 	install -d $(TEMPLATES_DIR)
-	cp $(TEMPLATES) $(TEMPLATES_DIR)
-	cp $(DTD) $(SHARE_DIR)
+	install -m 0644 $(TEMPLATES) $(TEMPLATES_DIR)/
+	install -m 0644 $(DTD) $(SHARE_DIR)/
 
 install_recorder:
 	install -d $(RECORDER_TARGETDIR)/priv
@@ -226,13 +235,13 @@ install_recorder:
 	install -d $(RECORDER_TARGETDIR)/src
 	install -d $(RECORDER_TARGETDIR)/include
 
-	cp $(INC_FILES) $(RECORDER_TARGETDIR)/include
-	cp $(RECORDER_TARGET) $(RECORDER_TARGETDIR)/ebin
+	install -m 0644 $(INC_FILES) $(RECORDER_TARGETDIR)/include
+	install -m 0644 $(RECORDER_TARGET) $(RECORDER_TARGETDIR)/ebin
 
-	cp $(RECORDER_TGT_APPFILES_E) $(RECORDER_TARGETDIR)/ebin
-	cp $(RECORDER_TGT_APPFILES_P) $(RECORDER_TARGETDIR)/priv
+	install -m 0644 $(RECORDER_TGT_APPFILES_E) $(RECORDER_TARGETDIR)/ebin
+	install -m 0644 $(RECORDER_TGT_APPFILES_P) $(RECORDER_TARGETDIR)/priv
 
-	cp $(RECORDER_SRC) $(RECORDER_SRC_APPFILES) $(RECORDER_TARGETDIR)/src
+	install -m 0644 $(RECORDER_SRC) $(RECORDER_SRC_APPFILES) $(RECORDER_TARGETDIR)/src
 	@echo $(BUILD_OPTIONS_DOT) > $(RECORDER_TARGETDIR)/BUILD_OPTIONS
 
 install_controller:
@@ -240,13 +249,13 @@ install_controller:
 	install -d $(CONTROLLER_TARGETDIR)/ebin
 	install -d $(CONTROLLER_TARGETDIR)/src
 	install -d $(CONTROLLER_TARGETDIR)/include
-	cp $(INC_FILES) $(CONTROLLER_TARGETDIR)/include
-	cp $(CONTROLLER_TARGET) $(CONTROLLER_TARGETDIR)/ebin
+	install -m 0644 $(INC_FILES) $(CONTROLLER_TARGETDIR)/include
+	install -m 0644 $(CONTROLLER_TARGET) $(CONTROLLER_TARGETDIR)/ebin
 
-	cp $(CONTROLLER_TGT_APPFILES_E) $(CONTROLLER_TARGETDIR)/ebin
-	cp $(CONTROLLER_TGT_APPFILES_P) $(CONTROLLER_TARGETDIR)/priv
+	install -m 0644 $(CONTROLLER_TGT_APPFILES_E) $(CONTROLLER_TARGETDIR)/ebin
+	install -m 0644 $(CONTROLLER_TGT_APPFILES_P) $(CONTROLLER_TARGETDIR)/priv
 
-	cp $(CONTROLLER_SRC) $(CONTROLLER_SRC_APPFILES) $(CONTROLLER_TARGETDIR)/src
+	install -m 0644 $(CONTROLLER_SRC) $(CONTROLLER_SRC_APPFILES) $(CONTROLLER_TARGETDIR)/src
 	@echo $(BUILD_OPTIONS_DOT) > $(CONTROLLER_TARGETDIR)/BUILD_OPTIONS
 
 uninstall:
@@ -267,7 +276,7 @@ priv/tsung.boot: builder.beam  $(SRC_APPFILES)
 	@echo -n "build main app boot script ... "
 	@(cd temp/lib/$(APPLICATION)-$(VERSION) \
 	 && echo $(BUILD_OPTIONS) > $(BUILD_OPTIONS_FILE) \
-	 && $(ERL) -s builder go -s init stop >> $(BUILDER_LOG) 2>&1 \
+	 && $(ERL) -noshell -s builder go -s init stop >> $(BUILDER_LOG) 2>&1 \
 	)
 	@rm -rf temp
 	@echo "done"
@@ -284,7 +293,7 @@ priv/tsung_controller.boot: builder.beam $(CONTROLLER_SRC_APPFILES)
 	@echo -n "build controller boot script ... "
 	@(cd temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION) \
 	 && echo $(BUILD_OPTIONS) > $(BUILD_OPTIONS_FILE) \
-	 && $(ERL) -s builder go -s init stop >> $(BUILDER_LOG) 2>&1 \
+	 && $(ERL) -noshell -s builder go -s init stop >> $(BUILDER_LOG) 2>&1 \
 	)
 	@rm -rf temp
 	@echo "done"
