@@ -118,9 +118,9 @@ Volume 46, Issue 2-3, October 2001}.
 \program{Tsung} has been used  at:
 
 \begin{itemize}
-\item \emph{DGI} (Direction Générale des impôts): French finance ministry
+\item \emph{DGI} (Direction GÃ©nÃ©rale des impÃ´ts): French finance ministry
 \item \emph{Cap Gemini Ernst \& Young}
-\item \emph{IFP} (Institut Français du Pétrole): French Research Organization
+\item \emph{IFP} (Institut FranÃ§ais du PÃ©trole): French Research Organization
 for Petroleum
 \item \emph{LibertySurf}
 \end{itemize}
@@ -238,7 +238,7 @@ from the target server(s). Tsung produces graphs for CPU and memory
 consumption and network traffic. SNMP is also supported.
 \end{itemize}
 \par Note that \program{Tsung} takes care of the synchronization process
-by itself. Gathered statistics are «synchronized».
+by itself. Gathered statistics are Â«synchronizedÂ».
 
  It is possible to generate graphs during the benchmark as statistics
 are gathered in real-time.
@@ -357,7 +357,7 @@ the number of simultaneous users for each given phase.
   \command{tsung start}
 \item Wait for the end of the test or stop by hand with
   \command{tsung stop} (reports can also be generated during the
-  test (see § \ref{sec:statistics-reports}) : the statistics are
+  test (see Â§ \ref{sec:statistics-reports}) : the statistics are
   updated every 10 seconds). For a brief summary of the current
   activity, use \command{tsung status}
 \item Analyze results, change parameters and relaunch another benchmark
@@ -1183,6 +1183,113 @@ This example shows most of the features of a MySQL session:
 
 \subsubsection{LDAP}
 
+\paragraph{Authentication}
+The recommended mechanism used to authenticate users against a LDAP
+repository requires two steps to follow. Given an username and
+password, we:
+
+\begin{enumerate}
+\item Search the user in the repository tree, using the username (so users can reside in different subtrees of the organization)
+\item Try to bind as the user, with the distinguished name found in the first step and the user's password
+\end{enumerate}
+
+If the bind is successful, the user is authenticated (this is the
+scheme used, among others, by the LDAP authentication module for
+apache \url{http://httpd.apache.org/docs/2.0/mod/mod_auth_ldap.html})
+
+\paragraph{LDAP Setup}
+For this example we are going to use a simple repository with the following hierarchy:
+
+\begin{figure}[htb]
+  \begin{center}
+    \includegraphics[width=0.4\linewidth]{ldap-hierarchy}
+    \end{center}
+      \caption{LDAP Hierarchy}
+    \label{fig:ldap:hierarchy}
+\end{figure}
+
+the repository has users in two organizational units
+\begin{enumerate}
+\item users (with four members)
+\item users2 (with tree members)
+\end{enumerate}
+
+For simplicity we set the password of each user to be  the same as its common name (cn).
+Tsung Setup
+We will use a CSV file as input, containing the user:password pairs
+for our test. So we start by writing it, in this case we name the file \file{users.csv}
+
+\begin{Verbatim}
+user1;user1
+user2;user2
+user3;user3
+user4;user4
+jane;jane
+mary;mary
+paul;pablo
+paul;paul
+\end{Verbatim}
+
+(the pair paul:pablo should fail to authenticate, we will note that in the Tsung report)
+Then, in our Tsung scenario, we let Tsung know about this file
+
+\begin{Verbatim}
+    <options>
+       <option name="file_server" id="users" value="users.csv"/>
+    </options>
+We use two dynamic variables to hold the username and password
+    <setdynvars sourcetype="file" fileid="users" delimiter=";" order="iter">
+               <var name="username" />
+               <var name="password" />
+     </setdynvars>
+\end{Verbatim}
+
+To start the authentication process we instruct tsung to perform a search, to find the distinguished name of the user we are trying to authenticate
+
+\begin{Verbatim}
+  <ldap type="search" base="dc=pablo-desktop" filter="(cn=%%_username%%)"
+        result_var="search_result" scope="wholeSubtree"></ldap>
+\end{Verbatim}
+
+As we need to access the search result, we specify it using the \varname{result\_var} attribute. This attribute tells Tsung in which dynamic variable we want to store the result (if the \varname{result\_var} attribute isn't set, tsung doesn't store the search result in any place).
+Finally,  we try to bind as that user.
+\begin{Verbatim}
+<request subst="true">
+<ldap type="bind" user="%%ldap_auth:user_dn%%"
+      password="%%_password%%"></ldap>
+</request>
+\end{Verbatim}
+The only thing that remains to do is to implement the \varname{ldap\_auth:user\_dn} function, that extract the distinguished name from the search result.
+
+\begin{Verbatim}
+-module(ldap_auth).
+-export([user_dn/1]).
+user_dn({_Pid,DynVars}) ->
+      [SearchResultEntry] = proplists:get_value(search_result,DynVars),
+      {_,DN,_} = SearchResultEntry,
+      DN.
+\end{Verbatim}
+
+We aren't covering errors here. supposing that there is always one (and only one) user found, that we extract from the \varname{search\_result} variable (as defined in the previous search operation).
+Each entry in the result set is a SearchResultEntry record. The record definition can be found in \file{<TSUNG_DIR>/include/ELDAPv3.hrl}.
+
+As we only need to access the distinguished name of the object, we index into the result tuple directly. But if you need to access other attributes you probably will want to include the appropriate .hrl and use the record syntax instead. One of the eight user:password pairs in our users file was wrong, so we expect 1/8 of the authentication attempts to fail.
+
+Indeed, after running the scenario we can confirm this in the tsung
+report (see figure \ref{fig:ldap:results}). The bind operation maintains two
+counters: \varname{ldap\_bind\_ok} and \varname{ldap\_bind\_error},
+that counts successful and unsuccessful bind attempts.
+
+\begin{figure}[htb]
+  \begin{center}
+    \includegraphics[width=0.4\linewidth]{ldap-results}
+    \end{center}
+      \caption{LDAP Results}
+    \label{fig:ldap:results}
+\end{figure}
+
+\paragraph{Other examples}
+
 \begin{Verbatim}
 <session probability="100" name="ldap-example" type="ts_ldap">
   <request>
@@ -1218,6 +1325,7 @@ This example shows most of the features of a MySQL session:
  </request>
 </session>
 \end{Verbatim}
+
 
 \subsubsection{Dynamic substitutions}
 
@@ -1616,7 +1724,7 @@ Figure \ref{fig:graph} show an exemple of a graphical report.
 \item \program{Tsung} home page: \url{http://tsung.erlang-projects.org/}
 \item \program{Tsung} description (French)\footnote{\url{http://www.erlang-projects.org/Members/mremond/events/dossier_de_presentat/block_10766817551485/file}}
 \item Erlang web site \url{http://www.erlang.org/}
-\item Erlang programmation, Mickaël Rémond, Editions Eyrolles, 2003
+\item Erlang programmation, MickaÃ«l RÃ©mond, Editions Eyrolles, 2003
   \footnote{\url{http://www.editions-eyrolles.com/php.accueil/Ouvrages/ouvrage.php3?ouv_ean13=9782212110791}}
 \item \emph{Making reliable system in presence of software errors}, Doctoral Thesis,
 Joe Armstrong, Stockholm, 2003 \footnote{\url{http://www.sics.se/~joe/thesis/armstrong_thesis_2003.pdf}}
@@ -1626,7 +1734,7 @@ Joe Armstrong, Stockholm, 2003 \footnote{\url{http://www.sics.se/~joe/thesis/arm
 \section{Acknowledgments}
 
 The first version of this document was based on a talk given by Mickael
-Rémond\footnote{\email{mickael.remond@erlang-fr.org}} during an Object
+RÃ©mond\footnote{\email{mickael.remond@erlang-fr.org}} during an Object
 Web benchmarking workshop in April 2004 (more info at
 \url{http://jmob.objectweb.org/}).
 

@@ -84,10 +84,10 @@ a:hover     {background:#ffffaa;}
  
  <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1>
 <TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2">Version:</TD>
-<TD ALIGN=left NOWRAP>878</TD>
+<TD ALIGN=left NOWRAP>879</TD>
 </TR>
 <TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2">Date :</TD>
-<TD ALIGN=left NOWRAP>						12th								August,&nbsp;2008</TD>
+<TD ALIGN=left NOWRAP>						29th								August,&nbsp;2008</TD>
 </TR></TABLE>
  </DIV>
 
@@ -281,9 +281,9 @@ Volume 46, Issue 2-3, October 2001</EM>.<BR>
 </UL>
 <EM>Tsung</EM> has been used at:
 <UL CLASS="itemize"><LI CLASS="li-itemize">
-<EM>DGI</EM> (Direction Générale des impôts): French finance ministry
+<EM>DGI</EM> (Direction GÃ©nÃ©rale des impÃ´ts): French finance ministry
 <LI CLASS="li-itemize"><EM>Cap Gemini Ernst &amp; Young</EM>
-<LI CLASS="li-itemize"><EM>IFP</EM> (Institut Français du Pétrole): French Research Organization
+<LI CLASS="li-itemize"><EM>IFP</EM> (Institut FranÃ§ais du PÃ©trole): French Research Organization
 for Petroleum
 <LI CLASS="li-itemize"><EM>LibertySurf</EM>
 </UL>
@@ -410,7 +410,7 @@ consumption and network traffic. SNMP is also supported.
 </UL>
 
 Note that <EM>Tsung</EM> takes care of the synchronization process
-by itself. Gathered statistics are «synchronized».<BR>
+by itself. Gathered statistics are Â«synchronizedÂ».<BR>
 <BR>
 It is possible to generate graphs during the benchmark as statistics
 are gathered in real-time.<BR>
@@ -565,7 +565,7 @@ the number of simultaneous users for each given phase.
  <TT>tsung start</TT>
 <LI CLASS="li-enumerate">Wait for the end of the test or stop by hand with
  <TT>tsung stop</TT> (reports can also be generated during the
- test (see § <A HREF="#sec:statistics-reports">9</A>) : the statistics are
+ test (see Â§ <A HREF="#sec:statistics-reports">9</A>) : the statistics are
  updated every 10 seconds). For a brief summary of the current
  activity, use <TT>tsung status</TT>
 <LI CLASS="li-enumerate">Analyze results, change parameters and relaunch another benchmark
@@ -2054,6 +2054,238 @@ This example shows most of the features of a MySQL session:<BR>
 <!--TOC subsubsection LDAP-->
 
 <H4 CLASS="subsubsection"><A NAME="htoc48">8.6.5</A>&nbsp;&nbsp;LDAP</H4><!--SEC END -->
+
+<!--TOC paragraph Authentication-->
+
+<H5 CLASS="paragraph">Authentication</H5><!--SEC END -->
+
+The recommended mechanism used to authenticate users against a LDAP
+repository requires two steps to follow. Given an username and
+password, we:
+<OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
+Search the user in the repository tree, using the username (so users can reside in different subtrees of the organization)
+<LI CLASS="li-enumerate">Try to bind as the user, with the distinguished name found in the first step and the user's password
+</OL>
+If the bind is successful, the user is authenticated (this is the
+scheme used, among others, by the LDAP authentication module for
+apache <A HREF="http://httpd.apache.org/docs/2.0/mod/mod_auth_ldap.html"><TT>http://httpd.apache.org/docs/2.0/mod/mod_auth_ldap.html</TT></A>)<BR>
+<BR>
+<!--TOC paragraph LDAP Setup-->
+
+<H5 CLASS="paragraph">LDAP Setup</H5><!--SEC END -->
+
+For this example we are going to use a simple repository with the following hierarchy:
+<BLOCKQUOTE CLASS="figure"><DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV>
+ <DIV CLASS="center">
+ <IMG SRC="images/ldap-hierarchy.png" ALT="images/ldap-hierarchy.png">
+ </DIV>
+ <BR>
+<BR>
+<DIV CLASS="center">Figure 1: LDAP Hierarchy</DIV><BR>
+<BR>
+
+ <A NAME="fig:ldap:hierarchy"></A>
+<DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV></BLOCKQUOTE>
+the repository has users in two organizational units
+<OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
+users (with four members)
+<LI CLASS="li-enumerate">users2 (with tree members)
+</OL>
+For simplicity we set the password of each user to be the same as its common name (cn).
+Tsung Setup
+We will use a CSV file as input, containing the user:password pairs
+for our test. So we start by writing it, in this case we name the file <TT>users.csv</TT><BR>
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
+<TR><TD><TABLE BORDER=0 CELLPADDING=0
+ CELLSPACING=0>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+<TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
+<TR><TD><PRE CLASS="verbatim">
+user1;user1
+user2;user2
+user3;user3
+user4;user4
+jane;jane
+mary;mary
+paul;pablo
+paul;paul
+</PRE></TD>
+</TR></TABLE></TD>
+<TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR></TABLE></TD>
+</TR></TABLE><BR>
+(the pair paul:pablo should fail to authenticate, we will note that in the Tsung report)
+Then, in our Tsung scenario, we let Tsung know about this file<BR>
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
+<TR><TD><TABLE BORDER=0 CELLPADDING=0
+ CELLSPACING=0>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+<TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
+<TR><TD><PRE CLASS="verbatim">
+    &lt;options&gt;
+       &lt;option name="file_server" id="users" value="users.csv"/&gt;
+    &lt;/options&gt;
+We use two dynamic variables to hold the username and password
+    &lt;setdynvars sourcetype="file" fileid="users" delimiter=";" order="iter"&gt;
+               &lt;var name="username" /&gt;
+               &lt;var name="password" /&gt;
+     &lt;/setdynvars&gt;
+</PRE></TD>
+</TR></TABLE></TD>
+<TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR></TABLE></TD>
+</TR></TABLE><BR>
+To start the authentication process we instruct tsung to perform a search, to find the distinguished name of the user we are trying to authenticate<BR>
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
+<TR><TD><TABLE BORDER=0 CELLPADDING=0
+ CELLSPACING=0>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+<TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
+<TR><TD><PRE CLASS="verbatim">
+  &lt;ldap type="search" base="dc=pablo-desktop" filter="(cn=%%_username%%)"
+        result_var="search_result" scope="wholeSubtree"&gt;&lt;/ldap&gt;
+</PRE></TD>
+</TR></TABLE></TD>
+<TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR></TABLE></TD>
+</TR></TABLE><BR>
+As we need to access the search result, we specify it using the <TT>result_var</TT> attribute. This attribute tells Tsung in which dynamic variable we want to store the result (if the <TT>result_var</TT> attribute isn't set, tsung doesn't store the search result in any place).
+Finally, we try to bind as that user.
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
+<TR><TD><TABLE BORDER=0 CELLPADDING=0
+ CELLSPACING=0>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+<TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
+<TR><TD><PRE CLASS="verbatim">
+&lt;request subst="true"&gt;
+&lt;ldap type="bind" user="%%ldap_auth:user_dn%%"
+      password="%%_password%%"&gt;&lt;/ldap&gt;
+&lt;/request&gt;
+</PRE></TD>
+</TR></TABLE></TD>
+<TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR></TABLE></TD>
+</TR></TABLE>The only thing that remains to do is to implement the <TT>ldap_auth:user_dn</TT> function, that extract the distinguished name from the search result.<BR>
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
+<TR><TD><TABLE BORDER=0 CELLPADDING=0
+ CELLSPACING=0>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+<TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0>
+<TR><TD><PRE CLASS="verbatim">
+-module(ldap_auth).
+-export([user_dn/1]).
+user_dn({_Pid,DynVars}) -&gt;
+      [SearchResultEntry] = proplists:get_value(search_result,DynVars),
+      {_,DN,_} = SearchResultEntry,
+      DN.
+</PRE></TD>
+</TR></TABLE></TD>
+<TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0>
+<TR><TD>
+ </TD>
+</TR></TABLE></TD>
+</TR></TABLE></TD>
+</TR></TABLE><BR>
+We aren't covering errors here. supposing that there is always one (and only one) user found, that we extract from the <TT>search_result</TT> variable (as defined in the previous search operation).
+Each entry in the result set is a SearchResultEntry record. The record definition can be found in <TT>&lt;TSUNG_DIR&gt;/include/ELDAPv3.hrl</TT>.<BR>
+<BR>
+As we only need to access the distinguished name of the object, we index into the result tuple directly. But if you need to access other attributes you probably will want to include the appropriate .hrl and use the record syntax instead. One of the eight user:password pairs in our users file was wrong, so we expect 1/8 of the authentication attempts to fail.<BR>
+<BR>
+Indeed, after running the scenario we can confirm this in the tsung
+report (see figure <A HREF="#fig:ldap:results">2</A>). The bind operation maintains two
+counters: <TT>ldap_bind_ok</TT> and <TT>ldap_bind_error</TT>,
+that counts successful and unsuccessful bind attempts.
+<BLOCKQUOTE CLASS="figure"><DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV>
+ <DIV CLASS="center">
+ <IMG SRC="images/ldap-results.png" ALT="images/ldap-results.png">
+ </DIV>
+ <BR>
+<BR>
+<DIV CLASS="center">Figure 2: LDAP Results</DIV><BR>
+<BR>
+
+ <A NAME="fig:ldap:results"></A>
+<DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV></BLOCKQUOTE>
+<!--TOC paragraph Other examples-->
+
+<H5 CLASS="paragraph">Other examples</H5><!--SEC END -->
 <BR>
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
 <TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -2920,14 +3152,14 @@ cd to the log directory of your test (say
 
 <H3 CLASS="subsection"><A NAME="htoc58">9.4</A>&nbsp;&nbsp;tsung summary</H3><!--SEC END -->
 
-Figure <A HREF="#fig:report">1</A> show an exemple of a summary report.
+Figure <A HREF="#fig:report">3</A> show an exemple of a summary report.
 <BLOCKQUOTE CLASS="figure"><DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV>
  <DIV CLASS="center">
  <IMG SRC="images/tsung-report.png" ALT="images/tsung-report.png">
  </DIV>
  <BR>
 <BR>
-<DIV CLASS="center">Figure 1: Report</DIV><BR>
+<DIV CLASS="center">Figure 3: Report</DIV><BR>
 <BR>
 
  <A NAME="fig:report"></A>
@@ -2936,14 +3168,14 @@ Figure <A HREF="#fig:report">1</A> show an exemple of a summary report.
 
 <H3 CLASS="subsection"><A NAME="htoc59">9.5</A>&nbsp;&nbsp;Graphical overview</H3><!--SEC END -->
 
-Figure <A HREF="#fig:graph">2</A> show an exemple of a graphical report.
+Figure <A HREF="#fig:graph">4</A> show an exemple of a graphical report.
 <BLOCKQUOTE CLASS="figure"><DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV>
  <DIV CLASS="center">
  <IMG SRC="images/tsung-graph.png" ALT="images/tsung-graph.png">
  </DIV>
  <BR>
 <BR>
-<DIV CLASS="center">Figure 2: Graphical output</DIV><BR>
+<DIV CLASS="center">Figure 4: Graphical output</DIV><BR>
 <BR>
 
  <A NAME="fig:graph"></A>
@@ -2956,7 +3188,7 @@ Figure <A HREF="#fig:graph">2</A> show an exemple of a graphical report.
 <EM>Tsung</EM> home page: <A HREF="http://tsung.erlang-projects.org/"><TT>http://tsung.erlang-projects.org/</TT></A>
 <LI CLASS="li-itemize"><EM>Tsung</EM> description (French)<SUP><A NAME="text1" HREF="#note1">1</A></SUP>
 <LI CLASS="li-itemize">Erlang web site <A HREF="http://www.erlang.org/"><TT>http://www.erlang.org/</TT></A>
-<LI CLASS="li-itemize">Erlang programmation, Mickaël Rémond, Editions Eyrolles, 2003
+<LI CLASS="li-itemize">Erlang programmation, MickaÃ«l RÃ©mond, Editions Eyrolles, 2003
  <SUP><A NAME="text2" HREF="#note2">2</A></SUP>
 <LI CLASS="li-itemize"><EM>Making reliable system in presence of software errors</EM>, Doctoral Thesis,
 Joe Armstrong, Stockholm, 2003 <SUP><A NAME="text3" HREF="#note3">3</A></SUP>
@@ -2967,7 +3199,7 @@ Joe Armstrong, Stockholm, 2003 <SUP><A NAME="text3" HREF="#note3">3</A></SUP>
 <H2 CLASS="section"><A NAME="htoc61">11</A>&nbsp;&nbsp;Acknowledgments</H2><!--SEC END -->
 
 The first version of this document was based on a talk given by Mickael
-Rémond<SUP><A NAME="text4" HREF="#note4">4</A></SUP> during an Object
+RÃ©mond<SUP><A NAME="text4" HREF="#note4">4</A></SUP> during an Object
 Web benchmarking workshop in April 2004 (more info at
 <A HREF="http://jmob.objectweb.org/"><TT>http://jmob.objectweb.org/</TT></A>).<BR>
 <BR>
@@ -3230,14 +3462,14 @@ to the erlang executable (thanks to Gordon Guthrie for reporting this).<BR>
 emfile error means : <EM>too many open files</EM><BR>
 <BR>
 This happens usually when you set a high value for <TT>maxusers</TT>
-(<TT>&lt;client&gt;</TT> tag) (the default value is 800).<BR>
+(<TT>in the &lt;client&gt;</TT> section) (the default value is 800).<BR>
 <BR>
-The errors means that you are running out of file descriptors; you must check that
-maxusers (in each &lt;client&gt; section) is less than the maximum number of
+The errors means that you are running out of file descriptors; you
+must check that <TT>maxusers</TT> is less than the maximum number of
 file descriptors per process in your system (see <TT>ulimit -n</TT>)<BR>
 <BR>
 You can either raise the limit of your operating system ( see
-<TT>/etc/security/limits.conf</TT>) or decrease <TT>maxusers</TT>
+<TT>/etc/security/limits.conf</TT> for Linux ) or decrease <TT>maxusers</TT>
 (Tsung will have to start several virtual machine on the same host to
 bypass the maxusers limit).<BR>
 <BR>
