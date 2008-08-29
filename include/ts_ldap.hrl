@@ -28,6 +28,7 @@
          password,
          base,
          filter,
+         result_var,
          attributes,
          scope,
          cacertfile,

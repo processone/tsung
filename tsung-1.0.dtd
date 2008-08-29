@@ -181,10 +181,11 @@ repeat)*>
 <!ATTLIST ldap
     password     CDATA   #IMPLIED
     user         CDATA   #IMPLIED
-    type        (bind | unbind | search | start_tls | add | modify ) #REQUIRED 
+    type        (bind | unbind | search | start_tls | add | modify ) #REQUIRED
+    result_var   CDATA   #IMPLIED
     filter       CDATA   #IMPLIED
     base         CDATA   #IMPLIED
-    scope       (singleLevel | baseObject | wholeSubtree) #IMPLIED 
+    scope       (singleLevel | baseObject | wholeSubtree) #IMPLIED
 	cacertfile       CDATA   #IMPLIED
 	keyfile       CDATA   #IMPLIED
 	certfile      CDATA   #IMPLIED

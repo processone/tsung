@@ -76,6 +76,11 @@ parse_config(Element = #xmlElement{name=ldap},
                       Base = ts_config:getAttr(string,Element#xmlElement.attributes,base),
                       Scope = ts_config:getAttr(atom,Element#xmlElement.attributes,scope),
                       Filter = ts_config:getAttr(string,Element#xmlElement.attributes,filter),
+                      ResultVar = case ts_config:getAttr(string,Element#xmlElement.attributes,result_var,none) of
+                                        none -> none;
+                                        VarName -> {ok,list_to_atom(VarName)}
+                                 end,
+
                       Attributes=[],
                       {ParsedFilter,[]} = rfc4515_parser:filter(rfc4515_parser:tokenize(Filter)),
                       #ts_request{ack     = parse,
@@ -84,6 +89,7 @@ parse_config(Element = #xmlElement{name=ldap},
                                   subst   = SubstFlag,
                                   match   = MatchRegExp,
                                   param   = #ldap_request{type=search,
+                                                          result_var = ResultVar,
                                                           base=Base,
                                                           scope=Scope,
                                                           filter=ParsedFilter,

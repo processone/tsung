@@ -117,6 +117,7 @@ parse_ldap_response( #'LDAPMessage'{protocolOp = {bindResponse,Result}},State)->
     case Result#'BindResponse'.resultCode of
         success ->
             ?Debug("Bind successful~n"),
+            ts_mon:add({ count, ldap_bind_ok}),
             {State#state_rcv{ack_done=true},[],false};
         _Error   ->
             ts_mon:add({ count, ldap_bind_error}), %FIXME: retry,fail,etc. should be configurable
@@ -124,14 +125,16 @@ parse_ldap_response( #'LDAPMessage'{protocolOp = {bindResponse,Result}},State)->
             {State#state_rcv{ack_done=true},[],true}
     end;
 
-parse_ldap_response( #'LDAPMessage'{protocolOp = {'searchResDone',R}},State)  ->
-    ?DebugF("LDAP Search response Done ~p~n",[R]),
+parse_ldap_response( #'LDAPMessage'{protocolOp = {'searchResDone',_R}},State)  ->
+    ?DebugF("LDAP Search response Done ~p~n",[_R]),
     {State#state_rcv{ack_done=true},[],false}; %%Response done, mark as acknowledged
 parse_ldap_response( #'LDAPMessage'{protocolOp = {'searchResEntry',R}},State)  ->
+    NewState = acumulate_result(R,State),
+
     ?DebugF("LDAP search response Entry ~p~n",[R]),
-    {State#state_rcv{ack_done=false},[],false};
-parse_ldap_response(#'LDAPMessage'{protocolOp = {'searchResRef',R}},State)  ->
-    ?DebugF("LDAP search response Ref ~p~n",[R]),
+    {NewState#state_rcv{ack_done=false},[],false};
+parse_ldap_response(#'LDAPMessage'{protocolOp = {'searchResRef',_R}},State)  ->
+    ?DebugF("LDAP search response Ref ~p~n",[_R]),
     {State#state_rcv{ack_done=false},[],false};
 
 
@@ -177,6 +180,22 @@ parse_ldap_response(Resp,State) ->
     ?LOGF("Got unexpected response: ~p~n",[Resp],?INFO),
     ts_mon:add({ count, ldap_unexpected_msg_resp}),
     {State#state_rcv{ack_done=true},[],false}.
+
+acumulate_result(R,State = #state_rcv{request =
+                                        #ts_request{param=#ldap_request{result_var = ResultVar}},
+                                      dyndata=DynData}) ->
+    case ResultVar of
+        none -> State;
+        {ok,VarName} -> State#state_rcv{dyndata=accumulate_dyndata(R,VarName,DynData)}
+    end.
+
+accumulate_dyndata(R,VarName,DynData = #dyndata{dynvars=DynVars}) when is_list(DynVars)->
+    Prev = proplists:get_value(VarName,DynVars,[]),
+    NewDynVars = lists:keystore(VarName,1,DynVars,{VarName,[R|Prev]}),
+    DynData#dyndata{dynvars=NewDynVars};
+
+accumulate_dyndata(R,VarName,DynData) ->
+    DynData#dyndata{dynvars=[{VarName,[R]}]}.
 
 
 %%----------------------------------------------------------------------
