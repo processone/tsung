@@ -339,6 +339,7 @@ do_launch({Intensity, MyHostName})->
     case catch ts_config_server:get_next_session(MyHostName) of
         {timeout, _ } ->
             ?LOG("get_next_session failed (timeout), skip this session !~n", ?ERR),
+            ts_mon:add({ count, error_next_session }),
             error;
         {ok, Session} ->
             ts_client_sup:start_child(Session),
