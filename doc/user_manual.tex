@@ -633,7 +633,8 @@ The default encoding is utf-8.  You can use a different encoding, like in:
  If you add the attribute \userinput{dumptraffic="true"}, all the
  traffic will be logged to a file. \emph{Warn:} this will considerably
  slow down Tsung, so use with care. It is useful for debugging
- purpose.
+ purpose. You can use the attribute \userinput{dumptraffic="light"} to
+ dump only the first 44 bytes.
 
  The \varname{loglevel} can also have a great impact on performance:
  For high load, \userinput{warning} is recommanded .
@@ -2006,21 +2007,26 @@ work. This is fixed in erlang R9C-1 and up.
 
 \begin{description}
 \item[error\_closed]
-\item[error\_inet\_XXX] \url{http://www.erlang.org/doc/man/inet.html}
+\item[error\_inet\_<ERRORNAME>] Network error; see
+  \url{http://www.erlang.org/doc/man/inet.html} for the list of all errors.
 \item[error\_unknown\_data]
 \item[error\_unknown\_msg]
 \item[error\_unknown]
 \item[error\_repeat\_<REPEATNAME>]
-\item[error\_send\_XXX]
-\item[error\_send]
-\item[error\_connect\_XXX]
+\item[error\_send\_<ERRORNAME>] Error while sending data to the
+  server, see  \url{http://www.erlang.org/doc/man/inet.html} for the list of all errors.
+\item[error\_send] Unexpected error while sending data to the server,
+  see the logfiles for more information.
+\item[error\_connect\_<ERRORNAME>] Error while establishing a
+  connection to the server.  See  \url{http://www.erlang.org/doc/man/inet.html} for the list of all errors.
 \item[error\_no\_online jabber]
 \item[error\_no\_offline jabber]
-\item[error\_no\_free\_userid]
-\item[error\_next\_session]
-\item[error\_mysql\_<ERRNO>]
+\item[error\_no\_free\_userid] 
+\item[error\_next\_session] A clients fails to gets its session
+  parameter from the config\_server; the controller may be overloaded ?
+\item[error\_mysql\_<ERRNO>] Error reported by the mysql server (see \url{http://dev.mysql.com/doc/refman/5.0/en/error-messages-server.html})
 \item[error\_mysql\_badpacket]
-\item[error\_pgsql]
+\item[error\_pgsql] Error reported by the postgresql server.
 \end{description}
 
 \section{CHANGELOG}
