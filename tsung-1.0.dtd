@@ -114,7 +114,7 @@ repeat)*>
     probability NMTOKEN #REQUIRED
     >
 
-<!ELEMENT transaction (request | setdynvars | for | repeat)+>
+<!ELEMENT transaction (request | setdynvars | thinktime | for | repeat)+>
 <!ATTLIST transaction name NMTOKEN #REQUIRED>
 
 <!ELEMENT http ( www_authenticate?, soap?, http_header*)>
