@@ -47,7 +47,7 @@ A distributed multi-protocol load testing tool.
     <para>
       <command>tsung</command> is a distributed load testing
       tool.  It is protocol-independent and can currently be used to
-      stress and benchmark HTTP, PostgreSQL and Jabber servers.</para>
+      stress and benchmark HTTP, WebDAV, LDAP, PostgreSQL, MySQL and Jabber/XMPP servers.</para>
 
     <para> It simulates user behaviour using an XML description file,
     reports many measurements in real time (statistics can be
@@ -145,7 +145,7 @@ A distributed multi-protocol load testing tool.
       <varlistentry>
       <term><option>-p</option></term>
       <listitem>
-        <para> Specifies the plugin used for the recorder. Default is http, available: http, pgsql</para>
+        <para> Specifies the plugin used for the recorder. Default is http, available: http, pgsql,webdav</para>
       </listitem>
     </varlistentry>
       <varlistentry>

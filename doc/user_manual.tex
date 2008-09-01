@@ -336,9 +336,11 @@ Use the Tsung mailing list (see
 suggestions or questions about \program{Tsung}. You can also use the
 bugtracker available at \url{https://support.process-one.net/browse/TSUN}.
 
-\section{HTTP/WebDAV benchmark approach}
+\section{Benchmark approach}
 
-\subsection{Benchmarking a Web server}
+\subsection{HTTP/WebDAV benchmark approach}
+
+\subsubsection{Benchmarking a Web server}
 
 \begin{enumerate}
 \item Record one or more sessions: start the recorder with: \command{tsung
@@ -365,13 +367,13 @@ the number of simultaneous users for each given phase.
 \item Analyze results, change parameters and relaunch another benchmark
 \end{enumerate}
 
-\subsection{WEBDAV }
+\subsubsection{WEBDAV }
 
 It's the same approach as HTTP: first you start to record one or more
 sessions with the recorder:
 \command{tsung -p webdav  recorder}
 
-\subsection{Benchmarking a proxy server}
+\subsubsection{Benchmarking a proxy server}
 
 By default, the HTTP plugin is used to benchmark HTTP servers. But you
 can also benchmark HTTP Proxy servers. To do that, you must add in the
@@ -381,7 +383,14 @@ can also benchmark HTTP Proxy servers. To do that, you must add in the
   <option type="ts_http" name="http_use_server_as_proxy" value="true"></option>
 \end{Verbatim}
 
-\section{PostgreSQL benchmark approach}
+
+\subsection{LDAP benchmark approach}
+
+An LDAP plugin for the recorder is not yet implemented, so you have to
+write the session by yourself; see section \ref{sec:session:ldap} for
+more information.
+
+\subsection{PostgreSQL benchmark approach}
 
 It's the same approach as HTTP: first you start to record one or more
 sessions with the recorder:
@@ -396,10 +405,15 @@ To choose another port and/or address:
 This will start a proxy listening to port 5432 and will proxy requests
 to 10.6.1.1:5433.
 
+\subsection{MySQL benchmark approach}
 
-\section{Jabber benchmark approach}
+A mysql plugin for the recorder is not yet implemented, so you have to
+write the session by yourself; see section \ref{sec:session:mysql} for
+more information.
 
-\subsection{Overview}
+\subsection{Jabber benchmark approach}
+
+\subsubsection{Overview}
 
 This paragraph explains how to write a session for Jabber.
 
@@ -417,7 +431,7 @@ There are two differences between HTTP and Jabber testing:
 There is no recorder for Jabber, so you have to write your sessions by
 hand (an example is provided in \ref{sec:sessions:jabber}).
 
-\subsection{Acknowledgements of messages}
+\subsubsection{Acknowledgements of messages}
 
 Since the jabber plugin does not parse XML (historically, it was for
 performance reasons), you must have a way to tell when a request is
@@ -466,7 +480,7 @@ subscription request (\userinput{<presence ... type='subscribe'>}), it
 will respond with a \userinput{<presence ... type='subscribed'>}
 message.
 
-\subsection{Status: Offline, Connected and Online}
+\subsubsection{Status: Offline, Connected and Online}
 
 You can send messages to offline or online users. A user is considered
 online when he has send a \userinput{presence:initial} message (before
@@ -488,7 +502,7 @@ If you want to switch back to \varname{connected} before going
 status were available: online and offline; a user was considered
 online as soon as it was connected.
 
-\subsection{Authentication}
+\subsubsection{Authentication}
 
 Below are configuration examples for the possible authentication
 methods.  Note: the regular expressions used here are only examples -
@@ -1164,6 +1178,7 @@ ORDER BY 1,2;]]></pgsql></request>
 \end{Verbatim}
 
 \subsubsection{MySQL}
+\label{sec:session:mysql}
 For mysql, 4 types of requests are available (same as postgresql):
 \begin{enumerate}
 \item connect (to a given database with a given username
@@ -1195,6 +1210,7 @@ This example shows most of the features of a MySQL session:
 \end{Verbatim}
 
 \subsubsection{LDAP}
+\label{sec:session:ldap}
 
 \paragraph{Authentication}
 The recommended mechanism used to authenticate users against a LDAP
@@ -1339,6 +1355,7 @@ that counts successful and unsuccessful bind attempts.
 </session>
 \end{Verbatim}
 
+\subsection{Advanced features}
 
 \subsubsection{Dynamic substitutions}
 
@@ -1524,11 +1541,51 @@ hand, for example to get the title of a HTML page:
     </request>
 \end{Verbatim}
 
-\strong{Since version 1.3.0}, more powerful variables is implemented:
+\strong{Since version 1.3.0}, more powerful dynamic variables are implemented:
 
-FIXME
+You can set dynamic variables not only while parsing server data, but
+you can build them using external files or generated them with a function
+or generate random numbers/strings:
+
+Five type of dynamic variables are currently implemented (\varname{sourcetype} tag):
+\begin{enumerate}
+\item Dynamic variables defined by calling an erlang function:
+\begin{Verbatim}
+      <setdynvars sourcetype="erlang" callback="ts_user_server:get_unique_id">
+        <var name="id1" />
+      </setdynvars>
+\end{Verbatim}
+\item Dynamic variables defined by parsing an external file:
+\begin{Verbatim}
+      <setdynvars sourcetype="file" fileid="userdb" delimiter=";" order="iter">
+        <var name="user" />
+        <var name="user_password" />
+      </setdynvars>
+\end{Verbatim}
+\varname{delimiter} can be any string, and \varname{order} can be
+\userinput{iter} or \userinput{random}
+\item Dynamic variable can a random number
+\begin{Verbatim}
+      <setdynvars sourcetype="random_number" start="3" end="32">
+        <var name="rndint" />
+      </setdynvars>
+\end{Verbatim}
+\item Dynamic variable can a random string
+\begin{Verbatim}
+      <setdynvars sourcetype="random_string" length="13">
+        <var name="rndstring1" />
+      </setdynvars>
+\end{Verbatim}
+\item Dynamic variable can a urandom string: this is much faster than
+  the random string, but the string is not really random: the same set
+  of character is always used.
+\end{enumerate}
+
+A \varname{setdynvars} can be defined anywhere in a session.
 
 \subsubsection{Checking the server's response}
+
+\paragraph{Regexp}
 
 With the tag \varname{match} in a \varname{request} tag, you can check
 the server's response against a given string, and do some actions
@@ -1570,6 +1627,39 @@ You can mixed several match tag in a single request:
 \end{Verbatim}
 
 You can also do the action on "nomatch" instead of "match".
+
+\paragraph{XPath}
+
+A new way to analyse the server response has been introduced in the
+release \strong{1.3.0}. It is only for the HTTP plugin since it is
+based on XML/HTML parsing. This feature uses the mochiweb library
+and \strong{only works with erlang R12B and newer version}.
+
+This give us some benefices:
+
+\begin{itemize}
+\item XPath is simple to write and to read, and match very well with
+  html pages
+\item The parser works on binaries(), and doesn't create any
+  string(). In constrant, the regexp module works on string(), so the
+  entire page needs to be \varname{binary\_to\_list/1} transformed before
+  processing it.
+\item The cost of parsing the html and build the tree is amortized
+  between all the dyn\_variables defined for a given request
+\end{itemize}
+
+To utilize xpath expression, use a \varname{xpath} attribute when
+defining the dyn\_variable, instead of \varname{regexp}, like:
+\begin{Verbatim}
+<dyn_variable name="field1_value" xpath="//input[@name='field1']/@value"/>
+<dyn_variable name="title" xpath="/html/head/title/text()"/>
+\end{Verbatim}
+
+There is a bug in the xpath engine, result nodes from "descendant-or-self" aren't returned in document order. This isn't a problem for the most common cases.
+However, queries like \userinput{//img[1]/@src} are not recommended, as the order of the \userinput{<img>} elements returned from //img is not the expected.
+The order is respected for paths without "descendant-or-self" axis, so this: \userinput{/html/body/div[2]/img[3]/@src} is interpreted as expected and can be safely used.
+
+Basic tests shows a x4 improvement in speed over the \emph{regexp} implementation.
 
 \subsubsection{Loops}
 
@@ -1727,10 +1817,6 @@ Figure \ref{fig:graph} show an exemple of a graphical report.
       \caption{Graphical output}
     \label{fig:graph}
 \end{figure}
-
-%\section{Roadmap}
-
-%FIXME
 
 \section{References}
 
@@ -2030,7 +2116,7 @@ work. This is fixed in erlang R9C-1 and up.
 \item[error\_no\_offline jabber] XMPP: No offline user available (usually for a
   chat message destinated to a offline user)
 \item[error\_no\_free\_userid] For XMPP: all users Id are already used
-  (\varname{userid_max} is too low ?)
+  (\varname{userid\_max} is too low ?)
 \item[error\_next\_session] A clients fails to gets its session
   parameter from the config\_server; the controller may be overloaded ?
 \item[error\_mysql\_<ERRNO>] Error reported by the mysql server (see \url{http://dev.mysql.com/doc/refman/5.0/en/error-messages-server.html})
