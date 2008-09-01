@@ -11,7 +11,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 
 %%% In addition, as a special exception, you have the permission to
 %%% link the code of this program with any library released under
@@ -25,9 +25,9 @@
 -include("ts_profile.hrl").
 
 -export([init_dynparams/0,
-		 add_dynparams/4,
-		 get_message/1,
-		 session_defaults/0,
+         add_dynparams/4,
+         get_message/1,
+         session_defaults/0,
          parse/2,
          parse_config/2,
          new_session/0]).
@@ -35,7 +35,7 @@
 %%----------------------------------------------------------------------
 %% Function: session_default/0
 %% Purpose: default parameters for session
-%% Returns: {ok, persistent = true|false} 
+%% Returns: {ok, persistent = true|false}
 %%----------------------------------------------------------------------
 session_defaults() ->
     todo.
@@ -46,12 +46,12 @@ session_defaults() ->
 %% Returns: record or []
 %%----------------------------------------------------------------------
 new_session() ->
-	#myproto_session{}.
+    #myproto_session{}.
 
 %%----------------------------------------------------------------------
 %% Function: get_message/21
 %% Purpose: Build a message/request ,
-%% Args:	record
+%% Args:    record
 %% Returns: binary
 %%----------------------------------------------------------------------
 get_message(Req=#myproto_request{}) ->
@@ -61,11 +61,11 @@ get_message(Req=#myproto_request{}) ->
 %% Function: parse/2
 %% Purpose: parse the response from the server and keep information
 %%          about the response in State#state_rcv.session
-%% Args:	Data (binary), State (#state_rcv)
+%% Args:    Data (binary), State (#state_rcv)
 %% Returns: {NewState, Options for socket (list), Close = true|false}
 %%----------------------------------------------------------------------
 parse(Data, State) ->
-	todo.
+    todo.
 
 %%----------------------------------------------------------------------
 %% Function: parse_config/2
@@ -73,7 +73,7 @@ parse(Data, State) ->
 %% Returns:  List
 %%----------------------------------------------------------------------
 parse_config(Element, Conf) ->
-	todo.
+    todo.
 
 %%----------------------------------------------------------------------
 %% Function: add_dynparams/4
