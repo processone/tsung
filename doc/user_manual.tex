@@ -101,7 +101,7 @@ Volume 46, Issue 2-3, October 2001}.
 \item \emph{Jabber} protocol:
   \begin{itemize}
   \item 90 000 simultaneous jabber users on a
-  4-node tsung cluster (3xSun V240 + 1 Sun V440)
+  4-node Tsung cluster (3xSun V240 + 1 Sun V440)
 \item 10 000 simultaneous users.
   \program{Tsung} was running on a 3-computers cluster (CPU
   800Mhz)
@@ -141,7 +141,7 @@ for Petroleum
 \item \emph{Distributed}: the load can be distributed on a cluster of
 client machines
 \item \emph{Multi-Protocols} using a plug-in system: HTTP (both standard
-web traffic and SOAP),  Webdav, Jabber and Postgresql are currently
+web traffic and SOAP),  Webdav, Jabber and PostgreSQL are currently
 supported. Experimental LDAP and MySQL plugins were included in the 1.3.0 release.
 \item \emph{SSL} support
 \item \emph{Several IP addresses} can be used on a single machine using
@@ -150,7 +150,7 @@ the underlying OS IP Aliasing
 agents on remote servers or \emph{SNMP}
 \item \emph{XML configuration system}: complex user's scenarios are written
   in XML. Scenarios can be written with a simple browser using the
-  Tsung recorder (HTTP and Postgresql only).
+  Tsung recorder (HTTP and PostgreSQL only).
 \item \emph{Dynamic scenarios}: You can get dynamic data from the
   server under load (without writing any code) and re-inject it in
   subsequent requests. You can also loop, restart or stop a
@@ -194,7 +194,7 @@ following features:
 \subsection{Jabber related features}
 
 \begin{itemize}
-\item Authentication (plaintext, digest and sip-digest)
+\item Authentication (plain-text, digest and sip-digest)
 \item presence and register messages
 \item Chat messages to online or offline users
 \item Roster set and get requests
@@ -211,7 +211,7 @@ following features:
 \end{itemize}
 
 \subsection{MySQL related features}
-This plugin is experimental. It works only with mysql version 4.1 and higher.
+This plugin is experimental. It works only with MySQL version 4.1 and higher.
 \begin{itemize}
 \item Secured Authentication method only (MySQL >= 4.1)
 \item Basic Queries
@@ -223,7 +223,7 @@ This plugin is experimental.
 \begin{itemize}
 \item bind
 \item add, modify and search queries
-\item starttls (only with R12B-0 erlang and up)
+\item starttls (only with R12B-0 Erlang and up)
 \end{itemize}
 
 \subsection{Complete reports set}
@@ -283,7 +283,7 @@ MacOS-X).
     \url{http://www.cellicium.com/erlang/contribs/} . The module is
     included in the source and binary distribution of \program{Tsung}. It
     is released under the EPL License.
-  \item pgsql module made by Christian Sunesson (for the postgresql plugin):
+  \item pgsql module made by Christian Sunesson (for the PostgreSQL plugin):
     sources available at
     \url{http://jungerl.sourceforge.net/} . The module is
     included in the source and binary distribution of \program{Tsung}. It
@@ -293,12 +293,12 @@ MacOS-X).
     \url{http://www.stacken.kth.se/projekt/yxa/} . The modified module is
     included in the source and binary distribution of \program{Tsung}. It
     is released under the three-clause BSD License.
-  \item eldap module  (for the ldap plugin):
+  \item eldap module  (for the LDAP plugin):
     sources available at
     \url{http://jungerl.sourceforge.net/} . The module is
     included in the source and binary distribution of \program{Tsung}. It
     is released under the GPL License.
-  \item mochiweb libs (for xpath parsing, optionaly used for dynamic variables in
+  \item mochiweb libs (for xpath parsing, optionally used for dynamic variables in
     the HTTP plugin):
     sources available at
     \url{http://code.google.com/p/mochiweb/} . The module is
@@ -325,7 +325,7 @@ The default configuration file is \file{~/.tsung/tsung.xml} (
 there are several sample files in
 \file{/usr/share/doc/tsung/examples}).
 
-Log files are saved in \file{~/.tsung/log/} . A new subdirectory
+Log files are saved in \file{~/.tsung/log/} . A new sub-directory
 is created for each test using the current date as name
 (\file{~/.tsung/log/20040217-09:40} for ex.)
 
@@ -407,7 +407,7 @@ to 10.6.1.1:5433.
 
 \subsection{MySQL benchmark approach}
 
-A mysql plugin for the recorder is not yet implemented, so you have to
+A MySQL plugin for the recorder is not yet implemented, so you have to
 write the session by yourself; see section \ref{sec:session:mysql} for
 more information.
 
@@ -431,7 +431,7 @@ There are two differences between HTTP and Jabber testing:
 There is no recorder for Jabber, so you have to write your sessions by
 hand (an example is provided in \ref{sec:sessions:jabber}).
 
-\subsubsection{Acknowledgements of messages}
+\subsubsection{Acknowledgments of messages}
 
 Since the jabber plugin does not parse XML (historically, it was for
 performance reasons), you must have a way to tell when a request is
@@ -466,7 +466,7 @@ To be sure that exactly \varname{global\_number} users are started, add the
     <users maxnumber="100" interarrival="1.0" unit="second"></users>
 \end{Verbatim}
 
-If you do not specify maxnumber, the global ack will be reset every
+If you do not specify \varname{maxnumber}, the global ack will be reset every
 \varname{global\_number} users
 \end{description}
 
@@ -474,7 +474,7 @@ If you do not specify maxnumber, the global ack will be reset every
 \strong{New in 1.2.2:} This version adds an new option for a
 session. if you set the attribute \varname{bidi} (for bidirectional)
 in the \varname{session} tag: \userinput{<session ... bidi='true'>},
-then incoming messages from the server will be analysed. Currently,
+then incoming messages from the server will be analyzed. Currently,
 only roster subscription requests are handled: if a user received a
 subscription request (\userinput{<presence ... type='subscribe'>}), it
 will respond with a \userinput{<presence ... type='subscribed'>}
@@ -512,7 +512,7 @@ for password settings).
 
 
 \begin{itemize}
-\item \strong{plain authentication} - sends cleartext passwords:
+\item \strong{plain authentication} - sends clear-text passwords:
 \begin{Verbatim}
   <session probability="100" name="jabber-plain" type="ts_jabber">
 
@@ -572,7 +572,7 @@ for password settings).
 \section{Using the proxy recorder}
 
 
-The recorder has three plugins: for HTTP, WABDAV and for PostgreSQL.
+The recorder has three plugins: for HTTP, WebDAV and for PostgreSQL.
 
 To start it, run \command{tsung -p <PLUGIN> recorder}, where \varname{PLUGIN} can be
 \userinput{http}, \userinput{webdav} or  \userinput{pgsql} for PostgreSQL. The default plugin is \userinput{http}.
@@ -591,7 +591,7 @@ During the recording, you can add custom tag in the XML file, this can
 be useful to set transactions or comments:
 \command{tsung record\_tag "<transaction name='login'>''}
 
-Once a session has been created, you can insert it in your main config
+Once a session has been created, you can insert it in your main configuration
 file, either by editing by hand the file, or by using an ENTITY
 declaration, like:
 
@@ -651,7 +651,7 @@ The default encoding is utf-8.  You can use a different encoding, like in:
  dump only the first 44 bytes.
 
  The \varname{loglevel} can also have a great impact on performance:
- For high load, \userinput{warning} is recommanded .
+ For high load, \userinput{warning} is recommended .
  Possible values are:
 
 \begin{itemize}
@@ -665,7 +665,7 @@ The default encoding is utf-8.  You can use a different encoding, like in:
 \end{itemize}
 
 For REALLY verbose logging, recompile tsung with \command{make debug}
-and set loglevel to \userinput{debug}.
+and set \varname{loglevel} to \userinput{debug}.
 
 \subsection{Clients and server}
 
@@ -760,7 +760,7 @@ a cluster of 6 computers:
 
 \subsubsection{SNMP}
 The type keyword snmp can replace the erlang keyword, if SNMP monitoring
-is preferred. They can be mixed. erlang is the default value for
+is preferred. They can be mixed. \userinput{erlang} is the default value for
 monitoring. Since version 1.2.2, you can customize the snmp version,
 community and port number.
 
@@ -825,7 +825,7 @@ the theoretical average throughput will be 1000 requests/ sec).
 
 \subsection{Setting options}
 
-\par Default values can be set-up globally: thinktime between requests
+\par Default values can be set-up globally: \varname{thinktime} between requests
 in the scenario and ssl cipher algorithms. These values overrides
 those set in session configuration tags if override is true.
 \begin{Verbatim}
@@ -897,6 +897,26 @@ statistics/reports the mean response time to get
 \userinput{index.en.html + header.gif}. Be warn that If you have a
 thinktime inside the transaction, the thinktime will be part of the
 response time.
+
+\subsubsection{Thinktimes}
+
+You can set static or random thinktimes to separate requests. Be
+default, a random thinktime will be a exponential distribution with
+mean equals to \varname{value}.
+
+\begin{Verbatim}
+<thinktime value="20" random="true"></thinktime>
+\end{Verbatim}
+
+In this case, the thinktime will be an exponential distribution with a
+mean equals to 20 seconds.
+
+\strong{Since version 1.3.0}, you can also use a range
+\userinput{[min:max]} instead of a mean for random thinktimes:
+\begin{Verbatim}
+<thinktime min="2" max="10" random="true"></thinktime>
+\end{Verbatim}
+
 
 \subsubsection{HTTP}
 
@@ -1012,7 +1032,7 @@ You can
   \item Delete the previously added contact.
 \end{enumerate}
 
-Note that when you add a new contact, the contact JID is stored and used for the operations that follow. It is recommended that for each session which is configured to perform these operations, only do so once. In other words, you would NOT want to ADD more than one new contact per session. If you want to alter the rate that these roster functions are used during your test, it is best to use the session 'probablity' factor to shape this.
+Note that when you add a new contact, the contact JID is stored and used for the operations that follow. It is recommended that for each session which is configured to perform these operations, only do so once. In other words, you would NOT want to ADD more than one new contact per session. If you want to alter the rate that these roster functions are used during your test, it is best to use the session 'probability' factor to shape this.
 
 The nice thing about this is that when you test run is complete, your roster tables should look the same as before you started the test. So, if you set it up properly, you can have pre-loaded roster entries before the test, and then use these methods to dynamically add, modify, and remove roster entries during the test as well.
 
@@ -1131,7 +1151,7 @@ Beware: you must encode XML characters like \userinput{<}
 
 \subsubsection{PostgreSQL}
 
-For postgresql, 4 types of requests are available:
+For PostgreSQL, 4 types of requests are available:
 \begin{enumerate}
 \item connect (to a given database with a given username
 \item authenticate (with password or not)
@@ -1179,7 +1199,7 @@ ORDER BY 1,2;]]></pgsql></request>
 
 \subsubsection{MySQL}
 \label{sec:session:mysql}
-For mysql, 4 types of requests are available (same as postgresql):
+For MySQL, 4 types of requests are available (same as PostgreSQL):
 \begin{enumerate}
 \item connect (to a given database with a given username
 \item authenticate (with password or not)
@@ -1273,14 +1293,14 @@ We use two dynamic variables to hold the username and password
      </setdynvars>
 \end{Verbatim}
 
-To start the authentication process we instruct tsung to perform a search, to find the distinguished name of the user we are trying to authenticate
+To start the authentication process we instruct Tsung to perform a search, to find the distinguished name of the user we are trying to authenticate
 
 \begin{Verbatim}
   <ldap type="search" base="dc=pablo-desktop" filter="(cn=%%_username%%)"
         result_var="search_result" scope="wholeSubtree"></ldap>
 \end{Verbatim}
 
-As we need to access the search result, we specify it using the \varname{result\_var} attribute. This attribute tells Tsung in which dynamic variable we want to store the result (if the \varname{result\_var} attribute isn't set, tsung doesn't store the search result in any place).
+As we need to access the search result, we specify it using the \varname{result\_var} attribute. This attribute tells Tsung in which dynamic variable we want to store the result (if the \varname{result\_var} attribute isn't set, Tsung doesn't store the search result in any place).
 Finally,  we try to bind as that user.
 \begin{Verbatim}
 <request subst="true">
@@ -1304,7 +1324,7 @@ Each entry in the result set is a SearchResultEntry record. The record definitio
 
 As we only need to access the distinguished name of the object, we index into the result tuple directly. But if you need to access other attributes you probably will want to include the appropriate .hrl and use the record syntax instead. One of the eight user:password pairs in our users file was wrong, so we expect 1/8 of the authentication attempts to fail.
 
-Indeed, after running the scenario we can confirm this in the tsung
+Indeed, after running the scenario we can confirm this in the Tsung
 report (see figure \ref{fig:ldap:results}). The bind operation maintains two
 counters: \varname{ldap\_bind\_ok} and \varname{ldap\_bind\_error},
 that counts successful and unsuccessful bind attempts.
@@ -1422,7 +1442,7 @@ names and passwd from a CSV file, you can do it with it (currently,
 you can read only a single file). \emph{Note: Reading usernames and
 password from a CSV file is not possible for Jabber.}
 
-You have to add this in the xml configuration file:
+You have to add this in the XML configuration file:
 \begin{Verbatim}
  <option name="file_server"  value="/tmp/userlist.csv"></option>
 \end{Verbatim}
@@ -1470,7 +1490,7 @@ and \varname{ts\_file\_server:get\_random\_line}. For the
 first line of the file will be the next line.
 
 \strong{New in 1.3.0}: you no longer have to create an external
-function to parse a simple csv file: you cau use \varname{setdynvars}
+function to parse a simple csv file: you can use \varname{setdynvars}
 (see next section for detailed documentation):
 
 \begin{Verbatim}
@@ -1630,7 +1650,7 @@ You can also do the action on "nomatch" instead of "match".
 
 \paragraph{XPath}
 
-A new way to analyse the server response has been introduced in the
+A new way to analyze the server response has been introduced in the
 release \strong{1.3.0}. It is only for the HTTP plugin since it is
 based on XML/HTML parsing. This feature uses the mochiweb library
 and \strong{only works with erlang R12B and newer version}.
@@ -1735,9 +1755,8 @@ The last element of repeat must be either \userinput{<while>} or \userinput{<unt
 
 The mean response time (for requests, page, etc.) is computed every 10
 sec (and reset). That's why you have the highest mean and lowest mean
-values in the Stats report (the mean for the whole test is not
-computed, since it's not very meaningful if you have several phases
-with different input rates in your setup).
+values in the Stats report. \strong{Since version 1.3.0}, the mean for
+the whole test is also computed.
 
 HTTP specific stats:
 \begin{itemize}
@@ -1794,10 +1813,26 @@ cd to the log directory of your test (say
 /usr/lib/tsung/bin/tsung_stats.pl
 \end{Verbatim}
 
-(use \userinput{--help} to view all available options)
+\strong{You can generate the statistics even when the  test is running !}
 
-\subsection{tsung summary}
-Figure \ref{fig:report} show an exemple of a summary report.
+use \userinput{--help} to view all available options:
+
+\begin{Verbatim}
+Available options:
+        [--help] (this help text)
+        [--verbose]
+        [--debug]
+        [--noplot]  (don't make graphics)
+        [--gnuplot <command>]  (path to the gnuplot binary)
+        [--nohtml]  (don't create HTML reports)
+        [--logy]  (logarithmic scale for Y axis)
+        [--tdir <template_dir>] (Path to the HTML tsung templates)
+        [--noextra  (don't generate graphics from extra data (os monitor, etc)
+        [--stats <file>] (stats file to analyse, default=tsung.log)
+\end{Verbatim}
+
+\subsection{Tsung summary}
+Figure \ref{fig:report} show an example of a summary report.
 \begin{figure}[htb]
   \begin{center}
     \includegraphics[width=0.6\linewidth]{tsung-report}
@@ -1808,7 +1843,7 @@ Figure \ref{fig:report} show an exemple of a summary report.
 
 \subsection{Graphical overview}
 
-Figure \ref{fig:graph} show an exemple of a graphical report.
+Figure \ref{fig:graph} show an example of a graphical report.
 
 \begin{figure}[htb]
   \begin{center}
@@ -1937,8 +1972,8 @@ Eshell V5.4.3 (abort with ^G)
 You should see this: \computeroutput{\{ok,bar@remotehost\}}
 
 If you got \computeroutput{\{error,timeout\}}, it probably comes from
-a firewall droping erlang packets; indeed erlang virtual machines use
-severals tcp ports (dynamicaly genrated) to communicate.
+a firewall dropping erlang packets; indeed erlang virtual machines use
+several tcp ports (dynamically generated) to communicate.
 The timeout can also comes from the use of SELinux. You should disable it.
 
 
@@ -2010,31 +2045,36 @@ Erlang.
 \subsection{What is the format of the stats file tsung.log ?}
 
 \begin{Verbatim}
-# stats: dump at 1083694995
-stats: users 11 11
-stats: request 41 1.03289 0.125108 1.59802 0.901978
-stats: connect 41 0.220170 6.67110e-2 0.494019 0.171997
-stats: users_count 11 11
-stats: page 24 6.80416 17.2794 80.4609 0.958984
-stats: size 26818 26818
-stats: 404 7 7
-stats: 200 20 20
-# stats: dump at 1083695005
-stats: users 21 21
-stats: request 113 1.03980 0.110650 1.59802 0.791016
-stats: connect 118 0.197619 4.26037e-2 0.494019 0.163940
-stats: users_count 10 21
-stats: page 52 2.72266 1.74204 80.4609 0.791016
-stats: size 78060 104878
-stats: 404 15 22
-stats: 200 51 71
+# stats: dump at 1218093520
+stats: users 247 247
+stats: connected 184 247
+stats: users_count 184 247
+stats: page 187 98.324 579.441 5465.940 2.177 9.237 595 58
+stats: request 1869 0.371 0.422 5.20703125 0.115 0.431 7444062 581
+stats: connect 186 0.427 0.184 4.47216796875 0.174 0.894 88665254 59
+stats: tr_login 187 100.848 579.742 5470.223 2.231 56.970 91567888 58
+stats: size_rcv 2715777 3568647
+stats: 200 1869 2450
+stats: size_sent 264167 347870
+# stats: dump at 1218093530
+stats: users 356 356
+stats: users_count 109 356
+stats: connected -32 215
+stats: page 110 3.346 0.408 5465.940 2.177 77.234 724492 245
+stats: request 1100 0.305 0.284 5.207 0.115 0.385 26785716 2450
+stats: connect 110 0.320 0.065 4.472 0.174 0.540 39158164 245
+stats: tr_login 110 3.419 0.414 5470.223 2.231 90.461 548628831 245
+stats: size_rcv 1602039 5170686
+stats: 200 1100 3550
+stats: size_sent 150660 498530
  ...
 \end{Verbatim}
 
- the format is, for \varname{request}, \varname{page}, \varname{session}:
+ the format is, for \varname{request}, \varname{page},
+ \varname{session} and transactions (\varname{tr\_XXX}:
 
- \texttt{ \# stats:'name' count(during the last 10sec), mean, stdvar,
-   max, min}
+ \texttt{ \# stats:'name' 10sec\_count, 10sec\_mean, 10sec\_stdvar,
+   max, min, mean, count}
 
  or for HTTP returns code, size ...
 
@@ -2099,7 +2139,7 @@ work. This is fixed in erlang R9C-1 and up.
 \item[error\_unknown\_data] Data received from the server during a
   thinktime (not for unparsed protocol like XMPP). The session is
   aborted.
-\item[error\_unknown\_msg] Unknown message receveived (see the log
+\item[error\_unknown\_msg] Unknown message received (see the log
   files for more information). The session is aborted.
 \item[error\_unknown] Abnormal termination of a session, see
   log file for more information.
