@@ -95,8 +95,8 @@ a:hover     {background:#ffffaa;}
 <!--ENDHTML-->
 <!--CUT DEF section 1 --><H1 ALIGN=center>Tsung User’s manual</H1><DIV CLASS="center">
 
-<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>883</TD></TR>
-<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>29 ao^ût 2008</TD></TR>
+<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>886</TD></TR>
+<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>1 septembre 2008</TD></TR>
 </TABLE>
 </DIV><!--TOC section Table des matières-->
 <H2 CLASS="section"><!--SEC ANCHOR -->Table des matières</H2><!--SEC END --><UL CLASS="toc"><LI CLASS="li-toc">
@@ -741,7 +741,8 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE><P>If you add the attribute <FONT COLOR=purple>dumptraffic="true"</FONT>, all the
 traffic will be logged to a file. <EM>Warn:</EM> this will considerably
 slow down Tsung, so use with care. It is useful for debugging
-purpose.</P><P>The <TT>loglevel</TT> can also have a great impact on performance:
+purpose. You can use the attribute <FONT COLOR=purple>dumptraffic="light"</FONT> to
+dump only the first 44 bytes.</P><P>The <TT>loglevel</TT> can also have a great impact on performance:
 For high load, <FONT COLOR=purple>warning</FONT> is recommanded .
 Possible values are:</P><UL CLASS="itemize"><LI CLASS="li-itemize">
 emergency
@@ -2356,22 +2357,36 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 </TABLE><!--TOC section Errors list-->
 <H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc70">B</A>  Errors list</H2><!--SEC END --><DL CLASS="description"><DT CLASS="dt-description">
-<B>error_closed</B></DT><DD CLASS="dd-description">
-</DD><DT CLASS="dt-description"><B>error_inet_XXX</B></DT><DD CLASS="dd-description"> <A HREF="http://www.erlang.org/doc/man/inet.html"><TT>http://www.erlang.org/doc/man/inet.html</TT></A>
-</DD><DT CLASS="dt-description"><B>error_unknown_data</B></DT><DD CLASS="dd-description">
-</DD><DT CLASS="dt-description"><B>error_unknown_msg</B></DT><DD CLASS="dd-description">
-</DD><DT CLASS="dt-description"><B>error_unknown</B></DT><DD CLASS="dd-description">
-</DD><DT CLASS="dt-description"><B>error_repeat_&lt;REPEATNAME&gt;</B></DT><DD CLASS="dd-description">
-</DD><DT CLASS="dt-description"><B>error_send_XXX</B></DT><DD CLASS="dd-description">
-</DD><DT CLASS="dt-description"><B>error_send</B></DT><DD CLASS="dd-description">
-</DD><DT CLASS="dt-description"><B>error_connect_XXX</B></DT><DD CLASS="dd-description">
-</DD><DT CLASS="dt-description"><B>error_no_online jabber</B></DT><DD CLASS="dd-description">
-</DD><DT CLASS="dt-description"><B>error_no_offline jabber</B></DT><DD CLASS="dd-description">
-</DD><DT CLASS="dt-description"><B>error_no_free_userid</B></DT><DD CLASS="dd-description">
-</DD><DT CLASS="dt-description"><B>error_next_session</B></DT><DD CLASS="dd-description">
-</DD><DT CLASS="dt-description"><B>error_mysql_&lt;ERRNO&gt;</B></DT><DD CLASS="dd-description">
+<B>error_closed</B></DT><DD CLASS="dd-description"> Only for non persistent session (XMPP); the
+server unexpectedly closed the connection; the session is aborted.
+</DD><DT CLASS="dt-description"><B>error_inet_&lt;ERRORNAME&gt;</B></DT><DD CLASS="dd-description"> Network error; see
+<A HREF="http://www.erlang.org/doc/man/inet.html"><TT>http://www.erlang.org/doc/man/inet.html</TT></A> for the list of all errors.
+</DD><DT CLASS="dt-description"><B>error_unknown_data</B></DT><DD CLASS="dd-description"> Data received from the server during a
+thinktime (not for unparsed protocol like XMPP). The session is
+aborted.
+</DD><DT CLASS="dt-description"><B>error_unknown_msg</B></DT><DD CLASS="dd-description"> Unknown message receveived (see the log
+files for more information). The session is aborted.
+</DD><DT CLASS="dt-description"><B>error_unknown</B></DT><DD CLASS="dd-description"> Abnormal termination of a session, see
+log file for more information.
+</DD><DT CLASS="dt-description"><B>error_repeat_&lt;REPEATNAME&gt;</B></DT><DD CLASS="dd-description"> Error in a repeat loop (undefined
+dynamic variable usually).
+</DD><DT CLASS="dt-description"><B>error_send_&lt;ERRORNAME&gt;</B></DT><DD CLASS="dd-description"> Error while sending data to the
+server, see <A HREF="http://www.erlang.org/doc/man/inet.html"><TT>http://www.erlang.org/doc/man/inet.html</TT></A> for the list of all errors.
+</DD><DT CLASS="dt-description"><B>error_send</B></DT><DD CLASS="dd-description"> Unexpected error while sending data to the server,
+see the logfiles for more information.
+</DD><DT CLASS="dt-description"><B>error_connect_&lt;ERRORNAME&gt;</B></DT><DD CLASS="dd-description"> Error while establishing a
+connection to the server. See <A HREF="http://www.erlang.org/doc/man/inet.html"><TT>http://www.erlang.org/doc/man/inet.html</TT></A> for the list of all errors.
+</DD><DT CLASS="dt-description"><B>error_no_online jabber</B></DT><DD CLASS="dd-description"> XMPP: No online user available (usually for a
+chat message destinated to a online user)
+</DD><DT CLASS="dt-description"><B>error_no_offline jabber</B></DT><DD CLASS="dd-description"> XMPP: No offline user available (usually for a
+chat message destinated to a offline user)
+</DD><DT CLASS="dt-description"><B>error_no_free_userid</B></DT><DD CLASS="dd-description"> For XMPP: all users Id are already used
+(<TT>userid_max</TT> is too low ?)
+</DD><DT CLASS="dt-description"><B>error_next_session</B></DT><DD CLASS="dd-description"> A clients fails to gets its session
+parameter from the config_server; the controller may be overloaded ?
+</DD><DT CLASS="dt-description"><B>error_mysql_&lt;ERRNO&gt;</B></DT><DD CLASS="dd-description"> Error reported by the mysql server (see <A HREF="http://dev.mysql.com/doc/refman/5.0/en/error-messages-server.html"><TT>http://dev.mysql.com/doc/refman/5.0/en/error-messages-server.html</TT></A>)
 </DD><DT CLASS="dt-description"><B>error_mysql_badpacket</B></DT><DD CLASS="dd-description">
-</DD><DT CLASS="dt-description"><B>error_pgsql</B></DT><DD CLASS="dd-description">
+</DD><DT CLASS="dt-description"><B>error_pgsql</B></DT><DD CLASS="dd-description"> Error reported by the postgresql server.
 </DD></DL><!--TOC section CHANGELOG-->
 <H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc71">C</A>  CHANGELOG</H2><!--SEC END --><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
