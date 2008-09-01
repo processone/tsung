@@ -10,10 +10,12 @@ ERL_OPTS=@ERL_OPTS@
 # FIXME
 DIALYZER=dialyzer
 
-ERLDIR=@ERLDIR@
+ERLDIR=@ERLANG_ROOT_DIR@
 export ERLDIR
 
-ERLANG_XMERL_DIR=@ERLANG_XMERL_DIR@
+USEMOCHIWEBLIBS=@erlang_cv_orelse@
+
+ERLANG_XMERL_DIR=@ERLANG_LIB_DIR_xmerl@/include
 
 raw_erlang_prefix=@libdir@/erlang/
 
@@ -89,7 +91,10 @@ TARGETDIR = $(ERLANG_LIB_DIR)/$(APPLICATION)-$(VERSION)
 TEMPLATES = $(wildcard $(ESRC)/templates/*.thtml)
 TMP       = $(wildcard *~) $(wildcard src/*~) $(wildcard inc/*~)
 INC_FILES = $(wildcard $(INC)/*.hrl)
-LIBSRC    = $(wildcard $(ESRC)/lib/*.erl)
+LIBSRC    = $(wildcard $(ESRC)/lib/[^mochi]*.erl)
+ifeq ($(USEMOCHIWEBLIBS),yes)
+LIBSRC    += $(wildcard $(ESRC)/lib/mochi*.erl)
+endif
 TESTSRC    = $(wildcard $(ESRC)/test/*.erl)
 SRC       = $(wildcard $(ESRC)/$(APPLICATION)/*.erl)
 CONTROLLER_SRC  = $(wildcard $(ESRC)/$(CONTROLLER_APPLICATION)/*.erl)
