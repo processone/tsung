@@ -498,8 +498,7 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
 
 %%% Parsing the thinktime element
 parse(Element = #xmlElement{name=thinktime, attributes=Attrs},
-      Conf = #config{cur_req_id=ReqId, curid=Id, session_tab = Tab,
-                     sessions = [CurS |_]}) ->
+      Conf = #config{curid=Id, session_tab = Tab, sessions = [CurS |_]}) ->
     DefThink  = get_default(Tab,{thinktime, value},thinktime_value),
     DefRandom = get_default(Tab,{thinktime, random},thinktime_random),
     {Think, Randomize} =
@@ -577,10 +576,12 @@ parse(_Element, Conf = #config{}) ->
 getAttr(Attr, Name) -> getAttr(string, Attr, Name, "").
 getAttr(Type, Attr, Name) -> getAttr(Type, Attr, Name, "").
 
-getAttr(Type, [Attr = #xmlAttribute{name=Name}|_], Name, Default) ->
-    case Attr#xmlAttribute.value of
-        [] -> Default;
-        A  -> getTypeAttr(Type,A)
+getAttr(Type, [Attr = #xmlAttribute{name=Name}|_], Name, _Default) ->
+    case { Attr#xmlAttribute.value, Type}  of
+        {[], string } -> "" ;
+        {[], list } -> [] ;
+        {[], float_or_integer } -> 0 ;
+        {A,_}  -> getTypeAttr(Type,A)
     end;
 
 getAttr(Type, [_H|T], Name, Default) ->

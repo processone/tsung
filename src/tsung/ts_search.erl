@@ -222,15 +222,15 @@ parse_dynvar(DynVar, _Data)  ->
 
 % parse_dynvar(DynVars,BinaryData,ListData,TreeData,Accum)
 %            ListData and TreeData are lazy computed when needed by
-%            regexp or xpath variables respectively 
+%            regexp or xpath variables respectively
 parse_dynvar([],_Binary , _String,_Tree, ValuesList) -> ValuesList;
 
-parse_dynvar(D=[{regexp,_VarName, _RegExp}| _DynVars], 
-                Binary,undefined,Tree, ValuesList) -> 
+parse_dynvar(D=[{regexp,_VarName, _RegExp}| _DynVars],
+                Binary,undefined,Tree, ValuesList) ->
     parse_dynvar(D,Binary,binary_to_list(Binary),Tree,ValuesList);
 
-parse_dynvar([{regexp,VarName, RegExp}| DynVars], 
-                Binary,String,Tree, ValuesList) -> 
+parse_dynvar([{regexp,VarName, RegExp}| DynVars],
+                Binary,String,Tree, ValuesList) ->
     case gregexp:groups(String, RegExp) of
         {match,[Value|_]} ->
             ?LOGF("DynVar: Match (~p=~p) ~n",[VarName, Value], ?DEB),
@@ -238,36 +238,36 @@ parse_dynvar([{regexp,VarName, RegExp}| DynVars],
                             [{VarName, Value}| ValuesList]);
         nomatch ->
             ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName], ?WARN),
-            parse_dynvar(DynVars, Binary,String,Tree, ValuesList)
+            parse_dynvar(DynVars, Binary,String,Tree, [{VarName, ""}|ValuesList])
     end;
 
-parse_dynvar(D=[{xpath,_VarName, _Expr}| _DynVars], 
-                Binary,String,undefined,ValuesList) -> 
+parse_dynvar(D=[{xpath,_VarName, _Expr}| _DynVars],
+                Binary,String,undefined,ValuesList) ->
     HTML = extract_html(Binary),
     try mochiweb_html:parse(HTML) of
-        Tree -> 
+        Tree ->
             parse_dynvar(D,Binary,String,Tree,ValuesList)
     catch
         Type:Exp ->
-            ?LOGF("Page couldn't be parsed:(~p:~p) ~n Page:~p~n", 
+            ?LOGF("Page couldn't be parsed:(~p:~p) ~n Page:~p~n",
                     [Type,Exp,Binary],?ERR),
             parse_dynvar(D,Binary,String,error,ValuesList)
     end;
 
-parse_dynvar([{xpath,VarName, _Expr}| DynVars], 
-                Binary,String,error,ValuesList) -> 
-    ?LOGF("Couldn't execute XPath: page not parsed (varname=~p) ~n", 
+parse_dynvar([{xpath,VarName, _Expr}| DynVars],
+                Binary,String,error,ValuesList) ->
+    ?LOGF("Couldn't execute XPath: page not parsed (varname=~p) ~n",
                 [VarName],?ERR),
     parse_dynvar(DynVars, Binary,String,error,ValuesList);
 
-parse_dynvar([{xpath,VarName, Expr}| DynVars], 
-                Binary,String,Tree, ValuesList) -> 
+parse_dynvar([{xpath,VarName, Expr}| DynVars],
+                Binary,String,Tree, ValuesList) ->
         Result = mochiweb_xpath:execute(Expr,Tree),
         Value = mochiweb_xpath_utils:string_value(Result),
         case binary_to_list(Value) of
             [] ->
                 ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?WARN),
-                parse_dynvar(DynVars, Binary,String,Tree,ValuesList);
+                parse_dynvar(DynVars, Binary,String,Tree,[{VarName, ""}|ValuesList]);
             ListValue ->
                 ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,ListValue],?DEB),
                 parse_dynvar(DynVars, Binary,String,Tree,
@@ -284,6 +284,6 @@ extract_html(<<"\r\n\r\n",Rest/binary>>) ->
 
 extract_html(<<_:1/binary,Rest/binary>>) ->
     extract_html(Rest);
-    
+
 extract_html(<<>>) ->
     <<>>.
