@@ -53,7 +53,7 @@
 -define(DUMP_FILENAME,"tsung.dump").
 -define(FULLSTATS_FILENAME,"tsung-fullstats.log").
 -define(DELAYED_WRITE_SIZE,524288). % 512KB
--define(DELAYED_WRITE_DELAY,30000). % 30 sec
+-define(DELAYED_WRITE_DELAY,5000).  % 5 sec
 
 -record(state, {log,          % log fd
                 backend,      % type of backend: text|rrdtool
