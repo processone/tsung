@@ -92,8 +92,7 @@ start()->
 %%--------------------------------------------------------------------
 init(_Config) ->
     State=#state{plugin=?config(plugin)},
-    activate(State),
-    {ok, State}.
+    activate(State).
 
 %%--------------------------------------------------------------------
 %% Function: handle_call/3
@@ -203,15 +202,19 @@ activate(State=#state{plugin=Plugin})->
             Portno=?config(proxy_listen_port),
             Opts = lists:append(Plugin:socket_opts(),
                                 [{reuseaddr, true}, {active, once}]),
-            {ok, ServerSock} = gen_tcp:listen(Portno, Opts),
-            NewState = State#state
-                         {acceptsock=ServerSock,
-                          acceptloop_pid = spawn_link(?MODULE,
-                                                 accept_loop,
-                                                 [self(), unused, ServerSock])},
-            NewState;
+            case gen_tcp:listen(Portno, Opts) of
+                {ok, ServerSock} ->
+                    {ok, State#state
+                      {acceptsock=ServerSock,
+                       acceptloop_pid = spawn_link(?MODULE,
+                                                   accept_loop,
+                                                   [self(), unused, ServerSock])}};
+                {error, Reason} ->
+                    io:format("Error when trying to listen to socket: ~p~n",[Reason]),
+                    {stop, Reason}
+            end;
         _ -> %% Already active
-            State
+            {ok, State}
     end.
 
 %%--------------------------------------------------------------------
