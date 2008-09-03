@@ -48,9 +48,9 @@ New Features:
     - [TSUN-22] add support for PUT, DELETE and HEAD methods for http
 
 1.1.0 -> 1.2.0 Major feature enhancements (29 May 2006)
-    - change name: idx-tsunami is now called tsung 
+    - change name: idx-tsunami is now called tsung
     - add new plugin: pgsql for postgresql load testing
-    - new: it's now possible to set multiple servers (selected at runtime 
+    - new: it's now possible to set multiple servers (selected at runtime
       by round robin)
     - add size_rcv stats
     - fix beams communication problem introduced in new erlang releases.
@@ -64,11 +64,11 @@ New Features:
     - ip is no more mandatory (default is 0.0.0.0)
     - clients and monitoring can use hosts list defined in environment
       variables, for use with batch schedulers (openpbs/torque, LSF and OAR)
-    - performance improvements in stats engine for very high load 
+    - performance improvements in stats engine for very high load
       (use session_cache)
     Recorder:
     - add plugin architecture in recorder; add pgsql plugin
-    - fix regression in recorder for WWW-Authentication 
+    - fix regression in recorder for WWW-Authentication
       (anders.nygren@gmail.com)
     - close client socket when connection:closed is ask by the server
       (this should enable https recording with IE)
@@ -88,7 +88,7 @@ New Features:
     - new feature: HTTP proxy load testing in now possible (set
       http_use_server_as_proxy to true)
     - add dynamic substitution support for jabber
-    - add 'raw' type of msg for Jabber (use the new 'data' attribute) 
+    - add 'raw' type of msg for Jabber (use the new 'data' attribute)
     - add the dynamic variable list to dynamic substitutions
     - UserAgent is now customizable for HTTP testing
     - Add an option to run all components (controller and launcher)
@@ -97,7 +97,7 @@ New Features:
     - fix bash script for solaris (jasonwtucker@gmail.com)
     - fix: several 'idx-tsunami status' can be run simultaneously
       (reported by Adam Spotton)
-    - internal: Host header is now set during configuration phase 
+    - internal: Host header is now set during configuration phase
     - fix last phase duration
     - fix recorder: must log absolute url if only the scheme has changed
 
@@ -173,7 +173,7 @@ New Features:
     - Added ~/.idx-tsunami creation in idx-tsunami script if the directory
       does not already exist
     - Extension of XML attribute entity normalisation
-    - HTTP: fix Cookie support: Cookie are not necessarily separated by "; " 
+    - HTTP: fix Cookie support: Cookie are not necessarily separated by "; "
     - HTTP: fix long POST request in the recorder: dorecord message
       was missing enclosing curly brackets, and the body length counter
       were mistakenly taking the header size in its total
@@ -192,7 +192,7 @@ New Features:
     - fix lost cookie when transfer-encoding:chunked is used
     - fix config parsing (the last request of the last page of a
       sesssion was not marked as endpage)
-    - don't crash anymore on error during start or stop 
+    - don't crash anymore on error during start or stop
 
 1.0.beta2 -> 1.0.beta3:  Minor feature enhancements (24 Feb 2004)
     - fix stupid bug in start script for recorder
@@ -204,7 +204,7 @@ New Features:
     - change stats names:  page_resptime -> page, response_time -> request
 
 1.0.beta1 -> 1.0.beta2:  Minor feature enhancements (11 Feb 2004)
-    - reorganise the sources 
+    - reorganise the sources
     - add tools to build a debian package
     - fix documentations
     - add minimalistic man page
@@ -218,7 +218,7 @@ New Features:
       erlang agent on the remote nodes; SNMP is on the TODO list.
       (mickael.remond@erlang-fr.org)
     - can now use several IPs per client host
-    - several arrival phases can be set with different arrival rates and 
+    - several arrival phases can be set with different arrival rates and
       duration
     - can set test duration instead of number of users
     - add user defined statistics using a 'transaction' tag
@@ -228,7 +228,7 @@ New Features:
     - bugfixes and other enhancements.
     - fix memory leak with ssl (half-closed connections)
 
-0.2.0 -> 0.2.1:  Minor bugfixes and small enhancements (9 Dec 2003) 
+0.2.0 -> 0.2.1:  Minor bugfixes and small enhancements (9 Dec 2003)
     - optimize session memory consumption: use an ets table to store session setup
     - HTTP: fix crash when content-length is not set in headers
     - HTTP: fix POST method
@@ -237,20 +237,20 @@ New Features:
     - no more .hosts.erlang required
     - add stats on simultaneous users
 
-0.1.1 -> 0.2.0:  Major Feature Enhancements (Aug 2003) 
-	- add 'realtime' stats
-	- add new 'parse' type of protocol
-	- add reconnection support (persistent client)
-	- add basic HTTP and HTTPS support
-	- split the application in two parts: a single controller (tsunami_controller),
+0.1.1 -> 0.2.0:  Major Feature Enhancements (Aug 2003)
+    - add 'realtime' stats
+    - add new 'parse' type of protocol
+    - add reconnection support (persistent client)
+    - add basic HTTP and HTTPS support
+    - split the application in two parts: a single controller (tsunami_controller),
       and the clients (tsunami)
-	- switch to R9C
+    - switch to R9C
 
-0.1.0 -> 0.1.1:  Bugfix realease (Aug 2002)  
-	- fix config file
-	- fix few typos in docs
-	- fix init script
-	- few optimizations in user_server.erl
-	- switch to R8B
+0.1.0 -> 0.1.1:  Bugfix realease (Aug 2002)
+      - fix config file
+    - fix few typos in docs
+    - fix init script
+    - few optimizations in user_server.erl
+    - switch to R8B
 
-0.1.0: Initial release (May 2001)  
+0.1.0: Initial release (May 2001)
