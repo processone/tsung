@@ -2,7 +2,7 @@ Source: tsung
 Section: net
 Priority: optional
 Maintainer: Nicolas Niclausse <nicolas.niclausse@niclux.org>
-Build-Depends: debhelper (>= 4.0.0), erlang (>= 9.2-1), libxmerl-erlang (>= 0.19-1) | erlang (>= 10.b.5-1) , docbook-utils
+Build-Depends: debhelper (>= 4.0.0), erlang (>= 9.2-1), libxmerl-erlang (>= 0.19-1) | erlang (>= 10.b.5-1) , docbook-utils, erlang-src
 Standards-Version: 3.6.0
 
 Package: tsung
@@ -11,11 +11,11 @@ Depends: erlang (>= 9.2-1), libxmerl-erlang (>= 0.19-1) | erlang (>= 10.b.5-1)
 Recommends: gnuplot, perl, ssh, libtemplate-perl
 Description: A distributed multi-protocol load testing tool.
  Tsung is a distributed load testing tool.
- It is protocol-independent and can currently be used to stress and 
- benchmark HTTP,  Jabber and PostgreSQL servers. 
+ It is protocol-independent and can currently be used to stress and
+ benchmark HTTP, Jabber/XMPP, LDAP, MySQL and PostgreSQL servers.
  It simulates user behaviour using an XML description file, reports
  many measurements in real time (statistics can be customized with
- transactions, and graphics generated using gnuplot). 
+ transactions, and graphics generated using gnuplot).
  For HTTP, it supports 1.0 and 1.1, has a proxy mode to record
  sessions, supports GET and POST methods, Cookies, and Basic
  WWW-authentication. It also has support for SSL.

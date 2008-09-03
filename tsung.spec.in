@@ -8,7 +8,7 @@ Name: %{name}
 Version: %{version}
 Release: %{release}
 Source0: http://tsung.erlang-projects.org/dist/%{name}-%{version}.tar.gz
-License: GPL
+License: GPL2
 Vendor: Process-one
 Packager: Nicolas Niclausse <nicolas@niclux.org>
 Group: Development/Tools
@@ -21,7 +21,7 @@ Prefix: %{_prefix}
 %description
  tsung is a distributed load testing tool.
  It is protocol-independent and can currently be used to stress and
- benchmark HTTP and Jabber servers.
+ benchmark HTTP, Jabber/XMPP, PostgreSQL, MySQL and LDAP servers.
  It simulates user behaviour using an XML description file, reports
  many measurements in real time (statistics can be customized with
  transactions, and graphics generated using gnuplot).
@@ -39,7 +39,7 @@ make
 
 %install
 rm -rf $RPM_BUILD_ROOT
-export DESTDIR=$RPM_BUILD_ROOT %makeinstall 
+export DESTDIR=$RPM_BUILD_ROOT %makeinstall
 install -m644 CONTRIBUTORS $RPM_BUILD_ROOT/usr/share/doc/%{name}/
 install -m644 README $RPM_BUILD_ROOT/usr/share/doc/%{name}/
 install -m644 TODO $RPM_BUILD_ROOT/usr/share/doc/%{name}/
