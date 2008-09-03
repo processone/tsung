@@ -1,3 +1,35 @@
+1.2.2 -> 1.3.0 Major bugfixes and enhancements (03 Sep 2008)
+Bugfix:
+    * [TSUN-30] - SNMP monitoring gives an error
+    * [TSUN-57] - using -l with a relative path make distributed load fails with timeout error
+    * [TSUN-60] - https recorder broken if an HTML document includes absolute urls
+    * [TSUN-67] - Typo breaks recording of if-modified-since headers
+    * [TSUN-68] - some sites doesn't work with ":443" added in the "Host" header with https
+    * [TSUN-71] - Tsung does not work with R12B (httpd_util funs removed)
+    * [TSUN-73] - Wrong parsing HTTP multipart/form-data in http request - POST form doesn't work
+    * [TSUN-75] - can not define more -pa arguments
+    * [TSUN-84] - dyn variables that don't match should be set to an empty string
+Improvements:
+    * [TSUN-40] - problem to rewrite url for https with gzip-encoded html.
+    * [TSUN-48] - tcp/udp buffer size should be customizable in the XML config file.
+    * [TSUN-59] - if a User-Agent header is set in <header>, it should override the global one.
+    * [TSUN-62] - add abilty to loop back to a previous request in a session
+    * [TSUN-63] - check for ssl and crypto application at compile time
+    * [TSUN-65] - enhance dynamic variables.
+    * [TSUN-66] - add global mean and counter computation and reporting for samples
+    * [TSUN-69] - add option to read content of a POST request from an external file
+    * [TSUN-79] - setting 'Host' header with http_header doesn't work as expected
+New Features:
+    * [TSUN-56] - ldap plugin
+    * [TSUN-58] - add a new statistics backend to dump all stats in a file
+    * [TSUN-61] - add a Webdav plugin
+    * [TSUN-64] - add md5 authentication in the pgsql plugin
+    * [TSUN-72] - Add support for defining dyn_variables using XPath
+    * [TSUN-78] - mysql plugin
+    * [TSUN-80] - add random thinktime with in a given range ( [min,max])
+Tasks:
+    * [TSUN-76] - add explanation for errors name in the documentation
+
 1.2.1 -> 1.2.2 Minor bugfixes and enhancements (23 Feb 2008)
 Bugfix:
     * [TSUN-30] - SNMP monitoring gives an error
