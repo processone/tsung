@@ -95,8 +95,8 @@ a:hover     {background:#ffffaa;}
 <!--ENDHTML-->
 <!--CUT DEF section 1 --><H1 ALIGN=center>Tsung User’s manual</H1><DIV CLASS="center">
 
-<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>891</TD></TR>
-<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>1 septembre 2008</TD></TR>
+<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>892</TD></TR>
+<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>3 septembre 2008</TD></TR>
 </TABLE>
 </DIV><!--TOC section Table des matières-->
 <H2 CLASS="section"><!--SEC ANCHOR -->Table des matières</H2><!--SEC END --><UL CLASS="toc"><LI CLASS="li-toc">
@@ -111,7 +111,7 @@ a:hover     {background:#ffffaa;}
 <A HREF="#htoc6">2.1  Tsung main features</A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc7">2.2  HTTP related features</A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc8">2.3  WEBDAV related features</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc9">2.4  Jabber related features</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc9">2.4  Jabber/XMPP related features</A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc10">2.5  PostgreSQL related features</A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc11">2.6  MySQL related features</A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc12">2.7  LDAP related features</A>
@@ -136,7 +136,7 @@ a:hover     {background:#ffffaa;}
 </LI><LI CLASS="li-toc"><A HREF="#htoc25">4.2  LDAP benchmark approach</A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc26">4.3  PostgreSQL benchmark approach</A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc27">4.4  MySQL benchmark approach</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc28">4.5  Jabber benchmark approach</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc28">4.5  Jabber/XMPP benchmark approach</A>
 <UL CLASS="toc"><LI CLASS="li-toc">
 <A HREF="#htoc29">4.5.1  Overview</A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc30">4.5.2  Acknowledgments of messages</A>
@@ -168,7 +168,7 @@ a:hover     {background:#ffffaa;}
 <UL CLASS="toc"><LI CLASS="li-toc">
 <A HREF="#htoc47">6.6.1  Thinktimes</A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc48">6.6.2  HTTP</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc49">6.6.3  Jabber</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc49">6.6.3  Jabber/XMPP</A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc50">6.6.4  PostgreSQL</A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc51">6.6.5  MySQL</A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc52">6.6.6  LDAP</A>
@@ -198,17 +198,20 @@ a:hover     {background:#ffffaa;}
 </LI><LI CLASS="li-toc"><A HREF="#htoc69">A.2  Tsung still doesn’t start ...</A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc70">A.3  Why do i have error_connect_emfile errors ?</A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc71">A.4  Tsung still crashes/fails when I start it !</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc72">A.5  What is the format of the stats file tsung.log ?</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc73">A.6  How can I specify the number of concurrent users ?</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc74">A.7  SNMP monitoring doesn’t work ?!</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc72">A.5  Can i dynamically follow redirect with HTTP ?</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc73">A.6  What is the format of the stats file tsung.log ?</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc74">A.7  How can I compute percentile/quartiles/median for transactions or requests
+response time ?</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc75">A.8  How can I specify the number of concurrent users ?</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc76">A.9  SNMP monitoring doesn’t work ?!</A>
 </LI></UL>
-</LI><LI CLASS="li-toc"><A HREF="#htoc75">B  Errors list</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc76">C  CHANGELOG</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc77">B  Errors list</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc78">C  CHANGELOG</A>
 </LI></UL><!--TOC section Introduction-->
 <H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc1">1</A>  Introduction</H2><!--SEC END --><!--TOC subsection What is Tsung ?-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc2">1.1</A>  What is Tsung ?</H3><!--SEC END --><P><EM>Tsung</EM> (formerly IDX-Tsunami) is a distributed load testing tool. It is
 protocol-independent and can currently be used to stress HTTP, WebDAV, SOAP,
-PostgreSQL, MySQL, LDAP, and Jabber servers.</P><P>It is distributed under the GNU General Public License version 2.</P><!--TOC subsection What is Erlang and why is it important for Tsung ?-->
+PostgreSQL, MySQL, LDAP, and Jabber/XMPP servers.</P><P>It is distributed under the GNU General Public License version 2.</P><!--TOC subsection What is Erlang and why is it important for Tsung ?-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc3">1.2</A>  What is Erlang and why is it important for Tsung ?</H3><!--SEC END --><P><EM>Tsung’s</EM> main strength is its ability to simulate a huge number of
 simultaneous user from a single CPU. When used on cluster you can
 generate a really impressive load on a server with a modest cluster,
@@ -243,7 +246,7 @@ Volume 46, Issue 2-3, October 2001</EM>.</P></LI><LI CLASS="li-itemize">This mod
 research prototype (Web trAffic GeneratOr and beNchmark). WAGON was
 used in the <A HREF="http://www.vthd.org/"><TT>http://www.vthd.org/</TT></A> project (Very High Broadband
 IP/WDM test platform for new generation Internet applications, 2000-2004).</LI></UL><P><EM>Tsung</EM> has been used for very high load tests:</P><UL CLASS="itemize"><LI CLASS="li-itemize">
-<EM>Jabber</EM> protocol:
+<EM>Jabber/XMPP</EM> protocol:
 <UL CLASS="itemize"><LI CLASS="li-itemize">
 90 000 simultaneous jabber users on a
 4-node Tsung cluster (3xSun V240 + 1 Sun V440)
@@ -263,6 +266,8 @@ tested platform reached 3 000 requests per second.
 </LI><LI CLASS="li-itemize"><EM>IFP</EM> (Institut Français du Pétrole): French Research Organization
 for Petroleum
 </LI><LI CLASS="li-itemize"><EM>LibertySurf</EM>
+</LI><LI CLASS="li-itemize">Sun™for their Mooddlerooms platform on Niagara processors:
+<A HREF="http://blogs.sun.com/kevinr/resource/Moodle-Sun-RA.pdf"><TT>http://blogs.sun.com/kevinr/resource/Moodle-Sun-RA.pdf</TT></A>
 </LI></UL><!--TOC section Features-->
 <H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc5">2</A>  Features</H2><!--SEC END --><!--TOC subsection Tsung main features-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc6">2.1</A>  Tsung main features</H3><!--SEC END --><UL CLASS="itemize"><LI CLASS="li-itemize">
@@ -277,7 +282,7 @@ scenarios with extended reports, <EM>Tsung</EM> is for you).
 </LI><LI CLASS="li-itemize"><EM>Distributed</EM>: the load can be distributed on a cluster of
 client machines
 </LI><LI CLASS="li-itemize"><EM>Multi-Protocols</EM> using a plug-in system: HTTP (both standard
-web traffic and SOAP), Webdav, Jabber and PostgreSQL are currently
+web traffic and SOAP), Webdav, Jabber/XMPP and PostgreSQL are currently
 supported. Experimental LDAP and MySQL plugins were included in the 1.3.0 release.
 </LI><LI CLASS="li-itemize"><EM>SSL</EM> support
 </LI><LI CLASS="li-itemize"><EM>Several IP addresses</EM> can be used on a single machine using
@@ -317,8 +322,8 @@ Methods implemented: DELETE, CONNECT, PROPFIND, PROPPATCH, COPY,
 MOVE, LOCK, UNLOCK, MKCOL, REPORT, OPTIONS
 </LI><LI CLASS="li-itemize">Recording of DEPTH, IF, TIMEOUT OVERWRITE, DESTINATION, URL and
 LOCK-TOKEN Headers.
-</LI></UL><!--TOC subsection Jabber related features-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc9">2.4</A>  Jabber related features</H3><!--SEC END --><UL CLASS="itemize"><LI CLASS="li-itemize">
+</LI></UL><!--TOC subsection Jabber/XMPP related features-->
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc9">2.4</A>  Jabber/XMPP related features</H3><!--SEC END --><UL CLASS="itemize"><LI CLASS="li-itemize">
 Authentication (plain-text, digest and sip-digest)
 </LI><LI CLASS="li-itemize">presence and register messages
 </LI><LI CLASS="li-itemize">Chat messages to online or offline users
@@ -494,9 +499,9 @@ to 127.0.0.0:5432.</P><P>To choose another port and/or address:
 to 10.6.1.1:5433.</P><!--TOC subsection MySQL benchmark approach-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc27">4.4</A>  MySQL benchmark approach</H3><!--SEC END --><P>A MySQL plugin for the recorder is not yet implemented, so you have to
 write the session by yourself; see section <A HREF="#sec:session:mysql">6.6.5</A> for
-more information.</P><!--TOC subsection Jabber benchmark approach-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc28">4.5</A>  Jabber benchmark approach</H3><!--SEC END --><!--TOC subsubsection Overview-->
-<H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc29">4.5.1</A>  Overview</H4><!--SEC END --><P>This paragraph explains how to write a session for Jabber.</P><P>There are two differences between HTTP and Jabber testing:
+more information.</P><!--TOC subsection Jabber/XMPP benchmark approach-->
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc28">4.5</A>  Jabber/XMPP benchmark approach</H3><!--SEC END --><!--TOC subsubsection Overview-->
+<H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc29">4.5.1</A>  Overview</H4><!--SEC END --><P>This paragraph explains how to write a session for Jabber/XMPP.</P><P>There are two differences between HTTP and Jabber testing:
 </P><OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
 There is no recorder for Jabber, so you have to write your
 sessions by hand (an example is provided in
@@ -963,7 +968,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE><!--TOC subsubsection Jabber options-->
 <H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc44">6.5.1</A>  Jabber options</H4><!--SEC END --><P>
 <A NAME="sec:jabber-options"></A></P><P>Default values for specific protocols can be defined. Here is an
-example of option values for Jabber:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+example of option values for Jabber/XMPP:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
 </TABLE></TD></TR>
@@ -1139,9 +1144,9 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE><!--TOC subsubsection Jabber-->
-<H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc49">6.6.3</A>  Jabber</H4><!--SEC END --><P><A NAME="sec:sessions:jabber"></A>
-</P><P>Here is an example of a session definition for the Jabber protocol:
+</TABLE><!--TOC subsubsection Jabber/XMPP-->
+<H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc49">6.6.3</A>  Jabber/XMPP</H4><!--SEC END --><P><A NAME="sec:sessions:jabber"></A>
+</P><P>Here is an example of a session definition for the Jabber/XMPP protocol:
 </P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
@@ -2458,9 +2463,59 @@ don’t forget to set the loglevel to "debug" in the XML file.</P><P>To start th
 <FONT COLOR=purple>debug</FONT> argument instead of <FONT COLOR=purple>start</FONT>. You will have
 an erlang shell on the <TT>tsung_controller</TT> node. Use
 <TT>toolbar:start().</TT> to launch the graphical tools provided by
-Erlang.
-</P><!--TOC subsection What is the format of the stats file tsung.log ?-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc72">A.5</A>  What is the format of the stats file tsung.log ?</H3><!--SEC END --><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+Erlang.</P><!--TOC subsection Can i dynamically follow redirect with HTTP ?-->
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc72">A.5</A>  Can i dynamically follow redirect with HTTP ?</H3><!--SEC END --><P>If your HTTP server sends 30X responses (redirect) with dynamic URLs,
+you can handle this situation using a dynamic variable:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">&lt;request&gt;
+  &lt;dyn_variable name="redirect" regexp="Location: \(http://.*\)\r"/&gt;
+  &lt;http url="index.html" method="GET" &gt;&lt;/http&gt;
+&lt;/request&gt;
+
+&lt;request subst="true"&gt;
+  &lt;http url="%%_redirect%%" method="GET"&gt;&lt;/http&gt;
+&lt;/request&gt;
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><P>You can even handle the case where the server use several redirections
+successively using a repeat loop (this works only with version 1.3.0 and up):</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">  &lt;request&gt;
+    &lt;dyn_variable name="redirect" regexp="Location: \(http://.*\)\r"/&gt;
+    &lt;http url='/test/redirect.html' method='GET'&gt;&lt;/http&gt;
+  &lt;/request&gt;
+
+  &lt;repeat name="redirect_loop" max_repeat="5"&gt;
+    &lt;request subst="true"&gt;
+      &lt;dyn_variable name="redirect" regexp="Location: \(http://.*\)\r"/&gt;
+      &lt;http url="%%_redirect%%" method="GET"&gt;&lt;/http&gt;
+    &lt;/request&gt;
+    &lt;until var="redirect" eq=""/&gt;
+  &lt;/repeat&gt;
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><!--TOC subsection What is the format of the stats file tsung.log ?-->
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc73">A.6</A>  What is the format of the stats file tsung.log ?</H3><!--SEC END --><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
 </TABLE></TD></TR>
@@ -2499,8 +2554,46 @@ stats: size_sent 150660 498530
 </TABLE></TD></TR>
 </TABLE><P>the format is, for <TT>request</TT>, <TT>page</TT>,
 <TT>session</TT> and transactions (<TT>tr_XXX</TT>:</P><P><TT> # stats:’name’ 10sec_count, 10sec_mean, 10sec_stdvar,
-max, min, mean, count</TT></P><P>or for HTTP returns code, size ...</P><P><TT> # stats:’name’ count(during the last 10sec), totalcount(since the beginning)</TT></P><!--TOC subsection How can I specify the number of concurrent users ?-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc73">A.6</A>  How can I specify the number of concurrent users ?</H3><!--SEC END --><P>You can’t. But it’s on purpose: the load generated by
+max, min, mean, count</TT></P><P>or for HTTP returns code, size ...</P><P><TT> # stats:’name’ count(during the last 10sec), totalcount(since the beginning)</TT></P><!--TOC subsection How can I compute percentile/quartiles/median for transactions or requests
+response time ?-->
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc74">A.7</A>  How can I compute percentile/quartiles/median for transactions or requests
+response time ?</H3><!--SEC END --><P>It’s not directly possible. But since <B>version 1.3.0</B>, you can
+use a new experimental statistic backend: set <FONT COLOR=purple>backend="fullstats"</FONT></P><P>This will print every statistics data in a raw format in a file named
+<TT>tsung-fullstats.log</TT>. <B>Warning</B>: this may impact the performance of
+the controller node (a lot of data may be written to disk).</P><P>The data looks like:
+</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">{sum,connected,1}
+{sum,connected,-1}
+[{sample,request,214.635},
+ {sum,size_rcv,268},
+ {sample,page,831.189},
+ {count,200},
+ {sum,size_sent,182},
+ {sample,connect,184.787},
+ {sample,request,220.974},
+ {sum,size_rcv,785},
+ {count,200},
+ {sum,size_sent,164},
+ {sample,connect,185.482}]
+{sum,connected,1}
+[{count,200},{sum,size_sent,161},{sample,connect,180.812}]
+[{sum,size_rcv,524288},{sum,size_rcv,524288}]
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><P>You will have to write your own script to analyze the output.
+The format of the file may change in a future release.</P><!--TOC subsection How can I specify the number of concurrent users ?-->
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc75">A.8</A>  How can I specify the number of concurrent users ?</H3><!--SEC END --><P>You can’t. But it’s on purpose: the load generated by
 <EM>Tsung</EM> is dependent on the arrival time between new
 clients. Indeed, once a client has finished his session in
 <EM>tsung</EM>, it stops. So the number of concurrent users is
@@ -2509,7 +2602,7 @@ is 1000/3600 = 0.2778 visits/second. If you want to simulate the same
 load, set the inter-arrival time is to 1/0.27778 = 3.6 <I>sec</I> (<TT>&lt;users
 interarrival="3.6" unit="second"&gt;</TT> in the <TT>arrivalphase</TT> node in the
 XML config file).</P><!--TOC subsection SNMP monitoring doesn’t work ?!-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc74">A.7</A>  SNMP monitoring doesn’t work ?!</H3><!--SEC END --><P>It use SNMP v1 and the ’public’ community. It has been tested with
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc76">A.9</A>  SNMP monitoring doesn’t work ?!</H3><!--SEC END --><P>It use SNMP v1 and the ’public’ community. It has been tested with
 <A HREF="http://net-snmp.sourceforge.net/"><TT>http://net-snmp.sourceforge.net/</TT></A>.</P><P>You can try with <TT>snmpwalk</TT> to see if your snmpd config is ok:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
@@ -2556,7 +2649,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 </TABLE></TD></TR>
 </TABLE><!--TOC section Errors list-->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc75">B</A>  Errors list</H2><!--SEC END --><DL CLASS="description"><DT CLASS="dt-description">
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc77">B</A>  Errors list</H2><!--SEC END --><DL CLASS="description"><DT CLASS="dt-description">
 <B>error_closed</B></DT><DD CLASS="dd-description"> Only for non persistent session (XMPP); the
 server unexpectedly closed the connection; the session is aborted.
 </DD><DT CLASS="dt-description"><B>error_inet_&lt;ERRORNAME&gt;</B></DT><DD CLASS="dd-description"> Network error; see
@@ -2588,7 +2681,7 @@ parameter from the config_server; the controller may be overloaded ?
 </DD><DT CLASS="dt-description"><B>error_mysql_badpacket</B></DT><DD CLASS="dd-description"> Bad packet received for mysql server while parsing data.
 </DD><DT CLASS="dt-description"><B>error_pgsql</B></DT><DD CLASS="dd-description"> Error reported by the postgresql server.
 </DD></DL><!--TOC section CHANGELOG-->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc76">C</A>  CHANGELOG</H2><!--SEC END --><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc78">C</A>  CHANGELOG</H2><!--SEC END --><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
 </TABLE></TD></TR>

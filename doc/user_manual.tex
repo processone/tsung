@@ -33,7 +33,7 @@
 
 \program{Tsung} (formerly IDX-Tsunami) is a distributed load testing tool. It is
 protocol-independent and can currently be used to stress HTTP, WebDAV, SOAP,
-PostgreSQL, MySQL, LDAP, and Jabber servers.
+PostgreSQL, MySQL, LDAP, and Jabber/XMPP servers.
 
 It is distributed under the GNU General Public License version 2.
 
@@ -98,7 +98,7 @@ Volume 46, Issue 2-3, October 2001}.
 \program{Tsung} has been used for very high load tests:
 
 \begin{itemize}
-\item \emph{Jabber} protocol:
+\item \emph{Jabber/XMPP} protocol:
   \begin{itemize}
   \item 90 000 simultaneous jabber users on a
   4-node Tsung cluster (3xSun V240 + 1 Sun V440)
@@ -122,6 +122,8 @@ Volume 46, Issue 2-3, October 2001}.
 \item \emph{IFP} (Institut Français du Pétrole): French Research Organization
 for Petroleum
 \item \emph{LibertySurf}
+\item Sun\texttrademark for their Mooddlerooms platform on Niagara processors:
+ \url{http://blogs.sun.com/kevinr/resource/Moodle-Sun-RA.pdf}
 \end{itemize}
 
 
@@ -141,7 +143,7 @@ for Petroleum
 \item \emph{Distributed}: the load can be distributed on a cluster of
 client machines
 \item \emph{Multi-Protocols} using a plug-in system: HTTP (both standard
-web traffic and SOAP),  Webdav, Jabber and PostgreSQL are currently
+web traffic and SOAP),  Webdav, Jabber/XMPP and PostgreSQL are currently
 supported. Experimental LDAP and MySQL plugins were included in the 1.3.0 release.
 \item \emph{SSL} support
 \item \emph{Several IP addresses} can be used on a single machine using
@@ -191,7 +193,7 @@ following features:
   LOCK-TOKEN Headers.
 \end{itemize}
 
-\subsection{Jabber related features}
+\subsection{Jabber/XMPP related features}
 
 \begin{itemize}
 \item Authentication (plain-text, digest and sip-digest)
@@ -411,11 +413,11 @@ A MySQL plugin for the recorder is not yet implemented, so you have to
 write the session by yourself; see section \ref{sec:session:mysql} for
 more information.
 
-\subsection{Jabber benchmark approach}
+\subsection{Jabber/XMPP benchmark approach}
 
 \subsubsection{Overview}
 
-This paragraph explains how to write a session for Jabber.
+This paragraph explains how to write a session for Jabber/XMPP.
 
 There are two differences between HTTP and Jabber testing:
 \begin{enumerate}
@@ -838,7 +840,7 @@ those set in session configuration tags if override is true.
 \label{sec:jabber-options}
 
 Default values for specific protocols can be defined. Here is an
-example of option values for Jabber:
+example of option values for Jabber/XMPP:
 
 \begin{Verbatim}
   <option type="ts_jabber" name="global_number" value="5" />
@@ -977,10 +979,10 @@ statistics definition, conditional request (IF MODIFIED SINCE), ...
    </request>
 \end{Verbatim}
 
-\subsubsection{Jabber}
+\subsubsection{Jabber/XMPP}
 
 \label{sec:sessions:jabber}
-\par Here is an example of a session definition for the Jabber protocol:
+\par Here is an example of a session definition for the Jabber/XMPP protocol:
 \begin{Verbatim}
 <sessions>
  <session probability="70" name="jabber-example" type="ts_jabber">
@@ -2042,6 +2044,41 @@ To start the debugger or see what happen, start \program{tsung} with the
 an erlang shell on the \varname{tsung\_controller} node. Use
 \command{toolbar:start().} to launch the graphical tools provided by
 Erlang.
+
+\subsection{Can i dynamically follow redirect with HTTP ?}
+
+If your HTTP server sends 30X responses (redirect) with dynamic URLs,
+you can handle this situation using a dynamic variable:
+
+\begin{Verbatim}
+<request>
+  <dyn_variable name="redirect" regexp="Location: \(http://.*\)\r"/>
+  <http url="index.html" method="GET" ></http>
+</request>
+
+<request subst="true">
+  <http url="%%_redirect%%" method="GET"></http>
+</request>
+\end{Verbatim}
+
+You can even handle the case where the server use several redirections
+successively using a repeat loop (this works only with version 1.3.0 and up):
+
+\begin{Verbatim}
+  <request>
+    <dyn_variable name="redirect" regexp="Location: \(http://.*\)\r"/>
+    <http url='/test/redirect.html' method='GET'></http>
+  </request>
+
+  <repeat name="redirect_loop" max_repeat="5">
+    <request subst="true">
+      <dyn_variable name="redirect" regexp="Location: \(http://.*\)\r"/>
+      <http url="%%_redirect%%" method="GET"></http>
+    </request>
+    <until var="redirect" eq=""/>
+  </repeat>
+\end{Verbatim}
+
 \subsection{What is the format of the stats file tsung.log ?}
 
 \begin{Verbatim}
@@ -2079,6 +2116,40 @@ stats: size_sent 150660 498530
  or for HTTP returns code, size ...
 
 \texttt{ \# stats:'name' count(during the last 10sec), totalcount(since the beginning)}
+
+\subsection{How can I compute percentile/quartiles/median for transactions or requests
+  response time ?}
+
+It's not directly possible. But since \strong{version 1.3.0}, you can
+use a new experimental statistic backend: set \userinput{backend="fullstats"}
+
+This will print every statistics data in a raw format in a file named
+\file{tsung-fullstats.log}. \strong{Warning}: this may impact the performance of
+the controller node (a lot of data may be written to disk).
+
+The data looks like:
+\begin{Verbatim}
+{sum,connected,1}
+{sum,connected,-1}
+[{sample,request,214.635},
+ {sum,size_rcv,268},
+ {sample,page,831.189},
+ {count,200},
+ {sum,size_sent,182},
+ {sample,connect,184.787},
+ {sample,request,220.974},
+ {sum,size_rcv,785},
+ {count,200},
+ {sum,size_sent,164},
+ {sample,connect,185.482}]
+{sum,connected,1}
+[{count,200},{sum,size_sent,161},{sample,connect,180.812}]
+[{sum,size_rcv,524288},{sum,size_rcv,524288}]
+\end{Verbatim}
+
+You will have to write your own script to analyze the output.
+The format of the file may change in a future release.
+
 
 \subsection{How can I specify the number of concurrent users ?}
 

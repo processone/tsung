@@ -3,7 +3,7 @@
 .\" <http://shell.ipoline.com/~elmert/comp/docbook2X/> 
 .\" Please send any bug reports, improvements, comments, patches, 
 .\" etc. to Steve Cheng <steve@ggi-project.org>.
-.TH "TSUNG" "1" "30 janvier 2008" "" ""
+.TH "TSUNG" "1" "01 September 2008" "" ""
 
 .SH NAME
 tsung \- A distributed multi-protocol load testing tool.
@@ -15,7 +15,7 @@ tsung \- A distributed multi-protocol load testing tool.
 .PP
 \fBtsung\fR is a distributed load testing
 tool.  It is protocol-independent and can currently be used to
-stress and benchmark HTTP, PostgreSQL and Jabber servers.
+stress and benchmark HTTP, WebDAV, LDAP, PostgreSQL, MySQL and Jabber/XMPP servers.
 .PP
 It simulates user behaviour using an XML description file,
 reports many measurements in real time (statistics can be
@@ -71,7 +71,7 @@ Specifies the log file to use. The default log file name is \fI~/tsung/log/tsung
 Specifies an alternative to ssh (rsh for ex.) for starting a slave node on a remote host
 .TP
 \fB-p\fR
-Specifies the plugin used for the recorder. Default is http, available: http, pgsql
+Specifies the plugin used for the recorder. Default is http, available: http, pgsql,webdav
 .TP
 \fB-L\fR
 Listening port for the recorder. Default is 8090
