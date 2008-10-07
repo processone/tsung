@@ -136,7 +136,6 @@ rcvmes({_Type, Who, What})  ->
 init([LogDir]) ->
     ?LOGF("Init, log dir is ~p~n",[LogDir],?NOTICE),
     Base = filename:basename(?config(log_file)),
-    backup_config(LogDir, ?config(config_file)),
     Filename = filename:join(LogDir, Base),
     case file:open(Filename,[write]) of
         {ok, Stream} ->
@@ -401,11 +400,3 @@ start_launchers(Machines) ->
     %% starts beam on all client hosts
     lists:foreach(fun(B) -> ts_config_server:newbeam(B) end, HostList).
 
-%%----------------------------------------------------------------------
-%% Func: backup_config/2
-%% @doc copy a backup copy of the config file in the log directory
-%%   This is useful to have an history of all parameters of a test.
-%%----------------------------------------------------------------------
-backup_config(Dir, Config) ->
-    Backup = filename:basename(Config),
-    {ok, _} = file:copy(Config, filename:join(Dir,Backup)).

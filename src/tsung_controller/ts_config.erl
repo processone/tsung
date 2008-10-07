@@ -40,7 +40,7 @@
 
 -include("xmerl.hrl").
 
--export([read/1,
+-export([read/2,
          getAttr/2,
          getAttr/3,
          getAttr/4,
@@ -52,10 +52,10 @@
         ]).
 
 %%%----------------------------------------------------------------------
-%%% Function: read/1
-%%% Purpose:  read the xml config file
+%%% @spec: read(Filename::string, LogDir::string)
+%%% @doc:  read and parse the xml config file
 %%%----------------------------------------------------------------------
-read(Filename) ->
+read(Filename, LogDir) ->
     case catch xmerl_scan:file(Filename,
                                [{fetch_path,["/usr/share/tsung/","./"]},
                                 {validation,true}]) of
@@ -63,9 +63,10 @@ read(Filename) ->
             ?LOGF("Reading config file: ~s~n", [Filename], ?NOTICE),
             Table = ets:new(sessiontable, [ordered_set, protected]),
             {ok, parse(Root, #config{session_tab = Table})};
-        {Root = #xmlElement{}, _Tail} ->  % xmerl-0.19
+        {Root = #xmlElement{}, _Tail} ->  % xmerl-0.19 and up
             ?LOGF("Reading config file: ~s~n", [Filename], ?NOTICE),
             Table = ets:new(sessiontable, [ordered_set, protected]),
+            backup_config(LogDir, Filename, Root),
             {ok, parse(Root, #config{session_tab = Table, proto_opts=#proto_opts{}})};
         {error,Reason} ->
             {error, Reason};
@@ -676,3 +677,16 @@ get_batch_nodes2(Env) ->
 shortnames(Hostname)->
     [S | _]= string:tokens(Hostname,"."),
     S.
+
+%%----------------------------------------------------------------------
+%% @spec: backup_config(Dir::string, Name::string, Config::tuple)
+%% @doc: create a backup copy of the config file in the log directory
+%%   This is useful to have an history of all parameters of a test.
+%%   Use parsed config file to expand all ENTITY
+%%----------------------------------------------------------------------
+backup_config(Dir, Name, Config) ->
+    BaseName = filename:basename(Name),
+    {ok,IOF}=file:open(filename:join(Dir,BaseName),[write]),
+    Export=xmerl:export_simple([Config],xmerl_xml),
+    io:format(IOF,"~s~n",[lists:flatten(Export)]),
+    file:close(IOF).
