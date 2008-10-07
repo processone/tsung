@@ -15,10 +15,12 @@ test() -> ok.
 
 all_test_() -> [ts_test_recorder,
                 ts_test_config,
+                ts_test_dynvars_api,
                 ts_test_file_server,
                 ts_test_pgsql,
                 ts_test_proxy,
                 ts_test_jabber,
                 ts_test_mon,
+                ts_test_user_server,
                 ts_test_user_server,
                 ts_test_search].

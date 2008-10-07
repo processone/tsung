@@ -25,8 +25,8 @@
 -author('nicolas.niclausse@niclux.org').
 
 -record(dyndata,
-        {dynvars, % dynamic variables
-         proto    % dynamic data specific to protocole (#http_dyndata for HTTP)
+        {dynvars = [], % dynamic variables
+         proto         % dynamic data specific to protocole (#http_dyndata for HTTP)
        }).
 
 -record(match,
@@ -44,7 +44,7 @@
          ack,
          subst=false,
          match=[],
-         dynvar_specs=undefined, % undefined | [{VarName, Regexp} |...]
+         dynvar_specs=[], % [] | [{VarName, Regexp} |...]
          param,
          endpage=false,
          host,       % override global server hostname

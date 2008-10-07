@@ -110,7 +110,7 @@ parse_config(Element = #xmlElement{name=http},
     ets:insert(Tab,{{CurS#session.id, Id},Msg#ts_request{endpage=true,
                                                          dynvar_specs=DynVar}}),
     lists:foldl( fun(A,B)->ts_config:parse(A,B) end,
-                 Config#config{dynvar=undefined},
+                 Config#config{dynvar=[]},
                  Element#xmlElement.content);
 %% Parsing default values
 parse_config(Element = #xmlElement{name=option}, Conf = #config{session_tab = Tab}) ->

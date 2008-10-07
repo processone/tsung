@@ -136,7 +136,7 @@ parse_config(Element = #xmlElement{name=ldap},
     ts_config:mark_prev_req(Id-1, Tab, CurS),
     ets:insert(Tab,{{CurS#session.id, Id}, Request }),
     lists:foldl( fun(A,B)->ts_config:parse(A,B) end,
-                 Config#config{dynvar=undefined},
+                 Config#config{dynvar=[]},
                  Element#xmlElement.content);
 
 %% Parsing other elements

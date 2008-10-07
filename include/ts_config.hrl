@@ -47,7 +47,7 @@
           thinktime,  %% default thinktime specs
           subst = false, %% Substitution should be applied on the request
           match, %% Match regexp in response
-          dynvar,
+          dynvar = [],
           sessions=[],
           session_tab,
           use_controller_vm = false, % if true, start the first launcher in the

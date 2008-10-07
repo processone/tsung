@@ -318,10 +318,11 @@ handle_next_action(State) ->
             NewState = State#state_rcv{transactions=lists:keydelete(Tname,1,TrList),
                                    count=Count},
             handle_next_action(NewState);
-        {setdynvars,SourceType,Args,Vars} ->
-            Result = set_dynvars(SourceType,Args,Vars,State#state_rcv.dyndata),
-            NewDynVars = lists:zip(Vars,Result),
-            NewDynData = concat_dynvars(NewDynVars, State#state_rcv.dyndata),
+        {setdynvars,SourceType,Args,VarNames} ->
+            DynData=State#state_rcv.dyndata,
+            Result = set_dynvars(SourceType,Args,VarNames,DynData),
+            NewDynVars = ts_dynvars:set(VarNames,Result,DynData#dyndata.dynvars),
+            NewDynData = DynData#dyndata{dynvars=NewDynVars},
             ?DebugF("set dynvars: ~p ~p~n",[NewDynVars, NewDynData]),
             handle_next_action(State#state_rcv{dyndata = NewDynData, count=Count});
         {ctrl_struct,CtrlData} ->
@@ -385,26 +386,27 @@ ctrl_struct(CtrlData,State,Count) ->
 %% @doc return {next,NewDynData} to continue with the sequential flow,
 %%             {jump,Target,NewDynData} to jump to action number 'Target'
 %%----------------------------------------------------------------------
-ctrl_struct_impl({for_start,InitialValue,VarName},DynData) ->
-    NewDynData = concat_dynvars([{VarName,InitialValue}],DynData),
-    {next,NewDynData};
-ctrl_struct_impl({for_end,VarName,EndValue,Increment,Target},DynData) ->
-    case lists:keysearch(VarName,1,DynData#dyndata.dynvars) of
-        {value,{VarName,EndValue}} -> % Reach final value, end loop
+ctrl_struct_impl({for_start,InitialValue,VarName},DynData=#dyndata{dynvars=DynVars}) ->
+    NewDynVars = ts_dynvars:set(VarName,InitialValue,DynVars),
+    {next,DynData#dyndata{dynvars=NewDynVars}};
+ctrl_struct_impl({for_end,VarName,EndValue,Increment,Target},DynData=#dyndata{dynvars=DynVars}) ->
+    case ts_dynvars:lookup(VarName,DynVars) of
+        {ok,EndValue} -> % Reach final value, end loop
             {next,DynData};
-        {value,{VarName,Value}} ->  % New iteration
+        {ok,Value} ->  % New iteration
             NewValue = integer_to_list(list_to_integer(Value) + Increment),
-            NewDynData = concat_dynvars([{VarName,NewValue}],DynData),
-            {jump,Target,NewDynData}
+            NewDynVars = ts_dynvars:set(VarName,NewValue,DynVars),
+            {jump,Target,DynData#dyndata{dynvars=NewDynVars}}
     end;
 
-ctrl_struct_impl({repeat,RepeatName, _,_,_,_,_,_},DynData=#dyndata{dynvars=undefined}) ->
+ctrl_struct_impl({repeat,RepeatName, _,_,_,_,_,_},DynData=#dyndata{dynvars=[]}) ->
     Msg= list_to_atom("error_repeat_"++atom_to_list(RepeatName)++"_undef"),
     ts_mon:add({ count, Msg}),
     {next,DynData};
-ctrl_struct_impl({repeat,RepeatName, While,Rel,VarName,Value,Target,Max},DynData) ->
-    Iteration = case lists:keysearch(RepeatName,1,DynData#dyndata.dynvars) of
-                    {value,{RepeatName,Val}} -> Val;
+ctrl_struct_impl({repeat,RepeatName, While,Rel,VarName,Value,Target,Max},
+                 DynData=#dyndata{dynvars=DynVars}) ->
+    Iteration = case ts_dynvars:lookup(RepeatName,DynVars) of
+                    {ok,Val} -> Val;
                     false ->  1
                 end,
     ?DebugF("Repeat (name=~p) iteration: ~p~n",[RepeatName,Iteration]),
@@ -414,13 +416,14 @@ ctrl_struct_impl({repeat,RepeatName, While,Rel,VarName,Value,Target,Max},DynData
             ts_mon:add({ count, max_repeat}),
             {next,DynData};
         false ->
-            case lists:keysearch(VarName,1,DynData#dyndata.dynvars) of
-                {value,{VarName,VarValue}} ->
+            case ts_dynvars:lookup(VarName,DynVars) of
+                {ok,VarValue} ->
                     ?DebugF("Repeat (name=~p) found; value is ~p~n",[VarName,VarValue]),
+                    ?DebugF("Calling need_jump with args ~p ~p ~p ~p~n",[While,Rel,Value,VarValue]),
                     Jump = need_jump(While,rel(Rel,Value,VarValue)),
                     NewValue = 1 + Iteration,
-                    NewDynData = concat_dynvars([{RepeatName,NewValue}],DynData),
-                   jump_if(Jump,Target,NewDynData);
+                    NewDynVars = ts_dynvars:set(RepeatName,NewValue,DynData),
+                   jump_if(Jump,Target,DynData#dyndata{dynvars=NewDynVars});
                 false ->
                     Msg= list_to_atom("error_repeat_"++RepeatName++"undef"),
                     ts_mon:add({ count, Msg}),
@@ -681,7 +684,7 @@ handle_data_msg(Data, State=#state_rcv{request=Req}) when Req#ts_request.ack==no
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     {State, []};
 
-handle_data_msg(Data,State=#state_rcv{request=Req, clienttype=Type, maxcount=MaxCount})
+handle_data_msg(Data,State=#state_rcv{request=Req,clienttype=Type,maxcount=MaxCount})
   when Req#ts_request.ack==parse->
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
 
@@ -694,7 +697,8 @@ handle_data_msg(Data,State=#state_rcv{request=Req, clienttype=Type, maxcount=Max
             ?DebugF("Response done:~p~n", [NewState#state_rcv.datasize]),
             {PageTimeStamp, DynVars} = update_stats(NewState#state_rcv{buffer=NewBuffer}),
             NewCount = ts_search:match(Req#ts_request.match, NewBuffer, {NewState#state_rcv.count, MaxCount}),
-            NewDynData = concat_dynvars(DynVars, NewState#state_rcv.dyndata),
+            NewDynVars=ts_dynvars:merge(DynVars,(NewState#state_rcv.dyndata)#dyndata.dynvars),
+            NewDynData=(NewState#state_rcv.dyndata)#dyndata{dynvars=NewDynVars},
             case Close of
                 true ->
                     ?Debug("Close connection required by protocol~n"),
@@ -759,7 +763,8 @@ handle_data_msg(Data, State=#state_rcv{request=Req, maxcount= MaxCount}) ->
     {PageTimeStamp, DynVars} = update_stats(State#state_rcv{datasize=DataSize,
                                                             buffer=NewBuffer}),
     NewCount = ts_search:match(Req#ts_request.match, NewBuffer, {State#state_rcv.count,MaxCount}),
-    NewDynData = concat_dynvars(DynVars, State#state_rcv.dyndata),
+    NewDynVars=ts_dynvars:merge(DynVars,(State#state_rcv.dyndata)#dyndata.dynvars),
+    NewDynData=(State#state_rcv.dyndata)#dyndata{dynvars=NewDynVars},
     {State#state_rcv{ack_done = true, buffer= NewBuffer, dyndata = NewDynData,
                      page_timestamp= PageTimeStamp, count=NewCount},[]}.
 
@@ -767,7 +772,7 @@ handle_data_msg(Data, State=#state_rcv{request=Req, maxcount= MaxCount}) ->
 %%----------------------------------------------------------------------
 %% Func: set_new_buffer/3
 %%----------------------------------------------------------------------
-set_new_buffer(#ts_request{match=[], dynvar_specs=undefined},_,_) ->
+set_new_buffer(#ts_request{match=[], dynvar_specs=[]},_,_) ->
     << >>;
 set_new_buffer(_, Buffer,closed) ->
     Buffer;
@@ -845,12 +850,3 @@ update_stats(State=#state_rcv{page_timestamp=PageTime,send_timestamp=SendTime}) 
             {PageTime, DynVars}
     end.
 
-%%----------------------------------------------------------------------
-%% Func: concat_dynvars/2
-%%----------------------------------------------------------------------
-concat_dynvars(DynData, undefined)  -> #dyndata{dynvars=DynData};
-concat_dynvars([], DynData) -> DynData;
-concat_dynvars(DynVars, DynData=#dyndata{dynvars=undefined}) ->
-    DynData#dyndata{dynvars=DynVars};
-concat_dynvars(DynVars, DynData=#dyndata{dynvars=OldDynVars}) ->
-    DynData#dyndata{dynvars=ts_utils:keyumerge(1,DynVars,OldDynVars)}.

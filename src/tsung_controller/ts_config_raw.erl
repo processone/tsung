@@ -62,7 +62,7 @@ parse_config(Element = #xmlElement{name=raw},
     ets:insert(Tab,{{CurS#session.id, Id},Msg#ts_request{endpage=true,
                                                          dynvar_specs=DynVar}}),
     lists:foldl( fun(A,B)->ts_config:parse(A,B) end,
-                 Config#config{dynvar=undefined},
+                 Config#config{dynvar=[]},
                  Element#xmlElement.content);
 %% Parsing other elements
 parse_config(Element = #xmlElement{}, Conf = #config{}) ->

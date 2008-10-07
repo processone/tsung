@@ -71,15 +71,13 @@ extract_module([H|Tail],DynVar, Acc, Mod) ->
 %% Search for the module string in the subst markup
 extract_variable([],_DynVar,Acc,_) ->
     lists:reverse(Acc);
-extract_variable([$%,$%|Tail], undefined, Acc, _Var) ->
-    subst(Tail, undefined, lists:reverse("undefined") ++ Acc);
 extract_variable([$%,$%|Tail], DynVar, Acc, Var) ->
     VarName = list_to_atom(lists:reverse(Var)),
-    case lists:keysearch(VarName,1,DynVar) of
-        {value, {VarName, Result}} ->
+    case ts_dynvars:lookup(VarName,DynVar) of
+        {ok, Result} ->
             ?DebugF("found value ~p for name ~p~n",[Result,VarName]),
             subst(Tail, DynVar,lists:reverse(Result) ++ Acc);
-        _ ->
+        false ->
             ?LOGF("DynVar: no value found for var ~p~n",[VarName],?WARN),
             subst(Tail, DynVar,lists:reverse("undefined") ++ Acc)
     end;
@@ -208,74 +206,68 @@ setcount(#match{do=abort}, _, Stats) ->
 
 %%----------------------------------------------------------------------
 %% Func: parse_dynvar/2
-%% Args: DynVar, Data
+%% Args: DynVarSpecs, Data
 %% Purpose: look for dynamic variables in Data
-%% Returns: List
+%% Returns: DynVars (List)
 %%----------------------------------------------------------------------
-parse_dynvar(undefined, _Data) -> [];
-parse_dynvar(DynVar, Data)  when is_binary(Data) ->
-    ?DebugF("Parsing Dyn Variable; data is ~p~n",[Data]),
-    parse_dynvar(DynVar,Data, undefined,undefined,[]);
-parse_dynvar(DynVar, _Data)  ->
-    ?LOGF("Error while Parsing dyn Variable(~p)~n",[DynVar],?WARN),
-    [].
+parse_dynvar([], _Data) -> ts_dynvars:make();
+parse_dynvar(DynVarSpecs, Data)  when is_binary(Data) ->
+    ?DebugF("Parsing Dyn Variable (specs=~p); data is ~p~n",[DynVarSpecs,Data]),
+    parse_dynvar(DynVarSpecs,Data, undefined,undefined,[]);
+parse_dynvar(DynVarSpecs, _Data)  ->
+    ?LOGF("Error while Parsing dyn Variable(~p)~n",[DynVarSpecs],?WARN),
+    ts_dynvars:make().
 
 % parse_dynvar(DynVars,BinaryData,ListData,TreeData,Accum)
 %            ListData and TreeData are lazy computed when needed by
 %            regexp or xpath variables respectively
-parse_dynvar([],_Binary , _String,_Tree, ValuesList) -> ValuesList;
+parse_dynvar([],_Binary , _String,_Tree, DynVars) -> DynVars;
 
-parse_dynvar(D=[{regexp,_VarName, _RegExp}| _DynVars],
-                Binary,undefined,Tree, ValuesList) ->
-    parse_dynvar(D,Binary,binary_to_list(Binary),Tree,ValuesList);
+parse_dynvar(D=[{regexp,_VarName, _RegExp}| _DynVarsSpecs],
+                Binary,undefined,Tree, DynVars) ->
+    parse_dynvar(D,Binary,binary_to_list(Binary),Tree,DynVars);
 
-parse_dynvar([{regexp,VarName, RegExp}| DynVars],
-                Binary,String,Tree, ValuesList) ->
+parse_dynvar([{regexp,VarName, RegExp}| DynVarsSpecs],
+                Binary,String,Tree, DynVars) ->
     case gregexp:groups(String, RegExp) of
         {match,[Value|_]} ->
             ?LOGF("DynVar: Match (~p=~p) ~n",[VarName, Value], ?DEB),
-            parse_dynvar(DynVars, Binary,String,Tree,
-                            [{VarName, Value}| ValuesList]);
+            parse_dynvar(DynVarsSpecs, Binary,String,Tree,
+                            ts_dynvars:set(VarName,Value,DynVars));
         nomatch ->
             ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName], ?WARN),
-            parse_dynvar(DynVars, Binary,String,Tree, [{VarName, ""}|ValuesList])
+            parse_dynvar(DynVarsSpecs, Binary,String,Tree, ts_dynvars:set(VarName,"",DynVars))
     end;
 
-parse_dynvar(D=[{xpath,_VarName, _Expr}| _DynVars],
-                Binary,String,undefined,ValuesList) ->
+parse_dynvar(D=[{xpath,_VarName, _Expr}| _DynVarsSpecs],
+                Binary,String,undefined,DynVars) ->
     HTML = extract_html(Binary),
     try mochiweb_html:parse(HTML) of
         Tree ->
-            parse_dynvar(D,Binary,String,Tree,ValuesList)
+            parse_dynvar(D,Binary,String,Tree,DynVars)
     catch
         Type:Exp ->
             ?LOGF("Page couldn't be parsed:(~p:~p) ~n Page:~p~n",
                     [Type,Exp,Binary],?ERR),
-            parse_dynvar(D,Binary,String,error,ValuesList)
+            parse_dynvar(D,Binary,String,error,DynVars)
     end;
 
-parse_dynvar([{xpath,VarName, _Expr}| DynVars],
-                Binary,String,error,ValuesList) ->
+parse_dynvar([{xpath,VarName,_Expr}|DynVarsSpecs],Binary,String,error,DynVars)->
     ?LOGF("Couldn't execute XPath: page not parsed (varname=~p) ~n",
-                [VarName],?ERR),
-    parse_dynvar(DynVars, Binary,String,error,ValuesList);
+          [VarName],?ERR),
+    parse_dynvar(DynVarsSpecs, Binary,String,error,DynVars);
 
-parse_dynvar([{xpath,VarName, Expr}| DynVars],
-                Binary,String,Tree, ValuesList) ->
-        Result = mochiweb_xpath:execute(Expr,Tree),
-        Value = mochiweb_xpath_utils:string_value(Result),
-        case binary_to_list(Value) of
-            [] ->
-                ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?WARN),
-                parse_dynvar(DynVars, Binary,String,Tree,[{VarName, ""}|ValuesList]);
-            ListValue ->
-                ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,ListValue],?DEB),
-                parse_dynvar(DynVars, Binary,String,Tree,
-                            [{VarName, ListValue}| ValuesList])
-        end;
+parse_dynvar([{xpath,VarName, Expr}| DynVarsSpecs],Binary,String,Tree,DynVars)->
+    Result = mochiweb_xpath:execute(Expr,Tree),
+    Value  = mochiweb_xpath_utils:string_value(Result),
+    ListValue = binary_to_list(Value),
+    case ListValue of
+        [] -> ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?WARN);
+        _  -> ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,ListValue],?DEB)
+    end,
+    parse_dynvar(DynVarsSpecs, Binary,String,Tree,ts_dynvars:set(VarName,ListValue,DynVars));
 
-
-parse_dynvar(Args, _Binary,_String,_Tree, _Values) ->
+parse_dynvar(Args, _Binary,_String,_Tree, _DynVars) ->
     ?LOGF("Bad args while parsing Dyn Var (~p)~n", [Args], ?ERR),
     [].
 

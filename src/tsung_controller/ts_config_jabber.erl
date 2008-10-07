@@ -82,7 +82,7 @@ parse_config(Element = #xmlElement{name=jabber},
     ts_config:mark_prev_req(Id-1, Tab, CurS),
     ets:insert(Tab,{{CurS#session.id, Id}, Msg}),
     lists:foldl( fun(A,B) -> ts_config:parse(A,B) end,
-                 Config#config{dynvar=undefined},
+                 Config#config{dynvar=[]},
                  Element#xmlElement.content);
 %% Parsing options
 parse_config(Element = #xmlElement{name=option}, Conf = #config{session_tab = Tab}) ->
