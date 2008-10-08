@@ -144,7 +144,7 @@ parse_dyn_var_many_big_xpath_explicit_test() ->
 setdata(N) ->
     {"\r\n\r\n<html><body><form>"++lists:flatmap(fun(A)->
                                            AI=integer_to_list(A),["<input type='hidden' name='random",AI,"'"," value='value",AI,"'>"] end,lists:seq(1,N))
-++"</form></body>/<html>",  lists:map(fun(A)->{list_to_atom("random"++integer_to_list(A)) , "value"++integer_to_list(A)} end, lists:seq(1,N))}.
+++"</form></body>/<html>",  lists:reverse(lists:map(fun(A)->{list_to_atom("random"++integer_to_list(A)) , "value"++integer_to_list(A)} end, lists:seq(1,N)))}.
 
 setdata_big(N) ->
     Head = "<head><title>ABCDERFDJSJS</title><script type='text/javascript'> "
@@ -161,7 +161,7 @@ setdata_big(N) ->
               "<p>More text inside a paragraph element</p> "
               "</div>",
     HTML ="\r\n\r\n<html>" ++ Head ++ "<body>" ++ Content ++ Content ++ Form ++ Content ++ "</body></html>",
-    {HTML,lists:map(fun(A)->{list_to_atom("random"++integer_to_list(A)) , "value"++integer_to_list(A)} end, lists:seq(1,N))}.
+    {HTML,lists:reverse(lists:map(fun(A)->{list_to_atom("random"++integer_to_list(A)) , "value"++integer_to_list(A)} end, lists:seq(1,N)))}.
 
 parse_subst1_test() ->
     myset_env(),

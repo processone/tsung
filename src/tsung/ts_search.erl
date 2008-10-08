@@ -210,13 +210,13 @@ setcount(#match{do=abort}, _, Stats) ->
 %% Purpose: look for dynamic variables in Data
 %% Returns: DynVars (List)
 %%----------------------------------------------------------------------
-parse_dynvar([], _Data) -> ts_dynvars:make();
+parse_dynvar([], _Data) -> ts_dynvars:new();
 parse_dynvar(DynVarSpecs, Data)  when is_binary(Data) ->
     ?DebugF("Parsing Dyn Variable (specs=~p); data is ~p~n",[DynVarSpecs,Data]),
     parse_dynvar(DynVarSpecs,Data, undefined,undefined,[]);
 parse_dynvar(DynVarSpecs, _Data)  ->
     ?LOGF("Error while Parsing dyn Variable(~p)~n",[DynVarSpecs],?WARN),
-    ts_dynvars:make().
+    ts_dynvars:new().
 
 % parse_dynvar(DynVars,BinaryData,ListData,TreeData,Accum)
 %            ListData and TreeData are lazy computed when needed by

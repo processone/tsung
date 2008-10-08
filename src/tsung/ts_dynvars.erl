@@ -18,22 +18,22 @@
 %%% @author Pablo Polvorin <pablo.polvorin@process-one.net>
 %%% @doc functions to manipulate dynamic variables, sort of  Abstract Data Type
 %%% created on 2008-08-22
-%%% modified by Nicolas Niclausse: Add merge and multi keys/values (make, set)
+%%% modified by Nicolas Niclausse: Add merge and multi keys/values (new, set)
 
 -module(ts_dynvars).
 
--export([make/0,make/2, merge/2, lookup/2,lookup/3,set/3,entries/1,map/4]).
+-export([new/0,new/2, merge/2, lookup/2,lookup/3,set/3,entries/1,map/4]).
 
 
 -define(IS_DYNVARS(X),is_list(X)).
 
-%%@spec make() -> DynVars()
-make() ->
+%%@spec new() -> DynVars()
+new() ->
     [].
 
-make(Key, Val) when is_atom(Key)->
+new(Key, Val) when is_atom(Key)->
     [{Key,Val}];
-make(VarNames, Values) when is_list(VarNames),is_list(Values)->
+new(VarNames, Values) when is_list(VarNames),is_list(Values)->
     %% FIXME: check if VarNames is a list of atoms
     lists:zip(VarNames,Values).
 
@@ -56,7 +56,7 @@ lookup(Key, DynVars, Default) when ?IS_DYNVARS(DynVars), is_atom(Key)->
 
 %% @spec set(Key:atom(), Value::term, DynVars()) -> DynVars()
 set(Key,Value,DynVars) when ?IS_DYNVARS(DynVars),is_atom(Key) ->
-    lists:keystore(Key,1,DynVars,{Key,Value});
+    merge([{Key, Value}],DynVars);
 
 %% optimization: only one key and one value
 set([Key],[Value],DynVars) ->
@@ -65,7 +65,7 @@ set([Key],Value,DynVars) -> %% for backward compatibility
     set(Key,Value,DynVars);
 %% general case: list of keys and values
 set(Keys,Values,DynVars) when ?IS_DYNVARS(DynVars),is_list(Keys),is_list(Values) ->
-    merge(make(Keys,Values),DynVars).
+    merge(new(Keys,Values),DynVars).
 
 entries(DynVars) when ?IS_DYNVARS(DynVars) ->
     DynVars.

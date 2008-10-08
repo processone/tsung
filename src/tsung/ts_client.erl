@@ -422,10 +422,10 @@ ctrl_struct_impl({repeat,RepeatName, While,Rel,VarName,Value,Target,Max},
                     ?DebugF("Calling need_jump with args ~p ~p ~p ~p~n",[While,Rel,Value,VarValue]),
                     Jump = need_jump(While,rel(Rel,Value,VarValue)),
                     NewValue = 1 + Iteration,
-                    NewDynVars = ts_dynvars:set(RepeatName,NewValue,DynData),
-                   jump_if(Jump,Target,DynData#dyndata{dynvars=NewDynVars});
+                    NewDynVars = ts_dynvars:set(RepeatName,NewValue,DynVars),
+                    jump_if(Jump,Target,DynData#dyndata{dynvars=NewDynVars});
                 false ->
-                    Msg= list_to_atom("error_repeat_"++RepeatName++"undef"),
+                    Msg= list_to_atom("error_repeat_"++atom_to_list(RepeatName)++"undef"),
                     ts_mon:add({ count, Msg}),
                     {next,DynData}
             end

@@ -12,7 +12,7 @@ from_keyval_list(KeyValues) ->
    lists:foldl(fun({K,V},DynVars) ->
                     ts_dynvars:set(K,V,DynVars)
                end,
-               ts_dynvars:make(),
+               ts_dynvars:new(),
                KeyValues
                ).
 test() ->
@@ -25,18 +25,18 @@ dynvars_set_test() ->
                 [ts_dynvars:lookup(Key, DynVars) || Key <- KeyValues]).
 
 dynvars_set2_test() ->
-    D = ts_dynvars:set(one,two, ts_dynvars:set(one,one, ts_dynvars:make())),
+    D = ts_dynvars:set(one,two, ts_dynvars:set(one,one, ts_dynvars:new())),
     ?assertEqual({ok,two},ts_dynvars:lookup(one,D)).
 
 dynvars_undefined_test() ->
-   ?assertEqual(false,ts_dynvars:lookup(one, ts_dynvars:make())).
+   ?assertEqual(false,ts_dynvars:lookup(one, ts_dynvars:new())).
 
 dynvars_default_test() ->
-   ?assertEqual({ok,default},ts_dynvars:lookup(one,ts_dynvars:make(), default)).
+   ?assertEqual({ok,default},ts_dynvars:lookup(one,ts_dynvars:new(), default)).
 
 dynvars_entries_test() ->
    KeyValues = [{K,K} || K <- [one,two,three,four]],
-   ?assertEqual(KeyValues,
+   ?assertEqual(lists:reverse(KeyValues),
                 ts_dynvars:entries(from_keyval_list(KeyValues))).
 
 dynvars_map_test() ->
