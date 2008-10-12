@@ -176,8 +176,8 @@ init([LogDir]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-handle_call({read_config, ConfigFile}, _From, State) ->
-    case catch ts_config:read(ConfigFile) of
+handle_call({read_config, ConfigFile}, _From, State=#state{logdir=LogDir}) ->
+    case catch ts_config:read(ConfigFile, LogDir) of
         {ok, Config=#config{session_tab=Tab,curid=LastReqId,sessions=[LastSess| _]}} ->
             case check_config(Config) of
                 ok ->
