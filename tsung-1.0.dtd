@@ -206,8 +206,9 @@ repeat)*>
 
 <!ELEMENT setdynvars (var*) >
 <!ATTLIST setdynvars
-    sourcetype     (random_string | urandom_string | random_number | file | erlang )  #REQUIRED
+    sourcetype     (random_string | urandom_string | random_number | file | erlang | eval)  #REQUIRED
     callback       CDATA   #IMPLIED
+    code           CDATA   #IMPLIED
 	fileid	       CDATA   #IMPLIED
     order        (iter | random ) #IMPLIED
 	delimiter     CDATA   #IMPLIED

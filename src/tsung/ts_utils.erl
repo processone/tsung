@@ -41,7 +41,7 @@
          make_dir_rec/1, is_ip/1, from_https/1, to_https/1, keymax/2,
          check_sum/3, check_sum/5, clean_str/1, file_to_list/1,
          decode_base64/1, encode_base64/1, to_lower/1, release_is_newer_or_eq/1,
-         randomstr/1,urandomstr/1,urandomstr_noflat/1]).
+         randomstr/1,urandomstr/1,urandomstr_noflat/1, eval/1]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -636,4 +636,15 @@ urandomstr(Size) when is_integer(Size), Size >= 0 ->
 %%----------------------------------------------------------------------
 randomstr(Size) when is_integer(Size), Size >= 0 ->
      lists:map(fun (_) -> random:uniform(25) + $a  end, lists:seq(1,Size)).
+
+
+%%----------------------------------------------------------------------
+%% @spec eval(string()) -> term()
+%% @doc evaluate strings as Erlang code at runtime
+%%----------------------------------------------------------------------
+eval(Code) ->
+    {ok, Scanned, _} = erl_scan:string(Code),
+    {ok, Parsed} = erl_parse:parse_exprs(Scanned),
+    {value, Result, _} = erl_eval:exprs(Parsed,  erl_eval:new_bindings()),
+    Result.
 

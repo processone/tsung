@@ -381,10 +381,7 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
                      CompiledXPathExp = mochiweb_xpath:compile_xpath(FlattenExpr),
                      {xpath,Name,CompiledXPathExp}
              end,
-    NewDynVar = case DynVars of
-                    undefined ->[DynVar];
-                    _->[DynVar|DynVars]
-                end,
+    NewDynVar = [DynVar|DynVars],
     ?LOGF("Add new dyn variable=~p in session ~p~n",
           [NewDynVar,CurS#session.id],?INFO),
     Conf#config{ dynvar= NewDynVar };
@@ -540,6 +537,11 @@ parse(Element = #xmlElement{name=setdynvars, attributes=Attrs},
                  "erlang" ->
                      [Module,Callback] = string:tokens(getAttr(string,Attrs,callback,none),":"),
                      {setdynvars,erlang,{list_to_atom(Module),list_to_atom(Callback)},Vars};
+                 "eval" ->
+                     Snippet = getAttr(string,Attrs,code,""),
+                     Fun= ts_utils:eval(Snippet),
+                     true = is_function(Fun, 1),
+                     {setdynvars,code,Fun,Vars};
                  "file"   ->
                      Order = getAttr(atom,Attrs,order,iter),
                      FileId = getAttr(atom,Attrs,fileid,none),

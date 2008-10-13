@@ -342,6 +342,8 @@ handle_next_action(State) ->
 %%----------------------------------------------------------------------
 set_dynvars(erlang,{Module,Callback},_Vars,DynData) ->
     Module:Callback({self(),DynData#dyndata.dynvars});
+set_dynvars(code,Fun,_Vars,DynData) ->
+    Fun({self(),DynData#dyndata.dynvars});
 set_dynvars(random,{number,Start,End},Vars,_DynData) ->
     lists:map(fun(_) -> integer_to_list(Start+random:uniform(End-Start)) end,Vars);
 set_dynvars(random,{string,Length},Vars,_DynData) ->
