@@ -123,7 +123,7 @@ repeat)*>
     contents_from_file CDATA #IMPLIED
     content_type      CDATA #IMPLIED
     if_modified_since CDATA #IMPLIED
-    method            (GET | POST | PUT | DELETE | HEAD | PROPFIND | PROPPATCH | COPY | MOVE | LOCK | UNLOCK | MKCOL | OPTIONS | REPORT | VERSION-CONTROL ) "GET"
+    method            (GET | POST | PUT | DELETE | HEAD | PROPFIND | PROPPATCH | COPY | MOVE | LOCK | UNLOCK | MKCOL | MKACTIVITY | OPTIONS | REPORT | VERSION-CONTROL ) "GET"
     url               CDATA #REQUIRED
     version           (1.0 | 1.1) "1.1" >
 

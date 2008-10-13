@@ -505,6 +505,7 @@ http_method("move")-> 'MOVE';
 http_method("lock")-> 'LOCK';
 http_method("unlock")-> 'UNLOCK';
 http_method("mkcol")-> 'MKCOL';
+http_method("mkactivity")-> 'MKACTIVITY';
 http_method("report")-> 'REPORT';
 http_method("options")-> 'OPTIONS';
 http_method(Method) ->

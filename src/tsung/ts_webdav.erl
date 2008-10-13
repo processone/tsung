@@ -44,6 +44,7 @@ get_message(Req=#http_request{method=Method}) when Method == propfind;
                                                    Method == copy;
                                                    Method == move;
                                                    Method == lock;
+                                                   Method == mkactivity;
                                                    Method == unlock;
                                                    Method == report;
                                                    Method == 'version-control'
