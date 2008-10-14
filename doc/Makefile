@@ -1,7 +1,7 @@
 # $Id$
 
-MANPAGE_SRC  = tsung.1.sgml
-MANPAGE  = tsung.1
+MANPAGE_SRC  = tsung.1.sgml tsplot.1.sgml
+MANPAGE = tsung.1 tsplot.1
 
 TOPDIR=$(HOME)/cvs/projetdoc/common/
 IMG_TOPDIR=.
@@ -23,7 +23,7 @@ LANGUAGE=
 
 # logos
 LOGOS_JPG=
-LOGOS_EPS = $(LOGOS_JPG:.jpg=.eps) 
+LOGOS_EPS = $(LOGOS_JPG:.jpg=.eps)
 
 ##############
 
@@ -38,22 +38,22 @@ HTML_INDEXFILES=$(TEXFILES:.tex=_index.html)
 # get figures to be generated from gnuplot file
 PLOT_DIR = $(IMG_TOPDIR)/plot
 PLOT_PS = $(shell grep -s output $(PLOT_DIR)/*.gplot | cut -f3 -d" " | perl -e '{ while (<>) {chomp; s/"//;s/"/ /; print} }')
-PLOT=$(addprefix $(PLOT_DIR)/,$(PLOT_PS)) 
+PLOT=$(addprefix $(PLOT_DIR)/,$(PLOT_PS))
 #PLOT = $(wildcard $(PLOT_DIR)/*.ps)
-PLOT_PNG = $(PLOT:.ps=.png) 
-PLOT_PDF = $(PLOT:.ps=.pdf) 
+PLOT_PNG = $(PLOT:.ps=.png)
+PLOT_PDF = $(PLOT:.ps=.pdf)
 
 # figures
 FIGURES_DIR = $(IMG_TOPDIR)/figures
 FIGURES = $(wildcard $(FIGURES_DIR)/*.fig)
-FIGURES_PNG = $(FIGURES:.fig=.png) 
-#FIGURES_JPG = $(FIGURES:.fig=.jpg) 
-FIGURES_EPS = $(FIGURES_PNG:.png=.eps) 
+FIGURES_PNG = $(FIGURES:.fig=.png)
+#FIGURES_JPG = $(FIGURES:.fig=.jpg)
+FIGURES_EPS = $(FIGURES_PNG:.png=.eps)
 
 # images
 IMAGES_DIR = $(IMG_TOPDIR)/images
 IMAGES_PNG = $(wildcard $(IMAGES_DIR)/*.png)
-IMAGES_EPS = $(IMAGES_PNG:.png=.eps) 
+IMAGES_EPS = $(IMAGES_PNG:.png=.eps)
 
 ALL_IMG = $(notdir $(FIGURES))
 ALL_IMG += $(notdir $(IMAGES_PNG))
@@ -76,7 +76,7 @@ LATEX=latex  --interaction=batchmode
 BIBTEX=bibtex
 FIG2DEV=fig2dev
 VIEWER=gv
-HEVEA=hevea 
+HEVEA=hevea
 HACHA=hacha
 IMAGEN=imagen
 MAKEINDEX=makeindex
@@ -94,7 +94,7 @@ VPATH = $(TEXINPUTS)
 # pour exporter TEXINPUTS
 .EXPORT_ALL_VARIABLES:
 
-.PHONY:	clean distclean pdf dvi ps all html htmlsingle 
+.PHONY:	clean distclean pdf dvi ps all html htmlsingle
 
 # Stop GNU make from overzealous deletion of intermediate files
 .PRECIOUS: %.dvi $(FIGURES_PNG) $(FIGURES_JPG) $(IMAGES_EPS) $(LOGOS_EPS) $(PLOT) $(PLOT_PNG) $(PLOT_PDF)
@@ -117,9 +117,9 @@ show:
 	@echo IMG=  $(IMAGES_PNG)
 	@echo HEVEA=  $(HEVEA_INC)
 	@echo PLOT= $(PLOT_PNG)
-	@echo TEX = $(TEXFILES) 
-	@echo HTML = $(HTMLFILES) 
-	@echo LOGOS = $(LOGOS_EPS) 
+	@echo TEX = $(TEXFILES)
+	@echo HTML = $(HTMLFILES)
+	@echo LOGOS = $(LOGOS_EPS)
 	@echo ALL_IMG = $(ALL_IMG)
 	@echo TEXINPUTS = $(TEXINPUTS)
 
@@ -134,7 +134,7 @@ html: $(HTMLFILES)
 htmlsplit: $(HTML_INDEXFILES)
 print:	$(PSFILES)
 	@echo "printing $<"
-	a2ps $<	
+	a2ps $<
 
 #glossaire:
 #        $(MAKEINDEX) -s tlglo.ist -o these.gls these.glo
@@ -152,19 +152,19 @@ user_manual.html:	user_manual.tex $(INCLUDES) $(FIGURES_PNG) $(IMAGES_PNG) $(HEV
 	@$(HEVEA) $(HEVEAOPTS) $(LANGUAGE) $(HEVEA_INC) $<
 ifeq ($(strip $(IMAGES_PNG)),)
 	@echo no images
-else 
+else
 	@echo Generating images for html...
 	@ln -sf $(IMAGES_DIR)/*.png .
 endif
 ifeq ($(strip $(FIGURES_PNG)),)
 	@echo no figures
-else 
+else
 	@echo Generating figures for html...
 	@ln -sf $(FIGURES_DIR)/*.png .
 endif
 ifeq ($(strip $(PLOT_PNG)),)
 	@echo no plot
-else 
+else
 	@echo Generating plot for html...
 	@ln -sf $(PLOT_DIR)/*.png .
 endif
@@ -233,7 +233,7 @@ $(PLOT_DIR)/%.ps:	$(PLOT_DIR)/*.gplot
 
 $(PLOT_DIR)/%.png:	$(PLOT_DIR)/%.ps
 	@echo Generating $@
-	@$(CONVERT) $< $@ 
+	@$(CONVERT) $< $@
 
 $(PLOT_DIR)/%.pdf:	$(PLOT_DIR)/%.ps
 	@echo Generating $@
@@ -241,27 +241,27 @@ $(PLOT_DIR)/%.pdf:	$(PLOT_DIR)/%.ps
 
 $(FIGURES_DIR)/%.png:	$(FIGURES_DIR)/%.fig
 	@echo Generating $@
-	@$(FIG2DEV) -L png $< $@ 
+	@$(FIG2DEV) -L png $< $@
 
 $(FIGURES_DIR)/%.jpg:	$(FIGURES_DIR)/%.fig
 	@echo Generating $@
-	@$(FIG2DEV) -L jpeg $< $@ 
+	@$(FIG2DEV) -L jpeg $< $@
 
 $(FIGURES_DIR)/%.eps:	$(FIGURES_DIR)/%.fig
 	@echo Generating $@
-	@$(FIG2DEV) -L eps $< $@ 
+	@$(FIG2DEV) -L eps $< $@
 
 $(IMAGES_DIR)/%.jpg:	$(IMAGES_DIR)/%.png
 	@echo Generating $@
-	@$(CONVERT) $< $@ 
+	@$(CONVERT) $< $@
 
 $(IMAGES_DIR)/%.eps:	$(IMAGES_DIR)/%.png
 	@echo Generating $@
-	@$(CONVERT) $< $@ 
+	@$(CONVERT) $< $@
 
 $(LOGO_DIR)/%.eps:	$(IMAGES_DIR)/%.jpg
 	@echo Generating $@
-	@$(CONVERT) $< $@ 
+	@$(CONVERT) $< $@
 
 mrproper: distclean
 
