@@ -1586,21 +1586,21 @@ Five type of dynamic variables are currently implemented (\varname{sourcetype} t
 \end{Verbatim}
 \varname{delimiter} can be any string, and \varname{order} can be
 \userinput{iter} or \userinput{random}
-\item Dynamic variable can a random number
+\item Dynamic variable can be a random number
 \begin{Verbatim}
       <setdynvars sourcetype="random_number" start="3" end="32">
         <var name="rndint" />
       </setdynvars>
 \end{Verbatim}
-\item Dynamic variable can a random string
+\item Dynamic variable can be a random string
 \begin{Verbatim}
       <setdynvars sourcetype="random_string" length="13">
         <var name="rndstring1" />
       </setdynvars>
 \end{Verbatim}
-\item Dynamic variable can a urandom string: this is much faster than
+\item Dynamic variable can be a urandom string: this is much faster than
   the random string, but the string is not really random: the same set
-  of character is always used.
+  of characters is always used.
 \end{enumerate}
 
 A \varname{setdynvars} can be defined anywhere in a session.
