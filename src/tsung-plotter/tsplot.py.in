@@ -27,15 +27,20 @@
 
 # A plotter for tsung text generated data
 
-from tsung.tsung import TsungLog
 import os, sys
+
+LIBDIR         = "@EXPANDED_LIBDIR@"
+SHAREDIR       = "@EXPANDED_SHAREDIR@"
+USERDIR        = ".tsung"
+CONF           = "plots.conf"
+SYS_STATS_CONF = os.path.join(SHAREDIR, 'tsung_plotter', 'stats.conf')
+
+sys.path.append(LIBDIR)
+
+from tsung_plotter.tsung import TsungLog
 from ConfigParser import ConfigParser
 from pylab import *
 
-SYSDIR         = "./"
-USERDIR        = ".tsung"
-CONF           = "plots.conf"
-SYS_STATS_CONF = os.path.join(SYSDIR, 'tsung', 'stats.conf')
 
 class Plot:
     """ The ploting class, using matplotlib """
@@ -195,7 +200,7 @@ if __name__ == "__main__":
         if os.access(userconf, os.R_OK):
             config = userconf
         else:
-            config = os.path.join(SYSDIR, CONF)
+            config = os.path.join(LIBDIR, CONF)
     else:
         config = options.config
 

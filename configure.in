@@ -97,12 +97,18 @@ AC_SUBST(TEMPLATES_SUBDIR,[tsung/templates])
 AC_PROG_MAKE_SET
 AC_PROG_INSTALL
 
+AS_AC_EXPAND(EXPANDED_LIBDIR, "$libdir/tsung")
+AC_MSG_NOTICE(Storing library files in $EXPANDED_LIBDIR)
+AS_AC_EXPAND(EXPANDED_SHAREDIR, "$datadir/tsung")
+AC_MSG_NOTICE(Storing data files in $EXPANDED_SHAREDIR)
+
 AC_CONFIG_FILES([\
         Makefile \
         tsung.spec \
         tsung.sh \
         examples/*.xml \
         src/tsung_stats.pl \
+        src/tsung-plotter/tsplot.py \
         src/log2tsung.pl \
         src/tsung_controller/tsung_controller.app.src \
         src/tsung_recorder/tsung_recorder.app.src \

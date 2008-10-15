@@ -24,6 +24,7 @@ exec_prefix=@exec_prefix@
 bindir=@bindir@
 libdir=@libdir@
 datadir=@datadir@
+datarootdir=@datarootdir@
 TEMPLATES_SUBDIR=@TEMPLATES_SUBDIR@
 
 CONFIGURE_DEPENDENCIES=@CONFIGURE_DEPENDENCIES@
@@ -69,7 +70,8 @@ endif
 
 # installation path
 BINDIR    = $(bindir)
-LIBDIR    = $(libdir)/tsung/bin/
+LIBDIR    = $(libdir)/tsung/
+TOOLS_BINDIR = $(LIBDIR)/bin
 CONFDIR   = $(datadir)/doc/tsung/examples
 SHARE_DIR = $(datadir)/tsung/
 TEMPLATES_DIR = $(datadir)/$(TEMPLATES_SUBDIR)
@@ -106,8 +108,14 @@ TEST_CONFFILE = $(basename $(TEST_CONFFILE_SRC))
 USERMANUAL = doc/user_manual.html  doc/IDXDOC.css
 USERMANUAL_IMG = $(wildcard doc/images/*.png)
 USERMANUAL_SRC = doc/user_manual.tex
+MANPAGES   = $(wildcard doc/*.1)
 PERL_SCRIPTS_SRC = $(wildcard $(ESRC)/*.pl.in)
 PERL_SCRIPTS = $(basename $(PERL_SCRIPTS_SRC))
+
+PYTHON_SCRIPTS_SRC = $(wildcard $(ESRC)/tsung-plotter/*.py.in)
+PYTHON_SCRIPTS = $(basename $(PYTHON_SCRIPTS_SRC))
+TSUNG_PLOTTER_LIB= $(wildcard $(ESRC)/tsung-plotter/tsung/*.py)
+TSUNG_PLOTTER_CONF= $(wildcard $(ESRC)/tsung-plotter/tsung/*.conf) $(wildcard $(ESRC)/tsung-plotter/*.conf)
 
 TARGET   = $(addsuffix .beam, $(basename \
              $(addprefix $(EBIN)/, $(notdir $(SRC)))))
@@ -147,12 +155,12 @@ BUILD_OPTIONS_DOT = $(subst $(PWD)/temp/,./,$(BUILD_OPTIONS))
 
 BUILD_OPTIONS_FILE = ./BUILD_OPTIONS
 
-DIST_COMMON=Makefile.in $(CONFFILE_SRC) $(PERL_SCRIPTS_SRC) tsung.sh.in tsung.spec.in
+DIST_COMMON=Makefile.in $(CONFFILE_SRC) $(PERL_SCRIPTS_SRC) $(PYTHON_SCRIPTS_SRC) tsung.sh.in tsung.spec.in
 
 
 .PHONY: doc
 
-tsung: Makefile config.status $(PERL_SCRIPTS) tsung.sh tsung.spec $(TARGET) $(RECORDER_TARGET) $(CONTROLLER_TARGET) $(LIB_TARGET)
+tsung: Makefile config.status $(PERL_SCRIPTS)  $(PYTHON_SCRIPTS) tsung.sh tsung.spec $(TARGET) $(RECORDER_TARGET) $(CONTROLLER_TARGET) $(LIB_TARGET)
 
 buildtest: $(TEST_TARGET)
 
@@ -189,7 +197,7 @@ deb:
 clean:
 	-cd priv && rm -f $(shell ls priv | grep -v builder\.erl| grep -v CVS) && cd ..
 	-rm -f $(TARGET) $(TMP) $(BUILD_OPTIONS_FILE) builder.beam
-	-rm -f $(TGT_APPFILES) tsung.sh $(PERL_SCRIPTS) $(CONFFILE)
+	-rm -f $(TGT_APPFILES) tsung.sh $(PERL_SCRIPTS) $(PYTHON_SCRIPTS) $(CONFFILE)
 	-rm -f ebin/*.beam tsung.sh tsung.spec tsung.xml
 
 install: doc boot install_recorder install_controller $(CONFFILE)
@@ -199,7 +207,7 @@ install: doc boot install_recorder install_controller $(CONFFILE)
 	install -d $(TARGETDIR)/ebin
 	install -d $(TARGETDIR)/src
 	install -d $(TARGETDIR)/include
-	install -d $(LIBDIR)/
+	install -d $(TOOLS_BINDIR)/
 	install -d $(BINDIR)/
 
 	install -m 0644 $(INC_FILES) $(TARGETDIR)/include/
@@ -218,14 +226,20 @@ install: doc boot install_recorder install_controller $(CONFFILE)
 
 # install the man page & user's manual
 	install -d $(MAN_DIR)
-	install -m 0644 doc/tsung.1 $(MAN_DIR)
+	install -m 0644 $(MANPAGES) $(MAN_DIR)
 	install -d $(DOC_DIR)/images
 	install -m 0644 $(USERMANUAL) $(DOC_DIR)
 	install -m 0644 $(USERMANUAL_IMG) $(DOC_DIR)/images
 
 # create startup script
 	install -m 0755 tsung.sh $(SCRIPT)
-	install -m 0755 $(PERL_SCRIPTS) $(LIBDIR)/
+	install -m 0755 $(PERL_SCRIPTS) $(TOOLS_BINDIR)
+# tsung-plotter
+	install -m 0755 $(PYTHON_SCRIPTS) $(TOOLS_BINDIR)
+	install -d $(LIBDIR)/tsung_plotter
+	install -d $(SHARE_DIR)/tsung_plotter
+	install -m 0644 $(TSUNG_PLOTTER_LIB) $(LIBDIR)/tsung_plotter
+	install -m 0644 $(TSUNG_PLOTTER_CONF) $(SHARE_DIR)/tsung_plotter
 
 	install -d $(CONFDIR)
 	install -m 0644 $(CONFFILE) $(CONFDIR)/
@@ -327,6 +341,9 @@ Makefile: Makefile.in config.status
 %.pl:  %.pl.in vsn.mk
 	@$(SHELL) ./config.status --file=$@
 
+%.py:  %.py.in vsn.mk
+	@$(SHELL) ./config.status --file=$@
+
 %.spec:  %.spec.in vsn.mk
 	@$(SHELL) ./config.status --file=$@
 
@@ -358,7 +375,8 @@ release: Makefile tsung.spec doc
 		COPYING README LISEZMOI TODO $(CONFFILE_SRC) $(TEST_CONFFILE_SRC) \
 		priv/builder.erl tsung.sh.in vsn.mk  src/test/*.csv src/test/*.txt \
 		$(DEBIAN)  $(PERL_SCRIPTS_SRC) CONTRIBUTORS CHANGES \
-		configure configure.in config.guess config.sub Makefile.in \
+		$(PYTHON_SCRIPTS_SRC) $(TSUNG_PLOTTER_CONF) $(TSUNG_PLOTTER_LIB)\
+		configure configure.in config.guess *.m4 config.sub Makefile.in \
 		install-sh tsung.spec.in tsung.spec
 	tar -C $(distdir) -zxf tmp.tgz
 	mkdir $(distdir)/ebin
