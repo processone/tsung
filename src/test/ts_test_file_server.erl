@@ -13,6 +13,9 @@
 -include("ts_config.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
+-define(CSVSIZE,10000).
+
+
 test()->
     ok.
 
@@ -37,6 +40,20 @@ config_file_server4_test()->
     ?assertMatch({ok,"username3;glop4;"}, ts_file_server:get_next_line()).
 
 
+config_file_server_huge_test()->
+    myset_env(),
+    ts_file_server:stop(),
+    ts_file_server:start(),
+    CSV=lists:foldl(fun(I,Acc)-> IStr=integer_to_list(I),
+                       [Acc,"user",IStr,";passwd",IStr,"\n"]
+              end, [],lists:seq(1,?CSVSIZE)),
+    File="./src/test/usersdb.csv",
+    file:write_file(File,list_to_binary(CSV)),
+    ts_file_server:read([{default,File}]),
+    {Time, Out } = timer:tc( lists, foreach, [ fun(_)-> ts_file_server:get_random_line() end,lists:seq(1,?CSVSIZE)]),
+    erlang:display([?CSVSIZE," read_file:", Time]),
+
+    ?assertMatch(ok, Out).
 
 config_file_server_cycle_test()->
     myset_env(),

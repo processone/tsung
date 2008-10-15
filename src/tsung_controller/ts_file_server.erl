@@ -47,7 +47,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
          code_change/3]).
 
--record(file, {items,       %% lists of lines read from a file
+-record(file, {items,       %% tuple of lines read from a file
                size,        %% total number of lines
                current=-1   %% current line in file
               }).
@@ -128,19 +128,19 @@ init([]) ->
 %%----------------------------------------------------------------------
 handle_call({get_all_lines, FileID}, _From, State) ->
     FileDesc = ?DICT:fetch(FileID, State#state.files),
-    Reply = {ok, FileDesc#file.items},
+    Reply = {ok, tuple_to_list(FileDesc#file.items)},
     {reply, Reply, State};
 
 handle_call({get_random_line, FileID}, _From, State) ->
     FileDesc = ?DICT:fetch(FileID, State#state.files),
     I = random:uniform(FileDesc#file.size),
-    Reply = {ok, lists:nth(I, FileDesc#file.items)},
+    Reply = {ok, element(I, FileDesc#file.items)},
     {reply, Reply, State};
 
 handle_call({get_next_line, FileID}, _From, State) ->
     FileDesc = ?DICT:fetch(FileID, State#state.files),
     I = (FileDesc#file.current + 1) rem FileDesc#file.size,
-    Reply = {ok, lists:nth(I+1, FileDesc#file.items)},
+    Reply = {ok, element(I+1, FileDesc#file.items)},
     NewFileDesc = FileDesc#file{current=I},
     {reply, Reply,
      State#state{files=?DICT:store(FileID, NewFileDesc, State#state.files)}};
@@ -207,7 +207,7 @@ open_file({ID, Path}, {reply, Result, State}) ->
                 _ ->
                     List_items = read_item(File, []),
                     file:close(File), % Close the config file
-                    FileDesc = #file{items = List_items, size=length(List_items)},
+                    FileDesc = #file{items = list_to_tuple(List_items), size=length(List_items)},
                     {reply, Result,
                      State#state{files = ?DICT:store(ID, FileDesc, State#state.files)}}
             end
@@ -223,7 +223,7 @@ read_item(File, L)->
     Line = io:get_line(File, ""),
     case Line of
         eof ->
-            L;
+            lists:reverse(L);
         _->
             Tokens = string:tokens(Line, "\n"),
             case Tokens of
@@ -233,7 +233,6 @@ read_item(File, L)->
                     read_item(File, L);
                 [Value] ->
                     %% FIXME: maybe we should use an ets table instead ?
-                    List = lists:append(L, [Value]),
-                    read_item(File, List)
+                    read_item(File, [Value|L])
             end
     end.
