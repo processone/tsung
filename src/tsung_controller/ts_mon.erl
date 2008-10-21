@@ -313,6 +313,8 @@ handle_info(_Info, State) ->
 terminate(Reason, State) ->
     ?LOGF("stoping monitor (~p)~n",[Reason],?NOTICE),
     export_stats(State),
+    ts_stats_mon:status(), %% blocking call to ts_stats_mon; this way, we are
+                           %% sure the last call to dumpstats is finished
     io:format(State#state.log,"EndMonitor:~w~n",[now()]),
     file:close(State#state.log),
     file:close(State#state.fullstats),
