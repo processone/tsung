@@ -178,23 +178,28 @@ handle_info({timeout, _Ref, send_request},  State ) ->
     erlang:start_timer(State#os_mon.interval, self(), send_request ),
     {noreply, State#os_mon{timer=undefined}};
 
-
-% response from the SNMP server
-handle_info({snmp_msg, Msg, Ip, Udp}, State) ->
-    {ok, NewState} = ts_os_mon_snmp:parse({snmp_msg, Msg, Ip, Udp}, State),
-    {noreply, NewState};
-
 handle_info({'EXIT', From, Reason}, State) ->
     ?LOGF("received exit from ~p with reason ~p~n",[From, Reason],?ERR),
     %% get type  of died pid
     {Type, Node} = dict:fetch(From, State#os_mon.pids),
     Module=plugin_module(Type),
     Module:restart({From, Node}, Reason, State);
-handle_info(Info, State) ->
-    ?LOGF("handle info: unknown msg ~p~n",[Info],?WARN),
-    {noreply, State}.
 
+handle_info(Data, State) ->
+    AllPlugins = get_all_plugins(State#os_mon.pids), %% FIXME: cache result ?
+    ?LOGF("Call parse with plugins ~p~n",[AllPlugins],?INFO),
+    Res = lists:map(fun(A)->Module=plugin_module(A),
+                            Module:parse(Data,State) end,AllPlugins),
+    case lists:filter(fun(skip)->false;
+                    ({ok, _State})-> true end, Res) of
+        [{ok, NewState}| _Tail] -> %% there should be a reponse from a single plugin
+            {noreply, NewState};
+        _ ->
+            {noreply, State} %% ignore other cases
+    end.
 
+get_all_plugins(Dict) ->
+    lists:usort(lists:map(fun({_,{Type,_}})->Type end, dict:to_list(Dict)) ).
 
 %%--------------------------------------------------------------------
 %% Function: terminate/2
@@ -241,7 +246,6 @@ plugin_apply(Type, Function, Args) ->
 %% FIXME: start remote beams in parallel
 active_host([], State) ->
     State;
-%% monitoring using snmp
 active_host([{HostStr, {Type, Options}} | HostList], State=#os_mon{pids=Pids}) ->
     Module= plugin_module(Type),
     NewPids = case Module:init(HostStr,Options, State) of

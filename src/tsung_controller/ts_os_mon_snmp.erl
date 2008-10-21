@@ -89,7 +89,9 @@ parse({snmp_msg, Msg, Ip, _Udp}, State) ->
                        ?LOGF("Got unknown SNMP data ~p from ~p~n",[PDU, Ip],?WARN),
                        State#os_mon.dnscache
                end,
-    {ok, State#os_mon{dnscache=NewCache}}.
+    {ok, State#os_mon{dnscache=NewCache}};
+parse(Data, State) ->
+    skip.
 
 restart(_Node,_Reason,State) ->
     {noreply, State}.

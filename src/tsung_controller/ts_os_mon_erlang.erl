@@ -72,8 +72,8 @@ init( Host, [],  State) ->
 get_data(_Pids, _State) ->
     ok.
 
-parse(_Data, _State) ->
-    ok.
+parse(Data, _State) ->
+    skip.
 
 restart({_OldPid, Node}, _Reason, State) ->
     %% start a new process on this node
