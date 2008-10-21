@@ -19,12 +19,12 @@ test()->
 procnet_test()->
     myset_env(),
     ?assertMatch({10106167,2609645},
-                 ts_os_mon:get_os_data(packets, {unix, linux}, "./src/test/procnetdev_test.txt")).
+                 ts_os_mon_erlang:get_os_data(packets, {unix, linux}, "./src/test/procnetdev_test.txt")).
 
 procnet_7chars_test()->
     myset_env(),
     ?assertMatch({10106167,2609645},
-                 ts_os_mon:get_os_data(packets, {unix, linux}, "./src/test/procnetdev_test7chars.txt")).
+                 ts_os_mon_erlang:get_os_data(packets, {unix, linux}, "./src/test/procnetdev_test7chars.txt")).
 
 
 myset_env()->

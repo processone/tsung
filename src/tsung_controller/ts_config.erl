@@ -116,7 +116,7 @@ parse(Element = #xmlElement{name=monitor, attributes=Attrs},
     Host = getAttr(Attrs, host),
     Type = case getAttr(atom, Attrs, type, erlang) of
                erlang ->
-                   erlang;
+                   {erlang, []};
                snmp ->
                    case lists:keysearch(snmp,#xmlElement.name,
                                         Element#xmlElement.content) of
@@ -127,11 +127,11 @@ parse(Element = #xmlElement{name=monitor, attributes=Attrs},
                                                          community, ?config(snmp_community)),
                            Version = getAttr(atom,SnmpEl#xmlElement.attributes,
                                                        version, ?config(snmp_version)),
-                           {snmp, Port, Community, Version};
+                           {snmp, [{Port, Community, Version}]};
                        _ ->
-                           {snmp,?config(snmp_port),
+                           {snmp, [{?config(snmp_port),
                             ?config(snmp_community),
-                            ?config(snmp_version)}
+                            ?config(snmp_version)}]}
                    end
            end,
     NewMon = case getAttr(atom, Attrs, batch, false) of
