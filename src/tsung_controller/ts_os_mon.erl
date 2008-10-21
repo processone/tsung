@@ -49,7 +49,7 @@
 
 %%--------------------------------------------------------------------
 %% External exports
--export([start/0, start/1, stop/0, activate/0, send/2 ]).
+-export([start/0, start/1, stop/0, activate/0, send/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -154,6 +154,7 @@ handle_call(_Request, _From, State) ->
 %%--------------------------------------------------------------------
 handle_cast({activate, Hosts}, State) ->
     NewState = active_host(Hosts,State),
+    erlang:start_timer(State#os_mon.interval, self(), send_request ),
     {noreply, NewState};
 
 handle_cast(Msg, State) ->
@@ -167,26 +168,33 @@ handle_cast(Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-handle_info({timeout, _Ref, send_snmp_request},  State ) ->
-    SNMP_Pids = dict:fetch_keys(dict:filter(fun(_K,{snmp,_})-> true;
-                                               (_,_)       -> false
-                                            end, State#os_mon.pids)),
-    ts_os_mon_snmp:get_data(SNMP_Pids,State),
+handle_info({timeout, _Ref, send_request},  State ) ->
+    Fun = fun(Pid) ->
+            {Type, _} = dict:fetch(Pid,State#os_mon.pids),
+            Module=plugin_module(Type),
+            Module:get_data(Pid,State)
+    end,
+    lists:foreach(Fun,  dict:fetch_keys(State#os_mon.pids)),
+    erlang:start_timer(State#os_mon.interval, self(), send_request ),
     {noreply, State#os_mon{timer=undefined}};
+
 
 % response from the SNMP server
 handle_info({snmp_msg, Msg, Ip, Udp}, State) ->
-    ts_os_mon_snmp:parse({snmp_msg, Msg, Ip, Udp}, State);
+    {ok, NewState} = ts_os_mon_snmp:parse({snmp_msg, Msg, Ip, Udp}, State),
+    {noreply, NewState};
 
 handle_info({'EXIT', From, Reason}, State) ->
     ?LOGF("received exit from ~p with reason ~p~n",[From, Reason],?ERR),
     %% get type  of died pid
     {Type, Node} = dict:fetch(From, State#os_mon.pids),
-    Module = list_to_atom("ts_os_mon_" ++ atom_to_list(Type)),
+    Module=plugin_module(Type),
     Module:restart({From, Node}, Reason, State);
 handle_info(Info, State) ->
     ?LOGF("handle info: unknown msg ~p~n",[Info],?WARN),
     {noreply, State}.
+
+
 
 %%--------------------------------------------------------------------
 %% Function: terminate/2
@@ -198,7 +206,7 @@ terminate(normal, State) ->
     Pids = dict:fetch_keys(State#os_mon.pids),
     Stop= fun(Pid) when is_pid(Pid)->
                   {Type,Node}=dict:fetch(Pid,State#os_mon.pids),
-                  Module= list_to_atom("ts_os_mon_" ++ atom_to_list(Type)),
+                  Module = plugin_module(Type),
                   Module:stop(Node,State)
                   end,
     lists:foreach(Stop, Pids),
@@ -218,7 +226,12 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%--------------------------------------------------------------------
 
+plugin_module(Type) ->
+    Module = list_to_atom("ts_os_mon_" ++ atom_to_list(Type)).
 
+plugin_apply(Type, Function, Args) ->
+    Module = plugin_module(Type),
+    apply(Module,Function, Args).
 
 
 %%--------------------------------------------------------------------
@@ -230,7 +243,7 @@ active_host([], State) ->
     State;
 %% monitoring using snmp
 active_host([{HostStr, {Type, Options}} | HostList], State=#os_mon{pids=Pids}) ->
-    Module= list_to_atom("ts_os_mon_" ++ atom_to_list(Type)),
+    Module= plugin_module(Type),
     NewPids = case Module:init(HostStr,Options, State) of
                   {ok, {Pid, Node}} ->
                       dict:store(Pid,{Type, Node},Pids);

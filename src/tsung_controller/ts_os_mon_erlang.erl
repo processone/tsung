@@ -35,6 +35,7 @@
 -define(NODE, "os_mon").
 -define(PROCNET, "/proc/net/dev").
 
+
 %% @spec init(HostStr::string,
 %%            Options, State ) ->
 %%       {ok, Pid} | {error, Reason}

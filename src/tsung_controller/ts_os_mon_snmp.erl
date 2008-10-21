@@ -46,8 +46,7 @@
 %% @spec init(HostStr::string,
 %%            Options::[{Port::integer, Community::string, Version::string }]) ->
 %%       {ok, Pid} | {error, Reason}
-
-init( HostStr, [{Port, Community, Version }], State ) ->
+init( HostStr, [{Port, Community, Version }], _State) ->
     {ok, Host} = inet:getaddr(HostStr, inet),
     ?LOGF("Starting SNMP mgr on ~p~n", [Host], ?DEB),
     {ok, Pid} = snmp_mgr:start_link([{agent, Host},
@@ -60,12 +59,6 @@ init( HostStr, [{Port, Community, Version }], State ) ->
     %% since snmp_mgr can handle only a single snmp server, change the
     %% registered name to start several smp_mgr at once !
     unregister(snmp_mgr),
-    case State#os_mon.timer of
-        undefined ->
-            erlang:start_timer(State#os_mon.interval, self(), send_snmp_request );
-        _ ->
-            ok
-    end,
     ?LOGF("SNMP mgr started; remote node is ~p~n", [Host],?INFO),
     {ok, { Pid, Host }}.
 
@@ -74,6 +67,8 @@ get_data(Pid, _State) when is_pid(Pid)->
     ?LOGF("SNMP mgr; get data from pid ~p~n", [Pid],?DEB),
     snmp_get(Pid,
              [?SNMP_CPU_RAW_SYSTEM, ?SNMP_CPU_RAW_USER, ?SNMP_MEM_AVAIL ]);
+get_data([], _State) ->
+    ok;
 get_data(Pids, _State) when is_list(Pids)->
     ?LOGF("SNMP mgr; get data from pids ~p~n", [Pids],?DEB),
     SNMPGet= fun(Pid)->
@@ -94,13 +89,7 @@ parse({snmp_msg, Msg, Ip, _Udp}, State) ->
                        ?LOGF("Got unknown SNMP data ~p from ~p~n",[PDU, Ip],?WARN),
                        State#os_mon.dnscache
                end,
-    case  State#os_mon.timer of
-        undefined ->
-            erlang:start_timer(State#os_mon.interval, self(), send_snmp_request ),
-            {noreply, State#os_mon{timer=on, dnscache=NewCache}};
-        _ ->
-            {noreply, State#os_mon{dnscache=NewCache}}
-    end.
+    {ok, State#os_mon{dnscache=NewCache}}.
 
 restart(_Node,_Reason,State) ->
     {noreply, State}.
