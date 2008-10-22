@@ -155,12 +155,12 @@ BUILD_OPTIONS_DOT = $(subst $(PWD)/temp/,./,$(BUILD_OPTIONS))
 
 BUILD_OPTIONS_FILE = ./BUILD_OPTIONS
 
-DIST_COMMON=Makefile.in $(CONFFILE_SRC) $(PERL_SCRIPTS_SRC) $(PYTHON_SCRIPTS_SRC) tsung.sh.in tsung.spec.in
+DIST_COMMON=Makefile.in $(CONFFILE_SRC) $(PERL_SCRIPTS_SRC) $(PYTHON_SCRIPTS_SRC) tsung.sh.in tsung.spec.in $(CONTROLLER_SRC_APPFILES_IN)
 
 
 .PHONY: doc
 
-tsung: Makefile config.status $(PERL_SCRIPTS)  $(PYTHON_SCRIPTS) tsung.sh tsung.spec $(TARGET) $(RECORDER_TARGET) $(CONTROLLER_TARGET) $(LIB_TARGET)
+tsung: Makefile config.status $(PERL_SCRIPTS)  $(PYTHON_SCRIPTS) tsung.sh tsung.spec $(TARGET) $(RECORDER_TARGET) $(CONTROLLER_TARGET) $(LIB_TARGET)  $(CONTROLLER_SRC_APPFILES) $(SRC_APPFILES) $(RECORDER_SRC_APPFILES)
 
 buildtest: $(TEST_TARGET)
 
@@ -353,8 +353,12 @@ Makefile: Makefile.in config.status
 %.sh :%.sh.in vsn.mk
 	@$(SHELL) ./config.status --file=$@
 
+%.app.src: %.app.src.in
+	@$(SHELL) ./config.status --file=$@
+
 config.status: configure $(CONFIG_STATUS_DEPENDENCIES)
 	$(SHELL) ./config.status --recheck
+
 
 configure: configure.in $(CONFIGURE_DEPENDENCIES)
 	@echo "running autoconf"
