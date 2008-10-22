@@ -170,20 +170,13 @@ handle_cast(Msg, State) ->
 %%--------------------------------------------------------------------
 handle_info({timeout, _Ref, send_request},  State ) ->
     Fun = fun(Pid) ->
-            {Type, _} = dict:fetch(Pid,State#os_mon.pids),
+            {Type, Host} = dict:fetch(Pid,State#os_mon.pids),
             Module=plugin_module(Type),
-            Module:get_data(Pid,State)
+            Module:get_data({Pid, Host},State)
     end,
-    Res=lists:map(Fun,  dict:fetch_keys(State#os_mon.pids)),
-    NewState= case lists:filter(fun(ok)->false;
-                         ({ok, _State})-> true end, Res) of
-        [{ok, State2}| _Tail] -> % FIXME
-            State2;
-        _ ->
-            State %% ignore other cases
-    end,
+    lists:foreach(Fun,  dict:fetch_keys(State#os_mon.pids)),
     erlang:start_timer(State#os_mon.interval, self(), send_request ),
-    {noreply, NewState};
+    {noreply, State};
 
 handle_info({'EXIT', From, Reason}, State) ->
     ?LOGF("received exit from ~p with reason ~p~n",[From, Reason],?ERR),
@@ -249,12 +242,12 @@ plugin_module(Type) -> list_to_atom("ts_os_mon_" ++ atom_to_list(Type)).
 %% FIXME: start remote beams in parallel
 active_host([], State) ->
     State;
-active_host([{HostStr, {Type, Options}} | HostList], State=#os_mon{pids=Pids}) ->
+active_host([{HostStr, {Type, Options}} | HostList], State=#os_mon{pids=Ids}) ->
     Module= plugin_module(Type),
     case Module:init(HostStr,Options, State) of
-        {ok, {Pid, Node}} ->
-            NewPids=dict:store(Pid,{Type, Node},Pids),
-            active_host(HostList, State#os_mon{pids=NewPids});
+        {ok, {Id, Node}} ->
+            NewIds=dict:store(Id,{Type, Node},Ids),
+            active_host(HostList, State#os_mon{pids=NewIds});
         {error, _Reason} ->
             active_host(HostList, State)
     end.

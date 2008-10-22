@@ -39,10 +39,10 @@
 
 %% @spec init(HostStr::string,
 %%            Options::[{Port::integer, Community::string, Version::string }]) ->
-%%       {ok, Pid} | {error, Reason}
+%%       {ok, {socket(), Hostname::string()}} | {error, Reason}
 init(HostStr, [{Port}], State) ->
     {ok, Host} = inet:getaddr(HostStr, inet),
-    ?LOGF("Starting munin mgr on ~p~n", [Host], ?DEB),
+    ?LOGF("Starting munin mgr on ~p:~p~n", [Host,Port], ?DEB),
     Opts=[list,
           {active, false},
           {packet, line},
@@ -51,13 +51,13 @@ init(HostStr, [{Port}], State) ->
     case gen_tcp:connect(Host, Port, Opts) of
         {ok, Socket} ->
             case gen_tcp:recv(Socket,0, ?READ_TIMEOUT) of
-                {ok, Hello} ->
-                    ?LOGF("Connected to ~p~n", [Hello], ?INFO),
+                {ok, "# munin node at "++ MuninHost} ->
+                    ?LOGF("Connected to ~p~n", [MuninHost], ?INFO),
                     %% must fetch some data, otherwise munin-node
                     %% timeout and close the connection
                     gen_tcp:send(Socket,"fetch load\n"),
                     read_munin_data(Socket),
-                    {ok, {Socket, Host }};
+                    {ok, {Socket, ts_utils:chop(MuninHost) }};
                 {error, Reason} ->
                     ?LOGF("Error while connecting to munin server: ~p~n", [Reason], ?ERR),
                     {error, Reason}
@@ -68,9 +68,7 @@ init(HostStr, [{Port}], State) ->
     end.
 
 
-get_data(Socket, State) ->
-    {ok,{Ip,_}}=prim_inet:peername(Socket), %% FIXME: handle reconnection ?
-    {Hostname, NewCache} = ts_utils:resolve(Ip, State#os_mon.dnscache),
+get_data({Socket, Hostname}, State) ->
     %% Currenly, fetch only cpu and memory
     %% FIXME: should be customizable in XML config file
     ?LOGF("Fetching munin for cpu on host ~p~n", [Hostname], ?DEB),
@@ -83,7 +81,7 @@ get_data(Socket, State) ->
     NonIdle=lists:keydelete('idle.value',1,AllCPU),
     Cpu=lists:foldl(fun({_Key,Val},Acc) when is_integer(Val)->
                             Acc+Val
-                    end,0,NonIdle) / State#os_mon.interval,
+                    end,0,NonIdle) / (State#os_mon.interval div 1000),
     ?LOGF(" munin cpu on host ~p is  ~p~n", [Hostname,Cpu], ?DEB),
     %% returns free + buffer + cache
     FunFree = fun({Key,Val},Acc) when ((Key=='buffers.value') or
@@ -96,7 +94,7 @@ get_data(Socket, State) ->
     ?LOGF(" munin memory on host ~p is ~p~n", [Hostname,FreeMem], ?DEB),
     ts_os_mon:send(State#os_mon.mon_server,[{sample_counter, {cpu, Hostname}, Cpu},
                                             {sample, {freemem, Hostname}, FreeMem}]),
-    {ok, State#os_mon{dnscache=NewCache}}.
+    ok.
 
 parse(Data, State) ->
     ok.
@@ -105,6 +103,7 @@ restart(_Node,_Reason,State) ->
     {noreply, State}.
 
 stop(_Node,State) ->
+    %%TODO: close the socket
     {noreply, State}.
 
 read_munin_data(Socket)->

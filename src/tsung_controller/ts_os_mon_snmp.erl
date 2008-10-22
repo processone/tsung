@@ -67,7 +67,7 @@ init( HostStr, [{Port, Community, Version }], _State) ->
     {ok, { Pid, Host }}.
 
 
-get_data(Pid, _State) when is_pid(Pid)->
+get_data({Pid, Host}, _State) when is_pid(Pid)->
     ?LOGF("SNMP mgr; get data from pid ~p~n", [Pid],?DEB),
     snmp_get(Pid,
              [?SNMP_CPU_RAW_SYSTEM, ?SNMP_CPU_RAW_USER, ?SNMP_MEM_AVAIL ]),
