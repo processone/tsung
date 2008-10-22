@@ -112,7 +112,10 @@ record_request(State=#state_rec{prev_host=Host, prev_port=Port, prev_scheme=Sche
     ts_proxy_http:record_header(Fd,ParsedHeader,"destination", "~n  <http_header name='destination' value='~s'/>~n", fun(A) -> ts_utils:to_https({url, A}) end),
     ts_proxy_http:record_header(Fd,ParsedHeader,"url", "~n  <http_header name='url' value='~s'/>~n"),
     ts_proxy_http:record_header(Fd,ParsedHeader,"lock-token", "~n  <http_header name='lock-token' value='~s'/>~n"),
+    ts_proxy_http:record_header(Fd,ParsedHeader,"x-svn-options", "~n  <http_header name='x-svn-options' value='~s'/>~n"),
 
+    %% subversion use x-svn-result-fulltext-md5 ; add this ?
+    %% http://svn.collab.net/repos/svn/branches/artem-soc-work/notes/webdav-protocol
 
     io:format(Fd,"</http></request>~n",[]),
     {ok,State#state_rec{prev_port=NewPort,prev_host=NewHost,prev_scheme=NewScheme}}.

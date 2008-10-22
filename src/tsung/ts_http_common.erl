@@ -508,6 +508,8 @@ http_method("mkcol")-> 'MKCOL';
 http_method("mkactivity")-> 'MKACTIVITY';
 http_method("report")-> 'REPORT';
 http_method("options")-> 'OPTIONS';
+http_method("checkout")-> 'CHECKOUT';
+http_method("merge")-> 'MERGE';
 http_method(Method) ->
     ?LOGF("Unknown  HTTP method: ~p~n", [Method] ,?WARN),
     not_implemented.
