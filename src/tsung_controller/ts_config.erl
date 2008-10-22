@@ -132,6 +132,16 @@ parse(Element = #xmlElement{name=monitor, attributes=Attrs},
                            {snmp, [{?config(snmp_port),
                             ?config(snmp_community),
                             ?config(snmp_version)}]}
+                   end;
+               munin ->
+                   case lists:keysearch(munin,#xmlElement.name,
+                                        Element#xmlElement.content) of
+                       {value, MuninEl=#xmlElement{} } ->
+                           Port = getAttr(integer,MuninEl#xmlElement.attributes,
+                                                    port, ?config(munin_port)),
+                           {munin, [{Port}]};
+                       _ ->
+                           {munin, [{?config(munin_port) }]}
                    end
            end,
     NewMon = case getAttr(atom, Attrs, batch, false) of

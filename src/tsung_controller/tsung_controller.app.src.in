@@ -30,6 +30,8 @@
                      {thinktime_override, "false"},
                      {thinktime_random, "false"},
 
+                     {munin_port, 4949},
+
                      {snmp_port, 161},
                      {snmp_version, v2},
                      {snmp_community, "public"},

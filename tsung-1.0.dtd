@@ -37,17 +37,21 @@
 <!ATTLIST ip value NMTOKEN #REQUIRED>
 
 <!ELEMENT monitoring ( monitor+ )>
-<!ELEMENT monitor ( snmp? )>
+<!ELEMENT monitor ( snmp? | munin?)>
 <!ATTLIST monitor
      host NMTOKEN #REQUIRED
      batch (true | false) "false"
-     type (snmp | erlang) "erlang">
+     type (snmp | erlang | munin) "erlang">
 
 <!ELEMENT snmp EMPTY>
 <!ATTLIST snmp
      version   (v1 | v2) "v1"
      community NMTOKEN "public"
      port      NMTOKEN "161">
+
+<!ELEMENT munin EMPTY>
+<!ATTLIST munin
+     port      NMTOKEN "4949">
 
 <!ELEMENT load (arrivalphase+)>
 <!ATTLIST load 
@@ -123,7 +127,7 @@ repeat)*>
     contents_from_file CDATA #IMPLIED
     content_type      CDATA #IMPLIED
     if_modified_since CDATA #IMPLIED
-    method            (GET | POST | PUT | DELETE | HEAD | PROPFIND | PROPPATCH | COPY | MOVE | LOCK | UNLOCK | MKCOL | MKACTIVITY | OPTIONS | REPORT | VERSION-CONTROL ) "GET"
+    method            (GET | POST | PUT | DELETE | HEAD | PROPFIND | PROPPATCH | COPY | MOVE | LOCK | UNLOCK | MKCOL | MKACTIVITY | OPTIONS | REPORT | VERSION-CONTROL | MERGE | CHECKOUT) "GET"
     url               CDATA #REQUIRED
     version           (1.0 | 1.1) "1.1" >
 

@@ -174,9 +174,16 @@ handle_info({timeout, _Ref, send_request},  State ) ->
             Module=plugin_module(Type),
             Module:get_data(Pid,State)
     end,
-    lists:foreach(Fun,  dict:fetch_keys(State#os_mon.pids)),
+    Res=lists:map(Fun,  dict:fetch_keys(State#os_mon.pids)),
+    NewState= case lists:filter(fun(ok)->false;
+                         ({ok, _State})-> true end, Res) of
+        [{ok, State2}| _Tail] -> % FIXME
+            State2;
+        _ ->
+            State %% ignore other cases
+    end,
     erlang:start_timer(State#os_mon.interval, self(), send_request ),
-    {noreply, State#os_mon{timer=undefined}};
+    {noreply, NewState};
 
 handle_info({'EXIT', From, Reason}, State) ->
     ?LOGF("received exit from ~p with reason ~p~n",[From, Reason],?ERR),
@@ -186,20 +193,22 @@ handle_info({'EXIT', From, Reason}, State) ->
     Module:restart({From, Node}, Reason, State);
 
 handle_info(Data, State) ->
-    AllPlugins = get_all_plugins(State#os_mon.pids), %% FIXME: cache result ?
+    AllPlugins = get_all_plugins(State),
     ?LOGF("Call parse with plugins ~p~n",[AllPlugins],?INFO),
     Res = lists:map(fun(A)->Module=plugin_module(A),
                             Module:parse(Data,State) end,AllPlugins),
-    case lists:filter(fun(skip)->false;
-                    ({ok, _State})-> true end, Res) of
-        [{ok, NewState}| _Tail] -> %% there should be a reponse from a single plugin
-            {noreply, NewState};
+    case lists:filter(fun(ok)->false;
+                         ({ok, _State})-> true end, Res) of
+        [{ok, NewState}| _Tail] -> % there should be a response from a single plugin
+            {noreply, NewState#os_mon{plugins=AllPlugins}};
         _ ->
-            {noreply, State} %% ignore other cases
+            {noreply, State#os_mon{plugins=AllPlugins}} %% ignore other cases
     end.
 
-get_all_plugins(Dict) ->
-    lists:usort(lists:map(fun({_,{Type,_}})->Type end, dict:to_list(Dict)) ).
+get_all_plugins(State=#os_mon{pids=Dict,plugins=[]}) ->
+    lists:usort(lists:map(fun({_,{Type,_}})->Type end, dict:to_list(Dict)) );
+get_all_plugins(State=#os_mon{plugins=Plugins}) ->
+    Plugins.
 
 %%--------------------------------------------------------------------
 %% Function: terminate/2
@@ -207,14 +216,14 @@ get_all_plugins(Dict) ->
 %% Returns: any (ignored by gen_server)
 %%--------------------------------------------------------------------
 terminate(normal, State) ->
-%%     ?LOGF("Terminating ts_os_mon, stop beams: ~p~n",[Nodes],?NOTICE),
-    Pids = dict:fetch_keys(State#os_mon.pids),
-    Stop= fun(Pid) when is_pid(Pid)->
-                  {Type,Node}=dict:fetch(Pid,State#os_mon.pids),
+    ?LOG("Terminating ts_os_mon, stop beams (if needed)~n",?NOTICE),
+    Ids = dict:fetch_keys(State#os_mon.pids),
+    Stop= fun(Id) ->
+                  {Type,Node}=dict:fetch(Id,State#os_mon.pids),
                   Module = plugin_module(Type),
                   Module:stop(Node,State)
-                  end,
-    lists:foreach(Stop, Pids),
+          end,
+    lists:foreach(Stop, Ids),
     ok;
 terminate(_Reason, _State) ->
     ok.
@@ -231,13 +240,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%--------------------------------------------------------------------
 
-plugin_module(Type) ->
-    Module = list_to_atom("ts_os_mon_" ++ atom_to_list(Type)).
-
-plugin_apply(Type, Function, Args) ->
-    Module = plugin_module(Type),
-    apply(Module,Function, Args).
-
+plugin_module(Type) -> list_to_atom("ts_os_mon_" ++ atom_to_list(Type)).
 
 %%--------------------------------------------------------------------
 %% Function: active_host/2
@@ -248,12 +251,10 @@ active_host([], State) ->
     State;
 active_host([{HostStr, {Type, Options}} | HostList], State=#os_mon{pids=Pids}) ->
     Module= plugin_module(Type),
-    NewPids = case Module:init(HostStr,Options, State) of
-                  {ok, {Pid, Node}} ->
-                      dict:store(Pid,{Type, Node},Pids);
-                  {error, _Reason} ->
-                      Pids
-              end,
-    active_host(HostList, State#os_mon{pids=NewPids}).
-
-
+    case Module:init(HostStr,Options, State) of
+        {ok, {Pid, Node}} ->
+            NewPids=dict:store(Pid,{Type, Node},Pids),
+            active_host(HostList, State#os_mon{pids=NewPids});
+        {error, _Reason} ->
+            active_host(HostList, State)
+    end.

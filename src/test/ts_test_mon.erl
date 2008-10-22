@@ -11,6 +11,7 @@
 
 -include("ts_profile.hrl").
 -include("ts_config.hrl").
+-include("ts_os_mon.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 test()->
@@ -26,6 +27,16 @@ procnet_7chars_test()->
     ?assertMatch({10106167,2609645},
                  ts_os_mon_erlang:get_os_data(packets, {unix, linux}, "./src/test/procnetdev_test7chars.txt")).
 
+get_plugins_test()->
+    Dict= dict:from_list([{1,{snmp, 3 }},
+                          {2,{snmp, 3 }},
+                          {3,{snmp, 3 }},
+                          {4,{erlang,3 }},
+                          {5,{munin,3 }},
+                          {6,{munin,3}}]),
+    ?assertMatch([erlang, munin,snmp], ts_os_mon:get_all_plugins(#os_mon{pids=Dict})).
+get_plugins_empty_test()->
+    ?assertMatch([], ts_os_mon:get_all_plugins(#os_mon{pids=dict:new()})).
 
 myset_env()->
     application:set_env(stdlib,debug_level,0).

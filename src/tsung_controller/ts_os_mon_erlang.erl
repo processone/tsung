@@ -18,6 +18,10 @@
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 %%%
+%%%  In addition, as a special exception, you have the permission to
+%%%  link the code of this program with any library released under
+%%%  the EPL license and distribute linked combinations including
+%%%  the two.
 
 -module(ts_os_mon_erlang).
 -vc('$Id: ts_os_mon_snmp.erl,v 0.0 2008/10/21 12:57:49 nniclaus Exp $ ').
@@ -73,7 +77,7 @@ get_data(_Pids, _State) ->
     ok.
 
 parse(Data, _State) ->
-    skip.
+    ok.
 
 restart({_OldPid, Node}, _Reason, State) ->
     %% start a new process on this node

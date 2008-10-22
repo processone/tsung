@@ -18,6 +18,10 @@
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 %%%
+%%%  In addition, as a special exception, you have the permission to
+%%%  link the code of this program with any library released under
+%%%  the EPL license and distribute linked combinations including
+%%%  the two.
 
 -module(ts_os_mon_snmp).
 -vc('$Id: ts_os_mon_snmp.erl,v 0.0 2008/10/21 12:57:49 nniclaus Exp $ ').
@@ -66,32 +70,23 @@ init( HostStr, [{Port, Community, Version }], _State) ->
 get_data(Pid, _State) when is_pid(Pid)->
     ?LOGF("SNMP mgr; get data from pid ~p~n", [Pid],?DEB),
     snmp_get(Pid,
-             [?SNMP_CPU_RAW_SYSTEM, ?SNMP_CPU_RAW_USER, ?SNMP_MEM_AVAIL ]);
-get_data([], _State) ->
-    ok;
-get_data(Pids, _State) when is_list(Pids)->
-    ?LOGF("SNMP mgr; get data from pids ~p~n", [Pids],?DEB),
-    SNMPGet= fun(Pid)->
-                     snmp_get(Pid,
-                              [?SNMP_CPU_RAW_SYSTEM, ?SNMP_CPU_RAW_USER, ?SNMP_MEM_AVAIL ])
-             end,
-    lists:foreach(SNMPGet, Pids).
+             [?SNMP_CPU_RAW_SYSTEM, ?SNMP_CPU_RAW_USER, ?SNMP_MEM_AVAIL ]),
+    ok.
 
 parse({snmp_msg, Msg, Ip, _Udp}, State) ->
     PDU = snmp_mgr_misc:get_pdu(Msg),
-    NewCache = case PDU#pdu.type of
-                   'get-response' ->
-                       ?LOGF("Got SNMP PDU ~p from ~p~n",[PDU, Ip],?DEB),
-                       {Hostname, Cache2} = ts_utils:resolve(Ip, State#os_mon.dnscache),
-                       analyse_snmp_data(PDU#pdu.varbinds, Hostname, State),
-                       Cache2;
-                   _ ->
-                       ?LOGF("Got unknown SNMP data ~p from ~p~n",[PDU, Ip],?WARN),
-                       State#os_mon.dnscache
-               end,
-    {ok, State#os_mon{dnscache=NewCache}};
-parse(Data, State) ->
-    skip.
+    case PDU#pdu.type of
+        'get-response' ->
+            ?LOGF("Got SNMP PDU ~p from ~p~n",[PDU, Ip],?DEB),
+            {Hostname, NewCache} = ts_utils:resolve(Ip, State#os_mon.dnscache),
+            analyse_snmp_data(PDU#pdu.varbinds, Hostname, State),
+            {ok, State#os_mon{dnscache=NewCache}};
+        _ ->
+            ?LOGF("Got unknown SNMP data ~p from ~p~n",[PDU, Ip],?WARN),
+            {ok, State}
+    end;
+parse(_Data, _State) ->
+    ok.
 
 restart(_Node,_Reason,State) ->
     {noreply, State}.

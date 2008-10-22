@@ -41,7 +41,8 @@
          make_dir_rec/1, is_ip/1, from_https/1, to_https/1, keymax/2,
          check_sum/3, check_sum/5, clean_str/1, file_to_list/1,
          decode_base64/1, encode_base64/1, to_lower/1, release_is_newer_or_eq/1,
-         randomstr/1,urandomstr/1,urandomstr_noflat/1, eval/1]).
+         randomstr/1,urandomstr/1,urandomstr_noflat/1, eval/1, list_to_number/1
+        ]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -647,4 +648,16 @@ eval(Code) ->
     {ok, Parsed} = erl_parse:parse_exprs(Scanned),
     {value, Result, _} = erl_eval:exprs(Parsed,  erl_eval:new_bindings()),
     Result.
+
+%%----------------------------------------------------------------------
+%% @spec list_to_number(string()) -> integer() | float()
+%% @doc  convert a 'number' to either int or float
+%%----------------------------------------------------------------------
+list_to_number(Number) ->
+    try list_to_integer(Number) of
+        Int -> Int
+  catch
+      error:_Reason ->
+          list_to_float(Number)
+  end.
 
