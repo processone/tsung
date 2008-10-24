@@ -36,6 +36,7 @@
 
 % wait up to 10ms after an error
 -define(NEXT_AFTER_FAILED_TIMEOUT, 10).
+-define(DIE_DELAY, 5000).
 
 -behaviour(gen_fsm). %% a primitive gen_fsm with two state: launcher and wait
 
@@ -210,6 +211,7 @@ finish(timeout, State) ->
        0 -> %% no users left, stop
             ?LOG("No more active users, stop beam~n", ?NOTICE),
             ts_mon:stop(),
+            timer:sleep(?DIE_DELAY), % useful when using controller vm
             slave:stop(node()), %% commit suicide
             {stop, normal, State}; %% should never be executed
         ActiveClients ->
