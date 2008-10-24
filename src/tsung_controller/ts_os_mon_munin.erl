@@ -40,7 +40,7 @@
 %% @spec init(HostStr::string,
 %%            Options::[{Port::integer, Community::string, Version::string }]) ->
 %%       {ok, {socket(), Hostname::string()}} | {error, Reason}
-init(HostStr, [{Port}], State) ->
+init(HostStr, [{Port}], _State) ->
     {ok, Host} = inet:getaddr(HostStr, inet),
     ?LOGF("Starting munin mgr on ~p:~p~n", [Host,Port], ?DEB),
     Opts=[list,
@@ -96,7 +96,7 @@ get_data({Socket, Hostname}, State) ->
                                             {sample, {freemem, Hostname}, FreeMem}]),
     ok.
 
-parse(Data, State) ->
+parse(_Data, _State) ->
     ok.
 
 restart(_Node,_Reason,State) ->
@@ -109,7 +109,10 @@ stop(_Node,State) ->
 read_munin_data(Socket)->
     read_munin_data(Socket,gen_tcp:recv(Socket,0,?READ_TIMEOUT),[]).
 
-read_munin_data(Socket,{ok,".\n"}, Acc)->
+read_munin_data(_Socket,{error,Reason}, Acc)->
+    ?LOGF("Munin error: ~p~n", [Reason], ?ERR),
+    Acc;
+read_munin_data(_Socket,{ok,".\n"}, Acc)->
     Acc;
 read_munin_data(Socket,{ok, Data}, Acc) when is_list(Acc)->
     [Key, Value]=string:tokens(Data," \n"),
