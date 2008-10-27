@@ -115,6 +115,11 @@ read_munin_data(_Socket,{error,Reason}, Acc)->
 read_munin_data(_Socket,{ok,".\n"}, Acc)->
     Acc;
 read_munin_data(Socket,{ok, Data}, Acc) when is_list(Acc)->
-    [Key, Value]=string:tokens(Data," \n"),
-    read_munin_data(Socket,gen_tcp:recv(Socket,0,?READ_TIMEOUT),
-                    [{list_to_atom(Key), ts_utils:list_to_number(Value)}|Acc]).
+    NewAcc = case string:tokens(Data," \n") of
+                 [Key, Value] ->
+                     [{list_to_atom(Key), ts_utils:list_to_number(Value)}|Acc];
+                 _ ->
+                     ?LOGF("Unknown data received from munin server: ~p~n",[Data],?WARN),
+                     Acc
+             end,
+    read_munin_data(Socket,gen_tcp:recv(Socket,0,?READ_TIMEOUT), NewAcc).
