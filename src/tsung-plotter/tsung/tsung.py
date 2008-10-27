@@ -1,9 +1,11 @@
 #! /usr/bin/python
 # -*- coding: utf-8 -*-
 
+#  Copyright: 2006 by Dalibo <dalibo.com>
+#  Copyright: 2007 Dimitri Fontaine <dim@tapoueh.org>
 #  Created: 2006 by Dimitri Fontaine <dim@tapoueh.org>
 #
-#  Modified by Nicolas Niclausse
+#  Modified: 2008 by Nicolas Niclausse
 #
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -153,6 +155,7 @@ class TsungLog:
         first_ts   = 0
         current_ts = 0
         record_ts  = 0
+        import re
 
         for line in file(self.filename):
             # chomp \n
@@ -188,7 +191,20 @@ class TsungLog:
                     self.data[record_ts][name] = data
 
                 else:
-                    if name not in self.unknown:
+                    is_re = False
+                    x = re.compile("^[\w\d]+$")
+                    for k in self.types.keys():
+                        if not re.match(x, k):
+                            y = re.compile(k)
+                            if re.match(y, name):
+                                data = self.types[k].__class__(interval, values)
+                                if not self.data.has_key(record_ts):
+                                    self.data[record_ts] = {}
+                                self.data[record_ts][name] = data
+                                is_re = True
+                                break
+
+                    if name not in self.unknown and not is_re:
                         print 'WARNING: tsung %s data is not configured' % name
                         self.unknown.append(name)
 
