@@ -192,7 +192,7 @@ parse(Element = #xmlElement{name=client, attributes=Attrs},
                     true ->
                         ?LOGF("ERROR: client config: 'host' attribute must be a hostname, "++
                               "not an IP ! (was ~p)~n",[Host],?EMERG),
-                        throw({error, badhostname});
+                        exit({error, badhostname});
                     false ->
                         %% add a new client for each CPU
                         lists:duplicate(CPU,#client{host     = Host,
@@ -236,7 +236,7 @@ parse(Element = #xmlElement{name=arrivalphase, attributes=Attrs},
                         Element#xmlElement.content);
         _ -> % already existing phase, wrong configuration.
             ?LOGF("Client config error: phase ~p already defined, abort !~n",[Phase],?EMERG),
-            throw({error, already_defined_phase})
+            exit({error, already_defined_phase})
     end;
 
 %% Parsing the users element
@@ -246,10 +246,18 @@ parse(Element = #xmlElement{name=users, attributes=Attrs},
     Max = getAttr(integer,Attrs, maxnumber, infinity),
     ?LOGF("Maximum number of users ~p~n",[Max],?INFO),
 
-    InterArrival  = getAttr(float_or_integer,Attrs, interarrival),
     Unit  = getAttr(string,Attrs, unit, "second"),
-    Intensity= 1/(1000 * to_seconds(Unit,InterArrival)),
-
+    Intensity = case {getAttr(float_or_integer,Attrs, interarrival),
+                      getAttr(float_or_integer,Attrs, arrivalrate)  } of
+                    {[],[]} ->
+                        exit({invalid_xml,"arrival or interarrival must be specified"});
+                    {[], Rate}  when Rate > 0 ->
+                        to_seconds(Unit,Rate) / 1000;
+                    {InterArrival,[]} when InterArrival > 0 ->
+                        1/(1000 * to_seconds(Unit,InterArrival));
+                    {_Value, _Value2} ->
+                        exit({invalid_xml,"arrivalrate and interarrival can't be defined simultaneously"})
+                end,
     lists:foldl(fun parse/2,
         Conf#config{arrivalphases = [CurA#arrivalphase{maxnumber = Max,
                                                         intensity=Intensity}
@@ -358,7 +366,7 @@ parse(_Element = #xmlElement{name=repeat,attributes=Attrs,content=Content},
                   [CurS#session.id,NewId+1,Id+1],?INFO),
             ets:insert(Tab,{{CurS#session.id,NewId+1},EndAction}),
             NewConf#config{curid=NewId+1};
-        _ -> throw({invalid_xml,"Last element inside a <repeat/> loop must be "
+        _ -> exit({invalid_xml,"Last element inside a <repeat/> loop must be "
                                 "<while/> or <until/>"})
     end;
 
@@ -582,11 +590,13 @@ parse(_Element, Conf = #config{}) ->
     Conf.
 
 
-%%%----------------------------------------------------------------------
-%%% Function: getAttr/2
-%%% Purpose:  search the attribute list for the given one
-%%%----------------------------------------------------------------------
 getAttr(Attr, Name) -> getAttr(string, Attr, Name, "").
+
+%%%----------------------------------------------------------------------
+%%% @spec getAttr(Type: string|list|float_or_integer, Attr::list,
+%%%               Name::string()) -> term
+%%% @doc  search the attribute list for the given one
+%%%----------------------------------------------------------------------
 getAttr(Type, Attr, Name) -> getAttr(Type, Attr, Name, "").
 
 getAttr(Type, [Attr = #xmlAttribute{name=Name}|_], Name, _Default) ->
