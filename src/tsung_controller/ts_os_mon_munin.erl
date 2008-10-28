@@ -79,9 +79,10 @@ get_data({Socket, Hostname}, State) ->
     AllMem=read_munin_data(Socket),
     %% sum all cpu types, except idle.
     NonIdle=lists:keydelete('idle.value',1,AllCPU),
-    Cpu=lists:foldl(fun({_Key,Val},Acc) when is_integer(Val)->
-                            Acc+Val
-                    end,0,NonIdle) / (State#os_mon.interval div 1000),
+    RawCpu = lists:foldl(fun({_Key,Val},Acc) when is_integer(Val)->
+                                 Acc+Val
+                         end,0,NonIdle) / (State#os_mon.interval div 1000),
+    Cpu=check_value(RawCpu,{Hostname,"cpu"}),
     ?LOGF(" munin cpu on host ~p is  ~p~n", [Hostname,Cpu], ?DEB),
     %% returns free + buffer + cache
     FunFree = fun({Key,Val},Acc) when ((Key=='buffers.value') or
@@ -90,11 +91,12 @@ get_data({Socket, Hostname}, State) ->
                       Acc+Val;
                  (_, Acc) -> Acc
               end,
-    FreeMem=lists:foldl(FunFree,0,AllMem)/1048576, %% megabytes
+    FreeMem=check_value(lists:foldl(FunFree,0,AllMem),{Hostname,"memory"}),
     ?LOGF(" munin memory on host ~p is ~p~n", [Hostname,FreeMem], ?DEB),
     ts_os_mon:send(State#os_mon.mon_server,[{sample_counter, {cpu, Hostname}, Cpu},
                                             {sample, {freemem, Hostname}, FreeMem}]),
     ok.
+
 
 parse(_Data, _State) ->
     ok.
@@ -123,3 +125,9 @@ read_munin_data(Socket,{ok, Data}, Acc) when is_list(Acc)->
                      Acc
              end,
     read_munin_data(Socket,gen_tcp:recv(Socket,0,?READ_TIMEOUT), NewAcc).
+
+%% check is this a valid value (positive at least)
+check_value(Val,_) when Val > 0 -> Val;
+check_value(Val,{Host, Type})  ->
+    ?LOGF("munin: bad ~s value on host ~p: ~p~n", [Type, Host, Val],?WARN),
+    0.

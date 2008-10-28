@@ -261,6 +261,12 @@ update_stats(sample, [Mean, Var, Max, Min, Count,MeanFB,CountFB], Value) ->
     end;
 update_stats(sample_counter,[], New) -> %% first call, store the initial value
     [0, 0, 0, 0, 0, 0,0,New];
+update_stats(sample_counter, Current, 0) -> % skip 0 values
+    Current;
+update_stats(sample_counter,[Mean,Var,Max,Min,Count,MeanFB,CountFB,Last],Value)
+  when Value < Last->
+    %% maybe the counter has been restarted, use the new value, but don't update other data
+    [Mean,Var,Max,Min,Count,MeanFB,CountFB,Value];
 update_stats(sample_counter, [0, 0, 0, 0, 0, MeanFB,CountFB,Last], Value) ->
     New = Value-Last,
     [New, 0, New, New, 1, MeanFB,CountFB,Value];
