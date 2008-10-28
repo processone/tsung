@@ -18,7 +18,7 @@
 \begin{rawhtml}
 <DIV class="piedpage">
 <HR>
-<P>  Copyright 2004-2006 &copy; Nicolas Niclausse
+<P>  Copyright 2004-2008 &copy; Nicolas Niclausse
 </DIV>
 
 \end{rawhtml}
@@ -39,7 +39,7 @@
 \RequirePackage{color}
 \RequirePackage{colortbl}           % Cf. _LaTeX par la pratique_, p. 300...
 \RequirePackage{nopageno}
-\RequirePackage[latin1]{inputenc}
+\RequirePackage[utf8]{inputenc}
 \RequirePackage[francais]{babel}
 \RequirePackage{tabularx}
 \RequirePackage{hhline}
