@@ -91,7 +91,7 @@ get_data({Socket, Hostname}, State) ->
                       Acc+Val;
                  (_, Acc) -> Acc
               end,
-    FreeMem=check_value(lists:foldl(FunFree,0,AllMem),{Hostname,"memory"}),
+    FreeMem=check_value(lists:foldl(FunFree,0,AllMem),{Hostname,"memory"})/1048576,%MBytes
     ?LOGF(" munin memory on host ~p is ~p~n", [Hostname,FreeMem], ?DEB),
     ts_os_mon:send(State#os_mon.mon_server,[{sample_counter, {cpu, Hostname}, Cpu},
                                             {sample, {freemem, Hostname}, FreeMem}]),
