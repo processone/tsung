@@ -54,10 +54,12 @@ class Plot:
                  title   = "",
                  legends = None,
                  styles  = ['b-', 'r-', 'g.', 'c,', 'y^', 'kv'],
+                 colors  = ['b', 'r', 'g', 'c', 'y', 'k'],
                  dpi     = 150,
                  tn_dpi  = 50,
                  xfactor = 1,
                  yfactor = 1,
+                 plottype  = 'lineplot', # can be lineplot or box
                  outdir  = '/tmp/tsung-plotter',
                  imgtype = 'png'):
 
@@ -71,53 +73,87 @@ class Plot:
         self.thumb_dpi = tn_dpi
         self.xfactor   = xfactor
         self.yfactor   = yfactor
+        self.plottype  = plottype
         self.styles    = styles
+        self.colors    = colors
         self.outdir    = outdir
         self.imgtype   = imgtype
 
     def plot(self, stats, dataset):
-        """ draw a simple timeline plots from two dataset """
+        """ draw a simple timeline or box plots from two dataset """
 
-        # prepare matplotlib graph
-        clf()
-        ax = subplot(111)
+        if self.plottype == "lineplot":
+            # prepare matplotlib graph
+            clf()
+            ax = subplot(111)
 
-        count = 0
-        for data in dataset:
-            # get give type data for plotting
-            for (name, stat) in stats:
-                pdata = data.stat(name, stat)
+            count = 0
+            for data in dataset:
+                # get give type data for plotting
+                for (name, stat) in stats:
+                    pdata = data.stat(name, stat)
 
-                # we want timestamp sorted data to plot
-                ts = pdata.keys()
-                ts.sort()
-                values = [pdata[t] / self.yfactor for t in ts]
+                    # we want timestamp sorted data to plot
+                    ts = pdata.keys()
+                    ts.sort()
+                    values = [pdata[t] / self.yfactor for t in ts]
 
-                if self.xfactor not in [1, "1"]:
-                    ts = [x / self.xfactor for x in ts]
+                    if self.xfactor not in [1, "1"]:
+                        ts = [x / self.xfactor for x in ts]
 
-                # Now use matplotlib to do the plotting
-                plot(ts, values, self.styles[count%len(self.styles)])
-                count += 1
+                    # Now use matplotlib to do the plotting
+                    plot(ts, values, self.styles[count%len(self.styles)])
+                    count += 1
 
-        # Now setup the legend
-        title(self.title)
-        xlabel(self.xlabel)
-        ylabel(self.ylabel)
-        legend(self.legends)
+            # Now setup the legend
+            title(self.title)
+            xlabel(self.xlabel)
+            ylabel(self.ylabel)
+            legend(self.legends)
 
-        # we want to draw a grid
-        grid(True)
+            # we want to draw a grid
+            grid(True)
 
-        filename = os.path.join(self.outdir,
-                                "%s.%s" % (self.name, self.imgtype))
-        thumbnail = os.path.join(self.outdir,
-                                 "%s_tn.%s" % (self.name, self.imgtype))
+            filename = os.path.join(self.outdir,
+                                    "%s.%s" % (self.name, self.imgtype))
+            thumbnail = os.path.join(self.outdir,
+                                     "%s_tn.%s" % (self.name, self.imgtype))
 
-        savefig(filename, dpi=self.dpi, orientation='portrait')
-        savefig(thumbnail, dpi=self.thumb_dpi, orientation='portrait')
+            savefig(filename, dpi=self.dpi, orientation='portrait')
+            savefig(thumbnail, dpi=self.thumb_dpi, orientation='portrait')
+            return filename
+        else:
+            # box chart for gmean
+            clf()
+            width = 0.35
+            ind=arange(1)
+            count = 0
+            current = {}
+            percent = {}
+            ax = subplot(111)
+            for data in dataset:
+                for (name, stat) in stats:
+                    pdata = data.stat(name, stat)
+                    size= len(pdata)
+                    if size > 0 :
+                        # the data we use is the latest value:
+                        current[count] = pdata.values()[size-1] / self.yfactor
+                        ax.bar(ind+count*width, ( current[count] ), width,
+                               color=self.colors[count] )
+                        # get percent of increase/decrease:
+                        if count > 0:
+                            percent[count] = str(round(-100 + current[count] / current[0] * 100)) + "%"
+                        count += 1
 
-        return filename
+            boxchart = os.path.join(self.outdir,
+                                    "%s.%s" % (self.name, self.imgtype))
+            title(self.title)
+            legend(self.legends)
+            ax.set_xticks(ind+width)
+            ax.set_xticklabels( percent.values() )
+            ylabel(self.ylabel)
+            savefig(boxchart, dpi=self.thumb_dpi, orientation='portrait')
+            return boxchart
 
 
 def main(conffile, logs, legends, outdir, verbose):
@@ -165,7 +201,7 @@ def main(conffile, logs, legends, outdir, verbose):
         p.legends = l
 
         # Text parameters - to decode into specified encoding
-        for attr in ['title', 'xlabel', 'ylabel']:
+        for attr in ['title', 'xlabel', 'ylabel', 'plottype']:
             if config.has_option(s, attr):
                 cstring = config.get(s, attr).decode(encoding)
                 p.__dict__[attr] = cstring
