@@ -73,7 +73,7 @@ class data:
 class sample(data):
     """ tsung sample stats """
 
-    def __init__(self, interval = INTERVAL, values = [0, 0, 0, 0, 0]):
+    def __init__(self, interval = INTERVAL, values = [0, 0, 0, 0, 0, 0]):
         """ init log data values """
         self.interval = interval
 
@@ -82,7 +82,7 @@ class sample(data):
         self.stdvar = float(values[2])
         self.min    = float(values[3])
         self.max    = float(values[4])
-        self.gmean  = float(values[4])
+        self.gmean  = float(values[5])
 
     def __repr__(self):
         """ human readable output """
