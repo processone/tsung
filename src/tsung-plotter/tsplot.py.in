@@ -53,13 +53,13 @@ class Plot:
                  ylabel  = "",
                  title   = "",
                  legends = None,
-                 styles  = ['b-', 'r-', 'g.', 'c,', 'y^', 'kv'],
+                 styles  = ['b-', 'r-', 'g-', 'c-', 'y^', 'kv'],
                  colors  = ['b', 'r', 'g', 'c', 'y', 'k'],
                  dpi     = 150,
                  tn_dpi  = 50,
                  xfactor = 1,
                  yfactor = 1,
-                 plottype  = 'lineplot', # can be lineplot or box
+                 plottype  = 'lineplot', # can be lineplot or bar
                  outdir  = '/tmp/tsung-plotter',
                  imgtype = 'png'):
 
@@ -80,7 +80,7 @@ class Plot:
         self.imgtype   = imgtype
 
     def plot(self, stats, dataset):
-        """ draw a simple timeline or box plots from two dataset """
+        """ draw a simple timeline or bar plots from two dataset """
 
         if self.plottype == "lineplot":
             # prepare matplotlib graph
@@ -125,11 +125,13 @@ class Plot:
         else:
             # box chart for gmean
             clf()
-            width = 0.35
+            width = 1.0/len(dataset)
+            nbox=len(dataset)
             ind=arange(1)
             count = 0
             current = {}
-            percent = {}
+            percent = []
+            ticksp = []
             ax = subplot(111)
             for data in dataset:
                 for (name, stat) in stats:
@@ -142,17 +144,24 @@ class Plot:
                                color=self.colors[count] )
                         # get percent of increase/decrease:
                         if count > 0:
-                            percent[count] = str(round(-100 + current[count] / current[0] * 100)) + "%"
+                            percent.append(str(round(-100 + current[count] / current[0] * 100)) + "% ")
+                        else:
+                            percent.append("reference")
+                        currenttick=(0.5 + count)/nbox
+                        ticksp.append(currenttick)
                         count += 1
 
             boxchart = os.path.join(self.outdir,
                                     "%s.%s" % (self.name, self.imgtype))
+            boxchart_thumb = os.path.join(self.outdir,
+                                    "%s_tn.%s" % (self.name, self.imgtype))
             title(self.title)
             legend(self.legends)
-            ax.set_xticks(ind+width)
-            ax.set_xticklabels( percent.values() )
+            ax.set_xticks(ticksp)
+            ax.set_xticklabels(percent)
             ylabel(self.ylabel)
-            savefig(boxchart, dpi=self.thumb_dpi, orientation='portrait')
+            savefig(boxchart, dpi=self.dpi, orientation='portrait')
+            savefig(boxchart_thumb, dpi=self.thumb_dpi, orientation='portrait')
             return boxchart
 
 
