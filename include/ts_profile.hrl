@@ -69,6 +69,7 @@
         {socket=none, %
          ip,          % local ip to bind to
          timeout,     % ?
+         hibernate = infinity, % hibernate if thinktime is >= to this
          host,        % hostname (or IP) of remote server
          port,        % server port
          protocol,    % gen_udp, gen_tcp or ssl

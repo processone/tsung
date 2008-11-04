@@ -57,7 +57,8 @@
           cur_req_id = 0,  % temporary var (current real request id)
           file_server= [], % filenames for file_server
           load_loop,       % loop phases if > 0
-          proto_opts
+          hibernate, %% hibernate timeout (milisec)
+          proto_opts %% tcp/udp buffer sizes
          }).
 
 
@@ -79,6 +80,7 @@
           type,
           persistent   = false,
           bidi         = false,
+          hibernate,
           proto_opts,
           size
         }).

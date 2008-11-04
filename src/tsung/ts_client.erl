@@ -75,6 +75,7 @@ next({Pid}) ->
 init({#session{id           = Profile,
                persistent   = Persistent,
                bidi         = Bidi,
+               hibernate    = Hibernate,
                proto_opts   = ProtoOpts,
                type         = CType}, Count, IP, Server}) ->
     ?DebugF("Init ... started with count = ~p~n",[Count]),
@@ -98,6 +99,7 @@ init({#session{id           = Profile,
                             proto_opts = ProtoOpts,
                             count      = Count,
                             ip         = IP,
+                            hibernate  = Hibernate,
                             maxcount   = Count,
                             dyndata    = DynData
                            }}.
@@ -299,8 +301,12 @@ handle_next_action(State) ->
     case set_profile(State#state_rcv.maxcount,State#state_rcv.count,State#state_rcv.profile) of
         {thinktime, Think} ->
             ?DebugF("Starting new thinktime ~p~n", [Think]),
-            set_thinktime(Think),
-            {next_state, think, State#state_rcv{count=Count}};
+            case (set_thinktime(Think) >= State#state_rcv.hibernate) of
+                true ->
+                    {next_state, think, State#state_rcv{count=Count},hibernate};
+                _ ->
+                    {next_state, think, State#state_rcv{count=Count}}
+            end;
         {transaction, start, Tname} ->
             Now = now(),
             ?LOGF("Starting new transaction ~p (now~p)~n", [Tname,Now], ?INFO),
@@ -659,11 +665,14 @@ protocol_options(gen_udp,#proto_opts{udp_rcv_size=Rcv, udp_snd_size=Snd}) ->
      {sndbuf, Snd}
     ].
 
+
+
 %%----------------------------------------------------------------------
 %% Func: set_thinktime/1
 %% Purpose: set a timer for thinktime if it is not infinite
+%%          returns the choosen thinktime in msec
 %%----------------------------------------------------------------------
-set_thinktime(infinity) -> ok;
+set_thinktime(infinity) -> infinity;
 set_thinktime({random, Think}) ->
     set_thinktime(round(ts_stats:exponential(1/Think)));
 set_thinktime({range, Min, Max}) ->
@@ -672,7 +681,8 @@ set_thinktime(Think) ->
 %% dot not use timer:send_after because it does not scale well:
 %% http://www.erlang.org/ml-archive/erlang-questions/200202/msg00024.html
     ?DebugF("thinktime of ~p~n",[Think]),
-    erlang:start_timer(Think, self(), end_thinktime ).
+    erlang:start_timer(Think, self(), end_thinktime ),
+    Think.
 
 
 %%----------------------------------------------------------------------

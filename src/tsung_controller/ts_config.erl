@@ -296,6 +296,7 @@ parse(Element = #xmlElement{name=session, attributes=Attrs},
                                                  type         = Type,
                                                  persistent   = Persistent,
                                                  bidi         = Bidi,
+                                                 hibernate    = Conf#config.hibernate,
                                                  proto_opts   = Conf#config.proto_opts
                                                 }
                                         |SList],
@@ -454,11 +455,12 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                                        ?config(thinktime_override)),
                     ets:insert(Tab,{{thinktime, override}, Override}),
                     lists:foldl( fun parse/2, Conf, Element#xmlElement.content);
-                "ssl_ciphers" ->
-                    Cipher = getAttr(string,Attrs, value, negociate),
-                    OldProto =  Conf#config.proto_opts,
-                    NewProto =  OldProto#proto_opts{ssl_ciphers=Cipher},
-                    lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                "hibernate" ->
+                    Hibernate = case  getAttr(integer,Attrs, value, infinity ) of
+                                    infinity -> infinity;
+                                    Seconds -> Seconds * 1000
+                                end,
+                    lists:foldl( fun parse/2, Conf#config{hibernate=Hibernate},
                                  Element#xmlElement.content);
                 "tcp_rcv_buffer" ->
                     Size = getAttr(integer,Attrs, value, ?config(rcv_size)),
