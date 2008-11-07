@@ -55,11 +55,11 @@ config_minmax2_test() ->
     {ok, {Session,Size,IP,Server} }  = ts_config_server:get_next_session("localhost"),
     Id = Session#session.id,
     {thinktime, Req} = ts_config_server:get_req(Id,7),
-    Ref=ts_client:set_thinktime(Req),
-    receive
-        {timeout,Ref2,end_thinktime} -> ok
+    Think=ts_client:set_thinktime(Req),
+    Resp = receive
+         Data-> Data
     end,
-    ?assertMatch(Ref, Ref2).
+    ?assertMatch({timeout,_,end_thinktime}, Resp).
 
 config_thinktime_test() ->
     myset_env(),
@@ -68,11 +68,12 @@ config_thinktime_test() ->
     Id = Session#session.id,
     {thinktime, Req=2000} = ts_config_server:get_req(Id,5),
     {thinktime, 2000} = ts_config_server:get_req(Id,7),
-    Ref=ts_client:set_thinktime(Req),
-    receive
-        {timeout,Ref2,end_thinktime} -> ok
+    Think=ts_client:set_thinktime(Req),
+    Resp = receive
+         Data-> Data
     end,
-    ?assertMatch(Ref, Ref2).
+    ?assertMatch({timeout,_,end_thinktime}, Resp).
+
 
 config_thinktime2_test() ->
     myset_env(),
