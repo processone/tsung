@@ -30,14 +30,22 @@ sample_counter_update_test()->
     Val3=ts_stats_mon:update_stats(sample_counter,Val2,80),
     ?assertMatch([35.0,450.0,50,20,2,0,0,80],Val3).
 
-sample_counter2_update_test()->
+sample_counter_update2_test()->
+    myset_env(),
+    Val=ts_stats_mon:update_stats(sample_counter,[],10),
+    Val2=ts_stats_mon:update_stats(sample_counter,Val,30),
+    Val3=ts_stats_mon:update_stats(sample_counter,Val2,80),
+    Val4=ts_stats_mon:update_stats(sample_counter,Val3,202),
+    ?assertMatch([64.0,5496.0,122,20,3,0,0,202],Val4).
+
+sample_counter_cycle_update_test()->
     myset_env(),
     Val=ts_stats_mon:update_stats(sample_counter,[],10),
     Val2=ts_stats_mon:update_stats(sample_counter,Val,60),
     Val3=ts_stats_mon:update_stats(sample_counter,Val2,40),
     ?assertMatch([50,0,50,50,1,0,0,40],Val3).
 
-sample_counter3_update_test()->
+sample_counter_zero_update_test()->
     myset_env(),
     Val=ts_stats_mon:update_stats(sample_counter,[],10),
     Val2=ts_stats_mon:update_stats(sample_counter,Val,60),
