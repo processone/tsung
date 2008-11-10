@@ -245,20 +245,10 @@ print_stats_txt({Name, Type}, Value, {LastRes, Logfile}) ->
 %% @doc update the mean and variance for the given sample
 %%----------------------------------------------------------------------
 update_stats(sample, [], New) ->
-    [New, 0, New, New, 1,0,0];
-update_stats(sample, [Mean, Var, Max, Min, Count,MeanFB,CountFB], Value) ->
-    {NewMean, NewVar, _} = ts_stats:meanvar(Mean, Var, [Value], Count),
-    case Value > Max of
-        true -> % new max, min unchanged
-            [NewMean, NewVar, Value, Min, Count+1,MeanFB,CountFB];
-        false ->
-            case Value < Min of
-                true ->
-                    [NewMean, NewVar, Max, Value, Count+1,MeanFB,CountFB];
-                false ->
-                    [NewMean, NewVar, Max, Min, Count+1,MeanFB,CountFB]
-            end
-    end;
+    [New, 0, New, New, 1,0,0,0];
+update_stats(sample, Data, Value) ->
+    %% we don't use lastvalue for 'sample', set it to zero
+    update_stats2(Data, Value, 0);
 update_stats(sample_counter,[], New) -> %% first call, store the initial value
     [0, 0, 0, 0, 0, 0,0,New];
 update_stats(sample_counter, Current, 0) -> % skip 0 values
@@ -270,18 +260,21 @@ update_stats(sample_counter,[Mean,Var,Max,Min,Count,MeanFB,CountFB,Last],Value)
 update_stats(sample_counter, [0, 0, 0, 0, 0, MeanFB,CountFB,Last], Value) ->
     New = Value-Last,
     [New, 0, New, New, 1, MeanFB,CountFB,Value];
-update_stats(sample_counter,[Mean, Var, Max, Min, Count, MeanFB,CountFB,Last], Value) ->
+update_stats(sample_counter,Data, Value) ->
+    update_stats2(Data, Value, Value).
+
+update_stats2([Mean, Var, Max, Min, Count, MeanFB,CountFB,Last], Value, NewLast) ->
     New = Value-Last,
     {NewMean, NewVar, _} = ts_stats:meanvar(Mean, Var, [New], Count),
     case New > Max of
         true -> % new max, min unchanged
-            [NewMean, NewVar, New, Min, Count+1, MeanFB,CountFB,Value];
+            [NewMean, NewVar, New, Min, Count+1, MeanFB,CountFB,NewLast];
         false ->
-            case Value < Min of
+            case New < Min of
                 true ->
-                    [NewMean, NewVar, Max, New, Count+1, MeanFB,CountFB,Value];
+                    [NewMean, NewVar, Max, New, Count+1, MeanFB,CountFB,NewLast];
                 false ->
-                    [NewMean, NewVar, Max, Min, Count+1, MeanFB,CountFB,Value]
+                    [NewMean, NewVar, Max, Min, Count+1, MeanFB,CountFB,NewLast]
             end
     end.
 
@@ -304,10 +297,6 @@ reset_stats([Mean, _Var, Max, Min, Count, MeanFB,CountFB,Last]) ->
     NewCount=CountFB+Count,
     NewMean=(CountFB*MeanFB+Count*Mean)/NewCount,
     [0, 0, Max, Min, 0, NewMean,NewCount,Last];
-reset_stats([Mean, _Var, Max, Min, Count,MeanFB,CountFB]) ->
-    NewCount=CountFB+Count,
-    NewMean=(CountFB*MeanFB+Count*Mean)/NewCount,
-    [0, 0, Max, Min, 0,NewMean,NewCount];
 reset_stats([_Sample, LastValue]) ->
     [0, LastValue];
 reset_stats(LastValue) ->
