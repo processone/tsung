@@ -28,7 +28,7 @@ sample_counter_update_test()->
     Val=ts_stats_mon:update_stats(sample_counter,[],10),
     Val2=ts_stats_mon:update_stats(sample_counter,Val,60),
     Val3=ts_stats_mon:update_stats(sample_counter,Val2,80),
-    ?assertMatch([35.0,450.0,50,20,2,0,0,90],Val3).
+    ?assertMatch([35.0,450.0,50,20,2,0,0,80],Val3).
 
 sample_counter2_update_test()->
     myset_env(),
