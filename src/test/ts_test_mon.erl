@@ -27,7 +27,7 @@ sample_update_reset_test()->
     myset_env(),
     Val=ts_stats_mon:update_stats(sample,[],50),
     Val2=ts_stats_mon:update_stats(sample,Val,20),
-    ?assertMatch([0,0,50,20,2,35.0,2,0],ts_stats_mon:reset_stats(Val2)).
+    ?assertMatch([0,0,50,20,0,35.0,2,0],ts_stats_mon:reset_stats(Val2)).
 
 sample_counter_update_test()->
     myset_env(),
