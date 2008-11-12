@@ -235,7 +235,7 @@ handle_cast({endclient, Who, When, Elapsed}, State) ->
 
     %% update session sample
     MyFun = fun (OldV) -> ts_stats_mon:update_stats(sample, OldV, Elapsed) end,
-    Init = [Elapsed, 0, Elapsed, Elapsed, 1,0,0], % initial value of the sample
+    Init = ts_stats_mon:update_stats(sample, [], Elapsed), % initial value of the sample
     NewTab = dict:update({session, sample}, MyFun, Init, New1Tab),
 
     case State#state.type of
@@ -247,6 +247,7 @@ handle_cast({endclient, Who, When, Elapsed}, State) ->
     end,
     case {Clients, State#state.stop} of
         {0, true} ->
+            ?LOG("No more users and stop is true, stop~n", ?INFO),
             {stop, normal, State};
         _ ->
             {noreply, State#state{client = Clients, stats=NewTab}}
@@ -281,9 +282,11 @@ handle_cast({rcvmsg, Who, When, What}, State=#state{dumpfile=Log}) ->
     {noreply, State};
 
 handle_cast({stop}, State = #state{client = 0}) ->
+    ?LOG("Stop asked, no more users, ask os_mon to stop~n", ?INFO),
     ts_os_mon:stop(),
     {stop, normal, State};
 handle_cast({stop}, State) -> % we should stop, wait until no more clients are alive
+    ?LOG("A launcher has finished, but not all users have finished, wait before stopping~n", ?NOTICE),
     {noreply, State#state{stop = true}};
 
 handle_cast({abort}, State) -> % stop now !
