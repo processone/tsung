@@ -77,7 +77,8 @@ init({#session{id           = Profile,
                bidi         = Bidi,
                hibernate    = Hibernate,
                proto_opts   = ProtoOpts,
-               type         = CType}, Count, IP, Server}) ->
+               size         = Count,
+               type         = CType}, IP, Server}) ->
     ?DebugF("Init ... started with count = ~p~n",[Count]),
     ts_utils:init_seed(),
 

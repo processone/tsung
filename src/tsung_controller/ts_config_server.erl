@@ -178,7 +178,7 @@ init([LogDir]) ->
 %%--------------------------------------------------------------------
 handle_call({read_config, ConfigFile}, _From, State=#state{logdir=LogDir}) ->
     case catch ts_config:read(ConfigFile, LogDir) of
-        {ok, Config=#config{session_tab=Tab,curid=LastReqId,sessions=[LastSess| _]}} ->
+        {ok, Config=#config{session_tab=Tab,curid=LastReqId,sessions=[LastSess| Sessions]}} ->
             case check_config(Config) of
                 ok ->
                     application:set_env(tsung_controller, clients, Config#config.clients),
@@ -190,10 +190,10 @@ handle_call({read_config, ConfigFile}, _From, State=#state{logdir=LogDir}) ->
                     %% we only know now the size of last session from the file: add it
                     %% in the table
                     print_info(),
-                    ets:insert(Tab, {{LastSess#session.id, size}, LastReqId}),
+                    NewLast=LastSess#session{size = LastReqId},
                     %% start the file server (if defined) using a separate process (it can be long)
                     spawn(?MODULE, start_file_server, [Config#config.file_server]),
-                    NewConfig=loop_load(Config),
+                    NewConfig=loop_load(Config#config{sessions=[NewLast]++Sessions}),
                     {reply, ok, State#state{config=NewConfig, total_weight = Sum}};
                 {error, Reason} ->
                     ?LOGF("Error while checking config: ~p~n",[Reason],?EMERG),
@@ -241,19 +241,14 @@ handle_call({get_next_session, HostName}, _From, State) ->
 
     {value, Client} = lists:keysearch(HostName, #client.host, Config#config.clients),
 
-    {ok,IP} = choose_client_ip(Client),
-    {ok, Server} = choose_server(Config#config.servers),
+    {ok,IP} = choose_client_ip(Client), % TODO: could be done by the launcher
+    {ok, Server} = choose_server(Config#config.servers),% TODO: same here
 
     ?DebugF("get new session for ~p~n",[_From]),
     case choose_session(Config#config.sessions) of
         {ok, Session=#session{id=Id}} ->
             ?LOGF("Session ~p choosen~n",[Id],?INFO),
-            case ets:lookup(Tab, {Id, size}) of
-                [{_, Size}] ->
-                    {reply, {ok, {Session, Size, IP, Server}}, State};
-                Other ->
-                    {reply, {error, Other}, State}
-            end;
+            {reply, {ok, {Session, IP, Server}}, State};
         Other ->
             {reply, {error, Other}, State}
     end;
