@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<!DOCTYPE tsung SYSTEM "@prefix@/share/@PACKAGE_NAME@/@DTD@">
+<tsung loglevel="notice" version="1.0">
+
+  <clients>
+    <client host="localhost" use_controller_vm="true"></client>
+  </clients>
+
+ <servers> <server host="127.0.0.1" port="5222" type="tcp"></server> </servers>
+
+
+  <load>
+   <arrivalphase phase="1" duration="1" unit="minute">
+    <users interarrival="2" unit="second"></users>
+   </arrivalphase>
+  </load>
+
+ 
+
+  <sessions>
+   <session probability="100" name="example" type="ts_http">
+    <thinktime value="30"></thinktime>
+    <transaction name="offline">
+      <request> <http url="/" method="GET"></http> </request>
+    </transaction>
+    <thinktime value="30"></thinktime>
+  </session>
+
+ </sessions>
+</tsung>
+
