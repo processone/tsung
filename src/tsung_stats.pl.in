@@ -54,6 +54,7 @@ my $async =0;
 my $errors =0;
 my $maxval;
 my $category;
+my $CPU_MAX = 3200; # cpu usage should never be higher than 3200% (32 cores at 100%)
 
 my $prefix ="@prefix@";
 
@@ -202,16 +203,9 @@ sub parse_stats_file {
                 $type =~ s/\{(\S+)\,\"(\S+)\"\}/$1:os_mon\@$2/g;
             }
             my ($rate,$mean,$stdvar,$max,$min,$meanfb,$countfb) = split(/\s+/,$values);
-            if ($interval) {
-                $rate /= $interval;
-                $maxval->{'rate'}->{$type} = &max($rate, $maxval->{'rate'}->{$type});
-                $maxval->{'maxmean'}->{$type} = &max($mean, $maxval->{'maxmean'}->{$type});
-                $maxval->{'mean'}->{$type} = $meanfb;
-                $maxval->{'count'}->{$type} = &max($countfb, $maxval->{'count'}->{$type});
-                $maxval->{'minmean'}->{$type} = &min($mean, $maxval->{'minmean'}->{$type}) if $rate;
-            }
             if ($type =~ /^cpu:/ ) {
                 next if $values =~ /^0/; # skip when no data is available
+                next if $mean > $CPU_MAX; # skip bad value
                 $category->{$type} = "os_mon_cpu";
             } elsif ($type =~ /^freemem:/) {
                 next if $values =~ /^0/; # skip when no data is available
@@ -240,6 +234,15 @@ sub parse_stats_file {
             } else {
                 $category->{$type} = "gauge";
             }
+            if ($interval) {
+                $rate /= $interval;
+                $maxval->{'rate'}->{$type} = &max($rate, $maxval->{'rate'}->{$type});
+                $maxval->{'maxmean'}->{$type} = &max($mean, $maxval->{'maxmean'}->{$type});
+                $maxval->{'mean'}->{$type} = $meanfb;
+                $maxval->{'count'}->{$type} = &max($countfb, $maxval->{'count'}->{$type});
+                $maxval->{'minmean'}->{$type} = &min($mean, $maxval->{'minmean'}->{$type}) if $rate;
+            }
+
             push @{$data->{$type}}, $timestamp . " ". $values;
         } elsif (/^\# stats:\s+dump at\s+(\d+)/) {
             $first_timestamp= $1 unless $first_timestamp;
@@ -464,6 +467,10 @@ sub formattime {
         sprintf "%.2f msec",$value*1000;
     } elsif ($value < 10) {
         sprintf "%.3f sec",$value;
+    } elsif ($value < 3600) {
+        my $mn= int($value / 60);
+        $value = $value-($mn*60);
+        sprintf "%dmn  %dsec",$mn, $value;
     } elsif ($value > 3600) {
         my $h = int($value / 3600);
         my $mn= int(($value -$h*3600) / 60);
