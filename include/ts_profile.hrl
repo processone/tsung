@@ -76,7 +76,7 @@
          proto_opts = #proto_opts{},  %
          bidi = false,% true if bidirectional protocol
 
-         profile,     % session id
+         session_id,
          request,     % current request specs
          persistent,  % if true, don't exit when connexion is closed
          timestamp,   % previous message date

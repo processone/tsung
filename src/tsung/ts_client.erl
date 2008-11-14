@@ -72,7 +72,7 @@ next({Pid}) ->
 %%          ignore               |
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
-init({#session{id           = Profile,
+init({#session{id           = SessionId,
                persistent   = Persistent,
                bidi         = Bidi,
                hibernate    = Hibernate,
@@ -89,7 +89,7 @@ init({#session{id           = Profile,
     set_thinktime(?short_timeout),
     {ok, think, #state_rcv{ port       = Server#server.port,
                             host       = Server#server.host,
-                            profile    = Profile,
+                            session_id = SessionId,
                             bidi       = Bidi,
                             protocol   = Server#server.type,
                             clienttype = CType,
@@ -117,7 +117,11 @@ wait_ack(next_msg,State=#state_rcv{request=R}) when R#ts_request.ack==global->
                                       [{active, once} ]),
     {PageTimeStamp, _} = update_stats(State),
     handle_next_action(State#state_rcv{socket=NewSocket,
-                                       page_timestamp=PageTimeStamp}).
+                                       page_timestamp=PageTimeStamp});
+wait_ack(timeout,State) ->
+    ?LOG("Error: timeout receive in state wait_ack~n", ?ERR),
+    ts_mon:add({ count, timeout }),
+    {stop, normal, State}.
 
 %%--------------------------------------------------------------------
 %% Func: handle_event/3
@@ -299,7 +303,7 @@ handle_next_action(State=#state_rcv{count=0}) ->
     {stop, normal, State};
 handle_next_action(State) ->
     Count = State#state_rcv.count-1,
-    case set_profile(State#state_rcv.maxcount,State#state_rcv.count,State#state_rcv.profile) of
+    case set_profile(State#state_rcv.maxcount,State#state_rcv.count,State#state_rcv.session_id) of
         {thinktime, Think} ->
             ?DebugF("Starting new thinktime ~p~n", [Think]),
             case (set_thinktime(Think) >= State#state_rcv.hibernate) of
@@ -334,8 +338,8 @@ handle_next_action(State) ->
             handle_next_action(State#state_rcv{dyndata = NewDynData, count=Count});
         {ctrl_struct,CtrlData} ->
             ctrl_struct(CtrlData,State,Count);
-        Profile=#ts_request{} ->
-            handle_next_request(Profile, State);
+        Request=#ts_request{} ->
+            handle_next_request(Request, State);
         Other ->
             ?LOGF("Error: set profile return value is ~p (count=~p)~n",[Other,Count],?ERR),
             {stop, set_profile_error, State}
@@ -357,7 +361,7 @@ set_dynvars(random,{string,Length},Vars,_DynData) ->
     R = fun(_) -> ts_utils:randomstr(Length) end,
     lists:map(R,Vars);
 set_dynvars(urandom,{string,Length},Vars,_DynData) ->
-    %% not random, but much master
+    %% not random, but much faster
     RS= ts_utils:urandomstr(Length),
     N=length(Vars),
     lists:duplicate(N,RS);
@@ -452,13 +456,13 @@ jump_if(false,_Target,DynData) -> {next,DynData}.
 
 %%----------------------------------------------------------------------
 %% Func: handle_next_request/2
-%% Args: Profile, State
+%% Args: Request, State
 %%----------------------------------------------------------------------
-handle_next_request(Profile, State) ->
+handle_next_request(Request, State) ->
     Count = State#state_rcv.count-1,
     Type  = State#state_rcv.clienttype,
 
-    {PrevHost, PrevPort, PrevProto} = case Profile of
+    {PrevHost, PrevPort, PrevProto} = case Request of
         #ts_request{host=undefined, port=undefined, scheme=undefined} ->
             %% host/port/scheme not defined in request, use the current ones.
             {State#state_rcv.host,State#state_rcv.port, State#state_rcv.protocol};
@@ -467,9 +471,9 @@ handle_next_request(Profile, State) ->
     end,
 
     {Param, {Host,Port,Protocol}} =
-        case Type:add_dynparams(Profile#ts_request.subst,
+        case Type:add_dynparams(Request#ts_request.subst,
                                 State#state_rcv.dyndata,
-                                Profile#ts_request.param,
+                                Request#ts_request.param,
                                 {PrevHost, PrevPort}) of
             {Par, NewServer} -> % substitution has changed server setup
                 ?DebugF("Dynparam, new server:  ~p~n",[NewServer]),
@@ -509,13 +513,13 @@ handle_next_request(Profile, State) ->
                     NewState = State#state_rcv{socket   = NewSocket,
                                                protocol = Protocol,
                                                host     = Host,
-                                               request  = Profile,
+                                               request  = Request,
                                                port     = Port,
                                                count    = Count,
                                                page_timestamp= PageTimeStamp,
                                                send_timestamp= Now,
                                                timestamp= Now },
-                    case Profile#ts_request.ack of
+                    case Request#ts_request.ack of
                         no_ack ->
                             {PTimeStamp, _} = update_stats_noack(NewState),
                             handle_next_action(NewState#state_rcv{ack_done=true, page_timestamp=PTimeStamp});
@@ -819,10 +823,10 @@ set_connected_status(false, Old) when Old==undefined; Old==false ->
 %% Returns: {TimeStamp, DynVars}
 %% Purpose: update the statistics for no_ack requests
 %%----------------------------------------------------------------------
-update_stats_noack(#state_rcv{page_timestamp=PageTime,request=Profile}) ->
+update_stats_noack(#state_rcv{page_timestamp=PageTime,request=Request}) ->
     Now = now(),
     Stats= [{ count, request_noack}], % count and not sample because response time is not defined in this case
-    case Profile#ts_request.endpage of
+    case Request#ts_request.endpage of
         true -> % end of a page, compute page reponse time
             PageElapsed = ts_utils:elapsed(PageTime, Now),
             ts_mon:add(lists:append([Stats,[{sample, page, PageElapsed}]])),
@@ -850,10 +854,10 @@ update_stats(State=#state_rcv{page_timestamp=PageTime,send_timestamp=SendTime}) 
                     [{ sample, request, Elapsed},
                      { sum, size_rcv, State#state_rcv.datasize}]
             end,
-    Profile = State#state_rcv.request,
-    DynVars = ts_search:parse_dynvar(Profile#ts_request.dynvar_specs,
+    Request = State#state_rcv.request,
+    DynVars = ts_search:parse_dynvar(Request#ts_request.dynvar_specs,
                                      State#state_rcv.buffer),
-    case Profile#ts_request.endpage of
+    case Request#ts_request.endpage of
         true -> % end of a page, compute page reponse time
             PageElapsed = ts_utils:elapsed(PageTime, Now),
             ts_mon:add(lists:append([Stats,[{sample, page, PageElapsed}]])),
