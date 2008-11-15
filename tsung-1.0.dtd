@@ -83,7 +83,7 @@
 
 <!ELEMENT sessions (session+)>
 <!ELEMENT session ( request | thinktime | transaction | setdynvars | for |
-repeat)*>
+repeat | if )*>
 <!ATTLIST session
     name         CDATA #REQUIRED
     bidi         CDATA #IMPLIED
@@ -225,7 +225,8 @@ repeat)*>
 <!ATTLIST var
 	name CDATA #REQUIRED>
 
-<!ELEMENT for (request | thinktime | transaction | setdynvars | for | repeat)+>
+<!ELEMENT for (request | thinktime | transaction | setdynvars | for |
+          if | repeat)+>
 <!ATTLIST for
     var      CDATA      #REQUIRED
     from     NMTOKEN    #REQUIRED
@@ -233,10 +234,17 @@ repeat)*>
     incr     NMTOKEN   "1">
 
 <!ELEMENT repeat (request | thinktime | transaction | setdynvars | for | repeat
-| while | until)+>
+| while | if | until)+>
 <!ATTLIST repeat
     name      NMTOKEN    #REQUIRED
     max_repeat  NMTOKEN   "20">
+
+<!ELEMENT if (request | thinktime | transaction | setdynvars | for | repeat
+| while | if | until)+>
+<!ATTLIST if
+    var       CDATA #REQUIRED
+    eq        CDATA #IMPLIED
+    neq       CDATA #IMPLIED >
 
 <!ELEMENT while EMPTY>
 <!ATTLIST while

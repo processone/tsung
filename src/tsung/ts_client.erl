@@ -412,6 +412,18 @@ ctrl_struct_impl({for_end,VarName,EndValue,Increment,Target},DynData=#dyndata{dy
             {jump,Target,DynData#dyndata{dynvars=NewDynVars}}
     end;
 
+ctrl_struct_impl({if_start,Rel, VarName, Value, Target},DynData=#dyndata{dynvars=DynVars}) ->
+    case ts_dynvars:lookup(VarName,DynVars) of
+        {ok,VarValue} ->
+            ?DebugF("If found ~p; value is ~p~n",[VarName,VarValue]),
+            ?DebugF("Calling need_jump with args ~p ~p ~p~n",[Rel,Value,VarValue]),
+            Jump = need_jump('if',rel(Rel,Value,VarValue)),
+            jump_if(Jump,Target,DynData#dyndata{dynvars=DynVars});
+        false ->
+            ts_mon:add({ count, 'error_if_undef'}),
+            {next,DynData}
+    end;
+
 ctrl_struct_impl({repeat,RepeatName, _,_,_,_,_,_},DynData=#dyndata{dynvars=[]}) ->
     Msg= list_to_atom("error_repeat_"++atom_to_list(RepeatName)++"_undef"),
     ts_mon:add({ count, Msg}),
@@ -448,7 +460,8 @@ rel('eq',A,B)  -> A == B;
 rel('neq',A,B) -> A /= B.
 
 need_jump('while',F) -> F;
-need_jump('until',F) -> not F.
+need_jump('until',F) -> not F;
+need_jump('if',F) -> not F.
 
 jump_if(true,Target,DynData)   -> {jump,Target,DynData};
 jump_if(false,_Target,DynData) -> {next,DynData}.
