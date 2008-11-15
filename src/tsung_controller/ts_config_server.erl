@@ -487,7 +487,8 @@ get_client_cfg([Arrival=#arrivalphase{duration = Duration,
                  infinity -> %% only use the duration to set the number of users
                      Duration * 1000 * ClientIntensity;
                  _ ->
-                     lists:min([MaxNumber, Duration*1000*ClientIntensity])
+                     ClientMaxNumber = trunc(MaxNumber * Weight / TotalWeight),
+                     lists:min([ClientMaxNumber, Duration*1000*ClientIntensity])
              end,
     %% TODO: store the max number of clients
     ?LOGF("New arrival phase ~p for client ~p: will start ~p users~n",

@@ -3,18 +3,28 @@
 <tsung loglevel="notice" version="1.0">
 
   <clients>
-    <client host="localhost" use_controller_vm="true"></client>
+    <client host="client1"></client>
+    <client host="client2"></client>
+    <client host="client3"></client>
+    <client host="client4"></client>
   </clients>
 
  <servers> <server host="127.0.0.1" port="5222" type="tcp"></server> </servers>
 
+ <monitoring>
+    <monitor host="foo" type="snmp">
+      <snmp version="v2" community="public"/>
+    </monitor>
+ </monitoring>
 
   <load>
    <arrivalphase phase="1" duration="1" unit="minute">
-    <users interarrival="2" unit="second"></users>
+    <users maxnumber="10" interarrival="1" unit="second"></users>
+   </arrivalphase>
+   <arrivalphase phase="2" duration="1" unit="minute">
+    <users interarrival="0.1" unit="second"></users>
    </arrivalphase>
   </load>
-
  
 
   <sessions>

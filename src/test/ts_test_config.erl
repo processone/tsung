@@ -49,9 +49,11 @@ read_config_badpop_test() ->
     {ok, Config} = ts_config:read("./src/test/badpop.xml","."),
     ?assertMatch({error,[{error,{bad_sum,_,_}}]}, ts_config_server:check_config(Config)).
 
+
 read_config_thinkfirst_test() ->
     myset_env(),
     ?assertMatch({ok, Config}, ts_config:read("./src/test/thinkfirst.xml",".")).
+
 
 config_minmax_test() ->
     myset_env(),
@@ -96,10 +98,20 @@ config_thinktime2_test() ->
     end,
     random:seed(), % reinit seed for others tests
     ?assertMatch({random,1000}, Req).
+read_config_maxusers_test() ->
+    myset_env(),
+    MaxNumber=10,
+    ts_config_server:read_config("./src/test/thinkfirst.xml"),
+    {ok,{[{_,Max1},{_,_}],_,_}}=ts_config_server:get_client_config("client1"),
+    {ok,{[{_,Max2},{_,_}],_,_}}=ts_config_server:get_client_config("client2"),
+    {ok,{[{_,Max3},{_,_}],_,_}}=ts_config_server:get_client_config("client3"),
+    {ok,{[{_,Max4},{_,_}],_,_}}=ts_config_server:get_client_config("client4"),
+    ?assert(Max1+Max2+Max3+Max4 =< MaxNumber).
 
 myset_env()->
     myset_env(0).
 myset_env(Level)->
     application:set_env(stdlib,debug_level,Level),
+    application:set_env(stdlib,warm_time,1000),
     application:set_env(stdlib,thinktime_override,"false"),
     application:set_env(stdlib,thinktime_random,"false").
