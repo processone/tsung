@@ -108,10 +108,10 @@ extract_function([H|Tail],DynVar,  Acc, Mod, Fun) ->
     extract_function(Tail, DynVar, Acc, Mod, [H|Fun]).
 
 %%----------------------------------------------------------------------
-%% Func: match/3
-%% Args: RegExp, Data, Request Counter
-%% Returns:  New Counter ( not changed if match )
-%% Purpose: search for regexp in Data; send result to ts_mon
+%% @spec match(Match::#match{}, Data::binary() | list, Counts::integer())
+%%       -> Count::integer()
+%% @doc search for regexp in Data; send result to ts_mon
+%% @end
 %%----------------------------------------------------------------------
 match([], _Data, {Count, _MaxC}) -> Count;
 match(Match, Data, Counts)  when is_binary(Data)->
@@ -120,7 +120,8 @@ match(Match, Data, Counts)  when is_binary(Data)->
 match(Match, Data, Counts)  ->
     match(Match, Data, Counts, []).
 
-%% Func: match/4
+%% @spec match(Match::#match{}, Data::binary() | list(), Counts::integer(), Stats::list())
+%%       -> Count::integer()
 match([], _Data, {Count, _MaxC}, Stats) ->
     %% all matches done, add stats, and return Count unchanged (continue)
     ts_mon:add(Stats),
@@ -150,7 +151,7 @@ match([Match=#match{regexp=RegExp, do=Action, 'when'=When}| Tail], String, Count
             end,
             match(Tail, String, Counts,[{count, nomatch} | Stats]);
         {error,_Error} ->
-            ?LOGF("Error while matching: bad REGEXP (~p)~n", [RegExp], ?WARN),
+            ?LOGF("Error while matching: bad REGEXP (~p)~n", [RegExp], ?ERR),
             match(Tail, String, Counts,[{count, badregexp} | Stats])
     end.
 

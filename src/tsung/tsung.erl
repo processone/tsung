@@ -15,7 +15,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 
 %%% In addition, as a special exception, you have the permission to
 %%% link the code of this program with any library released under
@@ -35,32 +35,29 @@
 %% Func: start/2
 %% Returns: {ok, Pid}        |
 %%          {ok, Pid, State} |
-%%          {error, Reason}   
+%%          {error, Reason}
 %%----------------------------------------------------------------------
 start(_Type, _StartArgs) ->
-%	error_logger:tty(false),
+% error_logger:tty(false),
     ?LOG("open logfile  ~n",?DEB),
     LogFileEnc = ts_config_server:decode_filename(?config(log_file)),
     LogFile = filename:join(LogFileEnc, atom_to_list(node()) ++ ".log"),
     LogDir = filename:dirname(LogFile),
     ok = ts_utils:make_dir_rec(LogDir),
-	error_logger:logfile({open, LogFile}),
+    error_logger:logfile({open, LogFile}),
     ?LOG("ok~n",?DEB),
     case ts_sup:start_link() of
-		{ok, Pid} -> 
-			{ok, Pid};
-		Error ->
-			?LOGF("Can't start ! ~p ~n",[Error],?ERR),
-			Error
+        {ok, Pid} ->
+            {ok, Pid};
+        Error ->
+            ?LOGF("Can't start ! ~p ~n",[Error],?ERR),
+            Error
     end.
 
 
 %%----------------------------------------------------------------------
 %% Func: stop/1
-%% Returns: any 
+%% Returns: any
 %%----------------------------------------------------------------------
 stop(_State) ->
     stop.
-			
-			
-	

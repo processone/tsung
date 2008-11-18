@@ -48,8 +48,9 @@
 
 
 %% @spec init(HostStr::string,
-%%            Options::[{Port::integer, Community::string, Version::string }]) ->
-%%       {ok, Pid} | {error, Reason}
+%%            Options::[{Port::integer, Community::string, Version::string }],
+%%            State:: #os_mon{}) ->
+%%       {ok, {Id::term(), Hostname::string()}} | {error, Reason::term()}
 init( HostStr, [{Port, Community, Version }], _State) ->
     {ok, Host} = inet:getaddr(HostStr, inet),
     ?LOGF("Starting SNMP mgr on ~p~n", [Host], ?DEB),

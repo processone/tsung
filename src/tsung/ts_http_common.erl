@@ -129,9 +129,11 @@ authenticate(UserId,Passwd)->
     ["Authorization: Basic ",AuthStr,?CRLF].
 
 %%----------------------------------------------------------------------
-%% @spec set_header(Name::string, Val::string | undefined, Headers::List, Default::string)
-%% @doc If headers is defined in <headers>, print this one, otherwise,
+%% @spec set_header(Name::string, Val::string | undefined, Headers::List,
+%%                  Default::string) -> list()
+%% @doc If header Name is defined in Headers, print this one, otherwise,
 %%      print the given Value (or the default one if undefined)
+%% @end
 %%----------------------------------------------------------------------
 set_header(Name, Value, Headers, Default) when length(Headers) > 0 ->
     case  lists:keysearch(Name, 1, Headers) of

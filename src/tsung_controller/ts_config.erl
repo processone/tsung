@@ -22,11 +22,11 @@
 %%%  the two.
 
 %%%----------------------------------------------------------------------
-%%% File    : config.erl
-%%% Author  : Nicolas Niclausse <nicolas.niclausse@niclux.org>
-%%% Purpose : Read the tsung XML config file. Currently, it
-%%%           work by parsing the #xmlElement record by hand !
-%%%           TODO: learn how to use xmerl correctly
+%%% @author Nicolas Niclausse <nicolas.niclausse@niclux.org>
+%%% @todo learn how to use xmerl correctly
+%%% @doc Read the tsung XML config file. Currently, it
+%%%      work by parsing the #xmlElement record by hand !
+%%% @end
 %%% Created : 3 Dec 2003 by Nicolas Niclausse <nicolas@niclux.org>
 %%%----------------------------------------------------------------------
 
@@ -52,8 +52,10 @@
         ]).
 
 %%%----------------------------------------------------------------------
-%%% @spec: read(Filename::string, LogDir::string)
+%%% @spec: read(Filename::string(), LogDir::string()) ->
+%%%        {ok, Config::#config{} } | {error, Reason::term()}
 %%% @doc:  read and parse the xml config file
+%%% @end
 %%%----------------------------------------------------------------------
 read(Filename, LogDir) ->
     case catch xmerl_scan:file(Filename,
@@ -473,6 +475,11 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                                        ?config(thinktime_override)),
                     ets:insert(Tab,{{thinktime, override}, Override}),
                     lists:foldl( fun parse/2, Conf, Element#xmlElement.content);
+                "ssl_ciphers" ->
+                    Cipher = getAttr(string,Attrs, value, negociate),
+                    OldProto =  Conf#config.proto_opts,
+                    NewProto =  OldProto#proto_opts{ssl_ciphers=Cipher},
+                    lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto});
                 "hibernate" ->
                     Hibernate = case  getAttr(integer,Attrs, value, infinity ) of
                                     infinity -> infinity;
@@ -613,9 +620,10 @@ parse(_Element, Conf = #config{}) ->
 getAttr(Attr, Name) -> getAttr(string, Attr, Name, "").
 
 %%%----------------------------------------------------------------------
-%%% @spec getAttr(Type: string|list|float_or_integer, Attr::list,
-%%%               Name::string()) -> term
+%%% @spec getAttr(Type:: 'string'|'list'|'float_or_integer', Attr::list(),
+%%%               Name::string()) -> term()
 %%% @doc  search the attribute list for the given one
+%%% @end
 %%%----------------------------------------------------------------------
 getAttr(Type, Attr, Name) -> getAttr(Type, Attr, Name, "").
 
@@ -721,10 +729,12 @@ shortnames(Hostname)->
     S.
 
 %%----------------------------------------------------------------------
-%% @spec: backup_config(Dir::string, Name::string, Config::tuple)
+%% @spec: backup_config(Dir::string(), Name::string(), Config::tuple()) ->
+%%        ok | {error, Reason::term()}
 %% @doc: create a backup copy of the config file in the log directory
 %%   This is useful to have an history of all parameters of a test.
 %%   Use parsed config file to expand all ENTITY
+%% @end
 %%----------------------------------------------------------------------
 backup_config(Dir, Name, Config) ->
     BaseName = filename:basename(Name),

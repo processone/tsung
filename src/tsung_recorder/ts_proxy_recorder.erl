@@ -1,8 +1,11 @@
 %%%
-%%%  Copyright © IDEALX S.A.S. 2003
+%%%  @copyright IDEALX S.A.S. 2003-2005
 %%%
-%%%  Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
-%%%  Created: 22 Dec 2003 by Nicolas Niclausse <nicolas.niclausse@niclux.org>
+%%%  @author Nicolas Niclausse <nicolas@niclux.org>
+%%%  @doc    Record request by calling the plugin involved
+%%%  @since  1.0.beta1, 22 Dec 2003 by Nicolas Niclausse
+%%%  @version {@version}
+%%%  @end
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
 %%%  it under the terms of the GNU General Public License as published by
@@ -23,15 +26,6 @@
 %%%  link the code of this program with any library released under
 %%%  the EPL license and distribute linked combinations including
 %%%  the two.
-
-%%%-------------------------------------------------------------------
-%%% File    : ts_proxy_recorder.erl
-%%% Author  : Nicolas Niclausse <nicolas@niclux.org>
-%%% Description :
-%%%
-%%% Created : 22 Dec 2003 by Nicolas Niclausse <nicolas@niclux.org>
-%%%-------------------------------------------------------------------
-
 
 -module(ts_proxy_recorder).
 -vc('$Id$ ').
@@ -83,7 +77,7 @@ dorecord(Args)->
 recordtag([Host,Args]) when is_list(Host)->
     recordtag(list_to_atom(Host), Args).
 
-%% @spec recordtag/2
+%% @spec recordtag(Host::string(), Args::term()) -> ok
 recordtag(Host, Args) when is_list(Args)->
     _List = net_adm:world_list([Host]),
     global:sync(),

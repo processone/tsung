@@ -356,8 +356,8 @@ message(Dest, #jabber{data=Data, username=User}, Service) when is_list(Data) ->
                     "'><body>",Data, "</body></message>"]).
 
 %%----------------------------------------------------------------------
-%% @spec garbage/1
-%% @depracated use {@link ts_utils:randomstr/1} or
+%% @spec garbage(Size::integer()) -> string()
+%% @deprecated use {@link ts_utils:randomstr/1} or
 %%                 {@link ts_utils:randomstr_noflat/1} instead
 %%----------------------------------------------------------------------
 garbage(Size)->

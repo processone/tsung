@@ -427,7 +427,7 @@ from_https(String) when is_list(String)->
             update_content_length(NewString,Count+Location)
     end.
 
-%% @spec update_content_length(String) -> {ok, String}
+%% @spec update_content_length(string(), Count::integer()) -> {ok, String::string()}
 %% @doc since the length of URL is changed (https:// to http://ssl- )
 %% we must recalculate Content-Length if it is defined.
 update_content_length(String,0)     -> {ok, String } ;
@@ -609,9 +609,10 @@ resolve(Ip, Cache) ->
     end.
 
 %%----------------------------------------------------------------------
-%% @spec urandomstr_noflat/1
+%% @spec urandomstr_noflat(Size::integer()) ->string()
 %% @doc generate pseudo-random list of given size. Implemented by
 %% duplicating list of fixed size to be faster. unflatten version
+%% @end
 %%----------------------------------------------------------------------
 urandomstr_noflat(Size) when is_integer(Size) , Size >= ?DUPSTR_SIZE ->
     Msg= lists:duplicate(Size div ?DUPSTR_SIZE,?DUPSTR),
@@ -625,15 +626,17 @@ urandomstr_noflat(Size)  when is_integer(Size), Size >= 0 ->
     lists:nthtail(?DUPSTR_SIZE-Size, ?DUPSTR).
 
 %%----------------------------------------------------------------------
-%% @spec urandomstr/1
+%% @spec urandomstr(Size::integer()) ->string()
 %% @doc same as urandomstr_noflat/1, but returns a flat list.
+%% @end
 %%----------------------------------------------------------------------
 urandomstr(Size) when is_integer(Size), Size >= 0 ->
     lists:flatten(urandomstr_noflat(Size)).
 
 %%----------------------------------------------------------------------
-%% @spec randomstr/1
+%% @spec randomstr(Size::integer()) ->string()
 %% @doc returns a random string. slow if Size is high.
+%% @end
 %%----------------------------------------------------------------------
 randomstr(Size) when is_integer(Size), Size >= 0 ->
      lists:map(fun (_) -> random:uniform(25) + $a  end, lists:seq(1,Size)).
@@ -642,6 +645,7 @@ randomstr(Size) when is_integer(Size), Size >= 0 ->
 %%----------------------------------------------------------------------
 %% @spec eval(string()) -> term()
 %% @doc evaluate strings as Erlang code at runtime
+%% @end
 %%----------------------------------------------------------------------
 eval(Code) ->
     {ok, Scanned, _} = erl_scan:string(Code),
@@ -652,6 +656,7 @@ eval(Code) ->
 %%----------------------------------------------------------------------
 %% @spec list_to_number(string()) -> integer() | float()
 %% @doc  convert a 'number' to either int or float
+%% @end
 %%----------------------------------------------------------------------
 list_to_number(Number) ->
     try list_to_integer(Number) of

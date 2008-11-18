@@ -49,14 +49,15 @@
 %%% API
 %%%----------------------------------------------------------------------
 
-%% Start a new session
+%% @doc Start a new session
 start(Opts) ->
     ?DebugF("Starting with opts: ~p~n",[Opts]),
     gen_fsm:start_link(?MODULE, Opts, []).
 
 %%----------------------------------------------------------------------
-%% Func: next/1
-%% Purpose: continue with the next request (used for global ack)
+%% next/1
+%% @doc Purpose: continue with the next request (used for global ack)
+%% @end
 %%----------------------------------------------------------------------
 next({Pid}) ->
     gen_fsm:send_event(Pid, next_msg).
@@ -348,7 +349,7 @@ handle_next_action(State) ->
 
 %%----------------------------------------------------------------------
 %% @spec set_dynvars (Type::erlang|random|urandom|file, Args::tuple(),
-%%                    Variables::List(), DynData:record(dyndata)) -> List()
+%%                    Variables::list(), DynData::#dyndata{}) -> list()
 %% @doc setting the value of several dynamic variables at once.
 %%----------------------------------------------------------------------
 set_dynvars(erlang,{Module,Callback},_Vars,DynData) ->
@@ -372,10 +373,15 @@ set_dynvars(file,{iter,FileId,Delimiter},_Vars,_DynData) ->
     {ok,Line} = ts_file_server:get_next_line(FileId),
     string:tokens(Line,Delimiter).
 
-%% @spec ctrl_struct(CtrlData::term(),State::record(state_rcv),Count::integer)
+%% @spec ctrl_struct(CtrlData::term(),State::#state_rcv{},Count::integer) ->
+%%          {next_state, NextStateName::atom(), NextState::#state_rcv{}} |
+%%          {next_state, NextStateName::atom(), NextState::#state_rcv{},
+%%                       Timeout::integer() | infinity} |
+%%          {stop, Reason::term(), NewState::#state_rcv{}}
 %% @doc Common code for flow control actions (repeat,for)
 %%      Count is the next action-id, if this action doesn't result
 %%      in a jump to another place
+%% @end
 ctrl_struct(CtrlData,State,Count) ->
     case ctrl_struct_impl(CtrlData,State#state_rcv.dyndata) of
         {next,NewDynData} ->
@@ -393,11 +399,12 @@ ctrl_struct(CtrlData,State,Count) ->
 
 
 %%----------------------------------------------------------------------
-%% @spec ctrl_struct_impl(ControlStruct::term(),DynData:record(dyndata)) -> Result
-%% @type Result = {next,NewDynData::record(dyndata)}
-%%                | {jump,Target::integer(),NewDynData::record(dyndata)}
+%% @spec ctrl_struct_impl(ControlStruct::term(),DynData::#dyndata{}) ->
+%%        {next,NewDynData::#dyndata{}} |
+%%        {jump, Target::integer(), NewDynData::#dyndata{}}
 %% @doc return {next,NewDynData} to continue with the sequential flow,
 %%             {jump,Target,NewDynData} to jump to action number 'Target'
+%% @end
 %%----------------------------------------------------------------------
 ctrl_struct_impl({for_start,InitialValue,VarName},DynData=#dyndata{dynvars=DynVars}) ->
     NewDynVars = ts_dynvars:set(VarName,InitialValue,DynVars),

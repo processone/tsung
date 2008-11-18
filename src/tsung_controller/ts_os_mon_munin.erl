@@ -38,8 +38,9 @@
 
 
 %% @spec init(HostStr::string,
-%%            Options::[{Port::integer, Community::string, Version::string }]) ->
-%%       {ok, {socket(), Hostname::string()}} | {error, Reason}
+%%            Options::[{Port::integer, Community::string, Version::string }],
+%%            State::#os_mon{}) ->
+%%       {ok, {socket(), Hostname::string()}} | {error, Reason::term()}
 init(HostStr, [{Port}], _State) ->
     {ok, Host} = inet:getaddr(HostStr, inet),
     ?LOGF("Starting munin mgr on ~p:~p~n", [Host,Port], ?DEB),

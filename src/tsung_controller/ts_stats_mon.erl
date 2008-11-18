@@ -245,7 +245,7 @@ print_stats_txt({Name, Type}, Value, {LastRes, Logfile}) ->
 %% @doc update the mean and variance for the given sample
 %%----------------------------------------------------------------------
 update_stats(sample, [], New) ->
-    [New, 0, New, New, 1,0,0,0];
+    [New, 0, New, New, 1, 0, 0, 0];
 update_stats(sample, Data, Value) ->
     %% we don't use lastvalue for 'sample', set it to zero
     update_stats2(Data, Value, 0);

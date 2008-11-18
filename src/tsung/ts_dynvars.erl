@@ -15,8 +15,12 @@
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 %%%
 
+%%% @copyright (C) 2008  Pablo Polvorin <pablo.polvorin@process-one.net>
 %%% @author Pablo Polvorin <pablo.polvorin@process-one.net>
+%%% @author Nicolas Niclausse <nicolas@niclux.org>
 %%% @doc functions to manipulate dynamic variables, sort of  Abstract Data Type
+%%% @end
+
 %%% created on 2008-08-22
 %%% modified by Nicolas Niclausse: Add merge and multi keys/values (new, set)
 
@@ -27,7 +31,10 @@
 
 -define(IS_DYNVARS(X),is_list(X)).
 
-%%@spec new() -> DynVars()
+%% @type dynvar() = {Key::atom(), Value::string()} | [].
+%% @type dynvars() = [dynvar()]
+
+%% @spec new() -> [dynvar()]
 new() ->
     [].
 
@@ -37,7 +44,7 @@ new(VarNames, Values) when is_list(VarNames),is_list(Values)->
     %% FIXME: check if VarNames is a list of atoms
     lists:zip(VarNames,Values).
 
-%% @spec lookup(Key::atom(),DynVar()) -> {ok,Value:term()} | false
+%% @spec lookup(Key::atom(), Dynvar::dynvars()) -> {ok,Value::term()} | false
 lookup(Key, []) when  is_atom(Key)->
     false;
 lookup(Key, DynVars) when ?IS_DYNVARS(DynVars), is_atom(Key)->
@@ -54,7 +61,7 @@ lookup(Key, DynVars, Default) when ?IS_DYNVARS(DynVars), is_atom(Key)->
         R -> R
     end.
 
-%% @spec set(Key:atom(), Value::term, DynVars()) -> DynVars()
+%% @spec set(Key::atom(), Value::term(), DynVars::dynvars()) -> dynvars()
 set(Key,Value,DynVars) when ?IS_DYNVARS(DynVars),is_atom(Key) ->
     merge([{Key, Value}],DynVars);
 
@@ -70,8 +77,8 @@ set(Keys,Values,DynVars) when ?IS_DYNVARS(DynVars),is_list(Keys),is_list(Values)
 entries(DynVars) when ?IS_DYNVARS(DynVars) ->
     DynVars.
 
-%% @spec map(Fun,Key::atom(),Default::term(),DynVars()) -> DynVars
-%% @type Fun : term() -> term()
+%% @spec map(Fun::function(),Key::atom(),Default::term(),DynVars::dynvars())
+%%             -> dynvars()
 %% @doc The value associated to key Key is replaced with
 %%      the result of applying function Fun to its previous value.
 %%      If there is no such previous value, Fun is applied to the default
@@ -91,7 +98,7 @@ do_map(Fun,Key,Default,[H|Rest], Acc) ->
     do_map(Fun,Key,Default,Rest, [H|Acc]).
 
 
-%% @spec merge(DynVars(),DynVars()) -> DynVars
+%% @spec merge(DynVars::dynvars(),DynVars::dynvars()) -> dynvars()
 %% @doc merge two set of dynamic variables
 merge(DynVars1, DynVars2) when ?IS_DYNVARS(DynVars1),?IS_DYNVARS(DynVars2) ->
     ts_utils:keyumerge(1,DynVars1,DynVars2).
