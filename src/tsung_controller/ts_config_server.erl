@@ -50,7 +50,8 @@
 -export([start_link/1, read_config/1, get_req/2, get_next_session/1,
          get_client_config/1, newbeam/1, newbeam/2, start_slave/4,
          get_monitor_hosts/0, encode_filename/1, decode_filename/1,
-         endlaunching/1, status/0, start_file_server/1, get_user_agents/0]).
+         endlaunching/1, status/0, start_file_server/1, get_user_agents/0,
+         get_client_config/2 ]).
 
 %%debug
 -export([choose_client_ip/1, choose_session/1]).
@@ -128,6 +129,9 @@ read_config(ConfigFile)->
 get_client_config(Host)->
     gen_server:call({global,?MODULE},{get_client_config, Host}, ?config_timeout).
 
+get_client_config(Type, Host)->
+    gen_server:call({global,?MODULE},{get_client_config, Type, Host}, ?config_timeout).
+
 %%--------------------------------------------------------------------
 %% Function: get_monitor_hosts/0
 %% Returns: [Hosts]
@@ -178,7 +182,7 @@ init([LogDir]) ->
 %%--------------------------------------------------------------------
 handle_call({read_config, ConfigFile}, _From, State=#state{logdir=LogDir}) ->
     case catch ts_config:read(ConfigFile, LogDir) of
-        {ok, Config=#config{session_tab=Tab,curid=LastReqId,sessions=[LastSess| Sessions]}} ->
+        {ok, Config=#config{curid=LastReqId,sessions=[LastSess| Sessions]}} ->
             case check_config(Config) of
                 ok ->
                     application:set_env(tsung_controller, clients, Config#config.clients),
@@ -193,7 +197,7 @@ handle_call({read_config, ConfigFile}, _From, State=#state{logdir=LogDir}) ->
                     NewLast=LastSess#session{size = LastReqId},
                     %% start the file server (if defined) using a separate process (it can be long)
                     spawn(?MODULE, start_file_server, [Config#config.file_server]),
-                    NewConfig=loop_load(Config#config{sessions=[NewLast]++Sessions}),
+                    NewConfig=loop_load(sort_static(Config#config{sessions=[NewLast]++Sessions})),
                     {reply, ok, State#state{config=NewConfig, total_weight = Sum}};
                 {error, Reason} ->
                     ?LOGF("Error while checking config: ~p~n",[Reason],?EMERG),
@@ -237,8 +241,6 @@ handle_call({get_user_agents}, _From, State) ->
 %% get a new session id and an ip for the given node
 handle_call({get_next_session, HostName}, _From, State) ->
     Config = State#state.config,
-    Tab    = Config#config.session_tab,
-
     {value, Client} = lists:keysearch(HostName, #client.host, Config#config.clients),
 
     {ok,IP} = choose_client_ip(Client), % TODO: could be done by the launcher
@@ -253,19 +255,18 @@ handle_call({get_next_session, HostName}, _From, State) ->
             {reply, {error, Other}, State}
     end;
 
-%%
+%% get random clients by default
 handle_call({get_client_config, Host}, _From, State) ->
+    handle_call({get_client_config, random, Host}, _From, State);
+%%
+handle_call({get_client_config, Type, Host}, _From, State) ->
     ?DebugF("get_client_config from ~p~n",[Host]),
     Config = State#state.config,
     %% set start date if not done yet
-    StartDate = case State#state.start_date of
-                    undefined ->
-                        ts_utils:add_time(now(), ?config(warm_time));
-                    Date -> Date
-                end,
-    case get_client_cfg(Config#config.arrivalphases,
-                        Config#config.clients, State#state.total_weight,
-                        Host) of
+    StartDate = set_start_date(State#state.start_date),
+    case get_client_cfg(Type, Config#config.arrivalphases,
+                               Config#config.clients, State#state.total_weight,
+                               Host) of
         {ok,List,Max} ->
             {reply,{ok,{List,StartDate,Max}},State#state{start_date=StartDate}};
         _ ->
@@ -403,6 +404,10 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%--------------------------------------------------------------------
 
+set_start_date(undefined)->
+     ts_utils:add_time(now(), ?config(warm_time));
+set_start_date(Date) -> Date.
+
 %%----------------------------------------------------------------------
 %% Func: choose_client_ip/1
 %% Args: #client, Dict
@@ -464,19 +469,31 @@ choose_session([#session{popularity=P} | SList], Rand, Cur) ->
 %% Func: get_client_cfg/4
 %% Args: list of #arrivalphase, list of #client, String
 %% Purpose: set parameters for given host client
-%% Returns: {ok, {Intensity = float, Users=integer, StartDate = tuple}}
+%% Returns: {ok, {Intensity = float, Users=integer, StartDate = tuple,
+%%                Max = MaxNumber of clients to start}}
 %%          | {error, Reason}
 %%----------------------------------------------------------------------
-get_client_cfg(Arrival, Clients, TotalWeight, Host) ->
+get_client_cfg(Type,Arrival, Clients, TotalWeight, Host) ->
     SortedPhases=lists:keysort(#arrivalphase.phase, Arrival),
-    get_client_cfg(SortedPhases, Clients, TotalWeight,Host, []).
+    get_client_cfg(Type,SortedPhases, Clients, TotalWeight,Host, []).
 
 %% get_client_cfg/5
-get_client_cfg([], Clients, _TotalWeight, Host, Cur) ->
+%% all phases scanned, look for max and return config.
+get_client_cfg(_Type, [], Clients, _TotalWeight, Host, Cur) ->
     {value, Client} = lists:keysearch(Host, #client.host, Clients),
     Max = Client#client.maxusers,
     {ok, lists:reverse(Cur), Max};
-get_client_cfg([Arrival=#arrivalphase{duration = Duration,
+%% static clients (eg. each client start once at fixed time)
+%% we must spread this list of fixed clients to each beam
+%% If we have N clients and M beam
+get_client_cfg(static, [Arrival=#arrivalphase{duration = Duration,
+                                      static_users=LUsers } | AList],
+               Clients, TotalWeight, Host, Cur) ->
+    {value, Client} = lists:keysearch(Host, #client.host, Clients),
+    Weight = Client#client.weight,
+    Number=round(length(LUsers)*Weight/TotalWeight),
+    todo;
+get_client_cfg(random, [Arrival=#arrivalphase{duration = Duration,
                                       intensity= PhaseIntensity,
                                       maxnumber= MaxNumber } | AList],
                Clients, TotalWeight, Host, Cur) ->
@@ -493,7 +510,7 @@ get_client_cfg([Arrival=#arrivalphase{duration = Duration,
     %% TODO: store the max number of clients
     ?LOGF("New arrival phase ~p for client ~p: will start ~p users~n",
           [Arrival#arrivalphase.phase, Host, NUsers],?NOTICE),
-    get_client_cfg(AList, Clients, TotalWeight, Host,
+    get_client_cfg(random,AList, Clients, TotalWeight, Host,
                    [{ClientIntensity, round(NUsers)} | Cur]).
 
 %%----------------------------------------------------------------------
@@ -586,6 +603,15 @@ loop_load(Config=#config{load_loop=Loop, arrivalphases=Arrival},Max,Current) ->
     Fun= fun(Phase) -> Phase+Max*Loop end,
     NewArrival = lists:keymap(Fun,#arrivalphase.phase,Arrival),
     loop_load(Config#config{load_loop=Loop-1},Max,lists:append(Current, NewArrival)).
+
+%% @doc sort static users by start time
+sort_static(Config=#config{arrivalphases=AP})->
+    ?LOGF("sort static users: ~p ~n", [AP], ?DEB),
+    FSort = fun(A=#arrivalphase{static_users=S})->
+                   SortedL= lists:keysort(2,S),
+                   A#arrivalphase{static_users=SortedL}
+            end,
+    Config#config{arrivalphases=lists:map(FSort,AP)}.
 
 %%
 %% @doc start a remote beam
