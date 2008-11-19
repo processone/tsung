@@ -465,11 +465,11 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     ets:insert(Tab,{{thinktime, value}, Val}),
                     Random = case { getAttr(integer, Attrs, min),
                                     getAttr(integer, Attrs, max)}  of
-                                 {Min, Max } when is_integer(Min), is_integer(Max) ->
+                                 {Min, Max } when is_integer(Min), is_integer(Max), Max > 0, Max >= Min ->
                                      {"range", Min, Max};
                                  {"",""} ->
                                      getAttr(string,Attrs, random, ?config(thinktime_random))
-                    end,
+                             end,
                     ets:insert(Tab,{{thinktime, random}, Random}),
                     Override = getAttr(string, Attrs, override,
                                        ?config(thinktime_override)),
@@ -549,13 +549,19 @@ parse(Element = #xmlElement{name=thinktime, attributes=Attrs},
             "true" ->
                 {DefThink, DefRandom};
             "false" ->
-                case { getAttr(integer, Attrs, min), getAttr(integer, Attrs, max)}  of
-                    {Min, Max } when is_integer(Min), is_integer(Max) ->
+                case { getAttr(integer, Attrs, min),
+                       getAttr(integer, Attrs, max),
+                       getAttr(integer, Attrs, value)}  of
+                    {Min, Max, "" } when is_integer(Min), is_integer(Max), Max > 0, Min >0,  Max > Min ->
                         {"", {"range", Min, Max} };
-                    {"",""} ->
-                        CurThink  = getAttr(integer, Attrs, value,DefThink),
+                    {"","",""} ->
                         CurRandom = getAttr(string, Attrs,random,DefRandom),
-                        {CurThink, CurRandom}
+                        {DefThink, CurRandom};
+                    {"","",CurThink} when is_integer(CurThink), CurThink > 0 ->
+                        CurRandom = getAttr(string, Attrs,random,DefRandom),
+                        {CurThink, CurRandom};
+                    _ ->
+                        exit({error, bad_thinktime})
                 end
         end,
     RealThink = case Randomize of
