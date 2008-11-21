@@ -95,8 +95,8 @@ a:hover     {background:#ffffaa;}
 <!--ENDHTML-->
 <!--CUT DEF section 1 --><H1 ALIGN=center>Tsung User’s manual</H1><DIV CLASS="center">
 
-<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>897</TD></TR>
-<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>4 septembre 2008</TD></TR>
+<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>911</TD></TR>
+<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>21 novembre 2008</TD></TR>
 </TABLE>
 </DIV><!--TOC section Table des matières-->
 <H2 CLASS="section"><!--SEC ANCHOR -->Table des matières</H2><!--SEC END --><UL CLASS="toc"><LI CLASS="li-toc">
@@ -194,8 +194,8 @@ a:hover     {background:#ffffaa;}
 </LI><LI CLASS="li-toc"><A HREF="#htoc66">9  Acknowledgments</A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc67">A  Frequently Asked Questions</A>
 <UL CLASS="toc"><LI CLASS="li-toc">
-<A HREF="#htoc68">A.1  Tsung crashes when I start it </A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc69">A.2  Tsung still doesn’t start ...</A>
+<A HREF="#htoc68">A.1  Can’t start distributed clients: timeout error </A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc69">A.2  Tsung crashes when I start it </A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc70">A.3  Why do i have error_connect_emfile errors ?</A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc71">A.4  Tsung still crashes/fails when I start it !</A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc72">A.5  Can i dynamically follow redirect with HTTP ?</A>
@@ -1967,7 +1967,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 </TABLE><TT>delimiter</TT> can be any string, and <TT>order</TT> can be
 <FONT COLOR=purple>iter</FONT> or <FONT COLOR=purple>random</FONT>
-</LI><LI CLASS="li-enumerate">Dynamic variable can a random number
+</LI><LI CLASS="li-enumerate">Dynamic variable can be a random number
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
@@ -1985,7 +1985,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE></LI><LI CLASS="li-enumerate">Dynamic variable can a random string
+</TABLE></LI><LI CLASS="li-enumerate">Dynamic variable can be a random string
 <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
@@ -2003,9 +2003,9 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE></LI><LI CLASS="li-enumerate">Dynamic variable can a urandom string: this is much faster than
+</TABLE></LI><LI CLASS="li-enumerate">Dynamic variable can be a urandom string: this is much faster than
 the random string, but the string is not really random: the same set
-of character is always used.
+of characters is always used.
 </LI></OL><P>A <TT>setdynvars</TT> can be defined anywhere in a session.</P><!--TOC subsubsection Checking the server’s response-->
 <H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc57">6.7.4</A>  Checking the server’s response</H4><!--SEC END --><!--TOC paragraph Regexp-->
 <H5 CLASS="paragraph"><!--SEC ANCHOR -->Regexp</H5><!--SEC END --><P>With the tag <TT>match</TT> in a <TT>request</TT> tag, you can check
@@ -2285,28 +2285,8 @@ Joe Armstrong, Stockholm, 2003 <SUP><A NAME="text3" HREF="#note3">3</A></SUP>
 Rémond<SUP><A NAME="text4" HREF="#note4">4</A></SUP> during an Object
 Web benchmarking workshop in April 2004 (more info at
 <A HREF="http://jmob.objectweb.org/"><TT>http://jmob.objectweb.org/</TT></A>).</P><!--TOC section Frequently Asked Questions-->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc67">A</A>  Frequently Asked Questions</H2><!--SEC END --><!--TOC subsection Tsung crashes when I start it -->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc68">A.1</A>  Tsung crashes when I start it </H3><!--SEC END --><P>Does your Erlang system has ssl support enabled ?</P><P>to test it:
-</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
-CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
-</TD></TR>
-</TABLE></TD></TR>
-<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
-</TD></TR>
-</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">  &gt; erl
-  Eshell V5.2  (abort with ^G)
-  1&gt; ssl:start().
-  you should see 'ok'
-</PRE></TD></TR>
-</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
-</TD></TR>
-</TABLE></TD></TR>
-<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
-</TD></TR>
-</TABLE></TD></TR>
-</TABLE></TD></TR>
-</TABLE><!--TOC subsection Tsung still doesn’t start ...-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc69">A.2</A>  Tsung still doesn’t start ...</H3><!--SEC END --><P>Most of the time, when a crash happened at startup without any traffic
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc67">A</A>  Frequently Asked Questions</H2><!--SEC END --><!--TOC subsection Can’t start distributed clients: timeout error -->
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc68">A.1</A>  Can’t start distributed clients: timeout error </H3><!--SEC END --><P>Most of the time, when a crash happened at startup without any traffic
 generated, the problem arise because the main Erlang controller node cannot
 create a "slave" Erlang virtual machine. The message looks like:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
@@ -2314,52 +2294,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 <TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
-</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">===============================================
-=ERROR REPORT==== 4-May-2004::22:38:26 ===
-** Generic server ts_config_server terminating
-** Last message in was {'$gen_cast',{newbeam,myshortname,[]}}
-** When Server state == {state,{config,
-                                     undefined,
-                                     5,
-                                     full,
-                                     undefined,
-                                     [{client,
-                                          "myshortname",
-                                          2.00000,
-                                          5,
-                                          [{10,68,133,140}]}],
-                                     {server,"foo.net",80,gen_tcp},
-                                     [],
-                                     [{arrivalphase,
-                                          1,
-                                          60,
-                                          undefined,
-                                          undefined,
-                                          5.00000e-5,
-                                          infinity}],
-                                     undefined,
-                                     [{session,
-                                          1,
-                                          100,
-                                          ts_http,
-                                          parse,
-                                          true,
-                                          undefined}],
-                                     14,
-                                     3,
-                                     7,
-                                     6,
-                                     "negociate"},
-  "/home/username/.tsung/log/20040204-18:32",
-                               undefined,
-                               0,
-                               undefined,
-                               2.00000}
-** Reason for termination ==
-** {{badmatch,{error,timeout}},
-    [{ts_config_server,handle_cast,2},
-     {gen_server,handle_msg,6},
-     {proc_lib,init_p,5}]}
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">Can't start newbeam on host 'XXXXX (reason: timeout) ! Aborting!
 </PRE></TD></TR>
 </TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
@@ -2368,19 +2303,9 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE><P>Tsung launches a new erl virtual machine to do the actual
-injection even when you have only one machine in the injection
-cluster. This is because it needs to by-pass some limit with the number
-of open socket from a single process (1024 most of the time). The idea
-is to have several system processes (Erl beam) that can handle only a
-small part of the network connection from the given computer. When the
-<TT>maxclient</TT> limit (simultaneous) is reach, a new Erlang beam is launched
-and the newest connection can be handled by the new beam).</P><P>The problem is that the Erlang slave module cannot start a local slave
-node. It tries to start it with the short node name
-<TT>"myshortname"</TT> (<TT>erl -sname myshortname</TT>).
-If this fails the injection process cannot
-start. Most of the time, adding the short name with the correct IP
-address in the <TT>/etc/hosts</TT> file is sufficient to make it work.</P><P>You can test this using these simple commands:
+</TABLE><P>The problem is that the Erlang slave module cannot start a remote slave
+node.</P><P>You can test this using this simple command on the controller node
+(remotehost is the name of the client node)
 </P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
@@ -2399,20 +2324,23 @@ Eshell V5.4.3 (abort with ^G)
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE><P>You should see this: <FONT COLOR=purple>{ok,bar@remotehost}</FONT></P><P>If you got <FONT COLOR=purple>{error,timeout}</FONT>, it probably comes from
-a firewall dropping erlang packets; indeed erlang virtual machines use
+</TABLE><P>You should see this: <FONT COLOR=purple>{ok,bar@remotehost}</FONT></P><P>If you got <FONT COLOR=purple>{error,timeout}</FONT>, it can be caused by
+several problems:
+</P><OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
+ssh in not working (you must have a key without passphrase, or
+use an agent)
+</LI><LI CLASS="li-enumerate">A firewall is dropping erlang packets: indeed erlang virtual machines use
 several tcp ports (dynamically generated) to communicate.
-The timeout can also comes from the use of SELinux. You should disable it.</P><P>Note that you do not need to use the 127.0.0.1 address in the configuration file.
-It will not work if you use it as the injection interface. The shortname
-of your client machine should not refer to this address.</P><P><B>New in 1.1.0</B>: If you don’t use the distributed feature of
-Tsung and have trouble to start a remote beam on a local machine,
-you can set the <TT>’use_controller_vm’</TT> attribute to true, for ex.:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+</LI><LI CLASS="li-enumerate">SELinux: You should disable SELinux on all clients.
+</LI><LI CLASS="li-enumerate">Bad /etc/hosts:
+This one is wrong (real hostname should not refer to localhost/loopback):
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
 </TABLE></TD></TR>
 <TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
-</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">  &lt;client host="mymachine" use_controller_vm="true"&gt;
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">127.0.0.1 localhost myrealhostname
 </PRE></TD></TR>
 </TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
@@ -2421,11 +2349,30 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE><P>You may also have problems due to the sshd configuration:</P><P>For example, for SuSE 9.2 sshd is compiled with restricted set of
+</TABLE>This one is good:
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">127.0.0.1 localhost
+192.168.3.2 myrealhostname
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE></LI><LI CLASS="li-enumerate">sshd configuration:
+For example, for SuSE 9.2 sshd is compiled with restricted set of
 paths (<I>ie.</I>  when you shell into the account you get the users shell,
 when you execute a command via ssh you don’t) and this makes it
 impossible to start an erlang node (if erlang is installed in
-<TT>/usr/local</TT> for example).</P><P>Run:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+<TT>/usr/local</TT> for example).
+Run:<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
 </TABLE></TD></TR>
@@ -2442,7 +2389,55 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 </TABLE><P>If the erlang shell doesn’t start then check what paths sshd was compiled with
 (in SuSE see <TT>/etc/ssh/sshd_config</TT>) and symlink from one of the approved paths
-to the erlang executable (thanks to Gordon Guthrie for reporting this).</P><!--TOC subsection Why do i have error_connect_emfile errors ?-->
+to the erlang executable (thanks to Gordon Guthrie for reporting this).
+</P></LI></OL><P>Note that you do not need to use the 127.0.0.1 address in the configuration file.
+It will not work if you use it as the injection interface. The shortname
+of your client machine should not refer to this address.</P><P><EM>Warn:</EM>Tsung launches a new erlang virtual machine to do the actual injection
+even when you have only one machine in the injection cluster (unless
+<TT>’use_controller_vm’</TT> is set to true). This is because it
+needs to by-pass some limit with the number of open socket from a
+single process (1024 most of the time). The idea is to have several
+system processes (Erl beam) that can handle only a small part of the
+network connection from the given computer. When the
+<TT>maxusers</TT> limit (simultaneous) is reach, a new Erlang beam
+is launched and the newest connection can be handled by the new beam).</P><P><B>New in 1.1.0</B>: If you don’t use the distributed feature of
+Tsung and have trouble to start a remote beam on a local machine,
+you can set the <TT>’use_controller_vm’</TT> attribute to true, for ex.:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">  &lt;client host="mymachine" use_controller_vm="true"&gt;
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><!--TOC subsection Tsung crashes when I start it -->
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc69">A.2</A>  Tsung crashes when I start it </H3><!--SEC END --><P>Does your Erlang system has ssl support enabled ?</P><P>to test it:
+</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">  &gt; erl
+  Eshell V5.2  (abort with ^G)
+  1&gt; ssl:start().
+  you should see 'ok'
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><!--TOC subsection Why do i have error_connect_emfile errors ?-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc70">A.3</A>  Why do i have error_connect_emfile errors ?</H3><!--SEC END --><P>
 <A NAME="sec:faq:emfile"></A>
 emfile error means : <EM>too many open files</EM></P><P>This happens usually when you set a high value for <TT>maxusers</TT>
