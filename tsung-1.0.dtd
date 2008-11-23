@@ -98,7 +98,7 @@ repeat | if )*>
 
 <!ELEMENT match (#PCDATA)>
 <!ATTLIST match
-    do (continue|loop|abort|restart) "continue"
+    do (continue|loop|abort|restart|log) "continue"
     when (match|nomatch) "match"
     loop_back    NMTOKEN "0"
     max_loop    NMTOKEN "20"

@@ -181,6 +181,14 @@ parse_extract_fun2_test() ->
     Data="/stuff/%%ts_test_search:namespace%%/%%ts_test_search:marketplace%%/%%ts_test_search:sessionBucket%%/01/2000?keyA1=dataA1&amp;keyB1=dataB1",
     ?assertMatch("/stuff/namespace2/6/91/01/2000?keyA1=dataA1&amp;keyB1=dataB1", ts_search:subst(Data,[])).
 
+parse_subst_var_fun_test() ->
+    myset_env(),
+    Data=?FORMDATA,
+    StrName="jsf_tree_64",
+    Regexp = ?DEF_REGEXP_DYNVAR_BEGIN++ StrName ++?DEF_REGEXP_DYNVAR_END,%'
+    [{Name,Value}] = ts_search:parse_dynvar([{regexp, 'jsf_tree_64', Regexp }],list_to_binary(Data)),
+    ?assertMatch("H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA-MSFT", ts_search:subst("%%_jsf_tree_64%%-%%ts_test_search:new%%",[{Name,Value}])).
+
 dynvars_urandom_test() ->
     myset_env(),
     ?assertMatch(["qxvmvtglimieyhemzlxc"],ts_client:set_dynvars(urandom,{string,20},[toto],[])).

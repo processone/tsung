@@ -39,9 +39,10 @@
          foreach_parallel/2, spawn_par/3, inet_setopts/3, resolve/2,
          stop_all/2, stop_all/3, stop_all/4, join/2, split2/2, split2/3,
          make_dir_rec/1, is_ip/1, from_https/1, to_https/1, keymax/2,
-         check_sum/3, check_sum/5, clean_str/1, file_to_list/1,
+         check_sum/3, check_sum/5, clean_str/1, file_to_list/1, term_to_list/1,
          decode_base64/1, encode_base64/1, to_lower/1, release_is_newer_or_eq/1,
-         randomstr/1,urandomstr/1,urandomstr_noflat/1, eval/1, list_to_number/1
+         randomstr/1,urandomstr/1,urandomstr_noflat/1, eval/1, list_to_number/1,
+         time2sec/1
         ]).
 
 level2int("debug")     -> ?DEB;
@@ -146,7 +147,9 @@ init_seed()->
 %% Purpose: returns unix like elapsed time in sec
 %%----------------------------------------------------------------------
 now_sec() ->
-    {MSec, Seconds, _} = now(),
+    time2sec(now()).
+
+time2sec({MSec, Seconds, _}) ->
     Seconds+1000000*MSec.
 
 %%----------------------------------------------------------------------
@@ -666,3 +669,11 @@ list_to_number(Number) ->
           list_to_float(Number)
   end.
 
+term_to_list(I) when is_integer(I)-> 
+    integer_to_list(I);
+term_to_list(I) when is_atom(I)-> 
+    atom_to_list(I);
+term_to_list(I) when is_list(I)-> 
+    I;
+term_to_list(I) when is_float(I)-> 
+    float_to_list(I).

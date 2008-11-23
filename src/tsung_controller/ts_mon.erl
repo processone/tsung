@@ -43,7 +43,8 @@
 
 %% External exports
 -export([start/1, stop/0, newclient/1, endclient/1, sendmes/1, add/2,
-         start_clients/1, abort/0, status/0, rcvmes/1, add/1, dumpstats/0
+         start_clients/1, abort/0, status/0, rcvmes/1, add/1, dumpstats/0,
+         add_match/2
         ]).
 
 %% gen_server callbacks
@@ -76,14 +77,15 @@
 
 
 %%----------------------------------------------------------------------
-%% FUNCTION start/0
-%% PURPOSE Start the monitoring process
-%% RETURN VALUE ok | throw({error, Reason})
+%% @spec start()-> {ok, Pid::pid()} | ignore | {error, Error::term()}
+%% @doc Start the monitoring process
+%% @end
 %%----------------------------------------------------------------------
 start(LogDir) ->
     ?LOG("starting monitor, global ~n",?NOTICE),
     gen_server:start_link({global, ?MODULE}, ?MODULE, [LogDir], []).
 
+%% @spec start_clients({Machines::term(), Dump::string(), BackEnd::atom()}) -> ok
 start_clients({Machines, Dump, BackEnd}) ->
     gen_server:call({global, ?MODULE}, {start_logger, Machines, Dump, BackEnd},
                     infinity).
@@ -93,8 +95,13 @@ stop() ->
 add(nocache,Data) ->
     gen_server:cast({global, ?MODULE}, {add, Data}).
 
+
 add(Data) ->
     ts_session_cache:add(Data).
+
+add_match(Data,{UserId,SessionId,RequestId}) ->
+    TimeStamp=now(),
+    ts_session_cache:add_match(Data,{UserId,SessionId,RequestId,TimeStamp}).
 
 status() ->
     gen_server:call({global, ?MODULE}, {status}).

@@ -50,10 +50,9 @@ start_child(Profile) ->
 %%%----------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
-%% Func: active_clients/0
-%% Returns: [ Client ]
-%% Description: returns the list of all active children on this beam's
-%% client supervisor.
+%% @spec active_clients() ->  [tuple()]
+%% @doc returns the list of all active children on this beam's
+%% client supervisor. @end
 %%--------------------------------------------------------------------
 active_clients()->
     length(supervisor:which_children(?MODULE)).

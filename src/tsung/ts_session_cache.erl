@@ -35,7 +35,7 @@
 
 %%--------------------------------------------------------------------
 %% External exports
--export([start/0, get_req/2, get_user_agent/0, add/1]).
+-export([start/0, get_req/2, get_user_agent/0, add/1, add_match/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
@@ -46,7 +46,8 @@
           table, % ets table
           hit  =0.0, % number of hits
           total=0.0, % total number of requests
-          stats=[]   % cache stats msgs
+          stats=[],  % cache stats msgs
+          match=[]   % cache match logs
          }).
 
 -define(DUMP_STATS_INTERVAL, 500). % in milliseconds
@@ -84,6 +85,11 @@ get_user_agent()->
 %%--------------------------------------------------------------------
 add(Data) ->
     gen_server:cast(?MODULE, {add, Data}).
+
+%% @spec add_match(Data::list(),{UserId::integer(),SessionId::integer(),RequestId::integer(),
+%%                  TimeStamp::tuple()}) -> ok
+add_match(Data,{UserId,SessionId,RequestId,TimeStamp}) ->
+    gen_server:cast(?MODULE, {add_match, Data, {UserId,SessionId,RequestId,TimeStamp}}).
 
 %%====================================================================
 %% Server functions
@@ -173,6 +179,10 @@ handle_cast({add, Data}, State=#state{stats=List}) when is_list(Data) ->
     {noreply, State#state{stats = lists:append(Data, List)} };
 handle_cast({add, Data}, State=#state{stats=List}) when is_tuple(Data) ->
     {noreply, State#state{stats = lists:append([Data], List)} };
+handle_cast({add_match, Data=[First|_Tail],{UserId,SessionId,RequestId,TimeStamp}},
+            State=#state{stats=List, match=MatchList})->
+    NewMatchList=lists:append([{UserId,SessionId,RequestId,TimeStamp,First}], MatchList),
+    {noreply, State#state{stats = lists:append(Data, List), match = NewMatchList}};
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -188,10 +198,11 @@ handle_info({timeout, _Ref, dump_stats}, State = #state{stats =[]}) ->
     erlang:start_timer(?DUMP_STATS_INTERVAL, self(), dump_stats ),
     {noreply, State};
 
-handle_info({timeout, _Ref, dump_stats}, State =#state{stats= List}) ->
-    ts_stats_mon:add(List),
+handle_info({timeout, _Ref, dump_stats}, State =#state{stats= Stats, match=MatchList}) ->
+    ts_stats_mon:add(Stats),
+    ts_match_logger:add(MatchList),
     erlang:start_timer(?DUMP_STATS_INTERVAL, self(), dump_stats ),
-    {noreply, State#state{stats=[]}};
+    {noreply, State#state{stats=[],match=[]}};
 
 handle_info(_Info, State) ->
     {noreply, State}.

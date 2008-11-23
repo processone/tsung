@@ -16,89 +16,92 @@
 
 -define(MAX_COUNT,42).
 -define(COUNT,5).
+-define(USER_ID,2).
+-define(SESSION_ID,1).
+-define(COUNTS,{5,42,2,1}).
 
 test()->
     ok.
 match_abort_ok_test() ->
     myset_env(),
     Data="C'est n'est pas une chaine de caractere",
-    ?assertMatch(?COUNT, ts_search:match([#match{regexp="Erreur", do=abort, 'when'=match}],Data, {?COUNT,?MAX_COUNT})).
+    ?assertMatch(?COUNT, ts_search:match([#match{regexp="Erreur", do=abort, 'when'=match}],Data, ?COUNTS)).
 
 match_abort_nok_test() ->
     myset_env(),
     Data="Ceci est une Erreur",
-    ?assertMatch(0, ts_search:match([#match{regexp="Erreur", do=abort, 'when'=match}],Data, {?COUNT,?MAX_COUNT})).
+    ?assertMatch(0, ts_search:match([#match{regexp="Erreur", do=abort, 'when'=match}],Data, ?COUNTS)).
 
 nomatch_abort_ok_test() ->
     myset_env(),
     Data="C'est n'est pas une chaine de caractere",
-    ?assertMatch(0, ts_search:match([#match{regexp="Erreur", do=abort, 'when'=nomatch}],Data, {?COUNT,?MAX_COUNT})).
+    ?assertMatch(0, ts_search:match([#match{regexp="Erreur", do=abort, 'when'=nomatch}],Data, ?COUNTS)).
 
 nomatch_abort_nok_test() ->
     myset_env(),
     Data="Ceci est une Erreur",
-    ?assertMatch(?COUNT, ts_search:match([#match{regexp="Erreur", do=abort, 'when'=nomatch}],Data, {?COUNT,?MAX_COUNT})).
+    ?assertMatch(?COUNT, ts_search:match([#match{regexp="Erreur", do=abort, 'when'=nomatch}],Data, ?COUNTS)).
 
 nomatch_continue_ok_test() ->
     myset_env(),
     Data="C'est n'est pas une chaine de caractere",
-    ?assertMatch(?COUNT, ts_search:match([#match{regexp="Erreur", do=continue, 'when'=nomatch}],Data, {?COUNT,?MAX_COUNT})).
+    ?assertMatch(?COUNT, ts_search:match([#match{regexp="Erreur", do=continue, 'when'=nomatch}],Data, ?COUNTS)).
 
 nomatch_continue_nok_test() ->
     myset_env(),
     Data="Ceci est une Erreur",
-    ?assertMatch(?COUNT, ts_search:match([#match{regexp="Erreur", do=continue, 'when'=nomatch}],Data, {?COUNT,?MAX_COUNT})).
+    ?assertMatch(?COUNT, ts_search:match([#match{regexp="Erreur", do=continue, 'when'=nomatch}],Data, ?COUNTS)).
 
 match_continue_ok_test() ->
     myset_env(),
     Data="C'est n'est pas une chaine de caractere",
-    ?assertMatch(?COUNT, ts_search:match([#match{regexp="Erreur", do=continue, 'when'=match}],Data, {?COUNT,?MAX_COUNT})).
+    ?assertMatch(?COUNT, ts_search:match([#match{regexp="Erreur", do=continue, 'when'=match}],Data, ?COUNTS)).
 
 match_continue_nok_test() ->
     myset_env(),
     Data="Ceci est une Erreur",
-    ?assertMatch(?COUNT, ts_search:match([#match{regexp="Erreur", do=continue, 'when'=match}],Data, {?COUNT,?MAX_COUNT})).
+    ?assertMatch(?COUNT, ts_search:match([#match{regexp="Erreur", do=continue, 'when'=match}],Data, ?COUNTS)).
 
 nomatch_loop_ok_test() ->
     myset_env(),
     Data="C'est n'est pas une chaine de caractere",
-    ?assertMatch(?COUNT+1, ts_search:match([#match{regexp="Erreur", do=loop, max_loop=?COUNT, loop_back=0, sleep_loop=1,'when'=nomatch}],Data, {?COUNT,?MAX_COUNT})).
+    ?assertMatch(?COUNT+1, ts_search:match([#match{regexp="Erreur", do=loop, max_loop=?COUNT, loop_back=0, sleep_loop=1,'when'=nomatch}],Data, ?COUNTS)).
 
 nomatch_loop_nok_test() ->
     myset_env(),
     Data="Ceci est une Erreur",
-    ?assertMatch(?COUNT, ts_search:match([#match{regexp="Erreur", do=loop, max_loop=?COUNT, loop_back=0, sleep_loop=1,'when'=nomatch}],Data, {?COUNT,?MAX_COUNT})).
+    ?assertMatch(?COUNT, ts_search:match([#match{regexp="Erreur", do=loop, max_loop=?COUNT, loop_back=0, sleep_loop=1,'when'=nomatch}],Data, ?COUNTS)).
 
 match_loop_ok_test() ->
     myset_env(),
     Data="C'est n'est pas une chaine de caractere",
-    ?assertMatch(?COUNT, ts_search:match([#match{regexp="Erreur", do=loop, max_loop=?COUNT, loop_back=0, sleep_loop=1,'when'=match}],Data, {?COUNT,?MAX_COUNT})).
+    ?assertMatch(?COUNT, ts_search:match([#match{regexp="Erreur", do=loop, max_loop=?COUNT, loop_back=0, sleep_loop=1,'when'=match}],Data, ?COUNTS)).
 
 match_loop_nok_test() ->
     myset_env(),
     Data="Ceci est une Erreur",
-    ?assertMatch(?COUNT+1, ts_search:match([#match{regexp="Erreur", do=loop, max_loop=?COUNT, loop_back=0, sleep_loop=1, 'when'=match}],Data, {?COUNT,?MAX_COUNT})).
+    ?assertMatch(?COUNT+1, ts_search:match([#match{regexp="Erreur", do=loop, max_loop=?COUNT, loop_back=0, sleep_loop=1, 'when'=match}],Data, ?COUNTS)).
 
 
 nomatch_restart_ok_test() ->
     myset_env(),
     Data="C'est n'est pas une chaine de caractere",
-    ?assertMatch(?MAX_COUNT, ts_search:match([#match{regexp="Erreur", do=restart, max_restart=?COUNT,'when'=nomatch}],Data, {?COUNT,?MAX_COUNT})).
+    ?assertMatch(?MAX_COUNT, ts_search:match([#match{regexp="Erreur", do=restart, max_restart=?COUNT,'when'=nomatch}],Data, ?COUNTS)).
 
 nomatch_restart_nok_test() ->
     myset_env(),
     Data="Ceci est une Erreur",
-    ?assertMatch(?COUNT, ts_search:match([#match{regexp="Erreur", do=restart, max_restart=?COUNT,'when'=nomatch}],Data, {?COUNT,?MAX_COUNT})).
+    ?assertMatch(?COUNT, ts_search:match([#match{regexp="Erreur", do=restart, max_restart=?COUNT,'when'=nomatch}],Data, ?COUNTS)).
 
 match_restart_ok_test() ->
     myset_env(),
     Data="C'est n'est pas une chaine de caractere",
-    ?assertMatch(?COUNT, ts_search:match([#match{regexp="Erreur", do=restart, max_restart=?COUNT,'when'=match}],Data, {?COUNT,?MAX_COUNT})).
+    ?assertMatch(?COUNT, ts_search:match([#match{regexp="Erreur", do=restart, max_restart=?COUNT,'when'=match}],Data, ?COUNTS)).
 
 match_restart_nok_test() ->
     myset_env(),
     Data="Ceci est une Erreur",
-    ?assertMatch(?MAX_COUNT, ts_search:match([#match{regexp="Erreur", do=restart, max_restart=?COUNT, 'when'=match}],Data, {?COUNT,?MAX_COUNT})).
+    ?assertMatch(?MAX_COUNT, ts_search:match([#match{regexp="Erreur", do=restart, max_restart=?COUNT, 'when'=match}],Data, ?COUNTS)).
 
 myset_env()->
     myset_env(0).

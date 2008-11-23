@@ -74,28 +74,21 @@ reset(NFin)->
 get_id()->
     gen_server:call({global, ?MODULE }, get_id).
 
-%% return a unique id. use the pid and the node name to set an id.
-get_unique_id({Pid, _DynData})->
-    ID = pid_to_list(Pid),
-    [ID1,ID2,ID3] = string:tokens(ID, [$<,$.,$>]),
-    %% here we assume that the node name is tsungXX@whatever
-    NodeId = case string:tokens(atom_to_list(node()),[$@,$g]) of
-                 ["tsun", "_controller"|_] ->
-                     "0"; % when the launcher is run on the controller
-                 ["tsun", Id|_] ->
-                     Id
-             end,
-    %% all ID's must be < 65536 !
-    ?DebugF("got unique id from ~p",[[ID1, ID3, NodeId, ID2]]),
-    {ok, Int} = list_to_id([ID1, ID3, NodeId, ID2],65536),
-    ?DebugF("id=~p",[Int]),
-    [integer_to_list(Int)].
-
+%% return a unique id. deprecated since tsung_userid dyn var exists
+get_unique_id({_Pid, DynVar})->
+    case ts_dynvars:lookup(tsung_userid,DynVar) of 
+        {ok, Val} -> ts_utils:term_to_list(Val);
+	false -> 
+            ?LOG("tsung_userid not found ! Can't create unique id~n", ?ERR),
+    	    "0"
+    end.
+            
+    
 %% return a really unique id, one that is unique across runs.
-get_really_unique_id({Pid, DynData}) ->
+get_really_unique_id({Pid, DynVars}) ->
     Sec = ts_utils:now_sec(),
     ?DebugF("Sec=~p",[Sec]),
-    [[integer_to_list(Sec),"-",get_unique_id({Pid, DynData})]].
+    [[integer_to_list(Sec),"-",get_unique_id({Pid, DynVars})]].
 
 %% get an idle id (offline), and add it to the connected table
 get_idle()->
@@ -302,24 +295,6 @@ fill_offline(0, _)->
 fill_offline(N, Tab) when is_integer(N) ->
     ets:insert(Tab,{N, 0}),
     fill_offline(N-1, Tab).
-
-%%%----------------------------------------------------------------------
-%%% Func: list_to_id/2
-%%% Purpose: get integer value of it's list representation in given base
-%%%----------------------------------------------------------------------
-list_to_id(L, Base) ->
-    list_to_id(lists:reverse(L), 0, 1, Base).
-
-list_to_id([], Sum, _, _) -> {ok, Sum};
-list_to_id([Id|Tail], Sum, Mult, Base) when is_list(Id)->
-    list_to_id([list_to_integer(Id)|Tail], Sum, Mult, Base);
-list_to_id([Id|Tail], Sum, Mult, Base) when is_integer(Id),Id < Base->
-    list_to_id(Tail, Sum+Mult*Id, Mult*Base, Base);
-
-list_to_id([Id|_], _, _, Base) when is_integer(Id),Id >= Base ->
-    {error, integertoohigh};
-list_to_id(Val,_,_,_) ->
-    {error, {badinput, Val}}.
 
 %%%----------------------------------------------------------------------
 %%% Func: ets_iterator_del/3

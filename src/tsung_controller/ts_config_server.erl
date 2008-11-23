@@ -62,6 +62,7 @@
 
 -record(state, {config,
                 logdir,
+                users=1,          % userid (incremental counter)
                 start_date,       %
                 hostname,         % controller hostname
                 last_beam_id = 0, % last tsung beam id (used to set nodenames)
@@ -140,9 +141,10 @@ get_monitor_hosts()->
         gen_server:call({global,?MODULE},{get_monitor_hosts}).
 
 %%--------------------------------------------------------------------
-%% Function: get_next_session/0
-%% Description: choose randomly a session
-%% Returns: {ok, Session ID, Session Size (integer), IP (tuple)}
+%% @spec get_next_session(Host::string())-> {ok, SessionId::integer(), 
+%%              SessionSize::integer(),IP::tuple(), UserId::integer()}
+%% @doc Choose randomly a session
+%% @end
 %%--------------------------------------------------------------------
 get_next_session(Host)->
     gen_server:call({global, ?MODULE},{get_next_session, Host}).
@@ -239,7 +241,7 @@ handle_call({get_user_agents}, _From, State) ->
     end;
 
 %% get a new session id and an ip for the given node
-handle_call({get_next_session, HostName}, _From, State) ->
+handle_call({get_next_session, HostName}, _From, State=#state{users=Users}) ->
     Config = State#state.config,
     {value, Client} = lists:keysearch(HostName, #client.host, Config#config.clients),
 
@@ -250,7 +252,7 @@ handle_call({get_next_session, HostName}, _From, State) ->
     case choose_session(Config#config.sessions) of
         {ok, Session=#session{id=Id}} ->
             ?LOGF("Session ~p choosen~n",[Id],?INFO),
-            {reply, {ok, {Session, IP, Server}}, State};
+            {reply, {ok, {Session, IP, Server,Users}}, State#state{users=Users+1}};
         Other ->
             {reply, {error, Other}, State}
     end;

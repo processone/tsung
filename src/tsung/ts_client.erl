@@ -49,13 +49,15 @@
 %%% API
 %%%----------------------------------------------------------------------
 
+%% @spec start(Opts::{Session::#session{},IP::tuple(),Server::#server{}},
+%%       Id::integer()) -> {ok, Pid::pid()} | ignore | {error, Error::term()}
 %% @doc Start a new session
 start(Opts) ->
     ?DebugF("Starting with opts: ~p~n",[Opts]),
     gen_fsm:start_link(?MODULE, Opts, []).
 
 %%----------------------------------------------------------------------
-%% next/1
+%% @spec next({pid()}) -> ok
 %% @doc Purpose: continue with the next request (used for global ack)
 %% @end
 %%----------------------------------------------------------------------
@@ -79,12 +81,14 @@ init({#session{id           = SessionId,
                hibernate    = Hibernate,
                proto_opts   = ProtoOpts,
                size         = Count,
-               type         = CType}, IP, Server}) ->
+               type         = CType}, IP, Server,Id}) ->
     ?DebugF("Init ... started with count = ~p~n",[Count]),
     ts_utils:init_seed(),
 
     ?DebugF("Get dynparams for ~p~n",[CType]),
     DynData = CType:init_dynparams(),
+    NewDynVars = ts_dynvars:set(tsung_userid,Id,DynData#dyndata.dynvars),
+    NewDynData = DynData#dyndata{dynvars=NewDynVars},
     StartTime= now(),
     ts_mon:newclient({self(), StartTime}),
     set_thinktime(?short_timeout),
@@ -101,9 +105,10 @@ init({#session{id           = SessionId,
                             proto_opts = ProtoOpts,
                             count      = Count,
                             ip         = IP,
+                            id         = Id,
                             hibernate  = Hibernate,
                             maxcount   = Count,
-                            dyndata    = DynData
+                            dyndata    = NewDynData
                            }}.
 
 %%--------------------------------------------------------------------
@@ -350,7 +355,8 @@ handle_next_action(State) ->
 %%----------------------------------------------------------------------
 %% @spec set_dynvars (Type::erlang|random|urandom|file, Args::tuple(),
 %%                    Variables::list(), DynData::#dyndata{}) -> list()
-%% @doc setting the value of several dynamic variables at once.
+%% @doc setting the value of several dynamic variables at once. 
+%% @end
 %%----------------------------------------------------------------------
 set_dynvars(erlang,{Module,Callback},_Vars,DynData) ->
     Module:Callback({self(),DynData#dyndata.dynvars});
@@ -733,7 +739,8 @@ handle_data_msg(Data,State=#state_rcv{request=Req,clienttype=Type,maxcount=MaxCo
         true ->
             ?DebugF("Response done:~p~n", [NewState#state_rcv.datasize]),
             {PageTimeStamp, DynVars} = update_stats(NewState#state_rcv{buffer=NewBuffer}),
-            NewCount = ts_search:match(Req#ts_request.match, NewBuffer, {NewState#state_rcv.count, MaxCount}),
+            NewCount = ts_search:match(Req#ts_request.match, NewBuffer,
+                                       {NewState#state_rcv.count, MaxCount, NewState#state_rcv.session_id, NewState#state_rcv.id}),
             NewDynVars=ts_dynvars:merge(DynVars,(NewState#state_rcv.dyndata)#dyndata.dynvars),
             NewDynData=(NewState#state_rcv.dyndata)#dyndata{dynvars=NewDynVars},
             case Close of
@@ -799,7 +806,7 @@ handle_data_msg(Data, State=#state_rcv{request=Req, maxcount= MaxCount}) ->
     DataSize = size(Data),
     {PageTimeStamp, DynVars} = update_stats(State#state_rcv{datasize=DataSize,
                                                             buffer=NewBuffer}),
-    NewCount = ts_search:match(Req#ts_request.match, NewBuffer, {State#state_rcv.count,MaxCount}),
+    NewCount = ts_search:match(Req#ts_request.match, NewBuffer, {State#state_rcv.count,MaxCount,State#state_rcv.id,State#state_rcv.id}),
     NewDynVars=ts_dynvars:merge(DynVars,(State#state_rcv.dyndata)#dyndata.dynvars),
     NewDynData=(State#state_rcv.dyndata)#dyndata{dynvars=NewDynVars},
     {State#state_rcv{ack_done = true, buffer= NewBuffer, dyndata = NewDynData,

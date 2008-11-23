@@ -20,12 +20,14 @@ o Jérome Sautret: Multiple file patch for file_server, costum header
 o Jason Tucker: Solaris testing and fixes, jabber patches (sip_digest,
   roster and presence enhancements, bidi support for presence:subscribe ).
 
-o Pablo Polvorin: LDAP plugin, set_dynvars, xpath search for html.
+o Pablo Polvorin: LDAP plugin, set_dynvars, xpath search for html,
+  for/repeat loop, dynvars_api, hibernate.
 
 o Gregoire Reboul: MySQL plugin.
 
+o Dimitri Fontaine: SNMP & postgresql testing, patch for snmp, tsung-plotter
+
 o Jonathan Bresler: Jabber testing and bug reporting
-o Dimitri Fontaine: SNMP & postgresql testing, patch for snmp.
 o Gordon Guthrie: tips for ssh setup on Suse
 o Romain Lenglet: Suggestions for ts_os_mon
 o Johann Messner: Bug reports

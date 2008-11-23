@@ -92,6 +92,7 @@
                      % all the response to do pattern matching)
          session,    % record of session status; depends on 'clienttype'
          datasize=0,
+         id,         % user id
          size_mon_thresh=?size_mon_thresh, % if rcv data is > to this, update stats
          dyndata=[], % persistent data dynamically added during the
                      % session (Cookies for examples)

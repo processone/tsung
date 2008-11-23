@@ -34,12 +34,12 @@ config_get_session_test() ->
     ts_user_server:start([]),
     ts_config_server:start_link(["/tmp"]),
     ok = ts_config_server:read_config("./examples/http_setdynvars.xml"),
-    {ok, {Session,IP,Server} }  = ts_config_server:get_next_session("localhost"),
+    {ok, {Session,IP,Server,1} }  = ts_config_server:get_next_session("localhost"),
     ?assertEqual(1, Session#session.id).
 
 config_get_session_size_test() ->
     myset_env(),
-    {ok, {Session,IP,Server} }  = ts_config_server:get_next_session("localhost"),
+    {ok, {Session,IP,Server,2} }  = ts_config_server:get_next_session("localhost"),
     ?assertEqual(13, Session#session.size).
 
 
@@ -57,13 +57,13 @@ read_config_thinkfirst_test() ->
 
 config_minmax_test() ->
     myset_env(),
-    {ok, {Session,IP,Server} }  = ts_config_server:get_next_session("localhost"),
+    {ok, {Session,IP,Server,3} }  = ts_config_server:get_next_session("localhost"),
     Id = Session#session.id,
     ?assertMatch({thinktime,{range,2000,4000}}, ts_config_server:get_req(Id,7)).
 
 config_minmax2_test() ->
     myset_env(),
-    {ok, {Session,IP,Server} }  = ts_config_server:get_next_session("localhost"),
+    {ok, {Session,IP,Server,4} }  = ts_config_server:get_next_session("localhost"),
     Id = Session#session.id,
     {thinktime, Req} = ts_config_server:get_req(Id,7),
     Think=ts_client:set_thinktime(Req),
@@ -75,7 +75,7 @@ config_minmax2_test() ->
 config_thinktime_test() ->
     myset_env(),
     ok = ts_config_server:read_config("./examples/thinks.xml"),
-    {ok, {Session,IP,Server} }  = ts_config_server:get_next_session("localhost"),
+    {ok, {Session,IP,Server,5} }  = ts_config_server:get_next_session("localhost"),
     Id = Session#session.id,
     {thinktime, Req=2000} = ts_config_server:get_req(Id,5),
     {thinktime, 2000} = ts_config_server:get_req(Id,7),
@@ -89,7 +89,7 @@ config_thinktime_test() ->
 config_thinktime2_test() ->
     myset_env(),
     ok = ts_config_server:read_config("./examples/thinks2.xml"),
-    {ok, {Session,IP,Server} }  = ts_config_server:get_next_session("localhost"),
+    {ok, {Session,IP,Server,6} }  = ts_config_server:get_next_session("localhost"),
     Id = Session#session.id,
     {thinktime, Req} = ts_config_server:get_req(Id,5),
     Ref=ts_client:set_thinktime(Req),
