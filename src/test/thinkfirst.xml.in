@@ -25,15 +25,17 @@
     <users interarrival="0.1" unit="second"></users>
    </arrivalphase>
   </load>
- 
 
+  <options>
+    <option name="ports_range" value="on" min="10000"></option>
+  </options>
   <sessions>
    <session probability="100" name="example" type="ts_http">
     <thinktime value="30"></thinktime>
     <transaction name="offline">
       <request> <http url="/" method="GET"></http> </request>
     </transaction>
-    <thinktime value="30"></thinktime>
+    <thinktime min="3" max="4" random="false"></thinktime>
   </session>
 
  </sessions>

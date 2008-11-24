@@ -627,10 +627,10 @@ set_profile(MaxCount, Count, ProfileId) when is_integer(ProfileId) ->
 %%          {stop, Reason}
 %% purpose: try to reconnect if this is needed (when the socket is set to none)
 %%----------------------------------------------------------------------
-reconnect(none, ServerName, Port, {Protocol, Proto_opts}, IP) ->
+reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort}) ->
     ?DebugF("Try to (re)connect to: ~p:~p from ~p using protocol ~p~n",
             [ServerName,Port,IP,Protocol]),
-    Opts = protocol_options(Protocol, Proto_opts)  ++ [{ip, IP}],
+    Opts = protocol_options(Protocol, Proto_opts)  ++ [{ip, IP},{port,CPort}],
     Before= now(),
     case connect(Protocol,ServerName, Port, Opts) of
         {ok, Socket} ->
@@ -663,13 +663,9 @@ send(gen_udp,Socket,Message,Host,Port) ->gen_udp:send(Socket,Host,Port,Message).
 %% Func: connect/4
 %% Return: {ok, Socket} | {error, Reason}
 %%----------------------------------------------------------------------
-connect(gen_tcp,Server, Port, Opts) -> gen_tcp:connect(Server, Port, Opts);
-connect(ssl,Server, Port,Opts)      -> ssl:connect(Server, Port, Opts);
-connect(gen_udp,_Server, _Port, Opts) ->
-    %%FIXME: temporary hack; we need a unique port for each client using the same source IP
-    ClientPort=random:uniform(64511)+1024,
-    ?LOGF("Open UDP port number ~p, opts =~p~n",[ClientPort, Opts],?DEB),
-    gen_udp:open(ClientPort,Opts).
+connect(gen_tcp,Server, Port, Opts)  -> gen_tcp:connect(Server, Port, Opts);
+connect(ssl,Server, Port,Opts)       -> ssl:connect(Server, Port, Opts);
+connect(gen_udp,_Server, _Port, Opts)-> gen_udp:open(0,Opts).
 
 
 %%----------------------------------------------------------------------

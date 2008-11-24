@@ -487,6 +487,17 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                                 end,
                     lists:foldl( fun parse/2, Conf#config{hibernate=Hibernate},
                                  Element#xmlElement.content);
+                "ports_range" ->
+                    Min = getAttr(integer,Attrs, min, 1025),
+                    Max = getAttr(integer,Attrs, max, 65534),
+                    case getAttr(atom,Attrs, value, on) of
+                        off ->
+                            lists:foldl( fun parse/2, Conf,Element#xmlElement.content);
+                        on ->
+                            %%TODO: check if min > 1024 and max < 65536
+                            lists:foldl( fun parse/2, Conf#config{ports_range={Min,Max}},
+                                         Element#xmlElement.content)
+                    end;
                 "tcp_rcv_buffer" ->
                     Size = getAttr(integer,Attrs, value, ?config(rcv_size)),
                     OldProto =  Conf#config.proto_opts,

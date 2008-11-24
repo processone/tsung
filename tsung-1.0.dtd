@@ -78,6 +78,8 @@
     override (true | false) #IMPLIED
     random   (true | false) #IMPLIED
     id       NMTOKEN #IMPLIED
+    min      NMTOKEN #IMPLIED
+    max      NMTOKEN #IMPLIED
     type     (ts_http | ts_jabber | ts_pgsql) #IMPLIED
     value    CDATA #IMPLIED>
 

@@ -89,7 +89,7 @@ config_thinktime_test() ->
 config_thinktime2_test() ->
     myset_env(),
     ok = ts_config_server:read_config("./examples/thinks2.xml"),
-    {ok, {Session,IP,Server,6} }  = ts_config_server:get_next_session("localhost"),
+    {ok, {Session,{IP,0},Server,6} }  = ts_config_server:get_next_session("localhost"),
     Id = Session#session.id,
     {thinktime, Req} = ts_config_server:get_req(Id,5),
     Ref=ts_client:set_thinktime(Req),
@@ -108,10 +108,19 @@ read_config_maxusers_test() ->
     {ok,{[{_,Max4},{_,_}],_,_}}=ts_config_server:get_client_config("client4"),
     ?assert(Max1+Max2+Max3+Max4 =< MaxNumber).
 
+choose_port_test() ->
+    myset_env(),
+    {Dict,3} = ts_config_server:choose_port('client',undefined,{3,5}),
+    {Dict2,4} = ts_config_server:choose_port('client',Dict,{3,5}),
+    {Dict3,5} = ts_config_server:choose_port('client',Dict2,{3,5}),
+    {Dict4,3} = ts_config_server:choose_port('client2',Dict3,{3,5}),
+    ?assertMatch({_,3}, ts_config_server:choose_port('client',Dict4,{3,5})).
+
 myset_env()->
     myset_env(0).
 myset_env(Level)->
     application:set_env(stdlib,debug_level,Level),
     application:set_env(stdlib,warm_time,1000),
+    application:set_env(stdlib,thinktime_value,"5"),
     application:set_env(stdlib,thinktime_override,"false"),
     application:set_env(stdlib,thinktime_random,"false").

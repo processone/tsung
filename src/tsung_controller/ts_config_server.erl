@@ -62,6 +62,7 @@
 
 -record(state, {config,
                 logdir,
+                ports,            % dict, used if we need to choose the client port
                 users=1,          % userid (incremental counter)
                 start_date,       %
                 hostname,         % controller hostname
@@ -141,7 +142,7 @@ get_monitor_hosts()->
         gen_server:call({global,?MODULE},{get_monitor_hosts}).
 
 %%--------------------------------------------------------------------
-%% @spec get_next_session(Host::string())-> {ok, SessionId::integer(), 
+%% @spec get_next_session(Host::string())-> {ok, SessionId::integer(),
 %%              SessionSize::integer(),IP::tuple(), UserId::integer()}
 %% @doc Choose randomly a session
 %% @end
@@ -241,18 +242,20 @@ handle_call({get_user_agents}, _From, State) ->
     end;
 
 %% get a new session id and an ip for the given node
-handle_call({get_next_session, HostName}, _From, State=#state{users=Users}) ->
+handle_call({get_next_session, HostName}, _From, State=#state{users=Users,ports=Ports}) ->
     Config = State#state.config,
     {value, Client} = lists:keysearch(HostName, #client.host, Config#config.clients),
 
-    {ok,IP} = choose_client_ip(Client), % TODO: could be done by the launcher
-    {ok, Server} = choose_server(Config#config.servers),% TODO: same here
+    {ok,IP} = choose_client_ip(Client),
+    {ok, Server} = choose_server(Config#config.servers),
+    {NewPorts,CPort}   = choose_port(IP, Ports,Config#config.ports_range),
 
     ?DebugF("get new session for ~p~n",[_From]),
     case choose_session(Config#config.sessions) of
         {ok, Session=#session{id=Id}} ->
             ?LOGF("Session ~p choosen~n",[Id],?INFO),
-            {reply, {ok, {Session, IP, Server,Users}}, State#state{users=Users+1}};
+            {reply, {ok, {Session, {IP, CPort}, Server,Users}},
+             State#state{users=Users+1,ports=NewPorts}};
         Other ->
             {reply, {error, Other}, State}
     end;
@@ -331,7 +334,7 @@ handle_cast({newbeam, Host, []}, State=#state{last_beam_id = NodeId,
 %% use_controller_vm and max number of concurrent users reached , big trouble !
 handle_cast({newbeam, Host, _}, State=#state{ hostname=LocalHost,config=Config})
   when Config#config.use_controller_vm and ( ( LocalHost == Host ) or ( Host == 'localhost' )) ->
-    Msg ="Maximum number of concurrent users in a single VM reached and 'use_controller_vm' is true, can't start new beam !!!~n",
+    Msg ="Maximum number of concurrent users in a single VM reached and 'use_controller_vm' is true, can't start new beam !!! Check 'maxusers' value in <client> configuration.~n",
     ?LOG(Msg, ?EMERG),
     erlang:display(Msg),
     {noreply, State};
@@ -628,4 +631,18 @@ start_slave(Host, Name, Args, Arrivals)->
         {error, Reason} ->
             ?LOGF("Can't start newbeam on host ~p (reason: ~p) ! Aborting!~n",[Host, Reason],?EMERG),
             exit({slave_failure, Reason})
+    end.
+
+choose_port(_,_, undefined) ->
+    {[],0};
+choose_port(Client,undefined, Range) ->
+    choose_port(Client,dict:new(), Range);
+choose_port(ClientIp,Ports, {Min, Max}) ->
+    case dict:find(ClientIp,Ports) of
+        {ok, Val} when Val =< Max ->
+            NewPorts=dict:update_counter(ClientIp,1,Ports),
+            {NewPorts,Val};
+        _ -> % Max Reached or new entry
+            NewPorts=dict:store(ClientIp,Min+1,Ports),
+            {NewPorts,Min}
     end.
