@@ -465,8 +465,8 @@ sub formattime {
         sprintf "%.3f msec",$value*1000;
     } elsif ($value < 0.1) {
         sprintf "%.2f msec",$value*1000;
-    } elsif ($value < 10) {
-        sprintf "%.3f sec",$value;
+    } elsif ($value < 60) {
+        sprintf "%.2f sec",$value;
     } elsif ($value < 3600) {
         my $mn= int($value / 60);
         $value = $value-($mn*60);
