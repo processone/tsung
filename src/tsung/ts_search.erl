@@ -109,8 +109,8 @@ extract_function([H|Tail],DynVar,  Acc, Mod, Fun) ->
     extract_function(Tail, DynVar, Acc, Mod, [H|Fun]).
 
 %%----------------------------------------------------------------------
-%% @spec match(Match::#match{}, Data::binary() | list, Counts::integer(),
-%%         Id::integer())-> Count::integer()
+%% @spec match(Match::#match{}, Data::binary() | list, {Counts::integer(),
+%%         Max::integer(), SessionId::integer(),UserId::integer()})-> Count::integer()
 %% @doc search for regexp in Data; send result to ts_mon
 %% @end
 %%----------------------------------------------------------------------
@@ -207,7 +207,7 @@ setcount(#match{do=loop,loop_back=Back,max_loop=MaxLoop,sleep_loop=Sleep},{Count
             Count + 1 + Back
     end;
 setcount(#match{do=abort}, {Count,MaxC,SessionId,UserId}, Stats) ->
-    ts_mon:add_match([{count, match_stop} | Stats],{SessionId,UserId,MaxC-Count}),
+    ts_mon:add_match([{count, match_stop} | Stats],{UserId,SessionId,MaxC-Count}),
     0.
 
 %%----------------------------------------------------------------------
