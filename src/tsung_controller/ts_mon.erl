@@ -77,7 +77,7 @@
 
 
 %%----------------------------------------------------------------------
-%% @spec start()-> {ok, Pid::pid()} | ignore | {error, Error::term()}
+%% @spec start(LogDir::string())-> {ok, Pid::pid()} | ignore | {error, Error::term()}
 %% @doc Start the monitoring process
 %% @end
 %%----------------------------------------------------------------------
@@ -97,11 +97,11 @@ add(nocache,Data) ->
 
 
 add(Data) ->
-    ts_session_cache:add(Data).
+    ts_mon_cache:add(Data).
 
 add_match(Data,{UserId,SessionId,RequestId}) ->
     TimeStamp=now(),
-    ts_session_cache:add_match(Data,{UserId,SessionId,RequestId,TimeStamp}).
+    ts_mon_cache:add_match(Data,{UserId,SessionId,RequestId,TimeStamp}).
 
 status() ->
     gen_server:call({global, ?MODULE}, {status}).

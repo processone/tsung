@@ -19,14 +19,14 @@
 
 %%%-------------------------------------------------------------------
 %%% File    : ts_session_cache.erl
-%%% Author  : Nicolas Niclausse <nniclausse@schultze.ird.idealx.com>
+%%% Author  : Nicolas Niclausse <nniclausse@niclux.org>
 %%% Description : cache sessions request from ts_config_server
 %%%
 %%% Created :  2 Dec 2003 by Nicolas Niclausse <nicolas@niclux.org>
 %%%-------------------------------------------------------------------
 
 
--module(ts_session_cache).
+-module(ts_mon_cache).
 
 -behaviour(gen_server).
 %%--------------------------------------------------------------------
@@ -35,7 +35,7 @@
 
 %%--------------------------------------------------------------------
 %% External exports
--export([start/0, get_req/2, get_user_agent/0]).
+-export([start/0, add/1, add_match/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
@@ -43,9 +43,8 @@
 
 
 -record(state, {
-          table, % ets table
-          hit  =0.0, % number of hits
-          total=0.0  % total number of requests
+          stats=[],  % cache stats msgs
+          match=[]   % cache match logs
          }).
 
 -define(DUMP_STATS_INTERVAL, 500). % in milliseconds
@@ -64,17 +63,17 @@ start() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 %%--------------------------------------------------------------------
-%% Function: get_req/2
-%% Description: get next request from session 'Id'
+%% Function: add/1
+%% Description: Add stats data. Will be accumulated sent periodically
+%%              to ts_mon
 %%--------------------------------------------------------------------
-get_req(Id, Count)->
-    gen_server:call(?MODULE,{get_req, Id, Count}).
+add(Data) ->
+    gen_server:cast(?MODULE, {add, Data}).
 
-%%--------------------------------------------------------------------
-%% Function: get_user_agent/0
-%%--------------------------------------------------------------------
-get_user_agent()->
-    gen_server:call(?MODULE,{get_user_agent}).
+%% @spec add_match(Data::list(),{UserId::integer(),SessionId::integer(),RequestId::integer(),
+%%                  TimeStamp::tuple()}) -> ok
+add_match(Data,{UserId,SessionId,RequestId,TimeStamp}) ->
+    gen_server:cast(?MODULE, {add_match, Data, {UserId,SessionId,RequestId,TimeStamp}}).
 
 %%====================================================================
 %% Server functions
@@ -89,8 +88,8 @@ get_user_agent()->
 %%          {stop, Reason}
 %%--------------------------------------------------------------------
 init([]) ->
-    Table = ets:new(sessiontable, [set, private]),
-    {ok, #state{table=Table}}.
+    erlang:start_timer(?DUMP_STATS_INTERVAL, self(), dump_stats ),
+    {ok, #state{}}.
 
 %%--------------------------------------------------------------------
 %% Function: handle_call/3
@@ -102,52 +101,6 @@ init([]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-%% get Nth request from given session Id
-handle_call({get_req, Id, N}, _From, State) ->
-    Tab = State#state.table,
-    Total = State#state.total+1,
-    ?DebugF("look for ~p th request in session ~p for ~p~n",[N,Id,_From]),
-    case ets:lookup(Tab, {Id, N}) of
-        [{_Key, Session}] ->
-            Hit = State#state.hit+1,
-            ?DebugF("ok, found in cache for ~p~n",[_From]),
-            ?DebugF("hitrate is ~.3f~n",[100.0*Hit/Total]),
-            {reply, Session, State#state{hit= Hit, total = Total}};
-        [] -> %% no match, ask the config_server
-            ?DebugF("not found in cache (~p th request in session ~p for ~p)~n",[N,Id,_From]),
-            case catch ts_config_server:get_req(Id, N) of
-                {'EXIT',Reason}  ->
-                    {reply, {error, Reason}, State};
-                Reply ->
-                    %% cache the response FIXME: handle bad response ?
-                    ets:insert(Tab, {{Id, N}, Reply}),
-                    {reply, Reply, State#state{total = Total}}
-            end;
-        Other -> %%
-            ?LOGF("error ! (~p)~n",[Other],?WARN),
-            {reply, {error, Other}, State}
-    end;
-
-handle_call({get_user_agent}, _From, State) ->
-    Tab = State#state.table,
-    case ets:lookup(Tab, {http_user_agent, value}) of
-        [] -> %% no match, ask the config_server
-            ?Debug("user agents not found in cache~n"),
-            UserAgents = ts_config_server:get_user_agents(),
-            %% cache the response FIXME: handle bad response ?
-            ?DebugF("Useragents: got from config_server~p~n",[UserAgents]),
-            ets:insert(Tab, {{http_user_agent, value}, UserAgents}),
-            {ok, Reply} = choose_user_agent(UserAgents),
-            {reply, Reply, State};
-        [{_, [{_Freq, Value}]}] -> %single user agent defined
-            {reply, Value, State};
-        [{_, empty }] ->
-            {reply, "tsung", State};
-        [{_, UserAgents }] when is_list(UserAgents)->
-            {ok, Reply} = choose_user_agent(UserAgents),
-            {reply, Reply, State}
-    end;
-
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
@@ -159,6 +112,15 @@ handle_call(_Request, _From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
+handle_cast({add, Data}, State=#state{stats=List}) when is_list(Data) ->
+    {noreply, State#state{stats = lists:append(Data, List)} };
+handle_cast({add, Data}, State=#state{stats=List}) when is_tuple(Data) ->
+    {noreply, State#state{stats = lists:append([Data], List)} };
+handle_cast({add_match, Data=[First|_Tail],{UserId,SessionId,RequestId,TimeStamp}},
+            State=#state{stats=List, match=MatchList})->
+    NewMatchList=lists:append([{UserId,SessionId,RequestId,TimeStamp,First}], MatchList),
+    {noreply, State#state{stats = lists:append(Data, List), match = NewMatchList}};
+
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -169,6 +131,16 @@ handle_cast(_Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
+handle_info({timeout, _Ref, dump_stats}, State = #state{stats =[]}) ->
+    erlang:start_timer(?DUMP_STATS_INTERVAL, self(), dump_stats ),
+    {noreply, State};
+
+handle_info({timeout, _Ref, dump_stats}, State =#state{stats= Stats, match=MatchList}) ->
+    ts_stats_mon:add(Stats),
+    ts_match_logger:add(MatchList),
+    erlang:start_timer(?DUMP_STATS_INTERVAL, self(), dump_stats ),
+    {noreply, State#state{stats=[],match=[]}};
+
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -188,18 +160,4 @@ terminate(Reason, _State) ->
 %%--------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
-
-%%--------------------------------------------------------------------
-%%% Internal functions
-%%--------------------------------------------------------------------
-
-choose_user_agent(empty) -> {ok, "tsung"};
-choose_user_agent([{_P, Val}]) -> {ok, Val};
-choose_user_agent(UserAgents) ->
-    choose_user_agent(UserAgents, random:uniform(100),0).
-
-choose_user_agent([{P, Val} | _],Rand, Cur) when Rand =< P+Cur->
-    {ok, Val};
-choose_user_agent([{P, _Val} | SList], Rand, Cur) ->
-    choose_user_agent(SList, Rand, Cur+P).
 

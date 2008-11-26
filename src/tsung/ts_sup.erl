@@ -63,7 +63,9 @@ init([]) ->
                     transient, 2000, worker, [ts_launcher]},
     SessionCache = {ts_session_cache, {ts_session_cache, start, []},
                     transient, 2000, worker, [ts_session_cache]},
-    {ok,{{one_for_one,?retries,10}, [SessionCache, ClientsSup, Launcher ]}}.
+    MonCache = {ts_mon_cache, {ts_mon_cache, start, []},
+                    transient, 2000, worker, [ts_mon_cache]},
+    {ok,{{one_for_one,?retries,10}, [SessionCache, MonCache,ClientsSup, Launcher ]}}.
 
 %%%----------------------------------------------------------------------
 %%% Internal functions
