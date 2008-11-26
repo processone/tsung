@@ -285,12 +285,12 @@ parse(Element = #xmlElement{name=session, attributes=Attrs},
     ?LOGF("Session name for id ~p is ~p~n",[Id+1, Name],?NOTICE),
     ?LOGF("Session type: persistent=~p, bidi=~p~n",[Persistent,Bidi],?NOTICE),
     Probability = getAttr(float_or_integer, Attrs, probability),
-    case Id of
-        0 -> ok; % first session
-        _ ->
-            %% add total requests count in previous session in ets table
-            ets:insert(Tab, {{Id, size}, PrevReqId})
-    end,
+    NewSList = case SList of
+                   [] -> []; % first session
+                   [Previous|Tail] ->
+                       % set total requests count in previous session
+                       [Previous#session{size=PrevReqId}|Tail]
+               end,
 
     lists:foldl(fun parse/2,
                 Conf#config{sessions = [#session{id           = Id + 1,
@@ -301,7 +301,7 @@ parse(Element = #xmlElement{name=session, attributes=Attrs},
                                                  hibernate    = Conf#config.hibernate,
                                                  proto_opts   = Conf#config.proto_opts
                                                 }
-                                        |SList],
+                                        |NewSList],
                             curid=0, cur_req_id=0},% re-initialize request id
                 Element#xmlElement.content);
 
