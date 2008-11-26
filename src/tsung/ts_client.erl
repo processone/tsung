@@ -37,6 +37,9 @@
 -include("ts_profile.hrl").
 -include("ts_config.hrl").
 
+-define(MAX_RETRIES,3). % max number of connection retries
+-define(RETRY_TIMEOUT,10000). % waiting time between retries (msec)
+
 %% External exports
 -export([start/1, next/1]).
 
@@ -49,8 +52,8 @@
 %%% API
 %%%----------------------------------------------------------------------
 
-%% @spec start(Opts::{Session::#session{},IP::tuple(),Server::#server{}},
-%%       Id::integer()) -> {ok, Pid::pid()} | ignore | {error, Error::term()}
+%% @spec start(Opts::{Session::#session{},IP::tuple(),Server::#server{},
+%%       Id::integer()}) -> {ok, Pid::pid()} | ignore | {error, Error::term()}
 %% @doc Start a new session
 start(Opts) ->
     ?DebugF("Starting with opts: ~p~n",[Opts]),
@@ -578,8 +581,16 @@ handle_next_request(Request, State) ->
                     ts_mon:add({ count, error_send }),
                     {stop, normal, State}
             end;
-        _Error ->
-            {stop, normal, State} %% already log in reconnect
+        {error,_Reason} when State#state_rcv.retries < ?MAX_RETRIES ->
+            Retries= State#state_rcv.retries +1,
+            % simplified exponential backoff algorithm: we increase
+            % the timeout when the number of retries increase, with a
+            % simple rule: number of retries * retry_timeout
+            set_thinktime(?RETRY_TIMEOUT *  Retries ),
+            {next_state, think, State#state_rcv{retries=Retries}};
+        {error,_Reason}  ->
+            ts_mon:add({ count, error_abort_max_conn_retries }),
+            {stop, normal, State}
     end.
 
 %%----------------------------------------------------------------------
@@ -645,7 +656,7 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort}) ->
                   [A,B,C,D, ServerName, Port, Reason],?ERR),
             CountName="error_connect_"++atom_to_list(Reason),
             ts_mon:add({ count, list_to_atom(CountName) }),
-            {stop, normal}
+            {error, Reason}
     end;
 reconnect(Socket, _Server, _Port, _Protocol, _IP) ->
     {ok, Socket}.

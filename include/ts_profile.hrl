@@ -69,6 +69,7 @@
         {socket=none, %
          ip,          % local ip to bind to
          timeout,     % ?
+         retries=0,   % number of connect retries
          hibernate = infinity, % hibernate if thinktime is >= to this
          host,        % hostname (or IP) of remote server
          port,        % server port
