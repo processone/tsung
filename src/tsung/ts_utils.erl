@@ -275,7 +275,10 @@ erl_system_args(extended)->
              end,
     Shared = SetArg(shared),
     Hybrid = SetArg(hybrid),
-    Smp = SetArg(smp),
+    case  ?config(smp_disable) of
+        true ->   Smp = " -smp disable ";
+        _    ->   Smp = SetArg(smp)
+    end,
     Inet = case init:get_argument(kernel) of
                {ok,[["inetrc",InetRcFile]]} ->
                    ?LOGF("Get inetrc= ~p~n",[InetRcFile],?NOTICE),
