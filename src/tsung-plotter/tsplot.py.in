@@ -59,6 +59,7 @@ class Plot:
                  tn_dpi  = 50,
                  xfactor = 1,
                  yfactor = 1,
+                 yscale  = 'linear',
                  plottype  = 'lineplot', # can be lineplot or bar
                  outdir  = '/tmp/tsung-plotter',
                  imgtype = 'png'):
@@ -73,6 +74,7 @@ class Plot:
         self.thumb_dpi = tn_dpi
         self.xfactor   = xfactor
         self.yfactor   = yfactor
+        self.yscale    = yscale
         self.plottype  = plottype
         self.styles    = styles
         self.colors    = colors
@@ -86,6 +88,7 @@ class Plot:
             # prepare matplotlib graph
             clf()
             ax = subplot(111)
+            ax.set_yscale(self.yscale)
 
             count = 0
             for data in dataset:
@@ -133,6 +136,7 @@ class Plot:
             percent = []
             ticksp = []
             ax = subplot(111)
+            ax.set_yscale(self.yscale)
             for data in dataset:
                 for (name, stat) in stats:
                     pdata = data.stat(name, stat)
@@ -210,7 +214,7 @@ def main(conffile, logs, legends, outdir, verbose):
         p.legends = l
 
         # Text parameters - to decode into specified encoding
-        for attr in ['title', 'xlabel', 'ylabel', 'plottype']:
+        for attr in ['title', 'xlabel', 'ylabel', 'plottype', 'yscale']:
             if config.has_option(s, attr):
                 cstring = config.get(s, attr).decode(encoding)
                 p.__dict__[attr] = cstring
