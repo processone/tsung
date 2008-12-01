@@ -39,7 +39,9 @@
 -include("ts_config.hrl").
 
 %% External exports, API
--export([start/0, stop/0, add/1, dumpstats/0, set_output/2, status/0 ]).
+-export([start/0, stop/0, stop/1, start/1, add/1, add/2, dumpstats/0,dumpstats/1,
+         set_output/2, set_output/3,
+         status/0 ]).
 
 %% More external exports for ts_mon
 -export([print_stats_txt/3, update_stats/3, add_stats_data/2, reset_all_stats/1]).
@@ -51,6 +53,7 @@
 -record(state, {log,          % log fd
                 backend,      % type of backend: text|rrdtool|fullstats
                 dump_interval,%
+                type = ts_stats_mon, % type of stats
                 fullstats,    % fullstats filename
                 stats,        % dict keeping stats info
                 laststats     % values of last printed stats
@@ -64,24 +67,41 @@
 %% @spec start() -> ok | throw({error, Reason})
 %% @doc Start the monitoring process
 %%----------------------------------------------------------------------
+start(Id) ->
+    ?LOGF("starting ~p stats server, global ~n",[Id],?NOTICE),
+    gen_server:start_link({global, Id}, ?MODULE, [Id], []).
+
 start() ->
     ?LOG("starting stats server, global ~n",?NOTICE),
-    gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
+    gen_server:start_link({global, ?MODULE}, ?MODULE, [?MODULE], []).
+
+stop(Id) ->
+    gen_server:cast({global, Id}, {stop}).
 
 stop() ->
     gen_server:cast({global, ?MODULE}, {stop}).
 
+add([]) -> ok;
 add(Data) ->
     gen_server:cast({global, ?MODULE}, {add, Data}).
+
+add([], Id) -> ok;
+add(Data, Id) ->
+    gen_server:cast({global, Id}, {add, Data}).
 
 status() ->
     gen_server:call({global, ?MODULE}, {status}).
 
 dumpstats() ->
     gen_server:cast({global, ?MODULE}, {dumpstats}).
+dumpstats(Id) ->
+    gen_server:cast({global, Id}, {dumpstats}).
 
 set_output(BackEnd,Stream) ->
-    gen_server:cast({global, ?MODULE}, {set_output, BackEnd, Stream}).
+    set_output(BackEnd,Stream,?MODULE).
+
+set_output(BackEnd,Stream,Id) ->
+    gen_server:cast({global, Id}, {set_output, BackEnd, Stream}).
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from gen_server
@@ -94,11 +114,12 @@ set_output(BackEnd,Stream) ->
 %%          ignore               |
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
-init([]) ->
-    ?LOG("starting stats server~n",?NOTICE),
+init([Id]) ->
+    ?LOGF("starting ~p stats server~n",[Id],?NOTICE),
     Tab = dict:new(),
     {ok, #state{ dump_interval = ?config(dumpstats_interval),
                  stats   = Tab,
+                 type    = Id,
                  laststats = Tab
                 }}.
 

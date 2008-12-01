@@ -44,7 +44,11 @@
 
 -record(state, {
           stats=[],  % cache stats msgs
-          match=[]   % cache match logs
+          transactions=[],  % cache transaction stats msgs
+          pages=[],  % cache pages stats msgs
+          requests=[],  % cache requests stats msgs
+          match=[],   % cache match logs
+          sum   % cache sum stats msgs
          }).
 
 -define(DUMP_STATS_INTERVAL, 500). % in milliseconds
@@ -89,7 +93,7 @@ add_match(Data,{UserId,SessionId,RequestId,TimeStamp}) ->
 %%--------------------------------------------------------------------
 init([]) ->
     erlang:start_timer(?DUMP_STATS_INTERVAL, self(), dump_stats ),
-    {ok, #state{}}.
+    {ok, #state{sum=dict:new()}}.
 
 %%--------------------------------------------------------------------
 %% Function: handle_call/3
@@ -112,10 +116,13 @@ handle_call(_Request, _From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-handle_cast({add, Data}, State=#state{stats=List}) when is_list(Data) ->
-    {noreply, State#state{stats = lists:append(Data, List)} };
-handle_cast({add, Data}, State=#state{stats=List}) when is_tuple(Data) ->
-    {noreply, State#state{stats = lists:append([Data], List)} };
+handle_cast({add, Data}, State) when is_list(Data) ->
+    LastState = lists:foldl(fun(NewData,NewState)->
+                        update_stats(NewData,NewState)
+                end, State, Data),
+    {noreply, LastState };
+handle_cast({add, Data}, State) when is_tuple(Data) ->
+    {noreply,update_stats(Data, State)};
 handle_cast({add_match, Data=[First|_Tail],{UserId,SessionId,RequestId,TimeStamp}},
             State=#state{stats=List, match=MatchList})->
     NewMatchList=lists:append([{UserId,SessionId,RequestId,TimeStamp,First}], MatchList),
@@ -131,15 +138,16 @@ handle_cast(_Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-handle_info({timeout, _Ref, dump_stats}, State = #state{stats =[]}) ->
-    erlang:start_timer(?DUMP_STATS_INTERVAL, self(), dump_stats ),
-    {noreply, State};
-
 handle_info({timeout, _Ref, dump_stats}, State =#state{stats= Stats, match=MatchList}) ->
-    ts_stats_mon:add(Stats),
+    Fun = fun(Key,Val, Acc) -> [{sum,Key,Val}| Acc] end,
+    NewStats=dict:fold(Fun, Stats, State#state.sum),
+    ts_stats_mon:add(NewStats),
+    ts_stats_mon:add(State#state.requests,request),
+    ts_stats_mon:add(State#state.transactions,transaction),
+    ts_stats_mon:add(State#state.pages,page),
     ts_match_logger:add(MatchList),
     erlang:start_timer(?DUMP_STATS_INTERVAL, self(), dump_stats ),
-    {noreply, State#state{stats=[],match=[]}};
+    {noreply, State#state{stats=[],match=[],pages=[],requests=[],transactions=[],sum=dict:new()}};
 
 handle_info(_Info, State) ->
     {noreply, State}.
@@ -160,4 +168,21 @@ terminate(Reason, _State) ->
 %%--------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+
+update_stats(S={sample, request, _}, State=#state{requests=L}) ->
+    State#state{requests=lists:append([S],L)};
+update_stats(S={sample, page, _}, State=#state{pages=L}) ->
+    State#state{pages=lists:append([S],L)};
+update_stats(S={sample, _Type, _}, State=#state{transactions=L}) ->
+    State#state{transactions=lists:append([S],L)};
+update_stats({sum, Type, Val}, State=#state{sum=Sum}) ->
+    NewSum=dict:update_counter(Type,Val,Sum),
+    State#state{sum=NewSum};
+update_stats({count, Type}, State=#state{sum=Sum}) ->
+    NewSum=dict:update_counter(Type,1,Sum),
+    State#state{sum=NewSum};
+update_stats(Data, State=#state{stats=L})  when is_tuple(Data)->
+    State#state{stats=lists:append([Data],L)}.
+
 

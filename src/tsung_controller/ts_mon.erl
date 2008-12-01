@@ -358,6 +358,9 @@ start_logger({Machines, DumpType, fullstats}, _From, State) ->
             timer:apply_interval(State#state.dump_interval, ?MODULE, dumpstats, [] ),
             start_launchers(Machines),
             ts_stats_mon:set_output(fullstats,{State#state.log, Stream}),
+            ts_stats_mon:set_output(fullstats,{State#state.log, Stream}, transaction),
+            ts_stats_mon:set_output(fullstats,{State#state.log, Stream}, request),
+            ts_stats_mon:set_output(fullstats,{State#state.log, Stream}, page),
             start_dump(State#state{type=DumpType, backend=fullstats, fullstats=Stream});
         {error, Reason} ->
             ?LOGF("Can't open mon log file ~p! ~p~n",[Filename,Reason], ?ERR),
@@ -369,6 +372,9 @@ start_logger({Machines, DumpType, Backend}, _From, State) ->
     timer:apply_interval(State#state.dump_interval, ?MODULE, dumpstats, [] ),
     start_launchers(Machines),
     ts_stats_mon:set_output(text,{State#state.log,[]}),
+    ts_stats_mon:set_output(text,{State#state.log,[]}, transaction),
+    ts_stats_mon:set_output(text,{State#state.log,[]}, request),
+    ts_stats_mon:set_output(text,{State#state.log,[]}, page),
     start_dump(State#state{type=DumpType, backend=text}).
 
 %% @spec start_dump(State::record(state)) -> {reply, Reply, State}
@@ -398,7 +404,10 @@ export_stats(State) ->
                                                      State#state.maxclient]),
     Param = {State#state.laststats,State#state.log},
     dict:fold(fun ts_stats_mon:print_stats_txt/3, Param, State#state.stats),
-    ts_stats_mon:dumpstats().
+    ts_stats_mon:dumpstats(),
+    ts_stats_mon:dumpstats(request),
+    ts_stats_mon:dumpstats(page),
+    ts_stats_mon:dumpstats(transaction).
 
 %%----------------------------------------------------------------------
 %% Func: start_launchers/2
