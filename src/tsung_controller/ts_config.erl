@@ -607,9 +607,14 @@ parse(Element = #xmlElement{name=setdynvars, attributes=Attrs},
                  "file"   ->
                      Order = getAttr(atom,Attrs,order,iter),
                      FileId = getAttr(atom,Attrs,fileid,none),
-                     Delimiter = getAttr(string,Attrs,delimiter,";"),
-                     {setdynvars,file,{Order,FileId,Delimiter},Vars};
-
+                     case lists:keysearch(FileId,1,Conf#config.file_server) of
+                         {value,_Val} ->
+                             Delimiter = getAttr(string,Attrs,delimiter,";"),
+                             {setdynvars,file,{Order,FileId,Delimiter},Vars};
+                         false ->
+                             ?LOGF("Unknown_file_id ~p in file setdynvars declaration: you forgot to add a file_server option~n",[FileId],?EMERG),
+                             exit({error, unknown_file_id})
+                     end;
                  "random_string" ->
                      Length = getAttr(integer,Attrs,length,20),
                      {setdynvars,random,{string,Length},Vars};
