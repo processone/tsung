@@ -43,12 +43,13 @@
 
 
 -record(state, {
-          stats=[],  % cache stats msgs
+          stats=[],         % cache stats msgs
           transactions=[],  % cache transaction stats msgs
-          pages=[],  % cache pages stats msgs
-          requests=[],  % cache requests stats msgs
-          match=[],   % cache match logs
-          sum   % cache sum stats msgs
+          pages=[],         % cache pages stats msgs
+          requests=[],      % cache requests stats msgs
+          connections=[],   % cache connect stats msgs
+          match=[],         % cache match logs
+          sum               % cache sum stats msgs
          }).
 
 -define(DUMP_STATS_INTERVAL, 500). % in milliseconds
@@ -143,11 +144,12 @@ handle_info({timeout, _Ref, dump_stats}, State =#state{stats= Stats, match=Match
     NewStats=dict:fold(Fun, Stats, State#state.sum),
     ts_stats_mon:add(NewStats),
     ts_stats_mon:add(State#state.requests,request),
+    ts_stats_mon:add(State#state.connections,connect),
     ts_stats_mon:add(State#state.transactions,transaction),
     ts_stats_mon:add(State#state.pages,page),
     ts_match_logger:add(MatchList),
     erlang:start_timer(?DUMP_STATS_INTERVAL, self(), dump_stats ),
-    {noreply, State#state{stats=[],match=[],pages=[],requests=[],transactions=[],sum=dict:new()}};
+    {noreply, State#state{stats=[],match=[],pages=[],requests=[],transactions=[],connections=[],sum=dict:new()}};
 
 handle_info(_Info, State) ->
     {noreply, State}.
@@ -170,12 +172,18 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 
-update_stats(S={sample, request, _}, State=#state{requests=L}) ->
-    State#state{requests=lists:append([S],L)};
-update_stats(S={sample, page, _}, State=#state{pages=L}) ->
-    State#state{pages=lists:append([S],L)};
+update_stats({sample, request, Val}, State=#state{requests=L}) ->
+    State#state{requests=lists:append([Val],L)};
+
+update_stats({sample, page, Val}, State=#state{pages=L}) ->
+    State#state{pages=lists:append([Val],L)};
+
+update_stats({sample, connect, Val}, State=#state{connections=L}) ->
+    State#state{connections=lists:append([Val],L)};
+
 update_stats(S={sample, _Type, _}, State=#state{transactions=L}) ->
     State#state{transactions=lists:append([S],L)};
+
 update_stats({sum, Type, Val}, State=#state{sum=Sum}) ->
     NewSum=dict:update_counter(Type,Val,Sum),
     State#state{sum=NewSum};

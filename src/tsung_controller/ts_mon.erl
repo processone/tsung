@@ -183,7 +183,7 @@ handle_call({start_logger, Machines, DumpType, Backend}, From, State) ->
 
 %%% get status
 handle_call({status}, _From, State ) ->
-    Request = ts_stats_mon:status(),
+    Request = ts_stats_mon:status(request),
     Interval = ts_utils:elapsed(State#state.lastdate, now()) / 1000,
     Phase = dict:find({newphase, count}, State#state.stats),
     Connected = dict:find({connected, sum}, State#state.stats),
@@ -323,8 +323,8 @@ handle_info(_Info, State) ->
 terminate(Reason, State) ->
     ?LOGF("stoping monitor (~p)~n",[Reason],?NOTICE),
     export_stats(State),
-    ts_stats_mon:status(), %% blocking call to ts_stats_mon; this way, we are
-                           %% sure the last call to dumpstats is finished
+    ts_stats_mon:status(ts_stats_mon), % blocking call to ts_stats_mon; this way, we are
+                                       % sure the last call to dumpstats is finished
     io:format(State#state.log,"EndMonitor:~w~n",[now()]),
     file:close(State#state.log),
     file:close(State#state.fullstats),
@@ -360,6 +360,7 @@ start_logger({Machines, DumpType, fullstats}, _From, State) ->
             ts_stats_mon:set_output(fullstats,{State#state.log, Stream}),
             ts_stats_mon:set_output(fullstats,{State#state.log, Stream}, transaction),
             ts_stats_mon:set_output(fullstats,{State#state.log, Stream}, request),
+            ts_stats_mon:set_output(fullstats,{State#state.log, Stream}, connect),
             ts_stats_mon:set_output(fullstats,{State#state.log, Stream}, page),
             start_dump(State#state{type=DumpType, backend=fullstats, fullstats=Stream});
         {error, Reason} ->
@@ -374,6 +375,7 @@ start_logger({Machines, DumpType, Backend}, _From, State) ->
     ts_stats_mon:set_output(text,{State#state.log,[]}),
     ts_stats_mon:set_output(text,{State#state.log,[]}, transaction),
     ts_stats_mon:set_output(text,{State#state.log,[]}, request),
+    ts_stats_mon:set_output(text,{State#state.log,[]}, connect),
     ts_stats_mon:set_output(text,{State#state.log,[]}, page),
     start_dump(State#state{type=DumpType, backend=text}).
 
@@ -404,10 +406,11 @@ export_stats(State) ->
                                                      State#state.maxclient]),
     Param = {State#state.laststats,State#state.log},
     dict:fold(fun ts_stats_mon:print_stats_txt/3, Param, State#state.stats),
-    ts_stats_mon:dumpstats(),
     ts_stats_mon:dumpstats(request),
     ts_stats_mon:dumpstats(page),
-    ts_stats_mon:dumpstats(transaction).
+    ts_stats_mon:dumpstats(connect),
+    ts_stats_mon:dumpstats(transaction),
+    ts_stats_mon:dumpstats().
 
 %%----------------------------------------------------------------------
 %% Func: start_launchers/2

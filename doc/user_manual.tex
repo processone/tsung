@@ -337,6 +337,7 @@ Use the Tsung mailing list (see
 \url{https://lists.process-one.net/mailman/listinfo/tsung-users}) if you have
 suggestions or questions about \program{Tsung}. You can also use the
 bugtracker available at \url{https://support.process-one.net/browse/TSUN}.
+You can also try the \#tsung IRC channel on Freenode.
 
 \section{Benchmark approach}
 
@@ -1910,7 +1911,9 @@ several problems:
 \begin{enumerate}
 \item ssh in not working (you must have a key without passphrase, or
   use an agent)
-\item  A firewall is dropping erlang packets: indeed erlang virtual machines use
+\item Tsung and Erlang are not installed on all clients nodes
+\item Erlang version or location (install path) is not the same on all clients nodes
+\item A firewall is dropping erlang packets: indeed erlang virtual machines use
 several tcp ports (dynamically generated) to communicate.
 \item SELinux: You should disable SELinux on all clients.
 \item Bad \filename{/etc/hosts:}

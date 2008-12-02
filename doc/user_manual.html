@@ -95,7 +95,7 @@ a:hover     {background:#ffffaa;}
 <!--ENDHTML-->
 <!--CUT DEF section 1 --><H1 ALIGN=center>Tsung User’s manual</H1><DIV CLASS="center">
 
-<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>911</TD></TR>
+<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>952</TD></TR>
 <TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>21 novembre 2008</TD></TR>
 </TABLE>
 </DIV><!--TOC section Table des matières-->
@@ -440,7 +440,8 @@ is created for each test using the current date as name
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc19">3.4</A>  Feedback</H3><!--SEC END --><P>Use the Tsung mailing list (see
 <A HREF="https://lists.process-one.net/mailman/listinfo/tsung-users"><TT>https://lists.process-one.net/mailman/listinfo/tsung-users</TT></A>) if you have
 suggestions or questions about <EM>Tsung</EM>. You can also use the
-bugtracker available at <A HREF="https://support.process-one.net/browse/TSUN"><TT>https://support.process-one.net/browse/TSUN</TT></A>.</P><!--TOC section Benchmark approach-->
+bugtracker available at <A HREF="https://support.process-one.net/browse/TSUN"><TT>https://support.process-one.net/browse/TSUN</TT></A>.
+You can also try the #tsung IRC channel on Freenode.</P><!--TOC section Benchmark approach-->
 <H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc20">4</A>  Benchmark approach</H2><!--SEC END --><!--TOC subsection HTTP/WebDAV benchmark approach-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc21">4.1</A>  HTTP/WebDAV benchmark approach</H3><!--SEC END --><!--TOC subsubsection Benchmarking a Web server-->
 <H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc22">4.1.1</A>  Benchmarking a Web server</H4><!--SEC END --><OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
@@ -2329,6 +2330,8 @@ several problems:
 </P><OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
 ssh in not working (you must have a key without passphrase, or
 use an agent)
+</LI><LI CLASS="li-enumerate">Tsung and Erlang are not installed on all clients nodes
+</LI><LI CLASS="li-enumerate">Erlang version or location (install path) is not the same on all clients nodes
 </LI><LI CLASS="li-enumerate">A firewall is dropping erlang packets: indeed erlang virtual machines use
 several tcp ports (dynamically generated) to communicate.
 </LI><LI CLASS="li-enumerate">SELinux: You should disable SELinux on all clients.
@@ -2340,7 +2343,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 <TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
-</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">127.0.0.1 localhost myrealhostname
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">127.0.0.1 localhost myhostname
 </PRE></TD></TR>
 </TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
@@ -2357,7 +2360,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 <TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
 </TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">127.0.0.1 localhost
-192.168.3.2 myrealhostname
+192.168.3.2 myhostname
 </PRE></TD></TR>
 </TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>

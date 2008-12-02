@@ -41,7 +41,7 @@
 %% External exports, API
 -export([start/0, stop/0, stop/1, start/1, add/1, add/2, dumpstats/0,dumpstats/1,
          set_output/2, set_output/3,
-         status/0 ]).
+         status/1 ]).
 
 %% More external exports for ts_mon
 -export([print_stats_txt/3, update_stats/3, add_stats_data/2, reset_all_stats/1]).
@@ -85,12 +85,12 @@ add([]) -> ok;
 add(Data) ->
     gen_server:cast({global, ?MODULE}, {add, Data}).
 
-add([], Id) -> ok;
+add([], _Id) -> ok;
 add(Data, Id) ->
     gen_server:cast({global, Id}, {add, Data}).
 
-status() ->
-    gen_server:call({global, ?MODULE}, {status}).
+status(Id) ->
+    gen_server:call({global, Id}, {status}).
 
 dumpstats() ->
     gen_server:cast({global, ?MODULE}, {dumpstats}).
@@ -114,6 +114,16 @@ set_output(BackEnd,Stream,Id) ->
 %%          ignore               |
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
+%% single type of data: don't need a dict, a simple list can store the data
+init([Type]) when Type == 'connect'; Type == 'page'; Type == 'request' ->
+    ?LOGF("starting dedicated stats server for ~p ~n",[Type],?NOTICE),
+    Stats = [0,0,0,0,0,0,0,0],
+    {ok, #state{ dump_interval = ?config(dumpstats_interval),
+                 stats     = Stats,
+                 type      = Type,
+                 laststats = Stats
+                }};
+%% id = transaction or ?MODULE: it can handle several types of stats, must use a dict.
 init([Id]) ->
     ?LOGF("starting ~p stats server~n",[Id],?NOTICE),
     Tab = dict:new(),
@@ -132,8 +142,11 @@ init([Id]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
+handle_call({status}, _From, State=#state{stats=Stats} ) when is_list(Stats) ->
+    [_Esp, _Var, _Max, _Min, Count, _MeanFB,_CountFB,_Last] = Stats,
+    {reply, Count, State};
 handle_call({status}, _From, State ) ->
-    Request = dict:find({request, sample}, State#state.stats),
+    Request = dict:find({request, sample}, State#state.stats), %%FIXME
     {reply, Request, State};
 
 handle_call(Request, _From, State) ->
@@ -147,6 +160,17 @@ handle_call(Request, _From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
+handle_cast({add, Data}, State=#state{type=Type}) when (( Type == 'connect') or
+                                                         (Type == 'page') or
+                                                         (Type == 'request'))  ->
+    case State#state.backend of
+        fullstats -> io:format(State#state.fullstats,"~p~n",[{sample, Type, Data}]);
+        _Other   -> ok
+    end,
+    [Esp, Var, Max, Min, I, MeanFB,CountFB,Last] = State#state.stats,
+    {NewEsp,NewVar,NewMin,NewMax,NewI} = ts_stats:meanvar_minmax(Esp,Var,Min,Max,Data,I),
+    {noreply,State#state{stats=[NewEsp,NewVar,NewMax,NewMin,NewI,MeanFB,CountFB,Last]}};
+
 handle_cast({add, Data}, State) when is_list(Data) ->
     case State#state.backend of
         fullstats -> io:format(State#state.fullstats,"~p~n",[Data]);
@@ -215,7 +239,7 @@ code_change(_OldVsn, StateData, _Extra) ->
 %% Returns: Dict
 %%----------------------------------------------------------------------
 %% continuous incrementing counters
-add_stats_data({Type, Name,Value},Stats) when Type==sample;
+add_stats_data({Type, Name, Value},Stats) when Type==sample;
                                               Type==sample_counter ->
     MyFun = fun (OldVal) -> update_stats(Type, OldVal, Value) end,
     dict:update({Name,Type}, MyFun, update_stats(Type, [], Value), Stats);
@@ -229,8 +253,10 @@ add_stats_data({sum, Name, Val}, Stats)  ->
 %%----------------------------------------------------------------------
 %% Func: export_stats/2
 %%----------------------------------------------------------------------
+export_stats(State=#state{type=Type}) when Type == 'connect'; Type == 'page'; Type == 'request' ->
+    Param = {State#state.laststats,State#state.log},
+    print_stats_txt({Type,sample}, State#state.stats, Param);
 export_stats(State=#state{backend=_Backend}) ->
-    %% print number of simultaneous users
     Param = {State#state.laststats,State#state.log},
     dict:fold(fun print_stats_txt/3, Param, State#state.stats).
 
@@ -287,28 +313,29 @@ update_stats(sample_counter,Data, Value) ->
 update_stats2([Mean, Var, Max, Min, Count, MeanFB,CountFB,Last], Value, NewLast) ->
     New = Value-Last,
     {NewMean, NewVar, _} = ts_stats:meanvar(Mean, Var, [New], Count),
-    case New > Max of
-        true -> % new max, min unchanged
+    if
+        New > Max -> % new max, min unchanged
             [NewMean, NewVar, New, Min, Count+1, MeanFB,CountFB,NewLast];
-        false ->
-            case New < Min of
-                true ->
-                    [NewMean, NewVar, Max, New, Count+1, MeanFB,CountFB,NewLast];
-                false ->
-                    [NewMean, NewVar, Max, Min, Count+1, MeanFB,CountFB,NewLast]
-            end
+        New < Min ->
+            [NewMean, NewVar, Max, New, Count+1, MeanFB,CountFB,NewLast];
+        true ->
+            [NewMean, NewVar, Max, Min, Count+1, MeanFB,CountFB,NewLast]
     end.
 
 %%----------------------------------------------------------------------
 %% Func: reset_all_stats/1
 %%----------------------------------------------------------------------
+reset_all_stats(Data) when is_list(Data)->
+    reset_stats(Data);
 reset_all_stats(Dict)->
     MyFun = fun (_Key, OldVal) -> reset_stats(OldVal) end,
     dict:map(MyFun, Dict).
 
 %%----------------------------------------------------------------------
-%% Func: reset_stats/1
-%% @doc reset all stats except min and max and lastvalue.
+%% @spec reset_stats(list()) -> list()
+%% @doc reset all stats except min and max and lastvalue. Compute the
+%%      global mean here
+%% @end
 %%----------------------------------------------------------------------
 reset_stats([]) ->  % FIXME: useful ?!
     [0, 0, 0, 0, 0, 0, 0];
