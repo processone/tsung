@@ -35,6 +35,7 @@
          mean/1, mean/3,
          variance/1,
          meanvar/4,
+         meanvar_minmax/6,
          stdvar/1]).
 
 -import(math, [log/1, pi/0, sqrt/1, pow/2]).
@@ -130,14 +131,44 @@ mean([]) -> 0;
 mean(H) ->
     mean(0, H, 0).
 
-%% incremental computation of the variance
-meanvar(Esp, Var,[], I) -> {Esp, Var, I};
+%% @spec meanvar(Esp::number(),Var::number(),X::list() | number(),I::integer()) ->
+%%      {NewEsp::number(), NewVar::number(), Next::integer()}
+%% @doc incremental computation of the mean and variance together. The
+%%      algorithm should limit the round-off errors
+%% @end
 
-meanvar(Esp, Var, [X|H], I) ->
+%% single value
+meanvar(Esp, Var, X, I) when is_number(X) ->
     Next = I+1,
     C = X - Esp,
-    EspNew = (X+Esp*I)/(Next),
-    meanvar(EspNew, Var+C*(X-EspNew) , H, Next).
+    NewEsp =  (X+Esp*I)/(Next),
+    NewVar = Var+C*(X-NewEsp),
+    { NewEsp, NewVar, Next };
+%% list of samples
+meanvar(Esp, Var,[], I) ->
+    {Esp, Var, I};
+meanvar(Esp, Var, [X|H], I) ->
+    {NewEsp, NewVar, Next} = meanvar(Esp,Var,X,I),
+    meanvar(NewEsp, NewVar, H, Next).
+
+%% compute min and max also
+meanvar_minmax(Esp, Var, Min, Max, X, I) when is_number(X)->
+    meanvar_minmax(Esp, Var, Min, Max, [X], I);
+meanvar_minmax(Esp, Var, Min, Max, [], I) ->
+    {Esp, Var, Min, Max, I};
+meanvar_minmax(Esp, Var, 0, 0, [X|H], I) -> % first data, set min and max
+    meanvar_minmax(Esp, Var, X, X, [X|H], I);
+meanvar_minmax(Esp, Var, Min, Max, [X|H], I) ->
+    {NewEsp, NewVar, Next} = meanvar(Esp,Var,X,I),
+    if
+        X > Max -> % new max, min unchanged
+            meanvar_minmax(NewEsp, NewVar, Min, X, H, Next);
+        X < Min -> % new min, max unchanged
+            meanvar_minmax(NewEsp, NewVar, X, Max, H, Next);
+        true ->
+            meanvar_minmax(NewEsp, NewVar, Min, Max, H, Next)
+    end.
+
 
 %% compute the variance of a list
 variance([]) -> 0;
