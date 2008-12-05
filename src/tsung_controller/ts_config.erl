@@ -479,7 +479,8 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     Cipher = getAttr(string,Attrs, value, negociate),
                     OldProto =  Conf#config.proto_opts,
                     NewProto =  OldProto#proto_opts{ssl_ciphers=Cipher},
-                    lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto});
+                    lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                 Element#xmlElement.content);
                 "hibernate" ->
                     Hibernate = case  getAttr(integer,Attrs, value, infinity ) of
                                     infinity -> infinity;
