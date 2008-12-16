@@ -51,6 +51,7 @@
                 phases =[],
                 myhostname,
                 intensity,
+                started_users = 0,
                 phase_nusers,   % total number of users to start in the current phase
                 phase_duration, % expected phase duration
                 phase_start,    % timestamp
@@ -158,8 +159,9 @@ launcher(_Event, #state{nusers = 0, phases = [] }) ->
 
 launcher(timeout, State=#state{nusers    = Users,
                                phase_nusers = PhaseUsers,
-                               phases    = Phases,
-                               intensity = Intensity}) ->
+                               phases     = Phases,
+                               started_users = Started,
+                               intensity  = Intensity}) ->
     BeforeLaunch = now(),
     case do_launch({Intensity,State#state.myhostname}) of
         {ok, Wait} ->
@@ -187,7 +189,8 @@ launcher(timeout, State=#state{nusers    = Users,
                             ts_config_server:endlaunching(node()),
                             {next_state,finish, State, ?check_noclient_timeout};
                         {continue} ->
-                            LaunchDuration = ts_utils:elapsed(BeforeLaunch, now()),
+                            Now=now(),
+                            LaunchDuration = ts_utils:elapsed(BeforeLaunch, Now),
                             %% to keep the rate of new users as expected,
                             %% remove the time to launch a client to the next
                             %% wait.
@@ -196,7 +199,7 @@ launcher(timeout, State=#state{nusers    = Users,
                                           false -> 0
                                       end,
                             ?DebugF("Real Wait =~p ~n", [NewWait]),
-                            {next_state,launcher,State#state{nusers = Users-1} , NewWait}
+                            {next_state,launcher,State#state{nusers = Users-1, started_users=Started+1} , NewWait}
                     end
             end;
         error ->
@@ -316,7 +319,8 @@ change_phase(_N, _, _Current, {_Total, _}) ->
 %%% Func: check_max_raised/1
 %%%----------------------------------------------------------------------
 check_max_raised(State=#state{phases=Phases,maxusers=Max,nusers=Users,
-                              intensity=Intensity})->
+                              started_users=Started,
+                              intensity=Intensity}) when Started >= Max ->
     ActiveClients =  ts_client_sup:active_clients(),
     case ActiveClients >= Max of
         true ->
@@ -330,7 +334,9 @@ check_max_raised(State=#state{phases=Phases,maxusers=Max,nusers=Users,
         false ->
             ?DebugF("Current clients on beam: ~p~n", [ActiveClients]),
             false
-    end.
+    end;
+check_max_raised(_) -> % number of started users less than max, no need to check
+    false.
 
 %%%----------------------------------------------------------------------
 %%% Func: do_launch/1
