@@ -183,12 +183,13 @@ distribution (currently exponential)
 
 \subsection{WEBDAV related features}
 
-The Webdav plugin is a superset of the HTTP plugin. It adds the
-following features:
+The Webdav (RFC 4918) plugin is a superset of the HTTP plugin. It adds the
+following features (some versioning extensions to WebDAV (RFC 3253)
+are also supported):
 
 \begin{itemize}
 \item Methods implemented: DELETE, CONNECT, PROPFIND, PROPPATCH, COPY,
-  MOVE, LOCK, UNLOCK, MKCOL, REPORT, OPTIONS
+  MOVE, LOCK, UNLOCK, MKCOL, REPORT, OPTIONS, MKACTIVITY, CHECKOUT, MERGE
 \item Recording of DEPTH, IF, TIMEOUT OVERWRITE, DESTINATION, URL and
   LOCK-TOKEN Headers.
 \end{itemize}
@@ -761,8 +762,15 @@ a cluster of 6 computers:
   </monitoring>
 \end{Verbatim}
 
+
+\par Note: For Erlang monitoring, monitored computers need to be
+accessible through the network. SSH (or rsh) needs to be configured to
+allow connection without password on. \strong{You must use the same
+  version of Erlang/OTP on all nodes otherwise it may not work
+  properly !}
+
 \subsubsection{SNMP}
-The type keyword snmp can replace the erlang keyword, if SNMP monitoring
+The type keyword \userinput{snmp} can replace the erlang keyword, if SNMP monitoring
 is preferred. They can be mixed. \userinput{erlang} is the default value for
 monitoring. Since version 1.2.2, you can customize the snmp version,
 community and port number.
@@ -780,14 +788,20 @@ community and port number.
 The default version is \userinput{v1}, default community
 \userinput{public} and default port \userinput{161}.
 
+\subsubsection{Munin}
 
+Since version 1.3.1, tsung is able to retrieve data from a munin-node agent
+(see \url{http://munin.projects.linpro.no/wiki/munin-node}). The type
+keyword must be set to \userinput{munin}, for example:
 
+\begin{Verbatim}
+  <monitoring>
+    <monitor host="geronimo" type="munin"/>
+    <monitor host="f14-2" type="erlang"></monitor>
+  </monitoring>
+\end{Verbatim}
 
-\par Note: For Erlang monitoring, monitored computers need to be
-accessible through the network. SSH (or rsh) needs to be configured to
-allow connection without password on. \strong{You must use the same
-  version of Erlang/OTP on all nodes otherwise it may not work
-  properly !}
+Currently, only cpu and memory information is monitored.
 
 \subsection{Defining the load progression}
 
@@ -1632,7 +1646,8 @@ You can use a regexp instead of a simple string.
 
 The list of available actions to do is:
 \begin{itemize}
-\item continue
+\item continue: do nothing, continue (only update match or nomatch counters)
+\item log: log the request id, userid, sessionid in a file (in \file{match.log})
 \item abort : abort the session
 \item restart: restart the session. The maximum number of
   restarts is 3 by default.
@@ -1684,7 +1699,7 @@ The order is respected for paths without "descendant-or-self" axis, so this: \us
 
 Basic tests shows a x4 improvement in speed over the \emph{regexp} implementation.
 
-\subsubsection{Loops}
+\subsubsection{Loops, If}
 
 \strong{Since 1.3.0}, it's now possible to add conditional/unconditional loops in a session:
 
@@ -1735,6 +1750,19 @@ The last element of repeat must be either \userinput{<while>} or \userinput{<unt
 
   <until var="result" eq="5"/> </repeat>
 \end{Verbatim}
+
+\strong{Since 1.3.1}, it's also possible to add if statements based on
+dynamic variables:
+\paragraph{<if>}
+
+\begin{Verbatim}
+<if var="tsung_userid" eq="3">  
+  <request> <http url="/foo"/> </request>
+  <request> <http url="/bar"/> </request>
+</if>
+\end{Verbatim}
+
+You can use \varname{eq} or \varname{neq} to check the variable.
 
 \section{Statistics and reports}
 \label{sec:statistics-reports}
@@ -1916,7 +1944,7 @@ several problems:
 \item A firewall is dropping erlang packets: indeed erlang virtual machines use
 several tcp ports (dynamically generated) to communicate.
 \item SELinux: You should disable SELinux on all clients.
-\item Bad \filename{/etc/hosts:}
+\item Bad \file{/etc/hosts:}
 This one is wrong (real hostname should not refer to localhost/loopback):
 \begin{Verbatim}
 127.0.0.1 localhost myhostname
