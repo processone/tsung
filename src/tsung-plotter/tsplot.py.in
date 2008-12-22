@@ -34,7 +34,7 @@ import os, sys
 LIBDIR         = "@EXPANDED_LIBDIR@"
 SHAREDIR       = "@EXPANDED_SHAREDIR@"
 USERDIR        = ".tsung"
-CONF           = "plots.conf"
+CONF           = "http.plots.en.conf"
 SYS_STATS_CONF = os.path.join(SHAREDIR, 'tsung_plotter', 'stats.conf')
 
 sys.path.append(LIBDIR)
@@ -251,7 +251,7 @@ if __name__ == "__main__":
         if os.access(userconf, os.R_OK):
             config = userconf
         else:
-            config = os.path.join(LIBDIR, CONF)
+            config = os.path.join(SHAREDIR, 'tsung_plotter', CONF)
     else:
         config = options.config
 
