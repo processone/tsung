@@ -32,7 +32,7 @@
 -record(match,
         { regexp,
          'when' = false,
-          do    = continue, %(continue | loop | stop)
+          do    = continue, %(continue | loop | abort | log )
           sleep_loop, % in seconds
           max_loop,
           loop_back,

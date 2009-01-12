@@ -143,11 +143,12 @@ init_dynparams() ->
 
 
 %%----------------------------------------------------------------------
-%% Function: subst/2
-%% Purpose: Replace on the fly dynamic element of the HTTP request For
+%% @spec subst(Req::#http_request{}, DynData::#dyndata{} ) -> #http_request{}
+%% @doc Replace on the fly dynamic element of the HTTP request For
 %%          the moment, we only do dynamic substitution in URL, body,
 %%          userid, passwd, because we see no need for the other HTTP
 %%          request parameters.
+%% @end
 %%----------------------------------------------------------------------
 subst(Req=#http_request{url=URL, body=Body, headers = Headers, userid=UserId, passwd=Passwd}, DynData) ->
     Req#http_request{url = ts_search:subst(URL, DynData),
