@@ -57,7 +57,7 @@
 %%%----------------------------------------------------------------------
 
 %%----------------------------------------------------------------------
-%% @spec start() -> ok | throw({error, Reason})
+%% @spec start(LogDir::string()) -> ok | throw({error, Reason})
 %% @doc Start the monitoring process
 %% @end
 %%----------------------------------------------------------------------
@@ -96,6 +96,7 @@ init([LogDir]) ->
     case file:open(Filename,[write, {delayed_write, ?DELAYED_WRITE_SIZE, ?DELAYED_WRITE_DELAY}]) of
         {ok, Fd} ->
             ?LOG("starting match logger~n",?NOTICE),
+            io:format(Fd,"# timestamp userid sessionid requestid event~n",[]),
             {ok, #state{ fd       = Fd,
                          filename = Filename
                        }};
