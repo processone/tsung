@@ -49,7 +49,7 @@
 
 %%--------------------------------------------------------------------
 %% External exports
--export([start/0, start/1, stop/0, activate/0, send/2]).
+-export([start/0, start/1, stop/0, activate/0, activated/1, send/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -77,8 +77,11 @@ activate() ->
            ?LOG("os_mon disabled",?NOTICE),
             ok;
         Hosts ->
-            gen_server:cast(?SERVER, {activate, Hosts})
+            gen_server:cast({global,?SERVER}, {activate, Hosts})
     end.
+
+activated({Id, Type, Node}) ->
+    gen_server:cast({global,?SERVER}, {activated, {Id, Type, Node}}).
 
 %%% send data back to the controlling node
 send(Mon_Server, Data) when is_pid(Mon_Server) ->
@@ -93,18 +96,18 @@ send(Mon_Server, Data) ->
 %%--------------------------------------------------------------------
 start() ->
     ?LOG("starting os_mon",?NOTICE),
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [], ?OPTIONS).
+    gen_server:start_link({global, ?SERVER}, ?MODULE, [], ?OPTIONS).
 
 start(Args) ->
     ?LOGF("starting os_mon with args ~p",[Args],?NOTICE),
-    gen_server:start_link({local, ?SERVER}, ?MODULE, Args, ?OPTIONS).
+    gen_server:start_link({global, ?SERVER}, ?MODULE, Args, ?OPTIONS).
 
 %%--------------------------------------------------------------------
 %% Function: stop/0
 %% Description: Stop the server
 %%--------------------------------------------------------------------
 stop() ->
-    gen_server:call(?SERVER, {stop}, ?OTP_TIMEOUT).
+    gen_server:call({global,?SERVER}, {stop}, ?OTP_TIMEOUT).
 
 
 
@@ -153,9 +156,25 @@ handle_call(_Request, _From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
 handle_cast({activate, Hosts}, State) ->
-    NewState = active_host(Hosts,State),
+    Activate = fun({HostStr, {erlang, Options}}) ->
+                       %% spawn a process to start remote beams
+                       spawn(ts_os_mon_erlang,init,[HostStr, Options,State]);
+                  ({HostStr, {Type, Options}}) ->
+                       Module= plugin_module(Type),
+                       Module:init(HostStr, Options,State)
+               end,
+    lists:foreach(Activate,Hosts),
     erlang:start_timer(State#os_mon.interval, self(), send_request ),
-    {noreply, NewState};
+    {noreply, State};
+
+handle_cast({activated, {Id,Type,Node}}, State=#os_mon{pids=Ids}) ->
+    ?LOGF("os_mon: ~p monitoring activated on ~p (id is ~p)~n",[Type,Node,Id],?NOTICE),
+    NewIds=dict:store(Id,{Type, Node},Ids),
+    case Type of
+        erlang -> link(Id);
+        _      -> ok
+    end,
+    {noreply, State#os_mon{pids=NewIds}};
 
 handle_cast(Msg, State) ->
     ?LOGF("handle cast: unknown msg ~p~n",[Msg],?WARN),
@@ -181,9 +200,13 @@ handle_info({timeout, _Ref, send_request},  State ) ->
 handle_info({'EXIT', From, Reason}, State) ->
     ?LOGF("received exit from ~p with reason ~p~n",[From, Reason],?ERR),
     %% get type  of died pid
-    {Type, Node} = dict:fetch(From, State#os_mon.pids),
-    Module=plugin_module(Type),
-    Module:restart({From, Node}, Reason, State);
+    case dict:find(From, State#os_mon.pids) of
+        {ok, {Type, Node}} ->
+            Module=plugin_module(Type),
+            Module:restart({From, Node}, Reason, State);
+        error -> % exit when starting
+            {noreply, State}
+    end;
 
 handle_info(Data, State) ->
     AllPlugins = get_all_plugins(State),
@@ -198,9 +221,9 @@ handle_info(Data, State) ->
             {noreply, State#os_mon{plugins=AllPlugins}} %% ignore other cases
     end.
 
-get_all_plugins(State=#os_mon{pids=Dict,plugins=[]}) ->
+get_all_plugins(#os_mon{pids=Dict,plugins=[]}) ->
     lists:usort(lists:map(fun({_,{Type,_}})->Type end, dict:to_list(Dict)) );
-get_all_plugins(State=#os_mon{plugins=Plugins}) ->
+get_all_plugins(#os_mon{plugins=Plugins}) ->
     Plugins.
 
 %%--------------------------------------------------------------------
@@ -235,19 +258,3 @@ code_change(_OldVsn, State, _Extra) ->
 
 plugin_module(Type) -> list_to_atom("ts_os_mon_" ++ atom_to_list(Type)).
 
-%%--------------------------------------------------------------------
-%% Function: active_host/2
-%% Purpose: Activate monitoring
-%%--------------------------------------------------------------------
-%% FIXME: start remote beams in parallel
-active_host([], State) ->
-    State;
-active_host([{HostStr, {Type, Options}} | HostList], State=#os_mon{pids=Ids}) ->
-    Module= plugin_module(Type),
-    case Module:init(HostStr,Options, State) of
-        {ok, {Id, Node}} ->
-            NewIds=dict:store(Id,{Type, Node},Ids),
-            active_host(HostList, State#os_mon{pids=NewIds});
-        {error, _Reason} ->
-            active_host(HostList, State)
-    end.

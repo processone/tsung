@@ -40,43 +40,39 @@
 -define(PROCNET, "/proc/net/dev").
 
 
-%% @spec init(HostStr::string,
-%%            Options, State ) ->
-%%       {ok, Pid} | {error, Reason}
-
+%% @spec init(HostStr::string, Options, State ) ->
+%%             ok | {error, Reason}
 init( Host, [],  State) ->
     {ok, LocalHost} = ts_utils:node_to_hostname(node()),
     %% because the stats for cpu has to be called from the same
     %% process (otherwise the same value (mean cpu% since the system
     %% last boot)  is returned by cpu_sup:util), we spawn a process
-    %% on the remove node that will do the stats collection and send it back
+    %% on the remote node that will do the stats collection and send it back
     %% to ts_mon
-
     case list_to_atom(LocalHost) of
         Host -> % same host, don't start a new beam
-            Pid = spawn_link(?MODULE,updatestats,[State#os_mon.interval,State#os_mon.mon_server]),
-            {ok, {Pid, node()}};
+            ?LOG("Running os_mon on the same host as the controller, use the same beam~n",?INFO),
+            ts_os_mon:activated({self(), erlang, node()}),
+            updatestats(State#os_mon.interval,State#os_mon.mon_server);
         _ ->
             case start_beam(Host) of
                 {ok, Node} ->
                     Pong = net_adm:ping(Node),
                     ?LOGF("ping ~p: ~p~n", [Node, Pong],?INFO),
                     load_code([Node]),
-                    Pid = spawn_link(Node, ?MODULE, updatestats,
-                                     [State#os_mon.interval, State#os_mon.mon_server]),
-                    {ok, {Pid, Node}};
+                    Pid = spawn(Node, ?MODULE, updatestats,
+                                [State#os_mon.interval, State#os_mon.mon_server]),
+                    ts_os_mon:activated({Pid, erlang, Node});
                 Error ->
                     ?LOGF("Fail to start beam on host ~p (~p)~n", [Host, Error],?ERR),
                     {error, Error}
             end
     end.
 
-
-
 get_data(_Pids, _State) ->
     ok.
 
-parse(Data, _State) ->
+parse(_Data, _State) ->
     ok.
 
 restart({_OldPid, Node}, _Reason, State) ->
@@ -206,6 +202,6 @@ start_beam(Host) ->
     Args = ts_utils:erl_system_args(),
     ?LOGF("starting os_mon beam (~p) on host ~p with Args ~p~n",
           [?NODE,Host, Args], ?INFO),
-    slave:start_link(Host, ?NODE, Args).
+    slave:start(Host, ?NODE, Args).
 
 

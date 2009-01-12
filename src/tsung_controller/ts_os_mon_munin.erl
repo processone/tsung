@@ -40,7 +40,7 @@
 %% @spec init(HostStr::string,
 %%            Options::[{Port::integer, Community::string, Version::string }],
 %%            State::#os_mon{}) ->
-%%       {ok, {socket(), Hostname::string()}} | {error, Reason::term()}
+%%       ok | {error, Reason::term()}
 init(HostStr, [{Port}], _State) ->
     {ok, Host} = inet:getaddr(HostStr, inet),
     ?LOGF("Starting munin mgr on ~p:~p~n", [Host,Port], ?DEB),
@@ -58,7 +58,7 @@ init(HostStr, [{Port}], _State) ->
                     %% timeout and close the connection
                     gen_tcp:send(Socket,"fetch load\n"),
                     read_munin_data(Socket),
-                    {ok, {Socket, ts_utils:chop(MuninHost) }};
+                    ts_os_mon:activated({socket, munin, ts_utils:chop(MuninHost)});
                 {error, Reason} ->
                     ?LOGF("Error while connecting to munin server: ~p~n", [Reason], ?ERR),
                     {error, Reason}

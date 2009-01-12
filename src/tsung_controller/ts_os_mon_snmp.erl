@@ -50,7 +50,7 @@
 %% @spec init(HostStr::string,
 %%            Options::[{Port::integer, Community::string, Version::string }],
 %%            State:: #os_mon{}) ->
-%%       {ok, {Id::term(), Hostname::string()}} | {error, Reason::term()}
+%%       ok | {error, Reason::term()}
 init( HostStr, [{Port, Community, Version }], _State) ->
     {ok, Host} = inet:getaddr(HostStr, inet),
     ?LOGF("Starting SNMP mgr on ~p~n", [Host], ?DEB),
@@ -65,7 +65,7 @@ init( HostStr, [{Port, Community, Version }], _State) ->
     %% registered name to start several smp_mgr at once !
     unregister(snmp_mgr),
     ?LOGF("SNMP mgr started; remote node is ~p~n", [Host],?INFO),
-    {ok, { Pid, Host }}.
+    ts_os_mon:activated({Pid, snmp, Host}).
 
 
 get_data({Pid, Host}, _State) when is_pid(Pid)->
