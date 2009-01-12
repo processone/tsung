@@ -64,12 +64,21 @@
                 dumpfile,     % file used when dumptrafic is set light or full
                 client=0,     % number of clients currently running
                 maxclient=0,  % max of simultaneous clients
-                stats,        % dict keeping stats info
+                stats,        % record keeping stats info
                 stop = false, % true if we should stop
                 laststats,    % values of last printed stats
                 lastdate,     % date of last printed stats
                 type          % type of logging (none, light, full)
                }).
+
+-record(stats, {
+          newphase    =0,
+          connected   =0,
+          users_count =0,
+          finish_users_count  = 0,
+          os_mon,
+          session = []
+          }).
 
 %%%----------------------------------------------------------------------
 %%% API
@@ -147,13 +156,13 @@ init([LogDir]) ->
     case file:open(Filename,[write]) of
         {ok, Stream} ->
             ?LOG("starting monitor~n",?NOTICE),
-            Tab = dict:new(),
+            Stats = #stats{os_mon  = dict:new()},
             {ok, #state{ log       = Stream,
                          dump_interval = ?config(dumpstats_interval),
                          log_dir   = LogDir,
-                         stats     = Tab,
+                         stats     = Stats,
                          lastdate  = now(),
-                         laststats = Tab
+                         laststats = Stats
                        }};
         {error, Reason} ->
             ?LOGF("Can't open mon log file! ~p~n",[Reason], ?ERR),
@@ -182,11 +191,11 @@ handle_call({start_logger, Machines, DumpType, Backend}, From, State) ->
     start_logger({Machines, DumpType, Backend}, From, State);
 
 %%% get status
-handle_call({status}, _From, State ) ->
-    Request = ts_stats_mon:status(request),
-    Interval = ts_utils:elapsed(State#state.lastdate, now()) / 1000,
-    Phase = dict:find({newphase, count}, State#state.stats),
-    Connected = dict:find({connected, sum}, State#state.stats),
+handle_call({status}, _From, State=#state{stats=Stats} ) ->
+    Request   = ts_stats_mon:status(request),
+    Interval  = ts_utils:elapsed(State#state.lastdate, now()) / 1000,
+    Phase     = Stats#stats.newphase,
+    Connected = Stats#stats.connected,
     Reply = { State#state.client, Request,Connected, Interval, Phase},
     {reply, Reply, State};
 
@@ -201,55 +210,55 @@ handle_call(Request, _From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_cast({add, Data}, State) when is_list(Data) ->
+handle_cast({add, Data}, State=#state{stats=Stats}) when is_list(Data) ->
     case State#state.backend of
         fullstats -> io:format(State#state.fullstats,"~p~n",[Data]);
         _Other   -> ok
     end,
-    NewStats = lists:foldl(fun ts_stats_mon:add_stats_data/2, State#state.stats, Data ),
+    New = lists:foldl(fun ts_stats_mon:add_stats_data/2, Stats#stats.os_mon, Data),
+    NewStats = Stats#stats{os_mon=New},
     {noreply,State#state{stats=NewStats}};
 
-handle_cast({add, Data}, State) when is_tuple(Data) ->
+handle_cast({add, Data}, State=#state{stats=Stats}) when is_tuple(Data) ->
     case State#state.backend of
         fullstats -> io:format(State#state.fullstats,"~p~n",[Data]);
         _Other   -> ok
     end,
-    NewStats = ts_stats_mon:add_stats_data(Data, State#state.stats),
+    New = ts_stats_mon:add_stats_data(Data, Stats#stats.os_mon),
+    NewStats = Stats#stats{os_mon=New},
     {noreply,State#state{stats=NewStats}};
 
-handle_cast({newclient, Who, When}, State) ->
+handle_cast({newclient, Who, When}, State=#state{stats=Stats}) ->
     Clients =  State#state.client+1,
-    Tab = State#state.stats,
-    NewTab = dict:update_counter({users_count, count}, 1, Tab),
+    OldCount = Stats#stats.users_count,
+    NewStats = Stats#stats{users_count=OldCount+1},
 
     case State#state.type of
         none -> ok;
         _ ->
-            io:format(State#state.dumpfile,"NewClient:~w:~w~n",[When, Who]),
+            io:format(State#state.dumpfile,"NewClient:~w:~p~n",[When, Who]),
             io:format(State#state.dumpfile,"load:~w~n",[Clients])
     end,
     case Clients > State#state.maxclient of
         true ->
-            {noreply, State#state{client = Clients, maxclient=Clients, stats=NewTab}};
+            {noreply, State#state{client = Clients, maxclient=Clients, stats=NewStats}};
         false ->
-            {noreply, State#state{client = Clients, stats=NewTab}}
+            {noreply, State#state{client = Clients, stats=NewStats}}
     end;
 
-handle_cast({endclient, Who, When, Elapsed}, State) ->
+handle_cast({endclient, Who, When, Elapsed}, State=#state{stats=Stats}) ->
     Clients =  State#state.client-1,
-    Tab = State#state.stats,
-    New1Tab = dict:update_counter({finish_users_count, count}, 1, Tab),
-
+    OldSession = Stats#stats.session,
     %% update session sample
-    MyFun = fun (OldV) -> ts_stats_mon:update_stats(sample, OldV, Elapsed) end,
-    Init = ts_stats_mon:update_stats(sample, [], Elapsed), % initial value of the sample
-    NewTab = dict:update({session, sample}, MyFun, Init, New1Tab),
+    NewSession = ts_stats_mon:update_stats(sample, OldSession, Elapsed),
+    OldCount = Stats#stats.finish_users_count,
+    NewStats = Stats#stats{finish_users_count=OldCount+1,session= NewSession},
 
     case State#state.type of
         none ->
             skip;
         _Type ->
-            io:format(State#state.dumpfile,"EndClient:~w:~w~n",[When, Who]),
+            io:format(State#state.dumpfile,"EndClient:~w:~p~n",[When, Who]),
             io:format(State#state.dumpfile,"load:~w~n",[Clients])
     end,
     case {Clients, State#state.stop} of
@@ -257,13 +266,15 @@ handle_cast({endclient, Who, When, Elapsed}, State) ->
             ?LOG("No more users and stop is true, stop~n", ?INFO),
             {stop, normal, State};
         _ ->
-            {noreply, State#state{client = Clients, stats=NewTab}}
+            {noreply, State#state{client = Clients, stats=NewStats}}
     end;
 
-handle_cast({dumpstats}, State) ->
+handle_cast({dumpstats}, State=#state{stats=Stats}) ->
     export_stats(State),
-    NewStats = ts_stats_mon:reset_all_stats(State#state.stats),
-    {noreply, State#state{laststats = NewStats, stats=NewStats,lastdate=now()}};
+    NewSessions = ts_stats_mon:reset_all_stats(Stats#stats.session),
+    NewOSmon = ts_stats_mon:reset_all_stats(Stats#stats.os_mon),
+    NewStats = Stats#stats{session=NewSessions, os_mon=NewOSmon},
+    {noreply, State#state{laststats = Stats, stats=NewStats,lastdate=now()}};
 
 
 handle_cast({sendmsg, _, _, _}, State = #state{type = none}) ->
@@ -395,17 +406,28 @@ start_dump(State) ->
     end.
 
 %%----------------------------------------------------------------------
-%% Func: export_stats/2
+%% Func: export_stats/1
 %%----------------------------------------------------------------------
-export_stats(State) ->
+export_stats(State=#state{log=Log,stats=Stats,laststats=LastStats}) ->
     DateStr = ts_utils:now_sec(),
-    io:format(State#state.log,"# stats: dump at ~w~n",[DateStr]),
+    io:format(Log,"# stats: dump at ~w~n",[DateStr]),
     %% print number of simultaneous users
-    io:format(State#state.log, "stats: ~p ~p ~p~n", [users,
-                                                     State#state.client,
-                                                     State#state.maxclient]),
-    Param = {State#state.laststats,State#state.log},
-    dict:fold(fun ts_stats_mon:print_stats_txt/3, Param, State#state.stats),
+    io:format(Log,"stats: ~p ~p ~p~n",[users,State#state.client,State#state.maxclient]),
+    Param = {(State#state.laststats)#stats.os_mon,State#state.log},
+    dict:fold(fun ts_stats_mon:print_stats_txt/3, Param, (State#state.stats)#stats.os_mon),
+    ts_stats_mon:print_stats_txt({session, sample}, Stats#stats.session,{[],Log}),
+    ts_stats_mon:print_stats_txt({users_count, count},
+                                 Stats#stats.users_count,
+                                 {LastStats#stats.users_count,Log}),
+    ts_stats_mon:print_stats_txt({finish_users_count, count},
+                                 Stats#stats.finish_users_count,
+                                 {LastStats#stats.finish_users_count,Log}),
+    ts_stats_mon:print_stats_txt({connected, count},
+                                 Stats#stats.connected,
+                                 {LastStats#stats.connected,Log}),
+    ts_stats_mon:print_stats_txt({newphase, count},
+                                 Stats#stats.newphase,
+                                 {LastStats#stats.newphase,Log}),
     ts_stats_mon:dumpstats(request),
     ts_stats_mon:dumpstats(page),
     ts_stats_mon:dumpstats(connect),

@@ -94,7 +94,6 @@ init({#session{id           = SessionId,
                                 DynData#dyndata.dynvars),
     NewDynData = DynData#dyndata{dynvars=NewDynVars},
     StartTime= now(),
-    ts_mon:newclient({self(), StartTime}),
     set_thinktime(?short_timeout),
     {ok, think, #state_rcv{ port       = Server#server.port,
                             host       = Server#server.host,
@@ -359,7 +358,7 @@ handle_next_action(State) ->
 %%----------------------------------------------------------------------
 %% @spec set_dynvars (Type::erlang|random|urandom|file, Args::tuple(),
 %%                    Variables::list(), DynData::#dyndata{}) -> list()
-%% @doc setting the value of several dynamic variables at once. 
+%% @doc setting the value of several dynamic variables at once.
 %% @end
 %%----------------------------------------------------------------------
 set_dynvars(erlang,{Module,Callback},_Vars,DynData) ->
@@ -602,7 +601,7 @@ finish_session(State) ->
     Now = now(),
     set_connected_status(false),
     Elapsed = ts_utils:elapsed(State#state_rcv.starttime, Now),
-    ts_mon:endclient({self(), Now, Elapsed}).
+    ts_mon:endclient({State#state_rcv.id, Now, Elapsed}).
 
 %%----------------------------------------------------------------------
 %% Func: handle_close_while_sending/1
@@ -814,7 +813,7 @@ handle_data_msg(Data, State=#state_rcv{request=Req, maxcount= MaxCount}) ->
     DataSize = size(Data),
     {PageTimeStamp, DynVars} = update_stats(State#state_rcv{datasize=DataSize,
                                                             buffer=NewBuffer}),
-    NewCount = ts_search:match(Req#ts_request.match, NewBuffer, {State#state_rcv.count,MaxCount,State#state_rcv.id,State#state_rcv.id}),
+    NewCount = ts_search:match(Req#ts_request.match, NewBuffer, {State#state_rcv.count,MaxCount,State#state_rcv.session_id,State#state_rcv.id}),
     NewDynVars=ts_dynvars:merge(DynVars,(State#state_rcv.dyndata)#dyndata.dynvars),
     NewDynData=(State#state_rcv.dyndata)#dyndata{dynvars=NewDynVars},
     {State#state_rcv{ack_done = true, buffer= NewBuffer, dyndata = NewDynData,

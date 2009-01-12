@@ -64,7 +64,7 @@
 %%%----------------------------------------------------------------------
 
 %%----------------------------------------------------------------------
-%% @spec start() -> ok | throw({error, Reason})
+%% @spec start(Id::term()) -> ok | throw({error, Reason})
 %% @doc Start the monitoring process
 %%----------------------------------------------------------------------
 start(Id) ->
@@ -265,6 +265,10 @@ export_stats(State=#state{backend=_Backend}) ->
 %% @spec (Key::tuple(), Value::List, {Last, Logfile}) -> {Last, Logfile}
 %% @doc print statistics in text format in Logfile
 %%----------------------------------------------------------------------
+print_stats_txt({_Name,_Type}, [], {LastRes,Logfile})->
+    {LastRes, Logfile};
+print_stats_txt({_Name,_Type}, [0,0,0,0,0,0,0|_], {LastRes,Logfile})->
+    {LastRes,Logfile};
 print_stats_txt({Name,_Type}, [Mean,0,Max,Min,Count,MeanFB,CountFB|_], {LastRes,Logfile})->
     io:format(Logfile, "stats: ~p ~p ~p ~p ~p ~p ~p ~p~n",
               [Name, Count, Mean, 0, Max, Min,MeanFB,CountFB ]),
@@ -276,6 +280,11 @@ print_stats_txt({Name,_Type},[Mean,Var,Max,Min,Count,MeanFB,CountFB|_],{LastRes,
     {LastRes, Logfile};
 print_stats_txt({Name, _Type}, [Value,Last], {LastRes, Logfile}) ->
     io:format(Logfile, "stats: ~p ~p ~p~n", [Name, Value, Last ]),
+    {LastRes, Logfile};
+print_stats_txt({_Name, _Type}, 0, {0, Logfile})-> % no data yet
+    {0, Logfile};
+print_stats_txt({Name, _Type}, Value, {LastRes, Logfile}) when is_number(LastRes)->
+    io:format(Logfile, "stats: ~p ~p ~p~n", [Name, Value-LastRes, Value]),
     {LastRes, Logfile};
 print_stats_txt({Name, Type}, Value, {LastRes, Logfile}) ->
     PrevVal = case dict:find({Name, Type}, LastRes) of
@@ -297,7 +306,7 @@ update_stats(sample, Data, Value) ->
     %% we don't use lastvalue for 'sample', set it to zero
     update_stats2(Data, Value, 0);
 update_stats(sample_counter,[], New) -> %% first call, store the initial value
-    [0, 0, 0, 0, 0, 0,0,New];
+    [0, 0, 0, 0, 0, 0, 0, New];
 update_stats(sample_counter, Current, 0) -> % skip 0 values
     Current;
 update_stats(sample_counter,[Mean,Var,Max,Min,Count,MeanFB,CountFB,Last],Value)
@@ -310,7 +319,7 @@ update_stats(sample_counter, [0, 0, 0, 0, 0, MeanFB,CountFB,Last], Value) ->
 update_stats(sample_counter,Data, Value) ->
     update_stats2(Data, Value, Value).
 
-update_stats2([Mean, Var, Max, Min, Count, MeanFB,CountFB,Last], Value, NewLast) ->
+update_stats2([Mean, Var, Max, Min, Count, MeanFB,CountFB,Last], Value, NewLast) when is_number(Value), is_number(NewLast), is_number(Last), is_number(Count)->
     New = Value-Last,
     {NewMean, NewVar, _} = ts_stats:meanvar(Mean, Var, [New], Count),
     if
@@ -337,8 +346,8 @@ reset_all_stats(Dict)->
 %%      global mean here
 %% @end
 %%----------------------------------------------------------------------
-reset_stats([]) ->  % FIXME: useful ?!
-    [0, 0, 0, 0, 0, 0, 0];
+reset_stats([]) ->
+    [];
 reset_stats([_Mean, _Var, Max, Min, 0, _MeanFB,0,Last]) ->
     [0, 0, Max, Min, 0, 0, 0,Last];
 reset_stats([Mean, _Var, Max, Min, Count, MeanFB,CountFB,Last]) ->

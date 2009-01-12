@@ -254,6 +254,7 @@ handle_call({get_next_session, HostName}, _From, State=#state{users=Users,ports=
     case choose_session(Config#config.sessions) of
         {ok, Session=#session{id=Id}} ->
             ?LOGF("Session ~p choosen~n",[Id],?INFO),
+            ts_mon:newclient({Id,now()}),
             {reply, {ok, {Session, {IP, CPort}, Server,Users}},
              State#state{users=Users+1,ports=NewPorts}};
         Other ->
