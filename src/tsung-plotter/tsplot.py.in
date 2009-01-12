@@ -191,7 +191,7 @@ def main(conffile, logs, legends, outdir, verbose):
         # conf:   200.count, 400.count
         # result: [["200", "count"], ["400", "count"]]
         try:
-            stats = [x.strip().split('.')
+            stats = [x.strip().rsplit('.', 1)
                      for x in config.get(s, 'stats').split(' ')]
         except:
             print 'error: unable to read plot "%s" stats' % s
