@@ -157,6 +157,7 @@ BUILD_OPTIONS_FILE = ./BUILD_OPTIONS
 
 DIST_COMMON=Makefile.in $(CONFFILE_SRC) $(PERL_SCRIPTS_SRC) $(PYTHON_SCRIPTS_SRC) tsung.sh.in tsung.spec.in $(CONTROLLER_SRC_APPFILES_IN)
 
+DOC_OPTS={def,{version,\"$(VERSION)\"}}
 
 .PHONY: doc
 
@@ -171,6 +172,13 @@ test:
 
 dotest: tsung buildtest $(CONFFILE) $(TEST_CONFFILE)
 	$(ERL) -noshell -pa ./ebin -s eunit test ts_test_all -s init stop
+
+edoc:
+	$(ERL) -noshell -eval "edoc:application($(APPLICATION), \"./$(ESRC)/$(APPLICATION)\", [$(DOC_OPTS)])" -s init stop
+	$(ERL) -noshell -eval "edoc:application($(CONTROLLER_APPLICATION), \
+          \"./$(ESRC)/$(CONTROLLER_APPLICATION)\", [$(DOC_OPTS)])" -s init stop
+	$(ERL) -noshell -eval "edoc:application($(RECORDER_APPLICATION),  \
+          \"./$(ESRC)/$(RECORDER_APPLICATION)\", [$(DOC_OPTS)])" -s init stop
 
 dialyzer:
 	$(DIALYZER) -r ebin  -I ./include/
@@ -366,6 +374,7 @@ configure: configure.in $(CONFIGURE_DEPENDENCIES)
 
 doc:
 	$(MAKE) -C doc
+
 
 release: Makefile tsung.spec doc
 	rm -fr $(distdir)
