@@ -78,6 +78,9 @@ get_data({Socket, Hostname}, State) ->
     ?LOGF("Fetching munin for memory on host ~p~n", [Hostname], ?DEB),
     gen_tcp:send(Socket,"fetch memory\n"),
     AllMem=read_munin_data(Socket),
+    ?LOGF("Fetching munin for load on host ~p~n", [Hostname], ?DEB),
+    gen_tcp:send(Socket,"fetch load\n"),
+    AllLoad=read_munin_data(Socket),
     %% sum all cpu types, except idle.
     NonIdle=lists:keydelete('idle.value',1,AllCPU),
     RawCpu = lists:foldl(fun({_Key,Val},Acc) when is_integer(Val)->
@@ -94,8 +97,12 @@ get_data({Socket, Hostname}, State) ->
               end,
     FreeMem=check_value(lists:foldl(FunFree,0,AllMem),{Hostname,"memory"})/1048576,%MBytes
     ?LOGF(" munin memory on host ~p is ~p~n", [Hostname,FreeMem], ?DEB),
+    %% load only has one value at present
+    Load = lists:foldl(fun({_Key,Val},Acc) -> Acc+Val end,0,AllLoad),
+    ?LOGF(" munin load on host ~p is ~p~n", [Hostname,Load], ?DEB),
     ts_os_mon:send(State#os_mon.mon_server,[{sample_counter, {cpu, Hostname}, Cpu},
-                                            {sample, {freemem, Hostname}, FreeMem}]),
+                                            {sample, {freemem, Hostname}, FreeMem},
+                                            {sample, {load, Hostname}, Load}]),
     ok.
 
 

@@ -210,6 +210,9 @@ sub parse_stats_file {
             } elsif ($type =~ /^freemem:/) {
                 next if $values =~ /^0/; # skip when no data is available
                 $category->{$type} = "os_mon_free";
+            } elsif ($type =~ /^load:/) {
+                next if $values =~ /^0/; # skip when no data is available
+                $category->{$type} = "os_mon_load";
             } elsif ($type =~ /^\w{4}packets:/) {
                 next if $values =~ /^0/; # skip when no data is available
                 $category->{$type} = "os_mon_packets";

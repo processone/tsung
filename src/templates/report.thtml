@@ -134,6 +134,13 @@
 		<td class="stats">[%  data.minmean.$key %] %</td>
      </tr>
    [% END %]
+   [% IF cat_data.$key == "os_mon_load" %]
+     <tr>
+		<td class="stats">$key</td>
+		<td class="stats">[%  data.maxmean.$key %] </td>
+		<td class="stats">[%  data.minmean.$key %] </td>
+     </tr>
+   [% END %]
    [% IF cat_data.$key == "os_mon_free" %]
      <tr>
 		<td class="stats">$key</td>

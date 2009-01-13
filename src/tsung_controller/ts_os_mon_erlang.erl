@@ -91,9 +91,10 @@ stop(Node, _State) ->
 %%--------------------------------------------------------------------
 updatestats(Interval,Mon_Server) ->
     Node = atom_to_list(node()),
-    {Cpu, FreeMem, RecvPackets, SentPackets} = node_data(),
+    {Cpu, FreeMem, RecvPackets, SentPackets, Load} = node_data(),
     ts_os_mon:send(Mon_Server,[{sample, {cpu, Node}, Cpu},
                      {sample, {freemem, Node}, FreeMem},
+                     {sample, {load, Node}, Load},
                      {sample_counter, {recvpackets, Node}, RecvPackets},
                      {sample_counter, {sentpackets,  Node}, SentPackets}]),
 
@@ -133,7 +134,7 @@ load_code(Nodes) ->
 %%--------------------------------------------------------------------
 node_data() ->
     {RecvPackets, SentPackets} = get_os_data(packets),
-    {get_os_data(cpu), get_os_data(freemem), RecvPackets, SentPackets}.
+    {get_os_data(cpu), get_os_data(freemem), RecvPackets, SentPackets, get_os_data(load)}.
 
 
 %%--------------------------------------------------------------------
@@ -142,8 +143,8 @@ node_data() ->
 %% Return node cpu utilisation
 get_os_data(cpu) -> cpu_sup:util();
 
-%% Return node cpu average load on 1 minute; unused !
-get_os_data(cpu1) -> cpu_sup:avg1()/256;
+%% Return node cpu average load on 1 minute;
+get_os_data(load) -> cpu_sup:avg1()/256;
 
 get_os_data(DataName) -> get_os_data(DataName,os:type()).
 

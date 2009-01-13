@@ -40,7 +40,7 @@
 -define(SNMP_CPU_RAW_USER, [1,3,6,1,4,1,2021,11,50,0]).
 -define(SNMP_CPU_RAW_SYSTEM, [1,3,6,1,4,1,2021,11,52,0]).
 -define(SNMP_CPU_RAW_IDLE, [1,3,6,1,4,1,2021,11,53,0]).
-
+-define(SNMP_CPU_LOAD1, [1,3,6,1,4,1,2021,10,1,5,1]).
 -define(SNMP_MEM_BUFFER, [1,3,6,1,4,1,2021,4,14,0]).
 -define(SNMP_MEM_CACHED, [1,3,6,1,4,1,2021,4,15,0]).
 -define(SNMP_MEM_AVAIL, [1,3,6,1,4,1,2021,4,6,0]).
@@ -71,7 +71,7 @@ init( HostStr, [{Port, Community, Version }], _State) ->
 get_data({Pid, Host}, _State) when is_pid(Pid)->
     ?LOGF("SNMP mgr; get data from pid ~p~n", [Pid],?DEB),
     snmp_get(Pid,
-             [?SNMP_CPU_RAW_SYSTEM, ?SNMP_CPU_RAW_USER, ?SNMP_MEM_AVAIL ]),
+             [?SNMP_CPU_RAW_SYSTEM, ?SNMP_CPU_RAW_USER, ?SNMP_MEM_AVAIL, ?SNMP_CPU_LOAD1]),
     ok.
 
 parse({snmp_msg, Msg, Ip, _Udp}, State) ->
@@ -141,7 +141,11 @@ oid_to_statname(?SNMP_CPU_RAW_IDLE, Name, Value) ->
 oid_to_statname(?SNMP_MEM_AVAIL, Name, Value)->
     CountName = {freemem, Name},
     ?DebugF("Adding counter value for ~p~n",[CountName]),
-    {sample,CountName, Value/1000}.
+    {sample,CountName, Value/1000};
+oid_to_statname(?SNMP_CPU_LOAD1, Name, Value)->
+    CountName = {load, Name},
+    ?DebugF("Adding counter value for ~p~n",[CountName]),
+    {sample,CountName, Value/100}.
 
 %%--------------------------------------------------------------------
 %% Function: snmp_get/2

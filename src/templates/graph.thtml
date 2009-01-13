@@ -108,6 +108,16 @@
   </a>
  </td>
  </tr>
+
+<tr><th>CPU Load</th></tr>
+<tr>
+ <td>
+ <a href="images/graphes-load-mean.ps">
+  <img class="graph" src="images/graphes-load-mean.png" alt="load"/>
+ </a>
+ </td>
+ </tr>
+
 </table>
 </div>
 [% END %]
