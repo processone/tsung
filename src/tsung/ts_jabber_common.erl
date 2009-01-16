@@ -197,6 +197,14 @@ get_message(#jabber{type = 'pubsub:publish', size=Size, id=Id,
             << >>
     end;
 
+%% MUC benchmark support
+get_message(#jabber{type = 'muc:join', room = Room, nick = Nick, muc_service = Service }) ->
+    muc_join(Room,Nick, Service);
+get_message(#jabber{type = 'muc:chat', room = Room, muc_service = Service, size = Size}) ->
+    muc_chat(Room, Service, Size);
+get_message(#jabber{type = 'muc:nick', room = Room, muc_service = Service, nick = Nick}) ->
+    muc_nick(Room, Nick, Service);
+
 get_message(Jabber=#jabber{username=Name, passwd=Passwd, id=Id}) ->
     FullName = username(Name, Id),
     FullPasswd = password(Passwd,Id),
@@ -512,6 +520,22 @@ publish_pubsub_node(Domain, Username, Node, Size) ->
             "<publish", pubsub_node_attr(Node, Domain, Username),">"
             "<item>", ts_utils:urandomstr_noflat(Size),"</item></publish>"
             "</pubsub></iq>"]),
+    Result.
+
+muc_join(Room,Nick, Service) ->
+    Result = list_to_binary(["<presence to='", Room,"@", Service,"/", Nick, "'>",
+                             "<x xmlns='http://jabber.org/protocol/muc'/>",
+                             " </presence>"]),
+    Result.
+       
+
+muc_chat(Room, Service, Size) ->
+    Result = list_to_binary(["<message type='groupchat' to ='", Room,"@", Service,"'>",
+                                "<body>", ts_utils:urandomstr_noflat(Size), "</body>",
+                                "</message>"]),
+    Result.
+muc_nick(Room, Nick, Service) ->
+    Result = list_to_binary(["<presence to='", Room,"@", Service,"/", Nick, "'/>"]),
     Result.
 
 %%%----------------------------------------------------------------------

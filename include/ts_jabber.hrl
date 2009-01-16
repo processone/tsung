@@ -39,7 +39,10 @@
                  nonce,    %% used to generate sip-digest passwd
                  sid,      %% used to generate digest passwd
                  show,     %% presence <show/> - see RFC 3921, section 2.2
-                 status    %% presence <status/> - see RFC 3921, section 2.2
+                 status,    %% presence <status/> - see RFC 3921, section 2.2
+                 muc_service, %% ej: conference.localhost
+                 room,        %% MUC room name
+                 nick         %% nickname in MUC room
                 }).
 
 -define(setroster_intensity, 1/(ts_utils:get_val(setroster)*1000)).

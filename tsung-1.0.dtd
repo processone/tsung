@@ -163,7 +163,9 @@ repeat | if )*>
     data        CDATA   #IMPLIED
     type        NMTOKEN #REQUIRED
     show        (away|chat|dnd|xa) "chat"
-    status      CDATA   "Available">
+    status      CDATA   "Available"
+    nick        CDATA #IMPLIED
+    room        CDATA #IMPLIED>
 
 <!ELEMENT pgsql (#PCDATA) >
 <!ATTLIST pgsql

@@ -58,10 +58,14 @@ parse_config(Element = #xmlElement{name=jabber},
     Show= ts_config:getAttr(string,Element#xmlElement.attributes, show, "chat"),
     Status= ts_config:getAttr(string,Element#xmlElement.attributes, status, "Available"),
     Type= list_to_atom(TypeStr),
+    Room = ts_config:getAttr(string,Element#xmlElement.attributes, room, undefined), 
+    Nick = ts_config:getAttr(string,Element#xmlElement.attributes, nick, undefined), 
 
     Domain  =ts_config:get_default(Tab, jabber_domain_name, jabber_domain),
     UserName=ts_config:get_default(Tab, jabber_username, jabber_username),
     Passwd  =ts_config:get_default(Tab, jabber_passwd, jabber_passwd),
+    MUC_service = ts_config:get_default(Tab, muc_service, muc_service),
+
 
     Msg=#ts_request{ack   = Ack,
                     dynvar_specs= DynVar,
@@ -76,7 +80,10 @@ parse_config(Element = #xmlElement{name=jabber},
                                     dest   = Dest,
                                     size   = Size,
                                     show   = Show,
-                                    status   = Status
+                                    status   = Status,
+                                    room = Room,
+                                    nick = Nick,
+                                    muc_service = MUC_service
                                    }
                    },
     ts_config:mark_prev_req(Id-1, Tab, CurS),
@@ -103,7 +110,10 @@ parse_config(Element = #xmlElement{name=option}, Conf = #config{session_tab = Ta
         "userid_max" ->
             N = ts_config:getAttr(integer,Element#xmlElement.attributes, value, 10000),
             ts_user_server:reset(N),
-            ets:insert(Tab,{{jabber_userid_max,value}, N})
+            ets:insert(Tab,{{jabber_userid_max,value}, N});
+        "muc_service" ->
+            N = ts_config:getAttr(string,Element#xmlElement.attributes, value, "conference.localhost"),
+            ets:insert(Tab,{{muc_service,value}, N})
     end,
     lists:foldl( fun(A,B) -> ts_config:parse(A,B) end, Conf, Element#xmlElement.content);
 %% Parsing other elements
