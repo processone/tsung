@@ -407,7 +407,6 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
                       {RegExp,_} ->
                           {regexp,RegExp}
                   end,
-    {ok, [{atom,1,Name}],1} = erl_scan:string(StrName),
     FlattenExpr =lists:flatten(Expr),
     %% precompilation of the exp
     DynVar = case Type of
