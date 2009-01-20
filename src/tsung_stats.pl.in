@@ -372,7 +372,7 @@ sub html_report {
                             INCLUDE_PATH => $template_dir,
                             PRE_CHOMP    => 1,
                             INTERPOLATE  => 1,
-                           }) or die "Template error $!";
+                           }) or die "Template error " . Template->error();
     my $xml_conf;
     opendir (DIR, ".") or warn "can't open directory .";
     while (my $file = readdir (DIR) ) {
