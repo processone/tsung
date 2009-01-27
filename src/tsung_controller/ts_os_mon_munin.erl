@@ -58,7 +58,7 @@ init(HostStr, [{Port}], _State) ->
                     %% timeout and close the connection
                     gen_tcp:send(Socket,"fetch load\n"),
                     read_munin_data(Socket),
-                    ts_os_mon:activated({socket, munin, ts_utils:chop(MuninHost)});
+                    ts_os_mon:activated({Socket, munin, ts_utils:chop(MuninHost)});
                 {error, Reason} ->
                     ?LOGF("Error while connecting to munin server: ~p~n", [Reason], ?ERR),
                     {error, Reason}
