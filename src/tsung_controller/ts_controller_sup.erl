@@ -71,8 +71,12 @@ init([LogDir]) ->
                        transient, 2000, worker, [ts_stats_mon]},
     Match_Log = {ts_match_logger, {ts_match_logger, start, [LogDir]}, transient, 2000,
                  worker, [ts_match_logger]},
-    Os_Mon = {ts_os_mon, {ts_os_mon, start, []}, transient, 2000,
-               worker, [ts_os_mon]},
+    ErlangSup   = {ts_erlang_mon_sup, {ts_os_mon_sup, start_link, [erlang]},
+                    permanent, 2000, supervisor, [ts_os_mon_sup]},
+    MuninSup   = {ts_munin_mon_sup, {ts_os_mon_sup, start_link, [munin]},
+                    permanent, 2000, supervisor, [ts_os_mon_sup]},
+    SNMPSup   = {ts_snmp_mon_sup, {ts_os_mon_sup, start_link, [snmp]},
+                    permanent, 2000, supervisor, [ts_os_mon_sup]},
     Timer = {ts_timer, {ts_timer, start, [?config(nclients)]}, transient, 2000,
                worker, [ts_timer]},
     Msg  = {ts_msg_server, {ts_msg_server, start, []}, transient, 2000,
@@ -83,7 +87,7 @@ init([LogDir]) ->
             transient, 2000, worker, [ts_user_server]},
     {ok,{{one_for_one,?retries,10},
          [Config, Mon, Stats_Mon, Request_Mon, Page_Mon, Connect_Mon, Transaction_Mon,
-          Match_Log, Timer, Msg, User, Os_Mon]}}.
+          Match_Log, Timer, Msg, User, ErlangSup, MuninSup,SNMPSup]}}.
 
 %%%----------------------------------------------------------------------
 %%% Internal functions

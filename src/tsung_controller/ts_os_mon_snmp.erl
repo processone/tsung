@@ -27,12 +27,26 @@
 -vc('$Id: ts_os_mon_snmp.erl,v 0.0 2008/10/21 12:57:49 nniclaus Exp $ ').
 -author('nicolas.niclausse@niclux.org').
 
+-behaviour(gen_server).
+
 
 -include("ts_profile.hrl").
 -include("ts_os_mon.hrl").
 -include_lib("snmp/include/snmp_types.hrl").
 
--export([init/3, get_data/2, parse/2, restart/3, stop/2]).
+-export([start/1]).
+
+%% gen_server callbacks
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
+         terminate/2, code_change/3]).
+
+-record(state,{
+          mon_server,        % pid of mon server
+          dnscache=[],
+          interval,
+          pid,               % pid of snmp_mgr
+          host
+         }).
 
 %% SNMP definitions
 %% FIXME: make this customizable in the XML config file ?
@@ -46,12 +60,19 @@
 -define(SNMP_MEM_AVAIL, [1,3,6,1,4,1,2021,4,6,0]).
 -define(SNMP_MEM_TOTAL, [1,3,6,1,4,1,2021,4,5,0]).
 
+start(Args) ->
+    ?LOGF("starting os_mon_snmp with args ~p",[Args],?NOTICE),
+    gen_server:start_link(?MODULE, Args, []).
 
-%% @spec init(HostStr::string,
-%%            Options::[{Port::integer, Community::string, Version::string }],
-%%            State:: #os_mon{}) ->
-%%       ok | {error, Reason::term()}
-init( HostStr, [{Port, Community, Version }], _State) ->
+%%--------------------------------------------------------------------
+%% Function: init/1
+%% Description: Initiates the server
+%% Returns: {ok, State}          |
+%%          {ok, State, Timeout} |
+%%          ignore               |
+%%          {stop, Reason}
+%%--------------------------------------------------------------------
+init({HostStr, {Port, Community, Version}, Interval, MonServer}) ->
     {ok, Host} = inet:getaddr(HostStr, inet),
     ?LOGF("Starting SNMP mgr on ~p~n", [Host], ?DEB),
     {ok, Pid} = snmp_mgr:start_link([{agent, Host},
@@ -65,35 +86,84 @@ init( HostStr, [{Port, Community, Version }], _State) ->
     %% registered name to start several smp_mgr at once !
     unregister(snmp_mgr),
     ?LOGF("SNMP mgr started; remote node is ~p~n", [Host],?INFO),
-    ts_os_mon:activated({Pid, snmp, Host}).
+    erlang:start_timer(Interval, self(), send_request ),
+    {ok, #state{pid=Pid,mon_server=MonServer, host=Host, interval=Interval}}.
 
+%%--------------------------------------------------------------------
+%% Function: handle_call/3
+%% Description: Handling call messages
+%% Returns: {reply, Reply, State}          |
+%%          {reply, Reply, State, Timeout} |
+%%          {noreply, State}               |
+%%          {noreply, State, Timeout}      |
+%%          {stop, Reason, Reply, State}   | (terminate/2 is called)
+%%          {stop, Reason, State}            (terminate/2 is called)
+%%--------------------------------------------------------------------
+handle_call(_Request, _From, State) ->
+    Reply = ok,
+    {reply, Reply, State}.
 
-get_data({Pid, Host}, _State) when is_pid(Pid)->
-    ?LOGF("SNMP mgr; get data from pid ~p~n", [Pid],?DEB),
+%%--------------------------------------------------------------------
+%% Function: handle_cast/2
+%% Description: Handling cast messages
+%% Returns: {noreply, State}          |
+%%          {noreply, State, Timeout} |
+%%          {stop, Reason, State}            (terminate/2 is called)
+%%--------------------------------------------------------------------
+handle_cast(Msg, State) ->
+    {stop, {unknown_message, Msg}, State}.
+
+%%--------------------------------------------------------------------
+%% Function: handle_info/2
+%% Description: Handling all non call/cast messages
+%% Returns: {noreply, State}          |
+%%          {noreply, State, Timeout} |
+%%          {stop, Reason, State}            (terminate/2 is called)
+%%--------------------------------------------------------------------
+handle_info({timeout, _Ref, send_request},  State=#state{interval=Interval,pid=Pid,host=Host} ) ->
+    ?LOGF("SNMP mgr; get data from host ~p~n", [Host],?DEB),
     snmp_get(Pid,
-             [?SNMP_CPU_RAW_SYSTEM, ?SNMP_CPU_RAW_USER, ?SNMP_MEM_AVAIL, ?SNMP_CPU_LOAD1]),
-    ok.
+             [?SNMP_CPU_RAW_SYSTEM,
+              ?SNMP_CPU_RAW_USER,
+              ?SNMP_MEM_AVAIL,
+              ?SNMP_CPU_LOAD1]),
+    erlang:start_timer(Interval, self(), send_request ),
+    {noreply,State};
 
-parse({snmp_msg, Msg, Ip, _Udp}, State) ->
+handle_info({snmp_msg, Msg, Ip, _Udp}, State) ->
     PDU = snmp_mgr_misc:get_pdu(Msg),
     case PDU#pdu.type of
         'get-response' ->
             ?LOGF("Got SNMP PDU ~p from ~p~n",[PDU, Ip],?DEB),
-            {Hostname, NewCache} = ts_utils:resolve(Ip, State#os_mon.dnscache),
+            {Hostname, NewCache} = ts_utils:resolve(Ip, State#state.dnscache),
             analyse_snmp_data(PDU#pdu.varbinds, Hostname, State),
-            {ok, State#os_mon{dnscache=NewCache}};
+            {noreply, State#state{dnscache=NewCache}};
         _ ->
             ?LOGF("Got unknown SNMP data ~p from ~p~n",[PDU, Ip],?WARN),
-            {ok, State}
+            {noreply, State}
     end;
-parse(_Data, _State) ->
+handle_info(Message, State) ->
+    {stop, {unknown_message, Message} , State}.
+
+%%--------------------------------------------------------------------
+%% Function: terminate/2
+%% Description: Shutdown the server
+%% Returns: any (ignored by gen_server)
+%%--------------------------------------------------------------------
+terminate(_Reason, _State) ->
     ok.
 
-restart(_Node,_Reason,State) ->
-    {noreply, State}.
+%%--------------------------------------------------------------------
+%% Func: code_change/3
+%% Purpose: Convert process state when code is changed
+%% Returns: {ok, NewState}
+%%--------------------------------------------------------------------
+code_change(_OldVsn, State, _Extra) ->
+    {ok, State}.
 
-stop(_Node,State) ->
-    {noreply, State}.
+%%%----------------------------------------------------------------------
+%%% Internal functions
+%%%----------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
 %% Function: analyse_snmp_data/3
@@ -104,7 +174,7 @@ analyse_snmp_data(Args, Host, State) ->
 
 %% Function: analyse_snmp_data/4
 analyse_snmp_data([], _Host, Resp, State) ->
-    ts_os_mon:send(State#os_mon.mon_server,Resp);
+    ts_os_mon:send(State#state.mon_server,Resp);
 
 analyse_snmp_data([Val=#varbind{value='NULL'}| Tail], Host, Stats, State) ->
     ?LOGF("SNMP: Skip void result (~p) ~n", [Val],?DEB),
@@ -118,7 +188,7 @@ analyse_snmp_data([#varbind{oid=?SNMP_CPU_RAW_SYSTEM, value=Val}| Tail], Host, S
     {value, User} = lists:keysearch(?SNMP_CPU_RAW_USER, #varbind.oid, Tail),
     Value = Val + User#varbind.value,
     CountName = {cpu , Host},
-    NewValue = Value/(State#os_mon.interval/1000),
+    NewValue = Value/(State#state.interval/1000),
     NewTail = lists:keydelete(?SNMP_CPU_RAW_USER, #varbind.oid, Tail),
     analyse_snmp_data(NewTail, Host, [{sample_counter, CountName, NewValue}| Stats], State);
 
@@ -137,7 +207,7 @@ analyse_snmp_data([#varbind{oid=OID, value=Val}| Tail], Host, Stats, State) ->
 oid_to_statname(?SNMP_CPU_RAW_IDLE, Name, Value) ->
     CountName = {cpu_idle, Name},
     ?DebugF("Adding counter value for ~p~n",[CountName]),
-    {sample_counter, CountName, Value/(?INTERVAL/1000)};
+    {sample_counter, CountName, Value/(?INTERVAL/1000)}; % FIXME ? Interval ??
 oid_to_statname(?SNMP_MEM_AVAIL, Name, Value)->
     CountName = {freemem, Name},
     ?DebugF("Adding counter value for ~p~n",[CountName]),
@@ -153,5 +223,5 @@ oid_to_statname(?SNMP_CPU_LOAD1, Name, Value)->
 %%--------------------------------------------------------------------
 snmp_get(Pid, Oids) ->
     ?DebugF("send snmp get for oid ~p to pid ~p ",[Oids,Pid]),
-    Pid ! {get, Oids}, ok.
+    Pid ! {get, Oids}.
 

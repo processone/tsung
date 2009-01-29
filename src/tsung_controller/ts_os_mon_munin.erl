@@ -27,26 +27,52 @@
 -vc('$Id: ts_os_mon_snmp.erl,v 0.0 2008/10/21 12:57:49 nniclaus Exp $ ').
 -author('nicolas.niclausse@niclux.org').
 
+-behaviour(gen_server).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
 %% @doc munin plugin for ts_os_mon
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 -include("ts_profile.hrl").
 -include("ts_os_mon.hrl").
 
--define(READ_TIMEOUT,1000).
+-define(READ_TIMEOUT,2500). % 2.5 sec
+-define(SEND_TIMEOUT,5000). %
 
--export([init/3, get_data/2, parse/2, restart/3, stop/2]).
+-export([start/1]).
 
+%% gen_server callbacks
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
+         terminate/2, code_change/3]).
 
-%% @spec init(HostStr::string,
-%%            Options::[{Port::integer, Community::string, Version::string }],
-%%            State::#os_mon{}) ->
-%%       ok | {error, Reason::term()}
-init(HostStr, [{Port}], _State) ->
+-record(state,{
+          mon,        % pid of mon server
+          interval,   % interval in msec between gathering of data
+          socket,     % tcp socket
+          host        % remote munin-node hostname
+         }).
+
+start(Args) ->
+    ?LOGF("starting os_mon_munin with args ~p",[Args],?NOTICE),
+    gen_server:start_link(?MODULE, Args, []).
+
+%%--------------------------------------------------------------------
+%% Function: init/1
+%% Description: Initiates the server
+%% Returns: {ok, State}          |
+%%          {ok, State, Timeout} |
+%%          ignore               |
+%%          {stop, Reason}
+%%--------------------------------------------------------------------
+init({HostStr, {Port}, Interval, MonServer}) ->
     {ok, Host} = inet:getaddr(HostStr, inet),
     ?LOGF("Starting munin mgr on ~p:~p~n", [Host,Port], ?DEB),
     Opts=[list,
           {active, false},
           {packet, line},
+          {send_timeout, ?SEND_TIMEOUT},
           {keepalive, true}
          ],
     case gen_tcp:connect(Host, Port, Opts) of
@@ -58,7 +84,9 @@ init(HostStr, [{Port}], _State) ->
                     %% timeout and close the connection
                     gen_tcp:send(Socket,"fetch load\n"),
                     read_munin_data(Socket),
-                    ts_os_mon:activated({Socket, munin, ts_utils:chop(MuninHost)});
+                    ?LOGF("first fetch succesful to ~p~n", [MuninHost], ?INFO),
+                    erlang:start_timer(Interval, self(), send_request ),
+                    {ok, #state{mon=MonServer, socket=Socket, interval=Interval, host=MuninHost}};
                 {error, Reason} ->
                     ?LOGF("Error while connecting to munin server: ~p~n", [Reason], ?ERR),
                     {error, Reason}
@@ -68,8 +96,39 @@ init(HostStr, [{Port}], _State) ->
             {error, Reason}
     end.
 
+%%--------------------------------------------------------------------
+%% Function: handle_call/3
+%% Description: Handling call messages
+%% Returns: {reply, Reply, State}          |
+%%          {reply, Reply, State, Timeout} |
+%%          {noreply, State}               |
+%%          {noreply, State, Timeout}      |
+%%          {stop, Reason, Reply, State}   | (terminate/2 is called)
+%%          {stop, Reason, State}            (terminate/2 is called)
+%%--------------------------------------------------------------------
+handle_call(_Request, _From, State) ->
+    Reply = ok,
+    {reply, Reply, State}.
 
-get_data({Socket, Hostname}, State) ->
+%%--------------------------------------------------------------------
+%% Function: handle_cast/2
+%% Description: Handling cast messages
+%% Returns: {noreply, State}          |
+%%          {noreply, State, Timeout} |
+%%          {stop, Reason, State}            (terminate/2 is called)
+%%--------------------------------------------------------------------
+handle_cast(Msg, State) ->
+    {stop, {unknown_message, Msg}, State}.
+
+
+%%--------------------------------------------------------------------
+%% Function: handle_info/2
+%% Description: Handling all non call/cast messages
+%% Returns: {noreply, State}          |
+%%          {noreply, State, Timeout} |
+%%          {stop, Reason, State}            (terminate/2 is called)
+%%--------------------------------------------------------------------
+handle_info({timeout, _Ref, send_request},  State=#state{socket=Socket,host=Hostname} ) ->
     %% Currenly, fetch only cpu and memory
     %% FIXME: should be customizable in XML config file
     ?LOGF("Fetching munin for cpu on host ~p~n", [Hostname], ?DEB),
@@ -85,7 +144,7 @@ get_data({Socket, Hostname}, State) ->
     NonIdle=lists:keydelete('idle.value',1,AllCPU),
     RawCpu = lists:foldl(fun({_Key,Val},Acc) when is_integer(Val)->
                                  Acc+Val
-                         end,0,NonIdle) / (State#os_mon.interval div 1000),
+                         end,0,NonIdle) / (State#state.interval div 1000),
     Cpu=check_value(RawCpu,{Hostname,"cpu"}),
     ?LOGF(" munin cpu on host ~p is  ~p~n", [Hostname,Cpu], ?DEB),
     %% returns free + buffer + cache
@@ -100,28 +159,36 @@ get_data({Socket, Hostname}, State) ->
     %% load only has one value at present
     Load = lists:foldl(fun({_Key,Val},Acc) -> Acc+Val end,0,AllLoad),
     ?LOGF(" munin load on host ~p is ~p~n", [Hostname,Load], ?DEB),
-    ts_os_mon:send(State#os_mon.mon_server,[{sample_counter, {cpu, Hostname}, Cpu},
-                                            {sample, {freemem, Hostname}, FreeMem},
-                                            {sample, {load, Hostname}, Load}]),
-    ok.
-
-
-parse(_Data, _State) ->
-    ok.
-
-restart(_Node,_Reason,State) ->
+    ts_os_mon:send(State#state.mon,[{sample_counter, {cpu, Hostname}, Cpu},
+                                    {sample, {freemem, Hostname}, FreeMem},
+                                    {sample, {load, Hostname}, Load}]),
+    erlang:start_timer(State#state.interval, self(), send_request ),
     {noreply, State}.
 
-stop(_Node,State) ->
-    %%TODO: close the socket
-    {noreply, State}.
+
+%%--------------------------------------------------------------------
+%% Function: terminate/2
+%% Description: Shutdown the server
+%% Returns: any (ignored by gen_server)
+%%--------------------------------------------------------------------
+terminate(_Reason, #state{socket=Socket}) ->
+    gen_tcp:close(Socket).
+
+%%--------------------------------------------------------------------
+%% Func: code_change/3
+%% Purpose: Convert process state when code is changed
+%% Returns: {ok, NewState}
+%%--------------------------------------------------------------------
+code_change(_OldVsn, State, _Extra) ->
+    {ok, State}.
+
+%%%----------------------------------------------------------------------
+%%% Internal functions
+%%%----------------------------------------------------------------------
 
 read_munin_data(Socket)->
     read_munin_data(Socket,gen_tcp:recv(Socket,0,?READ_TIMEOUT),[]).
 
-read_munin_data(_Socket,{error,Reason}, Acc)->
-    ?LOGF("Munin error: ~p~n", [Reason], ?ERR),
-    Acc;
 read_munin_data(_Socket,{ok,".\n"}, Acc)->
     Acc;
 read_munin_data(Socket,{ok, Data}, Acc) when is_list(Acc)->
@@ -133,6 +200,7 @@ read_munin_data(Socket,{ok, Data}, Acc) when is_list(Acc)->
                      Acc
              end,
     read_munin_data(Socket,gen_tcp:recv(Socket,0,?READ_TIMEOUT), NewAcc).
+%% no clause for errors: let it crash ! (OTP supervision tree rules ...)
 
 %% check is this a valid value (positive at least)
 check_value(Val,_) when Val > 0 -> Val;

@@ -29,65 +29,122 @@
 
 
 -include("ts_profile.hrl").
--include("ts_os_mon.hrl").
+%% -include("ts_os_mon.hrl").
 
--export([init/3, get_data/2, parse/2, restart/3, stop/2]).
+-export([start/1, updatestats/2, client_start/0]).
 
--export([client_start/0,  updatestats/2]).
+%% gen_server callbacks
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
+         terminate/2, code_change/3]).
 
 
 -define(NODE, "os_mon").
 -define(PROCNET, "/proc/net/dev").
 
+-record(state,{
+          mon,        % pid of mon server
+          interval,   % interval
+          node,       % name of node to monitor
+          pid         % remote pid
+         }).
 
-%% @spec init(HostStr::string, Options, State ) ->
-%%             ok | {error, Reason}
-init( Host, [],  State) ->
+start(Args) ->
+    ?LOGF("starting os_mon_erlang with args ~p",[Args],?NOTICE),
+    gen_server:start_link(?MODULE, Args, []).
+
+%%--------------------------------------------------------------------
+%% Function: init/1
+%% Description: Initiates the server
+%% Returns: {ok, State}          |
+%%          {ok, State, Timeout} |
+%%          ignore               |
+%%          {stop, Reason}
+%%--------------------------------------------------------------------
+init( {Host, {}, Interval,  MonServer} ) ->
     {ok, LocalHost} = ts_utils:node_to_hostname(node()),
     %% because the stats for cpu has to be called from the same
     %% process (otherwise the same value (mean cpu% since the system
-    %% last boot)  is returned by cpu_sup:util), we spawn a process
+    %% last boot)  is returned by cpu_sup:util), we must spawn a process
     %% on the remote node that will do the stats collection and send it back
     %% to ts_mon
     case list_to_atom(LocalHost) of
         Host -> % same host, don't start a new beam
             ?LOG("Running os_mon on the same host as the controller, use the same beam~n",?INFO),
-            ts_os_mon:activated({self(), erlang, node()}),
-            updatestats(State#os_mon.interval,State#os_mon.mon_server);
+            Pid = spawn_link(?MODULE, updatestats, [Interval, MonServer]),
+            {ok,#state{node=node(),mon=MonServer, interval=Interval,pid=Pid}};
         _ ->
+            %% to get the EXIT signal from spawned processes on remote nodes
+            process_flag(trap_exit,true),
             case start_beam(Host) of
                 {ok, Node} ->
                     Pong = net_adm:ping(Node),
                     ?LOGF("ping ~p: ~p~n", [Node, Pong],?INFO),
                     load_code([Node]),
-                    Pid = spawn(Node, ?MODULE, updatestats,
-                                [State#os_mon.interval, State#os_mon.mon_server]),
-                    ts_os_mon:activated({Pid, erlang, Node});
+                    Pid = spawn_link(Node, ?MODULE, updatestats,
+                                [Interval, MonServer]),
+                    {ok, #state{node=Node,interval=Interval,mon=MonServer,pid=Pid}};
                 Error ->
                     ?LOGF("Fail to start beam on host ~p (~p)~n", [Host, Error],?ERR),
                     {error, Error}
             end
     end.
 
-get_data(_Pids, _State) ->
+%%--------------------------------------------------------------------
+%% Function: handle_call/3
+%% Description: Handling call messages
+%% Returns: {reply, Reply, State}          |
+%%          {reply, Reply, State, Timeout} |
+%%          {noreply, State}               |
+%%          {noreply, State, Timeout}      |
+%%          {stop, Reason, Reply, State}   | (terminate/2 is called)
+%%          {stop, Reason, State}            (terminate/2 is called)
+%%--------------------------------------------------------------------
+handle_call(_Request, _From, State) ->
+    Reply = ok,
+    {reply, Reply, State}.
+
+%%--------------------------------------------------------------------
+%% Function: handle_cast/2
+%% Description: Handling cast messages
+%% Returns: {noreply, State}          |
+%%          {noreply, State, Timeout} |
+%%          {stop, Reason, State}            (terminate/2 is called)
+%%--------------------------------------------------------------------
+handle_cast(Msg, State) ->
+    ?LOGF("handle cast: unknown msg ~p~n",[Msg],?WARN),
+    {noreply, State}.
+
+%%--------------------------------------------------------------------
+%% Function: handle_info/2
+%% Description: Handling all non call/cast messages
+%% Returns: {noreply, State}          |
+%%          {noreply, State, Timeout} |
+%%          {stop, Reason, State}            (terminate/2 is called)
+%%--------------------------------------------------------------------
+handle_info({'EXIT', From, Reason}, State=#state{node=Node,interval=Interval,mon=MonServer}) ->
+    ?LOGF("received exit from ~p with reason ~p~n",[From, Reason],?ERR),
+    Pid = spawn_link(Node, ?MODULE, updatestats, [Interval, MonServer]),
+    {noreply, State#state{pid=Pid}}.
+
+%%--------------------------------------------------------------------
+%% Function: terminate/2
+%% Description: Shutdown the server
+%% Returns: any (ignored by gen_server)
+%%--------------------------------------------------------------------
+terminate(_Reason, _State) ->
     ok.
 
-parse(_Data, _State) ->
-    ok.
-
-restart({_OldPid, Node}, _Reason, State) ->
-    %% start a new process on this node
-    Pid = spawn_link(Node, ?MODULE, updatestats, [State#os_mon.interval, State#os_mon.mon_server]),
-    %% replace the pid value
-    NewPids = dict:store(Pid,{erlang, Node},State#os_mon.pids),
-    {noreply, State#os_mon{pids=NewPids}}.
-
-stop(Node, _State) ->
-    rpc:cast(Node, erlang, halt, []).
+%%--------------------------------------------------------------------
+%% Func: code_change/3
+%% Purpose: Convert process state when code is changed
+%% Returns: {ok, NewState}
+%%--------------------------------------------------------------------
+code_change(_OldVsn, State, _Extra) ->
+    {ok, State}.
 
 %%--------------------------------------------------------------------
 %% Function: updatestats/2
-%% Purpose: update stats for erlang monitoring
+%% Purpose: update stats for erlang monitoring. Executed on the remote host
 %%--------------------------------------------------------------------
 updatestats(Interval,Mon_Server) ->
     Node = atom_to_list(node()),
@@ -204,5 +261,3 @@ start_beam(Host) ->
     ?LOGF("starting os_mon beam (~p) on host ~p with Args ~p~n",
           [?NODE,Host, Args], ?INFO),
     slave:start(Host, ?NODE, Args).
-
-

@@ -118,7 +118,7 @@ parse(Element = #xmlElement{name=monitor, attributes=Attrs},
     Host = getAttr(Attrs, host),
     Type = case getAttr(atom, Attrs, type, erlang) of
                erlang ->
-                   {erlang, []};
+                   {erlang, {}};
                snmp ->
                    case lists:keysearch(snmp,#xmlElement.name,
                                         Element#xmlElement.content) of
@@ -129,11 +129,11 @@ parse(Element = #xmlElement{name=monitor, attributes=Attrs},
                                                          community, ?config(snmp_community)),
                            Version = getAttr(atom,SnmpEl#xmlElement.attributes,
                                                        version, ?config(snmp_version)),
-                           {snmp, [{Port, Community, Version}]};
+                           {snmp, {Port, Community, Version}};
                        _ ->
-                           {snmp, [{?config(snmp_port),
+                           {snmp, {?config(snmp_port),
                             ?config(snmp_community),
-                            ?config(snmp_version)}]}
+                            ?config(snmp_version)}}
                    end;
                munin ->
                    case lists:keysearch(munin,#xmlElement.name,
@@ -141,9 +141,9 @@ parse(Element = #xmlElement{name=monitor, attributes=Attrs},
                        {value, MuninEl=#xmlElement{} } ->
                            Port = getAttr(integer,MuninEl#xmlElement.attributes,
                                                     port, ?config(munin_port)),
-                           {munin, [{Port}]};
+                           {munin, {Port}};
                        _ ->
-                           {munin, [{?config(munin_port) }]}
+                           {munin, {?config(munin_port) }}
                    end
            end,
     NewMon = case getAttr(atom, Attrs, batch, false) of
@@ -268,7 +268,7 @@ parse(Element = #xmlElement{name=users, attributes=Attrs},
 
 %% Parsing the session element
 parse(Element = #xmlElement{name=session, attributes=Attrs},
-      Conf = #config{session_tab = Tab, curid= PrevReqId, sessions=SList}) ->
+      Conf = #config{curid= PrevReqId, sessions=SList}) ->
 
     Id = length(SList),
     Type        = getAttr(atom,Attrs, type),

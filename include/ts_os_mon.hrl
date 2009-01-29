@@ -20,16 +20,4 @@
 %%%  the two.
 
 
-%% two types of monotoring: snmp or using an erlang agent
--record(os_mon, {
-                pids,      % dict of remote pids (pid is the key and type is the value
-                interval,  % get data every 'interval' msec, default
-                           % value is ?INTERVAL
-                plugins=[],% all plugins needed by current test
-                mon_server,% monitoring server to which every data is
-                           % sent to (can be a pid or a registered
-                           % process )
-                dnscache=[]
-               }).
-
 -define(INTERVAL, 10000).

@@ -300,8 +300,7 @@ handle_cast({rcvmsg, Who, When, What}, State=#state{dumpfile=Log}) ->
     {noreply, State};
 
 handle_cast({stop}, State = #state{client = 0}) ->
-    ?LOG("Stop asked, no more users, ask os_mon to stop~n", ?INFO),
-    ts_os_mon:stop(),
+    ?LOG("Stop asked, no more users, stop~n", ?INFO),
     {stop, normal, State};
 handle_cast({stop}, State) -> % we should stop, wait until no more clients are alive
     ?LOG("A launcher has finished, but not all users have finished, wait before stopping~n", ?NOTICE),
@@ -309,7 +308,6 @@ handle_cast({stop}, State) -> % we should stop, wait until no more clients are a
 
 handle_cast({abort}, State) -> % stop now !
     ?LOG("Aborting by request !~n", ?EMERG),
-    ts_os_mon:stop(),
     {stop, abort, State};
 
 handle_cast(Msg, State) ->
