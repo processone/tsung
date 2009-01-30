@@ -21,3 +21,4 @@
 
 
 -define(INTERVAL, 10000).
+-define(INIT_WAIT, 1000).

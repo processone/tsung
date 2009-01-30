@@ -29,7 +29,7 @@
 
 
 -include("ts_profile.hrl").
-%% -include("ts_os_mon.hrl").
+-include("ts_os_mon.hrl").
 
 -export([start/1, updatestats/2, client_start/0]).
 
@@ -45,6 +45,7 @@
           mon,        % pid of mon server
           interval,   % interval
           node,       % name of node to monitor
+          host,       % hostname of server to monitor
           pid         % remote pid
          }).
 
@@ -62,6 +63,8 @@ start(Args) ->
 %%--------------------------------------------------------------------
 init( {Host, {}, Interval,  MonServer} ) ->
     {ok, LocalHost} = ts_utils:node_to_hostname(node()),
+    %% to get the EXIT signal from spawned pro-cesse on remote nodes
+    process_flag(trap_exit,true),
     %% because the stats for cpu has to be called from the same
     %% process (otherwise the same value (mean cpu% since the system
     %% last boot)  is returned by cpu_sup:util), we must spawn a process
@@ -71,23 +74,13 @@ init( {Host, {}, Interval,  MonServer} ) ->
         Host -> % same host, don't start a new beam
             ?LOG("Running os_mon on the same host as the controller, use the same beam~n",?INFO),
             Pid = spawn_link(?MODULE, updatestats, [Interval, MonServer]),
-            {ok,#state{node=node(),mon=MonServer, interval=Interval,pid=Pid}};
+            {ok, #state{node=node(),mon=MonServer, host=Host,interval=Interval,pid=Pid}};
         _ ->
-            %% to get the EXIT signal from spawned processes on remote nodes
-            process_flag(trap_exit,true),
-            case start_beam(Host) of
-                {ok, Node} ->
-                    Pong = net_adm:ping(Node),
-                    ?LOGF("ping ~p: ~p~n", [Node, Pong],?INFO),
-                    load_code([Node]),
-                    Pid = spawn_link(Node, ?MODULE, updatestats,
-                                [Interval, MonServer]),
-                    {ok, #state{node=Node,interval=Interval,mon=MonServer,pid=Pid}};
-                Error ->
-                    ?LOGF("Fail to start beam on host ~p (~p)~n", [Host, Error],?ERR),
-                    {error, Error}
-            end
+            erlang:start_timer(?INIT_WAIT, self(), start_beam),
+            {ok, #state{host=Host, mon=MonServer, interval=Interval}}
     end.
+
+
 
 %%--------------------------------------------------------------------
 %% Function: handle_call/3
@@ -121,6 +114,20 @@ handle_cast(Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
+handle_info({timeout,_Ref,start_beam},State=#state{host=Host})->
+    case start_beam(Host) of
+        {ok, Node} ->
+            Pong = net_adm:ping(Node),
+            ?LOGF("ping ~p: ~p~n", [Node, Pong],?INFO),
+            load_code([Node]),
+            Pid = spawn_link(Node, ?MODULE, updatestats,
+                             [State#state.interval, State#state.mon]),
+            {noreply, State#state{node=Node,pid=Pid}};
+        Error ->
+            ?LOGF("Fail to start beam on host ~p (~p)~n", [Host, Error],?ERR),
+            {stop, Error, State}
+    end;
+
 handle_info({'EXIT', From, Reason}, State=#state{node=Node,interval=Interval,mon=MonServer}) ->
     ?LOGF("received exit from ~p with reason ~p~n",[From, Reason],?ERR),
     Pid = spawn_link(Node, ?MODULE, updatestats, [Interval, MonServer]),

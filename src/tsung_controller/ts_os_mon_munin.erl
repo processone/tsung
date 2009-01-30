@@ -39,7 +39,7 @@
 -include("ts_os_mon.hrl").
 
 -define(READ_TIMEOUT,2500). % 2.5 sec
--define(SEND_TIMEOUT,5000). %
+-define(SEND_TIMEOUT,5000).
 
 -export([start/1]).
 
@@ -51,7 +51,9 @@
           mon,        % pid of mon server
           interval,   % interval in msec between gathering of data
           socket,     % tcp socket
-          host        % remote munin-node hostname
+          port,       % tcp port of munin-node server
+          host,       % remote munin-node hostname
+          addr        % remote munin-node IP addr
          }).
 
 start(Args) ->
@@ -67,34 +69,11 @@ start(Args) ->
 %%          {stop, Reason}
 %%--------------------------------------------------------------------
 init({HostStr, {Port}, Interval, MonServer}) ->
-    {ok, Host} = inet:getaddr(HostStr, inet),
-    ?LOGF("Starting munin mgr on ~p:~p~n", [Host,Port], ?DEB),
-    Opts=[list,
-          {active, false},
-          {packet, line},
-          {send_timeout, ?SEND_TIMEOUT},
-          {keepalive, true}
-         ],
-    case gen_tcp:connect(Host, Port, Opts) of
-        {ok, Socket} ->
-            case gen_tcp:recv(Socket,0, ?READ_TIMEOUT) of
-                {ok, "# munin node at "++ MuninHost} ->
-                    ?LOGF("Connected to ~p~n", [MuninHost], ?INFO),
-                    %% must fetch some data, otherwise munin-node
-                    %% timeout and close the connection
-                    gen_tcp:send(Socket,"fetch load\n"),
-                    read_munin_data(Socket),
-                    ?LOGF("first fetch succesful to ~p~n", [MuninHost], ?INFO),
-                    erlang:start_timer(Interval, self(), send_request ),
-                    {ok, #state{mon=MonServer, socket=Socket, interval=Interval, host=MuninHost}};
-                {error, Reason} ->
-                    ?LOGF("Error while connecting to munin server: ~p~n", [Reason], ?ERR),
-                    {error, Reason}
-            end;
-        {error, Reason} ->
-            ?LOGF("Can't connect to munin server on ~p, reason:~p~n", [HostStr, Reason], ?ERR),
-            {error, Reason}
-    end.
+    ?LOGF("Starting munin mgr on ~p:~p~n", [HostStr,Port], ?DEB),
+    {ok, IP} = inet:getaddr(HostStr, inet),
+    erlang:start_timer(?INIT_WAIT, self(), connect ),
+    {ok, #state{mon=MonServer, host=HostStr, interval=Interval, addr=IP, port=Port}}.
+
 
 %%--------------------------------------------------------------------
 %% Function: handle_call/3
@@ -128,6 +107,34 @@ handle_cast(Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
+handle_info({timeout,_Ref,connect},State=#state{addr=IP,port=Port,host=HostStr}) ->
+    Opts=[list,
+          {active, false},
+          {packet, line},
+          {send_timeout, ?SEND_TIMEOUT},
+          {keepalive, true}
+         ],
+    case gen_tcp:connect(IP, Port, Opts) of
+        {ok, Socket} ->
+            case gen_tcp:recv(Socket,0, ?READ_TIMEOUT) of
+                {ok, "# munin node at "++ MuninHost} ->
+                    ?LOGF("Connected to ~p~n", [MuninHost], ?INFO),
+                    %% must fetch some data, otherwise munin-node
+                    %% timeout and close the connection
+                    gen_tcp:send(Socket,"fetch load\n"),
+                    read_munin_data(Socket),
+                    ?LOGF("first fetch succesful to ~p~n", [MuninHost], ?INFO),
+                    erlang:start_timer(State#state.interval, self(), send_request ),
+                    {noreply, State#state{socket=Socket,host=MuninHost}};
+                {error, Reason} ->
+                    ?LOGF("Error while connecting to munin server: ~p~n", [Reason], ?ERR),
+                    {stop, Reason, State}
+            end;
+        {error, Reason} ->
+            ?LOGF("Can't connect to munin server on ~p, reason:~p~n", [HostStr, Reason], ?ERR),
+            {stop, Reason, State}
+    end;
+
 handle_info({timeout, _Ref, send_request},  State=#state{socket=Socket,host=Hostname} ) ->
     %% Currenly, fetch only cpu and memory
     %% FIXME: should be customizable in XML config file

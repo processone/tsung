@@ -57,7 +57,7 @@ start_child(Plugin, Args) ->
 %%----------------------------------------------------------------------
 init([Plugin]) ->
     ?LOGF("Starting with args ~p~n",[Plugin], ?INFO),
-    SupFlags = {simple_one_for_one,20, 10},
+    SupFlags = {simple_one_for_one, 20, 20},
     {ok, {SupFlags, get_spec(Plugin)}}.
 
 %% internal funs

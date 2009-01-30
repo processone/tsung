@@ -45,7 +45,11 @@
           dnscache=[],
           interval,
           pid,               % pid of snmp_mgr
-          host
+          host,
+          version,
+          port,
+          community,
+          addr
          }).
 
 %% SNMP definitions
@@ -73,21 +77,20 @@ start(Args) ->
 %%          {stop, Reason}
 %%--------------------------------------------------------------------
 init({HostStr, {Port, Community, Version}, Interval, MonServer}) ->
-    {ok, Host} = inet:getaddr(HostStr, inet),
-    ?LOGF("Starting SNMP mgr on ~p~n", [Host], ?DEB),
-    {ok, Pid} = snmp_mgr:start_link([{agent, Host},
-                                     {agent_udp, Port},
-                                     {community, Community},
-                                     {receive_type, msg},
-                                     Version,
-                                     quiet
-                                    ]),
-    %% since snmp_mgr can handle only a single snmp server, change the
-    %% registered name to start several smp_mgr at once !
-    unregister(snmp_mgr),
-    ?LOGF("SNMP mgr started; remote node is ~p~n", [Host],?INFO),
-    erlang:start_timer(Interval, self(), send_request ),
-    {ok, #state{pid=Pid,mon_server=MonServer, host=Host, interval=Interval}}.
+    {ok, IP} = inet:getaddr(HostStr, inet),
+    ts_utils:init_seed(),
+    %% wait randomly a few miliseconds to avoid concurrents starts of
+    %% the snmp_mgr (see the unregister call later)
+    Wait = random:uniform(?INIT_WAIT),
+    erlang:start_timer(Wait, self(), connect ),
+    ?LOGF("Starting SNMP mgr on ~p (~p)~n", [IP,Wait], ?DEB),
+    {ok, #state{ mon_server = MonServer,
+                 host       = HostStr,
+                 port       = Port,
+                 addr       = IP,
+                 community  = Community,
+                 version    = Version,
+                 interval   = Interval}}.
 
 %%--------------------------------------------------------------------
 %% Function: handle_call/3
@@ -120,14 +123,29 @@ handle_cast(Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-handle_info({timeout, _Ref, send_request},  State=#state{interval=Interval,pid=Pid,host=Host} ) ->
+handle_info({timeout,_Ref,connect},State=#state{addr=IP,port=Port,community=Community,version=Version}) ->
+    {ok, Pid} = snmp_mgr:start_link([{agent, IP},
+                                     {agent_udp, Port},
+                                     {community, Community},
+                                     {receive_type, msg},
+                                     Version,
+                                     quiet
+                                    ]),
+    %% since snmp_mgr can handle only a single snmp server, change the
+    %% registered name to start several smp_mgr at once !
+    unregister(snmp_mgr),
+    ?LOGF("SNMP mgr started; remote node is ~p~n", [IP],?INFO),
+    erlang:start_timer(State#state.interval, self(), send_request ),
+    {noreply, State#state{pid=Pid}};
+
+handle_info({timeout,_Ref,send_request},State=#state{pid=Pid, host=Host}) ->
     ?LOGF("SNMP mgr; get data from host ~p~n", [Host],?DEB),
     snmp_get(Pid,
              [?SNMP_CPU_RAW_SYSTEM,
               ?SNMP_CPU_RAW_USER,
               ?SNMP_MEM_AVAIL,
               ?SNMP_CPU_LOAD1]),
-    erlang:start_timer(Interval, self(), send_request ),
+    erlang:start_timer(State#state.interval, self(), send_request ),
     {noreply,State};
 
 handle_info({snmp_msg, Msg, Ip, _Udp}, State) ->
@@ -142,6 +160,7 @@ handle_info({snmp_msg, Msg, Ip, _Udp}, State) ->
             ?LOGF("Got unknown SNMP data ~p from ~p~n",[PDU, Ip],?WARN),
             {noreply, State}
     end;
+
 handle_info(Message, State) ->
     {stop, {unknown_message, Message} , State}.
 
