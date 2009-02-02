@@ -117,7 +117,8 @@ handle_info({timeout,_Ref,connect},State=#state{addr=IP,port=Port,host=HostStr})
     case gen_tcp:connect(IP, Port, Opts) of
         {ok, Socket} ->
             case gen_tcp:recv(Socket,0, ?READ_TIMEOUT) of
-                {ok, "# munin node at "++ MuninHost} ->
+                {ok, "# munin node at "++ Str} ->
+                    MuninHost = ts_utils:chop(Str),
                     ?LOGF("Connected to ~p~n", [MuninHost], ?INFO),
                     %% must fetch some data, otherwise munin-node
                     %% timeout and close the connection
