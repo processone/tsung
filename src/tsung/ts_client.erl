@@ -746,8 +746,10 @@ handle_data_msg(Data,State=#state_rcv{request=Req,clienttype=Type,maxcount=MaxCo
         true ->
             ?DebugF("Response done:~p~n", [NewState#state_rcv.datasize]),
             {PageTimeStamp, DynVars} = update_stats(NewState#state_rcv{buffer=NewBuffer}),
-            NewCount = ts_search:match(Req#ts_request.match, NewBuffer,
-                                       {NewState#state_rcv.count, MaxCount, NewState#state_rcv.session_id, NewState#state_rcv.id}),
+            MatchArgs={NewState#state_rcv.count, MaxCount,
+                       NewState#state_rcv.session_id,
+                       NewState#state_rcv.id},
+            NewCount =ts_search:match(Req#ts_request.match,NewBuffer,MatchArgs,DynVars),
             NewDynVars=ts_dynvars:merge(DynVars,(NewState#state_rcv.dyndata)#dyndata.dynvars),
             NewDynData=(NewState#state_rcv.dyndata)#dyndata{dynvars=NewDynVars},
             case Close of
@@ -813,7 +815,9 @@ handle_data_msg(Data, State=#state_rcv{request=Req, maxcount= MaxCount}) ->
     DataSize = size(Data),
     {PageTimeStamp, DynVars} = update_stats(State#state_rcv{datasize=DataSize,
                                                             buffer=NewBuffer}),
-    NewCount = ts_search:match(Req#ts_request.match, NewBuffer, {State#state_rcv.count,MaxCount,State#state_rcv.session_id,State#state_rcv.id}),
+    MatchArgs={State#state_rcv.count,MaxCount,State#state_rcv.session_id,
+               State#state_rcv.id},
+    NewCount = ts_search:match(Req#ts_request.match, NewBuffer, MatchArgs,DynVars),
     NewDynVars=ts_dynvars:merge(DynVars,(State#state_rcv.dyndata)#dyndata.dynvars),
     NewDynData=(State#state_rcv.dyndata)#dyndata{dynvars=NewDynVars},
     {State#state_rcv{ack_done = true, buffer= NewBuffer, dyndata = NewDynData,

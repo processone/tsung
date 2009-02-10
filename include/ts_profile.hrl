@@ -31,6 +31,7 @@
 
 -record(match,
         { regexp,
+          subst = false,
          'when' = false,
           do    = continue, %(continue | loop | abort | log )
           sleep_loop, % in seconds

@@ -31,7 +31,7 @@
 -module(ts_search).
 -vc('$Id$ ').
 
--export([subst/2, match/3, parse_dynvar/2]).
+-export([subst/2, match/4, parse_dynvar/2]).
 
 -include("ts_profile.hrl").
 
@@ -110,24 +110,29 @@ extract_function([H|Tail],DynVar,  Acc, Mod, Fun) ->
 
 %%----------------------------------------------------------------------
 %% @spec match(Match::#match{}, Data::binary() | list, {Counts::integer(),
-%%         Max::integer(), SessionId::integer(),UserId::integer()})-> Count::integer()
+%% Max::integer(), SessionId::integer(),UserId::integer()}, Dynvars::term()
+%%  ) ->  Count::integer()
 %% @doc search for regexp in Data; send result to ts_mon
 %% @end
 %%----------------------------------------------------------------------
-match([], _Data, {Count, _MaxC, _SessionId, _UserId}) -> Count;
-match(Match, Data, Counts)  when is_binary(Data)->
+match([], _Data, {Count, _MaxC, _SessionId, _UserId}, _DynVars) -> Count;
+match(Match, Data, Counts,DynVars)  when is_binary(Data)->
     ?DebugF("Matching Data size ~p~n",[size(Data)]),
-    match(Match, binary_to_list(Data), Counts);
-match(Match, Data, {Count,MaxC,SessionId,UserId})  when is_list(Data) ->
-    match(Match, Data, {Count,MaxC,SessionId,UserId}, []).
+    match(Match, binary_to_list(Data), Counts, DynVars);
+match(Match, Data, Counts,DynVars)  when is_list(Data) ->
+    match(Match, Data, Counts, [], DynVars).
 
 %% @spec match(Match::#match{}, Data::binary() | list(), Count::tuple(),
-%%             Stats::list()) -> Count::integer()
-match([], _Data, {Count, _MaxC, _SessionId,_UserId}, Stats) ->
+%%             Stats::list(), DynVars::term()) -> Count::integer()
+match([], _Data, {Count,_, _,_}, Stats, _) ->
     %% all matches done, add stats, and return Count unchanged (continue)
     ts_mon:add(Stats),
     Count;
-match([Match=#match{regexp=RegExp, do=Action, 'when'=When}| Tail], String, Counts, Stats)->
+match([Match=#match{regexp=RawRegExp,subst=Subst, do=Action, 'when'=When}| Tail], String, Counts, Stats, DynVars)->
+    RegExp  = case Subst of
+        true -> subst(RawRegExp, DynVars);
+        _    -> RawRegExp
+    end,
     case regexp:first_match(String, RegExp) of
         {When,_, _} ->
             ?LOGF("Ok Match (regexp=~p) do=~p~n",[RegExp,Action], ?INFO),
@@ -142,7 +147,7 @@ match([Match=#match{regexp=RegExp, do=Action, 'when'=When}| Tail], String, Count
                 restart -> put(restart_count, 0);
                 _       -> ok
             end,
-            match(Tail, String, Counts, [{count, match} | Stats]);
+            match(Tail, String, Counts, [{count, match} | Stats],DynVars);
         nomatch -> % nomatch but when=match
             ?LOGF("Bad Match (regexp=~p)~n",[RegExp], ?INFO),
             case Action of
@@ -150,10 +155,10 @@ match([Match=#match{regexp=RegExp, do=Action, 'when'=When}| Tail], String, Count
                 restart -> put(restart_count, 0);
                 _       -> ok
             end,
-            match(Tail, String, Counts,[{count, nomatch} | Stats]);
+            match(Tail, String, Counts,[{count, nomatch} | Stats],DynVars);
         {error,_Error} ->
             ?LOGF("Error while matching: bad REGEXP (~p)~n", [RegExp], ?ERR),
-            match(Tail, String, Counts,[{count, badregexp} | Stats])
+            match(Tail, String, Counts,[{count, badregexp} | Stats],DynVars)
     end.
 
 %%----------------------------------------------------------------------
