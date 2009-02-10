@@ -61,8 +61,7 @@ Plot several tsung logs on the same charts, for comparison purpose.
         <term><option>--config</option></term>
         <listitem>
           <para>
-	    specifies the configuration file to use. This option has
-	    no default setting.
+	    specifies the configuration file to use. Default is <filename>http.en.plots.conf</filename>.
 	  </para>
         </listitem>
       </varlistentry>
@@ -102,11 +101,10 @@ Plot several tsung logs on the same charts, for comparison purpose.
     </para>
     <para>
       <command>tsplot</command> comes with two sample configuration
-      files, namely <filename>http.plots.conf</filename> and
-      <filename>pgsql.plots.conf</filename>. They respectively define
+      files, namely <filename>http.plots.en.conf</filename> and
+      <filename>pgsql.plots.en.conf</filename>. They respectively define
       charts to be plotted for a <command>tsung</command> HTTP test
-      and a <command>tsung</command> PGSQL test. Their labels are in
-      french.
+      and a <command>tsung</command> PGSQL test.
     </para>
     <para>
       A <command>DEFAULT</command> section may be provided, any
@@ -337,9 +335,9 @@ Plot several tsung logs on the same charts, for comparison purpose.
     <para>
       Please see the given configuration examples which should be
       distributed in
-      <filename>/usr/share/doc/tsung-plotter/http.plots.conf</filename>
+      <filename>/usr/share/doc/tsung/tsung-plotter/http.plots.en.conf</filename>
       and
-      <filename>/usr/share/doc/tsung-plotter/pgsql.plots.conf</filename>.
+      <filename>/usr/share/doc/tsung/tsung-plotter/pgsql.plots.en.conf</filename>.
     </para>
   </refsect1>
 
