@@ -105,21 +105,27 @@ parse_config(Element, Conf) ->
 %%----------------------------------------------------------------------
 add_dynparams(false, DynData, Param, HostData) ->
     add_dynparams(DynData#dyndata.proto, Param, HostData);
-add_dynparams(true, DynData, Param=#http_request{url=OldUrl}, HostData) ->
-    NewParam = subst(Param, DynData#dyndata.dynvars),
-    case NewParam#http_request.url of
+add_dynparams(true, DynData, OldReq=#http_request{url=OldUrl}, HostData) ->
+    Req = subst(OldReq, DynData#dyndata.dynvars),
+    case Req#http_request.url of
         OldUrl ->
-            add_dynparams(DynData#dyndata.proto,NewParam, HostData);
+            add_dynparams(DynData#dyndata.proto,Req, HostData);
         "http" ++ _Rest -> % URL has changed and is absolute
-            URL=ts_config_http:parse_URL(NewParam#http_request.url),
+            URL=ts_config_http:parse_URL(Req#http_request.url),
             ?DebugF("URL dynamic subst: ~p~n",[URL]),
             NewPort = ts_config_http:set_port(URL),
-            {add_dynparams(DynData#dyndata.proto,
-                          NewParam#http_request{host_header=undefined},
-                          { URL#url.host, NewPort}),
-             {URL#url.host, NewPort,ts_config_http:set_scheme(URL#url.scheme)}};
+            NewUrl = case OldUrl of
+                         "http"++_ -> % old url absolute: useproxy must be true
+                             URL;
+                         _ ->
+                             ts_config_http:set_query(URL)
+                     end,
+            NewReq=add_dynparams(DynData#dyndata.proto,
+                                 Req#http_request{url=NewUrl,host_header=undefined},
+                                 {URL#url.host, NewPort}),
+            {NewReq, {URL#url.host, NewPort,ts_config_http:set_scheme(URL#url.scheme)}};
         _ -> % Same host:port
-            add_dynparams(DynData#dyndata.proto,NewParam, HostData)
+            add_dynparams(DynData#dyndata.proto, Req, HostData)
     end.
 
 %% Function: add_dynparams/3

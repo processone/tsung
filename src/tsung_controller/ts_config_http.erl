@@ -31,7 +31,7 @@
 -author('nicolas.niclausse@niclux.org').
 
 -export([parse_config/2, parse_URL/1, set_port/1, set_scheme/1,
-         check_user_agent_sum/1]).
+         check_user_agent_sum/1, set_query/1]).
 
 -include("ts_profile.hrl").
 -include("ts_http.hrl").
