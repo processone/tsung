@@ -482,7 +482,7 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
                                  Element#xmlElement.content);
                 "hibernate" ->
-                    Hibernate = case  getAttr(integer,Attrs, value, infinity ) of
+                    Hibernate = case  getAttr(integer,Attrs, value, 10000 ) of
                                     infinity -> infinity;
                                     Seconds -> Seconds * 1000
                                 end,

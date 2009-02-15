@@ -71,7 +71,7 @@
          ip,          % local ip to bind to
          timeout,     % ?
          retries=0,   % number of connect retries
-         hibernate = infinity, % hibernate if thinktime is >= to this
+         hibernate = 10000, % hibernate if thinktime is >= to this (10sec by default)
          host,        % hostname (or IP) of remote server
          port,        % server port
          protocol,    % gen_udp, gen_tcp or ssl
