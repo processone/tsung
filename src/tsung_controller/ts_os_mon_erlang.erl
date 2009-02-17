@@ -63,7 +63,7 @@ start(Args) ->
 %%--------------------------------------------------------------------
 init( {Host, {}, Interval,  MonServer} ) ->
     {ok, LocalHost} = ts_utils:node_to_hostname(node()),
-    %% to get the EXIT signal from spawned pro-cesse on remote nodes
+    %% to get the EXIT signal from spawned processes on remote nodes
     process_flag(trap_exit,true),
     %% because the stats for cpu has to be called from the same
     %% process (otherwise the same value (mean cpu% since the system
@@ -123,15 +123,15 @@ handle_info({timeout,_Ref,start_beam},State=#state{host=Host})->
             Pid = spawn_link(Node, ?MODULE, updatestats,
                              [State#state.interval, State#state.mon]),
             {noreply, State#state{node=Node,pid=Pid}};
-        Error ->
+        {error,{already_running,Node}} ->
+            ?LOGF("Node ~p is already running, start updatestats process~n", [Node],?NOTICE),
+            Pid = spawn_link(Node, ?MODULE, updatestats,
+                             [State#state.interval, State#state.mon]),
+            {noreply, State#state{node=Node,pid=Pid}};
+       Error ->
             ?LOGF("Fail to start beam on host ~p (~p)~n", [Host, Error],?ERR),
             {stop, Error, State}
-    end;
-
-handle_info({'EXIT', From, Reason}, State=#state{node=Node,interval=Interval,mon=MonServer}) ->
-    ?LOGF("received exit from ~p with reason ~p~n",[From, Reason],?ERR),
-    Pid = spawn_link(Node, ?MODULE, updatestats, [Interval, MonServer]),
-    {noreply, State#state{pid=Pid}}.
+    end.
 
 %%--------------------------------------------------------------------
 %% Function: terminate/2
