@@ -89,9 +89,12 @@ parse_config(Element = #xmlElement{name=http},
                        Request
                end,
     PreviousHTTPServer = get_previous_http_server(Tab, CurS#session.id),
+    %% client side cookies
+    Cookies = parse_cookie(Element#xmlElement.content, []),
     %% Custom HTTP headers
-    Request3 = Request2#http_request{headers = parse_headers(Element#xmlElement.content,
-                                                             Request2#http_request.headers)},
+    Headers=  parse_headers(Element#xmlElement.content,
+                            Request2#http_request.headers),
+    Request3 = Request2#http_request{headers=Headers,cookie=Cookies},
     %% HTTP Authentication
     Msg = case lists:keysearch(www_authenticate, #xmlElement.name,
                                Element#xmlElement.content) of
@@ -105,7 +108,6 @@ parse_config(Element = #xmlElement{name=http},
               _ ->
                   set_msg(Request3, {SubstFlag, MatchRegExp, UseProxy, Servers, PreviousHTTPServer, Tab, CurS#session.id} )
           end,
-
     ts_config:mark_prev_req(Id-1, Tab, CurS),
     ets:insert(Tab,{{CurS#session.id, Id},Msg#ts_request{endpage=true,
                                                          dynvar_specs=DynVar}}),
@@ -163,6 +165,17 @@ parse_headers([Element = #xmlElement{name=http_header} | Tail], Headers) ->
     parse_headers(Tail, [{Name, EncodedValue} | Headers]);
 parse_headers([_| Tail], Headers) ->
     parse_headers(Tail, Headers).
+
+parse_cookie([], Cookies) ->
+    Cookies;
+parse_cookie([Element = #xmlElement{name=add_cookie} | Tail], Cookies) ->
+    Key   = ts_config:getAttr(string, Element#xmlElement.attributes, key),
+    Value = ts_config:getAttr(string, Element#xmlElement.attributes, value),
+    Path  = ts_config:getAttr(string, Element#xmlElement.attributes, path,"/"),
+    Domain= ts_config:getAttr(string,Element#xmlElement.attributes,domain,"."),
+    parse_cookie(Tail,[#cookie{key=Key,value=Value,path=Path,domain=Domain}|Cookies]);
+parse_cookie([_| Tail], Cookies) ->
+    parse_cookie(Tail, Cookies).
 
 %%----------------------------------------------------------------------
 %% Func: set_msg/2

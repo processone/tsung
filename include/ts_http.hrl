@@ -31,7 +31,7 @@
           version="1.1", % default is HTTP/1.1
           host_header,   % use for the 'Host:' header
           get_ims_date,  % used when the method is getims
-          cookie = none,
+          cookie = [],
           method = get,
           content_type = [],
           headers = [],

@@ -164,7 +164,6 @@ headers(Headers) ->
 %% Args: Cookies (list), Hostname (string), URL
 %% Purpose: set Cookie: Header
 %%----------------------------------------------------------------------
-set_cookie_header({none, _, _}) -> []; % is it useful ?
 set_cookie_header({[], _, _})   -> [];
 set_cookie_header({Cookies, Host, URL})->
     MatchDomain = fun (A) -> matchdomain_url(A,Host,URL) end,

@@ -137,9 +137,10 @@ add_dynparams(DynData,Param=#http_request{host_header=undefined}, {Host,Port})->
 add_dynparams(#http_dyndata{cookies=[],user_agent=UA},Param, _) ->
     Param#http_request{user_agent=UA};
 %% cookies
-add_dynparams(#http_dyndata{cookies=DynData,user_agent=UA}, Param, _) ->
+add_dynparams(#http_dyndata{cookies=DynCookie,user_agent=UA}, Req, _) ->
     %% FIXME: should we use the Port value in the Cookie ?
-    Param#http_request{cookie=DynData,user_agent=UA}.
+    Cookie=DynCookie++Req#http_request.cookie,
+    Req#http_request{cookie=Cookie,user_agent=UA}.
 
 init_dynparams() ->
     %% FIXME: optimization: suppress this call if we don't need

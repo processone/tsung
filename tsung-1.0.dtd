@@ -125,7 +125,7 @@ repeat | if )*>
 <!ELEMENT transaction (request | setdynvars | thinktime | for | repeat)+>
 <!ATTLIST transaction name NMTOKEN #REQUIRED>
 
-<!ELEMENT http ( www_authenticate?, soap?, http_header*)>
+<!ELEMENT http ( www_authenticate?, soap?, http_header*, add_cookie*)>
 <!ATTLIST http
     contents          CDATA #IMPLIED
     contents_from_file CDATA #IMPLIED
@@ -149,6 +149,13 @@ repeat | if )*>
     name     CDATA #REQUIRED
     encoding CDATA #IMPLIED
     value    CDATA #IMPLIED >
+
+<!ELEMENT add_cookie EMPTY >
+<!ATTLIST add_cookie
+    key     CDATA #REQUIRED
+    domain  CDATA #IMPLIED
+    path    CDATA #IMPLIED
+    value   CDATA #REQUIRED >
 
 <!ELEMENT www_authenticate EMPTY >
 <!ATTLIST www_authenticate
