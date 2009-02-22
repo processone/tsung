@@ -3,7 +3,7 @@
 .\" <http://shell.ipoline.com/~elmert/comp/docbook2X/> 
 .\" Please send any bug reports, improvements, comments, patches, 
 .\" etc. to Steve Cheng <steve@ggi-project.org>.
-.TH "TSPLOT" "1" "14 octobre 2008" "" ""
+.TH "TSPLOT" "1" "22 février 2009" "" ""
 
 .SH NAME
 tsplot \- Plot several tsung logs on the same charts, for comparison purpose.
@@ -25,8 +25,7 @@ for further comparison and analyze.
 \fB-c\fR
 .TP
 \fB--config\fR
-specifies the configuration file to use. This option has
-no default setting.
+specifies the configuration file to use. Default is \fIhttp.en.plots.conf\fR\&.
 .TP
 \fB-d\fR
 .TP
@@ -48,11 +47,10 @@ data they will show. The configuration file adopts a
 chart.
 .PP
 \fBtsplot\fR comes with two sample configuration
-files, namely \fIhttp.plots.conf\fR and
-\fIpgsql.plots.conf\fR\&. They respectively define
+files, namely \fIhttp.plots.en.conf\fR and
+\fIpgsql.plots.en.conf\fR\&. They respectively define
 charts to be plotted for a \fBtsung\fR HTTP test
-and a \fBtsung\fR PGSQL test. Their labels are in
-french.
+and a \fBtsung\fR PGSQL test.
 .PP
 A \fBDEFAULT\fR section may be provided, any
 element configured here may then be overriden into a specific
@@ -187,9 +185,9 @@ label for vertical axe
 .PP
 Please see the given configuration examples which should be
 distributed in
-\fI/usr/share/doc/tsung-plotter/http.plots.conf\fR
+\fI/usr/share/doc/tsung/tsung-plotter/http.plots.en.conf\fR
 and
-\fI/usr/share/doc/tsung-plotter/pgsql.plots.conf\fR\&.
+\fI/usr/share/doc/tsung/tsung-plotter/pgsql.plots.en.conf\fR\&.
 .SH "BUGS"
 .PP
 Please reports bugs to the mailing list
