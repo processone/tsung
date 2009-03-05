@@ -303,8 +303,8 @@ handle_call(Request, _From, State) ->
 %%--------------------------------------------------------------------
 %% start the launcher on the current beam
 handle_cast({newbeam, Host, []}, State=#state{last_beam_id = NodeId,
-                                              hostname=LocalHost,
-                                              config = Config})
+                                              hostname = LocalHost,
+                                              config   = Config})
   when Config#config.use_controller_vm and ( ( LocalHost == Host ) or ( Host == 'localhost' )) ->
     ?LOGF("Start a launcher on the controller beam ~p~n", [LocalHost], ?NOTICE),
     LogDir = encode_filename(State#state.logdir),

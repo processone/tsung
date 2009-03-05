@@ -39,9 +39,10 @@
 -include("ts_config.hrl").
 
 %% External exports, API
--export([start/0, stop/0, stop/1, start/1, add/1, add/2, dumpstats/0,dumpstats/1,
+-export([start/0, start/1, stop/0, stop/1,
+         add/1, add/2, dumpstats/0, dumpstats/1,
          set_output/2, set_output/3,
-         status/1 ]).
+         status/1, status/2 ]).
 
 %% More external exports for ts_mon
 -export([print_stats_txt/3, update_stats/3, add_stats_data/2, reset_all_stats/1]).
@@ -89,6 +90,8 @@ add([], _Id) -> ok;
 add(Data, Id) ->
     gen_server:cast({global, Id}, {add, Data}).
 
+status(Name,Type) ->
+    gen_server:call({global, ?MODULE}, {status, Name, Type}).
 status(Id) ->
     gen_server:call({global, Id}, {status}).
 
@@ -145,9 +148,9 @@ init([Id]) ->
 handle_call({status}, _From, State=#state{stats=Stats} ) when is_list(Stats) ->
     [_Esp, _Var, _Max, _Min, Count, _MeanFB,_CountFB,_Last] = Stats,
     {reply, Count, State};
-handle_call({status}, _From, State ) ->
-    Request = dict:find({request, sample}, State#state.stats), %%FIXME
-    {reply, Request, State};
+handle_call({status, Name, Type}, _From, State ) ->
+    Value = dict:find({Name,Type}, State#state.stats),
+    {reply, Value, State};
 
 handle_call(Request, _From, State) ->
     ?LOGF("Unknown call ~p !~n",[Request],?ERR),
