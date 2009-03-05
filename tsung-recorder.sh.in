@@ -182,7 +182,7 @@ case $1 in
         maindir
         logdir
         checkrunning
-        recorder
+        start
         ;;
 
     record_tag)
@@ -193,10 +193,10 @@ case $1 in
         ;;
     stop)
         PIDFILE="/tmp/tsung_recorder.pid"
-        stop_recorder
+        stop
         ;;
     status)
-        recorder_status
+        status
         ;;
     restart)
         stop
