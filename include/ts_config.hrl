@@ -38,28 +38,27 @@
           loglevel = ?WARN,
           dump = none,
           stats_backend,
-          controller, %% controller machine
-          clients=[], %% client machines
-
-          servers =[], %% server(s) to test
-          ports_range, %% client ports range
-          monitor_hosts = [], %% Cluster host to monitor (for CPU, MEM usage)
-          arrivalphases = [], %% arrival process specs
-          thinktime,  %% default thinktime specs
-          subst = false, %% Substitution should be applied on the request
-          match, %% Match regexp in response
-          dynvar = [],
-          sessions=[],
+          controller,         % controller machine
+          clients = [],       % client machines
+          servers = [],       % server(s) to test
+          ports_range,        % client ports range
+          monitor_hosts = [], % Cluster host to monitor (for CPU, MEM usage)
+          arrivalphases = [], % arrival process specs
+          thinktime,          % default thinktime specs
+          subst    = false,   % Substitution should be applied on the request
+          match,              % Match regexp in response
+          dynvar   = [],
+          sessions = [],
           session_tab,
           use_controller_vm = false, % if true, start the first launcher in the
-                                                % same vm as the controller if possible
+                                     % same vm as the controller if possible
           curthink,  % temporary var (current request think)
           curid = 0, % temporary var (current request id (can be transaction))
-          cur_req_id = 0,  % temporary var (current real request id)
-          file_server= [], % filenames for file_server
-          load_loop,       % loop phases if > 0
-          hibernate = 10000, %% hibernate timeout (millisec) 10sec by default
-          proto_opts %% tcp/udp buffer sizes
+          cur_req_id  = 0,   % temporary var (current real request id)
+          file_server = [],  % filenames for file_server
+          load_loop,         % loop phases if > 0
+          hibernate = 10000, % hibernate timeout (millisec) 10sec by default
+          proto_opts         % tcp/udp buffer sizes
          }).
 
 
