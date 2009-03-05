@@ -1,16 +1,16 @@
 # $Id$
 
-MANPAGE_SRC  = tsung.1.sgml tsplot.1.sgml
-MANPAGE = tsung.1 tsplot.1
+MANPAGE_SRC  = tsung.1.sgml tsplot.1.sgml tsung-recorder.1.sgml
+MANPAGE = tsung.1 tsplot.1 tsung-recorder.1
 
-TOPDIR=$(HOME)/cvs/projetdoc/common/
+TOPDIR=.
 IMG_TOPDIR=.
 LOGO_DIR=$(TOPDIR)/logos
 
 FILES=$(wildcard *.tex)
 
 # classe et styles latex
-INCLUDES=shortcuts.sty IDXDOC_light.cls
+INCLUDES=shortcuts.sty TSUNG-en.cls
 
 # chemin des fichiers de style
 STYLE=$(TOPDIR)/styles

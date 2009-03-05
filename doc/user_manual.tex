@@ -7,7 +7,7 @@
 \RCS$Revision$
 \RCS$Date$
 
-\documentclass{IDXDOC-en}
+\documentclass{TSUNG-en}
 \usepackage{shortcuts}
 
 % --------------------------------------------
@@ -349,8 +349,8 @@ You can also try the \#tsung IRC channel on Freenode.
 \subsubsection{Benchmarking a Web server}
 
 \begin{enumerate}
-\item Record one or more sessions: start the recorder with: \command{tsung
-    recorder}, and then configure your browser to use Tsung
+\item Record one or more sessions: start the recorder with:
+  \command{tsung-recorder start}, and then configure your browser to use Tsung
   proxy recorder (the listen port is 8090). A session file will be
   created. For HTTPS recording, use \userinput{http://ssl-} instead of
     \userinput{https://} in your browser.
@@ -377,7 +377,7 @@ the number of simultaneous users for each given phase.
 
 It's the same approach as HTTP: first you start to record one or more
 sessions with the recorder:
-\command{tsung -p webdav  recorder}
+\command{tsung-recorder -p webdav start}
 
 \subsubsection{Benchmarking a proxy server}
 
@@ -400,13 +400,13 @@ more information.
 
 It's the same approach as HTTP: first you start to record one or more
 sessions with the recorder:
-\command{tsung -p pgsql  recorder}
+\command{tsung-recorder -p pgsql start}
 
 This will start a proxy listening to port 8090 and will proxy requests
 to 127.0.0.0:5432.
 
 To choose another port and/or address:
-\command{tsung -L 5432 -I 10.6.1.1 -P 5433 -p pgsql  recorder}
+\command{tsung-recorder -L 5432 -I 10.6.1.1 -P 5433 -p pgsql start}
 
 This will start a proxy listening to port 5432 and will proxy requests
 to 10.6.1.1:5433.
@@ -576,14 +576,14 @@ for password settings).
 
 The recorder has three plugins: for HTTP, WebDAV and for PostgreSQL.
 
-To start it, run \command{tsung -p <PLUGIN> recorder}, where \varname{PLUGIN} can be
+To start it, run \command{tsung-recorder -p <PLUGIN> start}, where \varname{PLUGIN} can be
 \userinput{http}, \userinput{webdav} or  \userinput{pgsql} for PostgreSQL. The default plugin is \userinput{http}.
 
 
 The proxy is listening to port 8090. You can change the port with
 \userinput{-L portnumber}.
 
-To stop it, use \command{tsung stop\_recorder}.
+To stop it, use \command{tsung-recorder stop}.
 
 The recorded session is created as
 \file{~/.tsung/tsung_recorderYYYMMDD-HH:MM.xml}; if it doesn't work,
@@ -591,7 +591,7 @@ take a look at \file{~/.tsung/log/tsung.log-tsung_recorder@hostname}
 
 During the recording, you can add custom tag in the XML file, this can
 be useful to set transactions or comments:
-\command{tsung record\_tag "<transaction name='login'>''}
+\command{tsung-recorder record\_tag "<transaction name='login'>''}
 
 Once a session has been created, you can insert it in your main configuration
 file, either by editing by hand the file, or by using an ENTITY
@@ -1634,6 +1634,17 @@ Five type of dynamic variables are currently implemented (\varname{sourcetype} t
 \item Dynamic variable can be a urandom string: this is much faster than
   the random string, but the string is not really random: the same set
   of characters is always used.
+\item Dynamic variable can be genarated by dynamic evaluation of
+  erlang code:
+\begin{Verbatim}
+      <setdynvars sourcetype="eval"
+                  code="fun({Pid,DynVars})->
+                           {ok,Val}=ts_dynvars:lookup(md5data,DynVars),
+                           ts_digest:md5hex(Val) end.">
+        <var name="md5sum" />
+      </setdynvars>
+\end{Verbatim}
+
 \end{enumerate}
 
 A \varname{setdynvars} can be defined anywhere in a session.
@@ -2061,7 +2072,7 @@ an erlang shell on the \varname{tsung\_controller} node. Use
 \command{toolbar:start().} to launch the graphical tools provided by
 Erlang.
 
-\subsection{Can i dynamically follow redirect with HTTP ?}
+\subsection{Can I dynamically follow redirect with HTTP ?}
 
 If your HTTP server sends 30X responses (redirect) with dynamic URLs,
 you can handle this situation using a dynamic variable:

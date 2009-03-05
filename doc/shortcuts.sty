@@ -1,0 +1,70 @@
+%%% shortcuts.sty ---
+
+%% Author: nicolas.niclausse
+%% Version: $Id: shortcuts.sty,v 1.6 2003/08/13 16:23:11 nniclausse Exp $
+
+%%% Commentary:
+
+%% Put this file into your TEXINPUTS and the following into your preamble:
+%%   \usepackage[OPTIONS]{shorcuts}
+
+\NeedsTeXFormat{LaTeX2e}[1995/12/01]
+\def\@rcs@ $#1Date: #2 #3$$#4Revision: #5$ {
+   \ProvidesPackage{shortcuts}[#2 v#5]}
+\@rcs@ $Date: 2003/08/13 16:23:11 $$Revision: 1.6 $
+
+\DeclareOption{}{%%%
+  }
+
+%%\DeclareOption*{\PassOptionsToPackage{\CurrentOption}{}}
+\ExecuteOptions{}
+\ProcessOptions
+
+%%%%##########################################################################
+%%%%  Main code
+%%%%##########################################################################
+\usepackage{pifont}		% pour le caractère trademark
+\def\trademark{\Pisymbol{psy}{212} }
+
+\def\ie{\textit{ie.} }
+% necessaire pour frbib quand on utilise babel
+\let\ifFTR\iftrue
+%\usepackage{frbib}
+\usepackage{breakcites}
+
+\newcommand{\guillem}[1]{«#1»}
+
+\newcommand{\familyName}[1]{\textsc{#1}}
+\newcommand{\strong}[1]{\textbf{#1}}
+
+\newcommand{\host}{\begingroup \urlstyle{tt}\Url}
+
+\newcommand{\file}{\begingroup \urlstyle{tt}\Url}
+\newcommand{\computeroutput}[1]{\textsf{#1}}
+\newcommand{\userinput}[1]{\textsf{#1}}
+\newcommand{\program}[1]{\textsf{#1}}
+\newcommand{\command}[1]{\texttt{#1}}
+\newcommand{\varname}[1]{\texttt{#1}}
+\newcommand{\foreign}[1]{«\emph{#1}»}
+\newcommand{\keycap}[1]{\texttt{\fbox{#1}}}
+
+%%% Déclarations
+\newcommand{\email}[1]{\url{#1}}
+\newcommand{\unix}[1]{Unix}
+\newcommand{\linux}[1]{Linux}
+\newcommand{\ms}[1]{Microsoft}
+\newcommand{\win}[1]{MS-Windows}
+\newcommand{\wnt}[1]{MS-Windows NT 4}
+\newcommand{\wintk}[1]{MS-Windows 2000}
+\newcommand{\opnsrc}[1]{\textsf{Open Source}}
+
+\newcommand{\httperf}[1]{\program{httperf}}
+
+\newcommand{\FIXME}[1]{\strong{FIXME: #1}}
+
+\endinput
+
+%%% Local Variables:
+%%% TeX-auto-save: nil
+%%% TeX-auto-parse-length: 99999
+%%% End:
