@@ -3073,7 +3073,7 @@ echo "$as_me: Storing library files in $EXPANDED_LIBDIR" >&6;}
 { echo "$as_me:$LINENO: Storing data files in $EXPANDED_SHAREDIR" >&5
 echo "$as_me: Storing data files in $EXPANDED_SHAREDIR" >&6;}
 
-ac_config_files="$ac_config_files Makefile tsung.spec tsung.sh examples/*.xml src/tsung_stats.pl src/tsung-plotter/tsplot.py src/log2tsung.pl src/tsung_controller/tsung_controller.app.src src/tsung_recorder/tsung_recorder.app.src src/tsung/tsung.app.src"
+ac_config_files="$ac_config_files Makefile tsung.spec tsung.sh tsung-recorder.sh examples/*.xml src/tsung_stats.pl src/tsung-plotter/tsplot.py src/log2tsung.pl src/tsung_controller/tsung_controller.app.src src/tsung_recorder/tsung_recorder.app.src src/tsung/tsung.app.src"
 
 
 cat >confcache <<\_ACEOF
@@ -3647,6 +3647,7 @@ do
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "tsung.spec") CONFIG_FILES="$CONFIG_FILES tsung.spec" ;;
     "tsung.sh") CONFIG_FILES="$CONFIG_FILES tsung.sh" ;;
+    "tsung-recorder.sh") CONFIG_FILES="$CONFIG_FILES tsung-recorder.sh" ;;
     "examples/*.xml") CONFIG_FILES="$CONFIG_FILES examples/*.xml" ;;
     "src/tsung_stats.pl") CONFIG_FILES="$CONFIG_FILES src/tsung_stats.pl" ;;
     "src/tsung-plotter/tsplot.py") CONFIG_FILES="$CONFIG_FILES src/tsung-plotter/tsplot.py" ;;

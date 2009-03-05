@@ -8,34 +8,36 @@
       <firstname>Nicolas</firstname>
       <surname>Niclausse</surname>
     </author>
-    <date>January 2004</date>
+    <date>March 2009</date>
     <copyright>
-      <year>2004</year>
+      <year>2009</year>
       <holder>Nicolas Niclausse</holder>
     </copyright>
   </refentryinfo>
 
   <refmeta>
-    <refentrytitle>tsung</refentrytitle>
+    <refentrytitle>tsung-recorder</refentrytitle>
     <manvolnum>1</manvolnum>
   </refmeta>
 
   <refnamediv>
-    <refname>tsung</refname>
+    <refname>tsung-recorder</refname>
     <refpurpose>
-A distributed multi-protocol load testing tool.
+Proxy recorder for the tsung load testing tool.
     </refpurpose>
   </refnamediv>
 
   <refsynopsisdiv>
     <cmdsynopsis>
-      <command>tsung</command>
-      <arg><option>-f</option> configuration file</arg>
+      <command>tsung-recorder</command>
       <arg><option>-l</option> log file</arg>
       <arg><option>-r</option> command</arg>
-      <arg><option>-v</option></arg>
-      <arg><option>-h</option></arg>
-      <arg>start|stop|restart|debug|status</arg>
+      <arg><option>-p</option> plugin</arg>
+      <arg><option>-L</option> listen port</arg>
+      <arg><option>-I</option> IP</arg>
+      <arg><option>-P</option> port</arg>
+      <arg><option>-u</option> </arg>
+      <arg>start|stop|restart|record_tag</arg>
     </cmdsynopsis>
   </refsynopsisdiv>
 
@@ -44,45 +46,32 @@ A distributed multi-protocol load testing tool.
     <para>
       <command>tsung</command> is a distributed load testing
       tool.  It is protocol-independent and can currently be used to
-      stress and benchmark HTTP, WebDAV, LDAP, PostgreSQL, MySQL and Jabber/XMPP servers.</para>
+      stress and benchmark HTTP, WebDAV, LDAP, PostgreSQL, MySQL and
+      Jabber/XMPP servers. <command>tsung-recorder</command> can be
+      used to record sessions (only for HTTP, WebDAV and Postgresql) that can be edited and replayed later by tsung</para>
 
-    <para> It simulates user behaviour using an XML description file,
-    reports many measurements in real time (statistics can be
-    customized with transactions, and graphics generated using
-    gnuplot).  </para>
-
-    <para>For HTTP, it supports 1.0 and 1.1, has a proxy mode to
-    record sessions, supports GET and POST methods, Cookies, and Basic
-    WWW-authentication. It also has support for SSL.  </para>
-
-    <para>
-      Several config examples can be found in
-      <filename>/usr/share/doc/tsung/examples/</filename>.
-      </para>
+    <para> tsung-recorder is a proxy that records  a session in the
+    tsung native XML format; it can be used by your favorite client (browser in the case of the http plugin). </para>
 
     <variablelist>
-      <varlistentry>
+       <varlistentry>
         <term><option>start</option></term>
         <listitem>
-          <para>start tsung load testing</para>
-        </listitem>
-      </varlistentry>
-       <varlistentry>
-        <term><option>debug</option></term>
-        <listitem>
-          <para>start tsung with an interactive erlang shell</para>
+          <para>start the proxy recorder (listening port is 8090). By default the HTTP recorder is started. With the -p option, you can select another plugin. The resulting files will be created as <filename>~/.tsung/tsung_recorderYYYMMDD-HH:MM.xml</filename>; if it doesn't work, take a look at <filename>~/.tsung/log/tsung.log-tsunami_recorder@hostname</filename> </para>
         </listitem>
       </varlistentry>
        <varlistentry>
         <term><option>stop</option></term>
         <listitem>
-          <para>stop tsung</para>
+          <para>stop the proxy recorder</para>
         </listitem>
-      </varlistentry>
+       </varlistentry>
        <varlistentry>
-       <term><option>status</option></term>
+        <term><option>record_tag</option> value</term>
         <listitem>
-          <para>print current status of a running instance of tsung (must be run on the controller host)</para>
+          <para>add a string (comment or tag) while recording a
+          session. This is useful for example to add transaction tag
+          while recording a session. </para>
         </listitem>
       </varlistentry>
     </variablelist>
@@ -100,33 +89,39 @@ A distributed multi-protocol load testing tool.
     <title>options</title>
     <variablelist>
       <varlistentry>
-        <term><option>-f</option></term>
-        <listitem>
-          <para>specifies the configuration file to use. The default file name is <filename>~/.tsung/tsung.xml</filename></para>
-        </listitem>
-      </varlistentry>
-      <varlistentry>
 	<term><option>-l</option></term>
         <listitem>
           <para>Specifies the log file to use. The default log file name is <filename>~/tsung/log/tsung.log</filename></para>
         </listitem>
       </varlistentry>
       <varlistentry>
-      <term><option>-r</option></term>
+      <term><option>-p</option></term>
       <listitem>
-        <para> Specifies an alternative to ssh (rsh for ex.) for starting a slave node on a remote host</para>
+        <para> Specifies the plugin used for the recorder. Default is http, available: http, pgsql,webdav</para>
       </listitem>
     </varlistentry>
       <varlistentry>
-      <term><option>-v</option></term>
+      <term><option>-L</option></term>
       <listitem>
-        <para> Show version</para>
+        <para> Listening port for the recorder. Default is 8090</para>
       </listitem>
     </varlistentry>
       <varlistentry>
-      <term><option>-h</option></term>
+      <term><option>-I</option></term>
       <listitem>
-        <para> Show usage</para>
+        <para> For the pgsql recorder (or parent proxy): server IP. default is 127.0.0.1 </para>
+      </listitem>
+    </varlistentry>
+      <varlistentry>
+      <term><option>-P</option></term>
+      <listitem>
+        <para> For the pgsql recorder (or parent proxy): server port. Default is 5432</para>
+      </listitem>
+    </varlistentry>
+      <varlistentry>
+      <term><option>-u</option></term>
+      <listitem>
+        <para> For the http recorder: use a parent proxy</para>
       </listitem>
     </varlistentry>
   </variablelist>
@@ -142,7 +137,9 @@ A distributed multi-protocol load testing tool.
 
   <refsect1>
     <title>see also</title>
-    <para><filename>erlang</filename><manvolnum>3</manvolnum>
+    <para>
+<filename>erlang</filename><manvolnum>3</manvolnum>
+ and <filename>tsung</filename><manvolnum>3</manvolnum>
     </para>
   </refsect1>
 

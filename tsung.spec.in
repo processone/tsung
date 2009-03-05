@@ -52,6 +52,7 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 /usr/bin/tsung
+/usr/bin/tsung-recorder
 /usr/lib/erlang/lib
 /usr/lib/tsung
 /usr/share/tsung

@@ -21,46 +21,22 @@ PGSQL_SERVER_IP=127.0.0.1
 PGSQL_SERVER_PORT=5432
 NAME=tsung
 CONTROLLER=tsung_controller
-RECORDER=tsung_recorder
 SMP_DISABLE=true
 
 TSUNGPATH=$INSTALL_DIR/lib/tsung-$VERSION/ebin
 CONTROLLERPATH=$INSTALL_DIR/lib/tsung_controller-$VERSION/ebin
-RECORDERPATH=$INSTALL_DIR/lib/tsung_recorder-$VERSION/ebin
 
 CONF_OPT_FILE="$HOME/.tsung/tsung.xml"
 BOOT_OPT="-boot $INSTALL_DIR/lib/tsung_controller-$VERSION/priv/tsung_controller -boot_var TSUNGPATH  $INSTALL_DIR "
-REC_BOOT_OPT="-boot $INSTALL_DIR/lib/tsung_recorder-$VERSION/priv/tsung_recorder -boot_var TSUNGPATH  $INSTALL_DIR "
 DEBUG_LEVEL=5
-RECORDER_PLUGIN="http"
 ERL_RSH=" -rsh ssh "
 ERL_OPTS=" -smp auto +P 250000 +A 16 +K true @ERL_OPTS@ "
 COOKIE='tsung'
 ERTS_RUN=`$ERL -version 2>&1 | tr -cd 0123456789.`
-ERTS_BOOT=`grep erts $TSUNGPATH/../priv/tsung.rel | tr -cd 0123456789.`
+ERTS_BOOT=`grep erts $TSUNGPATH/../priv/tsung.rel 2> /dev/null| tr -cd 0123456789.`
 
 stop() {
     $ERL $ERL_OPTS $ERL_RSH -noshell  $NAMETYPE killer -setcookie $COOKIE -pa $TSUNGPATH -pa $CONTROLLERPATH -s tsung_controller stop_all $HOST -s init stop
-}
-
-stop_recorder() {
-    $ERL $ERL_OPTS $ERL_RSH -noshell  $NAMETYPE killer -setcookie $COOKIE -pa $TSUNGPATH -pa $RECORDERPATH -s tsung_recorder stop_all $HOST -s init stop
-    RET=$?
-    if [ $RET == 1 ]; then
-        echo "FAILED"
-    else
-        echo "[OK]"
-        rm $PIDFILE
-    fi
-}
-
-recorder_status() {
-    PIDFILE="/tmp/tsung_recorder.pid"
-    if [ -f $PIDFILE ]; then
-      echo "Tsung recorder started [OK]"
-    else
-      echo "Tsung recorder not started "
-    fi
 }
 
 checkversion() {
@@ -79,9 +55,6 @@ makebootfiles() {
     cd $CONTROLLERPATH/..
     echo "creating boot file for tsung_controller application"
     $ERL $ERL_OPTS -noshell -pa $TSUNGPATH -s builder go -s init stop > /dev/null
-    echo "creating boot file for tsung_recorder application"
-    cd $RECORDERPATH/..
-    $ERL $ERL_OPTS -noshell -pa $TSUNGPATH -s builder go -s init stop > /dev/null
 }
 
 start() {
@@ -93,21 +66,6 @@ start() {
     -tsung_controller config_file \"$CONF_OPT_FILE\" -tsung_controller $LOG_OPT
 }
 
-recorder() {
-    echo "Starting Tsung recorder on port $LISTEN_PORT"
-    $ERL $ERL_OPTS $ERL_RSH -noshell $NAMETYPE $RECORDER -setcookie $COOKIE  $REC_BOOT_OPT \
-    -pa $TSUNGPATH -pa $RECORDERPATH -pa $CONTROLLERPATH \
-    -tsung_recorder debug_level $DEBUG_LEVEL \
-    -tsung_recorder $LOG_OPT \
-    -tsung_recorder parent_proxy $USE_PARENT_PROXY \
-    -tsung_recorder plugin ts_proxy_$RECORDER_PLUGIN \
-    -tsung_recorder proxy_log_file \"$MAIN_DIR/tsung_recorder.xml\" \
-    -tsung_recorder pgsql_server \"${PGSQL_SERVER_IP}\" \
-    -tsung_recorder pgsql_port ${PGSQL_SERVER_PORT} \
-    -tsung_recorder proxy_listen_port $LISTEN_PORT &
-    echo $! > /tmp/tsung_recorder.pid
-}
-
 debug() {
     $ERL $ERL_OPTS $ERL_RSH $NAMETYPE $CONTROLLER -setcookie $COOKIE  $BOOT_OPT \
      -pa $TSUNGPATH -pa $CONTROLLERPATH \
@@ -116,7 +74,8 @@ debug() {
 }
 
 version() {
-    echo "Tsung version $VERSION"
+    echo "Tsung version $VERSION" 
+    exit 0
 }
 
 checkconfig() {
@@ -148,12 +107,6 @@ status() {
     $ERL -noshell $NAMETYPE $SNAME -setcookie $COOKIE -pa $TSUNGPATH -pa $CONTROLLERPATH -s tsung_controller status $HOST -s init stop
 }
 
-record_tag() {
-    shift
-    SNAME=tsung_recordtag
-    $ERL -noshell $NAMETYPE $SNAME -setcookie $COOKIE -pa $TSUNGPATH -pa $RECORDERPATH -run ts_proxy_recorder recordtag $HOST "$*" -s init stop
-}
-
 checkrunning_controller() {
     RES=`status`
     if [ "$RES" != "Tsung is not started" ]; then
@@ -162,23 +115,19 @@ checkrunning_controller() {
     fi
 }
 
-checkrunning(){
-    if [ -f $PIDFILE ]; then
-        CURPID=`cat $PIDFILE`
-        if kill -0 $CURPID 2> /dev/null ; then
-            echo "Can't start: Tsung recorder already running !"
-            exit 1
-        fi
-    fi
-}
-
 usage() {
     prog=`basename $0`
-    echo "$prog <options> start|stop|restart|debug|status|recorder|stop_recorder|version"
+    echo "Usage: $prog <options> start|stop|debug|status"
+    echo "Options:"
+    echo "    -f <file>     set configuration file (default is ~/.tsung/tsung.xml)"
+    echo "    -l <logfile>  set log file (default is ~/.tsung/log/tsung.log)"
+    echo "    -r <command>  set remote connector (default is ssh)"
+    echo "    -v            print version information and exit"
+    echo "    -h            display this help and exit"
     exit
 }
 
-while getopts ":f:p:l:d:r:i:P:L:I:u:F" Option
+while getopts "vhf:p:l:d:r:i:P:L:I:u:F" Option
 do
     case $Option in
         f) CONF_OPT_FILE=$OPTARG;;
@@ -193,12 +142,9 @@ do
             ;;
         d) DEBUG_LEVEL=$OPTARG;;
         r) ERL_RSH=" -rsh $OPTARG ";;
-        p) RECORDER_PLUGIN=$OPTARG;;
-        I) PGSQL_SERVER_IP=$OPTARG;;
-        u) USE_PARENT_PROXY=true;;
         F) NAMETYPE="-name";;
-        P) PGSQL_SERVER_PORT=$OPTARG;;
-        L) LISTEN_PORT=$OPTARG;;
+        v) version;;
+        h) usage;;
         *) usage ;;
     esac
 done
@@ -212,18 +158,6 @@ case $1 in
         logdir
         start
         ;;
-    recorder)
-        PIDFILE="/tmp/tsung_recorder.pid"
-        checkversion
-        maindir
-        logdir
-        checkrunning
-        recorder
-        ;;
-
-    record_tag)
-        record_tag $*
-        ;;
     boot)
         checkversion
         ;;
@@ -235,28 +169,12 @@ case $1 in
         logdir
         debug
         ;;
-
     stop)
         stop
         ;;
-    stop_recorder)
-        PIDFILE="/tmp/tsung_recorder.pid"
-        stop_recorder
-        ;;
-
     status)
-        recorder_status
         status
         ;;
-
-    restart)
-        stop
-        start
-        ;;
-    version)
-        version
-        ;;
-
     *)
         usage $0
         ;;

@@ -3,13 +3,13 @@
 .\" <http://shell.ipoline.com/~elmert/comp/docbook2X/> 
 .\" Please send any bug reports, improvements, comments, patches, 
 .\" etc. to Steve Cheng <steve@ggi-project.org>.
-.TH "TSUNG" "1" "01 September 2008" "" ""
+.TH "TSUNG" "1" "05 mars 2009" "" ""
 
 .SH NAME
 tsung \- A distributed multi-protocol load testing tool.
 .SH SYNOPSIS
 
-\fBtsung\fR [ \fB-f configuration file\fR ] [ \fB-l log file\fR ] [ \fB-r command\fR ] [ \fB-p plugin\fR ] [ \fB-L listen port\fR ] [ \fB-I IP\fR ] [ \fB-P port\fR ] [ \fB-u \fR ] [ \fBstart|stop|restart|debug|status|recorder|record_tag|stop_recorder\fR ]
+\fBtsung\fR [ \fB-f configuration file\fR ] [ \fB-l log file\fR ] [ \fB-r command\fR ] [ \fB-v\fR ] [ \fB-h\fR ] [ \fBstart|stop|restart|debug|status\fR ]
 
 .SH "DESCRIPTION"
 .PP
@@ -26,8 +26,6 @@ For HTTP, it supports 1.0 and 1.1, has a proxy mode to
 record sessions, supports GET and POST methods, Cookies, and Basic
 WWW-authentication. It also has support for SSL.  
 .PP
-There are two applications builtin with this script: the load testing tool, and the proxy recorder.
-.PP
 Several config examples can be found in
 \fI/usr/share/doc/tsung/examples/\fR\&.
 .TP
@@ -35,24 +33,13 @@ Several config examples can be found in
 start tsung load testing
 .TP
 \fBdebug\fR
-start tsung with an erlang shell
+start tsung with an interactive erlang shell
 .TP
 \fBstop\fR
 stop tsung
 .TP
-\fBrecorder\fR
-start the proxy recorder (listening port is 8090). By default the HTTP recorder is started. With the -p option, you can select another plugin. The resulting files will be created as \fI~/.tsung/tsung_recorderYYYMMDD-HH:MM.xml\fR; if it doesn't work, take a look at \fI~/.tsung/log/tsung.log-tsunami_recorder@hostname\fR 
-.TP
-\fBstop_recorder\fR
-stop the proxy recorder
-.TP
 \fBstatus\fR
-print current status of tsung
-.TP
-\fBrecord_tag value\fR
-add a string (comment or tag) while recording a
-session. This is useful for example to add transaction tag
-while recording a session. 
+print current status of a running instance of tsung (must be run on the controller host)
 .SH "MANUAL"
 .PP
 A manual should be available at
@@ -70,20 +57,11 @@ Specifies the log file to use. The default log file name is \fI~/tsung/log/tsung
 \fB-r\fR
 Specifies an alternative to ssh (rsh for ex.) for starting a slave node on a remote host
 .TP
-\fB-p\fR
-Specifies the plugin used for the recorder. Default is http, available: http, pgsql,webdav
+\fB-v\fR
+Show version
 .TP
-\fB-L\fR
-Listening port for the recorder. Default is 8090
-.TP
-\fB-I\fR
-For the pgsql recorder (or parent proxy): server IP. default is 127.0.0.1 
-.TP
-\fB-P\fR
-For the pgsql recorder (or parent proxy): server port. Default is 5432
-.TP
-\fB-u\fR
-For the http recorder: use a parent proxy
+\fB-h\fR
+Show usage
 .SH "BUGS"
 .PP
 Please reports bugs to the mailing list
