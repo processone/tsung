@@ -24,6 +24,7 @@ RECORDER=tsung_recorder
 
 TSUNGPATH=$INSTALL_DIR/lib/tsung-$VERSION/ebin
 RECORDERPATH=$INSTALL_DIR/lib/tsung_recorder-$VERSION/ebin
+CONTROLLERPATH=$INSTALL_DIR/lib/tsung_controller-$VERSION/ebin
 
 CONF_OPT_FILE="$HOME/.tsung/tsung.xml"
 BOOT_OPT="-boot $INSTALL_DIR/lib/tsung_controller-$VERSION/priv/tsung_controller -boot_var TSUNGPATH  $INSTALL_DIR "
