@@ -107,6 +107,8 @@ repeat | if )*>
     max_loop    NMTOKEN "20"
     max_restart NMTOKEN "3"
     sleep_loop  NMTOKEN "5"
+    apply_to_content  NMTOKEN "undefined"
+    skip_headers      NMTOKEN "no"
     >
 
 <!ELEMENT thinktime EMPTY>

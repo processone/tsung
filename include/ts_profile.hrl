@@ -34,7 +34,9 @@
           subst = false,
          'when' = false,
           do    = continue, %(continue | loop | abort | log )
-          sleep_loop, % in seconds
+          sleep_loop,       % in seconds
+          apply_to_content,
+          skip_headers = no,
           max_loop,
           loop_back,
           max_restart

@@ -116,10 +116,30 @@ extract_function([H|Tail],DynVar,  Acc, Mod, Fun) ->
 %% @end
 %%----------------------------------------------------------------------
 match([], _Data, {Count, _MaxC, _SessionId, _UserId}, _DynVars) -> Count;
-match(Match, Data, Counts,DynVars)  when is_binary(Data)->
-    ?DebugF("Matching Data size ~p~n",[size(Data)]),
-    match(Match, binary_to_list(Data), Counts, DynVars);
-match(Match, Data, Counts,DynVars)  when is_list(Data) ->
+match([Match=#match{'skip_headers'=http}|Tail], Data, Counts,DynVars) when is_binary(Data)->
+    %% keep http body only
+    case re:run(Data,"\\r\\n\\r\\n(.*)",[{capture,all_but_first,binary},dotall]) of
+        {match,[NewData]} ->
+            match2([Match|Tail], NewData, Counts, DynVars);
+        _ ->
+            ?LOGF("Skip http headers failure, data was: ~p ~n",[Data], ?ERR),
+            match2([Match|Tail], Data, Counts, DynVars)
+        end.
+
+match2([Match=#match{'apply_to_content'=undefined}|Tail], Data, Counts,DynVars) when is_binary(Data)->
+    ?DebugF("Matching Data size ~p; apply undefined~n",[size(Data)]),
+    match2([Match|Tail], binary_to_list(Data), Counts, DynVars);
+match2([Match=#match{'apply_to_content'={Module,Fun}}|Tail], Data, Counts,DynVars) when is_binary(Data)->
+    ?DebugF("Matching Data size ~p; apply ~p:~p~n",[size(Data),Module,Fun]),
+    NewData = Module:Fun(Data),
+    ?DebugF("Match: apply result =~p~n",[NewData]),
+    case is_binary(NewData) of
+        true ->
+            match2([Match|Tail], binary_to_list(NewData), Counts, DynVars);
+        false->
+            match2([Match|Tail], NewData, Counts, DynVars)
+    end;
+match2(Match, Data, Counts,DynVars)  when is_list(Data) ->
     match(Match, Data, Counts, [], DynVars).
 
 %% @spec match(Match::#match{}, Data::binary() | list(), Count::tuple(),
@@ -128,7 +148,8 @@ match([], _Data, {Count,_, _,_}, Stats, _) ->
     %% all matches done, add stats, and return Count unchanged (continue)
     ts_mon:add(Stats),
     Count;
-match([Match=#match{regexp=RawRegExp,subst=Subst, do=Action, 'when'=When}| Tail], String, Counts, Stats, DynVars)->
+match([Match=#match{regexp=RawRegExp,subst=Subst, do=Action, 'when'=When}
+       |Tail], String,Counts,Stats,DynVars)->
     RegExp  = case Subst of
         true -> subst(RawRegExp, DynVars);
         _    -> RawRegExp

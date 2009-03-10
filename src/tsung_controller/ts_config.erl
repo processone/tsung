@@ -449,7 +449,16 @@ parse(Element=#xmlElement{name=match,attributes=Attrs},
     SleepLoop  = getAttr(integer, Attrs, sleep_loop, 5),
     ValRaw     = getText(Element#xmlElement.content),
     RegExp     = ts_utils:clean_str(ValRaw),
-    NewMatch   = #match{regexp=RegExp,subst=Subst, do=Do,'when'=When,sleep_loop=SleepLoop * 1000, loop_back=LoopBack, max_restart=MaxRestart, max_loop=MaxLoop },
+    SkipHeaders = getAttr(atom, Attrs, skip_headers, no),
+    ApplyTo = case getAttr(string, Attrs, apply_to_content, undefined) of
+                  undefined -> undefined;
+                  Data ->
+                      {Mod, Fun} = ts_utils:split2(Data,$:),
+                      {list_to_atom(Mod), list_to_atom(Fun)}
+              end,
+    NewMatch   = #match{regexp=RegExp,subst=Subst, do=Do,'when'=When,
+                        sleep_loop=SleepLoop * 1000, skip_headers=SkipHeaders,
+                        loop_back=LoopBack, max_restart=MaxRestart, max_loop=MaxLoop, apply_to_content=ApplyTo},
 
     lists:foldl(fun parse/2,
                 Conf#config{ match=lists:append(Match, [NewMatch]) },
