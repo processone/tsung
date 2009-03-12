@@ -1,74 +1,47 @@
 {application, tsung,
-      [{description,  "tsung, a bench tool for TCP/UDP servers"},
+      [{description,  "tsung, a load testing tool for TCP/UDP servers"},
        {vsn,          "%VSN%"},
        {modules,      [
-					   tsung,
-					   ts_launcher,
-					   ts_session_cache,
-					   ts_client,
-					   ts_client_rcv,
-					   ts_client_sup,
-					   ts_sup,
-					   ts_stats,
-					   ts_utils,
-					   ts_profile
-					  ]},
+                       tsung,
+                       ts_launcher,
+                       ts_session_cache,
+                       ts_client,
+                       ts_client_rcv,
+                       ts_client_sup,
+                       ts_sup,
+                       ts_stats,
+                       ts_utils,
+                       ts_profile
+                      ]},
        {registered,   [
-					   ts_launcher,
-					   ts_session_cache
-					  ]},
-	   {env,		[        
-					 {debug_level, 2},
-					 {ts_cookie, "humhum"},
-					 {snd_size, 32768}, %% send buffer size
-					 {rcv_size, 32768}, %% receive buffer size
-					 {tcp_timeout, 600000}, %% 10min timeout
-					 {connect_timeout, 30000},
-					 {max_warm_delay, 15000},
-					 {dump, full},     %% full or light
-					 {parse_type, noparse},
-					 {client_type, jabber_dynamic},	%% Type de client:tsun
-									%%     		jabber_online, 
-									%%			jabber_unique, 
-									%%			jabber_offline
-									%%			jabber_auth
-									%%			jabber_roster
-
-			  		 {persistent, true}, %% persistent connection: true or false
-					 {mes_type, dynamic}, %% dynamic or static
-					 {nclients, 10},      %% Nombre de clients à connecter
-					 {interarrival, 2},  	%% Intervalle de temps entre l'arrivée de 2 clients (en sec)
-					 {log_file, "./tsung.log"},	%% Base du fichier de log
-
-					 {messages_interarrival, 10},	%% Intervalle de temps entre 2 messages (en sec)
-					 {messages_number, 100},       	%% Nombre de messages par clients
-					 {messages_size, 100},  		%% Taille des messages
-					 {messages_last_time, 64000},	%% Temps pour le dernier message
-					 {messages_ack, local}, 		%% no_ack, local, global, or parse
-
-					 {req_filename, "requests.txt"},	%% Fichiers de requetes
-					 {req_server_timeout, 120000},	    %% 
-					 {http_req_filename, "http.txt"},	%% Fichiers de requetes HTTP
+                       ts_launcher,
+                       ts_session_cache
+                      ]},
+       {env,        [
+                     {debug_level, 2},
+                     {snd_size, 32768},      % send buffer size
+                     {rcv_size, 32768},      % receive buffer size
+                     {tcp_timeout, 600000},  % 10min timeout
+                     {connect_timeout, 30000},
+                     {max_warm_delay, 15000},
+                     {dump, full},           % full or light
+                     {parse_type, noparse},
+                     {persistent, true},  % persistent connection: true or false
+                     {mes_type, dynamic}, % dynamic or static
+                     {nclients, 10},      % number of client to connect
+                     {log_file, "./tsung.log"}, % log file name
                      %% use for IMS GET :
-					 {http_modified_since_date, "Fri, 14 Nov 2003 02:43:31 GMT"}, 
-					 {http_version, "1.1"},	%% 
-					 {client_retry_timeout, 10},	    %% retry sending (in microsec.)
-					 {ssl_ciphers, negociate},	
+                     {http_modified_since_date, "Fri, 14 Nov 2003 02:43:31 GMT"},
+                     {client_retry_timeout, 10}, % retry sending (in microsec.)
+                     {ssl_ciphers, negociate},
 
 %%% -------- JABBER OPTIONS
-					 {presence_delay, 10000}, %% waiting time after sending a 'presence' msg
-					 {n_roster_clients, 6},
-					 {setroster, 60}, %% Intervalle de temps entre 2 messages de roster et autres (pour la phase remplissage)
-					 {boucle1_percent, 63},	
-					 {boucle2_percent, 31},	
-					 {boucle3_percent, 3},	
-					 
-					 {jabber_users, 2000000},
-					 {jabber_username, "c"},
+                     {jabber_users, 2000000},
+                     {jabber_username, "c"},
                      {jabber_password, "pas"},
                      {jabber_domain, "mydomain.com"}
 
-					]},        
-	   {applications, [ @ERLANG_APPLICATIONS@]},
+                    ]},
+       {applications, [ @ERLANG_APPLICATIONS@]},
        {mod,          {tsung, []}}
-	  ]}.
+      ]}.
