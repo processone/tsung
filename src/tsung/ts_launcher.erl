@@ -41,10 +41,11 @@
 -behaviour(gen_fsm). %% a primitive gen_fsm with two state: launcher and wait
 
 %% External exports
--export([start/0, launch/1]).
+-export([start/0, launch/1, set_static_users/1]).
+-export([check_registered/0, set_warm_timeout/1]).
 
 %% gen_fsm callbacks
--export([init/1, launcher/2,  wait/2, finish/2, handle_event/3,
+-export([init/1, launcher/2,  wait/2, wait_static/2, finish/2, handle_event/3,
          handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
 
 -record(state, {nusers,
@@ -55,6 +56,7 @@
                 phase_nusers,   % total number of users to start in the current phase
                 phase_duration, % expected phase duration
                 phase_start,    % timestamp
+                start_date,
                 short_timeout = ?short_timeout,
                 maxusers %% if maxusers are currently active, launch a
                          %% new beam to handle the new users
@@ -84,6 +86,11 @@ launch({Node, Host, Arrivals}) ->
     ?LOGF("starting on node ~p~n",[[Node]], ?INFO),
     gen_fsm:send_event({?MODULE, Node}, {launch, Arrivals, atom_to_list(Host)}).
 
+%% Start clients with given interarrival (can be empty list)
+set_static_users({Node,Value}) ->
+    ?LOGF("Substract static users number to max: ~p~n",[Value], ?DEB),
+    gen_fsm:send_event({?MODULE, Node}, {static, Value}).
+
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from gen_fsm
@@ -107,35 +114,29 @@ init([]) ->
 %%          {next_state, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}
 %%----------------------------------------------------------------------
+
 wait({launch, Args, Hostname}, State) ->
     wait({launch, Args}, State#state{myhostname = Hostname});
+
 %% starting without configuration. We must ask the config server for
 %% the configuration of this launcher.
 wait({launch, []}, State) ->
     MyHostName = State#state.myhostname,
     ?LOGF("Launch msg receive (~p)~n",[MyHostName], ?NOTICE),
     check_registered(),
-    {ok, {[{Intensity, Users}| Rest], StartDate, Max}} =
-        ts_config_server:get_client_config(MyHostName),
-    Warm_timeout=case ts_utils:elapsed(now(), StartDate) of
-                     WaitBeforeStart when WaitBeforeStart>0 ->
-                         round(ts_stats:exponential(Intensity) + WaitBeforeStart);
-                     _Neg ->
-                         ?LOG("Negative Warm timeout !!! Check if client "++
-                              " machines are synchronized (ntp ?)~n"++
-                              "Anyway, start launcher NOW! ~n", ?WARN),
-                         1
-                      end,
-    Warm = lists:min([Warm_timeout,?config(max_warm_delay)]),
-    ?LOGF("Activate launcher (~p users) in ~p msec ~n",[Users, Warm], ?NOTICE),
-    Duration = Users/Intensity,
-    ?LOGF("Expected duration of first phase: ~p sec ~n",[Duration/1000], ?NOTICE),
-    PhaseStart = ts_utils:add_time(now(), Warm div 1000),
-    {next_state,launcher,State#state{phases = Rest, nusers = Users,
-                                     phase_nusers = Users,
-                                     phase_duration=Duration,
-                                     phase_start = PhaseStart,
-                                     intensity=Intensity,maxusers=Max }, Warm};
+    case ts_config_server:get_client_config(MyHostName) of
+        {ok, {[{Intensity, Users}| Rest], StartDate, Max}} ->
+            Duration = Users/Intensity,
+            ?LOGF("Expected duration of first phase: ~p sec ~n",[Duration/1000], ?NOTICE),
+            {next_state,wait_static,State#state{phases = Rest,
+                                                nusers = Users,
+                                                phase_nusers = Users,
+                                                start_date=StartDate,
+                                                phase_duration=Duration,
+                                                intensity=Intensity,maxusers=Max }};
+        {ok,{[],_,_}} -> % no random users, only static.
+            {next_state, finish, #state{}, ?check_noclient_timeout}
+    end;
 
 %% start with a already known configuration. This case occurs when a
 %% beam is started by a launcher (maxclients reached)
@@ -151,6 +152,28 @@ wait({launch, {[{Intensity, Users}| Rest], Max}}, State) ->
                                        phase_start = now(),
                                        intensity = Intensity, maxusers=Max},
      State#state.short_timeout}.
+
+
+wait_static({static, Static}, State=#state{maxusers=Max,intensity=Intensity,
+                                           nusers=Users,start_date=StartDate}) when is_integer(Static) ->
+    %% add ts_stats:exponential(Intensity) to start time to avoid
+    %% simultaneous start of users when a lot of client beams is
+    %% used. Also, avoid too long delay, so use a maximum delay
+    WarmTimeout = set_warm_timeout(StartDate)+round(ts_stats:exponential(Intensity)),
+    Warm = lists:min([WarmTimeout,?config(max_warm_delay)]),
+    ?LOGF("Activate launcher (~p users) in ~p msec ~n",[Users, Warm], ?NOTICE),
+    PhaseStart = ts_utils:add_time(now(), Warm div 1000),
+    NewMax = case Max > Static of
+               true  ->
+                     Max-Static;
+               false ->
+                   ?LOG("Warning: more static users than maximum users per beam !~n",?WARN),
+                   1 % will fork a new beam as soon a one user is started
+           end,
+    ?LOGF("Set maximum users per beam to ~p~n",[NewMax],?DEB),
+    {next_state,launcher,State#state{ phase_start = PhaseStart,
+                                      maxusers = NewMax }, Warm}.
+
 
 launcher(_Event, #state{nusers = 0, phases = [] }) ->
     ?LOG("no more clients to start, wait  ~n",?INFO),
@@ -209,6 +232,9 @@ launcher(timeout, State=#state{nusers    = Users,
     end.
 
 
+finish({static, _Static}, State) ->
+    % keep waiting until no active users
+    {next_state, finish, State, ?check_noclient_timeout};
 finish(timeout, State) ->
     case ts_client_sup:active_clients() of
        0 -> %% no users left, stop
@@ -290,12 +316,13 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%% Purpose: decide if we need to change phase (if current users is
 %%%          reached or if max duration is reached)
 %%% ----------------------------------------------------------------------
-change_phase(0, [{NewIntensity, NewUsers}|Rest], _, _) ->
+change_phase(N, [{NewIntensity, NewUsers}|Rest], _, _)  when N < 1 ->
     {change, NewUsers, NewIntensity, Rest};
-change_phase(0, [], _, _) ->
+change_phase(N, [], _, _) when N < 1 ->
     ?LOG("This was the last phase, wait for connected users to finish their session~n",?NOTICE),
     {stop};
 change_phase(N,NewPhases,Current,{Total, PhaseUsers}) when Current>Total ->
+    ?LOGF("Check phase: ~p ~p~n",[N,PhaseUsers],?DEB),
     Percent = 100*N/PhaseUsers,
     case {Percent > ?MAX_PHASE_EXCEED_PERCENT, N > ?MAX_PHASE_EXCEED_NUSERS} of
         {true,true} ->
@@ -322,6 +349,7 @@ check_max_raised(State=#state{phases=Phases,maxusers=Max,nusers=Users,
                               started_users=Started,
                               intensity=Intensity}) when Started >= Max ->
     ActiveClients =  ts_client_sup:active_clients(),
+    ?DebugF("Current active clients on beam: ~p (max is ~p)~n", [ActiveClients, State#state.maxusers]),
     case ActiveClients >= Max of
         true ->
             ?LOG("Max number of concurrent clients reached, must start a new beam~n", ?NOTICE),
@@ -335,7 +363,8 @@ check_max_raised(State=#state{phases=Phases,maxusers=Max,nusers=Users,
             ?DebugF("Current clients on beam: ~p~n", [ActiveClients]),
             false
     end;
-check_max_raised(_) -> % number of started users less than max, no need to check
+check_max_raised(_State) -> % number of started users less than max, no need to check
+    ?DebugF("Current started clients on beam: ~p (max is ~p)~n", [_State#state.started_users, _State#state.maxusers]),
     false.
 
 %%%----------------------------------------------------------------------
@@ -366,4 +395,15 @@ check_registered() ->
             ?LOG("No registered processes ! syncing ...~n", ?WARN),
             global:sync();
         _ -> ok
+    end.
+
+set_warm_timeout(StartDate)->
+    case ts_utils:elapsed(now(), StartDate) of
+        WaitBeforeStart when WaitBeforeStart>0 ->
+            round(WaitBeforeStart);
+        _Neg ->
+            ?LOG("Negative Warm timeout !!! Check if client "++
+                 " machines are synchronized (ntp ?)~n"++
+                 "Anyway, start launcher NOW! ~n", ?WARN),
+            1
     end.

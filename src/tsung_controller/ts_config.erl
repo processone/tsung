@@ -241,6 +241,18 @@ parse(Element = #xmlElement{name=arrivalphase, attributes=Attrs},
             exit({error, already_defined_phase})
     end;
 
+%% Parsing the user element
+parse(Element = #xmlElement{name=user, attributes=Attrs},
+      Conf = #config{static_users=Users}) ->
+
+    Start   = getAttr(float_or_integer,Attrs, start_time),
+    Unit    = getAttr(string,Attrs, unit, "second"),
+    Session = getAttr(string,Attrs, session),
+    Delay   = to_seconds(Unit,Start)*1000,
+    NewUsers= Users++[{Delay,Session}],
+    lists:foldl(fun parse/2, Conf#config{static_users = NewUsers},
+                Element#xmlElement.content);
+
 %% Parsing the users element
 parse(Element = #xmlElement{name=users, attributes=Attrs},
       Conf = #config{arrivalphases=[CurA | AList]}) ->
@@ -296,6 +308,7 @@ parse(Element = #xmlElement{name=session, attributes=Attrs},
                 Conf#config{sessions = [#session{id           = Id + 1,
                                                  popularity   = Probability,
                                                  type         = Type,
+                                                 name         = Name,
                                                  persistent   = Persistent,
                                                  bidi         = Bidi,
                                                  hibernate    = Conf#config.hibernate,

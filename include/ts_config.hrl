@@ -49,6 +49,7 @@
           match,              % Match regexp in response
           dynvar   = [],
           sessions = [],
+          static_users=[],
           session_tab,
           use_controller_vm = false, % if true, start the first launcher in the
                                      % same vm as the controller if possible
@@ -78,6 +79,7 @@
         { id,
           popularity,
           type,
+          name,
           persistent   = false,
           bidi         = false,
           hibernate,
@@ -90,7 +92,6 @@
          duration,
          unit,
          number, %% ?
-         static_users=[],
          intensity,
          maxnumber
         }).
