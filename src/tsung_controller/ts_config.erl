@@ -559,6 +559,12 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                                  Element#xmlElement.content);
                 "file_server" ->
                     FileName = getAttr(Attrs, value),
+                    case file:read_file_info(FileName) of
+                        {ok, _} ->
+                            ok;
+                        {error, Reason} ->
+                            exit({error, bad_filename, FileName})
+                    end,
                     Id       = getAttr(atom, Attrs, id,default),
                     lists:foldl( fun parse/2,
                                  Conf#config{file_server=[{Id, FileName} | Conf#config.file_server]},
