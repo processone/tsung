@@ -21,7 +21,7 @@
   </load>
 
   <options>
-    <option name="file_server" id='userdb' value="/home/nniclaus/.tsung/users-gforge.csv"/>
+    <option name="file_server" id='userdb' value="./src/test/test_file_server.csv"/>
     <option type="ts_http" name="user_agent">
       <user_agent probability="100">
         Some browser version 42

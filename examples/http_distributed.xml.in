@@ -71,7 +71,7 @@
 
   <!-- To start ts_file_server. It can be use later in dynamic
   substitution using ts_file_server:get_next_line() --> 
- <option name="file_server"  value="/tmp/userlist"></option>
+ <option name="file_server"  value="./src/test/test_file_server.csv"></option>
 
   <!-- HTTP parameters -->
   

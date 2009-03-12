@@ -21,8 +21,8 @@
   </load>
 
  <options>
-   <option name="file_server"  value="/tmp/random"></option>
-   <option name="file_server"  id="random" value="/tmp/random2"></option>
+   <option name="file_server"  value="./src/test/test_file_server.csv"></option>
+   <option name="file_server"  id="random" value="./src/test/test_file_server2.csv"></option>
  </options>
 
   <sessions>
