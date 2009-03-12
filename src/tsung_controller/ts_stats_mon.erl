@@ -148,6 +148,8 @@ init([Id]) ->
 handle_call({status}, _From, State=#state{stats=Stats} ) when is_list(Stats) ->
     [_Esp, _Var, _Max, _Min, Count, _MeanFB,_CountFB,_Last] = Stats,
     {reply, Count, State};
+handle_call({status}, _From, State=#state{stats=Stats} ) ->
+    {reply, Stats, State};
 handle_call({status, Name, Type}, _From, State ) ->
     Value = dict:find({Name,Type}, State#state.stats),
     {reply, Value, State};
