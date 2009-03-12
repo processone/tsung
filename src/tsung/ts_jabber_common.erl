@@ -364,14 +364,6 @@ message(Dest, #jabber{data=Data, username=User}, Service) when is_list(Data) ->
                     "'><body>",Data, "</body></message>"]).
 
 %%----------------------------------------------------------------------
-%% @spec garbage(Size::integer()) -> string()
-%% @deprecated use {@link ts_utils:randomstr/1} or
-%%                 {@link ts_utils:randomstr_noflat/1} instead
-%%----------------------------------------------------------------------
-garbage(Size)->
-    ts_utils:urandomstr_noflat(Size).
-
-%%----------------------------------------------------------------------
 %% Func: presence/0
 %%----------------------------------------------------------------------
 presence() ->
@@ -527,7 +519,6 @@ muc_join(Room,Nick, Service) ->
                              "<x xmlns='http://jabber.org/protocol/muc'/>",
                              " </presence>"]),
     Result.
-       
 
 muc_chat(Room, Service, Size) ->
     Result = list_to_binary(["<message type='groupchat' to ='", Room,"@", Service,"'>",
