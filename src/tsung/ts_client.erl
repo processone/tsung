@@ -847,10 +847,10 @@ set_connected_status(true, true) ->
     ok;
 set_connected_status(true, Old) when Old==undefined; Old==false ->
     put(connected,true),
-    ts_mon:add(nocache,{sum, connected, 1});
+    ts_mon:add({sum, connected, 1});
 set_connected_status(false, true) ->
     put(connected,false),
-    ts_mon:add(nocache,{sum, connected, -1});
+    ts_mon:add({sum, connected, -1});
 set_connected_status(false, Old) when Old==undefined; Old==false ->
     ok.
 
