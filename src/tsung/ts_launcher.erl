@@ -151,9 +151,11 @@ wait({launch, {[{Intensity, Users}| Rest], Max}}, State) ->
                                        phase_duration=Duration,
                                        phase_start = now(),
                                        intensity = Intensity, maxusers=Max},
-     State#state.short_timeout}.
-
-
+     State#state.short_timeout};
+wait({static,0}, State) ->
+    %% ignore static 
+    {next_state, wait, State}.
+		 
 wait_static({static, Static}, State=#state{maxusers=Max,intensity=Intensity,
                                            nusers=Users,start_date=StartDate}) when is_integer(Static) ->
     %% add ts_stats:exponential(Intensity) to start time to avoid
