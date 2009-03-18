@@ -1,7 +1,7 @@
 %%%-------------------------------------------------------------------
 %%% File    : ts_test_recorder.erl
 %%% Author  : Nicolas Niclausse <nicolas@niclux.org>
-%%% Description : 
+%%% Description :
 %%%
 %%% Created : 20 Mar 2005 by Nicolas Niclausse <nicolas@niclux.org>
 %%%-------------------------------------------------------------------
@@ -16,7 +16,7 @@
 
 -define(HTTP_GET_RES,{ok, #http_request{method='GET', version="1.0"}, _}).
 
-test()-> 
+test()->
     ok.
 parse_http_request_test() ->
     ?assertMatch(?HTTP_GET_RES, parse_req("GET / HTTP/1.0\r\n\r\n")).
@@ -36,7 +36,7 @@ parse_http_request5_test() ->
                                  ++"Server: www.glop.org\r\n"
                                  ++"Content-length: 16\r\n\r\n"
                                  ++"mesdata\r\nsdfsdfs\r\n\r\n"),
-    CL = httpd_util:key1search(Http#http_request.headers,"content-length"),
+    CL = ts_utils:key1search(Http#http_request.headers,"content-length"),
     ?assertMatch({16, "mesdata\r\nsdfsdfs\r\n\r\n"},{list_to_integer(CL), Body}).
 parse_http_request6_test() ->
 %    ?log("Testing HTTP request parsing, POST with content-length; partial ", []),
@@ -45,7 +45,7 @@ parse_http_request6_test() ->
                                    ++"Content-le"),
     Rest = "ngth: 16\r\n\r\n"++"mesdata\r\nsdfsdfs\r\n\r\n",
     {ok, Http2, Body2} = parse_req(Http,Body ++ Rest),
-    CL = httpd_util:key1search(Http2#http_request.headers,"content-length"),
+    CL = ts_utils:key1search(Http2#http_request.headers,"content-length"),
     ?assertMatch({16, "mesdata\r\nsdfsdfs\r\n\r\n"},{list_to_integer(CL), Body2}).
 
 parse_http_request7_test() ->
@@ -55,7 +55,7 @@ parse_http_request7_test() ->
 decode_base64_test()->
     Base="QWxhZGRpbjpvcGVuIHNlc2FtZQ==",
     ?assertMatch({"Aladdin","open sesame"}, ts_proxy_http:decode_basic_auth(Base)).
-    
+
 %%TODO: should be in ts_test_http
 encode_base64_test()->
     Base="QWxhZGRpbjpvcGVuIHNlc2FtZQ==",
