@@ -43,9 +43,9 @@
 %%          be used in tsung.xml scenarii files.
 %% Returns: new string
 %% ----------------------------------------------------------------------
-subst(Atom, _DynVar) when atom(Atom) ->
+subst(Atom, _DynVar) when is_atom(Atom) ->
     Atom;
-subst(Binary, DynVar) when binary(Binary) ->
+subst(Binary, DynVar) when is_binary(Binary) ->
     list_to_binary(subst(binary_to_list(Binary), DynVar));
 subst(String, DynVar) ->
     subst(String, DynVar, []).

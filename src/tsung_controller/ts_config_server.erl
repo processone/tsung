@@ -597,7 +597,7 @@ check_config(Config)->
     end.
 
 
-load_app(Name) when atom(Name) ->
+load_app(Name) when is_atom(Name) ->
     FName = atom_to_list(Name) ++ ".app",
     case code:where_is_file(FName) of
     non_existing ->

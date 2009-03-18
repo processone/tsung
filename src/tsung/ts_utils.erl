@@ -81,11 +81,11 @@ get_val(Var) ->
 %% ensure atom to string conversion of environnement variable
 %% This is intended to fix a problem making tsung run under Windows
 %%  I convert parameter that are called from the command-line
-ensure_string(log_file, Atom) when atom(Atom) ->
+ensure_string(log_file, Atom) when is_atom(Atom) ->
     atom_to_list(Atom);
-ensure_string(proxy_log_file, Atom) when atom(Atom) ->
+ensure_string(proxy_log_file, Atom) when is_atom(Atom) ->
     atom_to_list(Atom);
-ensure_string(config_file, Atom) when atom(Atom) ->
+ensure_string(config_file, Atom) when is_atom(Atom) ->
     atom_to_list(Atom);
 ensure_string(_, Other) ->
     Other.
@@ -349,7 +349,7 @@ stop_all([Host],Name,MsgName)  ->
     VoidFun = fun(_A)-> ok end,
     stop_all([Host],Name,MsgName, VoidFun).
 
-stop_all([Host],Name,MsgName,Fun) when atom(Host) ->
+stop_all([Host],Name,MsgName,Fun) when is_atom(Host) ->
     _List= net_adm:world_list([Host]),
     global:sync(),
     case global:whereis_name(Name) of
@@ -368,7 +368,7 @@ stop_all(_,_,_,_)->
 %% make_dir_rec/1
 %% Purpose: create directory. Missing parent directories ARE created
 %%----------------------------------------------------------------------
-make_dir_rec(DirName) when list(DirName) ->
+make_dir_rec(DirName) when is_list(DirName) ->
     case  file:read_file_info(DirName) of
         {ok, #file_info{type=directory}} ->
             ok;
@@ -397,7 +397,7 @@ make_dir_rec(Path, [Parent|Childs]) ->
     end.
 
 %% check if a string is an IPv4 address (as "192.168.0.1")
-is_ip(String) when list(String) ->
+is_ip(String) when is_list(String) ->
     EightBit="(2[0-4][0-9]|25[0-5]|1[0-9][0-9]|[0-9][0-9]|[0-9])",
     RegExp = lists:append(["^",EightBit,"\.",EightBit,"\.",EightBit,"\.",EightBit,"$"]), %"
     case regexp:first_match(String, RegExp) of
@@ -672,11 +672,11 @@ list_to_number(Number) ->
           list_to_float(Number)
   end.
 
-term_to_list(I) when is_integer(I)-> 
+term_to_list(I) when is_integer(I)->
     integer_to_list(I);
-term_to_list(I) when is_atom(I)-> 
+term_to_list(I) when is_atom(I)->
     atom_to_list(I);
-term_to_list(I) when is_list(I)-> 
+term_to_list(I) when is_list(I)->
     I;
-term_to_list(I) when is_float(I)-> 
+term_to_list(I) when is_float(I)->
     float_to_list(I).

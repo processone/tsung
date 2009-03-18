@@ -102,7 +102,7 @@ normal([Mean,StdDev],N) ->
 normal(Param,N) ->
     sample(fun(X) -> normal(X) end , Param, N).
 
-normal(N) when integer(N)->
+normal(N) when is_integer(N)->
     normal(#normal{},N);
 normal(#normal{mean=M,stddev=S}) ->
     normal_boxm(M,S,0,0,1).

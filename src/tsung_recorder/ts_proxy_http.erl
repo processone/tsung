@@ -195,7 +195,7 @@ check_serversocket(true, Socket, URL, _ClientSock) ->
 %%--------------------------------------------------------------------
 check_serversocket(Socket, "http://ssl-" ++ Rest, ClientSock) ->
     check_serversocket(Socket, ts_config_http:parse_URL("https://"++Rest), ClientSock);
-check_serversocket(Socket, URL, ClientSock) when list(URL)->
+check_serversocket(Socket, URL, ClientSock) when is_list(URL)->
     check_serversocket(Socket, ts_config_http:parse_URL(URL), ClientSock);
 
 check_serversocket(undefined, URL = #url{}, ClientSock) ->
@@ -274,7 +274,7 @@ record_request(State=#state_rec{prev_host=Host, prev_port=Port, prev_scheme=Sche
     URL2 = ts_utils:export_text(URL),
     io:format(Fd,"<request><http url='~s' version='~s' ", [URL2, HTTPVersion]),
     NewId = case Body of
-                [] -> 
+                [] ->
                     State#state_rec.ext_file_id;
                 _  ->
                     Id=State#state_rec.ext_file_id,
