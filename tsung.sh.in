@@ -61,7 +61,7 @@ start() {
     echo "Starting Tsung"
     $ERL $ERL_OPTS $ERL_RSH -noshell $NAMETYPE $CONTROLLER -setcookie $COOKIE  $BOOT_OPT \
     -pa $TSUNGPATH -pa $CONTROLLERPATH \
-    -tsung_controller smp_disable $SMP \
+    -tsung_controller smp_disable $SMP_DISABLE \
     -tsung_controller debug_level $DEBUG_LEVEL \
     -tsung_controller config_file \"$CONF_OPT_FILE\" -tsung_controller $LOG_OPT
 }
