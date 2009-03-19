@@ -280,7 +280,7 @@ check_resp_size(#http{content_length=CLength, close = Close},
                 BodySize, DynData, State, DataSize) when BodySize > CLength ->
     ?LOGF("Error: HTTP Body (~p)> Content-Length (~p) !~n",
           [BodySize, CLength], ?ERR),
-    ts_mon:add({ count, http_bad_content_length }),
+    ts_mon:add({ count, error_http_bad_content_length }),
     {State#state_rcv{session= #http{}, ack_done = true,
                      datasize = DataSize,
                      dyndata= DynData}, [], Close};
@@ -333,7 +333,7 @@ read_chunk(<<Char:1/binary, Data/binary>>, State, Int, Acc) ->
         read_chunk(Data, State, Int, Acc+1);
     _Other ->
             ?LOGF("Unexpected error while parsing chunk ~p~n", [_Other] ,?WARN),
-            ts_mon:add({count, http_unexpected_chunkdata}),
+            ts_mon:add({count, error_http_unexpected_chunkdata}),
             {State#state_rcv{session= #http{}, ack_done = true}, []}
     end.
 
