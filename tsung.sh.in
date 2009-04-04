@@ -121,6 +121,7 @@ usage() {
     echo "Options:"
     echo "    -f <file>     set configuration file (default is ~/.tsung/tsung.xml)"
     echo "    -l <logfile>  set log file (default is ~/.tsung/log/tsung.log)"
+    echo "    -i <id>       set controller id (default is empty)"
     echo "    -r <command>  set remote connector (default is ssh)"
     echo "    -v            print version information and exit"
     echo "    -h            display this help and exit"
@@ -144,6 +145,10 @@ do
         r) ERL_RSH=" -rsh $OPTARG ";;
         F) NAMETYPE="-name";;
         v) version;;
+        i) ID=$OPTARG
+           COOKIE=$COOKIE"_"$ID
+           CONTROLLER=$CONTROLLER"_"$ID
+           ;;
         h) usage;;
         *) usage ;;
     esac

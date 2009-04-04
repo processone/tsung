@@ -89,31 +89,32 @@ Proxy recorder for the tsung load testing tool.
     <title>options</title>
     <variablelist>
       <varlistentry>
-	<term><option>-l</option></term>
+        <term><option>-l logfile</option></term>
         <listitem>
           <para>Specifies the log file to use. The default log file name is <filename>~/tsung/log/tsung.log</filename></para>
         </listitem>
       </varlistentry>
       <varlistentry>
-      <term><option>-p</option></term>
+      <term><option>-p plugin</option></term>
       <listitem>
-        <para> Specifies the plugin used for the recorder. Default is http, available: http, pgsql,webdav</para>
+        <para> Specifies the plugin used for the recorder. Default is
+        http, available: http, pgsql, webdav</para>
       </listitem>
     </varlistentry>
       <varlistentry>
-      <term><option>-L</option></term>
+      <term><option>-L port</option></term>
       <listitem>
         <para> Listening port for the recorder. Default is 8090</para>
       </listitem>
     </varlistentry>
       <varlistentry>
-      <term><option>-I</option></term>
+      <term><option>-I IP</option></term>
       <listitem>
         <para> For the pgsql recorder (or parent proxy): server IP. default is 127.0.0.1 </para>
       </listitem>
     </varlistentry>
       <varlistentry>
-      <term><option>-P</option></term>
+      <term><option>-P port</option></term>
       <listitem>
         <para> For the pgsql recorder (or parent proxy): server port. Default is 5432</para>
       </listitem>
@@ -138,19 +139,18 @@ Proxy recorder for the tsung load testing tool.
   <refsect1>
     <title>see also</title>
     <para>
-<filename>erlang</filename><manvolnum>3</manvolnum>
- and <filename>tsung</filename><manvolnum>3</manvolnum>
+    <citerefentry><refentrytitle>erlang</refentrytitle><manvolnum>3</manvolnum></citerefentry>
+ and <citerefentry><refentrytitle>tsung</refentrytitle><manvolnum>1</manvolnum></citerefentry>
     </para>
   </refsect1>
 
   <refsect1>
     <title>Authors</title>
     <para>
-        <command>Tsung</command> is written by <author>Nicolas Niclausse</author>
+        <command>Tsung</command> is written by <author><firstname>Nicolas</firstname> <surname>Niclausse</surname></author>
       <email>nicolas@niclux.org</email>. Contributors list
       is available in
       <filename>/usr/share/doc/tsung/CONTRIBUTORS</filename>
 </para>
   </refsect1>
-  
 </refentry>

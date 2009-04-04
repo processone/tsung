@@ -100,21 +100,28 @@ A distributed multi-protocol load testing tool.
     <title>options</title>
     <variablelist>
       <varlistentry>
-        <term><option>-f</option></term>
+        <term><option>-f filename</option></term>
         <listitem>
           <para>specifies the configuration file to use. The default file name is <filename>~/.tsung/tsung.xml</filename></para>
         </listitem>
       </varlistentry>
       <varlistentry>
-	<term><option>-l</option></term>
+	<term><option>-l logfile</option></term>
         <listitem>
           <para>Specifies the log file to use. The default log file name is <filename>~/tsung/log/tsung.log</filename></para>
         </listitem>
       </varlistentry>
       <varlistentry>
-      <term><option>-r</option></term>
+      <term><option>-r command</option></term>
       <listitem>
         <para> Specifies an alternative to ssh (rsh for ex.) for starting a slave node on a remote host</para>
+      </listitem>
+    </varlistentry>
+      <varlistentry>
+      <term><option>-i id</option></term>
+      <listitem>
+        <para> set controller id (default is empty). Needed to start
+        several controllers on the same host.</para>
       </listitem>
     </varlistentry>
       <varlistentry>
@@ -142,14 +149,14 @@ A distributed multi-protocol load testing tool.
 
   <refsect1>
     <title>see also</title>
-    <para><filename>erlang</filename><manvolnum>3</manvolnum>
+    <para><citerefentry><refentrytitle>erlang</refentrytitle><manvolnum>3</manvolnum></citerefentry>
     </para>
   </refsect1>
 
   <refsect1>
     <title>Authors</title>
     <para>
-        <command>Tsung</command> is written by <author>Nicolas Niclausse</author>
+      <command>Tsung</command> is written by <author><firstname>Nicolas</firstname> <surname>Niclausse</surname></author>
       <email>nicolas@niclux.org</email>. Contributors list
       is available in
       <filename>/usr/share/doc/tsung/CONTRIBUTORS</filename>

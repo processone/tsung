@@ -367,7 +367,7 @@ handle_cast({newbeam, Host, _}, State=#state{ hostname=LocalHost,config=Config})
 
 %% start a launcher on a new beam with slave module
 handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
-    Name = "tsung" ++ integer_to_list(NodeId),
+    Name = set_nodename(NodeId),
     {ok, [[BootController]]}    = init:get_argument(boot),
     ?DebugF("BootController ~p~n", [BootController]),
     {ok, [[?TSUNGPATH,PathVar]]}    = init:get_argument(boot_var),
@@ -681,3 +681,16 @@ static_name_to_session(Sessions, Static) ->
     Res=lists:map(Search, Static),
     ?LOGF("Static users with session id ~p~n",[Res],?DEB),
     Res.
+
+%% @spec set_nodename(NodeId::integer()) -> string()
+%% @doc set slave node name: check if controller node name has an id,
+%%      and put it in the slave name
+set_nodename(NodeId) when is_integer(NodeId)->
+    CId = case atom_to_list(node()) of
+              "tsung_controller@"++_ ->
+                  "";
+              "tsung_controller"++Tail ->
+                  [Id|_] = string:tokens(Tail,"@"),
+                  Id++"_"
+          end,
+    "tsung"++ CId++ integer_to_list(NodeId).
