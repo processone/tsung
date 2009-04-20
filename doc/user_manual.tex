@@ -335,6 +335,25 @@ Log files are saved in \file{~/.tsung/log/} . A new sub-directory
 is created for each test using the current date as name
 (\file{~/.tsung/log/20040217-09:40} for ex.)
 
+\subsection{Running}
+
+Two commands are installed in the directory \varname{\$PREFIX/bin}:
+\command{tsung} and \command{tsung-recorder}. A man page is available
+for both commands.
+
+\begin{Verbatim}
+>tsung -h
+Usage: tsung <options> start|stop|debug|status
+Options:
+    -f <file>     set configuration file (default is ~/.tsung/tsung.xml)
+    -l <logfile>  set log file (default is ~/.tsung/log/tsung.log)
+    -i <id>       set controller id (default is empty)
+    -r <command>  set remote connector (default is ssh)
+    -F            use long names (FQDN) for erlang nodes
+    -v            print version information and exit
+    -h            display this help and exit
+\end{Verbatim}
+
 \subsection{Feedback}
 
 Use the Tsung mailing list (see

@@ -106,44 +106,50 @@ A distributed multi-protocol load testing tool.
         </listitem>
       </varlistentry>
       <varlistentry>
-	<term><option>-l logfile</option></term>
+        <term><option>-l logfile</option></term>
         <listitem>
-          <para>Specifies the log file to use. The default log file name is <filename>~/tsung/log/tsung.log</filename></para>
+          <para>Specifies the log file to use. The default log file name is <filename>~/tsung/log/YYYYMMDD-HH:MM/tsung.log</filename></para>
         </listitem>
       </varlistentry>
       <varlistentry>
-      <term><option>-r command</option></term>
-      <listitem>
-        <para> Specifies an alternative to ssh (rsh for ex.) for starting a slave node on a remote host</para>
-      </listitem>
-    </varlistentry>
+        <term><option>-r command</option></term>
+        <listitem>
+          <para> Specifies an alternative to ssh (rsh for ex.) for starting a slave node on a remote host</para>
+        </listitem>
+      </varlistentry>
       <varlistentry>
-      <term><option>-i id</option></term>
-      <listitem>
-        <para> set controller id (default is empty). Needed to start
-        several controllers on the same host.</para>
-      </listitem>
-    </varlistentry>
+        <term><option>-i id</option></term>
+        <listitem>
+          <para> set controller id (default is empty). Needed to start
+            several controllers on the same host.</para>
+        </listitem>
+      </varlistentry>
       <varlistentry>
-      <term><option>-v</option></term>
-      <listitem>
-        <para> Show version</para>
-      </listitem>
-    </varlistentry>
+        <term><option>-F</option></term>
+        <listitem>
+          <para>Use long names for erlang nodes (FQDN)</para>
+        </listitem>
+      </varlistentry>
       <varlistentry>
-      <term><option>-h</option></term>
-      <listitem>
-        <para> Show usage</para>
-      </listitem>
-    </varlistentry>
-  </variablelist>
+        <term><option>-v</option></term>
+        <listitem>
+          <para> Show version</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><option>-h</option></term>
+        <listitem>
+          <para> Show usage</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
   </refsect1>
 
   <refsect1>
     <title>Bugs</title> <para> Please reports bugs to the mailing list
-    <email>tsung-users@process-one.net</email>, see
-    <address>https://lists.process-one.net/mailman/listinfo/tsung-users</address> for
-    archives.
+      <email>tsung-users@process-one.net</email>, see
+      <address>https://lists.process-one.net/mailman/listinfo/tsung-users</address> for
+      archives.
     </para>
   </refsect1>
 
@@ -160,7 +166,6 @@ A distributed multi-protocol load testing tool.
       <email>nicolas@niclux.org</email>. Contributors list
       is available in
       <filename>/usr/share/doc/tsung/CONTRIBUTORS</filename>
-</para>
+    </para>
   </refsect1>
-  
 </refentry>

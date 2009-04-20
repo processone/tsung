@@ -120,15 +120,16 @@ usage() {
     echo "Usage: $prog <options> start|stop|debug|status"
     echo "Options:"
     echo "    -f <file>     set configuration file (default is ~/.tsung/tsung.xml)"
-    echo "    -l <logfile>  set log file (default is ~/.tsung/log/tsung.log)"
+    echo "    -l <logfile>  set log file (default is ~/.tsung/log/YYYYMMDD-HH:MM/tsung.log)"
     echo "    -i <id>       set controller id (default is empty)"
     echo "    -r <command>  set remote connector (default is ssh)"
+    echo "    -F            use long names (FQDN) for erlang nodes"
     echo "    -v            print version information and exit"
     echo "    -h            display this help and exit"
     exit
 }
 
-while getopts "vhf:p:l:d:r:i:P:L:I:u:F" Option
+while getopts "vhf:l:d:r:i:F" Option
 do
     case $Option in
         f) CONF_OPT_FILE=$OPTARG;;
