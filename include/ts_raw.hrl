@@ -26,6 +26,7 @@
 
 -record(raw, {
           data,
+          datasize,
           bug %% FIXME: ugly: if only a single name is set, handle_next_request will fail with add_dynparams  (it will think that the server has changed)
 }).
 

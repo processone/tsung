@@ -47,18 +47,25 @@
 %% Parsing other elements
 parse_config(Element = #xmlElement{name=dyn_variable}, Conf = #config{}) ->
     ts_config:parse(Element,Conf);
-parse_config(Element = #xmlElement{name=raw},
+parse_config(Element = #xmlElement{name=raw, attributes=Attrs},
              Config=#config{curid = Id, session_tab = Tab,
                             sessions = [CurS | _], dynvar=DynVar,
                             subst    = SubstFlag, match=MatchRegExp}) ->
-    Ack  = ts_config:getAttr(atom,Element#xmlElement.attributes, ack, no_ack),
-    Data  = ts_config:getAttr(string,Element#xmlElement.attributes, data),
-
+    Ack  = ts_config:getAttr(atom,Attrs, ack, no_ack),
+    Req = case ts_config:getAttr(string,Attrs, datasize) of
+               [] ->
+                   Data  = ts_config:getAttr(string,Attrs, data),
+                   #raw{data=Data};
+               "%%" ++ Tail  ->
+                   #raw{datasize="%%"++Tail};
+               _ -> % datasize is not a dynamic variable; must be an integer
+                   #raw{datasize=ts_config:getAttr(integer,Attrs, datasize)}
+          end,
     ts_config:mark_prev_req(Id-1, Tab, CurS),
-    Msg=#ts_request{ack=Ack,
+    Msg=#ts_request{ack     = Ack,
                     subst   = SubstFlag,
                     match   = MatchRegExp,
-                    param=#raw{data=Data}},
+                    param   = Req},
     ets:insert(Tab,{{CurS#session.id, Id},Msg#ts_request{endpage=true,
                                                          dynvar_specs=DynVar}}),
     lists:foldl( fun(A,B)->ts_config:parse(A,B) end,

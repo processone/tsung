@@ -37,7 +37,7 @@
          add_dynparams/4,
          get_message/1,
          session_defaults/0,
-         subst/1,
+         subst/2,
          parse/2,
          parse_config/2,
          new_session/0]).
@@ -63,8 +63,13 @@ new_session() ->
 %% Args:    #jabber
 %% Returns: binary
 %%----------------------------------------------------------------------
-get_message(#raw{data=Data}) ->
-    list_to_binary(Data).
+get_message(#raw{datasize=Size}) when is_list(Size) ->
+    get_message(#raw{datasize=list_to_integer(Size)});
+get_message(#raw{datasize=Size}) when is_integer(Size), Size > 0 ->
+    BitSize = Size*8,
+   << 0:BitSize >> ;
+get_message(#raw{data=Data})->
+    Data.
 
 
 %%----------------------------------------------------------------------
@@ -86,19 +91,19 @@ parse_config(Element, Conf) ->
 %% Function: add_dynparams/4
 %% Purpose: add dynamic parameters to build the message
 %%----------------------------------------------------------------------
-add_dynparams(_Subst,[], Param, _Host) ->
+add_dynparams(_,[], Param, _Host) ->
     Param;
+add_dynparams(true, DynData, OldReq, _Host) ->
+    subst(OldReq, DynData#dyndata.dynvars);
 add_dynparams(_Subst, _DynData, Param, _Host) ->
     Param.
 
-init_dynparams() -> [].
+init_dynparams() ->  #dyndata{}.
 
 
 %%----------------------------------------------------------------------
 %% Function: subst/1
-%% Purpose: Replace on the fly dynamic element of the HTTP request
-%%          For the moment, this feature is not supported for the Jabber
-%%          protocol
 %%----------------------------------------------------------------------
-subst(Req) ->
-    Req.
+subst(Req=#raw{datasize=Size,data=Data},DynData) ->
+    Req#raw{datasize = ts_search:subst(Size, DynData),
+            data= ts_search:subst(Data, DynData)}.

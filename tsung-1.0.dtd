@@ -200,7 +200,8 @@ repeat | if )*>
 <!ELEMENT raw EMPTY >
 <!ATTLIST raw
     ack         (global | local | no_ack) #REQUIRED
-    data CDATA #REQUIRED>
+    datasize CDATA #IMPLIED
+    data     CDATA #IMPLIED>
 
 <!ELEMENT ldap (attr* | modification*) >
 <!ATTLIST ldap
