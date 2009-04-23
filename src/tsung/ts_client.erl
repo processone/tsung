@@ -273,6 +273,9 @@ handle_info({NetEvent, _Socket, Data}, think, State)
     ?LOG("Data receive from socket in state think, stop~n", ?ERR),
     ?DebugF("Data was ~p~n",[Data]),
     {stop, normal, State};
+handle_info({inet_reply, _Socket,ok}, StateName, State ) ->
+    ?LOGF("inet_reply ok received in state ~p~n",[StateName],?NOTICE),
+    {next_state, StateName, State};
 handle_info(Msg, StateName, State ) ->
     ?LOGF("Error: Unknown msg ~p receive in state ~p, stop~n", [Msg,StateName], ?ERR),
     ts_mon:add({ count, error_unknown_msg }),
@@ -420,13 +423,14 @@ ctrl_struct_impl({for_start,InitialValue,VarName},DynData=#dyndata{dynvars=DynVa
     {next,DynData#dyndata{dynvars=NewDynVars}};
 ctrl_struct_impl({for_end,VarName,EndValue,Increment,Target},DynData=#dyndata{dynvars=DynVars}) ->
     case ts_dynvars:lookup(VarName,DynVars) of
-        {ok,EndValue} -> % Reach final value, end loop
+        {ok,Value}  when Value >= EndValue -> % Reach final value, end loop
             {next,DynData};
         {ok,Value} ->  % New iteration
-            NewValue = integer_to_list(list_to_integer(Value) + Increment),
+            NewValue = Value + Increment,
             NewDynVars = ts_dynvars:set(VarName,NewValue,DynVars),
             {jump,Target,DynData#dyndata{dynvars=NewDynVars}}
     end;
+
 
 ctrl_struct_impl({if_start,Rel, VarName, Value, Target},DynData=#dyndata{dynvars=DynVars}) ->
     case ts_dynvars:lookup(VarName,DynVars) of
@@ -568,7 +572,7 @@ handle_next_request(Request, State) ->
                     ?LOGF("Error: Unable to send data, reason: ~p~n",[Reason],?ERR),
                     CountName="error_send_"++atom_to_list(Reason),
                     ts_mon:add({ count, list_to_atom(CountName) }),
-                    {stop, normal, State};
+                     handle_timeout_while_sending(State);
                 {'EXIT', {noproc, _Rest}} ->
                     ?LOG("EXIT from ssl app while sending message !~n", ?WARN),
                     handle_close_while_sending(State#state_rcv{socket=NewSocket,
@@ -623,6 +627,21 @@ handle_close_while_sending(State=#state_rcv{persistent = true,
     {next_state, think, State#state_rcv{socket=none}};
 handle_close_while_sending(State) ->
     {stop, error, State}.
+
+
+%%----------------------------------------------------------------------
+%% Func: handle_timeout_while_sending/1
+%% Args: State
+%% Purpose: retry if a timeout occurs during a send
+%%----------------------------------------------------------------------
+handle_timeout_while_sending(State=#state_rcv{persistent = true,
+                                              proto_opts = PO})->
+    Think = PO#proto_opts.retry_timeout,
+    set_thinktime(Think),
+    {next_state, think, State};
+handle_timeout_while_sending(State) ->
+    ?LOG("Not persistent, abort client because of send timeout~n", ?INFO),
+    {stop, normal, State}.
 
 
 %%----------------------------------------------------------------------
