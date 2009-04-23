@@ -54,7 +54,7 @@ http://tsung.erlang-projects.org/user_manual.html
 specifies the configuration file to use. The default file name is \fI~/.tsung/tsung.xml\fR
 .TP
 \fB-l logfile\fR
-Specifies the log file to use. The default log file name is \fI~/tsung/log/tsung.log\fR
+Specifies the log file to use. The default log file name is \fI~/tsung/log/YYYYMMDD-HH:MM/tsung.log\fR
 .TP
 \fB-r command\fR
 Specifies an alternative to ssh (rsh for ex.) for starting a slave node on a remote host
@@ -62,6 +62,9 @@ Specifies an alternative to ssh (rsh for ex.) for starting a slave node on a rem
 \fB-i id\fR
 set controller id (default is empty). Needed to start
 several controllers on the same host.
+.TP
+\fB-F\fR
+Use long names for erlang nodes (FQDN)
 .TP
 \fB-v\fR
 Show version
