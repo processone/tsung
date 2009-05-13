@@ -170,6 +170,7 @@ set_cookie_header({Cookies, Host, URL})->
     CurCookies = lists:filter(MatchDomain, Cookies),
     set_cookie_header(CurCookies, Host, []).
 
+set_cookie_header([], _Host, [])    -> [];
 set_cookie_header([], _Host, Acc)   -> [lists:reverse(Acc), ?CRLF];
 set_cookie_header([Cookie|Cookies], Host, []) ->
     set_cookie_header(Cookies, Host, [["Cookie: ", cookie_rec2str(Cookie)]]);
