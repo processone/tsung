@@ -166,6 +166,8 @@ init_dynparams() ->
 subst(Req=#jabber{type = Type}, DynData) when Type == 'muc:chat' ; Type == 'muc:join'; Type == 'muc:nick' ->
     Req#jabber{nick = ts_search:subst(Req#jabber.nick, DynData),
                room = ts_search:subst(Req#jabber.room, DynData)};
+subst(Req=#jabber{type = Type}, DynData) when Type == 'pubsub:create' ; Type == 'pubsub:subscribe'; Type == 'pubsub:publish'; Type == 'pubsub:delete' ->
+    Req#jabber{node = ts_search:subst(Req#jabber.node, DynData)};
 
 subst(Req=#jabber{data=Data}, DynData) ->
     Req#jabber{data=ts_search:subst(Data,DynData)}.

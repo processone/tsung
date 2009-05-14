@@ -181,7 +181,9 @@ repeat | if )*>
     show        (away|chat|dnd|xa) "chat"
     status      CDATA   "Available"
     nick        CDATA #IMPLIED
-    room        CDATA #IMPLIED>
+    room        CDATA #IMPLIED
+    node        CDATA #IMPLIED
+    node_type   (flat) #IMPLIED >
 
 <!ELEMENT pgsql (#PCDATA) >
 <!ATTLIST pgsql

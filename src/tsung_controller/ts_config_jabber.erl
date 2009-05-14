@@ -53,6 +53,7 @@ parse_config(Element = #xmlElement{name=jabber},
     TypeStr  = ts_config:getAttr(string,Element#xmlElement.attributes, type, "chat"),
     Ack  = ts_config:getAttr(atom,Element#xmlElement.attributes, ack, no_ack),
     Dest= ts_config:getAttr(atom,Element#xmlElement.attributes, destination,random),
+
     Size= ts_config:getAttr(integer,Element#xmlElement.attributes, size,0),
     Data= ts_config:getAttr(string,Element#xmlElement.attributes, data,undefined),
     Show= ts_config:getAttr(string,Element#xmlElement.attributes, show, "chat"),
@@ -60,12 +61,39 @@ parse_config(Element = #xmlElement{name=jabber},
     Type= list_to_atom(TypeStr),
     Room = ts_config:getAttr(string,Element#xmlElement.attributes, room, undefined), 
     Nick = ts_config:getAttr(string,Element#xmlElement.attributes, nick, undefined), 
+    
+    Node = case ts_config:getAttr(string, Element#xmlElement.attributes, 'node', undefined) of
+                    "" -> user_root;
+                    X -> X
+                end,
+    NodeType = ts_config:getAttr(atom, Element#xmlElement.attributes, 'node_type', undefined),
+    %% This specify where the node identified in the 'node' attribute is located.  
+    %% If node is undefined  (no node attribute)
+    %%    -> we don't specify the node, let the server choose one for us.
+    %% else
+    %%     If node is absolute (starts with "/")
+    %%         use that absolute address 
+    %%     else
+    %%        the address is relative. Composed of two variables: user and node
+    %%        if node is "" (attribute node="") 
+    %%            we want the "root" node for that user (/home/domain/user)
+    %%        else
+    %%            we want a specific child node for that user (/home/domain/user/node)  
+    %%        in both cases, the user is obtained as:
+    %%        if dest == "random"
+    %%           random_user()
+    %%        if dest == "online"
+    %%            online_user()
+    %%        if dest == "offline"
+    %%            offline_user()
+    %%        Otherwise:    (any other string)
+    %%          The specified string
 
     Domain  =ts_config:get_default(Tab, jabber_domain_name, jabber_domain),
     UserName=ts_config:get_default(Tab, jabber_username, jabber_username),
     Passwd  =ts_config:get_default(Tab, jabber_passwd, jabber_passwd),
     MUC_service = ts_config:get_default(Tab, muc_service, muc_service),
-
+    PubSub_service =ts_config:get_default(Tab, pubsub_service, pubsub_service),
 
     Msg=#ts_request{ack   = Ack,
                     dynvar_specs= DynVar,
@@ -83,7 +111,10 @@ parse_config(Element = #xmlElement{name=jabber},
                                     status   = Status,
                                     room = Room,
                                     nick = Nick,
-                                    muc_service = MUC_service
+                                    muc_service = MUC_service,
+                                    pubsub_service = PubSub_service,
+                                    node = Node,
+                                    node_type = NodeType
                                    }
                    },
     ts_config:mark_prev_req(Id-1, Tab, CurS),
@@ -113,7 +144,10 @@ parse_config(Element = #xmlElement{name=option}, Conf = #config{session_tab = Ta
             ets:insert(Tab,{{jabber_userid_max,value}, N});
         "muc_service" ->
             N = ts_config:getAttr(string,Element#xmlElement.attributes, value, "conference.localhost"),
-            ets:insert(Tab,{{muc_service,value}, N})
+            ets:insert(Tab,{{muc_service,value}, N});
+        "pubsub_service" ->
+            N = ts_config:getAttr(string,Element#xmlElement.attributes, value, "pubsub.localhost"),
+            ets:insert(Tab,{{pubsub_service,value}, N})
     end,
     lists:foldl( fun(A,B) -> ts_config:parse(A,B) end, Conf, Element#xmlElement.content);
 %% Parsing other elements
