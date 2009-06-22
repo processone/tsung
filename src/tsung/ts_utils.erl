@@ -413,9 +413,14 @@ is_ip(_) -> false.
 to_https({url, "http://ssl-"++Rest})-> "https://" ++ Rest;
 to_https({url, URL})-> URL;
 to_https({request, String}) when is_list(String) ->
-    {ok,TmpString,Count} = regexp:gsub(String,"http://ssl-","https://"),
-    {ok,Tmp2,_} = regexp:gsub(TmpString,"Accept-Encoding: [0-9,a-zA-Z_]+\r\n",""),
-    {ok,RealString,_} = regexp:gsub(Tmp2,"Host: ssl-","Host: "),
+    EndOfHeader = string:str(String, "\r\n\r\n"),
+    Header = string:substr(String, 1, EndOfHeader - 1) ++ "\r\n",
+    Body = string:substr(String, EndOfHeader + 4),
+    {ok,TmpHeader,_} = regexp:gsub(Header,"http://ssl-","https://"),
+    {ok,TmpHeader2,_} = regexp:gsub(TmpHeader,"Accept-Encoding: [0-9,a-zA-Z_]+\r\n",""),
+    {ok,RealHeader,_} = regexp:gsub(TmpHeader2,"Host: ssl-","Host: "),
+    {ok,RealBody,Count} = regexp:gsub(Body,"http://ssl-","https://"),
+    RealString = RealHeader ++ "\r\n" ++ RealBody,
     update_content_length(RealString,-Count).
 
 from_https(String) when is_list(String)->

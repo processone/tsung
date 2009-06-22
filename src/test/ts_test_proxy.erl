@@ -112,6 +112,11 @@ rewrite_webdav_test()->
                   ts_utils:to_https({request,Data})).
 
 
+rewrite_http_encode_post_test()->
+    myset_env(),
+    Data="POST http://ssl-foobar.foo42.fr/ HTTP/1.1\r\nHost: ssl-foobar.foo42.fr\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-15,utf-8;q=0.7,;q=0.7Content-Type: application/x-www-form-urlencoded\r\nContent-Length: 24\r\n\r\nuname=admin&upass=*****",
+    NewData="POST https://foobar.foo42.fr/ HTTP/1.1\r\nHost: foobar.foo42.fr\r\nAccept-Charset: ISO-8859-15,utf-8;q=0.7,;q=0.7Content-Type: application/x-www-form-urlencoded\r\nContent-Length: 24\r\n\r\nuname=admin&upass=*****",
+    ?assertMatch({ok,NewData},ts_utils:to_https({request,Data})).
 
 
 %% parse_http_test()->
