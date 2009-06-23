@@ -42,7 +42,14 @@ new(Key, Val) when is_atom(Key)->
     [{Key,Val}];
 new(VarNames, Values) when is_list(VarNames),is_list(Values)->
     %% FIXME: check if VarNames is a list of atoms
-    lists:zip(VarNames,Values).
+    case {length(VarNames), length(Values)} of
+        {A,A} ->
+            lists:zip(VarNames,Values);
+        {A,B} when A > B -> % more names than values, use empty values
+            lists:zip(VarNames,Values ++ lists:duplicate(A-B,""));
+        {C,D} when C < D -> % more values than names, remove unused values
+            lists:zip(VarNames,lists:sublist(Values, C))
+    end.
 
 %% @spec lookup(Key::atom(), Dynvar::dynvars()) -> {ok,Value::term()} | false
 lookup(Key, []) when  is_atom(Key)->

@@ -18,6 +18,25 @@ from_keyval_list(KeyValues) ->
 test() ->
     ok.
 
+dynvars_new_ok_test() ->
+   Keys = [one,two,three,four],
+   Values = [1,2,"three",4],
+   ?assertEqual([{one,1},{two,2},{three,"three"},{four,4}],
+                ts_dynvars:new(Keys, Values)).
+
+dynvars_new_more_test() ->
+   Keys = [one,two,three],
+   Values = [1,2,"three",[]],
+   ?assertEqual([{one,1},{two,2},{three,"three"}],
+                ts_dynvars:new(Keys, Values)).
+
+dynvars_new_less_test() ->
+   Keys = [one,two,three,four],
+   Values = [1,2,"three"],
+   ?assertEqual([{one,1},{two,2},{three,"three"},{four,""}],
+                ts_dynvars:new(Keys, Values)).
+
+
 dynvars_set_test() ->
    KeyValues = [one,two,three,four],
    DynVars = from_keyval_list([{K,K} || K <- KeyValues]),
