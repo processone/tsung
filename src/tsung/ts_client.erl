@@ -380,10 +380,10 @@ set_dynvars(urandom,{string,Length},Vars,_DynData) ->
     lists:duplicate(N,RS);
 set_dynvars(file,{random,FileId,Delimiter},_Vars,_DynData) ->
     {ok,Line} = ts_file_server:get_random_line(FileId),
-    string:tokens(Line,Delimiter);
+    ts_utils:split(Line,Delimiter);
 set_dynvars(file,{iter,FileId,Delimiter},_Vars,_DynData) ->
     {ok,Line} = ts_file_server:get_next_line(FileId),
-    string:tokens(Line,Delimiter).
+    ts_utils:split(Line,Delimiter).
 
 %% @spec ctrl_struct(CtrlData::term(),State::#state_rcv{},Count::integer) ->
 %%          {next_state, NextStateName::atom(), NextState::#state_rcv{}} |

@@ -37,7 +37,7 @@
          level2int/1, mkey1search/2, close_socket/2, datestr/0, datestr/1,
          erl_system_args/0, erl_system_args/1, setsubdir/1, export_text/1,
          foreach_parallel/2, spawn_par/3, inet_setopts/3, resolve/2,
-         stop_all/2, stop_all/3, stop_all/4, join/2, split2/2, split2/3,
+         stop_all/2, stop_all/3, stop_all/4, join/2, split/2, split2/2, split2/3,
          make_dir_rec/1, is_ip/1, from_https/1, to_https/1, keymax/2,
          check_sum/3, check_sum/5, clean_str/1, file_to_list/1, term_to_list/1,
          decode_base64/1, encode_base64/1, to_lower/1, release_is_newer_or_eq/1,
@@ -470,6 +470,11 @@ join2(Sep, [First | List]) when is_float(First)->
     join2(Sep, [float_to_list(First) | List]);
 join2(Sep, [First | List]) when is_list(First)->
         lists:foldl(fun(X, Sum) -> X ++ Sep ++ Sum end, First, List).
+
+%% split a string  (at first occurence of char)
+split(String,Chr) ->
+    {ok, List} = regexp:split(String,Chr),
+    List.
 
 %% split a string in 2 (at first occurence of char)
 split2(String,Chr) ->
