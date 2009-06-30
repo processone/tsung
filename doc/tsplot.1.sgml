@@ -345,8 +345,9 @@ Plot several tsung logs on the same charts, for comparison purpose.
     <title>BUGS</title>
     <para>
  Please reports bugs to the mailing list
-    <email>tsung-users@process-one.net</email>, see
-    <address>https://lists.process-one.net/mailman/listinfo/tsung-users</address> for
+    <email>tsung-users@process-one.net</email> or in the bug
+    tracker <ulink url="https://support.process-one.net/browse/TSUN"></ulink>,
+    see also    <ulink url="https://lists.process-one.net/mailman/listinfo/tsung-users"></ulink> for
     archives.
     </para>
   </refsect1>
@@ -354,9 +355,9 @@ Plot several tsung logs on the same charts, for comparison purpose.
   <refsect1>
     <title>AUTHORS</title>
     <para>
-      <command>tsplot</command> is written by <author>Dimitri
-      Fontaine</author> <email>dim@tapoueh.org</email>.
+      <command>tsplot</command> is written by   <author>    <firstname>Dimitri</firstname>
+      <surname>Fontaine</surname></author>
+ <email>dim@tapoueh.org</email>.
     </para>
   </refsect1>
-  
 </refentry>

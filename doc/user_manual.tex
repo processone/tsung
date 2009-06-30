@@ -32,7 +32,7 @@
 \subsection{What is Tsung ?}
 
 \program{Tsung} (formerly IDX-Tsunami) is a distributed load testing tool. It is
-protocol-independent and can currently be used to stress HTTP, WebDAV, SOAP,
+ protocol-independent and can currently be used to stress HTTP, WebDAV, SOAP,
 PostgreSQL, MySQL, LDAP, and Jabber/XMPP servers.
 
 It is distributed under the GNU General Public License version 2.
@@ -62,7 +62,7 @@ fault-tolerant systems. As such, wrong answer sent from the server
 to \program{Tsung} does not make the whole running benchmark crash.
 \end{itemize}
 
-More informations on Erlang on \url{http://www.erlang.org} and
+More information on Erlang on \url{http://www.erlang.org} and
 \url{http://www.erlang-projects.org/}
 
 
@@ -84,7 +84,7 @@ History:
 for real users simulation. User events distribution is based on a
 Poisson Process. More information on this topic in:
 
-Z. Liu, N. Niclausse, et C. Jalpa-Villanueva.  \strong{Traffic Model
+Z. Liu, N. Niclausse, and C. Jalpa-Villanueva.  \strong{Traffic Model
   and Performance Evaluation of Web Servers}. \emph{Performance Evaluation,
 Volume 46, Issue 2-3, October 2001}.
 
@@ -104,7 +104,7 @@ Volume 46, Issue 2-3, October 2001}.
   4-node Tsung cluster (3xSun V240 + 1 Sun V440)
 \item 10 000 simultaneous users.
   \program{Tsung} was running on a 3-computers cluster (CPU
-  800Mhz)
+  800MHz)
   \end{itemize}
 \item \emph{HTTP and HTTPS} protocol:
   \begin{itemize}
@@ -143,7 +143,7 @@ for Petroleum
 \item \emph{Distributed}: the load can be distributed on a cluster of
 client machines
 \item \emph{Multi-Protocols} using a plug-in system: HTTP (both standard
-web traffic and SOAP),  Webdav, Jabber/XMPP and PostgreSQL are currently
+web traffic and SOAP),  WebDAV, Jabber/XMPP and PostgreSQL are currently
 supported. Experimental LDAP and MySQL plugins were included in the 1.3.0 release.
 \item \emph{SSL} support
 \item \emph{Several IP addresses} can be used on a single machine using
@@ -183,8 +183,8 @@ distribution (currently exponential)
 
 \subsection{WEBDAV related features}
 
-The Webdav (RFC 4918) plugin is a superset of the HTTP plugin. It adds the
-following features (some versioning extensions to WebDAV (RFC 3253)
+The WebDAV (RFC 4918) plugin is a superset of the HTTP plugin. It adds the
+following features (some versionning extensions to WebDAV (RFC 3253)
 are also supported):
 
 \begin{itemize}
@@ -241,7 +241,8 @@ statistics regarding:
 \item \emph{Errors}: Statistics on page return code to trace errors
 \item \emph{Target server behaviour}: An Erlang agent can gather information
 from the target server(s). Tsung produces graphs for CPU and memory
-consumption and network traffic. SNMP is also supported.
+consumption and network traffic. SNMP and munin is also supported to
+monitor remote servers.
 \end{itemize}
 \par Note that \program{Tsung} takes care of the synchronization process
 by itself. Gathered statistics are «synchronized».
@@ -273,7 +274,8 @@ engine and database)
 
 \section{Installation}
 
-This package has been tested on Linux, FreeBSD and Solaris. It should
+This package has been tested on Linux, FreeBSD and Solaris. A port is
+available on MacOS X. It should
 work on Erlang supported platforms (Linux, Solaris, *BSD, Win32 and
 MacOS-X).
 
@@ -281,7 +283,7 @@ MacOS-X).
 \begin{itemize}
 \item Erlang/OTP R10B-0 and up
   (\url{http://www.erlang.org/download.html}). Erlang is now
-  part of fedora and debian repository.
+  part of fedora and debian/ubuntu repositories.
   \item extended regexp module (used for dynamic variables):
     gregexp.erl available at
     \url{http://www.cellicium.com/erlang/contribs/} . The module is
@@ -354,12 +356,18 @@ Options:
     -h            display this help and exit
 \end{Verbatim}
 
+A typical way of using tsung is to run:
+\command{tsung -f myconfigfile.xml start}.
+
+The command will print the current log directory created for the test, and wait until the test is
+over.
+
 \subsection{Feedback}
 
 Use the Tsung mailing list (see
 \url{https://lists.process-one.net/mailman/listinfo/tsung-users}) if you have
 suggestions or questions about \program{Tsung}. You can also use the
-bugtracker available at \url{https://support.process-one.net/browse/TSUN}.
+bug-tracker available at \url{https://support.process-one.net/browse/TSUN}.
 You can also try the \#tsung IRC channel on Freenode.
 
 \section{Benchmark approach}
@@ -473,7 +481,7 @@ with global ack (it can be the first presence msg:
 \begin{Verbatim}
    <request> <jabber type="presence" ack="global"/> </request>
 \end{Verbatim}
-)
+
 
 You also have to specify the number of users to be connected:
 
@@ -638,7 +646,7 @@ and port 5432. Use \userinput{-I serverIP} to change the IP and
 For HTTPS recording, use \userinput{http://ssl-} instead of
 \userinput{https://} in your browser
 
-\strong{New in 1.2.2:}: For HTTP, you can configure the recorder to
+\strong{New in 1.2.2}: For HTTP, you can configure the recorder to
 use a parent proxy (but this will not work for https). Add the -u
 option to enable parent proxy, and use \userinput{-I serverIP} to set
 the IP and \userinput{-P portnumber} to set the port of the parent.
@@ -673,7 +681,7 @@ The default encoding is utf-8.  You can use a different encoding, like in:
  dump only the first 44 bytes.
 
  The \varname{loglevel} can also have a great impact on performance:
- For high load, \userinput{warning} is recommended .
+ For high load, \userinput{warning} is recommended.
  Possible values are:
 
 \begin{itemize}
@@ -696,13 +704,13 @@ and set \varname{loglevel} to \userinput{debug}.
 For non distributed load, you can use a basic setup like:
 
 \begin{Verbatim}
-  <clients>
-     <client host="localhost" use_controller_vm="true"/>
-  </clients>
+ <clients>
+    <client host="localhost" use_controller_vm="true"/>
+ </clients>
 
-<servers>
-  <server host="192.168.1.1" port="80" type="tcp"></server>
-</servers>
+ <servers>
+    <server host="192.168.1.1" port="80" type="tcp"></server>
+ </servers>
  \end{Verbatim}
 
 This will start the load on the same host and on the same Erlang
@@ -712,7 +720,7 @@ The server is the entry point into the cluster (\strong{New in 1.2.0:}
 if several servers are defined, a round robin algorithm is used to
 choose the server).
 
-The next example is a more complex, and use several features for
+The next example is more complex, and use several features for
 advanced distributed testing:
 
 \begin{Verbatim}
@@ -721,9 +729,7 @@ advanced distributed testing:
          <ip value="10.9.195.12"></ip>
          <ip value="10.9.195.13"></ip>
      </client>
-     <client host="memphis" weight="3" maxusers="600" cpu="2">
-         <ip value="10.9.195.14"></ip>
-     </client>
+     <client host="memphis" weight="3" maxusers="600" cpu="2"/>
   </clients>
 
 <servers>
@@ -742,6 +748,14 @@ advanced distributed testing:
  with a higher weight, and 2 cpus. Two Erlang virtual machines will be
  used to take advantage of the number of CPU.
 
+ \begin{quote}
+ \strong{Note:} Even if an Erlang VM is now able to handle severals CPUs
+ (erlang SMP), benchmarks shows that it's more efficient to use one VM
+ per CPU (with SMP disabled) for tsung clients. Only the controller node is using SMP
+ erlang. Therefore, you cpu should be equal to the number of cores of
+ your nodes.
+ \end{quote}
+
  By default, the load is distributed uniformly on all CPU (one cpu
  per client by default). The weight parameter (integer) can be used to
  take into account the speed of the client machine. For instance, if
@@ -757,7 +771,7 @@ advanced distributed testing:
  the number of users is higher than the limit, a new erlang virtual
  machine will be started to handle new users. The default value of
  \varname{maxusers} is 800 . Nowadays, with kernel polling enable, you
- can use a very large value for \varname{maxusers} (30000 for example) without
+ can and should use a very large value for \varname{maxusers} (30000 for example) without
  performance penalty (but don't forget to raise the limit of the OS with
  \command{ulimit -n}, see also FAQ \ref{sec:faq:emfile}).
 
@@ -789,8 +803,8 @@ cluster monitoring definition based on Erlang agents, for a cluster of
 \end{Verbatim}
 
 
-Note: monitored computers need to be
-accessible through the network, and erlang communcations must be
+Note: monitored computers needs to be
+accessible through the network, and erlang communications must be
 allowed (no firewall is better ). SSH (or rsh) needs to be configured to
 allow connection without password on. \strong{You must use the same
   version of Erlang/OTP on all nodes otherwise it may not work
@@ -801,8 +815,9 @@ of the other available agents:
 
 \subsubsection{SNMP}
 The type keyword \userinput{snmp} can replace the erlang keyword, if SNMP monitoring
-is preferred. They can be mixed. Since version 1.2.2, you can customize the snmp version,
-community and port number.
+is preferred. They can be mixed. Since version 1.2.2, you can customize the SNMP version,
+community and port number. It uses the MIB provided in
+\program{net-snmp} (see also \ref{sec:faq:snmp}).
 
 \begin{Verbatim}
   <monitoring>
@@ -819,7 +834,7 @@ The default version is \userinput{v1}, default community
 
 \subsubsection{Munin}
 
-Since version 1.3.1, tsung is able to retrieve data from a munin-node agent
+Since version \strong{1.3.1}, Tsung is able to retrieve data from a munin-node agent
 (see \url{http://munin.projects.linpro.no/wiki/munin-node}). The \varname{type}
 keyword must be set to \userinput{munin}, for example:
 
@@ -831,6 +846,8 @@ keyword must be set to \userinput{munin}, for example:
 \end{Verbatim}
 
 \subsection{Defining the load progression}
+
+\subsubsection{Randomly generated users}
 
 The load progression is set-up by defining several arrival phases:
 
@@ -866,6 +883,36 @@ The load generated in terms of HTTP requests / seconds will also
 depend on the mean number of requests within a session (if you have a
 mean value of 100 requests per session and 10 new users per seconds,
 the theoretical average throughput will be 1000 requests/ sec).
+
+\subsubsection{Statically generated users}
+
+If you want to start a given session (see ~\ref{sec:sessions}) at a given time during the test,
+it is possible since version \strong{1.3.1}:
+\begin{Verbatim}
+ <load>
+  <arrivalphase phase="1" duration="10" unit="minute">
+    <users interarrival="2" unit="second"></users>
+  </arrivalphase>
+  <user session="http-example" start_time="185" unit="second"></users>
+  <user session="http-example" start_time="10" unit="minute"></users>
+  <user session="foo" start_time="11" unit="minute"></users>
+</load>
+ <sessions>
+   <session name="http-example" probability="0" type="ts_http">
+    <request> <http url="/" method="GET"></http> </request>
+   </session>
+   <session name="foo" probability="100" type="ts_http">
+    <request> <http url="/" method="GET"></http> </request>
+   </session>
+ <sessions>
+\end{Verbatim}
+
+In this example, we have two sessions, one has a "0" probability (and
+therefore will not be used in the first phase), and the other
+100\%. We define 3 users starting respectively 3mn and 5 seconds
+after the beginning of the test (using the \userinput{http-example}
+session), one starting after 10 minutes, and a last one starting after
+11 minutes (using the \userinput{foo} session this time)
 
 \subsection{Setting options}
 
@@ -921,7 +968,7 @@ If not set in the configuration file, the values will be set to:
 \item passwd   = sesame
 \end{itemize}
 
-You can also set the \varname{muc_service} here (see previous example).
+You can also set the \varname{muc\_service} here (see previous example).
 
 \subsubsection{HTTP options}
 
@@ -941,7 +988,7 @@ value (the sum of all probabilities must be equal to 100)
 \end{Verbatim}
 
 \subsection{Sessions}
-
+\label{sec:sessions}
 
 Sessions define the content of the scenario itself. They describe
 the requests to execute.
@@ -950,6 +997,8 @@ the requests to execute.
 Each session has a given probability. This is used to decide which
 session a new user will execute. The sum of all session\verb|'|s
 probabilities must be 100.
+
+
 
 A transaction is just a way to have customized statistics. Say if you
 want to know the response time of the login page of your website, you
@@ -975,7 +1024,8 @@ In this case, the thinktime will be an exponential distribution with a
 mean equals to 20 seconds.
 
 \strong{Since version 1.3.0}, you can also use a range
-\userinput{[min:max]} instead of a mean for random thinktimes:
+\userinput{[min:max]} instead of a mean for random thinktimes (the
+distribution will be uniform in the interval):
 \begin{Verbatim}
 <thinktime min="2" max="10" random="true"></thinktime>
 \end{Verbatim}
@@ -1040,7 +1090,7 @@ statistics definition, conditional request (IF MODIFIED SINCE), ...
    </request>
 \end{Verbatim}
 
-\strong{New in 1.3.O:} You can also read the content of a POST or PUT
+\strong{New in 1.3.0:} You can also read the content of a POST or PUT
 request from an external file:
 
 \begin{Verbatim}
@@ -1362,7 +1412,7 @@ password, we:
 
 If the bind is successful, the user is authenticated (this is the
 scheme used, among others, by the LDAP authentication module for
-apache \url{http://httpd.apache.org/docs/2.0/mod/mod_auth_ldap.html})
+Apache \url{http://httpd.apache.org/docs/2.0/mod/mod_auth_ldap.html})
 
 \paragraph{LDAP Setup}
 For this example we are going to use a simple repository with the following hierarchy:
@@ -1541,7 +1591,8 @@ new({Pid, DynData}) ->
 file in \file{\$PREFIX/lib/erlang/lib/tsung-X.X.X/ebin/} on all client
 machines)
 
-As you can see, writing scenario with dynamic substitution is trivial.
+As you can see, writing scenario with dynamic substitution is
+simple. It can be even simpler using dynamic variables (see later).
 
 If you want to set unique id, you can use the built-in function
 \varname{ts\_user\_server:get\_unique\_id}.
@@ -1557,8 +1608,11 @@ If you want to set unique id, you can use the built-in function
 \strong{New in 1.0.3}: A new  module \varname{ts\_file\_server} is available. You
 can use it to read external files. For example, if you need to read user
 names and passwd from a CSV file, you can do it with it (currently,
-you can read only a single file). \emph{Note: Reading usernames and
-password from a CSV file is not possible for Jabber.}
+you can read only a single file).
+
+\begin{quote}
+ \strong{Note:} Reading usernames and password from a CSV file is not possible for Jabber.
+\end{quote}
 
 You have to add this in the XML configuration file:
 \begin{Verbatim}
@@ -1588,9 +1642,10 @@ user({Pid,DynVar})->
 The output of the function will be a string \userinput{username=USER\&password=PASSWORD}
 
 Then compile it with \command{erlc readcsv.erl} and put
-\file{readcsv.beam} in \file{\$prefix/lib/erlang/lib/tsung-VERSION/ebin} directory.
-
-(If the file has an id set to \userinput{random}, change the call to: \texttt{ts\_file\_server:get\_next\_line(random)}.)
+\file{readcsv.beam} in
+\file{\$prefix/lib/erlang/lib/tsung-VERSION/ebin} directory  (if the
+file has an id set to \userinput{random}, change the call to: \\
+\texttt{ts\_file\_server:get\_next\_line(random)}).
 
 Then use something like this in your session:
 
@@ -1682,10 +1737,10 @@ hand, for example to get the title of a HTML page:
 \strong{Since version 1.3.0}, more powerful dynamic variables are implemented:
 
 You can set dynamic variables not only while parsing server data, but
-you can build them using external files or generated them with a function
+you can build them using external files or generate them with a function
 or generate random numbers/strings:
 
-Five type of dynamic variables are currently implemented (\varname{sourcetype} tag):
+Six types of dynamic variables are currently implemented (\varname{sourcetype} tag):
 \begin{enumerate}
 \item Dynamic variables defined by calling an erlang function:
 \begin{Verbatim}
@@ -1702,22 +1757,22 @@ Five type of dynamic variables are currently implemented (\varname{sourcetype} t
 \end{Verbatim}
 \varname{delimiter} can be any string, and \varname{order} can be
 \userinput{iter} or \userinput{random}
-\item Dynamic variable can be a random number
+\item A dynamic variable can be a random number (uniform distribution)
 \begin{Verbatim}
       <setdynvars sourcetype="random_number" start="3" end="32">
         <var name="rndint" />
       </setdynvars>
 \end{Verbatim}
-\item Dynamic variable can be a random string
+\item A dynamic variable can be a random string
 \begin{Verbatim}
       <setdynvars sourcetype="random_string" length="13">
         <var name="rndstring1" />
       </setdynvars>
 \end{Verbatim}
-\item Dynamic variable can be a urandom string: this is much faster than
+\item A dynamic variable can be a urandom string: this is much faster than
   the random string, but the string is not really random: the same set
   of characters is always used.
-\item Dynamic variable can be genarated by dynamic evaluation of
+\item A dynamic variable can be generated by dynamic evaluation of
   erlang code:
 \begin{Verbatim}
       <setdynvars sourcetype="eval"
@@ -1789,12 +1844,12 @@ This give us some benefices:
 
 \begin{itemize}
 \item XPath is simple to write and to read, and match very well with
-  html pages
+  HTML pages
 \item The parser works on binaries(), and doesn't create any
-  string(). In constrant, the regexp module works on string(), so the
+  string(). In contrast, the regexp module works on string(), so the
   entire page needs to be \varname{binary\_to\_list/1} transformed before
   processing it.
-\item The cost of parsing the html and build the tree is amortized
+\item The cost of parsing the HTML and build the tree is amortized
   between all the dyn\_variables defined for a given request
 \end{itemize}
 
@@ -1975,7 +2030,7 @@ Available options:
 \end{Verbatim}
 
 \subsection{Tsung summary}
-Figure \ref{fig:report} show an example of a summary report.
+Figure \ref{fig:report} shows an example of a summary report.
 \begin{figure}[htb]
   \begin{center}
     \includegraphics[width=0.6\linewidth]{tsung-report}
@@ -1986,7 +2041,7 @@ Figure \ref{fig:report} show an example of a summary report.
 
 \subsection{Graphical overview}
 
-Figure \ref{fig:graph} show an example of a graphical report.
+Figure \ref{fig:graph} shows an example of a graphical report.
 
 \begin{figure}[htb]
   \begin{center}
@@ -1999,14 +2054,30 @@ Figure \ref{fig:graph} show an example of a graphical report.
 Tsung-Plotter (\command {tsplot} command) is an optional tool recently
 added in the Tsung distribution (it is written in Python), useful to
 compare different tests runned by Tsung. \command{tsplot} is able to
-plot data from several tsung.log files onto the same charts serie, for
-further comparison and analyze. You can easily customise the plots you
-want to generate. You can get more information in the manual page of
-the tool (man tsplot).
+plot data from several \file{tsung.log} files onto the same charts,
+for further comparisons and analyzes. You can easily customize the
+plots you want to generate by editing simple configuration files. You
+can get more information in the manual page of the tool (\command{man
+  tsplot}).
 
-Here's an example of the charts generated by tsplot:
+Example of use:
+\begin{Verbatim}
+tsplot "First test" firsttest/tsung.log "Second test" secondtest/tsung.log -d outputdir
+\end{Verbatim}
 
-FIXME
+Here's an example of the charts generated by tsplot (figure \ref{fig:graph:tsplot}):
+
+\begin{figure}[htb]
+  \begin{center}
+    \includegraphics[width=0.6\linewidth]{connected}
+    \end{center}
+      \caption{Graphical output of tsplot}
+    \label{fig:graph:tsplot}
+\end{figure}
+
+\subsection{RRD}
+A contributed perl script \command{tsung-rrd.pl} is able to create rrd
+files from the tsung log files. It's available in \file{/usr/lib/tsung/bin/tsung-rrd.pl}
 
 \section{References}
 
@@ -2066,7 +2137,7 @@ several problems:
 \item Tsung and Erlang are not installed on all clients nodes
 \item Erlang version or location (install path) is not the same on all clients nodes
 \item A firewall is dropping erlang packets: indeed erlang virtual machines use
-several tcp ports (dynamically generated) to communicate.
+several TCP ports (dynamically generated) to communicate.
 \item SELinux: You should disable SELinux on all clients.
 \item Bad \file{/etc/hosts:}
 This one is wrong (real hostname should not refer to localhost/loopback):
@@ -2247,7 +2318,7 @@ use a new experimental statistic backend: set \userinput{backend="fullstats"}
 
 This will print every statistics data in a raw format in a file named
 \file{tsung-fullstats.log}. \strong{Warning}: this may impact the performance of
-the controller node (a lot of data may be written to disk).
+the controller node (a lot of data has to be written to disk).
 
 The data looks like:
 \begin{Verbatim}
@@ -2288,7 +2359,7 @@ interarrival="3.6" unit="second">} in the \varname{arrivalphase} node in the
 XML config file).
 
 \subsection{SNMP monitoring doesn't work ?!}
-
+\label{sec:faq:snmp}
 It use SNMP v1 and the 'public' community. It has been tested with
 \url{http://net-snmp.sourceforge.net/}.
 
