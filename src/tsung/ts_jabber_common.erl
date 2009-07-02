@@ -478,10 +478,10 @@ pubsub_node_attr([$/|AbsNode], _Domain, _Username) ->
 pubsub_node_attr(Node, Domain, Username) ->
     [" node='/home/", Domain, "/", Username, "/", Node,"'"].
 
-pubsub_node_type('flat') ->
-    " type='flat' ";
-pubsub_node_type(_) ->
-    "".
+pubsub_node_type(undefined) ->
+    "";
+pubsub_node_type(Type) when is_list(Type) ->
+    [" type='", Type, "' "].
 
 %%%----------------------------------------------------------------------
 %%% Func: subscribe_pubsub_node/4

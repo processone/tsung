@@ -183,7 +183,7 @@ repeat | if )*>
     nick        CDATA #IMPLIED
     room        CDATA #IMPLIED
     node        CDATA #IMPLIED
-    node_type   (flat) #IMPLIED >
+    node_type   CDATA #IMPLIED >
 
 <!ELEMENT pgsql (#PCDATA) >
 <!ATTLIST pgsql

@@ -66,7 +66,7 @@ parse_config(Element = #xmlElement{name=jabber},
                     "" -> user_root;
                     X -> X
                 end,
-    NodeType = ts_config:getAttr(atom, Element#xmlElement.attributes, 'node_type', undefined),
+    NodeType = ts_config:getAttr(string, Element#xmlElement.attributes, 'node_type', undefined),
     %% This specify where the node identified in the 'node' attribute is located.  
     %% If node is undefined  (no node attribute)
     %%    -> we don't specify the node, let the server choose one for us.
