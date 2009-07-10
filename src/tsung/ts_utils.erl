@@ -424,12 +424,22 @@ to_https({request, String}) when is_list(String) ->
     update_content_length(RealString,-Count).
 
 from_https(String) when is_list(String)->
+    %% remove Secure from Set-Cookie (TSUN-120)
+    {match, Matches} = regexp:matches(String, "Set-Cookie: [^\r]*\r\n"),
+    Fun = fun({0,Length}, {StrAcc, Pos}) ->
+                  {StrAcc ++ string:substr(String, Pos), -1};
+             ({Start,Length}, {StrAcc, Pos}) ->
+                  SetCookie = string:substr(String, Start, Length),
+                  {ok, WithoutSecure, _} = regexp:gsub(SetCookie, "; *Secure", ""),
+                  {StrAcc ++ string:substr(String, Pos, Start - Pos) ++ WithoutSecure, Start + Length}
+          end,
+    {TmpString, _} = lists:foldl(Fun, {"", 1}, Matches ++ [{0, 0}]),
     %% if location is defined, don't count it (not included in Content-Length)
-    Location = case regexp:first_match(String,"Location: https") of
+    Location = case regexp:first_match(TmpString,"Location: https") of
                    {match,_,_} -> -1;
                    _           ->  0
                end,
-    {ok,NewString,RepCount} = regexp:gsub(String,"https://","http://ssl-"),
+    {ok,NewString,RepCount} = regexp:gsub(TmpString,"https://","http://ssl-"),
     case {RepCount,Location} of
         {0,_}  -> {ok, NewString};
         {1,-1} -> {ok, NewString};

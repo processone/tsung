@@ -60,3 +60,15 @@ decode_base64_test()->
 encode_base64_test()->
     Base="QWxhZGRpbjpvcGVuIHNlc2FtZQ==",
     ?assertMatch(["Authorization: Basic ",Base,?CRLF], ts_http_common:authenticate("Aladdin","open sesame")).
+
+rewrite_http_secure_cookie_test()->
+    Data="HTTP/1.1 200 OK\r\nSet-Cookie: JSESSIONID=F949C9182402EB74258F43FDC3F3C63F; Path=/; Secure\r\nLocation: https://foo.bar/\r\nContent-Length: 0\r\n\r\n",
+    NewData="HTTP/1.1 200 OK\r\nSet-Cookie: JSESSIONID=F949C9182402EB74258F43FDC3F3C63F; Path=/\r\nLocation: http://ssl-foo.bar/\r\nContent-Length: 0\r\n\r\n",
+     ?assertMatch({ok,NewData},
+                  ts_utils:from_https(Data)).
+
+rewrite_http_secure_cookies_test()->
+    Data="HTTP/1.1 200 OK\r\nSet-Cookie: JSESSIONID=F949C9182402EB74258F43FDC3F3C63F; Path=/; Secure\r\nSet-Cookie: JSESSIONID=32; Path=/foo; Secure\r\nLocation: https://foo.bar/\r\nContent-Length: 0\r\n\r\n",
+    NewData="HTTP/1.1 200 OK\r\nSet-Cookie: JSESSIONID=F949C9182402EB74258F43FDC3F3C63F; Path=/\r\nSet-Cookie: JSESSIONID=32; Path=/foo\r\nLocation: http://ssl-foo.bar/\r\nContent-Length: 0\r\n\r\n",
+     ?assertMatch({ok,Data2},
+                  ts_utils:from_https(Data)).
