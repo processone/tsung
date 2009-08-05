@@ -309,6 +309,7 @@ handle_cast({stop}, State) -> % we should stop, wait until no more clients are a
 
 handle_cast({abort}, State) -> % stop now !
     ?LOG("Aborting by request !~n", ?EMERG),
+    ts_stats_mon:add({ count, error_abort }),
     {stop, abort, State};
 
 handle_cast(Msg, State) ->
