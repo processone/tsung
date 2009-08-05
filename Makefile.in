@@ -208,6 +208,7 @@ clean:
 	-rm -f $(TARGET) $(TMP) $(BUILD_OPTIONS_FILE) builder.beam
 	-rm -f $(TGT_APPFILES) $(PERL_SCRIPTS) $(PYTHON_SCRIPTS) $(CONFFILE)
 	-rm -f ebin/*.beam tsung.sh tsung.spec tsung.xml tsung.sh tsung-recorder.sh
+	-rm -f *.xml config.log src/test/*.xml src/test/usersdb.csv
 
 install: doc boot install_recorder install_controller $(CONFFILE)
 	-rm -f $(TMP)
