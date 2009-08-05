@@ -174,13 +174,23 @@ parse(Element = #xmlElement{name=client, attributes=Attrs},
     NewClients =
         case getAttr(atom, Attrs, type) of
             batch ->
+                ?LOG("Get client nodes from batch scheduler~n",?DEB),
                 Batch = getAttr(atom, Attrs, batch),
                 NodesTmp = get_batch_nodes(Batch),
+                case NodesTmp of 
+                    []->
+                        ?LOGF("Warning: empty list of nodes from batch: ~p~n",[NodesTmp],?WARN);
+                    _ ->
+                        ?LOGF("nodes: ~p~n",[NodesTmp],?DEB)
+                end,
                 %% remove controller host from list to avoid
                 %% overloading the machine running the controller
                 {ok, ControllerHost} = ts_utils:node_to_hostname(node()),
                 Nodes = lists:delete(ControllerHost, NodesTmp),
-                Fun = fun(N)-> #client{host=N,weight=Weight,maxusers=MaxUsers} end,
+                Fun = fun(N)->
+                        {ok, IP } = inet:getaddr(N,inet),
+                        #client{host=N,weight=Weight,ip=[IP],maxusers=MaxUsers}
+                      end,
                 lists:map(Fun, Nodes);
             _ ->
                 CPU = case {getAttr(integer,Attrs, cpu, 1), SingleNode} of
@@ -211,10 +221,15 @@ parse(Element = #xmlElement{name=client, attributes=Attrs},
 parse(Element = #xmlElement{name=ip, attributes=Attrs},
       Conf = #config{clients=[CurClient|CList]}) ->
     IPList = CurClient#client.ip,
-
-    StrIP     = getAttr(Attrs, value),
-    {ok, IP } = inet:getaddr(StrIP,inet),
-
+    ToResolve = case getAttr(Attrs, value) of 
+             "resolve" ->
+                 CurClient#client.host;
+             StrIP ->
+                 StrIP
+         end,
+     ?LOGF("resolving host ~p~n",[ToResolve],?WARN),
+    {ok, IP } = inet:getaddr(ToResolve,inet),
+     ?LOGF("resolved host ~p~n",[IP],?WARN),
     lists:foldl(fun parse/2,
         Conf#config{clients = [CurClient#client{ip = [IP|IPList]}
                                |CList]},
@@ -562,7 +577,7 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     case file:read_file_info(FileName) of
                         {ok, _} ->
                             ok;
-                        {error, Reason} ->
+                        {error, _Reason} ->
                             exit({error, bad_filename, FileName})
                     end,
                     Id       = getAttr(atom, Attrs, id,default),
