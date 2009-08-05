@@ -72,7 +72,6 @@
                }).
 
 -record(stats, {
-          connected           = 0,
           users_count         = 0,
           finish_users_count  = 0,
           os_mon,
@@ -190,11 +189,14 @@ handle_call({start_logger, Machines, DumpType, Backend}, From, State) ->
     start_logger({Machines, DumpType, Backend}, From, State);
 
 %%% get status
-handle_call({status}, _From, State=#state{stats=Stats} ) ->
+handle_call({status}, _From, State) ->
     Request   = ts_stats_mon:status(request),
     Interval  = ts_utils:elapsed(State#state.lastdate, now()) / 1000,
     Phase     = ts_stats_mon:status(newphase,sum),
-    Connected = Stats#stats.connected,
+    Connected =  case ts_stats_mon:status(connected,sum) of
+                     {ok, Val} -> Val;
+                     _ -> 0
+                 end,
     Reply = { State#state.client, Request,Connected, Interval, Phase},
     {reply, Reply, State};
 
@@ -419,9 +421,6 @@ export_stats(State=#state{log=Log,stats=Stats,laststats=LastStats}) ->
     ts_stats_mon:print_stats_txt({finish_users_count, count},
                                  Stats#stats.finish_users_count,
                                  {LastStats#stats.finish_users_count,Log}),
-    ts_stats_mon:print_stats_txt({connected, count},
-                                 Stats#stats.connected,
-                                 {LastStats#stats.connected,Log}),
     ts_stats_mon:dumpstats(request),
     ts_stats_mon:dumpstats(page),
     ts_stats_mon:dumpstats(connect),
