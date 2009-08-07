@@ -112,8 +112,8 @@ MANPAGES   = $(wildcard doc/*.1)
 PERL_SCRIPTS_SRC = $(wildcard $(ESRC)/*.pl.in)
 PERL_SCRIPTS = $(basename $(PERL_SCRIPTS_SRC))
 
-PYTHON_SCRIPTS_SRC = $(wildcard $(ESRC)/tsung-plotter/*.py.in)
-PYTHON_SCRIPTS = $(basename $(PYTHON_SCRIPTS_SRC))
+TSPLOT_SRC = $(wildcard $(ESRC)/tsung-plotter/*.py.in)
+TSPLOT = $(basename $(TSPLOT_SRC))
 TSUNG_PLOTTER_LIB= $(wildcard $(ESRC)/tsung-plotter/tsung/*.py)
 TSUNG_PLOTTER_CONF= $(wildcard $(ESRC)/tsung-plotter/tsung/*.conf) $(wildcard $(ESRC)/tsung-plotter/*.conf)
 
@@ -156,13 +156,13 @@ BUILD_OPTIONS_DOT = $(subst $(PWD)/temp/,./,$(BUILD_OPTIONS))
 
 BUILD_OPTIONS_FILE = ./BUILD_OPTIONS
 
-DIST_COMMON=Makefile.in $(CONFFILE_SRC) $(PERL_SCRIPTS_SRC) $(PYTHON_SCRIPTS_SRC) tsung.sh.in tsung-recorder.sh.in tsung.spec.in $(CONTROLLER_SRC_APPFILES_IN)
+DIST_COMMON=Makefile.in $(CONFFILE_SRC) $(PERL_SCRIPTS_SRC) $(TSPLOT_SRC) tsung.sh.in tsung-recorder.sh.in tsung.spec.in $(CONTROLLER_SRC_APPFILES_IN)
 
 DOC_OPTS={def,{version,\"$(VERSION)\"}}
 
 .PHONY: doc
 
-tsung: Makefile config.status $(PERL_SCRIPTS)  $(PYTHON_SCRIPTS) tsung.sh tsung-recorder.sh tsung.spec $(TARGET) $(RECORDER_TARGET) $(CONTROLLER_TARGET) $(LIB_TARGET)  $(CONTROLLER_SRC_APPFILES) $(SRC_APPFILES) $(RECORDER_SRC_APPFILES)
+tsung: Makefile config.status $(PERL_SCRIPTS)  $(TSPLOT) tsung.sh tsung-recorder.sh tsung.spec $(TARGET) $(RECORDER_TARGET) $(CONTROLLER_TARGET) $(LIB_TARGET)  $(CONTROLLER_SRC_APPFILES) $(SRC_APPFILES) $(RECORDER_SRC_APPFILES)
 
 buildtest: $(TEST_TARGET)
 
@@ -206,7 +206,7 @@ deb:
 clean:
 	-cd priv && rm -f $(shell ls priv | grep -v builder\.erl| grep -v CVS) && cd ..
 	-rm -f $(TARGET) $(TMP) $(BUILD_OPTIONS_FILE) builder.beam
-	-rm -f $(TGT_APPFILES) $(PERL_SCRIPTS) $(PYTHON_SCRIPTS) $(CONFFILE)
+	-rm -f $(TGT_APPFILES) $(PERL_SCRIPTS) $(TSPLOT) $(CONFFILE)
 	-rm -f ebin/*.beam tsung.sh tsung.spec tsung.xml tsung.sh tsung-recorder.sh
 	-rm -f *.xml config.log src/test/*.xml src/test/usersdb.csv
 
@@ -246,7 +246,7 @@ install: doc boot install_recorder install_controller $(CONFFILE)
 	install -m 0755 tsung-recorder.sh $(REC_SCRIPT)
 	install -m 0755 $(PERL_SCRIPTS) $(TOOLS_BINDIR)
 # tsung-plotter
-	install -m 0755 $(PYTHON_SCRIPTS) $(TOOLS_BINDIR)
+	install -m 0755 $(TSPLOT) $(BINDIR)/tsplot
 	install -d $(LIBDIR)/tsung_plotter
 	install -d $(SHARE_DIR)/tsung_plotter
 	install -m 0644 $(TSUNG_PLOTTER_LIB) $(LIBDIR)/tsung_plotter
@@ -391,7 +391,7 @@ release: Makefile tsung.spec doc
 		COPYING README LISEZMOI TODO $(CONFFILE_SRC) $(TEST_CONFFILE_SRC) \
 		priv/builder.erl tsung.sh.in vsn.mk  src/test/*.csv src/test/*.txt \
 		$(DEBIAN)  $(PERL_SCRIPTS_SRC) CONTRIBUTORS CHANGES \
-		$(PYTHON_SCRIPTS_SRC) $(TSUNG_PLOTTER_CONF) $(TSUNG_PLOTTER_LIB)\
+		$(TSPLOT_SRC) $(TSUNG_PLOTTER_CONF) $(TSUNG_PLOTTER_LIB)\
 		configure configure.in config.guess *.m4 config.sub Makefile.in \
 		install-sh tsung.spec.in tsung.spec tsung-recorder.sh.in
 	tar -C $(distdir) -zxf tmp.tgz
