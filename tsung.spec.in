@@ -53,12 +53,14 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 /usr/bin/tsung
 /usr/bin/tsung-recorder
-/usr/lib/erlang/lib
-/usr/lib/tsung
+/usr/bin/tsplot
+%{_libdir}/erlang/lib
+%{_libdir}/tsung
 /usr/share/tsung
 %doc /usr/share/doc/tsung/*
 %doc /usr/share/man/man1/tsung.1.gz
 %doc /usr/share/man/man1/tsplot.1.gz
+%doc /usr/share/man/man1/tsung-recorder.1.gz
 
 %changelog
 * Wed Sep 20 2006 Nicolas Niclausse <Nicolas.Niclausse@sophia.inria.fr> 1.2.1-1
