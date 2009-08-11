@@ -393,14 +393,17 @@ concat_cookies([],  DynData) -> DynData;
 concat_cookies(New, []) -> New;
 concat_cookies([New=#cookie{}|Rest], OldCookies)->
     case lists:keysearch(New#cookie.key, #cookie.key, OldCookies) of
-        {value, _OldVal} ->
-            ?DebugF("Reset key ~p with new value ~p~n",[New#cookie.key,
-                                                        New#cookie.value]),
-            NewList = lists:keyreplace(New#cookie.key, #cookie.key, OldCookies, New),
-            concat_cookies(Rest, NewList);
+        {value, #cookie{domain=Dom}} when Dom == New#cookie.domain -> %same domain
+                ?DebugF("Reset key ~p with new value ~p~n",[New#cookie.key,
+                                                            New#cookie.value]),
+                NewList = lists:keyreplace(New#cookie.key, #cookie.key, OldCookies, New),
+                concat_cookies(Rest, NewList);
+        {value, _Val} -> % same key, but different domains
+                concat_cookies(Rest, [New | OldCookies]);
         false ->
-            concat_cookies(Rest, [New | OldCookies])
+                concat_cookies(Rest, [New | OldCookies])
     end.
+
 
 %%----------------------------------------------------------------------
 %% Func: parse_set_cookie/2

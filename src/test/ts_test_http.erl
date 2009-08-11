@@ -34,14 +34,81 @@ test()->ok.
 subst_redirect_test()->
     myset_env(),
     URL="%%_redirect%%",
-    Cookie=#cookie{domain="erlang.org",path="/",key="toto",value="bar"},
-    Proto=#http_dyndata{cookies=[Cookie],user_agent="Firefox"},
+    Cookie="toto=bar; path=/; domain=erlang.org",
+    Cookies=ts_http_common:add_new_cookie(Cookie,"erlang.org",[]),
+    Proto=#http_dyndata{cookies=Cookies,user_agent="Firefox"},
     DynVars=ts_dynvars:new(redirect,"http://erlang.org/bidule/truc"),
     {Req,_}=ts_http:add_dynparams(true,#dyndata{proto=Proto,dynvars=DynVars},
                                   #http_request{url=URL},
                                   {"erlang.org",80}),
-    Str="GET /bidule/truc HTTP/1.1\r\nHost: erlang.org:80\r\nUser-Agent: Firefox\r\nCookie: toto=bar\r\n\r\n",
-    ?assertMatch(Str, binary_to_list(ts_http:get_message(Req))).
+    ?assertEqual("GET /bidule/truc HTTP/1.1\r\nHost: erlang.org:80\r\nUser-Agent: Firefox\r\nCookie: toto=bar\r\n\r\n", binary_to_list(ts_http:get_message(Req))).
+
+cookie_subdomain_test()->
+    myset_env(),
+    URL="/bidule/truc",
+    Cookie="toto=bar; path=/; domain=.domain.org",
+    Cookies=ts_http_common:add_new_cookie(Cookie,"domain.org",[]),
+    Proto=#http_dyndata{cookies=Cookies,user_agent="Firefox"},
+    DynVars=ts_dynvars:new(),
+    Req=ts_http:add_dynparams(false,#dyndata{proto=Proto,dynvars=DynVars},
+                                  #http_request{url=URL},
+                                  {"www.domain.org",80}),
+    Str="GET /bidule/truc HTTP/1.1\r\nHost: www.domain.org:80\r\nUser-Agent: Firefox\r\nCookie: toto=bar\r\n\r\n",
+    ?assertEqual(Str, binary_to_list(ts_http:get_message(Req))).
+
+
+add_cookie_samekey_samedomain_test()->
+    myset_env(),
+    Cookie1="RMID=732423sdfs73242; path=/; domain=.example.net",
+    Cookie2="RMID=42; path=/; domain=.example.net",
+    Val1=#cookie{key="RMID",value="732423sdfs73242",domain=".example.net",path="/"},
+    Val2=#cookie{key="RMID",value="42",domain=".example.net",path="/"},
+    Cookies=ts_http_common:add_new_cookie(Cookie1,"foobar.com",[]),
+    %% same domain, second cookie should erase the first one
+    Res=ts_http_common:add_new_cookie(Cookie2,"foobar.com",Cookies),
+    ?assertMatch([Val2],Res).
+
+set_cookie_test()->
+    myset_env(),
+    Cookie="RMID=732423sdfs73242; path=/; domain=.foobar.com",
+    Val="Cookie: RMID=732423sdfs73242\r\n",
+    Cookies=ts_http_common:add_new_cookie(Cookie,"www.foobar.com",[]),
+    ?assertEqual(Val,lists:flatten(ts_http_common:set_cookie_header({Cookies,"www.foobar.com","/toto.html"}))).
+
+add_cookie_test()->
+    myset_env(),
+    Cookie1="RMID=732423sdfs73242; expires=Fri, 31-Dec-2010 23:59:59 GMT; path=/; domain=.example.net",
+    Cookie2="ID=42; path=/; domain=.example.net",
+    Val1=#cookie{key="RMID",value="732423sdfs73242",domain=".example.net",path="/",expires="Fri, 31-Dec-2010 23:59:59 GMT"},
+    Val2=#cookie{key="ID",value="42",domain=".example.net",path="/"},
+    Cookies=ts_http_common:add_new_cookie(Cookie1,"foobar.com",[]),
+    ?assertEqual([Val2,Val1],ts_http_common:add_new_cookie(Cookie2,"foobar.com",Cookies)).
+
+add_cookie_samekey_nodomain_test()->
+    myset_env(),
+    Cookie1="RMID=732423sdfs73242; expires=Fri, 31-Dec-2010 23:59:59 GMT; path=/; domain=.example.net",
+    Cookie2="RMID=42; path=/; domain=.foobar.net",
+    Val1=#cookie{key="RMID",value="732423sdfs73242",domain=".example.net",path="/",expires="Fri, 31-Dec-2010 23:59:59 GMT"},
+    Val2=#cookie{key="RMID",value="42",domain=".foobar.net",path="/"},
+    Cookies=ts_http_common:add_new_cookie(Cookie1,"foobar.com",[]),
+    %% two different domains, two cookies
+    ?assertEqual([Val2,Val1],ts_http_common:add_new_cookie(Cookie2,"foobar.com",Cookies)).
+
+add_cookie_samekey_nodomain_req_test()->
+    myset_env(),
+    URL="/bidule/truc",
+    Cookie1="RMID=732423sdfs73242; expires=Fri, 31-Dec-2010 23:59:59 GMT; path=/; domain=.example.net",
+    Cookie2="RMID=42; path=/; domain=.foobar.net",
+    Cookies1=ts_http_common:add_new_cookie(Cookie1,"",[]),
+    Cookies = ts_http_common:add_new_cookie(Cookie2,"",Cookies1),
+    Proto=#http_dyndata{cookies=Cookies,user_agent="Firefox"},
+    DynVars=ts_dynvars:new(),
+    Req=ts_http:add_dynparams(false,#dyndata{proto=Proto,dynvars=DynVars},
+                                  #http_request{url=URL},
+                                  {"www.foobar.net",80}),
+    Str="GET /bidule/truc HTTP/1.1\r\nHost: www.foobar.net:80\r\nUser-Agent: Firefox\r\nCookie: RMID=42\r\n\r\n",
+    ?assertEqual(Str, binary_to_list(ts_http:get_message(Req))).
+
 
  myset_env()->
     application:set_env(stdlib,debug_level,0).
