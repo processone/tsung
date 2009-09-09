@@ -2,12 +2,12 @@ Source: tsung
 Section: net
 Priority: optional
 Maintainer: Nicolas Niclausse <nicolas.niclausse@niclux.org>
-Build-Depends: debhelper (>= 4.0.0), erlang (>= 9.2-1), libxmerl-erlang (>= 0.19-1) | erlang (>= 10.b.5-1) , docbook-utils, erlang-src
+Build-Depends: debhelper (>= 4.0.0), erlang-nox (>= 10.b.5-1) , docbook-utils, erlang-src, erlang-dev
 Standards-Version: 3.6.0
 
 Package: tsung
 Architecture: all
-Depends: erlang (>= 9.2-1), libxmerl-erlang (>= 0.19-1) | erlang (>= 10.b.5-1)
+Depends: erlang-nox (>= 10.b.5-1)
 Recommends: gnuplot, perl, ssh, libtemplate-perl, python-matplotlib
 Description: A distributed multi-protocol load testing tool.
  Tsung is a distributed load testing tool.
