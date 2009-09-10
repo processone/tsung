@@ -199,12 +199,14 @@ get_message(#jabber{type = 'muc:chat', room = Room, muc_service = Service, size 
     muc_chat(Room, Service, Size);
 get_message(#jabber{type = 'muc:nick', room = Room, muc_service = Service, nick = Nick}) ->
     muc_nick(Room, Nick, Service);
+get_message(#jabber{type = 'muc:exit', room = Room, muc_service = Service, nick = Nick}) ->
+    muc_exit(Room, Nick, Service);
 
 get_message(Jabber=#jabber{username=Name, passwd=Passwd, id=Id}) ->
     FullName = username(Name, Id),
     FullPasswd = password(Passwd,Id),
     get_message2(Jabber#jabber{username=FullName,passwd=FullPasswd}).
-    
+
 
 
 %%----------------------------------------------------------------------
@@ -471,7 +473,7 @@ create_pubsub_node(Domain, PubSubComponent,Username, Node, NodeType) ->
 
 %% Generate pubsub node attribute
 pubsub_node_attr(undefined, _Domain, _Username) -> " ";
-pubsub_node_attr(user_root, Domain, Username) -> 
+pubsub_node_attr(user_root, Domain, Username) ->
     [" node='/home/", Domain, "/", Username,"'"];
 pubsub_node_attr([$/|AbsNode], _Domain, _Username) ->
     [" node='/", AbsNode,"'"];
@@ -518,7 +520,6 @@ publish_pubsub_node(Domain, PubSubComponent, Username, Node, Size) ->
 
 muc_join(Room,Nick, Service) ->
     Result = list_to_binary(["<presence to='", Room,"@", Service,"/", Nick, "'>",
-                             "<x xmlns='http://jabber.org/protocol/muc'/>",
                              " </presence>"]),
     Result.
 
@@ -530,6 +531,12 @@ muc_chat(Room, Service, Size) ->
 muc_nick(Room, Nick, Service) ->
     Result = list_to_binary(["<presence to='", Room,"@", Service,"/", Nick, "'/>"]),
     Result.
+
+muc_exit(Room,Nick, Service) ->
+    Result = list_to_binary(["<presence to='", Room,"@", Service,"/", Nick, "'>",
+                             " type='unavailable'  </presence>"]),
+    Result.
+
 
 %%%----------------------------------------------------------------------
 %%% Func: username/2

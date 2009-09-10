@@ -111,6 +111,8 @@ Volume 46, Issue 2-3, October 2001}.
   \item 12 000 simultaneous users.
   \program{Tsung} were running on a 4-computers cluster. The
   tested platform reached 3 000 requests per second.
+ \item 10 million simultaneous users running on a 75-computers cluster,
+  generating more than one million requests per second.
   \end{itemize}
 \end{itemize}
 
@@ -170,7 +172,8 @@ distribution (currently exponential)
 \begin{itemize}
 \item HTTP/1.0 and HTTP/1.1 support
 \item GET, POST, PUT, DELETE and HEAD requests
-\item Cookies: Automatic cookies management
+\item Cookies: Automatic cookies management( but you can also manually
+  add more cookies)
 \item \verb|'|GET If-modified since\verb|'| type of request
 \item WWW-authentication Basic
 \item User Agent support
@@ -204,6 +207,7 @@ are also supported):
 \item Roster set and get requests
 \item Global users\verb|'| synchronization can be set on specific actions
 \item raw XML messages
+\item PubSub
 \end{itemize}
 
 \subsection{PostgreSQL related features}
@@ -941,7 +945,7 @@ higher than 10sec. This value can be changed like this:
 
 To disable hibernation, you must set the value to \userinput{infinity}.
 
-\subsubsection{Jabber options}
+\subsubsection{XMPP/Jabber options}
 \label{sec:jabber-options}
 
 Default values for specific protocols can be defined. Here is an
@@ -1269,6 +1273,7 @@ Tsung supports three MUC operations:
 \item Join a room (attribute \userinput{type='muc:join'})
 \item Send a message to a room (attribute \userinput{type='muc:chat'})
 \item Change nickname (attribute \userinput{type='muc:nick'})
+\item Exit a room (attribute \userinput{type='muc:exit})
 \end{enumerate}
 
 Here's an example:
@@ -1307,6 +1312,13 @@ Here's an example:
 \end{Verbatim}
 
 MUC support is available since version 1.3.1
+
+\paragraph{PubSub}
+
+Experimental support for PubSub is available in version 1.3.1
+
+You can read the following entry: \url{https://support.process-one.net/browse/TSUN-115}
+
 
 \paragraph{raw XML}
 You can send raw XML date to the server using the \varname{raw} type:

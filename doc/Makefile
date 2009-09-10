@@ -147,7 +147,7 @@ print:	$(PSFILES)
 
 #%.html:	%.tex $(INCLUDES) $(FIGURES_PNG) $(IMAGES_PNG) $(HEVEA_INC) $(LOGOS_EPS) $(PLOT_PNG)
 
-user_manual.html:	user_manual.tex $(INCLUDES) $(FIGURES_PNG) $(IMAGES_PNG) $(HEVEA_INC) $(LOGOS_EPS) $(PLOT_PNG)
+user_manual.html:	user_manual.tex ../CHANGES $(INCLUDES) $(FIGURES_PNG) $(IMAGES_PNG) $(HEVEA_INC) $(LOGOS_EPS) $(PLOT_PNG)
 	@echo Generating $@...
 	@$(HEVEA) $(HEVEAOPTS) $(LANGUAGE) $(HEVEA_INC) $<
 ifeq ($(strip $(IMAGES_PNG)),)
@@ -204,7 +204,7 @@ xpdf:	pdf
 	@dvips -q -t a4 -o $@ $<
 	@echo done.
 
-%.pdf: %.tex $(INCLUDES) $(LOGOS_JPG) $(FIGURES_PNG) $(IMAGES_PNG) $(PLOT_PDF)
+%.pdf: %.tex ../CHANGES $(INCLUDES) $(LOGOS_JPG) $(FIGURES_PNG) $(IMAGES_PNG) $(PLOT_PDF)
 	@echo Generating $@...
 	@echo
 	@$(PDFLATEX) $<

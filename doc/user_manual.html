@@ -95,11 +95,11 @@ a:hover     {background:#ffffaa;}
 <!--ENDHTML-->
 <!--CUT DEF section 1 --><H1 ALIGN=center>Tsung User’s manual</H1><DIV CLASS="center">
 
-<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>1020</TD></TR>
-<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>30 juin 2009</TD></TR>
+<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>1044</TD></TR>
+<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>September 9, 2009</TD></TR>
 </TABLE>
-</DIV><!--TOC section Table des matières-->
-<H2 CLASS="section"><!--SEC ANCHOR -->Table des matières</H2><!--SEC END --><UL CLASS="toc"><LI CLASS="li-toc">
+</DIV><!--TOC section Contents-->
+<H2 CLASS="section"><!--SEC ANCHOR -->Contents</H2><!--SEC END --><UL CLASS="toc"><LI CLASS="li-toc">
 <A HREF="#htoc1">1  Introduction</A>
 <UL CLASS="toc"><LI CLASS="li-toc">
 <A HREF="#htoc2">1.1  What is Tsung ?</A>
@@ -167,7 +167,7 @@ a:hover     {background:#ffffaa;}
 </LI></UL>
 </LI><LI CLASS="li-toc"><A HREF="#htoc47">6.5  Setting options</A>
 <UL CLASS="toc"><LI CLASS="li-toc">
-<A HREF="#htoc48">6.5.1  Jabber options</A>
+<A HREF="#htoc48">6.5.1  XMPP/Jabber options</A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc49">6.5.2  HTTP options</A>
 </LI></UL>
 </LI><LI CLASS="li-toc"><A HREF="#htoc50">6.6  Sessions</A>
@@ -267,6 +267,8 @@ IP/WDM test platform for new generation Internet applications, 2000-2004).</LI><
 12 000 simultaneous users.
 <EM>Tsung</EM> were running on a 4-computers cluster. The
 tested platform reached 3 000 requests per second.
+</LI><LI CLASS="li-itemize">10 million simultaneous users running on a 75-computers cluster,
+generating more than one million requests per second.
 </LI></UL>
 </LI></UL><P><EM>Tsung</EM> has been used at:</P><UL CLASS="itemize"><LI CLASS="li-itemize">
 <EM>DGI</EM> (Direction Générale des impôts): French finance ministry
@@ -314,7 +316,8 @@ distribution (currently exponential)
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc7">2.2</A>  HTTP related features</H3><!--SEC END --><UL CLASS="itemize"><LI CLASS="li-itemize">
 HTTP/1.0 and HTTP/1.1 support
 </LI><LI CLASS="li-itemize">GET, POST, PUT, DELETE and HEAD requests
-</LI><LI CLASS="li-itemize">Cookies: Automatic cookies management
+</LI><LI CLASS="li-itemize">Cookies: Automatic cookies management( but you can also manually
+add more cookies)
 </LI><LI CLASS="li-itemize"><CODE>'</CODE>GET If-modified since<CODE>'</CODE> type of request
 </LI><LI CLASS="li-itemize">WWW-authentication Basic
 </LI><LI CLASS="li-itemize">User Agent support
@@ -340,6 +343,7 @@ Authentication (plain-text, digest and sip-digest)
 </LI><LI CLASS="li-itemize">Roster set and get requests
 </LI><LI CLASS="li-itemize">Global users<CODE>'</CODE> synchronization can be set on specific actions
 </LI><LI CLASS="li-itemize">raw XML messages
+</LI><LI CLASS="li-itemize">PubSub
 </LI></UL><!--TOC subsection PostgreSQL related features-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc10">2.5</A>  PostgreSQL related features</H3><!--SEC END --><UL CLASS="itemize"><LI CLASS="li-itemize">
 Basic and MD5 Authentication
@@ -1101,8 +1105,8 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE><P>To disable hibernation, you must set the value to <FONT COLOR=purple>infinity</FONT>.</P><!--TOC subsubsection Jabber options-->
-<H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc48">6.5.1</A>  Jabber options</H4><!--SEC END --><P>
+</TABLE><P>To disable hibernation, you must set the value to <FONT COLOR=purple>infinity</FONT>.</P><!--TOC subsubsection XMPP/Jabber options-->
+<H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc48">6.5.1</A>  XMPP/Jabber options</H4><!--SEC END --><P>
 <A NAME="sec:jabber-options"></A></P><P>Default values for specific protocols can be defined. Here is an
 example of option values for Jabber/XMPP:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
@@ -1494,6 +1498,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 Join a room (attribute <FONT COLOR=purple>type=’muc:join’</FONT>)
 </LI><LI CLASS="li-enumerate">Send a message to a room (attribute <FONT COLOR=purple>type=’muc:chat’</FONT>)
 </LI><LI CLASS="li-enumerate">Change nickname (attribute <FONT COLOR=purple>type=’muc:nick’</FONT>)
+</LI><LI CLASS="li-enumerate">Exit a room (attribute <FONT COLOR=purple>type=’muc:exit</FONT>)
 </LI></OL><P>Here’s an example:
 </P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
@@ -1540,7 +1545,8 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE><P>MUC support is available since version 1.3.1</P><!--TOC paragraph raw XML-->
+</TABLE><P>MUC support is available since version 1.3.1</P><!--TOC paragraph PubSub-->
+<H5 CLASS="paragraph"><!--SEC ANCHOR -->PubSub</H5><!--SEC END --><P>Experimental support for PubSub is available in version 1.3.1</P><P>You can read the following entry: <A HREF="https://support.process-one.net/browse/TSUN-115"><TT>https://support.process-one.net/browse/TSUN-115</TT></A></P><!--TOC paragraph raw XML-->
 <H5 CLASS="paragraph"><!--SEC ANCHOR -->raw XML</H5><!--SEC END --><P>
 You can send raw XML date to the server using the <TT>raw</TT> type:
 </P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -2975,7 +2981,49 @@ parameter from the config_server; the controller may be overloaded ?
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
 </TABLE></TD></TR>
-<TR><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim"><I>1.2.2 -&gt; 1.3.0 Major bugfixes and enhancements (03 Sep 2008)
+<TR><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim"><I>1.3.0 -&gt; 1.3.1 Major bugfixes and enhancements (9 Sep 2009)
+Bugfix:
+    * [TSUN-92] - the computation of the minimum for sample_counter is wrong
+    * [TSUN-93] - maxnumber not respected if several clients are used
+    * [TSUN-102] - dyn_variable configuration fails if variable name is not a valid erlang atom
+    * [TSUN-103] - Network error handling in munin plugin
+    * [TSUN-104] - tsung-plotter can't handle the os_mon statistics
+    * [TSUN-108] - Cannot handle complicated dyn_var name
+    * [TSUN-109] - Tsung status displays always phase one even if you have more than one phase
+    * [TSUN-110] - Cookie header not present if the URL is dynamically generated by a previous redirection (302)
+    * [TSUN-117] - Bug in HTTP: empty header can be generated in some case
+    * [TSUN-118] - HTTPS proxy recorder: ts_utils:to_https incorrectly handles Content-Length for POST requests
+    * [TSUN-119] - tsung can crash when reading empty values from a csv file
+    * [TSUN-122] - same http cookie key with different domains don't work
+Improvements:
+    * [TSUN-47] - ts_mon can be a bottleneck during very high load testing
+    * [TSUN-77] - Structural requests or goto-like action for match in HTTP
+    * [TSUN-81] - Dynamic variables API
+    * [TSUN-83] - file_server using fixed tuple instead of list
+    * [TSUN-85] - external entity should be copied into the log directory of a run.
+    * [TSUN-87] - add dynamic code evaluation in set_dynvars
+    * [TSUN-88] - add mkactivity method support in webdav
+    * [TSUN-91] - reduce memory consumption by hibernating client process while in think state
+    * [TSUN-97] - disable smp erlang for client beam for performance reason
+    * [TSUN-98] - try several times to connect to the server before aborting a session
+    * [TSUN-99] - make substitution work in &lt;match&gt;
+    * [TSUN-100] - improve scalability of ts_launcher
+    * [TSUN-105] - Add load average statistic to server monitoring
+    * [TSUN-111] - add option to manually add a cookie in http requests
+    * [TSUN-113] - split tsung command into two separate tsung and tsung-recorder commands
+    * [TSUN-116] - add ability to run several tsung running in parallel on the same hosts
+    * [TSUN-120] - Https recorder: Remove "Secure" from "Set-Cookie" header.
+New Features:
+    * [TSUN-25] - add a way to start sessions in a specific order at specified times
+    * [TSUN-89] - include tsung-plotter into the tsung distribution
+    * [TSUN-90] - add support for monitoring server cpu/mem using munin-node
+    * [TSUN-94] - add log action for match
+    * [TSUN-95] - add a default dyn_variable with a unique tsung_userid
+    * [TSUN-107] - add MUC support to the jabber doc/plugin
+    * [TSUN-114] - add option to apply function to data before looking for a match
+    * [TSUN-115] - add pubsub support to the jabber plugin
+
+1.2.2 -&gt; 1.3.0 Major bugfixes and enhancements (03 Sep 2008)
 Bugfix:
     * [TSUN-30] - SNMP monitoring gives an error
     * [TSUN-57] - using -l with a relative path make distributed load fails with timeout error
@@ -3283,10 +3331,11 @@ New Features:
 
 <DIV class="piedpage">
 <HR>
-<P>  Copyright 2004-2008 &copy; Nicolas Niclausse
+<P>  Copyright 2004-2009 &copy; Nicolas Niclausse
 </DIV>
 
 <!--ENDHTML-->
 <!--FOOTER-->
-<HR SIZE=2><BLOCKQUOTE CLASS="quote"><EM>Ce document a été traduit de L<sup>A</sup>T<sub>E</sub>X par </EM><A HREF="http://hevea.inria.fr"><EM>H</EM><EM><FONT SIZE=2><sup>E</sup></FONT></EM><EM>V</EM><EM><FONT SIZE=2><sup>E</sup></FONT></EM><EM>A</EM></A></BLOCKQUOTE></BODY>
+<HR SIZE=2><BLOCKQUOTE CLASS="quote"><EM>This document was translated from L<sup>A</sup>T<sub>E</sub>X by
+</EM><A HREF="http://hevea.inria.fr/index.html"><EM>H</EM><EM><FONT SIZE=2><sup>E</sup></FONT></EM><EM>V</EM><EM><FONT SIZE=2><sup>E</sup></FONT></EM><EM>A</EM></A><EM>.</EM></BLOCKQUOTE></BODY>
 </HTML>

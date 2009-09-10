@@ -1,11 +1,12 @@
 dnl DNA define([AC_CACHE_LOAD], )dnl
-AC_CACHE_LOAD
 
 AC_INIT([tsung], m4_normalize(m4_include([vsn.mk])),[tsung-users@process-one.net])
 AC_PREREQ(2.59c)
 AC_COPYRIGHT(Copyright (C) 2008 Nicolas Niclausse)
 AC_CONFIG_SRCDIR(src/tsung/tsung.erl)
 dnl AM_INIT_AUTOMAKE()
+
+AC_CACHE_LOAD
 
 AC_SUBST([CONFIG_STATUS_DEPENDENCIES],[vsn.mk])
 AC_SUBST([CONFIGURE_DEPENDENCIES],[vsn.mk])
