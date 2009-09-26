@@ -1,4 +1,3 @@
-
 <?xml version="1.0"?>
 <!DOCTYPE tsung SYSTEM "@prefix@/share/@PACKAGE_NAME@/@DTD@">
 <tsung loglevel="notice" version="1.0">
