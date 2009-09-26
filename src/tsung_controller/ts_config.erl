@@ -498,7 +498,7 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
         "" ->
             case getAttr(Attrs, name) of
                 "thinktime" ->
-                    Val = getAttr(integer,Attrs, value),
+                    Val = getAttr(float_or_integer,Attrs, value),
                     ets:insert(Tab,{{thinktime, value}, Val}),
                     Random = case { getAttr(integer, Attrs, min),
                                     getAttr(integer, Attrs, max)}  of
@@ -606,13 +606,13 @@ parse(Element = #xmlElement{name=thinktime, attributes=Attrs},
             "false" ->
                 case { getAttr(integer, Attrs, min),
                        getAttr(integer, Attrs, max),
-                       getAttr(integer, Attrs, value)}  of
+                       getAttr(float_or_integer, Attrs, value)}  of
                     {Min, Max, "" } when is_integer(Min), is_integer(Max), Max > 0, Min >0,  Max > Min ->
                         {"", {"range", Min, Max} };
                     {"","",""} ->
                         CurRandom = getAttr(string, Attrs,random,DefRandom),
                         {DefThink, CurRandom};
-                    {"","",CurThink} when is_integer(CurThink), CurThink > 0 ->
+                    {"","",CurThink} when CurThink > 0 ->
                         CurRandom = getAttr(string, Attrs,random,DefRandom),
                         {CurThink, CurRandom};
                     _ ->
