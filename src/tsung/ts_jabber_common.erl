@@ -533,8 +533,7 @@ muc_nick(Room, Nick, Service) ->
     Result.
 
 muc_exit(Room,Nick, Service) ->
-    Result = list_to_binary(["<presence to='", Room,"@", Service,"/", Nick, "'>",
-                             " type='unavailable'  </presence>"]),
+    Result = list_to_binary(["<presence to='", Room,"@", Service,"/", Nick, "' type='unavailable'/>"]),
     Result.
 
 
