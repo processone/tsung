@@ -163,7 +163,7 @@ init_dynparams() ->
 %% Function: subst/2
 %% Purpose: Replace on the fly dynamic element
 %%----------------------------------------------------------------------
-subst(Req=#jabber{type = Type}, DynData) when Type == 'muc:chat' ; Type == 'muc:join'; Type == 'muc:nick' ->
+subst(Req=#jabber{type = Type}, DynData) when Type == 'muc:chat' ; Type == 'muc:join'; Type == 'muc:nick' ; Type == 'muc:exit' ->
     Req#jabber{nick = ts_search:subst(Req#jabber.nick, DynData),
                room = ts_search:subst(Req#jabber.room, DynData)};
 subst(Req=#jabber{type = Type}, DynData) when Type == 'pubsub:create' ; Type == 'pubsub:subscribe'; Type == 'pubsub:publish'; Type == 'pubsub:delete' ->
