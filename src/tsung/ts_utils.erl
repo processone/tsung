@@ -674,7 +674,7 @@ randomstr(Size) when is_integer(Size), Size >= 0 ->
 %% @end
 %%----------------------------------------------------------------------
 eval(Code) ->
-    {ok, Scanned, _} = erl_scan:string(Code),
+    {ok, Scanned, _} = erl_scan:string(lists:flatten(Code)),
     {ok, Parsed} = erl_parse:parse_exprs(Scanned),
     {value, Result, _} = erl_eval:exprs(Parsed,  erl_eval:new_bindings()),
     Result.
