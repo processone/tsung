@@ -37,8 +37,7 @@
 
 -record(state, {
                 myhostname,
-                users,
-                last_wait
+                users
                }).
 
 %%%----------------------------------------------------------------------
@@ -101,40 +100,31 @@ wait({launch, []}, State) ->
         [{Wait,_}|_] ->
             Warm = ts_launcher:set_warm_timeout(Start),
             ts_launcher:set_static_users({node(),length(Users)}),
-            ?LOGF("Activate launcher (~p static users) in ~p msec ~n",[length(Users), Warm], ?NOTICE),
-            {next_state,launcher,State#state{last_wait=Wait, users = Users}, Warm + Wait};
+            ?LOGF("Activate launcher (~p static users) in ~p msec, first user after ~p ms ~n",[length(Users), Warm, Wait], ?NOTICE),
+            {next_state,launcher,State#state{users = Users}, Warm + Wait};
         [] ->
             ?LOG("No static users, stop",?INFO),
             ts_launcher:set_static_users({node(),0}),
             {stop, normal, State}
     end.
 
-launcher(_Event, #state{users = [] }) ->
-    ?LOG("no more clients to start, wait  ~n",?INFO),
-    ts_config_server:endlaunching({static, node()}),
-    {next_state, finish, #state{}, ?check_noclient_timeout};
-
-launcher(timeout, State=#state{last_wait = Previous,
-                               users    = [{OldWait,Session}|Users]
-                               }) ->
-
-    Wait=get_next_wait(OldWait,Users),
+launcher(timeout, State=#state{ users = [{OldWait,Session}|Users]}) ->
     BeforeLaunch = now(),
     ?LOGF("Launch static user using session ~p ~n", [Session],?DEB),
-    case do_launch({Session,State#state.myhostname}) of
-        ok ->
-            RWait = set_waiting_time(BeforeLaunch, Wait, Previous),
-            ?DebugF("Real Wait =~p ~n", [RWait]),
-            {next_state,launcher,State#state{last_wait=Wait,users=Users},RWait};
-        error ->
-            RWait = set_waiting_time(BeforeLaunch, Wait, Previous),
-            {next_state,launcher,State#state{last_wait=Wait,users=Users},RWait}
+    do_launch({Session,State#state.myhostname}),
+    Wait = set_waiting_time(BeforeLaunch, Users, OldWait),
+    ?DebugF("Real Wait =~p ~n", [Wait]),
+    case Users of
+        [] ->
+            ?LOG("no more clients to start, wait  ~n",?INFO),
+            ts_config_server:endlaunching({static, node()}),
+            {next_state, finish, #state{}, ?check_noclient_timeout};
+        _ ->
+            {next_state,launcher,State#state{users=Users},Wait}
     end.
 
-get_next_wait(_OldWait,[])             -> 0; % last user
-get_next_wait(OldWait,[{Wait,_}|_Tail])-> Wait-OldWait.
-
-set_waiting_time(Before, Next, Previous)->
+set_waiting_time(_Before, []        , _Previous) -> 0; % last user
+set_waiting_time(Before , [{Next,_}|_], Previous)  ->
     LaunchDuration = ts_utils:elapsed(now(), Before),
     %% to keep the rate of new users as expected, remove the time to
     %% launch a client to the next wait.
