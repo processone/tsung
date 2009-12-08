@@ -186,7 +186,7 @@ cookie_rec2str(#cookie{key=Key, value=Val}) ->
 %% Returns:  true|false
 %%----------------------------------------------------------------------
 matchdomain_url(Cookie, Host, URL) ->
-    case {string:str(Host,Cookie#cookie.domain), % FIXME:should use regexp:match
+    case {string:str([$.|Host],Cookie#cookie.domain), % FIXME:should use regexp:match
           string:str(URL,Cookie#cookie.path)} of
         {0,_} -> false;
         {_,1} -> true;
@@ -239,7 +239,7 @@ parse(Data, State=#state_rcv{session=HTTP}) when HTTP#http.status  == none;
             check_resp_size(Http, length(Tail), DynData, State#state_rcv{acc=[]}, TotalSize)
     end;
 
-%% continued chunked tranfer
+%% continued chunked transfer
 parse(Data, State=#state_rcv{session=Http}) when Http#http.chunk_toread >=0 ->
     ?DebugF("Parse chunk data = [~s]~n", [Data]),
     case read_chunk_data(Data,State,Http#http.chunk_toread,Http#http.body_size) of
@@ -249,7 +249,7 @@ parse(Data, State=#state_rcv{session=Http}) when Http#http.chunk_toread >=0 ->
             {NewState#state_rcv{acc=[]}, NewOpts, Http#http.close}
     end;
 
-%% continued normal tranfer
+%% continued normal transfer
 parse(Data, State) ->
     PreviousSize = State#state_rcv.datasize,
     DataSize = size(Data),
