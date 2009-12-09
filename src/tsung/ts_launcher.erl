@@ -45,7 +45,7 @@
 -export([check_registered/0, set_warm_timeout/1]).
 
 %% gen_fsm callbacks
--export([init/1, launcher/2,  wait/2, wait_static/2, finish/2, handle_event/3,
+-export([init/1, launcher/2,  wait/2, wait_static/2, handle_event/3,
          handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
 
 -record(state, {nusers,
@@ -106,6 +106,7 @@ set_static_users({Node,Value}) ->
 init([]) ->
     ts_utils:init_seed(),
     {ok, MyHostName} = ts_utils:node_to_hostname(node()),
+    ts_launcher_mgr:alive(dynamic),
     {ok, wait, #state{myhostname=MyHostName}}.
 
 %%----------------------------------------------------------------------
@@ -135,7 +136,7 @@ wait({launch, []}, State) ->
                                                 phase_duration=Duration,
                                                 intensity=Intensity,maxusers=Max }};
         {ok,{[],_,_}} -> % no random users, only static.
-            {next_state, finish, #state{}, ?check_noclient_timeout}
+            {stop, normal, State}
     end;
 
 %% start with a already known configuration. This case occurs when a
@@ -153,9 +154,9 @@ wait({launch, {[{Intensity, Users}| Rest], Max}}, State) ->
                                        intensity = Intensity, maxusers=Max},
      State#state.short_timeout};
 wait({static,0}, State) ->
-    %% ignore static 
+    %% ignore static
     {next_state, wait, State}.
-		 
+
 wait_static({static, Static}, State=#state{maxusers=Max,intensity=Intensity,
                                            nusers=Users,start_date=StartDate}) when is_integer(Static) ->
     %% add ts_stats:exponential(Intensity) to start time to avoid
@@ -177,10 +178,9 @@ wait_static({static, Static}, State=#state{maxusers=Max,intensity=Intensity,
                                       maxusers = NewMax }, Warm}.
 
 
-launcher(_Event, #state{nusers = 0, phases = [] }) ->
-    ?LOG("no more clients to start, wait  ~n",?INFO),
-    ts_config_server:endlaunching(node()),
-    {next_state, finish, #state{}, ?check_noclient_timeout};
+launcher(_Event, State=#state{nusers = 0, phases = [] }) ->
+    ?LOG("no more clients to start, stop  ~n",?INFO),
+    {stop, normal, State};
 
 launcher(timeout, State=#state{nusers    = Users,
                                phase_nusers = PhaseUsers,
@@ -192,8 +192,7 @@ launcher(timeout, State=#state{nusers    = Users,
         {ok, Wait} ->
             case check_max_raised(State) of
                 true ->
-                    ts_config_server:endlaunching(node()),
-                    {next_state, finish, State, ?check_noclient_timeout};
+                    {stop, normal, State};
                 false->
                     Duration = ts_utils:elapsed(State#state.phase_start, BeforeLaunch),
                     case change_phase(Users-1, Phases, Duration,
@@ -211,8 +210,7 @@ launcher(timeout, State=#state{nusers    = Users,
                                                              intensity = NewIntensity},
                              round(Wait)};
                         {stop} ->
-                            ts_config_server:endlaunching(node()),
-                            {next_state,finish, State, ?check_noclient_timeout};
+                            {stop, normal, State};
                         {continue} ->
                             Now=now(),
                             LaunchDuration = ts_utils:elapsed(BeforeLaunch, Now),
@@ -231,23 +229,6 @@ launcher(timeout, State=#state{nusers    = Users,
             % retry with the same user, wait randomly a few msec
             RndWait = random:uniform(?NEXT_AFTER_FAILED_TIMEOUT),
             {next_state,launcher,State , RndWait}
-    end.
-
-
-finish({static, _Static}, State) ->
-    % keep waiting until no active users
-    {next_state, finish, State, ?check_noclient_timeout};
-finish(timeout, State) ->
-    case ts_client_sup:active_clients() of
-       0 -> %% no users left, stop
-            ?LOG("No more active users, stop beam~n", ?NOTICE),
-            ts_mon:stop(),
-            timer:sleep(?DIE_DELAY), % useful when using controller vm
-            slave:stop(node()), %% commit suicide
-            {stop, normal, State}; %% should never be executed
-        ActiveClients ->
-            ?LOGF("Still ~p active client(s)~n", [ActiveClients],?NOTICE),
-            {next_state, finish, State, ?check_noclient_timeout}
     end.
 
 
@@ -299,6 +280,7 @@ handle_info(_Info, StateName, StateData) ->
 %%----------------------------------------------------------------------
 terminate(Reason, _StateName, _StateData) ->
     ?LOGF("launcher terminating for reason~p~n",[Reason], ?INFO),
+    ts_launcher_mgr:die(dynamic),
     ok.
 
 %%--------------------------------------------------------------------

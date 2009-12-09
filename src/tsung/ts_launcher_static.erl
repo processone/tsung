@@ -32,7 +32,7 @@
 -export([start/0, launch/1]).
 
 %% gen_fsm callbacks
--export([init/1, launcher/2,  wait/2, finish/2, handle_event/3,
+-export([init/1, launcher/2,  wait/2, handle_event/3,
          handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
 
 -record(state, {
@@ -79,6 +79,7 @@ launch({Node, Host, Sessions}) ->
 init([]) ->
     ts_utils:init_seed(),
     {ok, MyHostName} = ts_utils:node_to_hostname(node()),
+    ts_launcher_mgr:alive(static),
     {ok, wait, #state{myhostname=MyHostName}}.
 
 %%----------------------------------------------------------------------
@@ -116,9 +117,8 @@ launcher(timeout, State=#state{ users = [{OldWait,Session}|Users]}) ->
     ?DebugF("Real Wait =~p ~n", [Wait]),
     case Users of
         [] ->
-            ?LOG("no more clients to start, wait  ~n",?INFO),
-            ts_config_server:endlaunching({static, node()}),
-            {next_state, finish, #state{}, ?check_noclient_timeout};
+            ?LOG("no more clients to start ~n",?INFO),
+            {stop, normal, State};
         _ ->
             {next_state,launcher,State#state{users=Users},Wait}
     end.
@@ -133,18 +133,6 @@ set_waiting_time(Before , [{Next,_}|_], Previous)  ->
         true  -> round(NewWait);
         false -> 0
     end.
-
-finish(timeout, State) ->
-    case ts_client_sup:active_clients() of
-       0 -> % no users left, stop
-            ?LOG("No more active static users~n", ?NOTICE),
-            ts_mon:stop(),
-            {stop,normal,State};
-        ActiveClients ->
-            ?LOGF("Still ~p active client(s)~n", [ActiveClients],?NOTICE),
-            {next_state, finish, State, ?check_noclient_timeout}
-    end.
-
 
 %%----------------------------------------------------------------------
 %% Func: handle_event/3
@@ -184,6 +172,7 @@ handle_info(_Info, StateName, StateData) ->
 %%----------------------------------------------------------------------
 terminate(Reason, _StateName, _StateData) ->
     ?LOGF("launcher terminating for reason ~p~n",[Reason], ?INFO),
+    ts_launcher_mgr:die(static),
     ok.
 
 %%--------------------------------------------------------------------

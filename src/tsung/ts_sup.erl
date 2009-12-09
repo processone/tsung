@@ -63,11 +63,13 @@ init([]) ->
                     transient, 2000, worker, [ts_launcher]},
     StaticLauncher  = {ts_launcher_static, {ts_launcher_static, start, []},
                     transient, 2000, worker, [ts_launcher_static]},
+    LauncherManager  = {ts_launcher_mgr, {ts_launcher_mgr, start, []},
+                    transient, 2000, worker, [ts_launcher_mgr]},
     SessionCache = {ts_session_cache, {ts_session_cache, start, []},
                     transient, 2000, worker, [ts_session_cache]},
     MonCache = {ts_mon_cache, {ts_mon_cache, start, []},
                     transient, 2000, worker, [ts_mon_cache]},
-    {ok,{{one_for_one,?retries,10}, [SessionCache, MonCache,ClientsSup, StaticLauncher,Launcher  ]}}.
+    {ok,{{one_for_one,?retries,10}, [LauncherManager, SessionCache, MonCache,ClientsSup, StaticLauncher,Launcher  ]}}.
 
 %%%----------------------------------------------------------------------
 %%% Internal functions
