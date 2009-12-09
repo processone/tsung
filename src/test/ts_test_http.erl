@@ -56,6 +56,20 @@ cookie_subdomain_test()->
     Str="GET /bidule/truc HTTP/1.1\r\nHost: www.domain.org:80\r\nUser-Agent: Firefox\r\nCookie: toto=bar\r\n\r\n",
     ?assertEqual(Str, binary_to_list(ts_http:get_message(Req))).
 
+cookie_dotdomain_test()->
+    myset_env(),
+    URL="/bidule/truc",
+    Cookie="toto=bar; path=/; domain=.www.domain.org",
+    Cookies=ts_http_common:add_new_cookie(Cookie,"www.domain.org",[]),
+    Proto=#http_dyndata{cookies=Cookies,user_agent="Firefox"},
+    DynVars=ts_dynvars:new(),
+    Req=ts_http:add_dynparams(false,#dyndata{proto=Proto,dynvars=DynVars},
+                                  #http_request{url=URL},
+                                  {"www.domain.org",80}),
+    Str="GET /bidule/truc HTTP/1.1\r\nHost: www.domain.org:80\r\nUser-Agent: Firefox\r\nCookie: toto=bar\r\n\r\n",
+    ?assertEqual(Str, binary_to_list(ts_http:get_message(Req))).
+
+
 
 add_cookie_samekey_samedomain_test()->
     myset_env(),
@@ -67,6 +81,16 @@ add_cookie_samekey_samedomain_test()->
     %% same domain, second cookie should erase the first one
     Res=ts_http_common:add_new_cookie(Cookie2,"foobar.com",Cookies),
     ?assertMatch([Val2],Res).
+
+add_cookie_replace_key_default_domain_test()->
+    myset_env(),
+    Cookie1="RMID=732423sdfs73242; path=/; ",
+    Cookie2="RMID=42; path=/; domain=.example.net",
+    Val2=#cookie{key="RMID",value="42",domain=".example.net",path="/"},
+    Cookies=ts_http_common:add_new_cookie(Cookie1,"example.net",[]),
+    %% same domain, second cookie should erase the first one
+    Res=ts_http_common:add_new_cookie(Cookie2,"foobar.com",Cookies),
+    ?assertEqual([Val2],Res).
 
 set_cookie_test()->
     myset_env(),

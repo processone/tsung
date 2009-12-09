@@ -366,7 +366,7 @@ read_chunk_data(Data, State=#state_rcv{acc=Acc}, _Int, AccSize) ->
 %%----------------------------------------------------------------------
 add_new_cookie(Cookie, Host, OldCookies) ->
     Fields = splitcookie(Cookie),
-    New = parse_set_cookie(Fields, #cookie{domain=Host,path="/"}),
+    New = parse_set_cookie(Fields, #cookie{domain=[$.|Host],path="/"}),
     concat_cookies([New],OldCookies).
 
 %%----------------------------------------------------------------------
