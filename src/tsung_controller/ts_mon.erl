@@ -332,7 +332,7 @@ handle_info(_Info, State) ->
 %% Returns: any (ignored by gen_server)
 %%----------------------------------------------------------------------
 terminate(Reason, State) ->
-    ?LOGF("stoping monitor (~p)~n",[Reason],?NOTICE),
+    ?LOGF("stopping monitor (~p)~n",[Reason],?NOTICE),
     export_stats(State),
     ts_stats_mon:status(ts_stats_mon), % blocking call to ts_stats_mon; this way, we are
                                        % sure the last call to dumpstats is finished
