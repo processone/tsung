@@ -412,6 +412,10 @@ is_ip(_) -> false.
 %%----------------------------------------------------------------------
 to_https({url, "http://ssl-"++Rest})-> "https://" ++ Rest;
 to_https({url, URL})-> URL;
+to_https({request, {body,Data}}) when is_list(Data) ->
+    %% body request, no headers
+    {ok,RealBody,_Count} = regexp:gsub(Data,"http://ssl-","https://"),
+    {ok, RealBody};
 to_https({request, String}) when is_list(String) ->
     EndOfHeader = string:str(String, "\r\n\r\n"),
     Header = string:substr(String, 1, EndOfHeader - 1) ++ "\r\n",

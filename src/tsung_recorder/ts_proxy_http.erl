@@ -124,7 +124,12 @@ parse(State=#proxy{parse_status=body, buffer=Http},_,ServerSocket,String) ->
     ?LOGF("HTTP Body size=~p ~n",[DataSize], ?DEB),
     Size = State#proxy.body_size + DataSize,
     CLength = State#proxy.content_length,
-    ts_client_proxy:send(ServerSocket, String, ?MODULE),
+    case ServerSocket of
+        {sslsocket, _, _} ->
+            ts_client_proxy:send(ServerSocket, {body,String}, ?MODULE);
+        _ ->
+            ts_client_proxy:send(ServerSocket, String, ?MODULE)
+    end,
     Buffer=lists:append(Http#http_request.body,String),
     %% Should be checked before
     case Size of
