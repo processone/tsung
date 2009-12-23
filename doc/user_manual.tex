@@ -1845,6 +1845,18 @@ You can mixed several match tag in a single request:
 
 You can also do the action on "nomatch" instead of "match".
 
+
+If you want to skip the HTTP headers, and match only on the body, you
+can use \userinput{skip\_headers='http'}. Also, you can apply a
+function to the content before matching; for example the following
+example use both features to compute the md5sum on the body of a HTTP
+response, and compares it to a given value:
+\begin{Verbatim}
+<match do='log' when='nomatch' skip_headers='http'
+  apply_to_content='ts_digest:md5hex'>01441debe3d7cc65ba843eee1acff89d</match>
+<http url="/" method="GET" version="1.1"/>
+\end{Verbatim}
+
 \paragraph{XPath}
 
 A new way to analyze the server response has been introduced in the
