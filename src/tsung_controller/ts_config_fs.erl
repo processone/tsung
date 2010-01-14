@@ -47,7 +47,7 @@ parse_config(Element = #xmlElement{name=fs},
     Cmd  = ts_config:getAttr(atom,Element#xmlElement.attributes, cmd, write),
     Size  = ts_config:getAttr(integer,Element#xmlElement.attributes, size, 1024),
     Path  = ts_config:getAttr(string,Element#xmlElement.attributes, path),
-    Mode  = ts_config:getAttr(atom,Element#xmlElement.attributes, mode,write),
+    Mode  = ts_config:getAttr(atom,Element#xmlElement.attributes, mode, write),
     Dest  = ts_config:getAttr(string,Element#xmlElement.attributes, dest),
     Position  = ts_config:getAttr(integer,Element#xmlElement.attributes, position, undefined),
 
@@ -60,8 +60,7 @@ parse_config(Element = #xmlElement{name=fs},
                      param   = Request},
 
     ts_config:mark_prev_req(Id-1, Tab, CurS),
-    ets:insert(Tab,{{CurS#session.id, Id},Msg#ts_request{endpage=true,
-                                                         dynvar_specs=DynVar}}),
+    ets:insert(Tab,{{CurS#session.id, Id},Msg}),
     lists:foldl( fun(A,B)->ts_config:parse(A,B) end, Config#config{dynvar=[]},
                  Element#xmlElement.content);
 %% Parsing other elements

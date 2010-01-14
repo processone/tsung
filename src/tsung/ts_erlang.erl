@@ -32,9 +32,7 @@
 client(MasterPid,Server,Port,Opts)->
     receive
         {Module, Fun, Args, Size} ->
-            ?DebugF("Calling ~:~s with args ~p and size ~p~n",[Module,Fun,Args, Size]),
             Res=apply(Module,Fun,Args),
-            ?DebugF("result: ~p~n",[Res]),
             MasterPid ! {erlang,self(),{Module,Fun,Args,Res}},
             client(MasterPid,Server,Port,Opts)
     after ?TIMEOUT ->

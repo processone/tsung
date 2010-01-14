@@ -29,7 +29,7 @@
 
 -record(fs_dyndata,
         {
-          position,
+          position=0,
           iodev
          }
        ).
@@ -38,6 +38,7 @@
           command,
           mode,
           path,
+          iodev,
           size,
           dest,
           position

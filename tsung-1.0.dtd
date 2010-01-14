@@ -187,8 +187,8 @@ repeat | if )*>
 
 <!ELEMENT fs (#PCDATA) >
 <!ATTLIST fs
-    cmd      (read|write|open|stats|copy)  "write"
-    path     CDATA   #REQUIRED
+    cmd      (read|write|open|delete|stats|copy|read_chunk|write_chunk|close)  "write"
+    path     CDATA   #IMPLIED
     size     CDATA   "1024"
     position CDATA   #IMPLIED
     mode     (read | write | append ) #IMPLIED
