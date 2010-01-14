@@ -43,6 +43,8 @@
 %%          be used in tsung.xml scenarii files.
 %% Returns: new string
 %% ----------------------------------------------------------------------
+subst(Int, _DynVar) when is_integer(Int) ->
+    Int;
 subst(Atom, _DynVar) when is_atom(Atom) ->
     Atom;
 subst(Binary, DynVar) when is_binary(Binary) ->

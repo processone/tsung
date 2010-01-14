@@ -113,8 +113,8 @@ add_dynparams(#fs_dyndata{}, Param, _HostData) ->
 %% Purpose: Replace on the fly dynamic element of the request.
 %% Returns: record()
 %%----------------------------------------------------------------------
-subst(Req, DynData) ->
-    Req.
+subst(Req=#fs{path=Path,size=Size}, DynVars) ->
+    Req#fs{path=ts_search:subst(Path,DynVars),size=ts_search:subst(Size,DynVars)}.
 
 %% @spec parse(Data::client_data(), State) -> {NewState, Opts, Close}
 %% State = #state_rcv{}
