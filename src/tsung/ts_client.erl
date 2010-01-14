@@ -715,13 +715,7 @@ connect(gen_tcp,Server, Port, Opts)  -> gen_tcp:connect(Server, Port, Opts);
 connect(ssl,Server, Port,Opts)       -> ssl:connect(Server, Port, Opts);
 connect(gen_udp,_Server, _Port, Opts)-> gen_udp:open(0,Opts);
 connect(erlang,Server,Port,Opts)     ->
-    %% we are running on a slave node, so we must disable proxied IO;
-    %% to do this, get the groupe leader of a local process and use it
-    %% as the group leader of the started processes.
-    {group_leader,GLPid }=process_info(whereis(net_kernel),group_leader),
     Pid=spawn_link(ts_erlang,client,[self(),Server,Port,Opts]),
-    group_leader(GLPid,Pid),
-    ?LOGF("erlang process created with pid ~p~n" ,[Pid],?DEB),
     {ok, Pid}.
 
 
