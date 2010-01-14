@@ -687,7 +687,8 @@ reconnect(Socket, _Server, _Port, _Protocol, _IP) ->
 %%----------------------------------------------------------------------
 send(gen_tcp,Socket,Message,_,_) -> gen_tcp:send(Socket,Message);
 send(ssl,Socket,Message,_,_)     -> ssl:send(Socket,Message);
-send(gen_udp,Socket,Message,Host,Port) ->gen_udp:send(Socket,Host,Port,Message).
+send(gen_udp,Socket,Message,Host,Port) ->gen_udp:send(Socket,Host,Port,Message);
+send(erlang,Pid,Message,_,_)     -> Pid ! Message.
 
 %%----------------------------------------------------------------------
 %% Func: connect/4
@@ -696,6 +697,9 @@ send(gen_udp,Socket,Message,Host,Port) ->gen_udp:send(Socket,Host,Port,Message).
 connect(gen_tcp,Server, Port, Opts)  -> gen_tcp:connect(Server, Port, Opts);
 connect(ssl,Server, Port,Opts)       -> ssl:connect(Server, Port, Opts);
 connect(gen_udp,_Server, _Port, Opts)-> gen_udp:open(0,Opts).
+connect(erlang,Server,Port,Opts)     ->
+    Pid=spawn(ts_erlang,client,[self(),Server,Port,Opts]),
+    {ok, Pid}.
 
 
 %%----------------------------------------------------------------------
