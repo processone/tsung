@@ -86,7 +86,7 @@ init({#session{id           = SessionId,
                size         = Count,
                type         = CType}, IP, Server,Id}) ->
     ?DebugF("Init ... started with count = ~p~n",[Count]),
-    ts_utils:init_seed(),
+   ts_utils:init_seed(),
 
     ?DebugF("Get dynparams for ~p~n",[CType]),
     DynData = CType:init_dynparams(),
@@ -178,6 +178,15 @@ handle_info({NetEvent, _Socket, Data}, wait_ack, State) when NetEvent==tcp;
                                               [{active, once} | Opts]),
             TimeOut=(NewState#state_rcv.proto_opts)#proto_opts.idle_timeout,
             {next_state, wait_ack, NewState#state_rcv{socket=NewSocket}, TimeOut}
+    end;
+handle_info({erlang, _Socket, Data}, wait_ack, State) ->
+    ?DebugF("erlang function result received: size=~p ~n",[size(term_to_binary(Data))]),
+    case handle_data_msg(Data, State) of
+        {NewState=#state_rcv{ack_done=true}, _Opts} ->
+            handle_next_action(NewState#state_rcv{ack_done=false});
+        {NewState, _Opts} ->
+            TimeOut=(NewState#state_rcv.proto_opts)#proto_opts.idle_timeout,
+            {next_state, wait_ack, NewState, TimeOut}
     end;
 handle_info({udp, Socket,_IP,_InPortNo, Data}, wait_ack, State) ->
     ?DebugF("UDP packet received: size=~p ~n",[size(Data)]),
@@ -541,7 +550,7 @@ handle_next_request(Request, State) ->
                                         _ -> %page already started
                                             State#state_rcv.page_timestamp
                                     end,
-                    ts_mon:add({ sum, size_sent, size(Message)}),
+                    ts_mon:add({ sum, size_sent, size_msg(Message)}),
                     ts_mon:sendmes({State#state_rcv.dump, self(), Message}),
                     NewState = State#state_rcv{socket   = NewSocket,
                                                protocol = Protocol,
@@ -596,6 +605,12 @@ handle_next_request(Request, State) ->
             ts_mon:add({ count, error_abort_max_conn_retries }),
             {stop, normal, State}
     end.
+
+
+%% @spec size_msg(Data::term) -> integer()
+size_msg(Data) when is_binary(Data) ->
+     size(Data);
+size_msg({_Mod,_Fun,_Args,Size}) -> Size.
 
 %%----------------------------------------------------------------------
 %% Func: finish_session/1
@@ -688,7 +703,9 @@ reconnect(Socket, _Server, _Port, _Protocol, _IP) ->
 send(gen_tcp,Socket,Message,_,_) -> gen_tcp:send(Socket,Message);
 send(ssl,Socket,Message,_,_)     -> ssl:send(Socket,Message);
 send(gen_udp,Socket,Message,Host,Port) ->gen_udp:send(Socket,Host,Port,Message);
-send(erlang,Pid,Message,_,_)     -> Pid ! Message.
+send(erlang,Pid,Message,_,_) ->
+    Pid ! Message,
+    ok.
 
 %%----------------------------------------------------------------------
 %% Func: connect/4
@@ -696,9 +713,10 @@ send(erlang,Pid,Message,_,_)     -> Pid ! Message.
 %%----------------------------------------------------------------------
 connect(gen_tcp,Server, Port, Opts)  -> gen_tcp:connect(Server, Port, Opts);
 connect(ssl,Server, Port,Opts)       -> ssl:connect(Server, Port, Opts);
-connect(gen_udp,_Server, _Port, Opts)-> gen_udp:open(0,Opts).
+connect(gen_udp,_Server, _Port, Opts)-> gen_udp:open(0,Opts);
 connect(erlang,Server,Port,Opts)     ->
-    Pid=spawn(ts_erlang,client,[self(),Server,Port,Opts]),
+    Pid=spawn_link(ts_erlang,client,[self(),Server,Port,Opts]),
+    ?LOGF("erlang process created with pid ~p~n" ,[Pid],?DEB),
     {ok, Pid}.
 
 
@@ -724,7 +742,8 @@ protocol_options(gen_udp,#proto_opts{udp_rcv_size=Rcv, udp_snd_size=Snd}) ->
      {active, once},
      {recbuf, Rcv},
      {sndbuf, Snd}
-    ].
+    ];
+protocol_options(erlang,_) -> [].
 
 
 
@@ -762,7 +781,7 @@ handle_data_msg(Data,State=#state_rcv{request=Req,clienttype=Type,maxcount=MaxCo
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
 
     {NewState, Opts, Close} = Type:parse(Data, State),
-    NewBuffer=set_new_buffer(Req, State#state_rcv.buffer, Data),
+    NewBuffer=set_new_buffer(Req, NewState#state_rcv.buffer, Data),
 
     ?DebugF("Dyndata is now ~p~n",[NewState#state_rcv.dyndata]),
     case NewState#state_rcv.ack_done of
@@ -854,9 +873,11 @@ set_new_buffer(#ts_request{match=[], dynvar_specs=[]},_,_) ->
     << >>;
 set_new_buffer(_, Buffer,closed) ->
     Buffer;
-set_new_buffer(_, OldBuffer, Data) ->
+set_new_buffer(_, OldBuffer, Data) when is_binary(OldBuffer)->
     ?Debug("Bufferize response~n"),
-    << OldBuffer/binary, Data/binary >>.
+    << OldBuffer/binary, Data/binary >>;
+set_new_buffer(_, _, Data) -> % don't need buffer for non binary responses (erlang fun case)
+    Data.
 
 %%----------------------------------------------------------------------
 %% Func: set_connected_status/1

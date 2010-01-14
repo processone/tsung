@@ -285,19 +285,30 @@ handle_cast({sendmsg, Who, When, What}, State = #state{type=light,dumpfile=Log})
     io:format(Log,"Send:~w:~w:~-44s~n",[When,Who, binary_to_list(What)]),
     {noreply, State};
 
-handle_cast({sendmsg, Who, When, What}, State=#state{dumpfile=Log}) ->
+handle_cast({sendmsg, Who, When, What}, State=#state{dumpfile=Log}) when is_binary(What)->
     io:format(Log,"Send:~w:~w:~s~n",[When,Who,binary_to_list(What)]),
+    {noreply, State};
+
+handle_cast({sendmsg, Who, When, What}, State=#state{dumpfile=Log}) ->
+    io:format(Log,"Send:~w:~w:~p~n",[When,Who,What]),
     {noreply, State};
 
 handle_cast({rcvmsg, _, _, _}, State = #state{type=none}) ->
     {noreply, State};
 
-handle_cast({rcvmsg, Who, When, What}, State = #state{type=light, dumpfile=Log}) ->
+handle_cast({rcvmsg, Who, When, What}, State = #state{type=light, dumpfile=Log}) when is_binary(What)->
     io:format(Log,"Recv:~w:~w:~-44s~n",[When,Who, binary_to_list(What)]),
+    {noreply, State};
+handle_cast({rcvmsg, Who, When, What}, State = #state{type=light, dumpfile=Log}) ->
+    io:format(Log,"Recv:~w:~w:~-44p~n",[When,Who, What]),
+    {noreply, State};
+
+handle_cast({rcvmsg, Who, When, What}, State=#state{dumpfile=Log}) when is_binary(What)->
+    io:format(Log, "Recv:~w:~w:~s~n",[When,Who,binary_to_list(What)]),
     {noreply, State};
 
 handle_cast({rcvmsg, Who, When, What}, State=#state{dumpfile=Log}) ->
-    io:format(Log, "Recv:~w:~w:~s~n",[When,Who,binary_to_list(What)]),
+    io:format(Log, "Recv:~w:~w:~p~n",[When,Who,What]),
     {noreply, State};
 
 handle_cast({stop}, State = #state{client = 0}) ->

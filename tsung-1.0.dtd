@@ -20,7 +20,7 @@
 <!ATTLIST server
      host NMTOKEN #REQUIRED
      port NMTOKEN #REQUIRED
-     type (ssl | tcp | udp) #REQUIRED>
+     type (ssl | tcp | udp | erlang) #REQUIRED>
 
 <!ELEMENT clients (client+)>
 <!ELEMENT client (ip*) >
@@ -97,9 +97,9 @@ repeat | if )*>
     bidi         CDATA #IMPLIED
     persistent   (true | false) #IMPLIED
     probability   NMTOKEN #REQUIRED
-    type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql ) #REQUIRED>
+    type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs ) #REQUIRED>
 
-<!ELEMENT request ( match*, dyn_variable*, ( http | jabber | raw | pgsql | ldap | mysql ) )>
+<!ELEMENT request ( match*, dyn_variable*, ( http | jabber | raw | pgsql | ldap | mysql |fs ) )>
 <!ATTLIST request
     subst (true|false) "false"
     >
@@ -184,6 +184,16 @@ repeat | if )*>
     room        CDATA #IMPLIED
     node        CDATA #IMPLIED
     node_type   CDATA #IMPLIED >
+
+<!ELEMENT fs (#PCDATA) >
+<!ATTLIST fs
+    cmd      (read|write|open|stats|copy)  "write"
+    path     CDATA   #REQUIRED
+    size     CDATA   "1024"
+    position CDATA   #IMPLIED
+    mode     (read | write | append ) #IMPLIED
+    dest     CDATA   #IMPLIED
+>
 
 <!ELEMENT pgsql (#PCDATA) >
 <!ATTLIST pgsql

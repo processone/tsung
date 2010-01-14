@@ -102,7 +102,8 @@ parse(Element = #xmlElement{name=server, attributes=Attrs}, Conf=#config{servers
     Type = case getAttr(Attrs, type) of
                "ssl" -> ssl;
                "tcp" -> gen_tcp;
-               "udp" -> gen_udp
+               "udp" -> gen_udp;
+               "erlang" -> erlang
            end,
 
     lists:foldl(fun parse/2,

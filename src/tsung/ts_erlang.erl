@@ -23,14 +23,19 @@
 -vc('$Id: ts_erlang.erl,v 0.0 2009/08/20 16:31:58 nniclaus Exp $ ').
 -author('nniclaus@sophia.inria.fr').
 
+-define(TIMEOUT,36000000). % 1 hour
 
-export([client/4]).
+-include("ts_profile.hrl").
+
+-export([client/4]).
 
 client(MasterPid,Server,Port,Opts)->
     receive
-        {msg, Module, Fun, Args} ->
+        {Module, Fun, Args, Size} ->
+            ?DebugF("Calling ~:~s with args ~p and size ~p~n",[Module,Fun,Args, Size]),
             Res=apply(Module,Fun,Args),
-            MasterPid ! {erlang,self(),Res},
+            ?DebugF("result: ~p~n",[Res]),
+            MasterPid ! {erlang,self(),{Module,Fun,Args,Res}},
             client(MasterPid,Server,Port,Opts)
     after ?TIMEOUT ->
             MasterPid ! timeout
