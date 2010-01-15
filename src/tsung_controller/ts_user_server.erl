@@ -30,6 +30,7 @@
 
 %%-compile(export_all).
 -export([reset/1,
+         init_seed/1,
          get_unique_id/1,
          get_really_unique_id/1,
          get_id/0,
@@ -76,14 +77,13 @@ get_id()->
 
 %% return a unique id. deprecated since tsung_userid dyn var exists
 get_unique_id({_Pid, DynVar})->
-    case ts_dynvars:lookup(tsung_userid,DynVar) of 
+    case ts_dynvars:lookup(tsung_userid,DynVar) of
         {ok, Val} -> ts_utils:term_to_list(Val);
-	false -> 
+        false ->
             ?LOG("tsung_userid not found ! Can't create unique id~n", ?ERR),
-    	    "0"
+            "0"
     end.
-            
-    
+
 %% return a really unique id, one that is unique across runs.
 get_really_unique_id({Pid, DynVars}) ->
     Sec = ts_utils:now_sec(),
@@ -125,6 +125,9 @@ remove_from_online(Id) when is_integer(Id)->
 stop()->
     gen_server:call({global, ?MODULE}, stop).
 
+init_seed(A) ->
+    gen_server:cast({global, ?MODULE}, {init_seed, A}).
+
 %%%----------------------------------------------------------------------
 %%% Callback functions from gen_server
 %%%----------------------------------------------------------------------
@@ -137,7 +140,6 @@ stop()->
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
 init(_Args) ->
-    ts_utils:init_seed(),
     ?LOG("ok, started unconfigured~n", ?INFO),
     {ok, #state{}}.
 
@@ -231,6 +233,11 @@ handle_call(stop, _From, State)->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
+%%Get one id in the full list of potential users
+handle_cast({init_seed, Val}, State) ->
+    ts_utils:init_seed(Val),
+    {noreply, State};
+
 handle_cast({remove_connected, Id}, State=#state{online=Online,offline=Offline,connected=Connected}) ->
     %% session config may not include presence:final, so we need to check/delete from Online to be safe
     {noreply, LastOnline} = ets_delete_online(Online,Id,State),

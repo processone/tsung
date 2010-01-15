@@ -59,7 +59,8 @@
           file_server = [],  % filenames for file_server
           load_loop,         % loop phases if > 0
           hibernate = 10000, % hibernate timeout (millisec) 10sec by default
-          proto_opts         % tcp/udp buffer sizes
+          proto_opts,        % tcp/udp buffer sizes
+          seed = now         % random seed: (default= current time)
          }).
 
 

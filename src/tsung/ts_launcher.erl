@@ -77,14 +77,14 @@ start() ->
 %% Function: launch/1
 %%--------------------------------------------------------------------
 %% Start clients with given interarrival (can be empty list)
-launch({Node, Arrivals}) ->
+launch({Node, Arrivals, Seed}) ->
     ?LOGF("starting on node ~p~n",[[Node]], ?INFO),
-    gen_fsm:send_event({?MODULE, Node}, {launch, Arrivals});
+    gen_fsm:send_event({?MODULE, Node}, {launch, Arrivals, Seed});
 
 % same erlang beam case
-launch({Node, Host, Arrivals}) ->
+launch({Node, Host, Arrivals, Seed}) ->
     ?LOGF("starting on node ~p~n",[[Node]], ?INFO),
-    gen_fsm:send_event({?MODULE, Node}, {launch, Arrivals, atom_to_list(Host)}).
+    gen_fsm:send_event({?MODULE, Node}, {launch, Arrivals, atom_to_list(Host), Seed}).
 
 %% Start clients with given interarrival (can be empty list)
 set_static_users({Node,Value}) ->
@@ -104,7 +104,6 @@ set_static_users({Node,Value}) ->
 %%          {stop, StopReason}
 %%----------------------------------------------------------------------
 init([]) ->
-    ts_utils:init_seed(),
     {ok, MyHostName} = ts_utils:node_to_hostname(node()),
     ts_launcher_mgr:alive(dynamic),
     {ok, wait, #state{myhostname=MyHostName}}.
@@ -116,12 +115,13 @@ init([]) ->
 %%          {stop, Reason, NewStateData}
 %%----------------------------------------------------------------------
 
-wait({launch, Args, Hostname}, State) ->
-    wait({launch, Args}, State#state{myhostname = Hostname});
+wait({launch, Args, Hostname, Seed}, State) ->
+    wait({launch, Args, Seed}, State#state{myhostname = Hostname});
 
 %% starting without configuration. We must ask the config server for
 %% the configuration of this launcher.
-wait({launch, []}, State) ->
+wait({launch, [], Seed}, State) ->
+    ts_utils:init_seed(Seed),
     MyHostName = State#state.myhostname,
     ?LOGF("Launch msg receive (~p)~n",[MyHostName], ?NOTICE),
     check_registered(),
@@ -141,9 +141,10 @@ wait({launch, []}, State) ->
 
 %% start with a already known configuration. This case occurs when a
 %% beam is started by a launcher (maxclients reached)
-wait({launch, {[{Intensity, Users}| Rest], Max}}, State) ->
+wait({launch, {[{Intensity, Users}| Rest], Max}, Seed}, State) ->
     ?LOGF("Starting with ~p users to do in the current phase (max is ~p)~n",
           [Users, Max],?DEB),
+    ts_utils:init_seed(Seed),
     Duration = Users/Intensity,
     ?LOGF("Expected duration of phase: ~p sec ~n",[Duration/1000], ?NOTICE),
     check_registered(),

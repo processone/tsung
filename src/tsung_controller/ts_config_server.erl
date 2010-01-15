@@ -48,7 +48,7 @@
 %%--------------------------------------------------------------------
 %% External exports
 -export([start_link/1, read_config/1, get_req/2, get_next_session/1,
-         get_client_config/1, newbeam/1, newbeam/2, start_slave/4,
+         get_client_config/1, newbeam/1, newbeam/2, start_slave/5,
          get_monitor_hosts/0, encode_filename/1, decode_filename/1,
          endlaunching/1, status/0, start_file_server/1, get_user_agents/0,
          get_client_config/2, get_user_param/1 ]).
@@ -172,7 +172,6 @@ endlaunching(Node) ->
 %%          {stop, Reason}
 %%--------------------------------------------------------------------
 init([LogDir]) ->
-    ts_utils:init_seed(),
     process_flag(trap_exit,true),
     {ok, MyHostName} = ts_utils:node_to_hostname(node()),
     ?LOGF("Config server started, logdir is ~p~n ",[LogDir],?NOTICE),
@@ -193,6 +192,8 @@ handle_call({read_config, ConfigFile}, _From, State=#state{logdir=LogDir}) ->
         {ok, Config=#config{curid=LastReqId,sessions=[LastSess| Sessions]}} ->
             case check_config(Config) of
                 ok ->
+                    ts_utils:init_seed(Config#config.seed),
+                    ts_user_server:init_seed(Config#config.seed),
                     application:set_env(tsung_controller, clients, Config#config.clients),
                     application:set_env(tsung_controller, dump, Config#config.dump),
                     application:set_env(tsung_controller, stats_backend, Config#config.stats_backend),
@@ -349,7 +350,7 @@ handle_cast({newbeam, Host, []}, State=#state{last_beam_id = NodeId,
             ?LOG("Application started, activate launcher, ~n", ?INFO),
             application:set_env(tsung, debug_level, Config#config.loglevel),
             ts_launcher_static:launch({node(), Host, []}),
-            ts_launcher:launch({node(), Host, []}),
+            ts_launcher:launch({node(), Host, [], Config#config.seed}),
             {noreply, State#state{last_beam_id = NodeId +1}};
         {error, Reason} ->
             ?LOGF("Can't start launcher application ~p (reason: ~p) ! Aborting!~n",[Host, Reason],?EMERG),
@@ -387,7 +388,8 @@ handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
         " -tsung log_file ", LogDir
         ]),
     ?LOGF("starting newbeam on host ~p from ~p with Args ~p~n", [Host, State#state.hostname, Args], ?INFO),
-    spawn_link(?MODULE, start_slave, [Host, Name, Args, Arrivals]),
+    Seed=(State#state.config)#config.seed,
+    spawn_link(?MODULE, start_slave, [Host, Name, Args, Arrivals, Seed]),
     {noreply, State#state{last_beam_id = NodeId +1}};
 
 handle_cast({end_launching, _Node}, State=#state{ending_beams=Beams}) ->
@@ -640,7 +642,7 @@ sort_static(Config=#config{static_users=S})->
 %%
 %% @doc start a remote beam
 %%
-start_slave(Host, Name, Args, Arrivals)->
+start_slave(Host, Name, Args, Arrivals, Seed)->
     case slave:start(Host, Name, Args) of
         {ok, Node} ->
             ?LOGF("started newbeam on node ~p ~n", [Node], ?NOTICE),
@@ -650,7 +652,7 @@ start_slave(Host, Name, Args, Arrivals)->
                 [] -> ts_launcher_static:launch({Node,[]});
                 _  -> ok  %no static launcher needed in this case
             end,
-            ts_launcher:launch({Node, Arrivals});
+            ts_launcher:launch({Node, Arrivals, Seed});
         {error, Reason} ->
             ?LOGF("Can't start newbeam on host ~p (reason: ~p) ! Aborting!~n",[Host, Reason],?EMERG),
             exit({slave_failure, Reason})
