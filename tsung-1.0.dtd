@@ -91,13 +91,23 @@
 
 <!ELEMENT sessions (session+)>
 <!ELEMENT session ( request | thinktime | transaction | setdynvars | for |
-repeat | if )*>
+repeat | if | change_type )*>
 <!ATTLIST session
     name         CDATA #REQUIRED
     bidi         CDATA #IMPLIED
     persistent   (true | false) #IMPLIED
     probability   NMTOKEN #REQUIRED
     type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs ) #REQUIRED>
+
+<!ELEMENT change_type EMPTY>
+<!ATTLIST change_type
+     new_type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs ) #REQUIRED
+     host NMTOKEN #REQUIRED
+     port NMTOKEN #REQUIRED
+     server_type NMTOKEN #REQUIRED
+     store  ( true | false ) "false"
+     restore ( true | false ) "false"
+    >
 
 <!ELEMENT request ( match*, dyn_variable*, ( http | jabber | raw | pgsql | ldap | mysql |fs ) )>
 <!ATTLIST request
@@ -259,7 +269,7 @@ repeat | if )*>
     name CDATA #REQUIRED>
 
 <!ELEMENT for (request | thinktime | transaction | setdynvars | for |
-          if | repeat)+>
+          if | repeat | change_type )+>
 <!ATTLIST for
     var      CDATA      #REQUIRED
     from     NMTOKEN    #REQUIRED
@@ -267,13 +277,13 @@ repeat | if )*>
     incr     NMTOKEN   "1">
 
 <!ELEMENT repeat (request | thinktime | transaction | setdynvars | for | repeat
-| while | if | until)+>
+| while | if | until | change_type)+>
 <!ATTLIST repeat
     name      NMTOKEN    #REQUIRED
     max_repeat  NMTOKEN   "20">
 
 <!ELEMENT if (request | thinktime | transaction | setdynvars | for | repeat
-| while | if | until)+>
+| while | if | until | change_type)+>
 <!ATTLIST if
     var       CDATA #REQUIRED
     eq        CDATA #IMPLIED

@@ -453,6 +453,24 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
           [NewDynVar,CurS#session.id],?INFO),
     Conf#config{ dynvar= NewDynVar };
 
+parse(Element = #xmlElement{name=change_type, attributes=Attrs},
+      Conf = #config{sessions=[CurS|Other], curid=Id,session_tab = Tab}) ->
+
+    CType   = getAttr(atom, Attrs, new_type),
+    Server  = getAttr(string, Attrs, host),
+    Port    = getAttr(integer, Attrs, port),
+    Store   = getAttr(atom, Attrs, store, false),
+    Restore = getAttr(atom, Attrs, restore, false),
+    PType = case getAttr(Attrs, server_type) of
+               "ssl" -> ssl;
+               "tcp" -> gen_tcp;
+               "udp" -> gen_udp;
+               "erlang" -> erlang
+           end,
+    ets:insert(Tab,{{CurS#session.id, Id+1}, {change_type, CType, Server, Port, PType, Store, Restore}}),
+    ?LOGF("Parse change_type (~p) ~p:~p:~p:~p ~n",[CType, Server,Port,PType,Id],?NOTICE),
+    Conf#config{curid=Id+1, sessions=[CurS#session{type=CType}|Other] };
+
 %%% Parsing the request element
 parse(Element = #xmlElement{name=request, attributes=Attrs},
       Conf = #config{sessions=[CurSess|_], curid=Id}) ->

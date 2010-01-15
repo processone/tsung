@@ -361,6 +361,26 @@ handle_next_action(State) ->
             ctrl_struct(CtrlData,State,Count);
         Request=#ts_request{} ->
             handle_next_request(Request, State);
+        {change_type, NewCType, Server, Port, PType, Store, Restore} ->
+            ?DebugF("Change client type, use: ~p ~p~n",[NewCType, [Server , Port, PType, Store, Restore]]),
+            DynData=State#state_rcv.dyndata,
+            case Store of
+                true -> % keep state
+                    put({state, State#state_rcv.clienttype} , {State#state_rcv.socket,State#state_rcv.session,DynData#dyndata.proto});
+                false -> % don't keep state of old type, close connection
+                    ts_utils:close_socket(State#state_rcv.protocol, State#state_rcv.socket),
+                    set_connected_status(false)
+            end,
+            {Socket,Session,ProtoDynData} = case {Restore, get({state,NewCType})} of
+                     {true,{OldSocket, OldSession,OldProtoDynData}} -> % restore is true and we have something stored
+                         {OldSocket, OldSession,OldProtoDynData};
+                     {_,_} -> % nothing to restore, or no restore asked, set new session
+                         DD=NewCType:init_dynparams(),
+                         {none,NewCType:new_session(),DD#dyndata.proto}
+                 end,
+            NewDynData=DynData#dyndata{proto=ProtoDynData},
+            NewState=State#state_rcv{session=Session,socket=Socket,count=Count,clienttype=NewCType,protocol=PType,port=Port,host=Server,dyndata=NewDynData},
+            handle_next_action(NewState);
         Other ->
             ?LOGF("Error: set profile return value is ~p (count=~p)~n",[Other,Count],?ERR),
             {stop, set_profile_error, State}
