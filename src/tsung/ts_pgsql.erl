@@ -207,6 +207,7 @@ process_head(<<Code:8/integer, Size:4/integer-unit:8, Tail/binary>>) ->
         true ->
             << Packet:RealSize/binary, Data/binary >> = Tail,
             {ok, Pair} = pgsql_proto:decode_packet(Code, Packet),
+            ?DebugF("PGSQL: data as string: ~p~n",[pgsql_util:to_string(Packet)]),
             ?LOGF("PGSQL: Pair=~p ~n",[Pair],?DEB),
             {ok, Pair, Data };
         false -> more

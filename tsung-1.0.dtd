@@ -160,6 +160,7 @@ repeat | if | change_type )*>
 <!ATTLIST dyn_variable
     name   CDATA #REQUIRED
     xpath  CDATA #IMPLIED
+    re     CDATA #IMPLIED
     regexp CDATA #IMPLIED >
 
 <!ELEMENT http_header EMPTY >

@@ -34,6 +34,11 @@ read_config_jabber_muc_test() ->
     ts_user_server:start([]),
     ?assertMatch({ok, Config}, ts_config:read("./examples/jabber_muc.xml",".")).
 
+read_config_xmpp_muc_test() ->
+    myset_env(),
+    ts_user_server:start([]),
+    ?assertMatch({ok, Config}, ts_config:read("./src/test/xmpp-muc.xml",".")).
+
 config_get_session_test() ->
     myset_env(),
     ts_user_server:start([]),

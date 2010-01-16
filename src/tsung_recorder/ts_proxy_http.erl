@@ -169,7 +169,7 @@ relative_url(true,String,_RequestURI,_RelURL)->
 relative_url(false,String,RequestURI,RelURL)->
     [FullURL_noargs|_] = string:tokens(RequestURI,"?"),
     [RelURL_noargs|_]  = string:tokens(RelURL,"?"),
-    {ok,RealString,_Count} = regexp:sub(String,FullURL_noargs,RelURL_noargs),
+    RealString = re:replace(String,FullURL_noargs,RelURL_noargs,[{return,list}]),
     {ok, RealString}.
 
 %%--------------------------------------------------------------------
@@ -346,7 +346,7 @@ record_header(Fd, Headers,HeaderName, Msg, Fun)->
     end.
 
 append_to_filename(Filename, From, To) ->
-    case regexp:gsub(Filename,From,To ) of
+    case re:gsub(Filename,From,To ) of
         {ok, RealName, _ } -> RealName;
         _ ->  Filename ++"." ++ To
     end.

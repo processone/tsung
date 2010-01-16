@@ -95,6 +95,16 @@ parse_dyn_var_many_test() ->
     erlang:display([?MANY," regexp:", Time]),
     ?assertMatch(Res, Out).
 
+parse_dyn_var_many_re_test() ->
+    myset_env(),
+    {Data, Res}= setdata(?MANY),
+    RegexpFun = fun(A) -> {re,list_to_atom(A), ?DEF_RE_DYNVAR_BEGIN++ A ++?DEF_RE_DYNVAR_END} end,%'
+    B=lists:map(fun(A)->"random"++integer_to_list(A) end, lists:seq(1,?MANY)),
+    C=lists:map(RegexpFun, B),
+    {Time, Out}=timer:tc( ts_search,parse_dynvar,[C,list_to_binary(Data)]),
+    erlang:display([?MANY," re:", Time]),
+    ?assertMatch(Res, Out).
+
 parse_dyn_var_many_xpath_test() ->
     myset_env(),
     {Data, Res}= setdata(?MANY),
@@ -121,6 +131,16 @@ parse_dyn_var_many_big_test() ->
     C=lists:map(RegexpFun, B),
     {Time, Out}=timer:tc( ts_search,parse_dynvar,[C,list_to_binary(Data)]),
     erlang:display([?MANY," regexp_big:", Time]),
+    ?assertMatch(Res, Out).
+
+parse_dyn_var_many_big_re_test() ->
+    myset_env(),
+    {Data, Res}= setdata_big(?MANY),
+    RegexpFun = fun(A) -> {re,list_to_atom(A), ?DEF_RE_DYNVAR_BEGIN++ A ++?DEF_RE_DYNVAR_END} end,%'
+    B=lists:map(fun(A)->"random"++integer_to_list(A) end, lists:seq(1,?MANY)),
+    C=lists:map(RegexpFun, B),
+    {Time, Out}=timer:tc( ts_search,parse_dynvar,[C,list_to_binary(Data)]),
+    erlang:display([?MANY," re_big:", Time]),
     ?assertMatch(Res, Out).
 
 parse_dyn_var_many_big_xpath_test() ->
@@ -169,6 +189,14 @@ parse_subst1_test() ->
     StrName="jsf_tree_64",
     Regexp = ?DEF_REGEXP_DYNVAR_BEGIN++ StrName ++?DEF_REGEXP_DYNVAR_END,%'
     [{Name,Value}] = ts_search:parse_dynvar([{regexp, 'jsf_tree_64', Regexp }],list_to_binary(Data)),
+    ?assertMatch("H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA", ts_search:subst("%%_jsf_tree_64%%",[{Name,Value}])).
+
+parse_subst1_re_test() ->
+    myset_env(),
+    Data=?FORMDATA,
+    StrName="jsf_tree_64",
+    Regexp = ?DEF_RE_DYNVAR_BEGIN++ StrName ++?DEF_RE_DYNVAR_END,%'
+    [{Name,Value}] = ts_search:parse_dynvar([{re, 'jsf_tree_64', Regexp }],list_to_binary(Data)),
     ?assertMatch("H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA", ts_search:subst("%%_jsf_tree_64%%",[{Name,Value}])).
 
 parse_extract_fun1_test() ->

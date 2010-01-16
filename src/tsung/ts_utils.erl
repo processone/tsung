@@ -421,8 +421,8 @@ make_dir_rec(Path, [Parent|Childs]) ->
 is_ip(String) when is_list(String) ->
     EightBit="(2[0-4][0-9]|25[0-5]|1[0-9][0-9]|[0-9][0-9]|[0-9])",
     RegExp = lists:append(["^",EightBit,"\.",EightBit,"\.",EightBit,"\.",EightBit,"$"]), %"
-    case regexp:first_match(String, RegExp) of
-       {match,_,_} -> true;
+    case re:run(String, RegExp) of
+       {match,_} -> true;
        _ -> false
     end;
 is_ip(_) -> false.
@@ -435,63 +435,76 @@ to_https({url, "http://ssl-"++Rest})-> "https://" ++ Rest;
 to_https({url, URL})-> URL;
 to_https({request, {body,Data}}) when is_list(Data) ->
     %% body request, no headers
-    {ok,RealBody,_Count} = regexp:gsub(Data,"http://ssl-","https://"),
-    {ok, RealBody};
+    re:replace(Data,"http://ssl-","https://",[global]);
 to_https({request, String}) when is_list(String) ->
     EndOfHeader = string:str(String, "\r\n\r\n"),
     Header = string:substr(String, 1, EndOfHeader - 1) ++ "\r\n",
     Body = string:substr(String, EndOfHeader + 4),
-    {ok,TmpHeader,_} = regexp:gsub(Header,"http://ssl-","https://"),
-    {ok,TmpHeader2,_} = regexp:gsub(TmpHeader,"Accept-Encoding: [0-9,a-zA-Z_]+\r\n",""),
-    {ok,RealHeader,_} = regexp:gsub(TmpHeader2,"Host: ssl-","Host: "),
-    {ok,RealBody,Count} = regexp:gsub(Body,"http://ssl-","https://"),
-    RealString = RealHeader ++ "\r\n" ++ RealBody,
+    ReOpts=[global],
+    TmpHeader = re:replace(Header,"http://ssl-","https://",ReOpts),
+    TmpHeader2 = re:replace(TmpHeader,"Accept-Encoding: [0-9,a-zA-Z_]+\r\n","",ReOpts),
+    RealHeader = re:replace(TmpHeader2,"Host: ssl-","Host: ",ReOpts),
+    RealBody = re:replace(Body,"http://ssl-","https://",ReOpts),
+    RealString = [RealHeader,  "\r\n" , RealBody],
+    Count=(length(Body)-iolist_size(RealBody)) div 3, % 3 = length('http://ssl-') - length(https://)
     update_content_length(RealString,-Count).
 
+
+%% an iolist can be an improper list, so length fails. but we want the length anyway!
+%% first element should be a binary
+length_iolist([B|Tail]) when is_binary(B)->
+    length_iolist(Tail,1);
+length_iolist([]) ->0;
+length_iolist(_)  ->1. % string -> one element
+length_iolist(Tail,Acc) when not is_list(Tail) ->
+    Acc+1;
+length_iolist([_A|Tail],Acc)->
+    length_iolist(Tail,Acc+1);
+length_iolist([],Acc)-> Acc.
+
+
+%% @spec from_https(string()) -> {ok, String::string() | Data::iodata}
 from_https(String) when is_list(String)->
+    ReOpts=[{return,list},global],
     %% remove Secure from Set-Cookie (TSUN-120)
-    {match, Matches} = regexp:matches(String, "Set-Cookie: [^\r]*\r\n"),
-    Fun = fun({0,Length}, {StrAcc, Pos}) ->
-                  {StrAcc ++ string:substr(String, Pos), -1};
-             ({Start,Length}, {StrAcc, Pos}) ->
-                  SetCookie = string:substr(String, Start, Length),
-                  {ok, WithoutSecure, _} = regexp:gsub(SetCookie, "; *Secure", ""),
-                  {StrAcc ++ string:substr(String, Pos, Start - Pos) ++ WithoutSecure, Start + Length}
-          end,
-    {TmpString, _} = lists:foldl(Fun, {"", 1}, Matches ++ [{0, 0}]),
+    TmpData = re:replace(String,"(.*set-cookie:.*); *secure(.*$.*$)","\\1\\2",[{newline,crlf},multiline,global,caseless]),
+
     %% if location is defined, don't count it (not included in Content-Length)
-    Location = case regexp:first_match(TmpString,"Location: https") of
-                   {match,_,_} -> -1;
-                   _           ->  0
+    Location = case re:run(TmpData,"Location: https",[{capture,none},caseless]) of
+                   match   -> -1;
+                   _       ->  0
                end,
-    {ok,NewString,RepCount} = regexp:gsub(TmpString,"https://","http://ssl-"),
-    case {RepCount,Location} of
-        {0,_}  -> {ok, NewString};
-        {1,-1} -> {ok, NewString};
+    C = case  re:run(TmpData,"https://",[global]) of
+        {match,List} -> length(List);
+        nomatch -> 0
+    end,
+    IoData = re:replace(TmpData,"https://","http://ssl-",[global]),
+    case {C,Location} of
+        {0,_}  -> {ok, IoData};
+        {1,-1} -> {ok, IoData};
         {Count,Location}->
             ?LOGF("substitute https: ~p times~n",[Count],?INFO),
-            update_content_length(NewString,Count+Location)
+            update_content_length(IoData,Count+Location)
     end.
 
 %% @spec update_content_length(string(), Count::integer()) -> {ok, String::string()}
 %% @doc since the length of URL is changed (https:// to http://ssl- )
 %% we must recalculate Content-Length if it is defined.
-update_content_length(String,0)     -> {ok, String } ;
-update_content_length(String,Count) ->
-    case gregexp:groups(String,"[cC]ontent-[Ll]ength: \\([0-9]+\\)") of
+update_content_length(Data,0)     -> {ok, Data } ;
+update_content_length(Data,Count) ->
+    case re:run(Data,"content-length: (\\d+)",[caseless,{capture,all_but_first,list}]) of
         {match,[CType]} ->
             %% FIXME: What if the response is split into several packets ?
             %% We add|del 3 chars in the URL (4 "ssl-" minus one (https -> http))
             NewCType = integer_to_list(list_to_integer(CType) + (Count)*3),
             ?LOGF("We must update content-length: was ~p, must be ~p~n",
                   [CType, NewCType],?INFO),
-            {ok,NewString,_} = regexp:sub(String,
-                                           "[Cc]ontent-[Ll]ength: [0-9]+",
-                                           "Content-Length: " ++ NewCType),
-            {ok, NewString};
+            NewData = re:replace(Data, "content-length: (\\d+)",
+                                       "Content-Length: " ++ NewCType,[{return,list},caseless]),
+            {ok, NewData};
         nomatch ->
             ?LOG("no content-length found~n", ?DEB),
-            {ok, String}
+            {ok, Data}
     end.
 
 %% A Perl-style join --- concatenates all strings in Strings,
@@ -508,8 +521,7 @@ join2(Sep, [First | List]) when is_list(First)->
 
 %% split a string  (at first occurence of char)
 split(String,Chr) ->
-    {ok, List} = regexp:split(String,Chr),
-    List.
+    re:split(String,Chr,[{return,list}]).
 
 %% split a string in 2 (at first occurence of char)
 split2(String,Chr) ->

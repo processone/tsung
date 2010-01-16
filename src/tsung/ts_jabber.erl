@@ -88,10 +88,10 @@ parse(_Data, State) ->
 %%----------------------------------------------------------------------
 parse_bidi(Data, State) ->
     RcvdXml = binary_to_list(Data),
-    case regexp:first_match(RcvdXml,"<presence[^>]*subscribe[\"\']") of
-        {match,_,_} ->
+    case re:run(RcvdXml,"<presence[^>]*subscribe[\"']") of
+        {match,_} ->
             ?LOGF("RECEIVED : ~p~n",[RcvdXml],?DEB),
-            {match,SubMatches} = regexp:matches(RcvdXml,"<presence[^>]*subscribe[\"\'][^>]*>"),
+            {match,SubMatches} = regexp:matches(RcvdXml,"<presence[^>]*subscribe[\"\'][^>]*>"), %%FIXME regexp
             bidi_resp(subscribed,RcvdXml,SubMatches,State);
         _Else ->
             {nodata,State}
@@ -112,9 +112,9 @@ bidi_resp(subscribed,RcvdXml,SubMatches,State) ->
     JoinedXml=lists:foldl(fun(X,Foo) ->
         {Start,Len}=X,
         SubStr = string:substr(RcvdXml,Start,Len),
-        case regexp:first_match(SubStr,"from=[\"\'][^\s]*[\"\'][\s\/\>]") of
-            {match,Start1,Length1} ->
-                MyId=string:substr(SubStr,Start1 +6, Length1 -8),
+        case re:run(SubStr,"from=[\"']([^\s]*)[\"'][\s\/\>]",[{capture,[1],list}]) of
+            {match,[MyId]} ->
+                %% MyId=string:substr(SubStr,Start1 +6, Length1 -8),
                 ?LOGF("Subscription request from : ~p~n",[MyId],?DEB),
                 MyXml = ["<presence to='", MyId, "' type='subscribed'/>"],
                 lists:append([Foo],[MyXml]);

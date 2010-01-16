@@ -156,14 +156,14 @@ match([Match=#match{regexp=RawRegExp,subst=Subst, do=Action, 'when'=When}
         true -> subst(RawRegExp, DynVars);
         _    -> RawRegExp
     end,
-    case regexp:first_match(String, RegExp) of
-        {When,_, _} ->
+    case re:run(String, RegExp) of
+        {When,_} ->
             ?LOGF("Ok Match (regexp=~p) do=~p~n",[RegExp,Action], ?INFO),
             setcount(Match, Counts, [{count, match}| Stats]);
         When -> % nomatch
             ?LOGF("Bad Match (regexp=~p) do=~p~n",[RegExp, Action], ?INFO),
             setcount(Match, Counts, [{count, nomatch} | Stats]);
-        {match,_, _} -> % match but when=nomatch
+        {match,_} -> % match but when=nomatch
             ?LOGF("Ok Match (regexp=~p)~n",[RegExp], ?INFO),
             case Action of
                 loop    -> put(loop_count, 0);
@@ -256,6 +256,21 @@ parse_dynvar(DynVarSpecs, _Data)  ->
 %            ListData and TreeData are lazy computed when needed by
 %            regexp or xpath variables respectively
 parse_dynvar([],_Binary , _String,_Tree, DynVars) -> DynVars;
+
+
+
+parse_dynvar(D=[{re,VarName, RegExp}| DynVarsSpecs],Binary,undefined,Tree,DynVars) ->
+    parse_dynvar(D,Binary,Binary,Tree,DynVars);
+parse_dynvar([{re,VarName, RegExp}| DynVarsSpecs],Binary,Data,Tree,DynVars) ->
+    case re:run(Data, RegExp,[{capture,[2],list}]) of
+        {match,[Value]} ->
+            ?LOGF("DynVar: Match (~p=~p) ~n",[VarName, Value], ?DEB),
+            parse_dynvar(DynVarsSpecs, Binary,Data,Tree,
+                            ts_dynvars:set(VarName,Value,DynVars));
+        nomatch ->
+            ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName], ?WARN),
+            parse_dynvar(DynVarsSpecs, Binary,Data,Tree, ts_dynvars:set(VarName,"",DynVars))
+    end;
 
 parse_dynvar(D=[{regexp,_VarName, _RegExp}| _DynVarsSpecs],
                 Binary,undefined,Tree, DynVars) ->

@@ -69,4 +69,6 @@ bidi_nok_test()->
     ?assertMatch({nodata,State}, ts_jabber:parse_bidi(Req,State)).
 
 myset_env()->
-    application:set_env(stdlib,debug_level,0).
+    myset_env(0).
+myset_env(Val)->
+    application:set_env(stdlib,debug_level,Val).

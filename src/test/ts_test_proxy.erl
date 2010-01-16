@@ -54,8 +54,8 @@ Content-Length: 33
 <h1>http://ssl-foo.bar/toto</h1>
 </body></html>
 ",
-     ?assertMatch({ok,NewData},
-                  ts_utils:from_https(Data)).
+    {ok,Res}=ts_utils:from_https(Data),
+     ?assertEqual(list_to_binary(NewData),iolist_to_binary(Res) ).
 
 rewrite_http_location_test()->
      myset_env(),
@@ -75,8 +75,8 @@ Content-Length: 36
 <h1>http://ssl-foo.bar/toto or http://ssl-foo.bar/glop</h1>
 </body></html>
 ",
-     ?assertMatch({ok,NewData},
-                  ts_utils:from_https(Data)).
+    {ok, Res}=ts_utils:from_https(Data),
+     ?assertEqual(list_to_binary(NewData),iolist_to_binary(Res) ).
 
 rewrite_http_location_nourl_test()->
      myset_env(),
@@ -94,29 +94,29 @@ Content-Length: 30
 <html><head></head><body>
 </body></html>
 ",
-     ?assertMatch({ok,NewData},
-                  ts_utils:from_https(Data)).
+    {ok, Res} = ts_utils:from_https(Data),
+    ?assertEqual(list_to_binary(NewData), iolist_to_binary(Res)).
 
 rewrite_http_encode_test()->
      myset_env(),
     Data="GET http://ssl-foobar.foo42.fr/ HTTP/1.1\r\nHost: ssl-foobar.foo42.fr\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-15,utf-8;q=0.7,*;q=0.7\r\n\r\n",
     NewData="GET https://foobar.foo42.fr/ HTTP/1.1\r\nHost: foobar.foo42.fr\r\nAccept-Charset: ISO-8859-15,utf-8;q=0.7,*;q=0.7\r\n\r\n",
-     ?assertMatch({ok,NewData},
-                  ts_utils:to_https({request,Data})).
+    {ok, Res} = ts_utils:to_https({request,Data}),
+     ?assertEqual(list_to_binary(NewData), iolist_to_binary(Res)).
 
 rewrite_webdav_test()->
-     myset_env(),
+    myset_env(),
     Data = "REPORT /tsung/!svn/vcc/default HTTP/1.1\r\nUser-Agent: SVN/1.4.4 (r25188) neon/0.25.5\r\nConnection: TE\r\nTE: trailers\r\nContent-Length: 172\r\nContent-Type: text/xml\r\nAccept-Encoding: svndiff1;q=0.9,svndiff;q=0.8\r\nAccept-Encoding: gzip\r\nAccept-Encoding: gzip\r\n\r\n<S:update-report send-all=\"true\" xmlns:S=\"svn:\"><S:src-path>http://ssl-svn.process-one.net/tsung/trunk/examples</S:src-path><S:entry rev=\"816\" ></S:entry></S:update-report>",
     NewData="REPORT /tsung/!svn/vcc/default HTTP/1.1\r\nUser-Agent: SVN/1.4.4 (r25188) neon/0.25.5\r\nConnection: TE\r\nTE: trailers\r\nContent-Length: 169\r\nContent-Type: text/xml\r\nAccept-Encoding: svndiff1;q=0.9,svndiff;q=0.8\r\n\r\n<S:update-report send-all=\"true\" xmlns:S=\"svn:\"><S:src-path>https://svn.process-one.net/tsung/trunk/examples</S:src-path><S:entry rev=\"816\" ></S:entry></S:update-report>",
-     ?assertMatch({ok,NewData},
-                  ts_utils:to_https({request,Data})).
-
+    {ok, Res} = ts_utils:to_https({request,Data}),
+     ?assertEqual(list_to_binary(NewData), iolist_to_binary(Res)).
 
 rewrite_http_encode_post_test()->
     myset_env(),
     Data="POST http://ssl-foobar.foo42.fr/ HTTP/1.1\r\nHost: ssl-foobar.foo42.fr\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-15,utf-8;q=0.7,;q=0.7Content-Type: application/x-www-form-urlencoded\r\nContent-Length: 24\r\n\r\nuname=admin&upass=*****",
     NewData="POST https://foobar.foo42.fr/ HTTP/1.1\r\nHost: foobar.foo42.fr\r\nAccept-Charset: ISO-8859-15,utf-8;q=0.7,;q=0.7Content-Type: application/x-www-form-urlencoded\r\nContent-Length: 24\r\n\r\nuname=admin&upass=*****",
-    ?assertMatch({ok,NewData},ts_utils:to_https({request,Data})).
+    {ok,Res}=ts_utils:to_https({request,Data}),
+    ?assertEqual(list_to_binary(NewData),iolist_to_binary(Res)).
 
 
 %% parse_http_test()->
@@ -124,6 +124,8 @@ rewrite_http_encode_post_test()->
 %%     ?assertMatch({ok,""},
 %%                  ts_proxy_http:parse(State,ClientSocket,Socket,Data)).
 
+myset_env(Val)->
+    application:set_env(stdlib,debug_level,Val).
 myset_env()->
-    application:set_env(stdlib,debug_level,0).
+    myset_env(0).
 
