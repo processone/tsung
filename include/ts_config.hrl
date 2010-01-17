@@ -48,6 +48,7 @@
           subst    = false,   % Substitution should be applied on the request
           match,              % Match regexp in response
           dynvar   = [],
+          main_sess_type , % main type of session
           sessions = [],
           static_users=[],
           session_tab,

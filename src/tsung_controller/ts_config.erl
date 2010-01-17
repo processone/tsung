@@ -317,9 +317,8 @@ parse(Element = #xmlElement{name=session, attributes=Attrs},
                    [] -> []; % first session
                    [Previous|Tail] ->
                        % set total requests count in previous session
-                       [Previous#session{size=PrevReqId}|Tail]
+                       [Previous#session{size=PrevReqId,type=Conf#config.main_sess_type}|Tail]
                end,
-
     lists:foldl(fun parse/2,
                 Conf#config{sessions = [#session{id           = Id + 1,
                                                  popularity   = Probability,
@@ -331,6 +330,7 @@ parse(Element = #xmlElement{name=session, attributes=Attrs},
                                                  proto_opts   = Conf#config.proto_opts
                                                 }
                                         |NewSList],
+                            main_sess_type = Type,
                             curid=0, cur_req_id=0},% re-initialize request id
                 Element#xmlElement.content);
 
@@ -453,7 +453,7 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
           [NewDynVar,CurS#session.id],?INFO),
     Conf#config{ dynvar= NewDynVar };
 
-parse(Element = #xmlElement{name=change_type, attributes=Attrs},
+parse( #xmlElement{name=change_type, attributes=Attrs},
       Conf = #config{sessions=[CurS|Other], curid=Id,session_tab = Tab}) ->
 
     CType   = getAttr(atom, Attrs, new_type),
@@ -467,9 +467,14 @@ parse(Element = #xmlElement{name=change_type, attributes=Attrs},
                "udp" -> gen_udp;
                "erlang" -> erlang
            end,
+    SessType=case Conf#config.main_sess_type == CType of
+                 false -> CurS#session.type;
+                 true  -> CType % back to the main type
+             end,
     ets:insert(Tab,{{CurS#session.id, Id+1}, {change_type, CType, Server, Port, PType, Store, Restore}}),
     ?LOGF("Parse change_type (~p) ~p:~p:~p:~p ~n",[CType, Server,Port,PType,Id],?NOTICE),
-    Conf#config{curid=Id+1, sessions=[CurS#session{type=CType}|Other] };
+    Conf#config{main_sess_type=SessType, curid=Id+1,
+                sessions=[CurS#session{type=CType}|Other] };
 
 %%% Parsing the request element
 parse(Element = #xmlElement{name=request, attributes=Attrs},

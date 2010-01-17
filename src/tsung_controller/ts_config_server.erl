@@ -203,7 +203,7 @@ handle_call({read_config, ConfigFile}, _From, State=#state{logdir=LogDir}) ->
                     %% we only know now the size of last session from the file: add it
                     %% in the table
                     print_info(),
-                    NewLast=LastSess#session{size = LastReqId},
+                    NewLast=LastSess#session{size = LastReqId, type=Config#config.main_sess_type},
                     %% start the file server (if defined) using a separate process (it can be long)
                     spawn(?MODULE, start_file_server, [Config#config.file_server]),
                     NewConfig=loop_load(sort_static(Config#config{sessions=[NewLast]++Sessions})),
