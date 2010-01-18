@@ -560,6 +560,10 @@ parse_line("set-cookie: "++Tail, Http=#http{cookie=PrevCookies}, Host)->
     Cookie = add_new_cookie(Tail, Host, PrevCookies),
     ?DebugF("HTTP New cookie val ~p~n",[Cookie]),
     Http#http{cookie=Cookie};
+parse_line("proxy-connection: keep-alive"++_Tail, Http, _Host)->
+    Http#http{close=false};
+parse_line("connection: Keep-Alive"++_Tail, Http, _Host)->
+    Http#http{close=false};
 parse_line(_Line, Http, _Host) ->
     ?DebugF("Skip header ~p (Http record is ~p)~n", [_Line, Http]),
     Http.
