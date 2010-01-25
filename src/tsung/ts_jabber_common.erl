@@ -222,6 +222,14 @@ get_message2(Jabber=#jabber{type = 'auth_set_digest', sid=Sid}) ->
     auth_set_digest(Jabber,Sid);
 get_message2(Jabber=#jabber{type = 'auth_set_sip', domain=Realm, nonce=Nonce}) ->
     auth_set_sip(Jabber,Nonce,Realm);
+get_message2(Jabber=#jabber{type = 'auth_sasl'}) ->
+    auth_sasl(Jabber,"PLAIN");
+get_message2(Jabber=#jabber{type = 'auth_sasl_anonymous'}) ->
+    auth_sasl(Jabber,"ANONYMOUS");
+get_message2(Jabber=#jabber{type = 'auth_sasl_bind'}) ->
+    auth_sasl_bind(Jabber);
+get_message2(Jabber=#jabber{type = 'auth_sasl_session'}) ->
+    auth_sasl_session(Jabber);
 get_message2(#jabber{type = Type}) ->
     ?LOGF("Unknown message type: ~p~n", [Type], ?ERR),
     {error, unknown_message}.
@@ -332,6 +340,53 @@ auth_set_sip(Username, Passwd, Domain, Type, Nonce, Realm) ->
         "</SubjectValue></TokenInfo></x></query></iq>"]).
 
 
+%%----------------------------------------------------------------------
+%% Func: auth_sasl/1
+%%----------------------------------------------------------------------
+auth_sasl(_,"ANONYMOUS")->
+    list_to_binary(["<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='ANONYMOUS'/>"]);
+auth_sasl(#jabber{username=Name,passwd=Passwd},Mechanism)->
+        auth_sasl(Name, Passwd, Mechanism).
+
+
+%%----------------------------------------------------------------------
+%% Func: auth_sasl/2
+%%----------------------------------------------------------------------
+auth_sasl(Username, _Passwd, Mechanism) ->
+    S = <<0>>,
+    N = list_to_binary(Username),
+    list_to_binary(["<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='",Mechanism,"' >",
+                    ssl_base64:encode(<<S/binary,N/binary,S/binary,N/binary>>) ,"</auth>"]).
+
+
+%%----------------------------------------------------------------------
+%% Func: auth_sasl_bind/1
+%%----------------------------------------------------------------------
+auth_sasl_bind(#jabber{username=Name,passwd=Passwd,domain=Domain})->
+        auth_sasl_bind(Name, Passwd, Domain).
+
+
+%%----------------------------------------------------------------------
+%% Func: auth_sasl_bind/3
+%%----------------------------------------------------------------------
+auth_sasl_bind(Username, _Passwd, Domain) ->
+ list_to_binary(["<iq type='set' id='",ts_msg_server:get_id(list),
+"' ><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'><resource>tsung</resource></bind></iq>"]).
+
+
+%%----------------------------------------------------------------------
+%% Func: auth_sasl_session/1
+%%----------------------------------------------------------------------
+auth_sasl_session(#jabber{username=Name,passwd=Passwd,domain=Domain})->
+        auth_sasl_session(Name, Passwd, Domain).
+
+
+%%----------------------------------------------------------------------
+%% Func: auth_sasl_session/3
+%%----------------------------------------------------------------------
+auth_sasl_session(Username, _Passwd, Domain) ->
+ list_to_binary(["<iq type='set' id='",ts_msg_server:get_id(list),
+"' ><session xmlns='urn:ietf:params:xml:ns:xmpp-session' /></iq>"]).
 
 %%----------------------------------------------------------------------
 %% Func: registration/1

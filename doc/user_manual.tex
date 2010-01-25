@@ -1196,6 +1196,33 @@ Example roster modification setup:
 
 See also \ref{bidi:presence} for automatic handling of  subscribing requests.
 
+
+\paragraph{SASL Anonymous}
+
+SASL Anonymous authentication example:
+\begin{Verbatim}
+<session probability="100" name="sasl" type="ts_jabber">
+
+    <request> <jabber type="connect" ack="local"></jabber> </request>
+
+    <thinktime value="10"></thinktime>
+
+    <transaction name="authenticate">
+     <request>
+       <jabber type="auth_sasl_anonymous" ack="local"></jabber></request>
+
+     <request>
+       <jabber type="connect" ack="local"></jabber> </request>
+
+    <request>
+       <jabber type="auth_sasl_bind" ack="local" ></jabber></request>
+    <request>
+       <jabber type="auth_sasl_session" ack="local" ></jabber></request>
+
+    </transaction>
+\end{Verbatim}
+
+
 \paragraph{Presence}
 \begin{itemize}
 \item \varname{type} can be either \userinput{presence:broadcast} or \userinput{presence:directed}.
