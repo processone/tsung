@@ -19,7 +19,7 @@ test()->
 
 next_test() ->
     myset_env(),
-    ts_user_server:start(ok),
+    ts_user_server:start(),
     ts_user_server:reset(100),
     ts_user_server:get_idle(),
     B=ts_user_server:get_idle(),
@@ -27,7 +27,7 @@ next_test() ->
 
 remove_test() ->
     myset_env(),
-    ts_user_server:start(ok),
+    ts_user_server:start(),
     ts_user_server:reset(100),
     1=ts_user_server:get_idle(),
     B=ts_user_server:get_idle(),
@@ -37,7 +37,7 @@ remove_test() ->
 
 full_offline_test() ->
     myset_env(),
-    ts_user_server:start(ok),
+    ts_user_server:start(),
     ts_user_server:reset(3),
     1=ts_user_server:get_idle(),
     2=ts_user_server:get_idle(),
@@ -46,7 +46,7 @@ full_offline_test() ->
 
 full_free_offline_test() ->
     myset_env(),
-    ts_user_server:start(ok),
+    ts_user_server:start(),
     ts_user_server:reset(3),
     1=ts_user_server:get_idle(),
     B=ts_user_server:get_idle(),
@@ -57,7 +57,7 @@ full_free_offline_test() ->
 
 full_free_offline_refull_test() ->
     myset_env(),
-    ts_user_server:start(ok),
+    ts_user_server:start(),
     ts_user_server:reset(3),
     A=ts_user_server:get_idle(),
     B=ts_user_server:get_idle(),
@@ -70,14 +70,14 @@ full_free_offline_refull_test() ->
 
 full_huge_offline_test() ->
     myset_env(),
-    ts_user_server:start(ok),
+    ts_user_server:start(),
     ts_user_server:reset(1000000),
     A=ts_user_server:get_idle(),
     ?assertMatch(2,ts_user_server:get_idle()).
 
 offline_test() ->
     myset_env(),
-    ts_user_server:start(ok),
+    ts_user_server:start(),
     ts_user_server:reset(3),
     {ok,1}=ts_user_server:get_offline(),
     {ok,2}=ts_user_server:get_offline(),
@@ -85,7 +85,7 @@ offline_test() ->
     ?assertMatch({ok,1},ts_user_server:get_offline()).
 offline_full_test() ->
     myset_env(),
-    ts_user_server:start(ok),
+    ts_user_server:start(),
     ts_user_server:reset(2),
     ts_user_server:get_idle(),
     ts_user_server:get_idle(),
@@ -93,7 +93,7 @@ offline_full_test() ->
 
 online_test() ->
     myset_env(),
-    ts_user_server:start(ok),
+    ts_user_server:start(),
     ts_user_server:reset(3),
     A=ts_user_server:get_idle(),
     B=ts_user_server:get_idle(),
@@ -103,7 +103,7 @@ online_test() ->
 
 online_full_test() ->
     myset_env(),
-    ts_user_server:start(ok),
+    ts_user_server:start(),
     ts_user_server:reset(10),
     A=ts_user_server:get_idle(),
     B=ts_user_server:get_idle(),

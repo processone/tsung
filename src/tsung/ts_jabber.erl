@@ -139,24 +139,88 @@ parse_config(Element, Conf) ->
 %% Function: add_dynparams/4
 %% Purpose: add dynamic parameters to build the message
 %%----------------------------------------------------------------------
+
+%% The rest of the code expect to found a "domain" field in the #jabber request
+%% with the domain of the jabber server (as string). We use the step of dynvars substitution
+%% to choose and set the domain we want to connect, and keep that choice in the 
+%% process dictionary so we reuse it for all request made from the same session.
+%% (see comments on choose_domain/1
+%%
+%% if we are testing a single domain (the default case), we  change from {domain,D}. 
+%% to the specified domain (D). If {vhost,FileId}, we choose a domain from that file
+%% and set it.
+add_dynparams(Subst,DynData, Param =#jabber{domain={domain,Domain}}, Host) ->
+    UserId = choose_or_cache_user_id(),
+    add_dynparams(Subst,DynData, Param#jabber{id=UserId,
+                                              domain=Domain,
+                                              user_server=default},Host);
+
+add_dynparams(Subst,DynData,Param =#jabber{domain={vhost,FileId}}, Host) ->
+    {UserId,Domain,UserServer} = choose_domain(FileId),
+    add_dynparams(Subst,DynData, Param#jabber{id=UserId,
+                                              domain=Domain, 
+                                              user_server=UserServer},Host);
+
 add_dynparams(_Subst,[], Param, _Host) ->
     Param;
-add_dynparams(false,#dyndata{proto=DynData}, Param, _Host) ->
-    Param#jabber{id=DynData#jabber_dyndata.id};
-add_dynparams(true,#dyndata{proto=JabDynData, dynvars=DynVars}, Param, _Host) ->
+add_dynparams(false,#dyndata{proto=_DynData}, Param, _Host) ->
+    Param; %%ID substitution already done
+add_dynparams(true,#dyndata{proto=_JabDynData, dynvars=DynVars}, Param, _Host) ->
     ?DebugF("Subst in jabber msg (~p) with dyn vars ~p~n",[Param,DynVars]),
    NewParam = subst(Param, DynVars),
-        updatejab(DynVars, NewParam#jabber{id = JabDynData#jabber_dyndata.id}).
+   updatejab(DynVars, NewParam).
+
+
+%% This isn't ideal.. but currently there is no other way 
+%% than use side effects, as get_message/1 andn add_dynparams/4 aren't allowed
+%% to return a new DynData, and so they can't modify the session state. 
+choose_domain(VHostFileId) ->
+    case get(xmpp_vhost_domain) of
+        undefined -> 
+                Domain = do_choose_domain(VHostFileId),
+                UserServer = global:whereis_name(list_to_atom("us_"++Domain)),
+                UserId =  choose_user_id(UserServer),
+                put(xmpp_vhost_domain,{UserId,Domain,UserServer}),
+                {UserId,Domain,UserServer};
+        X ->
+            X
+     end.
+
+do_choose_domain(VHostFileId) ->
+    {ok,D} = ts_file_server:get_random_line(VHostFileId),
+    D.
+
 
 init_dynparams() ->
-    case ts_user_server:get_idle() of
+    #dyndata{proto=#jabber_dyndata{}}.
+    %% UserID depends on which domains the user belongs.
+    %% That can't be know at this time (no way to know if
+    %% we are testing a single or virtual hosting server,
+    %% no way to access the file with vh domains)
+    %% So we delay the id selection until the first request.
+    %% ( add_dynparams/4 gets a copy of the request, from
+    %%   the request we can check the file name, etc)
+
+
+
+choose_user_id(UserServer) ->
+    case ts_user_server:get_idle(UserServer) of
         {error, no_free_userid} ->
             ts_mon:add({ count, error_no_free_userid }),
             exit(no_free_userid);
         Id->
-            #dyndata{proto=#jabber_dyndata{id=Id}}
+            Id
     end.
 
+choose_or_cache_user_id() ->
+    case get(xmpp_user_id) of 
+            undefined -> 
+                    Id = choose_user_id(default),
+                    put(xmpp_user_id,Id),
+                    Id;
+            Id ->
+                Id
+    end.
 
 
 %%----------------------------------------------------------------------

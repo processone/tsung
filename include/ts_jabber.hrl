@@ -34,6 +34,7 @@
                  cle,
                  id = 0,
                  domain,   %% jabber domain
+                 user_server, %%user_server to use for the domain
                  username, %% first chars of username (will append id dynamically)
                  passwd,   %% first chars of passwd (will append id dynamically)
                  nonce,    %% used to generate sip-digest passwd

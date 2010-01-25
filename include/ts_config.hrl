@@ -61,7 +61,9 @@
           load_loop,         % loop phases if > 0
           hibernate = 10000, % hibernate timeout (millisec) 10sec by default
           proto_opts,        % tcp/udp buffer sizes
-          seed = now         % random seed: (default= current time)
+          seed = now,        % random seed: (default= current time)
+          vhost_file = none, % file server user for virtual host jabber testing
+          user_server_maxuid = none % user_id max
          }).
 
 

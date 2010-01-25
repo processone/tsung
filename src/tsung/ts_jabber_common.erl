@@ -32,6 +32,7 @@
 -include("ts_profile.hrl").
 -include("ts_jabber.hrl").
 
+
 %%----------------------------------------------------------------------
 %% Func: get_message/1
 %% Args: #jabber record
@@ -40,21 +41,22 @@
 %%----------------------------------------------------------------------
 get_message(Jabber=#jabber{type = 'connect'}) ->
     connect(Jabber);
-get_message(#jabber{type = 'close', id=Id}) ->
-    ts_user_server:remove_connected(Id),
+get_message(#jabber{type = 'close', id=Id,user_server=UserServer}) ->
+    ts_user_server:remove_connected(UserServer,Id),
     close();
 get_message(#jabber{type = 'presence'}) ->
     presence();
-get_message(#jabber{type = 'presence:initial', id=Id}) ->
-    ts_user_server:add_to_online(Id),
+get_message(#jabber{type = 'presence:initial', id=Id,user_server=UserServer}) ->
+    ts_user_server:add_to_online(UserServer,Id),
     presence();
-get_message(#jabber{type = 'presence:final', id=Id}) ->
-    ts_user_server:remove_from_online(Id),
+get_message(#jabber{type = 'presence:final', id=Id,user_server=UserServer}) ->
+    ts_user_server:remove_from_online(UserServer,Id),
     presence(unavailable);
 get_message(#jabber{type = 'presence:broadcast', show=Show, status=Status}) ->
     presence(broadcast, Show, Status);
-get_message(Jabber=#jabber{type = 'presence:directed', id=Id, show=Show, status=Status}) ->
-    case ts_user_server:get_online(Id) of
+get_message(Jabber=#jabber{type = 'presence:directed', id=Id, 
+                           show=Show, status=Status,user_server=UserServer}) ->
+    case ts_user_server:get_online(UserServer,Id) of
         {ok, Dest} ->
             presence(directed, Dest, Jabber, Show, Status);
         {error, no_online} ->
@@ -77,8 +79,9 @@ get_message(#jabber{type = 'presence:subscribe'}) -> %% must be called AFTER iq:
         RosterJid ->
             presence(subscribe, RosterJid)
     end;
-get_message(Jabber=#jabber{type = 'chat', id=Id, dest=online, domain=Domain})->
-    case ts_user_server:get_online(Id) of
+get_message(Jabber=#jabber{type = 'chat', id=Id, dest=online, 
+                           domain=Domain,user_server=UserServer})->
+    case ts_user_server:get_online(UserServer,Id) of
         {ok, Dest} ->
             message(Dest, Jabber, Domain);
         {error, no_online} ->
@@ -86,33 +89,36 @@ get_message(Jabber=#jabber{type = 'chat', id=Id, dest=online, domain=Domain})->
             << >>
     end;
 
-get_message(Jabber=#jabber{type = 'chat', domain = Domain, dest=offline}) ->
-    case ts_user_server:get_offline() of
+get_message(Jabber=#jabber{type = 'chat', domain = Domain, 
+                           dest=offline,user_server=UserServer}) ->
+    case ts_user_server:get_offline(UserServer) of
         {ok, Dest} ->
             message(Dest, Jabber, Domain);
         {error, no_offline} ->
             ts_mon:add({ count, error_no_offline }),
             << >>
     end;
-get_message(Jabber=#jabber{type = 'chat', dest=random, domain=Domain}) ->
-    Dest = ts_user_server:get_id(),
+get_message(Jabber=#jabber{type = 'chat', dest=random, domain=Domain,user_server=UserServer}) ->
+    Dest = ts_user_server:get_id(UserServer),
     message(Dest, Jabber, Domain);
-get_message(Jabber=#jabber{type = 'chat', dest=unique, domain=Domain})->
-    {Dest, _} = ts_user_server:get_first(),
+get_message(Jabber=#jabber{type = 'chat', dest=unique, domain=Domain,user_server=UserServer})->
+    {Dest, _} = ts_user_server:get_first(UserServer),
     message(Dest, Jabber, Domain);
 get_message(Jabber=#jabber{type = 'chat', id=_Id, dest = Dest, domain=Domain}) ->
     ?DebugF("~w -> ~w ~n", [_Id,  Dest]),
     message(Dest, Jabber, Domain);
-get_message(#jabber{type = 'iq:roster:add', id=Id, dest = online,username=User,domain=Domain}) ->
-    case ts_user_server:get_online(Id) of
+get_message(#jabber{type = 'iq:roster:add', id=Id, dest = online,username=User,
+                    domain=Domain,user_server=UserServer}) ->
+    case ts_user_server:get_online(UserServer,Id) of
         {ok, Dest} ->
             request(roster_add, User, Domain, Dest);
         {error, no_online} ->
             ts_mon:add({ count, error_no_online }),
             << >>
     end;
-get_message(#jabber{type = 'iq:roster:add',dest = offline,username=User,domain=Domain})->
-    case ts_user_server:get_offline() of
+get_message(#jabber{type = 'iq:roster:add',dest = offline,username=User,
+                    domain=Domain,user_server=UserServer})->
+    case ts_user_server:get_offline(UserServer) of
         {ok, Dest} ->
             request(roster_add, User, Domain, Dest);
         {error, no_offline} ->
@@ -150,9 +156,9 @@ get_message(#jabber{type = 'pubsub:create', id=Id, username=User,
     create_pubsub_node(Domain, PubSubComponent, Username, Node, NodeType);
 %% For node subscription, data contain the pubsub nodename (relative to user
 %% hierarchy or absolute)
-get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=User,
+get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=User, user_server=UserServer,
                     dest=online, node=Node, pubsub_service = PubSubComponent, domain = Domain}) ->
-    case ts_user_server:get_online(Id) of
+    case ts_user_server:get_online(UserServer,Id) of
         {ok, Dest} ->
             UserFrom = username(User,Id),
             UserTo = username(User, id_to_string(Dest)),
@@ -161,9 +167,9 @@ get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=User,
             ts_mon:add({ count, error_no_online }),
             << >>
     end;
-get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=User,
+get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=User, user_server=UserServer,
                     dest=offline, node=Node, domain = Domain, pubsub_service = PubSubComponent}) ->
-    case ts_user_server:get_offline() of
+    case ts_user_server:get_offline(UserServer) of
         {ok, Dest} ->
             UserFrom = username(User,Id),
             UserTo = username(User,id_to_string(Dest)),
@@ -172,9 +178,9 @@ get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=User,
             ts_mon:add({ count, error_no_offline }),
             << >>
     end;
-get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=User,
+get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=User, user_server=UserServer,
                     dest=random, node=Node, domain = Domain, pubsub_service = PubSubComponent}) ->
-    Dest = ts_user_server:get_id(),
+    Dest = ts_user_server:get_id(UserServer),
     UserFrom = username(User,Id),
     UserTo = username(User,id_to_string(Dest)),
     subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node);

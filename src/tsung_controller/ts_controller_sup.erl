@@ -81,13 +81,11 @@ init([LogDir]) ->
                worker, [ts_timer]},
     Msg  = {ts_msg_server, {ts_msg_server, start, []}, transient, 2000,
                worker, [ts_msg_server]},
-    User = {ts_user_server, {ts_user_server, start,
-                          [[?config(nclients_deb), ?config(nclients_fin),
-                            ?config(nclients)]]},
-            transient, 2000, worker, [ts_user_server]},
+    UserSup = {ts_user_server_sup,{ts_user_server_sup,start_link,[]},transient,2000,
+                 supervisor,[ts_user_server_sup]},
     {ok,{{one_for_one,?retries,10},
          [Config, Mon, Stats_Mon, Request_Mon, Page_Mon, Connect_Mon, Transaction_Mon,
-          Match_Log, Timer, Msg, User, ErlangSup, MuninSup,SNMPSup]}}.
+          Match_Log, Timer, Msg, UserSup, ErlangSup, MuninSup,SNMPSup]}}.
 
 %%%----------------------------------------------------------------------
 %%% Internal functions

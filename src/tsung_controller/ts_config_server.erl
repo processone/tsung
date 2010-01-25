@@ -585,6 +585,24 @@ start_file_server(Filenames) ->
     supervisor:start_child(ts_controller_sup, FileSrv),
     ts_file_server:read(Filenames).
 
+
+%%----------------------------------------------------------------------
+%% Func: setup_user_servers/2
+%%----------------------------------------------------------------------
+setup_user_servers(_,none) ->
+    ok;
+setup_user_servers(none,Val) when is_integer(Val) ->
+    ts_user_server:reset(Val);
+setup_user_servers(FileId,Val) when is_atom(FileId), is_integer(Val) ->
+    {ok,Domains} = ts_file_server:get_all_lines(FileId),
+    lists:foreach(fun(Domain) -> 
+                    {ok,_} = ts_user_server_sup:start_user_server(list_to_atom("us_" ++Domain))
+                  end, Domains),
+    ts_user_server:reset_all(Val).
+
+
+
+
 %%----------------------------------------------------------------------
 %% Func: check_config/1
 %% Returns: ok | {error, ErrorList}

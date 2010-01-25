@@ -125,36 +125,48 @@ parse_config(Element = #xmlElement{name=jabber},
                  Element#xmlElement.content);
 %% Parsing options
 parse_config(Element = #xmlElement{name=option}, Conf = #config{session_tab = Tab}) ->
-    case ts_config:getAttr(Element#xmlElement.attributes, name) of
+    NewConf = case ts_config:getAttr(Element#xmlElement.attributes, name) of
         "username" ->
             Val = ts_config:getAttr(string,Element#xmlElement.attributes, value,"tsunguser"),
-            ets:insert(Tab,{{jabber_username,value}, Val});
+            ets:insert(Tab,{{jabber_username,value}, Val}),
+            Conf;
         "passwd" ->
             Val = ts_config:getAttr(string,Element#xmlElement.attributes, value,"sesame"),
-            ets:insert(Tab,{{jabber_passwd,value}, Val});
+            ets:insert(Tab,{{jabber_passwd,value}, Val}),
+            Conf;
         "domain" ->
             Val = ts_config:getAttr(string,Element#xmlElement.attributes, value,"erlang-projects.org"),
-            ets:insert(Tab,{{jabber_domain_name,value}, Val});
+            ets:insert(Tab,{{jabber_domain_name,value}, {domain,Val}}),
+            Conf;
+        "vhost_file" ->
+            Val = ts_config:getAttr(atom,Element#xmlElement.attributes, value,"vhostfile"),
+            ets:insert_new(Tab,{{jabber_domain_name,value}, {vhost,Val}}),
+            Conf#config{vhost_file = Val};
         "global_number" ->
             N = ts_config:getAttr(integer,Element#xmlElement.attributes, value, 100),
             ts_timer:config(N),
-            ets:insert(Tab,{{jabber_global_number, value}, N});
+            ets:insert(Tab,{{jabber_global_number, value}, N}),
+            Conf;
         "userid_max" ->
             N = ts_config:getAttr(integer,Element#xmlElement.attributes, value, 10000),
             ts_user_server:reset(N),
-            ets:insert(Tab,{{jabber_userid_max,value}, N});
+            ets:insert(Tab,{{jabber_userid_max,value}, N}),
+            Conf;
         "muc_service" ->
             N = ts_config:getAttr(string,Element#xmlElement.attributes, value, "conference.localhost"),
-            ets:insert(Tab,{{muc_service,value}, N});
+            ets:insert(Tab,{{muc_service,value}, N}),
+            Conf;
         "pubsub_service" ->
             N = ts_config:getAttr(string,Element#xmlElement.attributes, value, "pubsub.localhost"),
-            ets:insert(Tab,{{pubsub_service,value}, N})
+            ets:insert(Tab,{{pubsub_service,value}, N}),
+            Conf
     end,
-    lists:foldl( fun(A,B) -> ts_config:parse(A,B) end, Conf, Element#xmlElement.content);
+    lists:foldl( fun(A,B) -> ts_config:parse(A,B) end, NewConf, Element#xmlElement.content);
 %% Parsing other elements
 parse_config(Element = #xmlElement{}, Conf = #config{}) ->
     ts_config:parse(Element,Conf);
 %% Parsing non #xmlElement elements
 parse_config(_, Conf = #config{}) ->
     Conf.
+
 

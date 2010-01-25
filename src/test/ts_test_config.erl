@@ -124,6 +124,7 @@ choose_port_test() ->
 myset_env()->
     myset_env(0).
 myset_env(Level)->
+    catch  ts_user_server_sup:start_link() ,
     application:set_env(stdlib,debug_level,Level),
     application:set_env(stdlib,warm_time,1000),
     application:set_env(stdlib,thinktime_value,"5"),

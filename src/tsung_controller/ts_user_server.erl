@@ -42,10 +42,23 @@
          remove_connected/1,
          get_first/0]).
 
+%% for multiple user_server process, one per virtual host
+-export([reset/2,
+         get_id/1,
+         get_idle/1,
+         get_offline/1,
+         get_online/2,
+         add_to_online/2,
+         remove_from_online/2,
+         remove_connected/2,
+         get_first/1,
+         reset_all/1]).
+
+
 -behaviour(gen_server).
 
 %% External exports
--export([start/1, stop/0]).
+-export([start/0,start/1, stop/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -65,12 +78,30 @@
 %%%----------------------------------------------------------------------
 %%% API
 %%%----------------------------------------------------------------------
-start(Args) ->
-    ?LOGF("Starting with args ~p ~n",[Args],?INFO),
-    gen_server:start_link({global, ?MODULE}, ?MODULE, Args, []).
+start() ->
+    ?LOGF("Starting default user_server ~n",[],?INFO),
+    gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
 
+start(Name) ->
+    ?LOGF("Starting user_server with name ~p ~n",[Name],?INFO),
+    gen_server:start_link({global, Name}, ?MODULE, [], []).
+
+reset(default,NFin) ->
+    reset(NFin);
+reset(UserServer,NFin) ->
+    gen_server:call(UserServer,{reset,NFin}).
+        
 reset(NFin)->
     gen_server:call({global, ?MODULE}, {reset, NFin}).
+
+reset_all(NFin) ->
+     lists:foreach(fun(Pid) -> reset(Pid,NFin) end,
+                   ts_user_server_sup:all_children()).
+
+get_id(default) ->
+    get_id();
+get_id(UserServer) ->
+    gen_server:call(UserServer, get_id).
 
 get_id()->
     gen_server:call({global, ?MODULE }, get_id).
@@ -91,31 +122,74 @@ get_really_unique_id({Pid, DynVars}) ->
     [[integer_to_list(Sec),"-",get_unique_id({Pid, DynVars})]].
 
 %% get an idle id (offline), and add it to the connected table
+get_idle(default) ->
+    get_idle();
+get_idle(UserServer) ->
+    gen_server:call(UserServer,get_idle).
+
 get_idle()->
     gen_server:call({global, ?MODULE}, get_idle).
 
+get_online(default,Id) ->
+    get_online(Id);
+get_online(UserServer,Id) when is_list(Id)->
+    get_online(UserServer,list_to_integer(Id));
+get_online(UserServer,Id) when is_integer(Id)->
+    gen_server:call(UserServer, {get_online, Id}).
+    
 get_online(Id) when is_list(Id) ->
     get_online(list_to_integer(Id));
 get_online(Id) when is_integer(Id) ->
     gen_server:call({global, ?MODULE}, {get_online, Id}).
 
 %% get an offline id, don't change the connected table.
+get_offline(default) ->
+    get_offline();
+get_offline(UserServer) ->
+    gen_server:call(UserServer, get_offline).
+    
 get_offline()->
     gen_server:call({global, ?MODULE}, get_offline).
 
 
+get_first(default)->
+    get_first();
+get_first(UserServer)->
+    gen_server:call(UserServer, get_first).
+
 get_first()->
     gen_server:call({global, ?MODULE}, get_first).
+
+remove_connected(default,ID) ->
+    remove_connected(ID);
+remove_connected(UserServer,Id) when  is_list(Id) ->
+    remove_connected(UserServer,list_to_integer(Id));
+remove_connected(UserServer,Id) when is_integer(Id)->
+    gen_server:cast(UserServer, {remove_connected, Id}).
 
 remove_connected(Id) when  is_list(Id) ->
     remove_connected(list_to_integer(Id));
 remove_connected(Id) when is_integer(Id)->
     gen_server:cast({global, ?MODULE}, {remove_connected, Id}).
 
+add_to_online(default,Id) ->
+    add_to_online(Id);
+add_to_online(UserServer,Id) when  is_list(Id) ->
+    add_to_online(UserServer,list_to_integer(Id));
+add_to_online(UserServer,Id) when is_integer(Id)->
+    gen_server:cast(UserServer, {add_to_online, Id}).
+
 add_to_online(Id) when  is_list(Id) ->
     add_to_online(list_to_integer(Id));
 add_to_online(Id) when is_integer(Id)->
     gen_server:cast({global, ?MODULE}, {add_to_online, Id}).
+
+remove_from_online(default,Id) ->
+    remove_from_online(Id);
+remove_from_online(UserServer,Id) when  is_list(Id) ->
+    remove_from_online(UserServer,list_to_integer(Id));
+remove_from_online(UserServer,Id) when is_integer(Id)->
+    gen_server:cast(UserServer, {remove_from_online, Id}).
 
 remove_from_online(Id) when  is_list(Id) ->
     remove_from_online(list_to_integer(Id));
@@ -123,7 +197,12 @@ remove_from_online(Id) when is_integer(Id)->
     gen_server:cast({global, ?MODULE}, {remove_from_online, Id}).
 
 stop()->
-    gen_server:call({global, ?MODULE}, stop).
+    lists:foreach(fun(Pid) ->
+                    gen_server:call(Pid, stop)
+                 end,ts_user_server_sup:all_children()).
+
+
+
 
 init_seed(A) ->
     gen_server:cast({global, ?MODULE}, {init_seed, A}).
