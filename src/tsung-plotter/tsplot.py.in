@@ -94,13 +94,13 @@ class Plot:
             count = 0
             for data in dataset:
                 # get give type data for plotting
+                nstats = 0
                 for (name, stat) in stats:
                     pdata = data.stat(name, stat)
-
                     # we want timestamp sorted data to plot
                     ts = pdata.keys()
                     ts.sort()
-                    values = [pdata[t] / self.yfactor for t in ts]
+                    values = [pdata[t] / self.yfactor[nstats] for t in ts]
 
                     if self.xfactor not in [1, "1"]:
                         ts = [x / self.xfactor for x in ts]
@@ -108,7 +108,7 @@ class Plot:
                     # Now use matplotlib to do the plotting
                     plot(ts, values, self.styles[count%len(self.styles)])
                     count += 1
-
+                    nstats += 1
             # Now setup the legend
             title(self.title)
             xlabel(self.xlabel)
@@ -139,12 +139,13 @@ class Plot:
             ax = subplot(111)
             ax.set_yscale(self.yscale)
             for data in dataset:
+                nstats=0
                 for (name, stat) in stats:
                     pdata = data.stat(name, stat)
                     size= len(pdata)
                     if size > 0 :
                         # the data we use is the latest value:
-                        current[count] = pdata.values()[size-1] / self.yfactor
+                        current[count] = pdata.values()[size-1] / self.yfactor[nstats]
                         ax.bar(ind+count*width, ( current[count] ), width,
                                color=self.colors[count] )
                         # get percent of increase/decrease:
@@ -155,6 +156,7 @@ class Plot:
                         currenttick=(0.5 + count)/nbox
                         ticksp.append(currenttick)
                         count += 1
+                        nstats += 1
 
             boxchart = os.path.join(self.outdir,
                                     "%s.%s" % (self.name, self.imgtype))
@@ -211,9 +213,14 @@ def main(conffile, logs, legends, outdir, verbose):
                 l     += ['%s %s' % (x.strip(), legends[count]) \
                           for x in clegends]
                 count += 1
-
         p.legends = l
 
+        if config.has_option(s, 'yfactor'):
+            try:
+                p.__dict__['yfactor'] = map(float,config.get(s, 'yfactor').decode(encoding).split(','))
+            except ValueError:
+                print 'warning: %s yfactor not a number: %s' \
+                    % (p.name, config.get(s, yfactor))
         # Text parameters - to decode into specified encoding
         for attr in ['title', 'xlabel', 'ylabel', 'plottype', 'yscale']:
             if config.has_option(s, attr):
@@ -221,7 +228,7 @@ def main(conffile, logs, legends, outdir, verbose):
                 p.__dict__[attr] = cstring
 
         # Numerical parameters
-        for attr in ['xfactor', 'yfactor', 'dpi', 'tn_dpi']:
+        for attr in ['xfactor', 'dpi', 'tn_dpi']:
             if config.has_option(s, attr):
                 try:
                     p.__dict__[attr] = config.getfloat(s, attr)
