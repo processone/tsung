@@ -1,6 +1,8 @@
-%%%  This code was developped by IDEALX (http://IDEALX.org/) and
-%%%  contributors (their names can be found in the CONTRIBUTORS file).
-%%%  Copyright (C) 2000-2001 IDEALX
+%%%
+%%%  Copyright 2010 © INRIA
+%%%
+%%%  Author : Nicolas Niclausse <nniclaus@sophia.inria.fr>
+%%%  Created: 13 january 2010 by Nicolas Niclausse <nniclaus@sophia.inria.fr>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
 %%%  it under the terms of the GNU General Public License as published by
