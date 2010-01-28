@@ -171,12 +171,12 @@ add_dynparams(true,#dyndata{proto=_JabDynData, dynvars=DynVars}, Param, _Host) -
    updatejab(DynVars, NewParam).
 
 
-%% This isn't ideal.. but currently there is no other way 
+%% This isn't ideal.. but currently there is no other way
 %% than use side effects, as get_message/1 andn add_dynparams/4 aren't allowed
-%% to return a new DynData, and so they can't modify the session state. 
+%% to return a new DynData, and so they can't modify the session state.
 choose_domain(VHostFileId) ->
     case get(xmpp_vhost_domain) of
-        undefined -> 
+        undefined ->
                 Domain = do_choose_domain(VHostFileId),
                 UserServer = global:whereis_name(list_to_atom("us_"++Domain)),
                 UserId =  choose_user_id(UserServer),
@@ -213,8 +213,8 @@ choose_user_id(UserServer) ->
     end.
 
 choose_or_cache_user_id() ->
-    case get(xmpp_user_id) of 
-            undefined -> 
+    case get(xmpp_user_id) of
+            undefined ->
                     Id = choose_user_id(default),
                     put(xmpp_user_id,Id),
                     Id;

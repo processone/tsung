@@ -151,7 +151,7 @@ parse_config(Element = #xmlElement{name=option}, Conf = #config{session_tab = Ta
             N = ts_config:getAttr(integer,Element#xmlElement.attributes, value, 10000),
             ts_user_server:reset(N),
             ets:insert(Tab,{{jabber_userid_max,value}, N}),
-            Conf;
+            Conf#config{user_server_maxuid = N};
         "muc_service" ->
             N = ts_config:getAttr(string,Element#xmlElement.attributes, value, "conference.localhost"),
             ets:insert(Tab,{{muc_service,value}, N}),

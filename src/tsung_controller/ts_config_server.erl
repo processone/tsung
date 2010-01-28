@@ -205,7 +205,7 @@ handle_call({read_config, ConfigFile}, _From, State=#state{logdir=LogDir}) ->
                     print_info(),
                     NewLast=LastSess#session{size = LastReqId, type=Config#config.main_sess_type},
                     %% start the file server (if defined) using a separate process (it can be long)
-                    spawn(?MODULE, start_file_server, [Config#config.file_server]),
+                    spawn(?MODULE, start_file_server, [Config]),
                     NewConfig=loop_load(sort_static(Config#config{sessions=[NewLast]++Sessions})),
                     {reply, ok, State#state{config=NewConfig, static_users=NewConfig#config.static_users,total_weight = Sum}};
                 {error, Reason} ->
@@ -576,26 +576,31 @@ print_info() ->
 %%----------------------------------------------------------------------
 %% Func: start_file_server/1
 %%----------------------------------------------------------------------
-start_file_server([]) ->
+start_file_server(#config{file_server=[]}) ->
     ?LOG("No File server defined, skip~n",?DEB);
-start_file_server(Filenames) ->
+start_file_server(Config=#config{file_server=Filenames}) ->
     ?LOG("Starting File server~n",?INFO),
     FileSrv  = {ts_file_server, {ts_file_server, start, []}, transient, 2000,
                 worker, [ts_msg_server]},
     supervisor:start_child(ts_controller_sup, FileSrv),
-    ts_file_server:read(Filenames).
+    ts_file_server:read(Filenames),
+    ?LOG("Starting user servers if needed~n",?INFO),
+    setup_user_servers(Config#config.vhost_file,Config#config.user_server_maxuid).
 
 
 %%----------------------------------------------------------------------
 %% Func: setup_user_servers/2
 %%----------------------------------------------------------------------
 setup_user_servers(_,none) ->
+    ?LOG("Don't start any user server, as user_server_maxuid not defined~n",?DEB),
     ok;
 setup_user_servers(none,Val) when is_integer(Val) ->
     ts_user_server:reset(Val);
 setup_user_servers(FileId,Val) when is_atom(FileId), is_integer(Val) ->
+    ?LOGF("Starting user servers with params ~p ~p~n",[FileId,Val],?DEB),
     {ok,Domains} = ts_file_server:get_all_lines(FileId),
-    lists:foreach(fun(Domain) -> 
+    ?LOGF("Domains:~p~n",[Domains],?DEB),
+    lists:foreach(fun(Domain) ->
                     {ok,_} = ts_user_server_sup:start_user_server(list_to_atom("us_" ++Domain))
                   end, Domains),
     ts_user_server:reset_all(Val).

@@ -90,7 +90,7 @@ reset(default,NFin) ->
     reset(NFin);
 reset(UserServer,NFin) ->
     gen_server:call(UserServer,{reset,NFin}).
-        
+
 reset(NFin)->
     gen_server:call({global, ?MODULE}, {reset, NFin}).
 

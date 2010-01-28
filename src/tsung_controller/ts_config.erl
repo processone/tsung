@@ -178,7 +178,7 @@ parse(Element = #xmlElement{name=client, attributes=Attrs},
                 ?LOG("Get client nodes from batch scheduler~n",?DEB),
                 Batch = getAttr(atom, Attrs, batch),
                 NodesTmp = get_batch_nodes(Batch),
-                case NodesTmp of 
+                case NodesTmp of
                     []->
                         ?LOGF("Warning: empty list of nodes from batch: ~p~n",[NodesTmp],?WARN);
                     _ ->

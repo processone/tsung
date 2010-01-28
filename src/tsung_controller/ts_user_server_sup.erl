@@ -1,6 +1,6 @@
 %% ts_user_server_sup.erl
-%% @author Pablo Polvorin 
-%% @doc 
+%% @author Pablo Polvorin
+%% @doc
 %% created on 2008-09-09
 -module(ts_user_server_sup).
 
@@ -16,18 +16,18 @@ start_link() ->
 
 init([]) ->
     SupFlags = {simple_one_for_one,1,1 },
-    ChildSpec = [ 
-				  {ts_user_server,{ts_user_server, start, []},
-				   temporary,2000,worker,[ts_user_server]}
-				 ],
+    ChildSpec = [
+                 {ts_user_server,{ts_user_server, start, []},
+                  temporary,2000,worker,[ts_user_server]}
+                ],
     {ok, {SupFlags, ChildSpec}}.
 
 start_user_server(Name) ->
-   supervisor:start_child({global,?MODULE},[Name]). 
+   supervisor:start_child({global,?MODULE},[Name]).
 
 start_default_user_server() ->
-   supervisor:start_child({global,?MODULE},[]). 
-    
+   supervisor:start_child({global,?MODULE},[]).
+
 
 all_children() ->
     [ Pid ||{_,Pid,_,_} <- supervisor:which_children({global,?MODULE})].
