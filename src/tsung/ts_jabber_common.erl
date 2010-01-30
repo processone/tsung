@@ -229,11 +229,7 @@ get_message2(Jabber=#jabber{type = 'auth_sasl_anonymous'}) ->
 get_message2(Jabber=#jabber{type = 'auth_sasl_bind'}) ->
     auth_sasl_bind(Jabber);
 get_message2(Jabber=#jabber{type = 'auth_sasl_session'}) ->
-    auth_sasl_session(Jabber);
-get_message2(#jabber{type = Type}) ->
-    ?LOGF("Unknown message type: ~p~n", [Type], ?ERR),
-    {error, unknown_message}.
-
+    auth_sasl_session(Jabber).
 
 
 %%----------------------------------------------------------------------
@@ -241,7 +237,7 @@ get_message2(#jabber{type = Type}) ->
 %%----------------------------------------------------------------------
 connect(#jabber{domain=Domain}) ->
     list_to_binary([
-      "<stream:stream  id='",
+      "<?xml version='1.0'?><stream:stream  id='",
       ts_msg_server:get_id(list),
       "' to='",
       Domain,
