@@ -241,7 +241,7 @@ connect(#jabber{domain=Domain}) ->
       ts_msg_server:get_id(list),
       "' to='",
       Domain,
-      "' xmlns='jabber:client' xmlns:stream='http://etherx.jabber.org/streams'>"]).
+      "' xmlns='jabber:client' version='1.0' xmlns:stream='http://etherx.jabber.org/streams'>"]).
 
 %%----------------------------------------------------------------------
 %% Func: close/0
