@@ -136,7 +136,7 @@ get_online(UserServer,Id) when is_list(Id)->
     get_online(UserServer,list_to_integer(Id));
 get_online(UserServer,Id) when is_integer(Id)->
     gen_server:call(UserServer, {get_online, Id}).
-    
+
 get_online(Id) when is_list(Id) ->
     get_online(list_to_integer(Id));
 get_online(Id) when is_integer(Id) ->
@@ -147,7 +147,7 @@ get_offline(default) ->
     get_offline();
 get_offline(UserServer) ->
     gen_server:call(UserServer, get_offline).
-    
+
 get_offline()->
     gen_server:call({global, ?MODULE}, get_offline).
 

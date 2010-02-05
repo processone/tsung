@@ -1,4 +1,4 @@
-%%%
+$%%%
 %%%  Copyright © IDEALX S.A.S. 2004
 %%%
 %%%  Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
@@ -59,26 +59,25 @@ parse_config(Element = #xmlElement{name=jabber},
     Show= ts_config:getAttr(string,Element#xmlElement.attributes, show, "chat"),
     Status= ts_config:getAttr(string,Element#xmlElement.attributes, status, "Available"),
     Type= list_to_atom(TypeStr),
-    Room = ts_config:getAttr(string,Element#xmlElement.attributes, room, undefined), 
-    Nick = ts_config:getAttr(string,Element#xmlElement.attributes, nick, undefined), 
-    
+    Room = ts_config:getAttr(string,Element#xmlElement.attributes, room, undefined),
+    Nick = ts_config:getAttr(string,Element#xmlElement.attributes, nick, undefined),
     Node = case ts_config:getAttr(string, Element#xmlElement.attributes, 'node', undefined) of
                     "" -> user_root;
                     X -> X
                 end,
     NodeType = ts_config:getAttr(string, Element#xmlElement.attributes, 'node_type', undefined),
-    %% This specify where the node identified in the 'node' attribute is located.  
+    %% This specify where the node identified in the 'node' attribute is located.
     %% If node is undefined  (no node attribute)
     %%    -> we don't specify the node, let the server choose one for us.
     %% else
     %%     If node is absolute (starts with "/")
-    %%         use that absolute address 
+    %%         use that absolute address
     %%     else
     %%        the address is relative. Composed of two variables: user and node
-    %%        if node is "" (attribute node="") 
+    %%        if node is "" (attribute node="")
     %%            we want the "root" node for that user (/home/domain/user)
     %%        else
-    %%            we want a specific child node for that user (/home/domain/user/node)  
+    %%            we want a specific child node for that user (/home/domain/user/node)
     %%        in both cases, the user is obtained as:
     %%        if dest == "random"
     %%           random_user()

@@ -54,7 +54,7 @@ get_message(#jabber{type = 'presence:final', id=Id,user_server=UserServer}) ->
     presence(unavailable);
 get_message(#jabber{type = 'presence:broadcast', show=Show, status=Status}) ->
     presence(broadcast, Show, Status);
-get_message(Jabber=#jabber{type = 'presence:directed', id=Id, 
+get_message(Jabber=#jabber{type = 'presence:directed', id=Id,
                            show=Show, status=Status,user_server=UserServer}) ->
     case ts_user_server:get_online(UserServer,Id) of
         {ok, Dest} ->
@@ -79,7 +79,7 @@ get_message(#jabber{type = 'presence:subscribe'}) -> %% must be called AFTER iq:
         RosterJid ->
             presence(subscribe, RosterJid)
     end;
-get_message(Jabber=#jabber{type = 'chat', id=Id, dest=online, 
+get_message(Jabber=#jabber{type = 'chat', id=Id, dest=online,
                            domain=Domain,user_server=UserServer})->
     case ts_user_server:get_online(UserServer,Id) of
         {ok, Dest} ->
@@ -89,7 +89,7 @@ get_message(Jabber=#jabber{type = 'chat', id=Id, dest=online,
             << >>
     end;
 
-get_message(Jabber=#jabber{type = 'chat', domain = Domain, 
+get_message(Jabber=#jabber{type = 'chat', domain = Domain,
                            dest=offline,user_server=UserServer}) ->
     case ts_user_server:get_offline(UserServer) of
         {ok, Dest} ->

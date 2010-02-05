@@ -41,7 +41,6 @@
                  sid,      %% used to generate digest passwd
                  show,     %% presence <show/> - see RFC 3921, section 2.2
                  status,    %% presence <status/> - see RFC 3921, section 2.2
-                 
                  muc_service, %% ej: conference.localhost
                  room,        %% MUC room name
                  nick,         %% nickname in MUC room

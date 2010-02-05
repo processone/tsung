@@ -142,11 +142,11 @@ parse_config(Element, Conf) ->
 
 %% The rest of the code expect to found a "domain" field in the #jabber request
 %% with the domain of the jabber server (as string). We use the step of dynvars substitution
-%% to choose and set the domain we want to connect, and keep that choice in the 
+%% to choose and set the domain we want to connect, and keep that choice in the
 %% process dictionary so we reuse it for all request made from the same session.
 %% (see comments on choose_domain/1
 %%
-%% if we are testing a single domain (the default case), we  change from {domain,D}. 
+%% if we are testing a single domain (the default case), we  change from {domain,D}.
 %% to the specified domain (D). If {vhost,FileId}, we choose a domain from that file
 %% and set it.
 add_dynparams(Subst,DynData, Param =#jabber{domain={domain,Domain}}, Host) ->
@@ -158,7 +158,7 @@ add_dynparams(Subst,DynData, Param =#jabber{domain={domain,Domain}}, Host) ->
 add_dynparams(Subst,DynData,Param =#jabber{domain={vhost,FileId}}, Host) ->
     {UserId,Domain,UserServer} = choose_domain(FileId),
     add_dynparams(Subst,DynData, Param#jabber{id=UserId,
-                                              domain=Domain, 
+                                              domain=Domain,
                                               user_server=UserServer},Host);
 
 add_dynparams(_Subst,[], Param, _Host) ->

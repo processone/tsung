@@ -222,7 +222,7 @@ parse(Element = #xmlElement{name=client, attributes=Attrs},
 parse(Element = #xmlElement{name=ip, attributes=Attrs},
       Conf = #config{clients=[CurClient|CList]}) ->
     IPList = CurClient#client.ip,
-    ToResolve = case getAttr(Attrs, value) of 
+    ToResolve = case getAttr(Attrs, value) of
              "resolve" ->
                  CurClient#client.host;
              StrIP ->
