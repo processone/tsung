@@ -49,9 +49,9 @@ Content-Length: 30
 ",
     NewData="HTTP/1.1 200 OK
 Server: Apache/2.0.46 (White Box)
-Content-Length: 33
+Content-Length: 30
 <html><head></head><body>
-<h1>http://ssl-foo.bar/toto</h1>
+<h1>http://-foo.bar/toto</h1>
 </body></html>
 ",
      ?assertMatch({ok,NewData},
@@ -69,10 +69,10 @@ Content-Length: 30
 ",
     NewData="HTTP/1.1 200 OK
 Server: Apache/2.0.46 (White Box)
-Location: http://ssl-foo.bar/
-Content-Length: 36
+Location: http://-foo.bar/
+Content-Length: 30
 <html><head></head><body>
-<h1>http://ssl-foo.bar/toto or http://ssl-foo.bar/glop</h1>
+<h1>http://-foo.bar/toto or http://-foo.bar/glop</h1>
 </body></html>
 ",
      ?assertMatch({ok,NewData},
@@ -89,7 +89,7 @@ Content-Length: 30
 ",
     NewData="HTTP/1.1 200 OK
 Server: Apache/2.0.46 (White Box)
-Location: http://ssl-foo.bar/
+Location: http://-foo.bar/
 Content-Length: 30
 <html><head></head><body>
 </body></html>
@@ -99,22 +99,29 @@ Content-Length: 30
 
 rewrite_http_encode_test()->
      myset_env(),
-    Data="GET http://ssl-foobar.foo42.fr/ HTTP/1.1\r\nHost: ssl-foobar.foo42.fr\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-15,utf-8;q=0.7,*;q=0.7\r\n\r\n",
+    Data="GET http://-foobar.foo42.fr/ HTTP/1.1\r\nHost: -foobar.foo42.fr\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-15,utf-8;q=0.7,*;q=0.7\r\n\r\n",
     NewData="GET https://foobar.foo42.fr/ HTTP/1.1\r\nHost: foobar.foo42.fr\r\nAccept-Charset: ISO-8859-15,utf-8;q=0.7,*;q=0.7\r\n\r\n",
+     ?assertMatch({ok,NewData},
+                  ts_utils:to_https({request,Data})).
+
+rewrite_http_encode2_test()->
+     myset_env(),
+    Data="GET http://gforge-qualif.foo.fr/ HTTP/1.1\r\nHost: gforge-qualif.foo.fr\r\nUser-Agent: Mozilla/5.0 (X11; U; Linux x86_64; fr; rv:1.9.1.6) Gecko/20100107 Fedora/3.5.6-1.fc12 Firefox/3.5.6\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\nAccept-Language: fr,en-us;q=0.7,en;q=0.3\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-15,utf-8;q=0.7,*;q=0.7\r\nKeep-Alive: 300\r\nProxy-Connection: keep-alive\r\nPragma: no-cache\r\nCache-Control: no-cache\r\n\r\n",
+    NewData="GET http://gforge-qualif.foo.fr/ HTTP/1.1\r\nHost: gforge-qualif.foo.fr\r\nUser-Agent: Mozilla/5.0 (X11; U; Linux x86_64; fr; rv:1.9.1.6) Gecko/20100107 Fedora/3.5.6-1.fc12 Firefox/3.5.6\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\nAccept-Language: fr,en-us;q=0.7,en;q=0.3\r\nAccept-Charset: ISO-8859-15,utf-8;q=0.7,*;q=0.7\r\nKeep-Alive: 300\r\nProxy-Connection: keep-alive\r\nPragma: no-cache\r\nCache-Control: no-cache\r\n\r\n",
      ?assertMatch({ok,NewData},
                   ts_utils:to_https({request,Data})).
 
 rewrite_webdav_test()->
      myset_env(),
-    Data = "REPORT /tsung/!svn/vcc/default HTTP/1.1\r\nUser-Agent: SVN/1.4.4 (r25188) neon/0.25.5\r\nConnection: TE\r\nTE: trailers\r\nContent-Length: 172\r\nContent-Type: text/xml\r\nAccept-Encoding: svndiff1;q=0.9,svndiff;q=0.8\r\nAccept-Encoding: gzip\r\nAccept-Encoding: gzip\r\n\r\n<S:update-report send-all=\"true\" xmlns:S=\"svn:\"><S:src-path>http://ssl-svn.process-one.net/tsung/trunk/examples</S:src-path><S:entry rev=\"816\" ></S:entry></S:update-report>",
-    NewData="REPORT /tsung/!svn/vcc/default HTTP/1.1\r\nUser-Agent: SVN/1.4.4 (r25188) neon/0.25.5\r\nConnection: TE\r\nTE: trailers\r\nContent-Length: 169\r\nContent-Type: text/xml\r\nAccept-Encoding: svndiff1;q=0.9,svndiff;q=0.8\r\n\r\n<S:update-report send-all=\"true\" xmlns:S=\"svn:\"><S:src-path>https://svn.process-one.net/tsung/trunk/examples</S:src-path><S:entry rev=\"816\" ></S:entry></S:update-report>",
+    Data = "REPORT /tsung/!svn/vcc/default HTTP/1.1\r\nUser-Agent: SVN/1.4.4 (r25188) neon/0.25.5\r\nConnection: TE\r\nTE: trailers\r\nContent-Length: 172\r\nContent-Type: text/xml\r\nAccept-Encoding: svndiff1;q=0.9,svndiff;q=0.8\r\nAccept-Encoding: gzip\r\nAccept-Encoding: gzip\r\n\r\n<S:update-report send-all=\"true\" xmlns:S=\"svn:\"><S:src-path>http://-svn.process-one.net/tsung/trunk/examples</S:src-path><S:entry rev=\"816\" ></S:entry></S:update-report>",
+    NewData="REPORT /tsung/!svn/vcc/default HTTP/1.1\r\nUser-Agent: SVN/1.4.4 (r25188) neon/0.25.5\r\nConnection: TE\r\nTE: trailers\r\nContent-Length: 172\r\nContent-Type: text/xml\r\nAccept-Encoding: svndiff1;q=0.9,svndiff;q=0.8\r\n\r\n<S:update-report send-all=\"true\" xmlns:S=\"svn:\"><S:src-path>https://svn.process-one.net/tsung/trunk/examples</S:src-path><S:entry rev=\"816\" ></S:entry></S:update-report>",
      ?assertMatch({ok,NewData},
                   ts_utils:to_https({request,Data})).
 
 
 rewrite_http_encode_post_test()->
     myset_env(),
-    Data="POST http://ssl-foobar.foo42.fr/ HTTP/1.1\r\nHost: ssl-foobar.foo42.fr\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-15,utf-8;q=0.7,;q=0.7Content-Type: application/x-www-form-urlencoded\r\nContent-Length: 24\r\n\r\nuname=admin&upass=*****",
+    Data="POST http://-foobar.foo42.fr/ HTTP/1.1\r\nHost: -foobar.foo42.fr\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-15,utf-8;q=0.7,;q=0.7Content-Type: application/x-www-form-urlencoded\r\nContent-Length: 24\r\n\r\nuname=admin&upass=*****",
     NewData="POST https://foobar.foo42.fr/ HTTP/1.1\r\nHost: foobar.foo42.fr\r\nAccept-Charset: ISO-8859-15,utf-8;q=0.7,;q=0.7Content-Type: application/x-www-form-urlencoded\r\nContent-Length: 24\r\n\r\nuname=admin&upass=*****",
     ?assertMatch({ok,NewData},ts_utils:to_https({request,Data})).
 
