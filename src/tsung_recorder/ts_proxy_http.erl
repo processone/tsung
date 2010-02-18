@@ -155,7 +155,10 @@ check_and_send(String,Parent,ServerSocket,#http_request{url=RequestURI},State)->
     {NewSocket,RelURL} = check_serversocket(Parent,ServerSocket,RequestURI,State#proxy.clientsock),
     ?LOGF("Remove server info from url:[ ~p ]  [ ~p ] in [ ~p ] ~n",
           [RequestURI,RelURL,String], ?INFO),
-    {ok, RealString} = relative_url(Parent,String,RequestURI,RelURL),
+    {ok, String2} = relative_url(Parent,String,RequestURI,RelURL),
+    %% needed to remove accept-encoding headers in the http request:
+    {ok, RealString} = ts_utils:to_https({request,String2}),
+    ?LOGF("send data to server: ~p ~n",[RealString],?DEB),
     ts_client_proxy:send(NewSocket,RealString, ?MODULE),
     {ok, NewSocket}.
 
@@ -181,7 +184,7 @@ relative_url(false,String,RequestURI,RelURL)->
 %%--------------------------------------------------------------------
 check_serversocket(false, Socket,  URL , ClientSock) ->
     check_serversocket(Socket,  URL , ClientSock);
-check_serversocket(true, Socket,  "http://ssl-"++URL, ClientSock) ->
+check_serversocket(true, Socket,  "http://-"++URL, ClientSock) ->
     check_serversocket(true, Socket, "https://"++URL, ClientSock);
 check_serversocket(true, undefined, URL, _ClientSock) ->
     ?LOGF("Connecting to parent proxy ~p:~p ...~n",
@@ -198,7 +201,7 @@ check_serversocket(true, Socket, URL, _ClientSock) ->
 %%          same, connect to the server as specified in URL
 %% Returns: {Socket, RelativeURL (String)}
 %%--------------------------------------------------------------------
-check_serversocket(Socket, "http://ssl-" ++ Rest, ClientSock) ->
+check_serversocket(Socket, "http://-" ++ Rest, ClientSock) ->
     check_serversocket(Socket, ts_config_http:parse_URL("https://"++Rest), ClientSock);
 check_serversocket(Socket, URL, ClientSock) when is_list(URL)->
     check_serversocket(Socket, ts_config_http:parse_URL(URL), ClientSock);

@@ -431,22 +431,23 @@ is_ip(_) -> false.
 %% to_https/1
 %% Purpose: rewrite https URL, to act as a pure non ssl proxy
 %%----------------------------------------------------------------------
-to_https({url, "http://ssl-"++Rest})-> "https://" ++ Rest;
+to_https({url, "http://-"++Rest})-> "https://" ++ Rest;
 to_https({url, URL})-> URL;
 to_https({request, {body,Data}}) when is_list(Data) ->
     %% body request, no headers
     {ok,RealBody,_Count} = regexp:gsub(Data,"http://ssl-","https://"),
     {ok, RealBody};
+to_https({request, S="CONNECT"++Rest}) -> {ok,S};
 to_https({request, String}) when is_list(String) ->
     EndOfHeader = string:str(String, "\r\n\r\n"),
     Header = string:substr(String, 1, EndOfHeader - 1) ++ "\r\n",
     Body = string:substr(String, EndOfHeader + 4),
-    {ok,TmpHeader,_} = regexp:gsub(Header,"http://ssl-","https://"),
+    {ok,TmpHeader,_} = regexp:gsub(Header,"http://-","https://"),
     {ok,TmpHeader2,_} = regexp:gsub(TmpHeader,"Accept-Encoding: [0-9,a-zA-Z_]+\r\n",""),
-    {ok,RealHeader,_} = regexp:gsub(TmpHeader2,"Host: ssl-","Host: "),
-    {ok,RealBody,Count} = regexp:gsub(Body,"http://ssl-","https://"),
+    {ok,RealHeader,_} = regexp:gsub(TmpHeader2,"Host: -","Host: "),
+    {ok,RealBody,Count} = regexp:gsub(Body,"http://-","https://"),
     RealString = RealHeader ++ "\r\n" ++ RealBody,
-    update_content_length(RealString,-Count).
+    {ok, RealString}.
 
 from_https(String) when is_list(String)->
     %% remove Secure from Set-Cookie (TSUN-120)
@@ -464,35 +465,9 @@ from_https(String) when is_list(String)->
                    {match,_,_} -> -1;
                    _           ->  0
                end,
-    {ok,NewString,RepCount} = regexp:gsub(TmpString,"https://","http://ssl-"),
-    case {RepCount,Location} of
-        {0,_}  -> {ok, NewString};
-        {1,-1} -> {ok, NewString};
-        {Count,Location}->
-            ?LOGF("substitute https: ~p times~n",[Count],?INFO),
-            update_content_length(NewString,Count+Location)
-    end.
+    {ok,NewString,RepCount} = regexp:gsub(TmpString,"https://","http://-"),
+    {ok, NewString}.
 
-%% @spec update_content_length(string(), Count::integer()) -> {ok, String::string()}
-%% @doc since the length of URL is changed (https:// to http://ssl- )
-%% we must recalculate Content-Length if it is defined.
-update_content_length(String,0)     -> {ok, String } ;
-update_content_length(String,Count) ->
-    case gregexp:groups(String,"[cC]ontent-[Ll]ength: \\([0-9]+\\)") of
-        {match,[CType]} ->
-            %% FIXME: What if the response is split into several packets ?
-            %% We add|del 3 chars in the URL (4 "ssl-" minus one (https -> http))
-            NewCType = integer_to_list(list_to_integer(CType) + (Count)*3),
-            ?LOGF("We must update content-length: was ~p, must be ~p~n",
-                  [CType, NewCType],?INFO),
-            {ok,NewString,_} = regexp:sub(String,
-                                           "[Cc]ontent-[Ll]ength: [0-9]+",
-                                           "Content-Length: " ++ NewCType),
-            {ok, NewString};
-        nomatch ->
-            ?LOG("no content-length found~n", ?DEB),
-            {ok, String}
-    end.
 
 %% A Perl-style join --- concatenates all strings in Strings,
 %% separated by Sep.

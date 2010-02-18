@@ -37,7 +37,7 @@ parse_http_request5_test() ->
                                  ++"Content-length: 16\r\n\r\n"
                                  ++"mesdata\r\nsdfsdfs\r\n\r\n"),
     CL = ts_utils:key1search(Http#http_request.headers,"content-length"),
-    ?assertMatch({16, "mesdata\r\nsdfsdfs\r\n\r\n"},{list_to_integer(CL), Body}).
+    ?assertEqual({16, "mesdata\r\nsdfsdfs\r\n\r\n"},{list_to_integer(CL), Body}).
 parse_http_request6_test() ->
 %    ?log("Testing HTTP request parsing, POST with content-length; partial ", []),
     {more, Http, Body} = parse_req("POST / HTTP/1.0\r\n"
@@ -46,7 +46,7 @@ parse_http_request6_test() ->
     Rest = "ngth: 16\r\n\r\n"++"mesdata\r\nsdfsdfs\r\n\r\n",
     {ok, Http2, Body2} = parse_req(Http,Body ++ Rest),
     CL = ts_utils:key1search(Http2#http_request.headers,"content-length"),
-    ?assertMatch({16, "mesdata\r\nsdfsdfs\r\n\r\n"},{list_to_integer(CL), Body2}).
+    ?assertEqual({16, "mesdata\r\nsdfsdfs\r\n\r\n"},{list_to_integer(CL), Body2}).
 
 parse_http_request7_test() ->
     Req= "GET http://www.niclux.org/ HTTP/1.1\r\nHost: www.niclux.org\r\nUser-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.7.5) Gecko/20041209 Firefox/1.0 (Ubuntu) (Ubuntu package 1.0-2ubuntu4-warty99)\r\nAccept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5\r\nAccept-Language: fr-fr,en-us;q=0.7,en;q=0.3\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-15,utf-8;q=0.7,*;q=0.7\r\nKeep-Alive: 300\r\nProxy-Connection: keep-alive\r\n\r\n",
@@ -54,21 +54,21 @@ parse_http_request7_test() ->
 
 decode_base64_test()->
     Base="QWxhZGRpbjpvcGVuIHNlc2FtZQ==",
-    ?assertMatch({"Aladdin","open sesame"}, ts_proxy_http:decode_basic_auth(Base)).
+    ?assertEqual({"Aladdin","open sesame"}, ts_proxy_http:decode_basic_auth(Base)).
 
 %%TODO: should be in ts_test_http
 encode_base64_test()->
     Base="QWxhZGRpbjpvcGVuIHNlc2FtZQ==",
-    ?assertMatch(["Authorization: Basic ",Base,?CRLF], ts_http_common:authenticate("Aladdin","open sesame")).
+    ?assertEqual(["Authorization: Basic ",Base,?CRLF], ts_http_common:authenticate("Aladdin","open sesame")).
 
 rewrite_http_secure_cookie_test()->
     Data="HTTP/1.1 200 OK\r\nSet-Cookie: JSESSIONID=F949C9182402EB74258F43FDC3F3C63F; Path=/; Secure\r\nLocation: https://foo.bar/\r\nContent-Length: 0\r\n\r\n",
-    NewData="HTTP/1.1 200 OK\r\nSet-Cookie: JSESSIONID=F949C9182402EB74258F43FDC3F3C63F; Path=/\r\nLocation: http://ssl-foo.bar/\r\nContent-Length: 0\r\n\r\n",
-     ?assertMatch({ok,NewData},
+    NewData="HTTP/1.1 200 OK\r\nSet-Cookie: JSESSIONID=F949C9182402EB74258F43FDC3F3C63F; Path=/\r\nLocation: http://-foo.bar/\r\nContent-Length: 0\r\n\r\n",
+     ?assertEqual({ok,NewData},
                   ts_utils:from_https(Data)).
 
 rewrite_http_secure_cookies_test()->
     Data="HTTP/1.1 200 OK\r\nSet-Cookie: JSESSIONID=F949C9182402EB74258F43FDC3F3C63F; Path=/; Secure\r\nSet-Cookie: JSESSIONID=32; Path=/foo; Secure\r\nLocation: https://foo.bar/\r\nContent-Length: 0\r\n\r\n",
-    NewData="HTTP/1.1 200 OK\r\nSet-Cookie: JSESSIONID=F949C9182402EB74258F43FDC3F3C63F; Path=/\r\nSet-Cookie: JSESSIONID=32; Path=/foo\r\nLocation: http://ssl-foo.bar/\r\nContent-Length: 0\r\n\r\n",
+    NewData="HTTP/1.1 200 OK\r\nSet-Cookie: JSESSIONID=F949C9182402EB74258F43FDC3F3C63F; Path=/\r\nSet-Cookie: JSESSIONID=32; Path=/foo\r\nLocation: http://-foo.bar/\r\nContent-Length: 0\r\n\r\n",
      ?assertMatch({ok,Data2},
                   ts_utils:from_https(Data)).
