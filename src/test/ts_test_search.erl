@@ -189,10 +189,17 @@ parse_subst_var_fun_test() ->
     [{Name,Value}] = ts_search:parse_dynvar([{regexp, 'jsf_tree_64', Regexp }],list_to_binary(Data)),
     ?assertMatch("H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA-MSFT", ts_search:subst("%%_jsf_tree_64%%-%%ts_test_search:new%%",[{Name,Value}])).
 
-parse_subst_regexp_sid_test() ->
+parse_subst_badregexp_sid_test() ->
     myset_env(),
     Data="HTTP/1.1 200 OK\r\nServer: nginx/0.7.65\r\nDate: Fri, 05 Feb 2010 08:13:29 GMT\r\nContent-Type: text/xml; charset=utf-8\r\nConnection: keep-alive\r\nContent-Length: 373\r\n\r\n<body polling=\"10\" ver=\"1.6\" secure=\"true\" wait=\"20\" requests=\"2\" hold=\"1\" sid=\"5bfd2b59-3144-4e62-993b-d05d2ae3bee9\" xmpp:version=\"1.0\" xmlns:stream=\"http://etherx.jabber.org/streams\" authid=\"b65b29eb-99c0-4afd-8f97-d6d20f4ddba2\" maxpause=\"10\" from=\"tigase-test\" inactivity=\"10\" ack=\"2995502128855\" xmlns:xmpp=\"urn:xmpp:xbosh\" xmlns=\"http://jabber.org/protocol/httpbind\"/>",
     Regexp = "sid=\".*?\"",
+    [{Name,Value}] = ts_search:parse_dynvar([{regexp, sid, Regexp }],list_to_binary(Data)),
+    ?assertEqual({sid,""},{Name,Value}).
+
+parse_subst_regexp_sid_test() ->
+    myset_env(),
+    Data="HTTP/1.1 200 OK\r\nServer: nginx/0.7.65\r\nDate: Fri, 05 Feb 2010 08:13:29 GMT\r\nContent-Type: text/xml; charset=utf-8\r\nConnection: keep-alive\r\nContent-Length: 373\r\n\r\n<body polling=\"10\" ver=\"1.6\" secure=\"true\" wait=\"20\" requests=\"2\" hold=\"1\" sid=\"5bfd2b59-3144-4e62-993b-d05d2ae3bee9\" xmpp:version=\"1.0\" xmlns:stream=\"http://etherx.jabber.org/streams\" authid=\"b65b29eb-99c0-4afd-8f97-d6d20f4ddba2\" maxpause=\"10\" from=\"tigase-test\" inactivity=\"10\" ack=\"2995502128855\" xmlns:xmpp=\"urn:xmpp:xbosh\" xmlns=\"http://jabber.org/protocol/httpbind\"/>",
+    Regexp = "sid=\"\\([^\"]*\\)\"",
     [{Name,Value}] = ts_search:parse_dynvar([{regexp, sid, Regexp }],list_to_binary(Data)),
     ?assertEqual({sid,"5bfd2b59-3144-4e62-993b-d05d2ae3bee9"},{Name,Value}).
 

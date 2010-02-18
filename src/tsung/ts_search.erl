@@ -270,6 +270,9 @@ parse_dynvar([{regexp,VarName, RegExp}| DynVarsSpecs],
                             ts_dynvars:set(VarName,Value,DynVars));
         nomatch ->
             ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName], ?WARN),
+            parse_dynvar(DynVarsSpecs, Binary,String,Tree, ts_dynvars:set(VarName,"",DynVars));
+        {match, []} ->
+            ?LOGF("Dyn Var: empty Match (varname=~p), ~n",[VarName], ?NOTICE),
             parse_dynvar(DynVarsSpecs, Binary,String,Tree, ts_dynvars:set(VarName,"",DynVars))
     end;
 
