@@ -28,7 +28,7 @@
 use strict;
 use Getopt::Long;
 use vars qw ($help @files $verbose $debug $noplot $noextra $version $stats
-             $template_dir $nohtml $template_dir $gnuplot $logy);
+             $template_dir $nohtml $template_dir $gnuplot $logy $rotate_xtics );
 my $tagvsn = '@PACKAGE_VERSION@';
 
 GetOptions( "help",\$help,
@@ -41,6 +41,7 @@ GetOptions( "help",\$help,
             "noplot",\$noplot,
             "tdir=s",\$template_dir,
             "nohtml",\$nohtml,
+            "rotate-xtics",\$rotate_xtics,
             "noextra",\$noextra
           );
 
@@ -126,6 +127,7 @@ sub plot_stats {
         }
         # gnuplot styles and options
         print "set size $thumbnail_size,$thumbnail_size\n" if ($output_ext eq "png");
+        print "set xtics rotate by +90\n"  if (($output_ext eq "png") and ($rotate_xtics));
         print "set data style $style\n";
         print "set terminal $output_type\n";
         print "set grid\n";
@@ -450,6 +452,7 @@ type `tsung_stats.pl --version` for details.\n\n";
     "[--logy]  (logarithmic scale for Y axis)\n\t",
     "[--tdir <template_dir>] (Path to the HTML tsung templates)\n\t",
     "[--noextra  (don't generate graphics from extra data (os monitor, etc)\n\t",
+    "[--rotate-xtics  (rotate legend of x axes)\n\t",
     "[--stats <file>] (stats file to analyse, default=tsung.log)\n\t";
     exit;
     }
