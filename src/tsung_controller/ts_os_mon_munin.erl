@@ -53,7 +53,8 @@
           socket,     % tcp socket
           port,       % tcp port of munin-node server
           host,       % remote munin-node hostname
-          addr        % remote munin-node IP addr
+          addr,       % remote munin-node IP addr
+          ncpus       % number of cpus of remote server
          }).
 
 start(Args) ->
@@ -120,13 +121,13 @@ handle_info({timeout,_Ref,connect},State=#state{addr=IP,port=Port,host=HostStr})
                 {ok, "# munin node at "++ Str} ->
                     MuninHost = ts_utils:chop(Str),
                     ?LOGF("Connected to ~p~n", [MuninHost], ?INFO),
-                    %% must fetch some data, otherwise munin-node
-                    %% timeout and close the connection
-                    gen_tcp:send(Socket,"fetch load\n"),
-                    read_munin_data(Socket),
+                    %% We want CPU value ranging from 0 to 100, so we need the max value :
+                    gen_tcp:send(Socket,"config cpu\n"),
+                    ConfigCPU=read_munin_data(Socket),
+                    NCPUs=proplists:get_value('user.max',ConfigCPU)/100,
                     ?LOGF("first fetch succesful to ~p~n", [MuninHost], ?INFO),
                     erlang:start_timer(State#state.interval, self(), send_request ),
-                    {noreply, State#state{socket=Socket,host=MuninHost}};
+                    {noreply, State#state{socket=Socket,host=MuninHost,ncpus=NCPUs}};
                 {error, Reason} ->
                     ?LOGF("Error while connecting to munin server: ~p~n", [Reason], ?ERR),
                     {stop, Reason, State}
@@ -153,7 +154,7 @@ handle_info({timeout, _Ref, send_request},  State=#state{socket=Socket,host=Host
     RawCpu = lists:foldl(fun({_Key,Val},Acc) when is_integer(Val)->
                                  Acc+Val
                          end,0,NonIdle) / (State#state.interval div 1000),
-    Cpu=check_value(RawCpu,{Hostname,"cpu"}),
+    Cpu=check_value(RawCpu,{Hostname,"cpu"})/State#state.ncpus,
     ?LOGF(" munin cpu on host ~p is  ~p~n", [Hostname,Cpu], ?DEB),
     %% returns free + buffer + cache
     FunFree = fun({Key,Val},Acc) when ((Key=='buffers.value') or
@@ -179,6 +180,8 @@ handle_info({timeout, _Ref, send_request},  State=#state{socket=Socket,host=Host
 %% Description: Shutdown the server
 %% Returns: any (ignored by gen_server)
 %%--------------------------------------------------------------------
+terminate(_Reason, #state{socket=undefined}) ->
+    ok;
 terminate(_Reason, #state{socket=Socket}) ->
     gen_tcp:close(Socket).
 
@@ -200,9 +203,12 @@ read_munin_data(Socket)->
 read_munin_data(_Socket,{ok,".\n"}, Acc)->
     Acc;
 read_munin_data(Socket,{ok, Data}, Acc) when is_list(Acc)->
+    ?DebugF("Parse munin data: ~p~n",[Data]),
     NewAcc = case string:tokens(Data," \n") of
                  [Key, Value] ->
                      [{list_to_atom(Key), ts_utils:list_to_number(Value)}|Acc];
+                 [_Key| _Rest] -> %skip
+                     Acc;
                  _ ->
                      ?LOGF("Unknown data received from munin server: ~p~n",[Data],?WARN),
                      Acc
