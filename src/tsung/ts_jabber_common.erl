@@ -107,31 +107,31 @@ get_message(Jabber=#jabber{type = 'chat', dest=unique, domain=Domain,user_server
 get_message(Jabber=#jabber{type = 'chat', id=_Id, dest = Dest, domain=Domain}) ->
     ?DebugF("~w -> ~w ~n", [_Id,  Dest]),
     message(Dest, Jabber, Domain);
-get_message(#jabber{type = 'iq:roster:add', id=Id, dest = online,username=User,
-                    domain=Domain,user_server=UserServer}) ->
+get_message(#jabber{type = 'iq:roster:add', id=Id, dest = online, username=User,
+                    domain=Domain, group=Group,user_server=UserServer}) ->
     case ts_user_server:get_online(UserServer,Id) of
         {ok, Dest} ->
-            request(roster_add, User, Domain, Dest);
+            request(roster_add, User, Domain, Dest, Group);
         {error, no_online} ->
             ts_mon:add({ count, error_no_online }),
             << >>
     end;
-get_message(#jabber{type = 'iq:roster:add',dest = offline,username=User,
-                    domain=Domain,user_server=UserServer})->
+get_message(#jabber{type = 'iq:roster:add',dest = offline, username=User,
+                    domain=Domain, group=Group, user_server=UserServer})->
     case ts_user_server:get_offline(UserServer) of
         {ok, Dest} ->
-            request(roster_add, User, Domain, Dest);
+            request(roster_add, User, Domain, Dest, Group);
         {error, no_offline} ->
             ts_mon:add({ count, error_no_offline }),
             << >>
     end;
-get_message(#jabber{type = 'iq:roster:rename'})-> %% must be called AFTER iq:roster:add
+get_message(#jabber{type = 'iq:roster:rename', group=Group})-> %% must be called AFTER iq:roster:add
     case get(rosterjid) of
         undefined ->
             ?LOG("Warn: no jid set for iq:roster:rename msg, skip",?WARN),
             <<>>;
         RosterJid ->
-            request(roster_rename, RosterJid)
+            request(roster_rename, RosterJid, Group)
     end;
 get_message(#jabber{type = 'iq:roster:remove'})-> %% must be called AFTER iq:roster:add
     case get(rosterjid) of
@@ -471,14 +471,15 @@ presence(directed, Dest, #jabber{username=UserName,domain=Domain}, Show, Status)
           "<show>", Show, "</show><status>", Status, "</status></presence>"]).
 
 %%----------------------------------------------------------------------
-%% Func: request/2
+%% Func: request/3
 %%----------------------------------------------------------------------
-request(roster_rename, RosterJid) ->
+request(roster_rename, RosterJid,Group) ->
         list_to_binary([
                 "<iq id='" ,ts_msg_server:get_id(list),
                 "' type='set'><query xmlns='jabber:iq:roster'><item jid='"
                 ,RosterJid,
-                "' name='Tsung Testuser'><group>Tsung Group</group></item></query></iq>"]);
+                "' name='Tsung Testuser'><group>", Group, "</group></item></query></iq>"]).
+
 request(roster_remove, RosterJid) ->
         list_to_binary([
                 "<iq id='" ,ts_msg_server:get_id(list),
@@ -486,11 +487,11 @@ request(roster_remove, RosterJid) ->
                 ,RosterJid,
                 "' subscription='remove'/></query></iq>"]).
 %%----------------------------------------------------------------------
-%% Func: request/4
+%% Func: request/5
 %%----------------------------------------------------------------------
-request(roster_add, UserName, Domain, Id) when is_integer(Id)->
-    request(roster_add, UserName, Domain, integer_to_list(Id));
-request(roster_add, UserName, Domain, Id)->
+request(roster_add, UserName, Domain, Id, Group) when is_integer(Id)->
+    request(roster_add, UserName, Domain, integer_to_list(Id), Group);
+request(roster_add, UserName, Domain, Id, Group)->
         Name = username(UserName,Id),
         RosterJid = Name ++ "@" ++ Domain,
         _ = put(rosterjid,RosterJid),
@@ -498,7 +499,8 @@ request(roster_add, UserName, Domain, Id)->
                 "<iq id='" ,ts_msg_server:get_id(list),
                 "' type='set'>","<query xmlns='jabber:iq:roster'><item jid='",
                 RosterJid,
-                "' name='",RosterJid,"'><group>Tsung Group</group></item></query></iq>"]);
+                "' name='",RosterJid,"'><group>",Group,"</group></item></query></iq>"]).
+%% Func: request/4
 request(roster_get, _UserName, _Domain, _Id)->
     list_to_binary([
       "<iq id='" ,ts_msg_server:get_id(list),

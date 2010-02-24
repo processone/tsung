@@ -46,6 +46,7 @@
                  nick,         %% nickname in MUC room
 
                  pubsub_service, %%ej: pubsub.localhost
+                 group,          %% roster group
                  node,           %% pubsub node
                  node_type
                 }).

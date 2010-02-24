@@ -192,6 +192,7 @@ repeat | if | change_type )*>
     status      CDATA   "Available"
     nick        CDATA #IMPLIED
     room        CDATA #IMPLIED
+    group       CDATA #IMPLIED
     node        CDATA #IMPLIED
     node_type   CDATA #IMPLIED >
 

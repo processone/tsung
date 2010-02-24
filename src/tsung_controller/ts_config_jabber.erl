@@ -61,6 +61,7 @@ parse_config(Element = #xmlElement{name=jabber},
     Type= list_to_atom(TypeStr),
     Room = ts_config:getAttr(string,Element#xmlElement.attributes, room, undefined),
     Nick = ts_config:getAttr(string,Element#xmlElement.attributes, nick, undefined),
+    Group = ts_config:getAttr(string,Element#xmlElement.attributes, group, "Tsung Group"),
     Node = case ts_config:getAttr(string, Element#xmlElement.attributes, 'node', undefined) of
                     "" -> user_root;
                     X -> X
@@ -110,6 +111,7 @@ parse_config(Element = #xmlElement{name=jabber},
                                     status   = Status,
                                     room = Room,
                                     nick = Nick,
+                                    group = Group,
                                     muc_service = MUC_service,
                                     pubsub_service = PubSub_service,
                                     node = Node,
