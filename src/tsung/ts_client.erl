@@ -640,6 +640,16 @@ finish_session(State) ->
     Now = now(),
     set_connected_status(false),
     Elapsed = ts_utils:elapsed(State#state_rcv.starttime, Now),
+    case State#state_rcv.transactions of
+        [] -> % no pending transactions, do nothing
+            ok;
+        TrList -> % pending transactions (an error has probably occured)
+            ?LOGF("Pending transactions: ~p, compute transaction time~n",[TrList],?NOTICE),
+            lists:foreach(fun({Tname,StartTime}) ->
+                                  ts_mon:add({sample,Tname,ts_utils:elapsed(StartTime,Now)})
+                          end,
+                          TrList)
+    end,
     ts_mon:endclient({State#state_rcv.id, Now, Elapsed}).
 
 %%----------------------------------------------------------------------
