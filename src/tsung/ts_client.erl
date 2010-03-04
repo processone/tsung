@@ -253,6 +253,7 @@ handle_info({NetEvent, Socket, Data}, think,State=#state_rcv{
     NewState = case Type:parse_bidi(Data, State) of
                    {nodata, State2} ->
                        ?LOG("Bidi: no data ~n",?DEB),
+                       ts_mon:add({count, async_unknown_data_rcv}),
                        State2;
                    {Data2, State2} ->
                        ts_mon:add([{ sum, size_sent, size(Data2)},{count, async_data_rcv}]),
