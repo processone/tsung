@@ -50,7 +50,7 @@ start(_Type, _StartArgs) ->
         {ok, Pid} ->
             {ok, Pid};
         Error ->
-            ?LOGF("Can't start ! ~p ~n",[Error],?ERR),
+            ?LOGF("Can't start supervisor ! ~p ~n",[Error],?ERR),
             Error
     end.
 

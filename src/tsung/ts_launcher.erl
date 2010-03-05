@@ -376,10 +376,14 @@ do_launch({Intensity, MyHostName})->
 %% Check if global names are synced; Annoying "feature" of R10B7 and up
 check_registered() ->
     case global:registered_names() of
+        ["cport"++_Tail] ->
+            ?LOG("Only cport server registered  ! syncing ...~n", ?WARN),
+            global:sync();
         [] ->
             ?LOG("No registered processes ! syncing ...~n", ?WARN),
             global:sync();
-        _ -> ok
+        _ ->
+            ok
     end.
 
 set_warm_timeout(StartDate)->
