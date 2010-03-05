@@ -123,13 +123,14 @@ usage() {
     echo "    -l <logfile>  set log file (default is ~/.tsung/log/YYYYMMDD-HH:MM/tsung.log)"
     echo "    -i <id>       set controller id (default is empty)"
     echo "    -r <command>  set remote connector (default is ssh)"
+    echo "    -s            enable erlang smp on client nodes"
     echo "    -F            use long names (FQDN) for erlang nodes"
     echo "    -v            print version information and exit"
     echo "    -h            display this help and exit"
     exit
 }
 
-while getopts "vhf:l:d:r:i:F" Option
+while getopts "vhf:l:d:r:i:Fs" Option
 do
     case $Option in
         f) CONF_OPT_FILE=$OPTARG;;
@@ -145,6 +146,7 @@ do
         d) DEBUG_LEVEL=$OPTARG;;
         r) ERL_RSH=" -rsh $OPTARG ";;
         F) NAMETYPE="-name";;
+        s) SMP_DISABLE="false";;
         v) version;;
         i) ID=$OPTARG
            COOKIE=$COOKIE"_"$ID
