@@ -55,6 +55,8 @@
 
 <!ELEMENT load (arrivalphase | user)+>
 <!ATTLIST load
+     duration NMTOKEN #IMPLIED
+     unit     (hour | minute | second) "second"
      loop     NMTOKEN "0"
      >
 

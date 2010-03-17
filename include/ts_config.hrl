@@ -35,6 +35,7 @@
 
 -record(config, {
           name,
+          duration,           % max duration of test (by default: end when all clients are done)
           loglevel = ?WARN,
           dump = none,
           stats_backend,

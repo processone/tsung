@@ -918,6 +918,25 @@ after the beginning of the test (using the \userinput{http-example}
 session), one starting after 10 minutes, and a last one starting after
 11 minutes (using the \userinput{foo} session this time)
 
+\subsubsection{Duration of the load test}
+
+By default, tsung will end when all started users have finished their
+session. So it can be much longer than the duration of
+arrivalphases. If you want to stop Tsung  after a given duration
+(even if phases are not finised or if some sessions are stil actives),
+you can do this with the \varname{duration} attribute in \varname{load}:
+\begin{Verbatim}
+ <load duration="1" unit="hour">
+  <arrivalphase phase="1" duration="10" unit="minute">
+    <users interarrival="2" unit="second"></users>
+  </arrivalphase>
+</load>
+\end{Verbatim}
+
+Currently, the maximum value for duration is a little bit less than 50
+days. \varname{unit} can be \userinput{second}, \userinput{minute} or
+\userinput{hour}.
+
 \subsection{Setting options}
 
 \par Default values can be set-up globally: \varname{thinktime} between requests

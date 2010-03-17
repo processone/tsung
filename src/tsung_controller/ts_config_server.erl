@@ -207,6 +207,7 @@ handle_call({read_config, ConfigFile}, _From, State=#state{logdir=LogDir}) ->
                     %% start the file server (if defined) using a separate process (it can be long)
                     spawn(?MODULE, start_file_server, [Config]),
                     NewConfig=loop_load(sort_static(Config#config{sessions=[NewLast]++Sessions})),
+                    set_max_duration(Config#config.duration),
                     {reply, ok, State#state{config=NewConfig, static_users=NewConfig#config.static_users,total_weight = Sum}};
                 {error, Reason} ->
                     ?LOGF("Error while checking config: ~p~n",[Reason],?EMERG),
@@ -406,6 +407,10 @@ handle_cast(Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
+handle_info({timeout, _Ref, end_tsung}, State) ->
+    ts_mon:abort(),
+    ?LOG("Tsung test max duration reached, exits ! ~n",?EMERG),
+    {stop, normal, State};
 handle_info({'EXIT', _Pid, {slave_failure,timeout}}, State) ->
     ts_mon:abort(),
     ?LOG("Abort ! ~n",?EMERG),
@@ -719,3 +724,12 @@ set_nodename(NodeId) when is_integer(NodeId)->
                   Id++"_"
           end,
     "tsung"++ CId++ integer_to_list(NodeId).
+
+%% @spec set_max_duration(integer()) -> ok
+%% @doc start a timer for the maximum duration of the load test. The
+%% maximum duration is 49 days
+set_max_duration(0) -> ok; % nothing to do
+set_max_duration(Duration) when Duration =< 4294967 ->
+    ?LOGF("Set max duration of test: ~p s ~n",[Duration],?NOTICE),
+    erlang:start_timer(Duration*1000, self(), end_tsung ).
+

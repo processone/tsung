@@ -160,8 +160,11 @@ parse(Element = #xmlElement{name=monitor, attributes=Attrs},
 
 %%
 parse(Element = #xmlElement{name=load, attributes=Attrs}, Conf) ->
-    Loop = getAttr(integer, Attrs, loop, 0),
-    lists:foldl(fun parse/2,    Conf#config{load_loop=Loop},
+    Loop     = getAttr(integer, Attrs, loop, 0),
+    IDuration = getAttr(integer, Attrs, duration, 0),
+    Unit     = getAttr(string,  Attrs, unit, "second"),
+    Duration = to_seconds(Unit, IDuration),
+    lists:foldl(fun parse/2,    Conf#config{load_loop=Loop,duration=Duration},
                 Element#xmlElement.content);
 
 
