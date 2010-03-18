@@ -100,7 +100,7 @@ class Plot:
                     # we want timestamp sorted data to plot
                     ts = pdata.keys()
                     ts.sort()
-                    values = [pdata[t] / self.yfactor[nstats] for t in ts]
+                    values = [pdata[t] / self.yfactor[nstats%len(self.yfactor)] for t in ts]
 
                     if self.xfactor not in [1, "1"]:
                         ts = [x / self.xfactor for x in ts]
