@@ -3,10 +3,6 @@
 %% Author: Nicolas Niclausse
 %% Version: $Id$
 
-\def\RCS$#1: #2 ${\expandafter\def\csname RCS#1\endcsname{#2}}
-\RCS$Revision$
-\RCS$Date$
-
 \documentclass{TSUNG-en}
 \usepackage{shortcuts}
 
@@ -18,8 +14,8 @@
 %\addauthor{Nicolas}{Niclausse}{nicolas.niclausse@niclux.org}
 
 \doccopyright{Nicolas Niclausse.}
-\docversion{\RCSRevision}
-\docreldate{\RCSDate}
+\docversion{1.3.2a}
+\docreldate{\date{}}
 \docref{tsung-user-manual}
 
 \begin{document}
@@ -934,7 +930,9 @@ By default, tsung will end when all started users have finished their
 session. So it can be much longer than the duration of
 arrivalphases. If you want to stop Tsung  after a given duration
 (even if phases are not finised or if some sessions are stil actives),
-you can do this with the \varname{duration} attribute in \varname{load}:
+you can do this with the \varname{duration} attribute in
+\varname{load} (\strong{feature added in 1.3.2}):
+:
 \begin{Verbatim}
  <load duration="1" unit="hour">
   <arrivalphase phase="1" duration="10" unit="minute">
@@ -946,6 +944,7 @@ you can do this with the \varname{duration} attribute in \varname{load}:
 Currently, the maximum value for duration is a little bit less than 50
 days. \varname{unit} can be \userinput{second}, \userinput{minute} or
 \userinput{hour}.
+
 
 \subsection{Setting options}
 
@@ -2244,6 +2243,8 @@ ssh myhostname erl
 If the erlang shell doesn't start then check what paths sshd was compiled with
 (in SuSE see \file{/etc/ssh/sshd_config}) and symlink from one of the approved paths
 to the erlang executable (thanks to Gordon Guthrie for reporting this).
+\item old beam processes (erlang virtual machines) running on client nodes: kill all
+  beam processes before starting tsung.
 \end{enumerate}
 
 
