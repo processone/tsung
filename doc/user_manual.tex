@@ -877,6 +877,16 @@ new user will be created every second, and for the last 10 minutes,
 10 users will be generated every second. The test will finish when
 all users have ended their session.
 
+You can also use \varname{arrivalrate} instead of
+\varname{interarrival}. For example, if you want 10 new users per
+second, use:
+
+\begin{Verbatim}
+  <arrivalphase phase="1" duration="10" unit="minute">
+    <users arrivalrate="10" unit="second"></users>
+  </arrivalphase>
+\end{Verbatim}
+
 The complete sequence can be executed several times using the
 \varname{loop} attribute in the \varname{load} tag
 (\userinput{loop='2'} means the sequence will be looped twice, so the
