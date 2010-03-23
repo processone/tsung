@@ -1099,7 +1099,7 @@ statistics definition, conditional request (IF MODIFIED SINCE), ...
                contents="bla=blu">
       </http> </request>
     <request>
-       <http url="/bla" method="GET" version="1.1"
+       <http url="/bla" method="POST" version="1.1"
              contents="bla=blu&amp;name=glop">
        <www_authenticate userid="Aladdin"
                          passwd="open sesame"/></http>
@@ -1114,7 +1114,7 @@ statistics definition, conditional request (IF MODIFIED SINCE), ...
 \strong{New in 1.2.2:} You can add any HTTP header now, as in:
 \begin{Verbatim}
    <request>
-       <http url="/bla" method="GET" contents="bla=blu&amp;name=glop">
+       <http url="/bla" method="POST" contents="bla=blu&amp;name=glop">
          <www_authenticate userid="Aladdin" passwd="open sesame"/>
          <http_header name="Cache-Control" value="no-cache"/>
          <http_header name="Referer" value="http://www.w3.org/"/>
