@@ -31,6 +31,19 @@ parse_dyn_var_test() ->
     Regexp = ?DEF_REGEXP_DYNVAR_BEGIN++ StrName ++?DEF_REGEXP_DYNVAR_END,%'
     ?assertMatch([{'jsf_tree_64',"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA"}], ts_search:parse_dynvar([{regexp,'jsf_tree_64', Regexp} ],list_to_binary(Data))).
 
+
+parse_dyn_var_jsonpath_test() ->
+    myset_env(7),
+    Data="\r\n\r\n{\"titi\": [23,45]}",
+    JSONPath = "titi[1]",
+    ?assertEqual([{'myvar',45}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
+
+parse_dyn_var_jsonpath2_test() ->
+    myset_env(7),
+    Data="\r\n\r\n{\"titi\": [23,45]}",
+    JSONPath = "titi[3]",
+    ?assertEqual([{'myvar',undefined}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
+
 parse_dyn_var_xpath_test() ->
     myset_env(),
     Data="\r\n\r\n<html><body>"++?FORMDATA++"</body></html>",

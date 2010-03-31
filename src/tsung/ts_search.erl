@@ -278,7 +278,7 @@ parse_dynvar([{regexp,VarName, RegExp}| DynVarsSpecs],
 
 parse_dynvar(D=[{xpath,_VarName, _Expr}| _DynVarsSpecs],
                 Binary,String,undefined,DynVars) ->
-    HTML = extract_html(Binary),
+    HTML = extract_body(Binary),
     try mochiweb_html:parse(HTML) of
         Tree ->
             parse_dynvar(D,Binary,String,Tree,DynVars)
@@ -286,13 +286,32 @@ parse_dynvar(D=[{xpath,_VarName, _Expr}| _DynVarsSpecs],
         Type:Exp ->
             ?LOGF("Page couldn't be parsed:(~p:~p) ~n Page:~p~n",
                     [Type,Exp,Binary],?ERR),
-            parse_dynvar(D,Binary,String,error,DynVars)
+            parse_dynvar(D,Binary,String,xpath_error,DynVars)
     end;
 
-parse_dynvar([{xpath,VarName,_Expr}|DynVarsSpecs],Binary,String,error,DynVars)->
+parse_dynvar(D=[{jsonpath,_VarName, _Expr}| _DynVarsSpecs],
+                Binary,String,undefined,DynVars) ->
+    Body = extract_body(Binary),
+    try mochijson2:decode(Body) of
+        JSON ->
+            ?LOGF("JSON decode: ~p~n", [JSON],?DEB),
+            parse_dynvar(D,Binary,String,JSON,DynVars)
+    catch
+        Type:Exp ->
+            ?LOGF("JSON couldn't be parsed:(~p:~p) ~n Page:~p~n",
+                    [Type,Exp,Binary],?ERR),
+            parse_dynvar(D,Binary,String,json_error,DynVars)
+    end;
+
+parse_dynvar([{xpath,VarName,_Expr}|DynVarsSpecs],Binary,String,xpath_error,DynVars)->
     ?LOGF("Couldn't execute XPath: page not parsed (varname=~p) ~n",
           [VarName],?ERR),
-    parse_dynvar(DynVarsSpecs, Binary,String,error,DynVars);
+    parse_dynvar(DynVarsSpecs, Binary,String,xpath_error,DynVars);
+
+parse_dynvar([{jsonpath,VarName,_Expr}|DynVarsSpecs],Binary,String,json_error,DynVars)->
+    ?LOGF("Couldn't execute JSONPath: page not parsed (varname=~p) ~n",
+          [VarName],?ERR),
+    parse_dynvar(DynVarsSpecs, Binary,String,json_error,DynVars);
 
 parse_dynvar([{xpath,VarName, Expr}| DynVarsSpecs],Binary,String,Tree,DynVars)->
     Result = mochiweb_xpath:execute(Expr,Tree),
@@ -304,15 +323,23 @@ parse_dynvar([{xpath,VarName, Expr}| DynVarsSpecs],Binary,String,Tree,DynVars)->
     end,
     parse_dynvar(DynVarsSpecs, Binary,String,Tree,ts_dynvars:set(VarName,ListValue,DynVars));
 
+parse_dynvar([{jsonpath,VarName, Expr}| DynVarsSpecs],Binary,String,JSON,DynVars)->
+    Values = ts_utils:jsonpath(Expr,JSON),
+    case Values of
+        undefined -> ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?WARN);
+        _  -> ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,Values],?DEB)
+    end,
+    parse_dynvar(DynVarsSpecs, Binary,String,JSON,ts_dynvars:set(VarName,Values,DynVars));
+
 parse_dynvar(Args, _Binary,_String,_Tree, _DynVars) ->
     ?LOGF("Bad args while parsing Dyn Var (~p)~n", [Args], ?ERR),
     [].
 
-extract_html(<<"\r\n\r\n",Rest/binary>>) ->
+extract_body(<<"\r\n\r\n",Rest/binary>>) ->
     Rest;
 
-extract_html(<<_:1/binary,Rest/binary>>) ->
-    extract_html(Rest);
+extract_body(<<_:1/binary,Rest/binary>>) ->
+    extract_body(Rest);
 
-extract_html(<<>>) ->
+extract_body(<<>>) ->
     <<>>.

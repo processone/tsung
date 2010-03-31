@@ -160,9 +160,10 @@ repeat | if | change_type )*>
 
 <!ELEMENT dyn_variable EMPTY >
 <!ATTLIST dyn_variable
-    name   CDATA #REQUIRED
-    xpath  CDATA #IMPLIED
-    regexp CDATA #IMPLIED >
+    name     CDATA #REQUIRED
+    xpath    CDATA #IMPLIED
+    jsonpath CDATA #IMPLIED
+    regexp   CDATA #IMPLIED >
 
 <!ELEMENT http_header EMPTY >
 <!ATTLIST http_header
