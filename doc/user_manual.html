@@ -96,7 +96,7 @@ a:hover     {background:#ffffaa;}
 <!--CUT DEF section 1 --><H1 ALIGN=center>Tsung User’s manual</H1><DIV CLASS="center">
 
 <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>1.3.2a</TD></TR>
-<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>March 19, 2010</TD></TR>
+<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>April 7, 2010</TD></TR>
 </TABLE>
 </DIV><!--TOC section Contents-->
 <H2 CLASS="section"><!--SEC ANCHOR -->Contents</H2><!--SEC END --><UL CLASS="toc"><LI CLASS="li-toc">
@@ -1296,7 +1296,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
                contents="bla=blu"&gt;
       &lt;/http&gt; &lt;/request&gt;
     &lt;request&gt;
-       &lt;http url="/bla" method="GET" version="1.1"
+       &lt;http url="/bla" method="POST" version="1.1"
              contents="bla=blu&amp;amp;name=glop"&gt;
        &lt;www_authenticate userid="Aladdin"
                          passwd="open sesame"/&gt;&lt;/http&gt;
@@ -1322,7 +1322,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 <TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
 </TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">   &lt;request&gt;
-       &lt;http url="/bla" method="GET" contents="bla=blu&amp;amp;name=glop"&gt;
+       &lt;http url="/bla" method="POST" contents="bla=blu&amp;amp;name=glop"&gt;
          &lt;www_authenticate userid="Aladdin" passwd="open sesame"/&gt;
          &lt;http_header name="Cache-Control" value="no-cache"/&gt;
          &lt;http_header name="Referer" value="http://www.w3.org/"/&gt;
@@ -2443,7 +2443,27 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 </TABLE><P>There is a bug in the xpath engine, result nodes from "descendant-or-self" aren’t returned in document order. This isn’t a problem for the most common cases.
 However, queries like <FONT COLOR=purple>//img[1]/@src</FONT> are not recommended, as the order of the <FONT COLOR=purple>&lt;img&gt;</FONT> elements returned from //img is not the expected.
-The order is respected for paths without "descendant-or-self" axis, so this: <FONT COLOR=purple>/html/body/div[2]/img[3]/@src</FONT> is interpreted as expected and can be safely used.</P><P>Basic tests shows a x4 improvement in speed over the <EM>regexp</EM> implementation.</P><!--TOC subsubsection Loops, If-->
+The order is respected for paths without "descendant-or-self" axis, so this: <FONT COLOR=purple>/html/body/div[2]/img[3]/@src</FONT> is interpreted as expected and can be safely used.</P><P>Basic tests shows a x4 improvement in speed over the <EM>regexp</EM> implementation.</P><!--TOC paragraph JSONPath-->
+<H5 CLASS="paragraph"><!--SEC ANCHOR -->JSONPath</H5><!--SEC END --><P>Another way to analyze the server response has been introduced in the
+release <B>1.3.2</B> when the server is sending JSON data. It is only for the HTTP plugin. This feature uses the mochiweb library
+and <B>only works with erlang R12B and newer version</B>.</P><P>Tsung implement a (very) limited subset of JSONPath as defined here <A HREF="http://goessner.net/articles/JsonPath/"><TT>http://goessner.net/articles/JsonPath/</TT></A></P><P>To utilize jsonpath expression, use a <TT>jsonpath</TT> attribute when
+defining the dyn_variable, instead of <TT>regexp</TT>, like:
+</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">&lt;dyn_variable name="array3_value" json="field.array[3].value"/&gt;
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><!--TOC subsubsection Loops, If-->
 <H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc63">6.7.5</A>  Loops, If</H4><!--SEC END --><P><B>Since 1.3.0</B>, it’s now possible to add conditional/unconditional loops in a session:</P><!--TOC paragraph &lt;for&gt;-->
 <H5 CLASS="paragraph"><!--SEC ANCHOR -->&lt;for&gt;</H5><!--SEC END --><P>Repeat the enclosing actions a fixed number of times. A dynamic
 variable is used as counter, so the current iteration could be used in
