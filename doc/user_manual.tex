@@ -1945,6 +1945,20 @@ The order is respected for paths without "descendant-or-self" axis, so this: \us
 
 Basic tests shows a x4 improvement in speed over the \emph{regexp} implementation.
 
+\paragraph{JSONPath}
+
+Another way to analyze the server response has been introduced in the
+release \strong{1.3.2} when the server is sending JSON data. It is only for the HTTP plugin. This feature uses the mochiweb library
+and \strong{only works with erlang R12B and newer version}.
+
+Tsung implement a (very) limited subset of JSONPath as defined here \url{http://goessner.net/articles/JsonPath/}
+
+To utilize jsonpath expression, use a \varname{jsonpath} attribute when
+defining the dyn\_variable, instead of \varname{regexp}, like:
+\begin{Verbatim}
+<dyn_variable name="array3_value" json="field.array[3].value"/>
+\end{Verbatim}
+
 \subsubsection{Loops, If}
 
 \strong{Since 1.3.0}, it's now possible to add conditional/unconditional loops in a session:

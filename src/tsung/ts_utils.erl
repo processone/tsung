@@ -42,7 +42,7 @@
          check_sum/3, check_sum/5, clean_str/1, file_to_list/1, term_to_list/1,
          decode_base64/1, encode_base64/1, to_lower/1, release_is_newer_or_eq/1,
          randomstr/1,urandomstr/1,urandomstr_noflat/1, eval/1, list_to_number/1,
-         time2sec/1, read_file_raw/1, init_seed/1
+         time2sec/1, read_file_raw/1, init_seed/1, jsonpath/2
         ]).
 
 level2int("debug")     -> ?DEB;
@@ -699,7 +699,9 @@ term_to_list(I) when is_atom(I)->
 term_to_list(I) when is_list(I)->
     I;
 term_to_list(I) when is_float(I)->
-    float_to_list(I).
+    float_to_list(I);
+term_to_list(B) when is_binary(B)->
+    binary_to_list(B).
 
 read_file_raw(File) when is_list(File) ->
     case {file:open(File,[read,raw,binary]), file:read_file_info(File)} of
@@ -719,3 +721,36 @@ read_file_raw(File) when is_list(File) ->
         {{error,Reason},_} ->
             {error, Reason}
     end.
+
+
+%%----------------------------------------------------------------------
+%% @spec jsonpath(JSONPath::string(),JSON::iolist()) -> term()
+%% @doc  very limited implementation of JSONPath from JSON struct.
+%% @end
+%%----------------------------------------------------------------------
+jsonpath("$."++JSONPath,JSON) ->
+    jsonpath(JSONPath,JSON);
+jsonpath(JSONPath,JSON) ->
+    Fun= fun(A) ->
+                case catch list_to_integer(A) of
+                    I when is_integer(I) ->
+                        I+1;
+                    E ->
+                        list_to_binary(A)
+                end
+          end,
+    Str=re:replace(JSONPath,"\\[(\\d+)\\]","\.\\1",[{return,list},global]),
+    Keys=lists:map(Fun, string:tokens(Str,".")),
+    json_get_bin(Keys,JSON).
+json_get_bin([],Val) ->
+    Val;
+json_get_bin([Key|Keys],undefined) ->
+    undefined;
+json_get_bin([N|Keys],L) when is_integer(N) andalso N =< length(L) ->
+    Val =  lists:nth(N,L),
+    json_get_bin(Keys,Val);
+json_get_bin([Key|Keys],{struct,JSON}) when is_list(JSON) ->
+    Val =  proplists:get_value(Key,JSON),
+    json_get_bin(Keys,Val);
+json_get_bin(_,_) ->
+    undefined.
