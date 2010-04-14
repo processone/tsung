@@ -303,14 +303,23 @@ parse_dynvar(D=[{jsonpath,_VarName, _Expr}| _DynVarsSpecs],
             parse_dynvar(D,Binary,String,json_error,DynVars)
     end;
 
+parse_dynvar(D=[{pgsql_expr,_VarName, _Expr}| _DynVarsSpecs],
+                Binary,String,undefined,DynVars) ->
+    Pairs=ts_pgsql:to_pairs(Binary),
+    parse_dynvar(D,Binary,String,Pairs,DynVars);
+
 parse_dynvar([{xpath,VarName,_Expr}|DynVarsSpecs],Binary,String,xpath_error,DynVars)->
-    ?LOGF("Couldn't execute XPath: page not parsed (varname=~p) ~n",
+    ?LOGF("Couldn't execute XPath: page not parsed (varname=~p)~n",
           [VarName],?ERR),
     parse_dynvar(DynVarsSpecs, Binary,String,xpath_error,DynVars);
 
 parse_dynvar([{jsonpath,VarName,_Expr}|DynVarsSpecs],Binary,String,json_error,DynVars)->
-    ?LOGF("Couldn't execute JSONPath: page not parsed (varname=~p) ~n",
+    ?LOGF("Couldn't execute JSONPath: page not parsed (varname=~p)~n",
           [VarName],?ERR),
+    parse_dynvar(DynVarsSpecs, Binary,String,json_error,DynVars);
+
+parse_dynvar([{pgsql_expr,VarName,_Expr}|DynVarsSpecs],Binary,String,pgsql_error,DynVars)->
+    ?LOGF("Couldn't decode pgsql expr from PGSQL binary (varname=~p)~n", [VarName],?ERR),
     parse_dynvar(DynVarsSpecs, Binary,String,json_error,DynVars);
 
 parse_dynvar([{xpath,VarName, Expr}| DynVarsSpecs],Binary,String,Tree,DynVars)->
@@ -330,6 +339,14 @@ parse_dynvar([{jsonpath,VarName, Expr}| DynVarsSpecs],Binary,String,JSON,DynVars
         _  -> ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,Values],?DEB)
     end,
     parse_dynvar(DynVarsSpecs, Binary,String,JSON,ts_dynvars:set(VarName,Values,DynVars));
+
+parse_dynvar([{pgsql_expr,VarName, Expr}| DynVarsSpecs],Binary,String,PGSQL,DynVars)->
+    Values = ts_pgsql:find_pair(Expr,PGSQL),
+    case Values of
+        undefined -> ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?WARN);
+        _  -> ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,Values],?DEB)
+    end,
+    parse_dynvar(DynVarsSpecs, Binary,String,PGSQL,ts_dynvars:set(VarName,Values,DynVars));
 
 parse_dynvar(Args, _Binary,_String,_Tree, _DynVars) ->
     ?LOGF("Bad args while parsing Dyn Var (~p)~n", [Args], ?ERR),

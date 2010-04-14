@@ -163,6 +163,7 @@ repeat | if | change_type )*>
     name     CDATA #REQUIRED
     xpath    CDATA #IMPLIED
     jsonpath CDATA #IMPLIED
+    pgsql_expr CDATA #IMPLIED
     regexp   CDATA #IMPLIED >
 
 <!ELEMENT http_header EMPTY >

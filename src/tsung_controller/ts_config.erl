@@ -429,17 +429,20 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
     StrName  = ts_utils:clean_str(getAttr(Attrs, name)),
     {ok, [{atom,1,Name}],1} = erl_scan:string("'"++StrName++"'"),
     {Type,Expr} = case {getAttr(string,Attrs,regexp,none),
+                        getAttr(string,Attrs,pgsql_expr,none),
                         getAttr(string,Attrs,xpath,none),
                        getAttr(string,Attrs,jsonpath,none)} of
-                      {none,none,none} ->
+                      {none,none,none,none} ->
                           DefaultRegExp = ?DEF_REGEXP_DYNVAR_BEGIN ++ StrName
                               ++?DEF_REGEXP_DYNVAR_END,
                           {regexp,DefaultRegExp};
-                      {none,XPath,none} ->
+                      {none,none,XPath,none} ->
                           {xpath,XPath};
-                      {none,none,JSONPath} ->
+                      {none,none,none,JSONPath} ->
                           {jsonpath,JSONPath};
-                      {RegExp,_,_} ->
+                      {none,PG,none,none} ->
+                          {pgsql_expr,PG};
+                      {RegExp,_,_,_} ->
                           {regexp,RegExp}
                   end,
     FlattenExpr =lists:flatten(Expr),
@@ -453,9 +456,9 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
                      ?LOGF("Add new xpath: ~s ~n", [Expr],?INFO),
                      CompiledXPathExp = mochiweb_xpath:compile_xpath(FlattenExpr),
                      {xpath,Name,CompiledXPathExp};
-                 jsonpath ->
-                     ?LOGF("Add new jsonpath: ~s ~n", [Expr],?INFO),
-                     {jsonpath,Name,Expr}
+                 Other ->
+                     ?LOGF("Add ~s ~s ~p ~n", [Type,Name,Expr],?INFO),
+                     {Type,Name,Expr}
              end,
     NewDynVar = [DynVar|DynVars],
     ?LOGF("Add new dyn variable=~p in session ~p~n",

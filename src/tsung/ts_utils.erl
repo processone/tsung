@@ -746,7 +746,7 @@ json_get_bin([],Val) ->
     Val;
 json_get_bin([Key|Keys],undefined) ->
     undefined;
-json_get_bin([N|Keys],L) when is_integer(N) andalso N =< length(L) ->
+json_get_bin([N|Keys],L) when is_integer(N), N =< length(L) ->
     Val =  lists:nth(N,L),
     json_get_bin(Keys,Val);
 json_get_bin([Key|Keys],{struct,JSON}) when is_list(JSON) ->
