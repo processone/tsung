@@ -821,8 +821,8 @@ handle_data_msg(Data,State=#state_rcv{request=Req,clienttype=Type,maxcount=MaxCo
             MatchArgs={NewState#state_rcv.count, MaxCount,
                        NewState#state_rcv.session_id,
                        NewState#state_rcv.id},
-            NewCount =ts_search:match(Req#ts_request.match,NewBuffer,MatchArgs,DynVars),
             NewDynVars=ts_dynvars:merge(DynVars,(NewState#state_rcv.dyndata)#dyndata.dynvars),
+            NewCount  =ts_search:match(Req#ts_request.match,NewBuffer,MatchArgs,NewDynVars),
             NewDynData=(NewState#state_rcv.dyndata)#dyndata{dynvars=NewDynVars},
             case Close of
                 true ->
@@ -889,8 +889,8 @@ handle_data_msg(Data, State=#state_rcv{request=Req, maxcount= MaxCount}) ->
                                                             buffer=NewBuffer}),
     MatchArgs={State#state_rcv.count,MaxCount,State#state_rcv.session_id,
                State#state_rcv.id},
-    NewCount = ts_search:match(Req#ts_request.match, NewBuffer, MatchArgs,DynVars),
     NewDynVars=ts_dynvars:merge(DynVars,(State#state_rcv.dyndata)#dyndata.dynvars),
+    NewCount  =ts_search:match(Req#ts_request.match, NewBuffer, MatchArgs,NewDynVars),
     NewDynData=(State#state_rcv.dyndata)#dyndata{dynvars=NewDynVars},
     {State#state_rcv{ack_done = true, buffer= NewBuffer, dyndata = NewDynData,
                      page_timestamp= PageTimeStamp, count=NewCount},[]}.

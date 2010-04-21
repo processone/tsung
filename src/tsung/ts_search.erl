@@ -156,6 +156,7 @@ match([Match=#match{regexp=RawRegExp,subst=Subst, do=Action, 'when'=When}
         true -> subst(RawRegExp, DynVars);
         _    -> RawRegExp
     end,
+    ?DebugF("RegExp was ~p and now is ~p after substitution (~p)~n",[RawRegExp,RegExp,Subst]),
     case regexp:first_match(String, RegExp) of
         {When,_, _} ->
             ?LOGF("Ok Match (regexp=~p) do=~p~n",[RegExp,Action], ?INFO),
