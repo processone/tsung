@@ -699,8 +699,10 @@ and set \varname{loglevel} to \userinput{debug}.
 
 \subsection{Clients and server}
 
+
  Scenarios start with clients (Tsung cluster) and server definitions:
 
+\subsubsection{Basic setup}
 For non distributed load, you can use a basic setup like:
 
 \begin{Verbatim}
@@ -720,6 +722,8 @@ The server is the entry point into the cluster (\strong{New in 1.2.0:}
 if several servers are defined, a round robin algorithm is used to
 choose the server).
 
+\subsubsection{Advanced setup}
+
 The next example is more complex, and use several features for
 advanced distributed testing:
 
@@ -738,7 +742,7 @@ advanced distributed testing:
  \end{Verbatim}
 
 
- Several virtual IP can be used to simulate more machines. This is
+Several virtual IP can be used to simulate more machines. This is
  very useful when a load-balancer use the client\verb|'|s IP to
  distribute the traffic among a cluster of servers. \strong{New in
    1.1.1:} IP is no longer mandatory. If not specified, the default IP will
@@ -753,7 +757,9 @@ advanced distributed testing:
  (erlang SMP), benchmarks shows that it's more efficient to use one VM
  per CPU (with SMP disabled) for tsung clients. Only the controller node is using SMP
  erlang. Therefore, you cpu should be equal to the number of cores of
- your nodes.
+ your nodes. If you prefer to use erlang SMP, add the \userinput{-s}
+ option when starting tsung (and don't set \varname{cpu} in the config
+ file).
  \end{quote}
 
  By default, the load is distributed uniformly on all CPU (one cpu
@@ -775,12 +781,30 @@ advanced distributed testing:
  performance penalty (but don't forget to raise the limit of the OS with
  \command{ulimit -n}, see also FAQ \ref{sec:faq:emfile}).
 
+\subsubsection{Running tsung with a job scheduler}
+
+Tsung is able to get it's client node list from a batch/job
+scheduler. It currently handle pbs/torque, LSF and OAR. To do this,
+ set the \varname{type} attribute to \userinput{batch}, e.g.:
+
+\begin{Verbatim}
+  <client type="batch" batch="torque" maxusers="30000">
+\end{Verbatim}
+
+
+
 \subsection{Monitoring}
 
 Tsung is able to monitor remote servers using several backends that
 communicates with remote agent; This
 is configured in the \varname{<monitoring>} section. Available
 statistics are: cpu activity, load average, memory usage.
+
+Note that you can get the nodes to monitor from a job scheduler, like:
+\begin{Verbatim}
+  <monitor batch="true" host="torque" type="erlang"></monitor>
+\end{Verbatim}
+
 
 Several types of remote agents are supported (\userinput{erlang} is the default) :
 
