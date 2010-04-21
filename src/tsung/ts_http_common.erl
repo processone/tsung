@@ -547,15 +547,17 @@ parse_line("content-length: "++Tail, Http, _Host)->
 parse_line("connection: close"++_Tail, Http, _Host)->
     ?Debug("Connection Closed in Header ~n"),
     Http#http{close=true};
-parse_line("transfer-encoding: chunked"++_Tail, Http, _Host)->
-    ?LOG("Chunked transfer encoding~n",?DEB),
-    Http#http{chunk_toread=0};
-parse_line("transfer-encoding: Chunked"++_Tail, Http, _Host)->
-    ?LOG("Chunked transfer encoding~n",?DEB),
-    Http#http{chunk_toread=0};
-parse_line("transfer-encoding:"++Tail, Http, _Host)->
-    ?LOGF("Unknown tranfer encoding ~p~n",[Tail],?NOTICE),
-    Http;
+parse_line("transfer-encoding:"++[H|Tail], Http, _Host)->
+    ?DebugF("~p transfer encoding~n",[[H]++Tail]),
+    case Tail of
+        [C|"hunked"++_] when C == $C; C == $c ->
+            Http#http{chunk_toread=0};
+        "hunked"++_  when H == $C; H == $c->
+            Http#http{chunk_toread=0};
+        _ ->
+            ?LOGF("Unknown transfer encoding ~p~n",[[H]++Tail],?NOTICE),
+            Http
+    end;
 parse_line("set-cookie: "++Tail, Http=#http{cookie=PrevCookies}, Host)->
     Cookie = add_new_cookie(Tail, Host, PrevCookies),
     ?DebugF("HTTP New cookie val ~p~n",[Cookie]),

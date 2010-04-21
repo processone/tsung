@@ -134,5 +134,20 @@ add_cookie_samekey_nodomain_req_test()->
     ?assertEqual(Str, binary_to_list(ts_http:get_message(Req))).
 
 
+chunk_header_ok1_test()->
+    Rep=ts_http_common:parse_line("transfer-encoding: chunked\r\n",#http{},[]),
+    ?assertMatch(#http{chunk_toread=0}, Rep).
+chunk_header_ok2_test()->
+    Rep=ts_http_common:parse_line("transfer-encoding: Chunked\r\n",#http{},[]),
+    ?assertMatch(#http{chunk_toread=0}, Rep).
+chunk_header_ok3_test()->
+    Rep=ts_http_common:parse_line("transfer-encoding:chunked\r\n",#http{},[]),
+    ?assertMatch(#http{chunk_toread=0}, Rep).
+chunk_header_bad_test()->
+    Rep=ts_http_common:parse_line("transfer-encoding: cheddar\r\n",#http{},[]),
+    ?assertMatch(#http{chunk_toread=-1}, Rep).
+
  myset_env()->
-    application:set_env(stdlib,debug_level,0).
+    myset_env(0).
+ myset_env(N)->
+    application:set_env(stdlib,debug_level,N).
