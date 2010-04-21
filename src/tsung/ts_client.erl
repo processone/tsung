@@ -188,10 +188,10 @@ handle_info({erlang, _Socket, Data}, wait_ack, State) ->
             TimeOut=(NewState#state_rcv.proto_opts)#proto_opts.idle_timeout,
             {next_state, wait_ack, NewState, TimeOut}
     end;
-handle_info({udp, Socket,_IP,_InPortNo, Data}, wait_ack, State) ->
+handle_info({udp, Socket,_IP,_InPortNo, Data}, StateName, State) ->
     ?DebugF("UDP packet received: size=~p ~n",[size(Data)]),
     %% we don't care about IP,InPortNo, do the same as for a tcp connection:
-    handle_info({tcp, Socket, Data}, wait_ack, State);
+    handle_info({tcp, Socket, Data}, StateName, State);
 %% inet close messages; persistent session, waiting for ack
 handle_info({NetEvent, _Socket}, wait_ack,
             State = #state_rcv{persistent=true}) when NetEvent==tcp_closed;
