@@ -2030,6 +2030,11 @@ response, and compares it to a given value:
 <http url="/" method="GET" version="1.1"/>
 \end{Verbatim}
 
+You can also use dynamic variables, using the \varname{subst} attribute:
+\begin{Verbatim}
+<match do='log' when='nomatch' subst='true' >%%_myvar%%</match>
+<http url="/" method="GET"/>
+\end{Verbatim}
 
 \subsubsection{Loops, If}
 
