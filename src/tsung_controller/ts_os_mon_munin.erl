@@ -206,7 +206,13 @@ read_munin_data(Socket,{ok, Data}, Acc) when is_list(Acc)->
     ?DebugF("Parse munin data: ~p~n",[Data]),
     NewAcc = case string:tokens(Data," \n") of
                  [Key, Value] ->
-                     [{list_to_atom(Key), ts_utils:list_to_number(Value)}|Acc];
+                     try ts_utils:list_to_number(Value) of
+                         Num when is_number(Num) ->
+                             [{list_to_atom(Key), Num }|Acc]
+                     catch
+                         _Type:_Exp ->
+                             Acc
+                     end;
                  [_Key| _Rest] -> %skip
                      Acc;
                  _ ->

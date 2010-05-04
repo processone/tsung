@@ -17,6 +17,20 @@
 test()->
     ok.
 
+munin_data_ok_test()->
+    myset_env(7),
+    %% error because of empty socket in gen_tcp:recv
+    %% FIXME: start a fake tcp server
+    ?assertError(function_clause,
+                 ts_os_mon_munin:read_munin_data(undefined,{ok,"glop 100"},[300])).
+
+munin_data_nok_test()->
+    myset_env(7),
+    %% error because of empty socket in gen_tcp:recv
+    %% FIXME: start a fake tcp server
+    ?assertError(function_clause,
+                 ts_os_mon_munin:read_munin_data(undefined,{ok,"glop %"},[300])).
+
 sample_update_test()->
     myset_env(),
     Val=ts_stats_mon:update_stats(sample,[],50),
@@ -76,5 +90,7 @@ procnet_7chars_test()->
                  ts_os_mon_erlang:get_os_data(packets, {unix, linux}, "./src/test/procnetdev_test7chars.txt")).
 
 myset_env()->
-    application:set_env(stdlib,debug_level,0).
+    myset_env(0).
+myset_env(V)->
+    application:set_env(stdlib,debug_level,V).
 
