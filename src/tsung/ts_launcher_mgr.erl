@@ -32,7 +32,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start/0, alive/1, die/1]).
+-export([start/0, alive/1, die/1, check_registered/0]).
 
 -define(DIE_DELAY, 5000).
 
@@ -40,7 +40,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state, {launchers=0}).
+-record(state, {launchers=0, synced}).
 
 %%====================================================================
 %% API
@@ -57,6 +57,9 @@ die(Type)->
 
 alive(Type)->
     gen_server:cast(?MODULE, {alive, Type}).
+
+check_registered()->
+    gen_server:call(?MODULE, {check_registered}).
 
 %%====================================================================
 %% gen_server callbacks
@@ -82,6 +85,19 @@ init([]) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling call messages
 %%--------------------------------------------------------------------
+handle_call({check_registered}, _From,State=#state{synced=undefined}) ->
+%% Check if global names are synced; Annoying "feature" of R10B7 and up
+    case global:registered_names() of
+        [] ->
+            ?LOG("No registered processes ! syncing ...~n", ?WARN),
+            global:sync();
+        _ -> ok
+    end,
+    {reply, ok, State#state{synced=yes}};
+handle_call({check_registered}, _From,State=#state{synced=yes}) ->
+    ?LOG("syncing already done, skip~n", ?INFO),
+    {reply, ok, State#state{synced=yes}};
+
 handle_call(_Msg, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.

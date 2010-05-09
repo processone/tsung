@@ -42,7 +42,7 @@
 
 %% External exports
 -export([start/0, launch/1, set_static_users/1]).
--export([check_registered/0, set_warm_timeout/1]).
+-export([set_warm_timeout/1]).
 
 %% gen_fsm callbacks
 -export([init/1, launcher/2,  wait/2, wait_static/2, handle_event/3,
@@ -124,7 +124,7 @@ wait({launch, [], Seed}, State) ->
     ts_utils:init_seed(Seed),
     MyHostName = State#state.myhostname,
     ?LOGF("Launch msg receive (~p)~n",[MyHostName], ?NOTICE),
-    check_registered(),
+    ts_launcher_mgr:check_registered(),
     case ts_config_server:get_client_config(MyHostName) of
         {ok, {[{Intensity, Users}| Rest], StartDate, Max}} ->
             Duration = Users/Intensity,
@@ -147,7 +147,7 @@ wait({launch, {[{Intensity, Users}| Rest], Max}, Seed}, State) ->
     ts_utils:init_seed(Seed),
     Duration = Users/Intensity,
     ?LOGF("Expected duration of phase: ~p sec ~n",[Duration/1000], ?NOTICE),
-    check_registered(),
+    ts_launcher_mgr:check_registered(),
     {next_state, launcher, State#state{phases = Rest, nusers = Users,
                                        phase_nusers = Users,
                                        phase_duration=Duration,
@@ -373,14 +373,6 @@ do_launch({Intensity, MyHostName})->
             error
     end.
 
-%% Check if global names are synced; Annoying "feature" of R10B7 and up
-check_registered() ->
-    case global:registered_names() of
-        [] ->
-            ?LOG("No registered processes ! syncing ...~n", ?WARN),
-            global:sync();
-        _ -> ok
-    end.
 
 set_warm_timeout(StartDate)->
     case ts_utils:elapsed(now(), StartDate) of

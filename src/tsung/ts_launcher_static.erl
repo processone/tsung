@@ -7,6 +7,8 @@
 %%%
 %%%  This program is distributed in the hope that it will be useful,
 %%%  but WITHOUT ANY WARRANTY; without even the implied warranty of
+
+
 %%%  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 %%%  GNU General Public License for more details.
 %%%
@@ -95,7 +97,7 @@ wait({launch, Args, Hostname}, State) ->
 wait({launch, []}, State) ->
     MyHostName = State#state.myhostname,
     ?LOGF("Launch msg receive (~p)~n",[MyHostName], ?NOTICE),
-    ts_launcher:check_registered(),
+    ts_launcher_mgr:check_registered(),
     {ok,Users,Start} = ts_config_server:get_client_config(static,MyHostName),
     case Users of
         [{Wait,_}|_] ->
