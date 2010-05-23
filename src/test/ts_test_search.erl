@@ -33,16 +33,28 @@ parse_dyn_var_test() ->
 
 
 parse_dyn_var_jsonpath_test() ->
-    myset_env(7),
+    myset_env(),
     Data="\r\n\r\n{\"titi\": [23,45]}",
     JSONPath = "titi[1]",
     ?assertEqual([{'myvar',45}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
 
 parse_dyn_var_jsonpath2_test() ->
-    myset_env(7),
+    myset_env(),
     Data="\r\n\r\n{\"titi\": [23,45]}",
     JSONPath = "titi[3]",
     ?assertEqual([{'myvar',undefined}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
+
+parse_dyn_var_jsonpath3_test() ->
+    myset_env(),
+    Data="\r\n\r\n{\"titi\": [{\"val\": 123, \"name\": \"foo\"}, {\"val\": 42, \"name\": \"bar\"}]}",
+    JSONPath = "titi[?name=bar].val",
+    ?assertEqual([{'myvar',42}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
+
+parse_dyn_var_jsonpath_int_test() ->
+    myset_env(),
+    Data="\r\n\r\n{\"titi\": [{\"val\": 123, \"name\": \"foo\"}, {\"val\": 42, \"name\": \"bar\"}]}",
+    JSONPath = "titi[?val=123].name",
+    ?assertEqual([{'myvar',<<"foo">>}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
 
 parse_dyn_var_xpath_test() ->
     myset_env(),

@@ -739,7 +739,7 @@ jsonpath(JSONPath,JSON) ->
                         list_to_binary(A)
                 end
           end,
-    Str=re:replace(JSONPath,"\\[(\\d+)\\]","\.\\1",[{return,list},global]),
+    Str=re:replace(JSONPath,"\\[(.*)\\]","\.\\1",[{return,list},global]),
     Keys=lists:map(Fun, string:tokens(Str,".")),
     json_get_bin(Keys,JSON).
 json_get_bin([],Val) ->
@@ -749,6 +749,26 @@ json_get_bin([Key|Keys],undefined) ->
 json_get_bin([N|Keys],L) when is_integer(N), N =< length(L) ->
     Val =  lists:nth(N,L),
     json_get_bin(Keys,Val);
+json_get_bin([<<"?",Expr/binary>> | Keys],L) when  is_list(L) ->
+    case string:tokens(binary_to_list(Expr),"=") of
+        [Key,Val] ->
+            Fun = fun(S) -> case json_get_bin([list_to_binary(Key)],S) of
+                                Int when is_integer(Int) ->
+                                    integer_to_list(Int) =:= Val;
+                                Other when is_binary(Other)->
+                                    binary_to_list(Other) =:= Val
+                            end
+                  end,
+            ?LOG("ok~n",?ERR),
+            case lists:filter(Fun,L) of
+                [Res|_] -> % keep the first result only
+                    json_get_bin(Keys,Res);
+                [] ->
+                    undefined
+            end;
+        _ ->
+            undefined
+    end;
 json_get_bin([Key|Keys],{struct,JSON}) when is_list(JSON) ->
     Val =  proplists:get_value(Key,JSON),
     json_get_bin(Keys,Val);
