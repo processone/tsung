@@ -128,7 +128,7 @@ sub plot_stats {
         # gnuplot styles and options
         print "set size $thumbnail_size,$thumbnail_size\n" if ($output_ext eq "png");
         print "set xtics rotate by +90\n"  if (($output_ext eq "png") and ($rotate_xtics));
-        print "set data style $style\n";
+        print "set style data  $style\n";
         print "set terminal $output_type\n";
         print "set grid\n";
         my $d; # temporary var (title)
