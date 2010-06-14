@@ -1,3 +1,29 @@
+1.3.1 -> 1.3.2 Major bugfixes and enhancements (14 Jun 2010)
+Bugfix:
+    * [TSUN-128] - Apostrophes cause string to convert to deep list in setdynvars with Erlang function.
+    * [TSUN-130] - static users starting time is wrong
+    * [TSUN-131] - tsung can stop too early when static users are used
+    * [TSUN-132] - http cookies: accept domains equals to hostname with a leading "."
+    * [TSUN-133] - proxy-recorder with SSL fails on large client packets (multiple TCP packets)
+    * [TSUN-138] - when an error occured( for ex a timeout during a request) and a client exits, started transactions are not updated
+    * [TSUN-140] - tsung does not honor the Proxy-Connection: keep-Alive or Connection: keep-Alive header if the proxy is HTTP/1.0
+    * [TSUN-142] - http recorder can fail with https rewriting and chunked encoding
+    * [TSUN-147] - UDP & bidi does not seem to work
+    * [TSUN-148] - dynvar not found when used in match
+    * [TSUN-149] - tsung doesn't work with Amazon Elastic load balancing
+    * [TSUN-151] - tsung_stats.pl produces invalid *.gplot files
+Improvements:
+    * [TSUN-82]  - XMPP vhost support
+    * [TSUN-127] - add ability tu use floats for thinktimes
+    * [TSUN-139] - option to set random seed for launchers.
+    * [TSUN-141] - add dynamic variable support for postgres
+    * [TSUN-146] - New tsplot yfactor configuration support breaks most common configurations
+New Features:
+    * [TSUN-135] - add support for SASL ANONYMOUS and PLAIN authentication for XMPP
+    * [TSUN-136] - add new plugin distributed testing of filesystem (nfs for ex), using a generic mode for executing erlang functions on clients nodes
+    * [TSUN-137] - add a way to mix requests types inside a single session
+    * [TSUN-143] - global time limit for the load test
+    * [TSUN-145] - tsung should support json parsing for dynamic variable
 1.3.0 -> 1.3.1 Major bugfixes and enhancements (9 Sep 2009)
 Bugfix:
     * [TSUN-92] - the computation of the minimum for sample_counter is wrong
