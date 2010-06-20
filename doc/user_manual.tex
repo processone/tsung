@@ -14,7 +14,7 @@
 %\addauthor{Nicolas}{Niclausse}{nicolas.niclausse@niclux.org}
 
 \doccopyright{Nicolas Niclausse.}
-\docversion{1.3.2a}
+\docversion{1.3.2}
 \docreldate{\date{}}
 \docref{tsung-user-manual}
 
@@ -204,6 +204,7 @@ are also supported):
 \item Global users\verb|'| synchronization can be set on specific actions
 \item raw XML messages
 \item PubSub
+\item Multiple vhost instances supported
 \end{itemize}
 
 \subsection{PostgreSQL related features}
@@ -327,6 +328,10 @@ MacOS-X).
  make
  make install
 \end{Verbatim}
+
+If you want to download the development version, use git: \command{git
+  clone git://git.process-one.net/tsung/mainline.git} (see \url{https://git.process-one.net/tsung}).
+
 \subsection{Configuration}
 
 The default configuration file is \file{~/.tsung/tsung.xml} (
@@ -953,10 +958,10 @@ session), one starting after 10 minutes, and a last one starting after
 By default, tsung will end when all started users have finished their
 session. So it can be much longer than the duration of
 arrivalphases. If you want to stop Tsung  after a given duration
-(even if phases are not finised or if some sessions are stil actives),
+(even if phases are not finised or if some sessions are still actives),
 you can do this with the \varname{duration} attribute in
 \varname{load} (\strong{feature added in 1.3.2}):
-:
+
 \begin{Verbatim}
  <load duration="1" unit="hour">
   <arrivalphase phase="1" duration="10" unit="minute">
@@ -1153,6 +1158,14 @@ request from an external file:
  <http url='mypage' method='POST' contents_from_file='/tmp/myfile' />
 \end{Verbatim}
 
+Since \strong{1.3.1}, you can also manually set a cookie, though the
+cookie is not persistent: you must add it in every \varname{<requests>}:
+\begin{Verbatim}
+  <http url="/">
+    <add_cookie key="foo" value="bar"/>
+    <add_cookie key="id"  value="123"/>
+  </http>
+\end{Verbatim}
 
 \subsubsection{Jabber/XMPP}
 
@@ -1398,6 +1411,27 @@ Experimental support for PubSub is available in version 1.3.1
 
 You can read the following entry: \url{https://support.process-one.net/browse/TSUN-115}
 
+\paragraph{VHost}
+
+VHost support is available since version 1.3.2
+
+Tsung is able to bench multiple vhost instances by choosing a
+vhost XMPP name from a list at connection time in the scenario.
+
+The vhost list is read from a file:
+
+\begin{Verbatim}
+<options>
+...
+<option name="file_server" value="domains.csv" id="vhostfileId"></option>
+...
+<option type="ts_jabber" name="vhost_file" value="vhostfileId"></option>
+...
+</options>
+\end{Verbatim}
+
+When each client starts a session, it chooses randomly a domain (each domain has the
+same probability).
 
 \paragraph{raw XML}
 You can send raw XML date to the server using the \varname{raw} type:
@@ -1634,6 +1668,42 @@ that counts successful and unsuccessful bind attempts.
 </session>
 \end{Verbatim}
 
+\subsubsection{Mixing session type}
+
+Since version \strong{1.3.2}, a new tag \varname{change\_type} can be
+used in a session to change it's type.
+
+
+\begin{Verbatim}
+    <request> <jabber type="chat" ack="no_ack" size="16"
+destination="offline"/> </request>
+
+    <thinktime value="3"/>
+
+    <change_type new_type="ts_http" host="foo.bar" port="80"
+server_type="tcp" store="true"/>
+
+    <request> <http url="http://foo.bar/"/> </request>
+    <request> <http url="/favicon"/> </request>
+
+    <change_type new_type="ts_jabber" host="localhost" port="5222"
+server_type="tcp" restore="true"/>
+
+    <request> <jabber type="chat" ack="no_ack" size="16"
+destination="previous"/> </request>
+\end{Verbatim}
+
+\userinput{store='true'} can be used to save the current state of the session (socket,
+cookies for http, \ldots{}) and \userinput{restore='true'} to reuse the previous state when
+you switch back to the old protocol.
+
+A dynamic variable set in the first part of the session will be
+available after a \varname{change\_type}. There is currently one caveat: you have
+to use a full URL in the first http request after a \varname{<change\_type>} (a
+relative URL will fail).
+
+
+
 \subsection{Advanced features}
 
 \subsubsection{Dynamic substitutions}
@@ -1864,9 +1934,9 @@ Basic tests shows a x4 improvement in speed over the \emph{regexp} implementatio
 
 Another way to analyze the server response has been introduced in the
 release \strong{1.3.2} when the server is sending JSON data. It is only for the HTTP plugin. This feature uses the mochiweb library
-and \strong{only works with erlang R12B and newer version}.
+and \strong{only works with erlang R13B and newer version}.
 
-Tsung implement a (very) limited subset of JSONPath as defined here \url{http://goessner.net/articles/JsonPath/}
+Tsung implements a (very) limited subset of JSONPath as defined here \url{http://goessner.net/articles/JsonPath/}
 
 To utilize jsonpath expression, use a \varname{jsonpath} attribute when
 defining the dyn\_variable, instead of \varname{regexp}, like:
@@ -1876,7 +1946,7 @@ defining the dyn\_variable, instead of \varname{regexp}, like:
 
 You can also use expressions \userinput{Key=Val}, e.g.:
 \begin{Verbatim}
-<dyn_variable name="myvar" json="field.array["?name=bar"].value"/>
+<dyn_variable name="myvar" json="field.array[?name=bar].value"/>
 \end{Verbatim}
 
 \paragraph{PostgreSQL}
@@ -1886,7 +1956,7 @@ Since the  postgreSQL protocol is binary, regexp are not useful to
 parse the output of the server. Instead, a specific parsing can be
 done to extract content from the server's response; to do this, use the
 \varname{pgsql\_expr} attribute. Use \userinput{data\_row[L][C]} to
-extract the C colum of the L line of the data output. You can also use
+extract the  column C of the  line L of the data output. You can also use
 the litteral name of the column (\ie the field name of the
 table). This example extract 3 dynamic variables from the server's
 response:
