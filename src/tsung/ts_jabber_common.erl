@@ -354,11 +354,12 @@ auth_sasl(#jabber{username=Name,passwd=Passwd},Mechanism)->
 %%----------------------------------------------------------------------
 %% Func: auth_sasl/2
 %%----------------------------------------------------------------------
-auth_sasl(Username, _Passwd, Mechanism) ->
+auth_sasl(Username, Passwd, Mechanism) ->
     S = <<0>>,
     N = list_to_binary(Username),
+    P = list_to_binary(Passwd),
     list_to_binary(["<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='",Mechanism,"' >",
-                    ssl_base64:encode(<<S/binary,N/binary,S/binary,N/binary>>) ,"</auth>"]).
+                    ssl_base64:encode(<<S/binary,N/binary,S/binary,P/binary>>) ,"</auth>"]).
 
 
 %%----------------------------------------------------------------------

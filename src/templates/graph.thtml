@@ -43,6 +43,7 @@
 [% IF async %]
  <tr>
     <th>Noack/Bidi</th>
+    [% IF bosh %]<th>BOSH</th>[% END %]
 </tr>
 <tr>
  <td>
@@ -50,6 +51,13 @@
    <img class="graph" src="images/graphes-Async-rate.png" alt="req/sec"/>
   </a>
  </td>
+[% IF bosh %]
+ <td>
+  <a href="images/graphes-Bosh-rate.ps">
+   <img class="graph" src="images/graphes-Bosh-rate.png" alt="req/sec"/>
+  </a>
+ </td>
+[% END %]
  </tr>
 [% END %]
 <tr><th>Network traffic</th><th>New Users</th></tr>

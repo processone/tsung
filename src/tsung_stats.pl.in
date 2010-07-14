@@ -80,6 +80,7 @@ my $datadir = "data"; # all data files are created in this subdirectory
 my $imgdir  = "images"; # all data files are created in this subdirectory
 my $gplotdir = "gnuplot_scripts"; # all data files are created in this subdirectory
 my $http; # true if http. add status code graphs in the HTML output
+my $bosh; # true if bosh. add bosh specific graphs in the HTML output
 
 foreach my $dir ($datadir, $imgdir, $gplotdir) {
     unless (-d $dir) {
@@ -271,6 +272,7 @@ sub parse_stats_file {
     my @time;
     my @errors;
     my @tps;
+    my @bosh_tps;
     my @code;
     my %extra_info = ();
     my @session;
@@ -326,6 +328,9 @@ sub parse_stats_file {
             push @async, "$key.txt";
         } elsif ($key =~ /request$/ or $key eq "connect" or $key eq "async_rcv") {
             push @tps, "$key.txt";
+        } elsif ($key eq "bosh_http_conn" or $key eq "bosh_http_req") {
+	    $bosh = 1;
+            push @bosh_tps, "$key.txt";
         } elsif ($key =~ /^tr_/ or $key eq "page") {
             push @transactions, "$key.txt";
         } elsif ($key =~ /^\d+$/) {
@@ -342,6 +347,7 @@ sub parse_stats_file {
     plot_stats(\@col,"Session",undef,\@session,["sessions/sec"],$logy) unless $noplot;
     plot_stats(\@colcount,"HTTP_CODE",undef,\@code,["number/sec","total"],$logy) if not $noplot and @code;
     plot_stats(\@col,"Perfs",undef,\@tps,["rate","msec"],$logy) unless $noplot;
+    plot_stats(\@colcount,"Bosh",undef,\@bosh_tps,["rate"],$logy) unless $noplot;
     plot_stats(\@col,"Transactions",undef,\@transactions,["transactions/sec","msec"],$logy) unless $noplot;
     plot_stats(\@colcount,"Match",undef,\@match,["rate","rate"],$logy) unless $noplot;
     plot_stats(\@colcount,"Event",undef,\@time,["rate","msec"],$logy) unless $noplot;
@@ -425,6 +431,7 @@ sub html_report {
          http        => $http,
          match       => $match,
          async       => $async,
+         bosh       => $bosh,
          title       => $titre,
          stats_subtitle => "Stats Report ",
          graph_subtitle => "Graphs Report ",

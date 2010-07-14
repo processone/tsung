@@ -101,7 +101,9 @@ parse(Element = #xmlElement{name=server, attributes=Attrs}, Conf=#config{servers
     Port   = getAttr(integer, Attrs, port),
     Type = case getAttr(Attrs, type) of
                "ssl" -> ssl;
-               "tcp" -> gen_tcp;
+               %"tcp" -> gen_tcp;
+               "tcp" -> ts_tcp;
+               "bosh" -> ts_bosh;
                "udp" -> gen_udp;
                "erlang" -> erlang
            end,

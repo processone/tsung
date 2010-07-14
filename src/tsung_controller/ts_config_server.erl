@@ -51,7 +51,7 @@
          get_client_config/1, newbeam/1, newbeam/2, start_slave/5,
          get_monitor_hosts/0, encode_filename/1, decode_filename/1,
          endlaunching/1, status/0, start_file_server/1, get_user_agents/0,
-         get_client_config/2, get_user_param/1 ]).
+         get_client_config/2, get_user_param/1, get_user_port/1 ]).
 
 %%debug
 -export([choose_client_ip/1, choose_session/1]).
@@ -155,6 +155,9 @@ get_next_session(Host)->
 get_user_param(Host)->
     gen_server:call({global, ?MODULE},{get_user_param, Host}).
 
+get_user_port(Ip) ->
+    gen_server:call({global, ?MODULE},{get_user_port, Ip}).
+
 endlaunching(Node) ->
     gen_server:cast({global, ?MODULE},{end_launching, Node}).
 
@@ -255,6 +258,12 @@ handle_call({get_user_param, HostName}, _From, State=#state{users=UserId,ports=P
     {IPParam, Server, NewPorts} = get_user_param(Client,Config,Ports),
     ts_mon:newclient({static,now()}),
     {reply, {ok, { IPParam, Server, UserId}}, State#state{users=UserId+1,ports=NewPorts}};
+
+%% get  user port. This is needed by bosh, as there are more than one socket per bosh connection.
+handle_call({get_user_port, IP}, _From, State=#state{ports=Ports}) ->
+    Config = State#state.config,
+    {NewPorts,CPort}   = choose_port(IP, Ports,Config#config.ports_range),
+    {reply, {ok, CPort}, State#state{ports = NewPorts}};
 
 %% get a new session id and user parameters for the given node
 handle_call({get_next_session, HostName}, _From, State=#state{users=Users,ports=Ports}) ->

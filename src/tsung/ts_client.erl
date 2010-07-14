@@ -161,41 +161,26 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %%          {next_state, StateName, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-%% inet data
-handle_info({NetEvent, _Socket, Data}, wait_ack, State) when NetEvent==tcp;
-                                                             NetEvent==ssl ->
-    ?DebugF("TCP data received: size=~p ~n",[size(Data)]),
+%% received data
+handle_info({gen_ts_transport, _Socket, Data}, wait_ack, State) when is_binary(Data)->
+    ?DebugF("data received: size=~p ~n",[size(Data)]),
     case handle_data_msg(Data, State) of
-        {NewState=#state_rcv{ack_done=true}, Opts} ->
-            NewSocket = ts_utils:inet_setopts(NewState#state_rcv.protocol,
-                                              NewState#state_rcv.socket,
-                                              [{active, once} | Opts]),
+        {NewState=#state_rcv{ack_done=true, protocol = Transport, socket = Socket}, Opts} ->
+            NewSocket = Transport:set_opts(Socket, [{active, once} | Opts]),
             handle_next_action(NewState#state_rcv{socket=NewSocket,
                                                   ack_done=false});
-        {NewState, Opts} ->
-            NewSocket = ts_utils:inet_setopts(NewState#state_rcv.protocol,
-                                              NewState#state_rcv.socket,
-                                              [{active, once} | Opts]),
+        {NewState=#state_rcv{protocol = Transport, socket = Socket}, Opts} ->
+            NewSocket = Transport:set_opts(Socket, [{active, once} | Opts]),
             TimeOut=(NewState#state_rcv.proto_opts)#proto_opts.idle_timeout,
             {next_state, wait_ack, NewState#state_rcv{socket=NewSocket}, TimeOut}
     end;
-handle_info({erlang, _Socket, Data}, wait_ack, State) ->
-    ?DebugF("erlang function result received: size=~p ~n",[size(term_to_binary(Data))]),
-    case handle_data_msg(Data, State) of
-        {NewState=#state_rcv{ack_done=true}, _Opts} ->
-            handle_next_action(NewState#state_rcv{ack_done=false});
-        {NewState, _Opts} ->
-            TimeOut=(NewState#state_rcv.proto_opts)#proto_opts.idle_timeout,
-            {next_state, wait_ack, NewState, TimeOut}
-    end;
-handle_info({udp, Socket,_IP,_InPortNo, Data}, StateName, State) ->
-    ?DebugF("UDP packet received: size=~p ~n",[size(Data)]),
-    %% we don't care about IP,InPortNo, do the same as for a tcp connection:
-    handle_info({tcp, Socket, Data}, StateName, State);
+%% for erlang data
+handle_info({gen_ts_transport, _Socket, Data}, wait_ack, State) ->
+    handle_info({gen_ts_transport, _Socket, term_to_binary(Data)}, wait_ack, State);
+
 %% inet close messages; persistent session, waiting for ack
-handle_info({NetEvent, _Socket}, wait_ack,
-            State = #state_rcv{persistent=true}) when NetEvent==tcp_closed;
-                                                      NetEvent==ssl_closed ->
+handle_info({gen_ts_transport, _Socket, closed}, wait_ack,
+            State = #state_rcv{persistent=true})  ->
     ?LOG("connection closed while waiting for ack",?INFO),
     set_connected_status(false),
     {NewState, _Opts} = handle_data_msg(closed, State),
@@ -203,28 +188,25 @@ handle_info({NetEvent, _Socket}, wait_ack,
     handle_next_action(NewState#state_rcv{socket=none});
 
 %% inet close messages; persistent session
-handle_info({NetEvent, Socket}, think,
-            State = #state_rcv{persistent=true}) when NetEvent==tcp_closed;
-                                                      NetEvent==ssl_closed ->
+handle_info({gen_ts_transport, _Socket, closed}, think,
+            State = #state_rcv{persistent=true})  ->
     ?LOG("connection closed, stay alive (persistent)",?INFO),
     set_connected_status(false),
-    catch ts_utils:close_socket(State#state_rcv.protocol, Socket), % mandatory for ssl
+    catch (State#state_rcv.protocol):close(State#state_rcv.socket), % mandatory for ssl
     {next_state, think, State#state_rcv{socket = none}};
 
 %% inet close messages
-handle_info({NetEvent, Socket}, _StateName, State) when NetEvent==tcp_closed;
-                                                       NetEvent==ssl_closed ->
+handle_info({gen_ts_transport, _Socket, closed}, _StateName, State) ->
     ?LOG("connection closed, abort", ?WARN),
     %% the connexion was closed after the last msg was sent, stop quietly
     ts_mon:add({ count, error_closed }),
     set_connected_status(false),
-    ts_utils:close_socket(State#state_rcv.protocol, Socket), % mandatory for ssl
+    catch (State#state_rcv.protocol):close(State#state_rcv.socket), % mandatory for ssl
     {stop, normal, State#state_rcv{socket = none}};
 
 %% inet errors
-handle_info({NetError, _Socket, Reason}, wait_ack, State)  when NetError==tcp_error;
-                                                               NetError==ssl_error ->
-    ?LOGF("Net error (~p): ~p~n",[NetError, Reason], ?WARN),
+handle_info({gen_ts_transport, _Socket, error, Reason}, _StateName, State)  ->
+    ?LOGF("Net error: ~p~n",[Reason], ?WARN),
     CountName="error_inet_"++atom_to_list(Reason),
     ts_mon:add({ count, list_to_atom(CountName) }),
     set_connected_status(false),
@@ -244,8 +226,8 @@ handle_info(timeout, StateName, State ) ->
     ts_mon:add({ count, timeout }),
     {stop, normal, State};
 % bidirectional protocol
-handle_info({NetEvent, Socket, Data}, think,State=#state_rcv{
-  clienttype=Type, bidi=true,host=Host,port=Port})  when ((NetEvent == tcp) or (NetEvent==ssl)) ->
+handle_info({gen_ts_transport, Socket, Data}, think,State=#state_rcv{
+  clienttype=Type, bidi=true,host=Host,port=Port})  ->
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     ts_mon:add({ sum, size_rcv, size(Data)}),
     Proto = State#state_rcv.protocol,
@@ -262,27 +244,25 @@ handle_info({NetEvent, Socket, Data}, think,State=#state_rcv{
                        send(Proto,Socket,Data2,Host,Port), %FIXME: handle errors ?
                        State2
                end,
-    NewSocket = ts_utils:inet_setopts(Proto, State#state_rcv.socket,
-                                      [{active, once}]),
+    NewSocket = (State#state_rcv.protocol):set_opts(Socket, [{active, once}]),
     {next_state, think, NewState#state_rcv{socket=NewSocket}};
 % bidi is false, but parse is also false: continue even if we get data
-handle_info({NetEvent, _Socket, Data}, think, State = #state_rcv{request=Req} )
-  when (Req#ts_request.ack /= parse) and ((NetEvent == tcp) or (NetEvent==ssl)) ->
+handle_info({gen_ts_transport, Socket, Data}, think, State = #state_rcv{request=Req} )
+  when (Req#ts_request.ack /= parse) ->
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     ts_mon:add({ sum, size_rcv, size(Data)}),
     ?LOGF("Data receive from socket in state think, ack=~p, skip~n",
           [Req#ts_request.ack],?NOTICE),
     ?DebugF("Data was ~p~n",[Data]),
-    NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol, State#state_rcv.socket,
-                                      [{active, once}]),
+    NewSocket = (State#state_rcv.protocol):set_opts(Socket, [{active, once}]),
     {next_state, think, State#state_rcv{socket=NewSocket}};
-handle_info({NetEvent, _Socket, Data}, think, State)
-  when (NetEvent == tcp) or (NetEvent==ssl) ->
+handle_info({gen_ts_transport, _Socket, Data}, think, State) ->
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     ts_mon:add({ count, error_unknown_data }),
     ?LOG("Data receive from socket in state think, stop~n", ?ERR),
     ?DebugF("Data was ~p~n",[Data]),
     {stop, normal, State};
+%% pablo TODO:  when this could happen??
 handle_info({inet_reply, _Socket,ok}, StateName, State ) ->
     ?LOGF("inet_reply ok received in state ~p~n",[StateName],?NOTICE),
     {next_state, StateName, State};
@@ -369,7 +349,7 @@ handle_next_action(State) ->
                 true -> % keep state
                     put({state, State#state_rcv.clienttype} , {State#state_rcv.socket,State#state_rcv.session,DynData#dyndata.proto});
                 false -> % don't keep state of old type, close connection
-                    ts_utils:close_socket(State#state_rcv.protocol, State#state_rcv.socket),
+                    (State#state_rcv.protocol):close(State#state_rcv.socket),
                     set_connected_status(false)
             end,
             {Socket,Session,ProtoDynData} = case {Restore, get({state,NewCType})} of
@@ -551,8 +531,7 @@ handle_next_request(Request, State) ->
                      State#state_rcv.socket;
                  _ ->
                      ?Debug("Change server configuration inside a session ~n"),
-                     ts_utils:close_socket(State#state_rcv.protocol,
-                                           State#state_rcv.socket),
+                     (State#state_rcv.protocol):close(State#state_rcv.socket),
                      set_connected_status(false),
                      none
              end,
@@ -563,7 +542,7 @@ handle_next_request(Request, State) ->
     %% reconnect if needed
     Proto = {Protocol,State#state_rcv.proto_opts},
     case reconnect(Socket,Host,Port,Proto,State#state_rcv.ip) of
-        {ok, NewSocket} ->
+        {ok, NewSocket} when is_pid(NewSocket) ->
             case catch send(Protocol, NewSocket, Message, Host, Port) of
                 ok ->
                     PageTimeStamp = case State#state_rcv.page_timestamp of
@@ -663,7 +642,7 @@ finish_session(State) ->
 handle_close_while_sending(State=#state_rcv{persistent = true,
                                             protocol   = Proto,
                                             proto_opts = PO})->
-    ts_utils:close_socket(Proto, State#state_rcv.socket),
+    Proto:close(State#state_rcv.socket),
     set_connected_status(false),
     Think = PO#proto_opts.retry_timeout,
     %%FIXME: report the error to ts_mon ?
@@ -709,7 +688,7 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort}) ->
     Opts = protocol_options(Protocol, Proto_opts)  ++ [{ip, IP},{port,CPort}],
     Before= now(),
     case connect(Protocol,ServerName, Port, Opts) of
-        {ok, Socket} ->
+        {ok, Socket} when is_pid(Socket) ->
             Elapsed = ts_utils:elapsed(Before, now()),
             ts_mon:add({ sample, connect, Elapsed }),
             set_connected_status(true),
@@ -723,7 +702,7 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort}) ->
             ts_mon:add({ count, list_to_atom(CountName) }),
             {error, Reason}
     end;
-reconnect(Socket, _Server, _Port, _Protocol, _IP) ->
+reconnect(Socket, _Server, _Port, _Protocol, _IP) when is_pid(Socket) ->
     {ok, Socket}.
 
 %%----------------------------------------------------------------------
@@ -731,49 +710,57 @@ reconnect(Socket, _Server, _Port, _Protocol, _IP) ->
 %% Purpose: wrapper function for send
 %% Return: ok | {error, Reason}
 %%----------------------------------------------------------------------
-send(gen_tcp,Socket,Message,_,_) -> gen_tcp:send(Socket,Message);
-send(ssl,Socket,Message,_,_)     -> ssl:send(Socket,Message);
-send(gen_udp,Socket,Message,Host,Port) ->gen_udp:send(Socket,Host,Port,Message);
-send(erlang,Pid,Message,_,_) ->
-    Pid ! Message,
-    ok.
+
+send(Proto, Socket, Message, Host, Port) when is_pid (Socket) ->
+    Proto:send(Socket, Message, [{host, Host}, {port, Port}]).
+%send(gen_tcp,Socket,Message,_,_) -> gen_tcp:send(Socket,Message);
+%send(ssl,Socket,Message,_,_)     -> ssl:send(Socket,Message);
+%send(gen_udp,Socket,Message,Host,Port) ->gen_udp:send(Socket,Host,Port,Message);
+%send(erlang,Pid,Message,_,_) ->
+%    Pid ! Message,
+%    ok.
 
 %%----------------------------------------------------------------------
 %% Func: connect/4
 %% Return: {ok, Socket} | {error, Reason}
 %%----------------------------------------------------------------------
-connect(gen_tcp,Server, Port, Opts)  -> gen_tcp:connect(Server, Port, Opts);
-connect(ssl,Server, Port,Opts)       -> ssl:connect(Server, Port, Opts);
-connect(gen_udp,_Server, _Port, Opts)-> gen_udp:open(0,Opts);
-connect(erlang,Server,Port,Opts)     ->
-    Pid=spawn_link(ts_erlang,client,[self(),Server,Port,Opts]),
-    {ok, Pid}.
+connect(Proto, Server, Port, Opts) ->
+    Proto:connect(Server, Port, Opts).
+
+%connect(gen_tcp,Server, Port, Opts)  -> gen_tcp:connect(Server, Port, Opts);
+%connect(ssl,Server, Port,Opts)       -> ssl:connect(Server, Port, Opts);
+%connect(gen_udp,_Server, _Port, Opts)-> gen_udp:open(0,Opts);
+%connect(erlang,Server,Port,Opts)     ->
+%    Pid=spawn_link(ts_erlang,client,[self(),Server,Port,Opts]),
+%    {ok, Pid}.
 
 
 %%----------------------------------------------------------------------
 %% Func: protocol_options/1
 %% Purpose: set connection's options for the given protocol
 %%----------------------------------------------------------------------
-protocol_options(ssl,#proto_opts{ssl_ciphers=negociate}) ->
-    [binary, {active, once} ];
-protocol_options(ssl,#proto_opts{ssl_ciphers=Ciphers}) ->
-    ?DebugF("cipher is ~p~n",[Ciphers]),
-    [binary, {active, once}, {ciphers, Ciphers} ];
+protocol_options(Proto, #proto_opts{} = ProtoOpts) ->
+    Proto:protocol_options(ProtoOpts).
+%protocol_options(ssl,#proto_opts{ssl_ciphers=negociate}) ->
+%    [binary, {active, once} ];
+%protocol_options(ssl,#proto_opts{ssl_ciphers=Ciphers}) ->
+%    ?DebugF("cipher is ~p~n",[Ciphers]),
+%    [binary, {active, once}, {ciphers, Ciphers} ];
 
-protocol_options(gen_tcp,#proto_opts{tcp_rcv_size=Rcv, tcp_snd_size=Snd}) ->
-    [binary,
-     {active, once},
-     {recbuf, Rcv},
-     {sndbuf, Snd},
-     {keepalive, true} %% FIXME: should be an option
-    ];
-protocol_options(gen_udp,#proto_opts{udp_rcv_size=Rcv, udp_snd_size=Snd}) ->
-    [binary,
-     {active, once},
-     {recbuf, Rcv},
-     {sndbuf, Snd}
-    ];
-protocol_options(erlang,_) -> [].
+%protocol_options(gen_tcp,#proto_opts{tcp_rcv_size=Rcv, tcp_snd_size=Snd}) ->
+%    [binary,
+%     {active, once},
+%     {recbuf, Rcv},
+%     {sndbuf, Snd},
+%     {keepalive, true} %% FIXME: should be an option
+%    ];
+%protocol_options(gen_udp,#proto_opts{udp_rcv_size=Rcv, udp_snd_size=Snd}) ->
+%    [binary,
+%     {active, once},
+%     {recbuf, Rcv},
+%     {sndbuf, Snd}
+%    ];
+%protocol_options(erlang,_) -> [].
 
 
 
@@ -827,7 +814,7 @@ handle_data_msg(Data,State=#state_rcv{request=Req,clienttype=Type,maxcount=MaxCo
             case Close of
                 true ->
                     ?Debug("Close connection required by protocol~n"),
-                    ts_utils:close_socket(State#state_rcv.protocol,State#state_rcv.socket),
+                    (State#state_rcv.protocol):close(State#state_rcv.socket),
                     set_connected_status(false),
                     {NewState#state_rcv{ page_timestamp = PageTimeStamp,
                                          socket = none,
