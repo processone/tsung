@@ -41,7 +41,7 @@ subst_redirect_test()->
     {Req,_}=ts_http:add_dynparams(true,#dyndata{proto=Proto,dynvars=DynVars},
                                   #http_request{url=URL},
                                   {"erlang.org",80}),
-    ?assertEqual("GET /bidule/truc HTTP/1.1\r\nHost: erlang.org:80\r\nUser-Agent: Firefox\r\nCookie: toto=bar\r\n\r\n", binary_to_list(ts_http:get_message(Req))).
+    ?assertEqual("GET /bidule/truc HTTP/1.1\r\nHost: erlang.org\r\nUser-Agent: Firefox\r\nCookie: toto=bar\r\n\r\n", binary_to_list(ts_http:get_message(Req))).
 
 cookie_subdomain_test()->
     myset_env(),

@@ -100,7 +100,7 @@ parse_config(Element, Conf) ->
 %% Purpose: add dynamic parameters to build the message
 %%          this is used for ex. for Cookies in HTTP
 %% Args: Subst (true|false), DynData = #dyndata, Param = #http_request,
-%%                                               Host  = String
+%%                                               HostData  = {Hostname, Port}
 %% Returns: #http_request or { #http_request, {Host, Port, Scheme}}
 %%----------------------------------------------------------------------
 add_dynparams(false, DynData, Param, HostData) ->
@@ -116,7 +116,7 @@ add_dynparams(true, DynData, OldReq=#http_request{url=OldUrl}, HostData) ->
             NewPort = ts_config_http:set_port(URL),
             NewReq  = add_dynparams(DynData#dyndata.proto,
                                     Req#http_request{host_header=undefined},
-                                    {URL#url.host, NewPort}),
+                                    {URL#url.host, NewPort, URL#url.scheme}), % add scheme
             case OldUrl of
                 "http"++_ -> % old url absolute: useproxy must be true
                     NewReq#http_request{url="http"++Rest};
@@ -129,10 +129,19 @@ add_dynparams(true, DynData, OldReq=#http_request{url=OldUrl}, HostData) ->
     end.
 
 %% Function: add_dynparams/3
-add_dynparams(DynData,Param=#http_request{host_header=undefined}, {Host,Port})->
-    Header=Host++":"++ integer_to_list(Port),
+add_dynparams(DynData,Param=#http_request{host_header=undefined}, HostData )->
+    Header = case HostData of
+                 {Host,80, http}->
+                     Host;
+                 {Host,443, https}->
+                     Host;
+                 {Host,Port,_} ->
+                     Host++":"++ integer_to_list(Port);
+                 {Host,Port} ->
+                     Host++":"++ integer_to_list(Port)
+             end,
     ?DebugF("set host header dynamically: ~s~n",[Header]),
-    add_dynparams(DynData, Param#http_request{host_header=Header},{Host,Port});
+    add_dynparams(DynData, Param#http_request{host_header=Header},HostData);
 %% no cookies
 add_dynparams(#http_dyndata{cookies=[],user_agent=UA},Param, _) ->
     Param#http_request{user_agent=UA};

@@ -185,9 +185,17 @@ cookie_rec2str(#cookie{key=Key, value=Val}) ->
 %% Purpose:  return a cookie only if domain match
 %% Returns:  true|false
 %%----------------------------------------------------------------------
+matchdomain_url(Cookie, _Host, "http"++URL) -> % absolute URL, a proxy is used.
+    %% FIXME: the domain stored is the domain of the proxy, we can't
+    %% check the domain currently :( We assume it's OK
+    %% FIXME: really check if it's a sub path; currently we only check
+    %% that the path is somewhere in the URL which is obviously not
+    %% the right thing to do.
+    string:str(URL,Cookie#cookie.path) > 0;
 matchdomain_url(Cookie, Host, URL) ->
-    case {string:str([$.|Host],Cookie#cookie.domain), % FIXME:should use regexp:match
-          string:str(URL,Cookie#cookie.path)} of
+    SubDomain = string:str([$.|Host],Cookie#cookie.domain),
+    SubPath   = string:str(URL,Cookie#cookie.path), % FIXME:should use regexp:match
+    case {SubDomain,SubPath} of
         {0,_} -> false;
         {_,1} -> true;
         {_,_} -> false
@@ -366,6 +374,8 @@ read_chunk_data(Data, State=#state_rcv{acc=Acc}, _Int, AccSize) ->
 %%----------------------------------------------------------------------
 add_new_cookie(Cookie, Host, OldCookies) ->
     Fields = splitcookie(Cookie),
+    %% FIXME: bad domain if we use a Proxy (the domain will be equal
+    %% to the proxy domain instead of the server's domain
     New = parse_set_cookie(Fields, #cookie{domain=[$.|Host],path="/"}),
     concat_cookies([New],OldCookies).
 
