@@ -211,8 +211,12 @@ set_msg(HTTP=#http_request{url="http" ++ URL},
 
 %% relative URL, no previous HTTP server, use proxy, error !
 set_msg(_, {_, _, true, _Server, [],_Tab,_Id}) ->
-    ?LOG("Need absolut URL when using a proxy ! Abort",?ERR),
+    ?LOG("Need absolute URL when using a proxy ! Abort",?ERR),
     throw({error, badurl_proxy});
+%% url head is a dynvar, don't preset host header
+set_msg(HTTP=#http_request{url="%%" ++ TailURL},  {true, MatchRegExp, _Proxy, _Servers, _Headers,_Tab,_Id}) ->
+    set_msg2(HTTP,
+             #ts_request{ack = parse, subst = true, match = MatchRegExp });
 %% relative URL, no proxy, a single server => we can preset host header at configuration time
 set_msg(HTTPRequest, {SubstFlag, MatchRegExp, false, [Server], [],_Tab,_Id}) ->
     ?LOG("Relative URL, single server ",?NOTICE),
@@ -229,7 +233,7 @@ set_msg(HTTPRequest, {SubstFlag, MatchRegExp, false, _Server, {HostHeader,_},_Ta
              #ts_request{ack = parse, subst = SubstFlag, match = MatchRegExp });
 %% relative URL, use proxy
 set_msg(HTTPRequest, {SubstFlag, MatchRegExp, true, Server, {HostHeader, PrevScheme},Tab,Id}) ->
-    %% set absolut URL using previous Server used.
+    %% set absolute URL using previous Server used.
     URL = atom_to_list(PrevScheme) ++ "://" ++ HostHeader ++ HTTPRequest#http_request.url,
     set_msg(HTTPRequest#http_request{url=URL}, {SubstFlag, MatchRegExp, true, Server, {HostHeader, PrevScheme},Tab,Id}).
 
