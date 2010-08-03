@@ -33,6 +33,7 @@ dnl check for xmerl include path
 AC_ERLANG_CHECK_LIB(xmerl)
 AC_ERLANG_CHECK_LIB(ssl)
 AC_ERLANG_CHECK_LIB(crypto)
+AC_ERLANG_CHECK_LIB(public_key)
 
 dnl check if ssl is working
 AC_CACHE_CHECK([if Erlang/OTP SSL application is running fine],
@@ -47,9 +48,24 @@ AC_CACHE_CHECK([if Erlang/OTP SSL application is running fine],
          halt(0)])],
         [erlang_cv_ssl_runnable=yes
          ERLANG_APPLICATIONS="kernel,stdlib,ssl"],
-        [ERLANG_APPLICATIONS="kernel,stdlib"
-         AC_MSG_RESULT(WARNING: ssl application is not working properly !!!)])
+        [
+            AC_RUN_IFELSE(
+            [AC_LANG_PROGRAM([], [dnl
+               application:start(crypto),
+               application:start(public_key),
+               case application:start(ssl) of
+                    ok  -> ok;
+                    Err -> halt(1)
+               end,
+               halt(0)])],
+               [erlang_cv_ssl_runnable=yes
+                ERLANG_APPLICATIONS="kernel,stdlib,crypto,public_key,ssl"],
+                [ERLANG_APPLICATIONS="kernel,stdlib"
+                 AC_MSG_RESULT(WARNING: ssl application is not working properly !!!)])
+        ])
     ])
+
+
 
 dnl check if crypto is working
 AC_CACHE_CHECK([if Erlang/OTP crypto application is running fine],
