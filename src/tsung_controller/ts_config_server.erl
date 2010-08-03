@@ -501,7 +501,7 @@ choose_rr(List, Key, _) ->
 choose_session([Session]) -> %% only one Session
     {ok, Session};
 choose_session(Sessions) ->
-    choose_session(Sessions, random:uniform(100),0).
+    choose_session(Sessions, random:uniform() * 100,0).
 
 choose_session([S=#session{popularity=P} | _],Rand,Cur) when Rand =< P+Cur->
     {ok, S};
