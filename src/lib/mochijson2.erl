@@ -510,8 +510,8 @@ tokenize(B, S=#decoder{offset=O}) ->
 %%
 %% Tests
 %%
--include_lib("eunit/include/eunit.hrl").
 -ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
 
 
 %% testing constructs borrowed from the Yaws JSON implementation.
