@@ -95,8 +95,8 @@ a:hover     {background:#ffffaa;}
 <!--ENDHTML-->
 <!--CUT DEF section 1 --><H1 ALIGN=center>Tsung User’s manual</H1><DIV CLASS="center">
 
-<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>1.3.2</TD></TR>
-<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>June 20, 2010</TD></TR>
+<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>1.3.3a</TD></TR>
+<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>August 4, 2010</TD></TR>
 </TABLE>
 </DIV><!--TOC section Contents-->
 <H2 CLASS="section"><!--SEC ANCHOR -->Contents</H2><!--SEC END --><UL CLASS="toc"><LI CLASS="li-toc">
@@ -2267,7 +2267,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 </TABLE></TD></TR>
 </TABLE><P>Much simpler than the old method !</P><!--TOC subsubsection Dynamic variables-->
-<H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc65">6.7.3</A>  Dynamic variables</H4><!--SEC END --><P>In some cases, you may want to use a value given by the server in a
+<H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc65">6.7.3</A>  Dynamic variables</H4><!--SEC END --><P><A NAME="Dynamic variables"></A></P><P>In some cases, you may want to use a value given by the server in a
 response later in the session, and this value is <B>dynamically
 generated</B> by the server for each user. For this, you can use
 <FONT COLOR=purple>&lt;dyn_variable&gt;</FONT> in the scenario</P><P>Let’s take an example with HTTP. You can easily grab a value in a HTML
@@ -2584,7 +2584,10 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE></LI></OL><P>A <TT>setdynvars</TT> can be defined anywhere in a session.</P><!--TOC subsubsection Checking the server’s response-->
+</TABLE><P>In this case, we use tsung function <TT>ts_dynvars:lookup</TT> to retrieve the
+dynamic variable named <TT>md5data</TT>. This dyn_variable <TT>md5data</TT>
+can be set in any of the ways described in the Dynamic variables
+section <A HREF="#Dynamic variables">6.7.3</A>.</P></LI></OL><P>A <TT>setdynvars</TT> can be defined anywhere in a session.</P><!--TOC subsubsection Checking the server’s response-->
 <H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc66">6.7.4</A>  Checking the server’s response</H4><!--SEC END --><P>With the tag <TT>match</TT> in a <TT>request</TT> tag, you can check
 the server’s response against a given string, and do some actions
 depending on the result. In any case, if it matches, this will
