@@ -80,7 +80,7 @@ init([]) ->
     %% set random port for the initial value.
     case catch Min+random:uniform(Max-Min) of
         Val when is_integer(Val) ->
-            ?LOGF("Ok, starting with ~p value~n",[Val],?ERR),
+            ?LOGF("Ok, starting with ~p value~n",[Val],?NOTICE),
             {ok, #state{min_port=Min, max_port=Max},10};
         Err ->
             ?LOGF("ERR starting:  ~p~n",[Err],?ERR),
@@ -97,7 +97,7 @@ init([]) ->
 %% Description: Handling call messages
 %%--------------------------------------------------------------------
 handle_call({get, ClientIP}, _From, State) ->
-    %% use the process dictionnary to store tha last port of each ip
+    %% use the process dictionnary to store the last port of each ip
     %% should we use ets instead ?
     Reply = case get(ClientIP) of
                 ?EPMD_PORT ->
@@ -127,7 +127,7 @@ handle_cast(_Msg, State) ->
 %% Description: Handling all non call/cast messages
 %%--------------------------------------------------------------------
 handle_info(timeout, State) ->
-    %% several beam can be started in a host: we want a single cport
+    %% several beam can be started on a host: we want a single cport
     %% server to respond: register a name unique to the host
     {ok, MyHostName} = ts_utils:node_to_hostname(node()),
     Id="cport-" ++ MyHostName,
