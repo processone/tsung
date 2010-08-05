@@ -52,6 +52,7 @@
                 phases =[],
                 myhostname,
                 intensity,
+                static_done = false,
                 started_users = 0,
                 phase_nusers,   % total number of users to start in the current phase
                 phase_duration, % expected phase duration
@@ -120,7 +121,7 @@ wait({launch, Args, Hostname, Seed}, State) ->
 
 %% starting without configuration. We must ask the config server for
 %% the configuration of this launcher.
-wait({launch, [], Seed}, State) ->
+wait({launch, [], Seed}, State=#state{static_done=Static_done}) ->
     ts_utils:init_seed(Seed),
     MyHostName = State#state.myhostname,
     ?LOGF("Launch msg receive (~p)~n",[MyHostName], ?NOTICE),
@@ -129,12 +130,18 @@ wait({launch, [], Seed}, State) ->
         {ok, {[{Intensity, Users}| Rest], StartDate, Max}} ->
             Duration = Users/Intensity,
             ?LOGF("Expected duration of first phase: ~p sec ~n",[Duration/1000], ?NOTICE),
-            {next_state,wait_static,State#state{phases = Rest,
-                                                nusers = Users,
-                                                phase_nusers = Users,
-                                                start_date=StartDate,
-                                                phase_duration=Duration,
-                                                intensity=Intensity,maxusers=Max }};
+            NewState = State#state{phases         = Rest,
+                                   nusers         = Users,
+                                   phase_nusers   = Users,
+                                   start_date     = StartDate,
+                                   phase_duration = Duration,
+                                   intensity      = Intensity, maxusers=Max },
+            case Static_done of
+                true  ->
+                    wait_static({static, 0}, NewState);
+                false ->
+                    {next_state,wait_static,NewState}
+            end;
         {ok,{[],_,_}} -> % no random users, only static.
             {stop, normal, State}
     end;
@@ -155,8 +162,9 @@ wait({launch, {[{Intensity, Users}| Rest], Max}, Seed}, State) ->
                                        intensity = Intensity, maxusers=Max},
      State#state.short_timeout};
 wait({static,0}, State) ->
-    %% ignore static
-    {next_state, wait, State}.
+    %% static launcher has no work to do, do not wait for him.
+    ?LOG("Wow, static launcher is already sending me a msg, don't forget it ~n", ?INFO),
+    {next_state, wait, State#state{static_done=true}}.
 
 wait_static({static, Static}, State=#state{maxusers=Max,intensity=Intensity,
                                            nusers=Users,start_date=StartDate}) when is_integer(Static) ->
