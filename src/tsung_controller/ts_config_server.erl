@@ -48,7 +48,7 @@
 %%--------------------------------------------------------------------
 %% External exports
 -export([start_link/1, read_config/1, get_req/2, get_next_session/1,
-         get_client_config/1, newbeam/1, newbeam/2, start_slave/5,
+         get_client_config/1, newbeams/1, newbeam/2,
          get_monitor_hosts/0, encode_filename/1, decode_filename/1,
          endlaunching/1, status/0, start_file_server/1, get_user_agents/0,
          get_client_config/2, get_user_param/1 ]).
@@ -91,8 +91,8 @@ status() ->
 %% Function: newbeam/1
 %% Description: start a new beam
 %%--------------------------------------------------------------------
-newbeam(Host)->
-    gen_server:cast({global, ?MODULE},{newbeam, Host, [] }).
+newbeams(HostList)->
+    gen_server:cast({global, ?MODULE},{newbeams, HostList }).
 %%--------------------------------------------------------------------
 %% Function: newbeam/2
 %% Description: start a new beam with given config. Use by launcher
@@ -328,36 +328,36 @@ handle_call(Request, _From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
 %% start the launcher on the current beam
-handle_cast({newbeam, Host, []}, State=#state{last_beam_id = NodeId,
-                                              hostname = LocalHost,
-                                              config   = Config})
-  when Config#config.use_controller_vm and ( ( LocalHost == Host ) or ( Host == 'localhost' )) ->
-    ?LOGF("Start a launcher on the controller beam ~p~n", [LocalHost], ?NOTICE),
-    LogDir = encode_filename(State#state.logdir),
-    %% set the application spec (read the app file and update some env. var.)
-    {ok, {_,_,AppSpec}} = load_app(tsung),
-    {value, {env, OldEnv}} = lists:keysearch(env, 1, AppSpec),
-    NewEnv = [ {dump,atom_to_list(?config(dump))},
-               {debug_level,integer_to_list(?config(debug_level))},
-               {log_file,LogDir}],
-
-    RepKeyFun = fun(Tuple, List) ->  lists:keyreplace(element(1, Tuple), 1, List, Tuple) end,
-    Env = lists:foldl(RepKeyFun, OldEnv, NewEnv),
-    NewAppSpec = lists:keyreplace(env, 1, AppSpec, {env, Env}),
-
-    ok = application:load({application, tsung, NewAppSpec}),
-    case application:start(tsung) of
-        ok ->
-            ?LOG("Application started, activate launcher, ~n", ?INFO),
-            application:set_env(tsung, debug_level, Config#config.loglevel),
-            ts_launcher_static:launch({node(), Host, []}),
-            ts_launcher:launch({node(), Host, [], Config#config.seed}),
-            {noreply, State#state{last_beam_id = NodeId +1}};
-        {error, Reason} ->
-            ?LOGF("Can't start launcher application ~p (reason: ~p) ! Aborting!~n",[Host, Reason],?EMERG),
+handle_cast({newbeams, HostList}, State=#state{logdir   = LogDir,
+                                               hostname = LocalHost,
+                                               config   = Config}) ->
+    LocalVM  = Config#config.use_controller_vm,
+    GetLocal = fun(Host)           when Host == LocalHost and  LocalVM  -> true;
+                  ('localhost')    when LocalVM  -> true;
+                  (_Host)        -> false
+               end,
+    {LocalBeams, RemoteBeams} = lists:partition(GetLocal,HostList),
+    case local_launcher(LocalBeams, LogDir, Config) of
+        {error, _Reason} ->
             ts_mon:abort(),
-            {stop, normal, State}
+            {stop, normal,State};
+        Id0 ->
+            Seed=Config#config.seed,
+            Args = set_remote_args(LogDir),
+            {BeamsIds, LastId} = lists:mapfoldl(fun(A,Acc) -> {{A, Acc}, Acc+1} end, Id0, RemoteBeams),
+            Fun = fun({Host,Id}) -> remote_launcher(Host, Id, Args) end,
+            RemoteNodes = ts_utils:pmap(Fun, BeamsIds),
+            ?LOG("All remote beams started, sync ~n",?NOTICE),
+            global:sync(),
+            StartLaunchers = fun(Node) ->
+                                     ts_launcher_static:launch({Node,[]}),
+                                     ts_launcher:launch({Node, [], Seed})
+                             end,
+            lists:foreach(StartLaunchers, RemoteNodes),
+            %% FIXME: active cport if needed
+            {noreply, State#state{last_beam_id = LastId}}
     end;
+
 
 %% use_controller_vm and max number of concurrent users reached , big trouble !
 handle_cast({newbeam, Host, _}, State=#state{ hostname=LocalHost,config=Config})
@@ -368,30 +368,12 @@ handle_cast({newbeam, Host, _}, State=#state{ hostname=LocalHost,config=Config})
     {noreply, State};
 
 %% start a launcher on a new beam with slave module
-handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId}) ->
-    Name = set_nodename(NodeId),
-    {ok, [[BootController]]}    = init:get_argument(boot),
-    ?DebugF("BootController ~p~n", [BootController]),
-    {ok, [[?TSUNGPATH,PathVar]]}    = init:get_argument(boot_var),
-    ?DebugF("BootPathVar ~p~n", [PathVar]),
-    {ok, PAList}    = init:get_argument(pa),
-    PA = lists:flatmap(fun(A) -> [" -pa "] ++A end,PAList),
-    ?DebugF("PA list ~p ~n", [PA]),
-    {ok, Boot, _} = regexp:gsub(BootController,"tsung_controller","tsung"),
-    ?DebugF("Boot ~p~n", [Boot]),
-    Sys_Args= ts_utils:erl_system_args(),
-    LogDir = encode_filename(State#state.logdir),
-    Args = lists:flatten([ Sys_Args," -boot ", Boot,
-        " -boot_var ", ?TSUNGPATH, " ",PathVar, PA,
-        " +K true ",
-        " -tsung debug_level ", integer_to_list(?config(debug_level)),
-        " -tsung dump ", atom_to_list(?config(dump)),
-        " -tsung log_file ", LogDir
-        ]),
-    ?LOGF("starting newbeam on host ~p from ~p with Args ~p~n", [Host, State#state.hostname, Args], ?INFO),
-    Seed=(State#state.config)#config.seed,
-    spawn_link(?MODULE, start_slave, [Host, Name, Args, Arrivals, Seed]),
-    {noreply, State#state{last_beam_id = NodeId +1}};
+handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId, config=Config, logdir = LogDir}) ->
+    Args = set_remote_args(LogDir),
+    Seed = Config#config.seed,
+    Node = remote_launcher(Host, NodeId, Args),
+    ts_launcher:launch({Node, Arrivals, Seed}),
+    {noreply, State#state{last_beam_id = NodeId+1}};
 
 handle_cast({end_launching, _Node}, State=#state{ending_beams=Beams}) ->
     {noreply, State#state{ending_beams = Beams+1}};
@@ -670,17 +652,13 @@ sort_static(Config=#config{static_users=S})->
 %%
 %% @doc start a remote beam
 %%
-start_slave(Host, Name, Args, Arrivals, Seed)->
+start_slave(Host, Name, Args)->
     case slave:start(Host, Name, Args) of
         {ok, Node} ->
             ?LOGF("started newbeam on node ~p ~n", [Node], ?NOTICE),
             Res = net_adm:ping(Node),
             ?LOGF("ping ~p ~p~n", [Node,Res], ?NOTICE),
-            case Arrivals of
-                [] -> ts_launcher_static:launch({Node,[]});
-                _  -> ok  %no static launcher needed in this case
-            end,
-            ts_launcher:launch({Node, Arrivals, Seed});
+            Node;
         {error, Reason} ->
             ?LOGF("Can't start newbeam on host ~p (reason: ~p) ! Aborting!~n",[Host, Reason],?EMERG),
             exit({slave_failure, Reason})
@@ -733,3 +711,59 @@ set_max_duration(Duration) when Duration =< 4294967 ->
     ?LOGF("Set max duration of test: ~p s ~n",[Duration],?NOTICE),
     erlang:start_timer(Duration*1000, self(), end_tsung ).
 
+
+
+
+local_launcher([],_,_) ->
+    0;
+local_launcher([Host],LogDir,Config) ->
+    ?LOGF("Start a launcher on the controller beam ~p~n", [Host], ?NOTICE),
+    LogDirEnc = encode_filename(LogDir),
+    %% set the application spec (read the app file and update some env. var.)
+    {ok, {_,_,AppSpec}} = load_app(tsung),
+    {value, {env, OldEnv}} = lists:keysearch(env, 1, AppSpec),
+    NewEnv = [ {dump,atom_to_list(?config(dump))},
+               {debug_level,integer_to_list(?config(debug_level))},
+               {log_file,LogDirEnc}],
+
+    RepKeyFun = fun(Tuple, List) ->  lists:keyreplace(element(1, Tuple), 1, List, Tuple) end,
+    Env = lists:foldl(RepKeyFun, OldEnv, NewEnv),
+    NewAppSpec = lists:keyreplace(env, 1, AppSpec, {env, Env}),
+
+    ok = application:load({application, tsung, NewAppSpec}),
+    case application:start(tsung) of
+        ok ->
+            ?LOG("Application started, activate launcher, ~n", ?INFO),
+            application:set_env(tsung, debug_level, Config#config.loglevel),
+            ts_launcher_static:launch({node(), Host, []}),
+            ts_launcher:launch({node(), Host, [], Config#config.seed}),
+            1 ;
+        {error, Reason} ->
+            ?LOGF("Can't start launcher application (reason: ~p) ! Aborting!~n",[Reason],?EMERG),
+            {error, Reason}
+    end.
+
+remote_launcher(Host, NodeId, Args)->
+    Name = set_nodename(NodeId),
+    ?LOGF("starting newbeam on host ~p with Args ~p~n", [Host, Args], ?INFO),
+    start_slave(Host, Name, Args).
+
+set_remote_args(LogDir)->
+            {ok, [[BootController]]}    = init:get_argument(boot),
+            ?DebugF("BootController ~p~n", [BootController]),
+            {ok, [[?TSUNGPATH,PathVar]]}    = init:get_argument(boot_var),
+            ?DebugF("BootPathVar ~p~n", [PathVar]),
+            {ok, PAList}    = init:get_argument(pa),
+            PA = lists:flatmap(fun(A) -> [" -pa "] ++A end,PAList),
+            ?DebugF("PA list ~p ~n", [PA]),
+            {ok, Boot, _} = regexp:gsub(BootController,"tsung_controller","tsung"),
+            ?DebugF("Boot ~p~n", [Boot]),
+            Sys_Args= ts_utils:erl_system_args(),
+            LogDirEnc = encode_filename(LogDir),
+            lists:flatten([ Sys_Args," -boot ", Boot,
+                                   " -boot_var ", ?TSUNGPATH, " ",PathVar, PA,
+                                   " +K true ",
+                                   " -tsung debug_level ", integer_to_list(?config(debug_level)),
+                                   " -tsung dump ", atom_to_list(?config(dump)),
+                                   " -tsung log_file ", LogDirEnc
+                                 ]).

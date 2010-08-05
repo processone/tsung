@@ -449,5 +449,5 @@ start_launchers(Machines) ->
     HostList = lists:map(GetHost, Machines),
     ?DebugF("Hostlist is ~p~n",[HostList]),
     %% starts beam on all client hosts
-    lists:foreach(fun(B) -> ts_config_server:newbeam(B) end, HostList).
+    ts_config_server:newbeams(HostList).
 
