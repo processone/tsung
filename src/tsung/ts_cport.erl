@@ -32,7 +32,7 @@
 -include("ts_profile.hrl").
 
 %% API
--export([start_link/0, get_port/2]).
+-export([start_link/1, get_port/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -52,8 +52,8 @@
 %% Function: start_link() -> {ok,Pid} | ignore | {error,Error}
 %% Description: Starts the server
 %%--------------------------------------------------------------------
-start_link() ->
-    gen_server:start_link(?MODULE, [], []).
+start_link(Name) ->
+    gen_server:start_link({global, Name}, ?MODULE, [], []).
 
 
 get_port(CPortServer,IP)->
@@ -72,16 +72,14 @@ get_port(CPortServer,IP)->
 %%--------------------------------------------------------------------
 init([]) ->
     %% registering can be long (global:sync needed), do it after the
-    %% init phase FIXME: maybe we could use phase_start of OTP ?
-    %% instead of using timeout
-
+    %% init phase (the config_server will send us a message)
     {Min, Max} = {?config(cport_min),?config(cport_max)},
     ts_utils:init_seed(),
     %% set random port for the initial value.
     case catch Min+random:uniform(Max-Min) of
         Val when is_integer(Val) ->
             ?LOGF("Ok, starting with ~p value~n",[Val],?NOTICE),
-            {ok, #state{min_port=Min, max_port=Max},10};
+            {ok, #state{min_port=Min, max_port=Max}};
         Err ->
             ?LOGF("ERR starting:  ~p~n",[Err],?ERR),
             {ok, #state{}}
@@ -126,13 +124,7 @@ handle_cast(_Msg, State) ->
 %%                                       {stop, Reason, State}
 %% Description: Handling all non call/cast messages
 %%--------------------------------------------------------------------
-handle_info(timeout, State) ->
-    %% several beam can be started on a host: we want a single cport
-    %% server to respond: register a name unique to the host
-    {ok, MyHostName} = ts_utils:node_to_hostname(node()),
-    Id="cport-" ++ MyHostName,
-    global:sync(),
-    global:register_name(Id,self(),{global, random_notify_name}),
+handle_info(_Msg, State) ->
     {noreply, State}.
 
 %%--------------------------------------------------------------------

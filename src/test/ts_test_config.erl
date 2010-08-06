@@ -113,6 +113,18 @@ read_config_maxusers_test() ->
     {ok,{[{_,Max4},{_,_}],_,_}}=ts_config_server:get_client_config("client4"),
     ?assert(Max1+Max2+Max3+Max4 =< MaxNumber).
 
+
+cport_list_node_test() ->
+    List=['tsung1@toto',
+          'tsung3@titi',
+          'tsung2@toto',
+          'tsung7@titi',
+          'tsung6@toto',
+          'tsung4@tutu'],
+    Rep =  ts_config_server:get_one_node_per_host(List),
+    ?assertEqual(['tsung1@toto', 'tsung3@titi', 'tsung4@tutu'], lists:sort(Rep)).
+
+
 myset_env()->
     myset_env(0).
 myset_env(Level)->

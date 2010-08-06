@@ -96,8 +96,9 @@ handle_call({check_registered}, _From,State=#state{synced=undefined}) ->
             global:sync();
         _ ->
             ok
-    end.
+    end,
     {reply, ok, State#state{synced=yes}};
+
 handle_call({check_registered}, _From,State=#state{synced=yes}) ->
     ?LOG("syncing already done, skip~n", ?INFO),
     {reply, ok, State#state{synced=yes}};

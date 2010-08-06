@@ -352,8 +352,22 @@ handle_cast({newbeams, HostList}, State=#state{logdir   = LogDir,
                                      ts_launcher_static:launch({Node,[]}),
                                      ts_launcher:launch({Node, [], Seed})
                              end,
+            case Config#config.ports_range of
+                undefined ->
+                    ok;
+                _ ->
+                    ?LOG("Start client port server on remote nodes ~n",?NOTICE),
+                    %% first, get a single erlang node per host, and start the cport gen_server on this node
+                    UNodes = get_one_node_per_host(RemoteNodes),
+                    SetParams = fun(Node) ->
+                            {ok, MyHostName} =ts_utils:node_to_hostname(Node),
+                            {Node, "cport-" ++ MyHostName}
+                          end,
+                    CPorts = lists:map(SetParams, UNodes),
+                    ?LOGF("Will run start_cport with arg:~p ~n",[CPorts],?DEB),
+                    lists:foreach(fun ts_sup:start_cport/1 ,CPorts)
+            end,
             lists:foreach(StartLaunchers, RemoteNodes),
-            %% FIXME: active cport if needed
             {noreply, State#state{last_beam_id = LastId}}
     end;
 
@@ -748,7 +762,7 @@ set_remote_args(LogDir,PortsRange)->
     ?DebugF("Boot ~p~n", [Boot]),
     Sys_Args= ts_utils:erl_system_args(),
     LogDirEnc = encode_filename(LogDir),
-    Ports = case  of
+    Ports = case PortsRange of
                 {Min, Max} ->
                     " -tsung cport_min " ++ integer_to_list(Min) ++ " -tsung cport_max " ++ integer_to_list(Max);
                 undefined ->
@@ -761,3 +775,25 @@ set_remote_args(LogDir,PortsRange)->
                     " -tsung dump ", atom_to_list(?config(dump)),
                     " -tsung log_file ", LogDirEnc, Ports
                   ]).
+
+
+%% @spec get_one_node_per_host(RemoteNodes::list()) -> Nodes::list()
+%% @doc From a list if erlang nodenames, return a list with only a
+%%      single node per host
+%% @end
+
+get_one_node_per_host(RemoteNodes) ->
+    get_one_node_per_host(RemoteNodes,dict:new()) .
+
+get_one_node_per_host([], Dict) ->
+    {_,Nodes} = lists:unzip(dict:to_list(Dict)),
+    Nodes;
+get_one_node_per_host([Node | Nodes], Dict) ->
+    Host = ts_utils:node_to_hostname(Node),
+    case dict:is_key(Host, Dict) of
+        true ->
+            get_one_node_per_host(Nodes,Dict);
+        false ->
+            NewDict = dict:store(Host, Node, Dict),
+            get_one_node_per_host(Nodes,NewDict)
+    end.
