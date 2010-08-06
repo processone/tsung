@@ -306,13 +306,21 @@ erl_system_args(extended)->
                    " -kernel inetrc '"++ InetRcFile ++ "'" ;
                _ -> " "
            end,
+    ListenMin = case application:get_env(kernel,inet_dist_listen_min) of
+                    undefined -> "";
+                    {ok, Min} -> " -kernel inet_dist_listen_min " ++ integer_to_list(Min)++ " "
+                end,
+    ListenMax = case application:get_env(kernel,inet_dist_listen_max) of
+                    undefined -> "";
+                    {ok, Max} -> " -kernel inet_dist_listen_max " ++ integer_to_list(Max)++" "
+                end,
     Threads= "+A "++integer_to_list(erlang:system_info(thread_pool_size))++" ",
     ProcessMax="+P "++integer_to_list(erlang:system_info(process_limit))++" ",
     Mea = case  erlang:system_info(version) of
               "5.3" ++ _Tail     -> " +Mea r10b ";
               _ -> " "
           end,
-    lists:append([BasicArgs, Shared, Hybrid, Smp, Mea, Inet, Threads,ProcessMax]).
+    lists:append([BasicArgs, Shared, Hybrid, Smp, Mea, Inet, Threads,ProcessMax,ListenMin,ListenMax]).
 
 %%----------------------------------------------------------------------
 %% setsubdir/1

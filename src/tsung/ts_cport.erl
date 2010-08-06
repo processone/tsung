@@ -1,8 +1,8 @@
 %%%
 %%%  Copyright 2009 © Nicolas Niclausse
 %%%
-%%%  Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
-%%%  Created: 09 déc. 2009 by Nicolas Niclausse <nicolas.niclausse@niclux.org>
+%%%  Author : Nicolas Niclausse <nicolas.nniclausse@niclux.org>
+%%%  Created: 17 mar 2009 by Nicolas Niclausse <nicolas.nniclausse@niclux.org>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
 %%%  it under the terms of the GNU General Public License as published by
@@ -23,24 +23,27 @@
 %%%  the EPL license and distribute linked combinations including
 %%%  the two.
 
--module(ts_launcher_mgr).
--vc('$Id: ts_launcher_mgr.erl,v 0.0 2009/12/09 11:54:33 nniclaus Exp $ ').
--author('nicolas.niclausse@niclux.org').
-
--include("ts_profile.hrl").
+-module(ts_cport).
+-vc('$Id: ts_cport.erl,v 0.0 2009/03/17 10:26:56 nniclaus Exp $ ').
+-author('nniclausse@niclux.org').
 
 -behaviour(gen_server).
 
-%% API
--export([start/0, alive/1, die/1, check_registered/0]).
+-include("ts_profile.hrl").
 
--define(DIE_DELAY, 5000).
+%% API
+-export([start_link/0, get_port/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state, {launchers=0, synced}).
+-define(EPMD_PORT,4369).
+
+-record(state, {
+         max_port = 1025,
+         min_port = 65535
+         }).
 
 %%====================================================================
 %% API
@@ -49,17 +52,12 @@
 %% Function: start_link() -> {ok,Pid} | ignore | {error,Error}
 %% Description: Starts the server
 %%--------------------------------------------------------------------
-start() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+start_link() ->
+    gen_server:start_link(?MODULE, [], []).
 
-die(Type)->
-    gen_server:cast(?MODULE, {die, Type}).
 
-alive(Type)->
-    gen_server:cast(?MODULE, {alive, Type}).
-
-check_registered()->
-    gen_server:call(?MODULE, {check_registered}).
+get_port(CPortServer,IP)->
+    gen_server:call({global,CPortServer},{get,IP}).
 
 %%====================================================================
 %% gen_server callbacks
@@ -73,8 +71,21 @@ check_registered()->
 %% Description: Initiates the server
 %%--------------------------------------------------------------------
 init([]) ->
-    ?LOG("starting",?INFO),
-    {ok, #state{}}.
+    %% registering can be long (global:sync needed), do it after the
+    %% init phase FIXME: maybe we could use phase_start of OTP ?
+    %% instead of using timeout
+
+    {Min, Max} = {?config(cport_min),?config(cport_max)},
+    ts_utils:init_seed(),
+    %% set random port for the initial value.
+    case catch Min+random:uniform(Max-Min) of
+        Val when is_integer(Val) ->
+            ?LOGF("Ok, starting with ~p value~n",[Val],?NOTICE),
+            {ok, #state{min_port=Min, max_port=Max},10};
+        Err ->
+            ?LOGF("ERR starting:  ~p~n",[Err],?ERR),
+            {ok, #state{}}
+    end.
 
 %%--------------------------------------------------------------------
 %% Function: %% handle_call(Request, From, State) -> {reply, Reply, State} |
@@ -85,25 +96,19 @@ init([]) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling call messages
 %%--------------------------------------------------------------------
-handle_call({check_registered}, _From,State=#state{synced=undefined}) ->
-%% Check if global names are synced; Annoying "feature" of R10B7 and up
-    case global:registered_names() of
-        ["cport"++_Tail] ->
-            ?LOG("Only cport server registered  ! syncing ...~n", ?WARN),
-            global:sync();
-        [] ->
-            ?LOG("No registered processes ! syncing ...~n", ?WARN),
-            global:sync();
-        _ ->
-            ok
-    end.
-    {reply, ok, State#state{synced=yes}};
-handle_call({check_registered}, _From,State=#state{synced=yes}) ->
-    ?LOG("syncing already done, skip~n", ?INFO),
-    {reply, ok, State#state{synced=yes}};
-
-handle_call(_Msg, _From, State) ->
-    Reply = ok,
+handle_call({get, ClientIP}, _From, State) ->
+    %% use the process dictionnary to store the last port of each ip
+    %% should we use ets instead ?
+    Reply = case get(ClientIP) of
+                ?EPMD_PORT ->
+                    ?EPMD_PORT + 1;
+                Val when Val > State#state.max_port ->
+                    State#state.min_port;
+                Val ->
+                    Val
+                end,
+    put(ClientIP,Reply+1),
+    ?LOGF("Give port number ~p to IP ~p~n",[Reply,ClientIP],?DEB),
     {reply, Reply, State}.
 
 %%--------------------------------------------------------------------
@@ -112,18 +117,8 @@ handle_call(_Msg, _From, State) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling cast messages
 %%--------------------------------------------------------------------
-handle_cast({alive, Type}, State=#state{launchers=N}) ->
-    ?LOGF("~p launcher is starting on node ~p ~n",[Type,node()],?DEB),
-    {noreply, State#state{launchers=N+1}};
-
-handle_cast({die, _Type}, State=#state{launchers=1}) ->
-    ?LOGF("All launchers are done on node ~p, wait for active clients to finish~n",[node()],?INFO),
-    ts_config_server:endlaunching(node()),
-    check_clients(State#state{launchers=0});
-
-handle_cast({die, Type}, State=#state{launchers=N}) ->
-    ?LOGF("~p launcher is stopping on node ~p ~n",[Type, node()],?DEB),
-    {noreply, State#state{launchers=N-1}}.
+handle_cast(_Msg, State) ->
+    {noreply, State}.
 
 %%--------------------------------------------------------------------
 %% Function: handle_info(Info, State) -> {noreply, State} |
@@ -131,9 +126,13 @@ handle_cast({die, Type}, State=#state{launchers=N}) ->
 %%                                       {stop, Reason, State}
 %% Description: Handling all non call/cast messages
 %%--------------------------------------------------------------------
-handle_info({timeout, _Ref, check_noclient}, State) ->
-    check_clients(State);
-handle_info(_Info, State) ->
+handle_info(timeout, State) ->
+    %% several beam can be started on a host: we want a single cport
+    %% server to respond: register a name unique to the host
+    {ok, MyHostName} = ts_utils:node_to_hostname(node()),
+    Id="cport-" ++ MyHostName,
+    global:sync(),
+    global:register_name(Id,self(),{global, random_notify_name}),
     {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -144,9 +143,6 @@ handle_info(_Info, State) ->
 %% The return value is ignored.
 %%--------------------------------------------------------------------
 terminate(_Reason, _State) ->
-    ts_mon:stop(),
-    timer:sleep(?DIE_DELAY), % useful when using controller vm
-    slave:stop(node()), %% commit suicide. FIXME: what about use_controller_vm ?
     ok.
 
 %%--------------------------------------------------------------------
@@ -160,13 +156,3 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%--------------------------------------------------------------------
 
-check_clients(State) ->
-    case ts_client_sup:active_clients() of
-        0 -> % no users left, and no more launchers, stop
-            ?LOG("No more active users~n", ?NOTICE),
-            {stop, normal, State};
-        ActiveClients ->
-            ?LOGF("Still ~p active client(s)~n", [ActiveClients],?NOTICE),
-            erlang:start_timer(?check_noclient_timeout, self(), check_noclient ),
-            {noreply, State}
-    end.

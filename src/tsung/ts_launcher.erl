@@ -381,7 +381,6 @@ do_launch({Intensity, MyHostName})->
             error
     end.
 
-
 set_warm_timeout(StartDate)->
     case ts_utils:elapsed(now(), StartDate) of
         WaitBeforeStart when WaitBeforeStart>0 ->

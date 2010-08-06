@@ -238,7 +238,6 @@ handle_call({get_req, Id, N}, _From, State) ->
             {reply, {error, Other}, State}
     end;
 
-%%
 handle_call({get_user_agents}, _From, State) ->
     Config = State#state.config,
     case ets:lookup(Config#config.session_tab, {http_user_agent, value}) of
@@ -249,15 +248,15 @@ handle_call({get_user_agents}, _From, State) ->
     end;
 
 %% get  user parameters (static user: the session id is already known)
-handle_call({get_user_param, HostName}, _From, State=#state{users=UserId,ports=Ports}) ->
+handle_call({get_user_param, HostName}, _From, State=#state{users=UserId}) ->
     Config = State#state.config,
     {value, Client} = lists:keysearch(HostName, #client.host, Config#config.clients),
-    {IPParam, Server, NewPorts} = get_user_param(Client,Config,Ports),
+    {IPParam, Server} = get_user_param(Client,Config),
     ts_mon:newclient({static,now()}),
-    {reply, {ok, { IPParam, Server, UserId}}, State#state{users=UserId+1,ports=NewPorts}};
+    {reply, {ok, { IPParam, Server, UserId}}, State#state{users=UserId+1}};
 
 %% get a new session id and user parameters for the given node
-handle_call({get_next_session, HostName}, _From, State=#state{users=Users,ports=Ports}) ->
+handle_call({get_next_session, HostName}, _From, State=#state{users=Users}) ->
     Config = State#state.config,
     {value, Client} = lists:keysearch(HostName, #client.host, Config#config.clients),
     ?DebugF("get new session for ~p~n",[_From]),
@@ -265,9 +264,9 @@ handle_call({get_next_session, HostName}, _From, State=#state{users=Users,ports=
         {ok, Session=#session{id=Id}} ->
             ?LOGF("Session ~p choosen~n",[Id],?INFO),
             ts_mon:newclient({Id,now()}),
-            {IPParam, Server, NewPorts} = get_user_param(Client,Config,Ports),
+            {IPParam, Server} = get_user_param(Client,Config),
             {reply, {ok, {Session, IPParam, Server, Users}},
-             State#state{users=Users+1,ports=NewPorts}};
+             State#state{users=Users+1}};
         Other ->
             {reply, {error, Other}, State}
     end;
@@ -343,7 +342,7 @@ handle_cast({newbeams, HostList}, State=#state{logdir   = LogDir,
             {stop, normal,State};
         Id0 ->
             Seed=Config#config.seed,
-            Args = set_remote_args(LogDir),
+            Args = set_remote_args(LogDir, Config#config.ports_range),
             {BeamsIds, LastId} = lists:mapfoldl(fun(A,Acc) -> {{A, Acc}, Acc+1} end, Id0, RemoteBeams),
             Fun = fun({Host,Id}) -> remote_launcher(Host, Id, Args) end,
             RemoteNodes = ts_utils:pmap(Fun, BeamsIds),
@@ -369,7 +368,7 @@ handle_cast({newbeam, Host, _}, State=#state{ hostname=LocalHost,config=Config})
 
 %% start a launcher on a new beam with slave module
 handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId, config=Config, logdir = LogDir}) ->
-    Args = set_remote_args(LogDir),
+    Args = set_remote_args(LogDir,Config#config.ports_range),
     Seed = Config#config.seed,
     Node = remote_launcher(Host, NodeId, Args),
     ts_launcher:launch({Node, Arrivals, Seed}),
@@ -428,11 +427,11 @@ set_start_date(undefined)->
      ts_utils:add_time(now(), ?config(warm_time));
 set_start_date(Date) -> Date.
 
-get_user_param(Client,Config,Ports)->
+get_user_param(Client,Config)->
     {ok,IP} = choose_client_ip(Client),
     {ok, Server} = choose_server(Config#config.servers),
-    {NewPorts,CPort}   = choose_port(IP, Ports,Config#config.ports_range),
-    { {IP, CPort}, Server, NewPorts}.
+    CPort = choose_port(IP, Config#config.ports_range),
+    { {IP, CPort}, Server}.
 
 %%----------------------------------------------------------------------
 %% Func: choose_client_ip/1
@@ -664,19 +663,8 @@ start_slave(Host, Name, Args)->
             exit({slave_failure, Reason})
     end.
 
-choose_port(_,_, undefined) ->
-    {[],0};
-choose_port(Client,undefined, Range) ->
-    choose_port(Client,dict:new(), Range);
-choose_port(ClientIp,Ports, {Min, Max}) ->
-    case dict:find(ClientIp,Ports) of
-        {ok, Val} when Val =< Max ->
-            NewPorts=dict:update_counter(ClientIp,1,Ports),
-            {NewPorts,Val};
-        _ -> % Max Reached or new entry
-            NewPorts=dict:store(ClientIp,Min+1,Ports),
-            {NewPorts,Min}
-    end.
+choose_port(_,undefined) -> 0;
+choose_port(_, _Range)   -> -1.
 
 %% @spec session_name_to_session(Sessions::list(), Static::list() ) -> StaticUsers::list()
 %% @doc convert session name to session id in static users list
@@ -748,22 +736,28 @@ remote_launcher(Host, NodeId, Args)->
     ?LOGF("starting newbeam on host ~p with Args ~p~n", [Host, Args], ?INFO),
     start_slave(Host, Name, Args).
 
-set_remote_args(LogDir)->
-            {ok, [[BootController]]}    = init:get_argument(boot),
-            ?DebugF("BootController ~p~n", [BootController]),
-            {ok, [[?TSUNGPATH,PathVar]]}    = init:get_argument(boot_var),
-            ?DebugF("BootPathVar ~p~n", [PathVar]),
-            {ok, PAList}    = init:get_argument(pa),
-            PA = lists:flatmap(fun(A) -> [" -pa "] ++A end,PAList),
-            ?DebugF("PA list ~p ~n", [PA]),
-            {ok, Boot, _} = regexp:gsub(BootController,"tsung_controller","tsung"),
-            ?DebugF("Boot ~p~n", [Boot]),
-            Sys_Args= ts_utils:erl_system_args(),
-            LogDirEnc = encode_filename(LogDir),
-            lists:flatten([ Sys_Args," -boot ", Boot,
-                                   " -boot_var ", ?TSUNGPATH, " ",PathVar, PA,
-                                   " +K true ",
-                                   " -tsung debug_level ", integer_to_list(?config(debug_level)),
-                                   " -tsung dump ", atom_to_list(?config(dump)),
-                                   " -tsung log_file ", LogDirEnc
-                                 ]).
+set_remote_args(LogDir,PortsRange)->
+    {ok, [[BootController]]}    = init:get_argument(boot),
+    ?DebugF("BootController ~p~n", [BootController]),
+    {ok, [[?TSUNGPATH,PathVar]]}    = init:get_argument(boot_var),
+    ?DebugF("BootPathVar ~p~n", [PathVar]),
+    {ok, PAList}    = init:get_argument(pa),
+    PA = lists:flatmap(fun(A) -> [" -pa "] ++A end,PAList),
+    ?DebugF("PA list ~p ~n", [PA]),
+    {ok, Boot, _} = regexp:gsub(BootController,"tsung_controller","tsung"),
+    ?DebugF("Boot ~p~n", [Boot]),
+    Sys_Args= ts_utils:erl_system_args(),
+    LogDirEnc = encode_filename(LogDir),
+    Ports = case  of
+                {Min, Max} ->
+                    " -tsung cport_min " ++ integer_to_list(Min) ++ " -tsung cport_max " ++ integer_to_list(Max);
+                undefined ->
+                    ""
+            end,
+    lists:flatten([ Sys_Args," -boot ", Boot,
+                    " -boot_var ", ?TSUNGPATH, " ",PathVar, PA,
+                    " +K true ",
+                    " -tsung debug_level ", integer_to_list(?config(debug_level)),
+                    " -tsung dump ", atom_to_list(?config(dump)),
+                    " -tsung log_file ", LogDirEnc, Ports
+                  ]).

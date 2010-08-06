@@ -2,7 +2,14 @@
 
 UNAME=`uname`
 case $UNAME in
-        "Linux") HOST=`hostname -s`;;
+        "Linux")
+            HOST=`hostname -s 2>/dev/null`
+            RET=$?
+            if [ $RET != 0 ]; then
+                HOST=`hostname`
+                echo "WARN: hostname -s failed, use '$HOST' as hostname" > /dev/stderr
+            fi
+            ;;
         "SunOS") HOST=`hostname`;;
         *) HOST=`hostname -s`;;
 esac
@@ -22,6 +29,7 @@ PGSQL_SERVER_PORT=5432
 NAME=tsung
 CONTROLLER=tsung_controller
 SMP_DISABLE=true
+WARM_TIME=10
 
 TSUNGPATH=$INSTALL_DIR/lib/tsung-$VERSION/ebin
 CONTROLLERPATH=$INSTALL_DIR/lib/tsung_controller-$VERSION/ebin
@@ -30,7 +38,8 @@ CONF_OPT_FILE="$HOME/.tsung/tsung.xml"
 BOOT_OPT="-boot $INSTALL_DIR/lib/tsung_controller-$VERSION/priv/tsung_controller -boot_var TSUNGPATH  $INSTALL_DIR "
 DEBUG_LEVEL=5
 ERL_RSH=" -rsh ssh "
-ERL_OPTS=" -smp auto +P 250000 +A 16 +K true @ERL_OPTS@ "
+ERL_DIST_PORTS=" -kernel inet_dist_listen_min 64000 -kernel inet_dist_listen_max 65500 "
+ERL_OPTS=" $ERL_DIST_PORTS -smp auto +P 250000 +A 16 +K true @ERL_OPTS@ "
 COOKIE='tsung'
 ERTS_RUN=`$ERL -version 2>&1 | tr -cd 0123456789.`
 ERTS_BOOT=`grep erts $TSUNGPATH/../priv/tsung.rel 2> /dev/null| tr -cd 0123456789.`
@@ -63,6 +72,7 @@ start() {
     -pa $TSUNGPATH -pa $CONTROLLERPATH \
     -tsung_controller smp_disable $SMP_DISABLE \
     -tsung_controller debug_level $DEBUG_LEVEL \
+    -tsung_controller warm_time $WARM_TIME \
     -tsung_controller config_file \"$CONF_OPT_FILE\" -tsung_controller $LOG_OPT
 }
 
@@ -122,15 +132,17 @@ usage() {
     echo "    -f <file>     set configuration file (default is ~/.tsung/tsung.xml)"
     echo "    -l <logfile>  set log file (default is ~/.tsung/log/YYYYMMDD-HH:MM/tsung.log)"
     echo "    -i <id>       set controller id (default is empty)"
+    echo "    -i <id>       set controller id (default is empty)"
     echo "    -r <command>  set remote connector (default is ssh)"
     echo "    -s            enable erlang smp on client nodes"
     echo "    -F            use long names (FQDN) for erlang nodes"
+    echo "    -w            warmup delay (default is 10 sec)"
     echo "    -v            print version information and exit"
     echo "    -h            display this help and exit"
     exit
 }
 
-while getopts "vhf:l:d:r:i:Fs" Option
+while getopts "vhf:l:d:r:i:Fsw:" Option
 do
     case $Option in
         f) CONF_OPT_FILE=$OPTARG;;
@@ -146,6 +158,7 @@ do
         d) DEBUG_LEVEL=$OPTARG;;
         r) ERL_RSH=" -rsh $OPTARG ";;
         F) NAMETYPE="-name";;
+        w) WARM_TIME=$OPTARG;;
         s) SMP_DISABLE="false";;
         v) version;;
         i) ID=$OPTARG
