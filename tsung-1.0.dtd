@@ -29,12 +29,16 @@
      type     (machine | batch)  "machine"
      host     NMTOKEN #IMPLIED
      batch    (torque | pbs | lsf | oar) #IMPLIED
+     scan_intf NMTOKEN #IMPLIED
      maxusers NMTOKEN "800"
      use_controller_vm (true | false) "false"
      weight   NMTOKEN "1">
 
 <!ELEMENT ip EMPTY>
-<!ATTLIST ip value NMTOKEN #REQUIRED>
+<!ATTLIST ip
+          value NMTOKEN #REQUIRED
+          scan (true| false)  "false"
+>
 
 <!ELEMENT monitoring ( monitor+ )>
 <!ELEMENT monitor ( snmp? | munin?)>

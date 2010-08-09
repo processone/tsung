@@ -89,7 +89,7 @@ init({#session{id           = SessionId,
                size         = Count,
                type         = CType}, IP, Server,Id}) ->
     ?DebugF("Init ... started with count = ~p~n",[Count]),
-   ts_utils:init_seed(),
+    ts_utils:init_seed(),
 
     ?DebugF("Get dynparams for ~p~n",[CType]),
     DynData = CType:init_dynparams(),
@@ -98,10 +98,19 @@ init({#session{id           = SessionId,
     NewDynData = DynData#dyndata{dynvars=NewDynVars},
     StartTime= now(),
     set_thinktime(?short_timeout),
+    ?DebugF("IP param: ~p~n",[IP]),
     NewIP = case IP of
-                { RealIP, -1 } ->
+                { TmpIP, -1 } ->
                     {ok, MyHostName} = ts_utils:node_to_hostname(node()),
+                    RealIP = case TmpIP of
+                                 {scan, Interface} ->
+                                     ts_ip_scan:get_ip(Interface);
+                                 _ -> TmpIP
+                    end,
                     {RealIP, "cport-" ++ MyHostName};
+                {{scan, Interface}, PortVal } ->
+                    ?DebugF("Must scan interface: ~p~n",[Interface]),
+                    { ts_ip_scan:get_ip(Interface), PortVal };
                 Val ->
                     Val
             end,

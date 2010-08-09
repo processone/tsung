@@ -125,6 +125,10 @@ cport_list_node_test() ->
     ?assertEqual(['tsung1@toto', 'tsung3@titi', 'tsung4@tutu'], lists:sort(Rep)).
 
 
+ifalias_test() ->
+    Res=ts_ip_scan:get_intf_aliases("lo"),
+    ?assertEqual([{127,0,0,1}],Res).
+
 myset_env()->
     myset_env(0).
 myset_env(Level)->

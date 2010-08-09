@@ -180,6 +180,7 @@ parse(Element = #xmlElement{name=client, attributes=Attrs},
             batch ->
                 ?LOG("Get client nodes from batch scheduler~n",?DEB),
                 Batch = getAttr(atom, Attrs, batch),
+                Scan_Intf = getAttr(Attrs, scan_intf),
                 NodesTmp = get_batch_nodes(Batch),
                 case NodesTmp of
                     []->
@@ -192,8 +193,20 @@ parse(Element = #xmlElement{name=client, attributes=Attrs},
                 {ok, ControllerHost} = ts_utils:node_to_hostname(node()),
                 Nodes = lists:delete(ControllerHost, NodesTmp),
                 Fun = fun(N)->
-                        {ok, IP } = inet:getaddr(N,inet),
-                        #client{host=N,weight=Weight,ip=[IP],maxusers=MaxUsers}
+                              IP = case Scan_Intf of
+                                       "" ->
+                                           {ok, TmpIP } = inet:getaddr(N,inet),
+                                           TmpIP;
+                                       Interface ->
+                                           case os:type() of
+                                               {unix, linux} ->
+                                                   {scan, Interface};
+                                               OS ->
+                                                   ?LOGF("Scan interface is not supported on OS ~p, abort~n",[OS],?ERR),
+                                                   exit({error, scan_interface_not_supported_on_os})
+                                           end
+                                   end,
+                              #client{host=N,weight=Weight,ip=[IP],maxusers=MaxUsers}
                       end,
                 lists:map(Fun, Nodes);
             _ ->
@@ -225,15 +238,21 @@ parse(Element = #xmlElement{name=client, attributes=Attrs},
 parse(Element = #xmlElement{name=ip, attributes=Attrs},
       Conf = #config{clients=[CurClient|CList]}) ->
     IPList = CurClient#client.ip,
-    ToResolve = case getAttr(Attrs, value) of
-             "resolve" ->
-                 CurClient#client.host;
-             StrIP ->
-                 StrIP
+    IP = case getAttr(atom, Attrs, scan, false) of
+             true ->
+                 {scan, getAttr(string,Attrs, value, "eth0")};
+             _ ->
+                 ToResolve = case getAttr(Attrs, value) of
+                                 "resolve" ->
+                                     CurClient#client.host;
+                                 StrIP ->
+                                     StrIP
+                             end,
+                 ?LOGF("resolving host ~p~n",[ToResolve],?WARN),
+                 {ok,IPtmp} = inet:getaddr(ToResolve,inet),
+                 IPtmp
          end,
-     ?LOGF("resolving host ~p~n",[ToResolve],?WARN),
-    {ok, IP } = inet:getaddr(ToResolve,inet),
-     ?LOGF("resolved host ~p~n",[IP],?WARN),
+    ?LOGF("resolved host ~p~n",[IP],?WARN),
     lists:foldl(fun parse/2,
         Conf#config{clients = [CurClient#client{ip = [IP|IPList]}
                                |CList]},
