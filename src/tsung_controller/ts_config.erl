@@ -191,7 +191,10 @@ parse(Element = #xmlElement{name=client, attributes=Attrs},
                 %% remove controller host from list to avoid
                 %% overloading the machine running the controller
                 {ok, ControllerHost} = ts_utils:node_to_hostname(node()),
-                Nodes = lists:delete(ControllerHost, NodesTmp),
+                DeleteController=fun(A) when A == ControllerHost -> false;
+                                    (_) -> true
+                                 end,
+                Nodes = lists:filter(DeleteController, NodesTmp),
                 Fun = fun(N)->
                               IP = case Scan_Intf of
                                        "" ->
