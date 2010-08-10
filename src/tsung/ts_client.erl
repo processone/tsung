@@ -748,7 +748,13 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort, Try}) when 
                     ts_mon:add({ count, error_connect_eaddrinuse });
                 {eaddrinuse, Val,CPortServer} when Val > 0 ->
                     %% retry once when tsung allocates port number
-                    NewCPort = ts_cport:get_port(CPortServer,IP),
+                    NewCPort = case catch ts_cport:get_port(CPortServer,IP) of
+                        Data when is_integer(Data) ->
+                            Data;
+                        Error ->
+                            ?LOGF("CPort error (~p), reuse the same port ~p~n",[Error],?INFO),
+                            CPort
+                    end,
                     ?LOGF("Connect failed with client port ~p, retry with ~p~n",[CPort, NewCPort],?INFO),
                     reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,NewCPort, undefined});
                 _ ->
@@ -758,7 +764,13 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort, Try}) when 
             {error, Reason}
     end;
 reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPortServer}) ->
-    CPort = ts_cport:get_port(CPortServer,IP),
+    CPort = case catch ts_cport:get_port(CPortServer,IP) of
+                   Data when is_integer(Data) ->
+                       Data;
+                   Error ->
+                       ?LOGF("CPort error (~p), use random port ~p~n",[Error],?INFO),
+                       0
+               end,
     reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort,CPortServer});
 reconnect(Socket, _Server, _Port, _Protocol, _IP) ->
     {ok, Socket}.
