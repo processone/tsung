@@ -359,7 +359,7 @@ auth_sasl(Username, Passwd, Mechanism) ->
     N = list_to_binary(Username),
     P = list_to_binary(Passwd),
     list_to_binary(["<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='",Mechanism,"' >",
-                    ssl_base64:encode(<<S/binary,N/binary,S/binary,P/binary>>) ,"</auth>"]).
+                    base64:encode(<<S/binary,N/binary,S/binary,P/binary>>) ,"</auth>"]).
 
 
 %%----------------------------------------------------------------------
