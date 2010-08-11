@@ -2,6 +2,8 @@
 
 -export([ connect/3, send/3, close/1, set_opts/2, protocol_options/1 ]).
 
+-export([connect/4]).  %% used for ts_bosh_ssl sessions.
+
 -behaviour(gen_ts_transport).
 
 -include("ts_profile.hrl").
@@ -35,13 +37,17 @@
             local_ip,
             local_port,
             is_fresh = true,
-	    pending_ref
+	    pending_ref,
+            type  %% 'tcp' | 'ssl'
             }).
 
 connect(Host, Port, Opts) ->
+    connect(Host, Port, Opts, tcp).
+
+connect(Host, Port, Opts, Type) when Type =:= 'tcp' ; Type =:= 'ssl' ->
     Parent = self(),
     Path = "/http-bind/",
-    Pid = spawn_link(fun() -> loop(Host, Port, Path, Opts, Parent) end),
+    Pid = spawn_link(fun() -> loop(Host, Port, Path, Opts, Type, Parent) end),
     {ok, Pid}.
 
 extract_domain("to='" ++ Rest) ->
@@ -62,14 +68,14 @@ send(Pid, Data, _Opts) ->
     Pid ! Msg,
     MonitorRef = erlang:monitor(process,Pid),
     receive
-	{'DOWN', MonitorRef, _Type, _Object, _Info} ->
-		{error, no_bosh_connection};
+	    {'DOWN', MonitorRef, _Type, _Object, _Info} ->
+		    {error, no_bosh_connection};
         {ok, Ref} -> 
-		erlang:demonitor(MonitorRef),
-		ok
+		    erlang:demonitor(MonitorRef),
+		    ok
     after
         30000 ->
-	    erlang:demonitor(MonitorRef),
+	        erlang:demonitor(MonitorRef),
             {error, timeout}
     end.
 
@@ -82,7 +88,7 @@ set_opts(Pid, _Opts) ->
 protocol_options(#proto_opts{}) ->
     [].
 
-loop(Host, Port, Path, Opts, Parent) ->
+loop(Host, Port, Path, Opts, Type, Parent) ->
    {A,B,C} = now(),
    random:seed(A,B,C),
    process_flag(trap_exit, true),
@@ -92,7 +98,8 @@ loop(Host, Port, Path, Opts, Parent) ->
 		parent_pid = Parent,
 		host = Host, 
 		local_ip = proplists:get_value(ip, Opts, undefined),
-		local_port = proplists:get_value(port, Opts, undefined)
+		local_port = proplists:get_value(port, Opts, undefined),
+        type = Type
 		}).
 
 loop(#state{parent_pid = ParentPid} = State) ->
@@ -119,9 +126,10 @@ loop(#state{parent_pid = ParentPid} = State) ->
 	    #state{host = Host,
 		   path = Path,
 		   sid = Sid,
-		   rid = Rid} = State,
+		   rid = Rid,
+           type = Type} = State,
             {NewState, Socket} = new_socket(State, false),
-            ok = make_raw_request(Socket, Host, Path, close_stream_msg(Sid, Rid)),
+            ok = make_raw_request(Type, Socket, Host, Path, close_stream_msg(Sid, Rid)),
             ParentPid ! {ok, Ref},
 	    loop(NewState);
        {stream, Domain, Ref} when State#state.domain == undefined ->
@@ -132,7 +140,7 @@ loop(#state{parent_pid = ParentPid} = State) ->
 	    NewState = do_reset(State),
             ParentPid ! {ok, Ref},
 	    loop(NewState);
-       {http, Socket, {http_response, Vsn, 200, <<"OK">>}} ->
+       {Tag, Socket, {http_response, Vsn, 200, "OK"}} when Tag == 'http' ; Tag == 'ssl'->
        		case do_receive_http_response(State, Socket, Vsn) of
 			{ok, NewState} ->
 				loop(NewState);
@@ -140,7 +148,7 @@ loop(#state{parent_pid = ParentPid} = State) ->
 				?LOG("Session terminated by server", ?INFO),
             			State#state.parent_pid ! {gen_ts_transport, self(), closed}
 		end;
-	{tcp_closed, Socket} ->
+	{Close, Socket} when Close == tcp_closed ; Close == 'ssl_closed' ->
 		case lists:keymember(Socket, 1, State#state.open) of
 			true ->
 				%%ERROR, a current request is closed
@@ -152,7 +160,7 @@ loop(#state{parent_pid = ParentPid} = State) ->
 				%% We can continue without trouble, just remove it, it will be reopened when needed.
 				loop(State#state{free = lists:delete(Socket, State#state.free)})
 		end;
-       {http, _Socket, {http_response, _Vsn, ResponseCode, _StatusLine}} ->
+       {Tag, _Socket, {http_response, _Vsn, ResponseCode, _StatusLine}} when Tag == 'http' ; Tag == 'ssl' ->
 		State#state.parent_pid ! {gen_ts_transport, self(), error, list_to_atom(integer_to_list(ResponseCode))};
         Unexpected ->
 		?LOGF("Bosh process received unexpected message: ~p", [Unexpected], ?ERR),
@@ -166,8 +174,9 @@ do_receive_http_response(State, Socket, Vsn) ->
 		queue = Queue,
 		host = Host,
 		path = Path,
+        type = Type,
 		parent_pid = ParentPid} = State,
-	{ok, {{200, <<"OK">>}, _Hdrs, Resp}} = read_response(Socket, Vsn, {200, <<"OK">>}, [], <<>>),
+	{ok, {{200, "OK"}, _Hdrs, Resp}} = read_response(Type, Socket, Vsn, {200, "OK"}, [], <<>>, httph),
 	{_El = #xmlElement{name = body, 
 		attributes = Attrs,
 		content = Content}, []}= xmerl_scan:string(binary_to_list(Resp)),
@@ -180,8 +189,8 @@ do_receive_http_response(State, Socket, Vsn) ->
 		NewOpen = lists:keydelete(Socket, 1, Open),
 		NewState2  = if
 			     NewOpen == [] andalso State#state.is_fresh =:= false ->
-				inet:setopts(Socket, [{packet, http_bin}, {active, once}]),
-				ok = make_empty_request(Socket,Sid, Rid, Queue, Host, Path),
+				socket_setopts(Type, Socket, [{packet, http}, {active, once}]),
+				ok = make_empty_request(Type, Socket,Sid, Rid, Queue, Host, Path),
 				case length(Queue) of
 					0 -> ok;
 					_ -> 
@@ -193,8 +202,8 @@ do_receive_http_response(State, Socket, Vsn) ->
 				%%there are pending packet, sent it if the RID is ok, otherwise wait
 				case NewOpen of
 					[{_, R}] when (Rid - R) =< 1 ->
-						inet:setopts(Socket, [{packet, http_bin}, {active, once}]),
-						ok = make_empty_request(Socket,Sid, Rid, Queue, Host, Path),
+						socket_setopts(Type, Socket, [{packet, http}, {active, once}]),
+						ok = make_empty_request(Type, Socket,Sid, Rid, Queue, Host, Path),
 						ParentPid ! {ok, State#state.pending_ref},
 						%% we just sent the pending packet, wakeup the client
 						State#state{open = [{Socket, Rid}], rid = Rid +1, queue = []};
@@ -218,7 +227,7 @@ do_receive_http_response(State, Socket, Vsn) ->
 		{ok, NewState2}
 	end.
 
-do_connect(#state{host = Host, path = Path, parent_pid = ParentPid} = State, Domain) ->
+do_connect(#state{type = Type, host = Host, path = Path, parent_pid = ParentPid} = State, Domain) ->
     Rid = 1000 + random:uniform(100000),
     %%Port= proplists:get_value(local_port, Options, undefined),
     NewState = State#state{
@@ -229,8 +238,8 @@ do_connect(#state{host = Host, path = Path, parent_pid = ParentPid} = State, Dom
             free = []
             },
     {NewState2, Socket} = new_socket(NewState, false),
-    ok = make_raw_request(Socket, Host, Path, create_session_msg(Rid, Domain, ?WAIT, ?HOLD)),
-    {ok, {{200, <<"OK">>}, _Hdrs, Resp}} = read_response(Socket, nil, nil, [], <<>>),
+    ok = make_raw_request(Type, Socket, Host, Path, create_session_msg(Rid, Domain, ?WAIT, ?HOLD)),
+    {ok, {{200, "OK"}, _Hdrs, Resp}} = read_response(Type, Socket, nil, nil, [], <<>>, http),
     NewState3 = return_socket(NewState2, Socket),
     {_El = #xmlElement{name = body,
 	attributes = Attrs,
@@ -246,10 +255,11 @@ do_reset(State) ->
     #state{sid = Sid,
            rid = Rid,
            host = Host,
-	   path = Path,
-           domain = Domain} =  State,
+           path = Path,
+           domain = Domain,
+           type = Type} =  State,
     {NewState, Socket} = new_socket(State, once),
-    ok = make_raw_request(Socket, Host, Path, restart_stream_msg(Sid, Rid, Domain)),
+    ok = make_raw_request(Type, Socket, Host, Path, restart_stream_msg(Sid, Rid, Domain)),
     NewState#state{is_fresh = false, rid = Rid +1, open = [{Socket, Rid}|State#state.open]}.
 
 get_attr([], _Name) -> undefined;
@@ -261,6 +271,7 @@ do_send(State, Data) ->
           rid = Rid,
           sid = Sid,
           host = Host,
+          type = Type,
 	  path = Path,
           queue = Queue} = State,
     Result = if
@@ -277,7 +288,7 @@ do_send(State, Data) ->
      case Result of
          send ->
               {NewState, Socket} = new_socket(State, once),
-              ok = make_request(Socket, Sid, Rid, Queue, Host, Path, Data),
+              ok = make_request(Type, Socket, Sid, Rid, Queue, Host, Path, Data),
               {sent, NewState#state{rid = Rid +1, open = [{Socket, Rid}|Open], queue = []}};
          queue ->
                 Queue = State#state.queue,
@@ -285,46 +296,46 @@ do_send(State, Data) ->
                {queued, State#state{queue = NewQueue}}
     end.
 
-make_empty_request(Socket, Sid, Rid, Queue, Host, Path) ->
+make_empty_request(Type, Socket, Sid, Rid, Queue, Host, Path) ->
     StanzasText = lists:reverse(Queue),
     Body = stanzas_msg(Sid, Rid, StanzasText),
-    make_request(Socket, Host, Path, Body, iolist_size(StanzasText)).
+    make_request(Type, Socket, Host, Path, Body, iolist_size(StanzasText)).
 
-make_raw_request(Socket, Host, Path, Body) ->
-    make_request(Socket, Host, Path, Body, 0).
+make_raw_request(Type, Socket, Host, Path, Body) ->
+    make_request(Type, Socket, Host, Path, Body, 0).
 
-make_request(Socket, Sid, Rid, Queue, Host, Path, Packet) ->
+make_request(Type, Socket, Sid, Rid, Queue, Host, Path, Packet) ->
     StanzasText = lists:reverse([Packet|Queue]),
     Body = stanzas_msg(Sid, Rid, StanzasText),
-    make_request(Socket, Host, Path, Body, iolist_size(StanzasText)).                                                       
-make_request(Socket,Host, Path, Body, OriginalSize) ->
+    make_request(Type, Socket, Host, Path, Body, iolist_size(StanzasText)).                                                       
+make_request(Type, Socket,Host, Path, Body, OriginalSize) ->
      ts_mon:add({count, bosh_http_req}),
      Hdrs = [{"Content-Type", ?CONTENT_TYPE}, {"keep-alive", "true"}],
      Request = format_request(Path, "POST", Hdrs, Host, Body),
-     ok = gen_tcp:send(Socket, Request),
+     ok = socket_send(Type, Socket, Request),
      ts_mon:add({ sum, size_sent, iolist_size(Request) - OriginalSize}).
      %% add the http overhead. The size of the stanzas are already counted by ts_client code.
 
 
-new_socket(State = #state{free = [Socket | Rest]}, Active) ->
-        inet:setopts(Socket, [{active, Active}, {packet, http_bin}]),
+new_socket(State = #state{free = [Socket | Rest], type = Type}, Active) ->
+        socket_setopts(Type, Socket, [{active, Active}, {packet, http}]),
         {State#state{free = Rest}, Socket};
-new_socket(State = #state{host = Host, port = Port, local_ip = LocalIp, local_port = LocalPort}, Active) ->
+new_socket(State = #state{type = Type, host = Host, port = Port, local_ip = LocalIp, local_port = LocalPort}, Active) ->
     Options = case LocalIp of
-                        undefined -> [{active, Active}, {packet, http_bin}];
+                        undefined -> [{active, Active}, {packet, http}];
                         _ ->  case LocalPort of
-                                undefined -> [{active, Active}, {packet, http_bin},{ip, LocalIp}];
+                                undefined -> [{active, Active}, {packet, http},{ip, LocalIp}];
                                 _ -> 
 				{ok, LPort} = ts_config_server:get_user_port(LocalIp),
-				[{active, Active}, {packet, http_bin},{ip, LocalIp}, {port, LPort}]
+				[{active, Active}, {packet, http},{ip, LocalIp}, {port, LPort}]
                               end
     end,
-    {ok, Socket} = gen_tcp:connect(Host, Port,  Options, ?CONNECT_TIMEOUT),
+    {ok, Socket} = socket_connect(Type, Host, Port,  Options, ?CONNECT_TIMEOUT),
     ts_mon:add({count, bosh_http_conn}),
     {State, Socket}.
 
 return_socket(State, Socket) ->
-        inet:setopts(Socket, [{active, once}]), 
+        socket_setopts(State#state.type, Socket, [{active, once}]), 
 	%receive data from it, we want to know if something happens
         State#state{free = [Socket | State#state.free]}.
 
@@ -361,18 +372,18 @@ close_stream_msg(Sid, Rid) ->
        " xmlns:xmpp='urn:xmpp:xbosh'",
        "/>"].
 
-read_response(Socket, Vsn, Status, Hdrs, Body) ->
-    inet:setopts(Socket, [{packet, http_bin}, {active, false}]),
-    case gen_tcp:recv(Socket, 0) of
+read_response(Type, Socket, Vsn, Status, Hdrs, Body, PacketType)  when PacketType == http ; PacketType == httph->
+    socket_setopts(Type, Socket, [{packet, PacketType}, {active, false}]),
+    case socket_recv(Type, Socket, 0) of
         {ok, {http_response, NewVsn, StatusCode, Reason}} ->
             NewStatus = {StatusCode, Reason},
-            read_response(Socket, NewVsn, NewStatus, Hdrs, Body);
+            read_response(Type, Socket, NewVsn, NewStatus, Hdrs, Body, httph);
         {ok, {http_header, _, Name, _, Value}} ->
             Header = {Name, Value},
-            read_response(Socket, Vsn, Status, [Header | Hdrs], Body);
+            read_response(Type, Socket, Vsn, Status, [Header | Hdrs], Body, httph);
         {ok, http_eoh} ->
-            inet:setopts(Socket, [{packet, raw}, binary]),
-            {NewBody, NewHdrs} = read_body(Vsn, Hdrs, Socket),
+            socket_setopts(Type, Socket, [{packet, raw}, binary]),
+            {NewBody, NewHdrs} = read_body(Type, Vsn, Hdrs, Socket),
             Response = {Status, NewHdrs, NewBody},
             {ok, Response};
         {error, closed} ->
@@ -381,7 +392,7 @@ read_response(Socket, Vsn, Status, Hdrs, Body) ->
             erlang:error(Reason)
     end.
 
-read_body(_Vsn, Hdrs, Socket) ->
+read_body(Type, _Vsn, Hdrs, Socket) ->
     % Find out how to read the entity body from the request.
     % * If we have a Content-Length, just use that and read the complete
     %   entity.
@@ -393,11 +404,11 @@ read_body(_Vsn, Hdrs, Socket) ->
         undefined ->
                 throw({no_content_length, Hdrs});
         ContentLength ->
-            read_length(Hdrs, Socket, list_to_integer(binary_to_list(ContentLength)))
+            read_length(Type, Hdrs, Socket, list_to_integer(ContentLength))
     end.
 
-read_length(Hdrs, Socket, Length) ->
-    case gen_tcp:recv(Socket, Length) of
+read_length(Type, Hdrs, Socket, Length) ->
+    case socket_recv(Type, Socket, Length) of
         {ok, Data} ->
             {Data, Hdrs};
         {error, Reason} ->
@@ -464,3 +475,38 @@ add_host(Hdrs, Host) ->
         _ -> % We have a host
             Hdrs
     end.
+
+
+
+socket_connect(tcp, Host, Port, Options, Timeout) ->
+    gen_tcp:connect(Host, Port, Options, Timeout);
+socket_connect(ssl, Host, Port, Options, Timeout) ->
+    %% First connect using tcp, and then upgrades.  The local ip and port directives seems to not work if
+    %% the socket is opened directly as ssl.
+%    {ForConnection, ForSSL} = lists:partition(fun({ip, _}) -> true; ({port, _}) -> true; (_) -> false end, Options),
+%    {ok, S} = gen_tcp:connect(Host, Port, [{active, false}|ForConnection], Timeout),  
+%    ssl:connect(S, ForSSL, Timeout).  
+%   ?LOGF("Connect ~p", [ForSSL], ?ERR),
+     ssl:connect(Host, Port, [{ssl_imp, new}|Options], Timeout).  
+
+
+socket_send(tcp, Socket, Data) ->
+    gen_tcp:send(Socket, Data);
+socket_send(ssl, Socket, Data) ->
+    ssl:send(Socket, Data).
+
+socket_recv(tcp, Socket, Len) ->
+    gen_tcp:recv(Socket, Len);
+socket_recv(ssl, Socket, Len) ->
+    ssl:recv(Socket, Len).
+
+% Not used
+%socket_close(tcp, Socket) ->
+%    gen_tcp:close(Socket);
+%socket_close(ssl, Socket) ->
+%    ssl:close(Socket).
+
+socket_setopts(tcp, Socket, Opts) ->
+    inet:setopts(Socket, Opts);
+socket_setopts(ssl, Socket, Opts) ->
+    ssl:setopts(Socket, Opts).

@@ -104,6 +104,9 @@ parse(Element = #xmlElement{name=server, attributes=Attrs}, Conf=#config{servers
                %"tcp" -> gen_tcp;
                "tcp" -> ts_tcp;
                "bosh" -> ts_bosh;
+               "bosh_ssl" -> 
+			ssl:start(), %%HACK: initialize new ssl here..
+			ts_bosh_ssl;
                "udp" -> gen_udp;
                "erlang" -> erlang
            end,
