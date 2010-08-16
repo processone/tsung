@@ -142,7 +142,7 @@ repeat | if | change_type )*>
     probability NMTOKEN #REQUIRED
     >
 
-<!ELEMENT transaction (request | setdynvars | thinktime | for | repeat)+>
+<!ELEMENT transaction (request | setdynvars | thinktime | for | repeat | if)+>
 <!ATTLIST transaction name NMTOKEN #REQUIRED>
 
 <!ELEMENT http ( www_authenticate?, soap?, http_header*, add_cookie*)>
