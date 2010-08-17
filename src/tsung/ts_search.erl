@@ -266,7 +266,7 @@ parse_dynvar([{regexp,VarName, RegExp}| DynVarsSpecs],
                 Binary,String,Tree, DynVars) ->
     case gregexp:groups(String, RegExp) of
         {match,[Value|_]} ->
-            ?LOGF("DynVar: Match (~p=~p) ~n",[VarName, Value], ?DEB),
+            ?LOGF("DynVar: Match (~p=~p) ~n",[VarName, Value], ?INFO),
             parse_dynvar(DynVarsSpecs, Binary,String,Tree,
                             ts_dynvars:set(VarName,Value,DynVars));
         nomatch ->
@@ -329,7 +329,7 @@ parse_dynvar([{xpath,VarName, Expr}| DynVarsSpecs],Binary,String,Tree,DynVars)->
     ListValue = binary_to_list(Value),
     case ListValue of
         [] -> ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?WARN);
-        _  -> ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,ListValue],?DEB)
+        _  -> ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,ListValue],?INFO)
     end,
     parse_dynvar(DynVarsSpecs, Binary,String,Tree,ts_dynvars:set(VarName,ListValue,DynVars));
 
@@ -337,7 +337,7 @@ parse_dynvar([{jsonpath,VarName, Expr}| DynVarsSpecs],Binary,String,JSON,DynVars
     Values = ts_utils:jsonpath(Expr,JSON),
     case Values of
         undefined -> ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?WARN);
-        _  -> ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,Values],?DEB)
+        _  -> ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,Values],?INFO)
     end,
     parse_dynvar(DynVarsSpecs, Binary,String,JSON,ts_dynvars:set(VarName,Values,DynVars));
 
@@ -345,7 +345,7 @@ parse_dynvar([{pgsql_expr,VarName, Expr}| DynVarsSpecs],Binary,String,PGSQL,DynV
     Values = ts_pgsql:find_pair(Expr,PGSQL),
     case Values of
         undefined -> ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?WARN);
-        _  -> ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,Values],?DEB)
+        _  -> ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,Values],?INFO)
     end,
     parse_dynvar(DynVarsSpecs, Binary,String,PGSQL,ts_dynvars:set(VarName,Values,DynVars));
 
