@@ -40,6 +40,9 @@
 -define(MAX_RETRIES,3). % max number of connection retries
 -define(RETRY_TIMEOUT,10000). % waiting time between retries (msec)
 
+-define(CLIENT_PORT_MIN,1025).
+-define(CLIENT_PORT_MAX,65535).
+
 %% External exports
 -export([start/1, next/1]).
 
@@ -86,7 +89,7 @@ init({#session{id           = SessionId,
                size         = Count,
                type         = CType}, IP, Server,Id}) ->
     ?DebugF("Init ... started with count = ~p~n",[Count]),
-   ts_utils:init_seed(),
+    ts_utils:init_seed(),
 
     ?DebugF("Get dynparams for ~p~n",[CType]),
     DynData = CType:init_dynparams(),
@@ -95,6 +98,22 @@ init({#session{id           = SessionId,
     NewDynData = DynData#dyndata{dynvars=NewDynVars},
     StartTime= now(),
     set_thinktime(?short_timeout),
+    ?DebugF("IP param: ~p~n",[IP]),
+    NewIP = case IP of
+                { TmpIP, -1 } ->
+                    {ok, MyHostName} = ts_utils:node_to_hostname(node()),
+                    RealIP = case TmpIP of
+                                 {scan, Interface} ->
+                                     ts_ip_scan:get_ip(Interface);
+                                 _ -> TmpIP
+                    end,
+                    {RealIP, "cport-" ++ MyHostName};
+                {{scan, Interface}, PortVal } ->
+                    ?DebugF("Must scan interface: ~p~n",[Interface]),
+                    { ts_ip_scan:get_ip(Interface), PortVal };
+                Val ->
+                    Val
+            end,
     {ok, think, #state_rcv{ port       = Server#server.port,
                             host       = Server#server.host,
                             session_id = SessionId,
@@ -107,7 +126,7 @@ init({#session{id           = SessionId,
                             dump       = ?config(dump),
                             proto_opts = ProtoOpts,
                             count      = Count,
-                            ip         = IP,
+                            ip         = NewIP,
                             id         = Id,
                             hibernate  = Hibernate,
                             maxcount   = Count,
@@ -599,7 +618,8 @@ handle_next_request(Request, State) ->
                                                                host=Host,
                                                                port=Port});
                 {error, Reason} ->
-                    ?LOGF("Error: Unable to send data, reason: ~p~n",[Reason],?ERR),
+                    %% LOG only at INFO level since we report also an error to ts_mon
+                    ?LOGF("Error: Unable to send data, reason: ~p~n",[Reason],?INFO),
                     CountName="error_send_"++atom_to_list(Reason),
                     ts_mon:add({ count, list_to_atom(CountName) }),
                      handle_timeout_while_sending(State);
@@ -703,7 +723,9 @@ set_profile(MaxCount, Count, ProfileId) when is_integer(ProfileId) ->
 %%          {stop, Reason}
 %% purpose: try to reconnect if this is needed (when the socket is set to none)
 %%----------------------------------------------------------------------
-reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort}) ->
+reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,0}) ->
+    reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,0,0});
+reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort, Try}) when is_integer(CPort)->
     ?DebugF("Try to (re)connect to: ~p:~p from ~p using protocol ~p~n",
             [ServerName,Port,IP,Protocol]),
     Opts = protocol_options(Protocol, Proto_opts)  ++ [{ip, IP},{port,CPort}],
@@ -716,15 +738,43 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort}) ->
             ?Debug("(Re)connected~n"),
             {ok, Socket};
         {error, Reason} ->
-                    {A,B,C,D} = IP,
-            ?LOGF("(Re)connect from ~p.~p.~p.~p to ~s:~p, Error: ~p~n",
-                  [A,B,C,D, ServerName, Port, Reason],?ERR),
-            CountName="error_connect_"++atom_to_list(Reason),
-            ts_mon:add({ count, list_to_atom(CountName) }),
+            {A,B,C,D} = IP,
+            %% LOG only at INFO level since we report also an error to ts_mon
+            ?LOGF("(Re)connect from ~p.~p.~p.~p:~p to ~s:~p, Error: ~p~n",
+                  [A,B,C,D, CPort, ServerName, Port , Reason],?INFO),
+            case {Reason,CPort,Try}  of
+                {eaddrinuse, Val,CPortServer} when Val == 0; CPortServer == undefined ->
+                    %% already retry once, don't try again.
+                    ts_mon:add({ count, error_connect_eaddrinuse });
+                {eaddrinuse, Val,CPortServer} when Val > 0 ->
+                    %% retry once when tsung allocates port number
+                    NewCPort = case catch ts_cport:get_port(CPortServer,IP) of
+                        Data when is_integer(Data) ->
+                            Data;
+                        Error ->
+                            ?LOGF("CPort error (~p), reuse the same port ~p~n",[Error],?INFO),
+                            CPort
+                    end,
+                    ?LOGF("Connect failed with client port ~p, retry with ~p~n",[CPort, NewCPort],?INFO),
+                    reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,NewCPort, undefined});
+                _ ->
+                    CountName="error_connect_"++atom_to_list(Reason),
+                    ts_mon:add({ count, list_to_atom(CountName) })
+            end,
             {error, Reason}
     end;
+reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPortServer}) ->
+    CPort = case catch ts_cport:get_port(CPortServer,IP) of
+                   Data when is_integer(Data) ->
+                       Data;
+                   Error ->
+                       ?LOGF("CPort error (~p), use random port ~p~n",[Error],?INFO),
+                       0
+               end,
+    reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort,CPortServer});
 reconnect(Socket, _Server, _Port, _Protocol, _IP) ->
     {ok, Socket}.
+
 
 %%----------------------------------------------------------------------
 %% Func: send/5

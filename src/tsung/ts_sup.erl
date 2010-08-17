@@ -32,7 +32,7 @@
 -behaviour(supervisor).
 
 %% External exports
--export([start_link/0]).
+-export([start_link/0, start_cport/1]).
 
 %% supervisor callbacks
 -export([init/1]).
@@ -43,6 +43,13 @@
 start_link() ->
     ?LOG("starting supervisor ...~n",?INFO),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+
+start_cport({Node, CPortName}) ->
+    ?LOGF("starting cport server ~p on node ~p ~n",[CPortName, Node],?INFO),
+    PortServer    = {CPortName, {ts_cport, start_link, [CPortName]},
+                    transient, 2000, worker, [ts_cport]},
+    supervisor:start_child({?MODULE, Node}, PortServer).
+
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from supervisor
@@ -69,7 +76,9 @@ init([]) ->
                     transient, 2000, worker, [ts_session_cache]},
     MonCache = {ts_mon_cache, {ts_mon_cache, start, []},
                     transient, 2000, worker, [ts_mon_cache]},
-    {ok,{{one_for_one,?retries,10}, [LauncherManager, SessionCache, MonCache,ClientsSup, StaticLauncher,Launcher  ]}}.
+    IPScan = {ts_ip_scan, {ts_ip_scan, start_link, []},
+                    transient, 2000, worker, [ts_ip_scan]},
+    {ok,{{one_for_one,?retries,10}, [IPScan, LauncherManager, SessionCache, MonCache,ClientsSup, StaticLauncher,Launcher  ]}}.
 
 %%%----------------------------------------------------------------------
 %%% Internal functions

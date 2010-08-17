@@ -113,13 +113,21 @@ read_config_maxusers_test() ->
     {ok,{[{_,Max4},{_,_}],_,_}}=ts_config_server:get_client_config("client4"),
     ?assert(Max1+Max2+Max3+Max4 =< MaxNumber).
 
-choose_port_test() ->
-    myset_env(),
-    {Dict,3} = ts_config_server:choose_port('client',undefined,{3,5}),
-    {Dict2,4} = ts_config_server:choose_port('client',Dict,{3,5}),
-    {Dict3,5} = ts_config_server:choose_port('client',Dict2,{3,5}),
-    {Dict4,3} = ts_config_server:choose_port('client2',Dict3,{3,5}),
-    ?assertMatch({_,3}, ts_config_server:choose_port('client',Dict4,{3,5})).
+
+cport_list_node_test() ->
+    List=['tsung1@toto',
+          'tsung3@titi',
+          'tsung2@toto',
+          'tsung7@titi',
+          'tsung6@toto',
+          'tsung4@tutu'],
+    Rep =  ts_config_server:get_one_node_per_host(List),
+    ?assertEqual(['tsung1@toto', 'tsung3@titi', 'tsung4@tutu'], lists:sort(Rep)).
+
+
+ifalias_test() ->
+    Res=ts_ip_scan:get_intf_aliases("lo"),
+    ?assertEqual([{127,0,0,1}],Res).
 
 myset_env()->
     myset_env(0).
