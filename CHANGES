@@ -1,3 +1,13 @@
+1.3.2 -> 1.3.3 Minor bugfixes (17 Aug 2010)
+Bugfix:
+    * [TSUN-154] - parent proxy doesn't work anymore in 1.3.x (tested with 1.3.2 and 1.3.0).
+    * [TSUN-155] - url substitution is broken in some cases
+    * [TSUN-156] - Tsung not using sessions with low probabilities
+    * [TSUN-157] - ssl doesn't work with erlang R14A
+    * [TSUN-158] - failure when a proxy is used and an URL substitution is set
+    * [TSUN-159] - HTTP cookies support is broken when a proxy is used
+    * [TSUN-160] - tsung can sometimes hang at the beginning using distributed setup
+    * [TSUN-161] - if statement not allowed in a transaction
 1.3.1 -> 1.3.2 Major bugfixes and enhancements (14 Jun 2010)
 Bugfix:
     * [TSUN-128] - Apostrophes cause string to convert to deep list in setdynvars with Erlang function.
