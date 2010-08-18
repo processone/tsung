@@ -1,7 +1,7 @@
 %%%
 %%%  Copyright © Nicolas Niclausse 2007
 %%%
-%%%	 Author : Nicolas Niclausse <Nicolas.Niclausse@niclux.org>
+%%%  Author : Nicolas Niclausse <Nicolas.Niclausse@niclux.org>
 %%%  Created: 17 Mar 2007 by Nicolas Niclausse <Nicolas.Niclausse@niclux.org>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 
 -module(ts_test_jabber).
 -vc('$Id$ ').
@@ -69,4 +69,6 @@ bidi_nok_test()->
     ?assertMatch({nodata,State}, ts_jabber:parse_bidi(Req,State)).
 
 myset_env()->
-    application:set_env(stdlib,debug_level,0).
+    myset_env(0).
+myset_env(Val)->
+    application:set_env(stdlib,debug_level,Val).

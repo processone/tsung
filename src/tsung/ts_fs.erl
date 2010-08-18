@@ -32,6 +32,7 @@
          get_message/1,
          session_defaults/0,
          parse/2,
+         parse_bidi/2,
          parse_config/2,
          new_session/0]).
 
@@ -127,21 +128,21 @@ subst(Req=#fs{path=Path,size=Size}, DynVars) ->
 %% Setting Close to true will cause tsung to close the connection to
 %% the server.
 %% @end
-parse({file, open, Args, {ok,IODevice}},State=#state_rcv{dyndata=DynData}) ->
+parse({file, open, _Args, {ok,IODevice}},State=#state_rcv{dyndata=DynData}) ->
     NewDyn=(DynData#dyndata.proto)#fs_dyndata{iodev=IODevice,position=0},
     {State#state_rcv{ack_done=true,datasize=0,dyndata=DynData#dyndata{proto=NewDyn}}, [], false};
 parse({file, open, [Path,_], {error,Reason}},State) ->
     ?LOGF("error while opening file: ~p(~p)~n",[Path, Reason],?ERR),
     ts_mon:add({count,error_fs_open}),
     {State#state_rcv{ack_done=true,datasize=0}, [], false};
-parse({file, close, [IODevice], ok},State=#state_rcv{dyndata=DynData}) ->
+parse({file, close, [_IODevice], ok},State=#state_rcv{dyndata=DynData}) ->
     NewDyn=(DynData#dyndata.proto)#fs_dyndata{iodev=undefined,position=0},
     {State#state_rcv{ack_done=true,datasize=0,dyndata=DynData#dyndata{proto=NewDyn}}, [], false};
 
-parse({file, pread, [IODev,Pos,Size], {ok,_Data}},State=#state_rcv{dyndata=DynData,datasize=DataSize}) ->
+parse({file, pread, [_IODev,Pos,Size], {ok,_Data}},State=#state_rcv{dyndata=DynData,datasize=DataSize}) ->
     NewDyn=(DynData#dyndata.proto)#fs_dyndata{position=Pos+Size},
     {State#state_rcv{ack_done=true,datasize=DataSize+Size,dyndata=DynData#dyndata{proto=NewDyn}}, [], false};
-parse({file, pread, [IODev,Pos,Size], eof},State=#state_rcv{dyndata=DynData,datasize=DataSize}) ->
+parse({file, pread, [_IODev,Pos,Size], eof},State=#state_rcv{dyndata=DynData,datasize=DataSize}) ->
     NewDyn=(DynData#dyndata.proto)#fs_dyndata{position=0},
     {State#state_rcv{ack_done=true,datasize=DataSize+Size,dyndata=DynData#dyndata{proto=NewDyn}}, [], false};
 

@@ -98,7 +98,7 @@ recordtag(Host, Args) when is_list(Args)->
 init(Filename) ->
     Date = ts_utils:datestr(),
     %% add date to filename
-    File = case regexp:gsub(Filename,"\.xml$", Date ++ ".xml") of %% "
+    File = case re:gsub(Filename,"\.xml$", Date ++ ".xml") of %% "
                {ok, RealName, _ } -> RealName;
                _ ->  Date ++ "-" ++ Filename
            end,

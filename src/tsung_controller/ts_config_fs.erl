@@ -40,7 +40,7 @@
 parse_config(Element = #xmlElement{name=dyn_variable}, Conf = #config{}) ->
     ts_config:parse(Element,Conf);
 parse_config(Element = #xmlElement{name=fs},
-             Config=#config{curid = Id, session_tab = Tab, servers = Servers,
+             Config=#config{curid = Id, session_tab = Tab,
                             sessions = [CurS | _], dynvar=DynVar,
                             subst    = SubstFlag, match=MatchRegExp}) ->
 

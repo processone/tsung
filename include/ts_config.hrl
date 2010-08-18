@@ -33,6 +33,9 @@
 -define(DEF_REGEXP_DYNVAR_BEGIN, "name=(\"|')").%'
 -define(DEF_REGEXP_DYNVAR_END, "(\"|') ([^>]* )?value=(\"|')\\([^(\"|')]*\\)(\"|')").%'
 
+-define(DEF_RE_DYNVAR_BEGIN, "name=[\"']").%'
+-define(DEF_RE_DYNVAR_END, "[\"'] ([^>]* )?value=[\"']([^\"']*)[\"']").%'
+
 -record(config, {
           name,
           duration,           % max duration of test (by default: end when all clients are done)

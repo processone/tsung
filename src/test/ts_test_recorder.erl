@@ -64,11 +64,11 @@ encode_base64_test()->
 rewrite_http_secure_cookie_test()->
     Data="HTTP/1.1 200 OK\r\nSet-Cookie: JSESSIONID=F949C9182402EB74258F43FDC3F3C63F; Path=/; Secure\r\nLocation: https://foo.bar/\r\nContent-Length: 0\r\n\r\n",
     NewData="HTTP/1.1 200 OK\r\nSet-Cookie: JSESSIONID=F949C9182402EB74258F43FDC3F3C63F; Path=/\r\nLocation: http://-foo.bar/\r\nContent-Length: 0\r\n\r\n",
-     ?assertEqual({ok,NewData},
-                  ts_utils:from_https(Data)).
+    {ok,Res} = ts_utils:from_https(Data),
+     ?assertEqual(list_to_binary(NewData),iolist_to_binary(Res) ).
 
 rewrite_http_secure_cookies_test()->
     Data="HTTP/1.1 200 OK\r\nSet-Cookie: JSESSIONID=F949C9182402EB74258F43FDC3F3C63F; Path=/; Secure\r\nSet-Cookie: JSESSIONID=32; Path=/foo; Secure\r\nLocation: https://foo.bar/\r\nContent-Length: 0\r\n\r\n",
     NewData="HTTP/1.1 200 OK\r\nSet-Cookie: JSESSIONID=F949C9182402EB74258F43FDC3F3C63F; Path=/\r\nSet-Cookie: JSESSIONID=32; Path=/foo\r\nLocation: http://-foo.bar/\r\nContent-Length: 0\r\n\r\n",
-     ?assertMatch({ok,Data2},
-                  ts_utils:from_https(Data)).
+    {ok,Res} = ts_utils:from_https(Data),
+     ?assertEqual(list_to_binary(NewData),iolist_to_binary(Res) ).

@@ -117,13 +117,13 @@ handle_info({tcp, ClientSock, String}, State=#proxy{plugin=Plugin})
     {noreply, NewState, ?lifetime};
 
 % server data, send it to the client
-handle_info({Type, ServerSock, String}, State=#proxy{plugin=Plugin})
+handle_info({Type, ServerSock, Data}, State=#proxy{plugin=Plugin})
   when ServerSock == State#proxy.serversock, ((Type == tcp) or (Type == ssl)) ->
     ts_utils:inet_setopts(Type, ServerSock,[{active, once}]),
-    ?LOGF("Received data from server: ~s~n",[String],?DEB),
-    {ok,NewString} = Plugin:rewrite_serverdata(String),
-    send(State#proxy.clientsock, NewString, Plugin),
-    case regexp:first_match(NewString, "[cC]onnection: [cC]lose") of
+    ?LOGF("Received data from server: ~s~n",[Data],?DEB),
+    {ok,NewData} = Plugin:rewrite_serverdata(Data),
+    send(State#proxy.clientsock, NewData, Plugin),
+    case re:run(NewData, "[cC]onnection: [cC]lose",[{capture,none}]) of
         nomatch ->
             {noreply, State, ?lifetime};
         _ ->
@@ -206,15 +206,15 @@ peername(Socket)         -> prim_inet:peername(Socket).
 
 
 send(_,[],_) -> ok; % no data
-send({sslsocket,A,B},String, Plugin) ->
-    ?LOGF("Received data to send to an ssl socket ~p, using plugin ~p ~n", [String,Plugin],?DEB),
-    {ok, RealString } = Plugin:rewrite_ssl({request,String}),
-    ?LOGF("Sending data to ssl socket ~p ~p (~p)~n", [A, B, RealString],?DEB),
-    ssl:send({sslsocket,A,B}, RealString);
+send({sslsocket,A,B},Data, Plugin) ->
+    ?LOGF("Received data to send to an ssl socket ~p, using plugin ~p ~n", [Data,Plugin],?DEB),
+    {ok, RealData } = Plugin:rewrite_ssl({request,Data}),
+    ?LOGF("Sending data to ssl socket ~p ~p (~p)~n", [A, B, RealData],?DEB),
+    ssl:send({sslsocket,A,B}, Data);
 send(undefined,_,_) ->
     ?LOG("No socket ! Error ~n",?CRIT),
     erlang:error(error_no_socket_open);
-send(Socket,String,_) ->
-    gen_tcp:send(Socket,String).
+send(Socket,Data,_) ->
+    gen_tcp:send(Socket,Data).
 
 

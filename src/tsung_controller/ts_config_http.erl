@@ -214,7 +214,7 @@ set_msg(_, {_, _, true, _Server, [],_Tab,_Id}) ->
     ?LOG("Need absolute URL when using a proxy ! Abort",?ERR),
     throw({error, badurl_proxy});
 %% url head is a dynvar, don't preset host header
-set_msg(HTTP=#http_request{url="%%" ++ TailURL},  {true, MatchRegExp, _Proxy, _Servers, _Headers,_Tab,_Id}) ->
+set_msg(HTTP=#http_request{url="%%" ++ _TailURL},  {true, MatchRegExp, _Proxy, _Servers, _Headers,_Tab,_Id}) ->
     set_msg2(HTTP,
              #ts_request{ack = parse, subst = true, match = MatchRegExp });
 %% relative URL, no proxy, a single server => we can preset host header at configuration time

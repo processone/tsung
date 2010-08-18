@@ -166,6 +166,7 @@ repeat | if | change_type )*>
 <!ATTLIST dyn_variable
     name     CDATA #REQUIRED
     xpath    CDATA #IMPLIED
+    re    CDATA #IMPLIED
     jsonpath CDATA #IMPLIED
     pgsql_expr CDATA #IMPLIED
     regexp   CDATA #IMPLIED >

@@ -474,11 +474,15 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
                      ?LOGF("Add new regexp: ~s ~n", [Expr],?INFO),
                      {ok, CompiledRegExp} = gregexp:parse(FlattenExpr),
                      {regexp,Name,CompiledRegExp};
+                 re ->
+                     ?LOGF("Add new re: ~s ~n", [Expr],?INFO),
+                     {ok, CompiledRegExp} = re:compile(FlattenExpr),
+                     {regexp,Name,CompiledRegExp};
                  xpath ->
                      ?LOGF("Add new xpath: ~s ~n", [Expr],?INFO),
                      CompiledXPathExp = mochiweb_xpath:compile_xpath(FlattenExpr),
                      {xpath,Name,CompiledXPathExp};
-                 Other ->
+                 _Other ->
                      ?LOGF("Add ~s ~s ~p ~n", [Type,Name,Expr],?INFO),
                      {Type,Name,Expr}
              end,
