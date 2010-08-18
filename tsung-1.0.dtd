@@ -103,11 +103,11 @@ repeat | if | change_type )*>
     bidi         CDATA #IMPLIED
     persistent   (true | false) #IMPLIED
     probability   NMTOKEN #REQUIRED
-    type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs ) #REQUIRED>
+    type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs |ts_shell) #REQUIRED>
 
 <!ELEMENT change_type EMPTY>
 <!ATTLIST change_type
-     new_type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs ) #REQUIRED
+     new_type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs | ts_shell) #REQUIRED
      host NMTOKEN #REQUIRED
      port NMTOKEN #REQUIRED
      server_type NMTOKEN #REQUIRED
@@ -115,7 +115,7 @@ repeat | if | change_type )*>
      restore ( true | false ) "false"
     >
 
-<!ELEMENT request ( match*, dyn_variable*, ( http | jabber | raw | pgsql | ldap | mysql |fs ) )>
+<!ELEMENT request ( match*, dyn_variable*, ( http | jabber | raw | pgsql | ldap | mysql |fs | shell ) )>
 <!ATTLIST request
     subst (true|false) "false"
     >
@@ -205,7 +205,7 @@ repeat | if | change_type )*>
     node        CDATA #IMPLIED
     node_type   CDATA #IMPLIED >
 
-<!ELEMENT fs (#PCDATA) >
+<!ELEMENT fs EMPTY >
 <!ATTLIST fs
     cmd      (read|write|open|delete|stats|copy|read_chunk|write_chunk|close)  "write"
     path     CDATA   #IMPLIED
@@ -213,6 +213,12 @@ repeat | if | change_type )*>
     position CDATA   #IMPLIED
     mode     (read | write | append ) #IMPLIED
     dest     CDATA   #IMPLIED
+>
+
+<!ELEMENT shell EMPTY >
+<!ATTLIST shell
+    cmd      CDATA   #REQUIRED
+    args     CDATA   ""
 >
 
 <!ELEMENT pgsql (#PCDATA) >

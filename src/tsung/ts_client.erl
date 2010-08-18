@@ -779,7 +779,7 @@ reconnect(Socket, _Server, _Port, _Protocol, _IP) ->
 %%----------------------------------------------------------------------
 %% Func: send/5
 %% Purpose: wrapper function for send
-%% Return: ok | {error, Reason}
+%% Return: ok | {error, Reason} 
 %%----------------------------------------------------------------------
 send(gen_tcp,Socket,Message,_,_) -> gen_tcp:send(Socket,Message);
 send(ssl,Socket,Message,_,_)     -> ssl:send(Socket,Message);
@@ -953,7 +953,7 @@ set_new_buffer(#ts_request{match=[], dynvar_specs=[]},_,_) ->
     << >>;
 set_new_buffer(_, Buffer,closed) ->
     Buffer;
-set_new_buffer(_, OldBuffer, Data) when is_binary(OldBuffer)->
+set_new_buffer(_, OldBuffer, Data) when is_binary(OldBuffer) andalso is_binary(Data)->
     ?Debug("Bufferize response~n"),
     << OldBuffer/binary, Data/binary >>;
 set_new_buffer(_, _, Data) -> % don't need buffer for non binary responses (erlang fun case)
