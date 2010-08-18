@@ -451,20 +451,23 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
     StrName  = ts_utils:clean_str(getAttr(Attrs, name)),
     {ok, [{atom,1,Name}],1} = erl_scan:string("'"++StrName++"'"),
     {Type,Expr} = case {getAttr(string,Attrs,regexp,none),
+                        getAttr(string,Attrs,re,none),
                         getAttr(string,Attrs,pgsql_expr,none),
                         getAttr(string,Attrs,xpath,none),
                        getAttr(string,Attrs,jsonpath,none)} of
-                      {none,none,none,none} ->
+                      {none,none,none,none,none} ->
                           DefaultRegExp = ?DEF_REGEXP_DYNVAR_BEGIN ++ StrName
                               ++?DEF_REGEXP_DYNVAR_END,
                           {regexp,DefaultRegExp};
-                      {none,none,XPath,none} ->
+                      {none,none,none,XPath,none} ->
                           {xpath,XPath};
-                      {none,none,none,JSONPath} ->
+                      {none,none,none,none,JSONPath} ->
                           {jsonpath,JSONPath};
-                      {none,PG,none,none} ->
+                      {none,none,PG,none,none} ->
                           {pgsql_expr,PG};
-                      {RegExp,_,_,_} ->
+                      {none,RE,none,none,none} ->
+                          {re,RE};
+                      {RegExp,_,_,_,_} ->
                           {regexp,RegExp}
                   end,
     FlattenExpr =lists:flatten(Expr),
@@ -477,7 +480,7 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
                  re ->
                      ?LOGF("Add new re: ~s ~n", [Expr],?INFO),
                      {ok, CompiledRegExp} = re:compile(FlattenExpr),
-                     {regexp,Name,CompiledRegExp};
+                     {re,Name,CompiledRegExp};
                  xpath ->
                      ?LOGF("Add new xpath: ~s ~n", [Expr],?INFO),
                      CompiledXPathExp = mochiweb_xpath:compile_xpath(FlattenExpr),

@@ -263,13 +263,14 @@ parse_dynvar([],_Binary , _String,_Tree, DynVars) -> DynVars;
 parse_dynvar(D=[{re,_, _}| _],Binary,undefined,Tree,DynVars) ->
     parse_dynvar(D,Binary,Binary,Tree,DynVars);
 parse_dynvar([{re,VarName, RegExp}| DynVarsSpecs],Binary,Data,Tree,DynVars) ->
-    case re:run(Data, RegExp,[{capture,[2],list}]) of
+    case re:run(Data, RegExp,[{capture,[1],list}]) of
         {match,[Value]} ->
-            ?LOGF("DynVar: Match (~p=~p) ~n",[VarName, Value], ?DEB),
+            ?LOGF("DynVar (RE): Match (~p=~p) ~n",[VarName, Value], ?INFO),
             parse_dynvar(DynVarsSpecs, Binary,Data,Tree,
                             ts_dynvars:set(VarName,Value,DynVars));
         nomatch ->
-            ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName], ?WARN),
+            ?LOGF("Dyn Var (RE): no Match (varname=~p), ~n",[VarName], ?WARN),
+            ?LOGF("Regexp was: ~p ~n",[RegExp], ?INFO),
             parse_dynvar(DynVarsSpecs, Binary,Data,Tree, ts_dynvars:set(VarName,"",DynVars))
     end;
 

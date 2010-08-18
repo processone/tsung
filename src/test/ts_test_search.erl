@@ -224,6 +224,25 @@ parse_subst1_re_test() ->
     [{Name,Value}] = ts_search:parse_dynvar([{re, 'jsf_tree_64', Regexp }],list_to_binary(Data)),
     ?assertMatch("H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA", ts_search:subst("%%_jsf_tree_64%%",[{Name,Value}])).
 
+parse_subst2_re_test() ->
+    myset_env(),
+    Data="<HTML>
+  <HEAD>
+    <meta http-equiv='Content-Type' content='text/html; charset=ISO-8859-1'>
+    <META NAME='author' CONTENT='Test'>
+    <TITLE>4DOM version 0.10.2</TITLE>
+  </HEAD>
+  <BODY>
+    <H1>4DOM version 0.10.2</H1>
+    <H3></H3>
+    <P>4Suite <A HREF='http://4Suite.org/getdoc.epy?file=4Suite/'>http://FourThought.com/4Suite<
+/A>
+    </P>
+",
+    Regexp = "<TITLE>(.*)</TITLE>",
+    [{Name,Value}] = ts_search:parse_dynvar([{re, 'title', Regexp }],list_to_binary(Data)),
+    ?assertMatch("4DOM version 0.10.2", ts_search:subst("%%_title%%",[{Name,Value}])).
+
 parse_extract_fun1_test() ->
     myset_env(),
     Data="/echo?symbol=%%ts_test_search:new%%",

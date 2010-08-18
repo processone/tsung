@@ -134,6 +134,16 @@ ifalias_test() ->
     Res=ts_ip_scan:get_intf_aliases("lo"),
     ?assertEqual([{127,0,0,1}],Res).
 
+encode_test() ->
+    Encoded="ts_encoded_47myfilepath_47toto_47titi_58sdfsdf_45sdfsdf_44aa_47",
+    Str="/myfilepath/toto/titi:sdfsdf-sdfsdf,aa/",
+    ?assertEqual(Encoded,ts_config_server:encode_filename(Str)).
+
+decode_test() ->
+    Encoded="ts_encoded_47myfilepath_47toto_47titi_58sdfsdf_45sdfsdf_44aa_47",
+    Str="/myfilepath/toto/titi:sdfsdf-sdfsdf,aa/",
+    ?assertEqual(Str,ts_config_server:decode_filename(Encoded)).
+
 myset_env()->
     myset_env(0).
 myset_env(Level)->

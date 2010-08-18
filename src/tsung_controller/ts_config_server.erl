@@ -562,8 +562,7 @@ decode_filename("ts_encoded" ++ String)->
     lists:foldl(fun replace_str/2, String, Transform).
 
 replace_str({A,B},X) ->
-    {ok, Str, _} = re:gsub(X,A,B),
-    Str.
+    re:replace(X,A,B,[{return,list},global]).
 
 %%----------------------------------------------------------------------
 %% Func: print_info/0 Print system info
@@ -758,7 +757,7 @@ set_remote_args(LogDir,PortsRange)->
     {ok, PAList}    = init:get_argument(pa),
     PA = lists:flatmap(fun(A) -> [" -pa "] ++A end,PAList),
     ?DebugF("PA list ~p ~n", [PA]),
-    {ok, Boot, _} = re:gsub(BootController,"tsung_controller","tsung"),
+    Boot = re:replace(BootController,"tsung_controller","tsung",[{return,list},global]),
     ?DebugF("Boot ~p~n", [Boot]),
     Sys_Args= ts_utils:erl_system_args(),
     LogDirEnc = encode_filename(LogDir),
