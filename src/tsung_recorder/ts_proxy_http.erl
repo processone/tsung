@@ -349,9 +349,9 @@ record_header(Fd, Headers,HeaderName, Msg, Fun)->
     end.
 
 append_to_filename(Filename, From, To) ->
-    case re:gsub(Filename,From,To ) of
-        {ok, RealName, _ } -> RealName;
-        _ ->  Filename ++"." ++ To
+    case re:replace(Filename,From,To, [{return,list},global] ) of
+        Filename ->  Filename ++"." ++ To;
+        RealName -> RealName
     end.
 
 
