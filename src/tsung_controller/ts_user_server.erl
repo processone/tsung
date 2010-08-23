@@ -40,6 +40,7 @@
          add_to_online/1,
          remove_from_online/1,
          remove_connected/1,
+         add_to_connected/1,
          get_first/0]).
 
 %% for multiple user_server process, one per virtual host
@@ -130,16 +131,20 @@ get_idle(UserServer) ->
 get_idle()->
     gen_server:call({global, ?MODULE}, get_idle).
 
+%% FIXME: handle vhost
+add_to_connected(Id)->
+    gen_server:cast({global, ?MODULE}, {add_to_connected, Id}).
+
 get_online(default,Id) ->
     get_online(Id);
 get_online(UserServer,Id) when is_list(Id)->
     get_online(UserServer,list_to_integer(Id));
-get_online(UserServer,Id) when is_integer(Id)->
+get_online(UserServer,Id) when Id->
     gen_server:call(UserServer, {get_online, Id}).
 
 get_online(Id) when is_list(Id) ->
     get_online(list_to_integer(Id));
-get_online(Id) when is_integer(Id) ->
+get_online(Id) ->
     gen_server:call({global, ?MODULE}, {get_online, Id}).
 
 %% get an offline id, don't change the connected table.
@@ -164,36 +169,36 @@ remove_connected(default,ID) ->
     remove_connected(ID);
 remove_connected(UserServer,Id) when  is_list(Id) ->
     remove_connected(UserServer,list_to_integer(Id));
-remove_connected(UserServer,Id) when is_integer(Id)->
+remove_connected(UserServer,Id) ->
     gen_server:cast(UserServer, {remove_connected, Id}).
 
 remove_connected(Id) when  is_list(Id) ->
     remove_connected(list_to_integer(Id));
-remove_connected(Id) when is_integer(Id)->
+remove_connected(Id) ->
     gen_server:cast({global, ?MODULE}, {remove_connected, Id}).
 
 add_to_online(default,Id) ->
     add_to_online(Id);
 add_to_online(UserServer,Id) when  is_list(Id) ->
     add_to_online(UserServer,list_to_integer(Id));
-add_to_online(UserServer,Id) when is_integer(Id)->
+add_to_online(UserServer,Id) ->
     gen_server:cast(UserServer, {add_to_online, Id}).
 
 add_to_online(Id) when  is_list(Id) ->
     add_to_online(list_to_integer(Id));
-add_to_online(Id) when is_integer(Id)->
+add_to_online(Id) ->
     gen_server:cast({global, ?MODULE}, {add_to_online, Id}).
 
 remove_from_online(default,Id) ->
     remove_from_online(Id);
 remove_from_online(UserServer,Id) when  is_list(Id) ->
     remove_from_online(UserServer,list_to_integer(Id));
-remove_from_online(UserServer,Id) when is_integer(Id)->
+remove_from_online(UserServer,Id) ->
     gen_server:cast(UserServer, {remove_from_online, Id}).
 
 remove_from_online(Id) when  is_list(Id) ->
     remove_from_online(list_to_integer(Id));
-remove_from_online(Id) when is_integer(Id)->
+remove_from_online(Id)  ->
     gen_server:cast({global, ?MODULE}, {remove_from_online, Id}).
 
 stop()->
@@ -266,6 +271,9 @@ handle_call(get_offline, _From, State=#state{offline=Offline,last_offline=Prev})
     case ets_iterator_next(Offline, Prev) of
         {error, _Reason} ->
             {reply, {error, no_offline}, State};
+        {ok, {Next,Pwd}} ->
+            ?DebugF("Choose (next is user defined) offline user ~p~n",[Prev]),
+            {reply, {ok, Prev}, State#state{last_offline={Next,Pwd}}};
         {ok, Next} ->
             ?DebugF("Choose offline user ~p~n",[Prev]),
             {reply, {ok, Prev}, State#state{last_offline=Next}}
@@ -297,6 +305,9 @@ handle_call( {get_online, Id}, _From, State=#state{ online     = Online,
         {error, _Reason} ->
             ?DebugF("No online users (~p,~p), ets table was ~p ~n",[Id, Prev,ets:info(Online)]),
             {reply, {error, no_online}, State};
+        {ok, {User,Pwd}} ->
+            ?DebugF("Choose user defined online user ~p for ~p ~n",[User, Id]),
+            {reply, {ok, User}, State#state{last_online={User,Pwd}}};
         {ok, Next} ->
             ?DebugF("Choose online user ~p for ~p ~n",[Next, Id]),
             {reply, {ok, Next}, State#state{last_online=Next}}
@@ -329,6 +340,17 @@ handle_cast({remove_connected, Id}, State=#state{online=Online,offline=Offline,c
             {noreply, State#state{last_online=LastOnline}}
     end;
 
+%% user_defined user case
+handle_cast({add_to_connected, Id}, State=#state{connected=Connected, first_client=First}) ->
+    ?LOGF("Add ~p to connected list~n",[Id],?DEB),
+    ets:insert(Connected, {Id,1}),
+    case First of
+        undefined ->
+            {noreply, State#state{last_connected=Id, first_client=Id}};
+        _ ->
+            {noreply, State#state{last_connected=Id}}
+    end;
+
 handle_cast({add_to_online, Id}, State=#state{online=Online, connected=Connected}) ->
     case ets:member(Connected,Id) of
         true ->
@@ -343,10 +365,8 @@ handle_cast({add_to_online, Id}, State=#state{online=Online, connected=Connected
 handle_cast({remove_from_online, Id}, State=#state{online=Online,connected=Connected}) ->
     {noreply, LastOnline} = ets_delete_online(Online,Id,State),
     ets:insert(Connected, {Id,1}),
-    {noreply, State#state{last_online=LastOnline}};
+    {noreply, State#state{last_online=LastOnline}}.
 
-handle_cast(_Msg, State) ->
-    {noreply, State}.
 
 %%----------------------------------------------------------------------
 %% Func: handle_info/2

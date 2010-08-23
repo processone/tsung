@@ -90,10 +90,26 @@ parse_config(Element = #xmlElement{name=jabber},
     %%          The specified string
 
     Domain  =ts_config:get_default(Tab, jabber_domain_name, jabber_domain),
-    UserName=ts_config:get_default(Tab, jabber_username, jabber_username),
-    Passwd  =ts_config:get_default(Tab, jabber_passwd, jabber_passwd),
     MUC_service = ts_config:get_default(Tab, muc_service, muc_service),
     PubSub_service =ts_config:get_default(Tab, pubsub_service, pubsub_service),
+
+
+    %% Authentication
+    {XMPPId, UserName, Passwd} = case lists:keysearch(xmpp_authenticate, #xmlElement.name,
+                                           Element#xmlElement.content) of
+                          {value, AuthEl=#xmlElement{} } ->
+                              User= ts_config:getAttr(string,AuthEl#xmlElement.attributes,
+                                                          username, undefined),
+                              PWD= ts_config:getAttr(string,AuthEl#xmlElement.attributes,
+                                                        passwd, undefined),
+                              {user_defined,User,PWD};
+                          _ ->
+                              GUserName=ts_config:get_default(Tab, jabber_username, jabber_username),
+                              GPasswd  =ts_config:get_default(Tab, jabber_passwd, jabber_passwd),
+                              {0,GUserName,GPasswd}
+                      end,
+
+
 
     Msg=#ts_request{ack   = Ack,
                     dynvar_specs= DynVar,
@@ -103,6 +119,7 @@ parse_config(Element = #xmlElement{name=jabber},
                     param = #jabber{domain = Domain,
                                     username = UserName,
                                     passwd = Passwd,
+                                    id     = XMPPId,
                                     data   = Data,
                                     type   = Type,
                                     dest   = Dest,

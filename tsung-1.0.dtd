@@ -189,7 +189,7 @@ repeat | if | change_type )*>
     passwd CDATA #REQUIRED
     userid CDATA #REQUIRED >
 
-<!ELEMENT jabber EMPTY >
+<!ELEMENT jabber (xmpp_authenticate?) >
 <!ATTLIST jabber
     ack         (global | local | no_ack) #REQUIRED
     destination (online | offline | random | unique | previous) "random"
@@ -204,6 +204,12 @@ repeat | if | change_type )*>
     group       CDATA #IMPLIED
     node        CDATA #IMPLIED
     node_type   CDATA #IMPLIED >
+
+<!ELEMENT xmpp_authenticate EMPTY >
+<!ATTLIST xmpp_authenticate
+    passwd   CDATA #REQUIRED
+    username CDATA #REQUIRED >
+
 
 <!ELEMENT fs EMPTY >
 <!ATTLIST fs

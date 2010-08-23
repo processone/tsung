@@ -149,18 +149,16 @@ parse_config(Element, Conf) ->
 %% if we are testing a single domain (the default case), we  change from {domain,D}.
 %% to the specified domain (D). If {vhost,FileId}, we choose a domain from that file
 %% and set it.
-add_dynparams(Subst,DynData, Param =#jabber{domain={domain,Domain}}, Host) ->
-    UserId = choose_or_cache_user_id(),
-    add_dynparams(Subst,DynData, Param#jabber{id=UserId,
-                                              domain=Domain,
-                                              user_server=default},Host);
+add_dynparams(Subst,DynData, Param =#jabber{id=OldId,username=OldUser,passwd=OldPasswd, domain={domain,Domain}}, Host) ->
+    {Id,User,Pwd} = choose_or_cache_user_id(OldId,OldUser,OldPasswd),
+    add_dynparams(Subst,DynData, Param#jabber{id=Id,username=User,passwd=Pwd,domain=Domain, user_server=default},Host);
 
-add_dynparams(Subst,DynData,Param =#jabber{domain={vhost,FileId}}, Host) ->
-    {UserId,Domain,UserServer} = choose_domain(FileId),
-    add_dynparams(Subst,DynData, Param#jabber{id=UserId,
+add_dynparams(Subst,DynData,Param =#jabber{id=OldId, username=OldUser,passwd=OldPasswd, domain={vhost,FileId}}, Host) ->
+    {Id,User,Pwd} = choose_or_cache_user_id(OldId,OldUser,OldPasswd),
+    {Domain,UserServer} = choose_domain(FileId),
+    add_dynparams(Subst,DynData, Param#jabber{id=Id,username=User, passwd=Pwd,
                                               domain=Domain,
                                               user_server=UserServer},Host);
-
 add_dynparams(_Subst,[], Param, _Host) ->
     Param;
 add_dynparams(false,#dyndata{proto=_DynData}, Param, _Host) ->
@@ -177,11 +175,10 @@ add_dynparams(true,#dyndata{proto=_JabDynData, dynvars=DynVars}, Param, _Host) -
 choose_domain(VHostFileId) ->
     case get(xmpp_vhost_domain) of
         undefined ->
-                Domain = do_choose_domain(VHostFileId),
-                UserServer = global:whereis_name(list_to_atom("us_"++Domain)),
-                UserId =  choose_user_id(UserServer),
-                put(xmpp_vhost_domain,{UserId,Domain,UserServer}),
-                {UserId,Domain,UserServer};
+            Domain = do_choose_domain(VHostFileId),
+            UserServer = global:whereis_name(list_to_atom("us_"++Domain)),
+            put(xmpp_vhost_domain,{Domain,UserServer}),
+            {Domain,UserServer};
         X ->
             X
      end.
@@ -212,14 +209,20 @@ choose_user_id(UserServer) ->
             Id
     end.
 
-choose_or_cache_user_id() ->
+choose_or_cache_user_id(user_defined,User,Pwd) ->
+    put(xmpp_user_id,{User,Pwd}),
+    {user_defined, User,Pwd};
+
+choose_or_cache_user_id(Id,User,Pwd) ->
     case get(xmpp_user_id) of
-            undefined ->
-                    Id = choose_user_id(default),
-                    put(xmpp_user_id,Id),
-                    Id;
-            Id ->
-                Id
+        undefined ->
+            Id = choose_user_id(default),
+            put(xmpp_user_id,Id),
+            Id;
+        {DefinedUser,DefinedPwd} ->
+            {user_defined, DefinedUser,DefinedPwd} ;
+        Id ->
+            {Id,User,Pwd}
     end.
 
 
@@ -232,6 +235,12 @@ subst(Req=#jabber{type = Type}, DynData) when Type == 'muc:chat' ; Type == 'muc:
                room = ts_search:subst(Req#jabber.room, DynData)};
 subst(Req=#jabber{type = Type}, DynData) when Type == 'pubsub:create' ; Type == 'pubsub:subscribe'; Type == 'pubsub:publish'; Type == 'pubsub:delete' ->
     Req#jabber{node = ts_search:subst(Req#jabber.node, DynData)};
+
+subst(Req=#jabber{id=user_defined, username=Name,passwd=Pwd}, DynData) ->
+    NewUser=ts_search:subst(Name,DynData),
+    NewPwd=ts_search:subst(Pwd,DynData),
+    put(xmpp_user_id,{NewUser,NewPwd}),% we need to keep the substitution for futures requests
+    Req#jabber{username=NewUser,passwd=NewPwd};
 
 subst(Req=#jabber{data=Data}, DynData) ->
     Req#jabber{data=ts_search:subst(Data,DynData)}.
