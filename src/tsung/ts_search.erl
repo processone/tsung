@@ -346,14 +346,13 @@ parse_dynvar([{pgsql_expr,VarName,_Expr}|DynVarsSpecs],Binary,String,pgsql_error
     parse_dynvar(DynVarsSpecs, Binary,String,json_error,DynVars);
 
 parse_dynvar([{xpath,VarName, Expr}| DynVarsSpecs],Binary,String,Tree,DynVars)->
-    Result = mochiweb_xpath:execute(Expr,Tree),
-    Value  = mochiweb_xpath_utils:string_value(Result),
-    ListValue = binary_to_list(Value),
-    case ListValue of
+    Value = mochiweb_xpath:execute(Expr,Tree),
+    ?DebugF("Xpath result: ~p~n", [Value]),
+    case Value of
         [] -> ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?WARN);
-        _  -> ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,ListValue],?INFO)
+        _  -> ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,Value],?INFO)
     end,
-    parse_dynvar(DynVarsSpecs, Binary,String,Tree,ts_dynvars:set(VarName,ListValue,DynVars));
+    parse_dynvar(DynVarsSpecs, Binary,String,Tree,ts_dynvars:set(VarName,Value,DynVars));
 
 parse_dynvar([{jsonpath,VarName, Expr}| DynVarsSpecs],Binary,String,JSON,DynVars)->
     Values = ts_utils:jsonpath(Expr,JSON),

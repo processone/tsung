@@ -523,7 +523,53 @@ ctrl_struct_impl({repeat,RepeatName, While,Rel,VarName,Value,Target,Max},
                     ts_mon:add({ count, Msg}),
                     {next,DynData}
             end
+    end;
+
+ctrl_struct_impl({foreach_start,ForEachName,VarName,Filter}, DynData=#dyndata{dynvars=DynVars}) ->
+    case filter(ts_dynvars:lookup(VarName,DynVars),Filter) of
+        false ->
+            Msg= list_to_atom("error_foreach_"++atom_to_list(VarName)++"undef"),
+            ts_mon:add({ count, Msg}),
+            {next,DynData};
+        [First|_Tail] ->
+            TmpDynVars = ts_dynvars:set(ForEachName,First,DynVars),
+            NewDynVars = ts_dynvars:set(ts_utils:concat_atoms([ForEachName,'_iter']),2,TmpDynVars),
+            {next,DynData#dyndata{dynvars=NewDynVars}};
+        [] ->
+            ?LOGF("empty list for ~p (filter is ~p)",[VarName, Filter],?WARN),
+            NewDynVars = ts_dynvars:set(ts_utils:concat_atoms([ForEachName,'_iter']),1,DynVars),
+            {next,DynData#dyndata{dynvars=NewDynVars}};
+        VarValue ->
+            ?LOGF("foreach warn:~p is not a list (~p), can't iterate",[VarName, VarValue],?WARN),
+            NewDynVars = ts_dynvars:set(ForEachName,VarValue,DynVars),
+            {next,DynData#dyndata{dynvars=NewDynVars}}
+    end;
+
+ctrl_struct_impl({foreach_end,ForEachName,VarName,Filter,Target}, DynData=#dyndata{dynvars=DynVars}) ->
+    IterName=ts_utils:concat_atoms([ForEachName,'_iter']),
+    {ok,Iteration} = ts_dynvars:lookup(IterName,DynVars),
+    ?DebugF("Foreach (var=~p) iteration: ~p~n",[VarName,Iteration]),
+    case filter(ts_dynvars:lookup(VarName,DynVars),Filter) of
+        false ->
+            Msg= list_to_atom("error_foreach_"++atom_to_list(VarName)++"undef"),
+            ts_mon:add({ count, Msg}),
+            {next,DynData};
+        VarValue when is_list(VarValue)->
+            ?DebugF("Foreach list found; value is ~p~n",[VarValue]),
+            case catch lists:nth(Iteration,VarValue) of
+                {'EXIT',_} -> % out of bounds, exit foreach loop
+                    ?LOGF("foreach ~p: last iteration done",[ForEachName],?DEB),
+                    {next,DynData};
+                Val ->
+                    TmpDynVars = ts_dynvars:set(ForEachName,Val,DynVars),
+                    NewDynVars = ts_dynvars:set(IterName,Iteration+1,TmpDynVars),
+                    {jump, Target ,DynData#dyndata{dynvars=NewDynVars}}
+            end;
+        _ ->% not a list, don't loop
+            {next,DynData}
     end.
+
+
 
 rel('eq',A,B)  -> A == B;
 rel('neq',A,B) -> A /= B.
@@ -1029,3 +1075,17 @@ update_stats(State=#state_rcv{page_timestamp=PageTime,send_timestamp=SendTime}) 
             {PageTime, DynVars}
     end.
 
+filter(false,undefined) ->
+    false;
+filter({ok,List},undefined)->
+    List;
+filter({ok,List},Re) when is_list(List)->
+    Filter=fun(A) ->
+                   case re:run(A,Re) of
+                       nomatch -> false;
+                       {match,_} -> true
+                   end
+           end,
+    lists:filter(Filter,List);
+filter({ok,Data},Re) ->
+    filter({ok,[Data]},Re).

@@ -144,6 +144,9 @@ decode_test() ->
     Str="/myfilepath/toto/titi:sdfsdf-sdfsdf,aa/",
     ?assertEqual(Str,ts_config_server:decode_filename(Encoded)).
 
+concat_atoms_test() ->
+    ?assertEqual('helloworld', ts_utils:concat_atoms(['hello','world'])).
+
 myset_env()->
     myset_env(0).
 myset_env(Level)->

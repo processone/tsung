@@ -318,6 +318,24 @@ dynvars_random2_test() ->
 %    ?assertMatch(Expected, R).
 
 
+parse_dynvar_xpath_single_test() ->
+   myset_env(),
+   Data="<html><body>"
+        "<div> "
+        "      <img src='img2'> "
+        " </div> "
+        " <img src='img3'> "
+        " <a href='/index.html'></body></html>",
+   XPath = "//a/@href",
+   Tree = mochiweb_html:parse(list_to_binary(Data)),
+   R = mochiweb_xpath:execute(XPath,Tree),
+   erlang:display(R),
+   Expected = <<"/index.html">>,
+   ?assertEqual(Expected, R).
+
+filter_re_test() ->
+   ?assertEqual(["/toto"], ts_client:filter(["http://toto/", "/toto", "mailto:bidule"], "^/.*").
+
 myset_env()->
     myset_env(0).
 myset_env(Level)->

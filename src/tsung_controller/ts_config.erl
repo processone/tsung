@@ -417,6 +417,32 @@ parse(_Element = #xmlElement{name=for, attributes=Attrs,content=Content},
     ets:insert(Tab, {{CurS#session.id,NewId+1},EndAction}),
     NewConf#config{curid=NewId+1};
 
+%%%% Parsing the 'foreach' element
+parse(_Element = #xmlElement{name=foreach, attributes=Attrs,content=Content},
+      Conf = #config{session_tab = Tab, sessions=[CurS|_], curid=Id}) ->
+
+    VarName = getAttr(atom,Attrs,in),
+    ForName = getAttr(atom,Attrs,name),
+    Filter =    case getAttr(string,Attrs,filter)of
+                    "" -> undefined;
+                    Re ->
+                        {ok, CompiledRegExp} = re:compile(Re),
+                        CompiledRegExp
+                end,
+    InitialAction = {ctrl_struct, {foreach_start, ForName, VarName, Filter}},
+    ?LOGF("Add foreach_start action in session ~p as id ~p",
+          [CurS#session.id,Id+1],?INFO),
+    ets:insert(Tab,{{CurS#session.id,Id+1},InitialAction}),
+    NewConf = lists:foldl(fun parse/2, Conf#config{curid=Id+1}, Content),
+    NewId = NewConf#config.curid,
+    EndAction= {ctrl_struct,{foreach_end,ForName,VarName,Filter,Id+2}},
+    %%Id+2 -> id of the first action inside the loop
+    %%       (id+1 is the foreach_start action)
+    ?LOGF("Add foreach_end action in session ~p as id ~p, Jump to:~p",
+          [CurS#session.id,NewId+1,Id+2],?INFO),
+    ets:insert(Tab, {{CurS#session.id,NewId+1},EndAction}),
+    NewConf#config{curid=NewId+1};
+
 %%%% Parsing the 'repeat' element
 %%%% Last child element must be either 'while' or 'until'
 parse(_Element = #xmlElement{name=repeat,attributes=Attrs,content=Content},

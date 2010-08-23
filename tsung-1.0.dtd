@@ -97,7 +97,7 @@
 
 <!ELEMENT sessions (session+)>
 <!ELEMENT session ( request | thinktime | transaction | setdynvars | for |
-repeat | if | change_type )*>
+repeat | if | change_type | foreach)*>
 <!ATTLIST session
     name         CDATA #REQUIRED
     bidi         CDATA #IMPLIED
@@ -146,7 +146,8 @@ repeat | if | change_type )*>
     probability NMTOKEN #REQUIRED
     >
 
-<!ELEMENT transaction (request | setdynvars | thinktime | for | repeat | if)+>
+<!ELEMENT transaction (request | setdynvars | thinktime | for | repeat
+          | if | foreach)+>
 <!ATTLIST transaction name NMTOKEN #REQUIRED>
 
 <!ELEMENT http ( www_authenticate?, soap?, http_header*, add_cookie*)>
@@ -291,21 +292,29 @@ repeat | if | change_type )*>
     name CDATA #REQUIRED>
 
 <!ELEMENT for (request | thinktime | transaction | setdynvars | for |
-          if | repeat | change_type )+>
+          if | repeat | change_type | foreach )+>
 <!ATTLIST for
     var      CDATA      #REQUIRED
     from     NMTOKEN    #REQUIRED
     to       NMTOKEN    #REQUIRED
     incr     NMTOKEN   "1">
 
+<!ELEMENT foreach (request | thinktime | transaction | setdynvars | foreach |
+          if | repeat | change_type | for )+>
+<!ATTLIST foreach
+    name     NMTOKEN    #REQUIRED
+    in       NMTOKEN    #REQUIRED
+    filter   CDATA    #IMPLIED
+>
+
 <!ELEMENT repeat (request | thinktime | transaction | setdynvars | for | repeat
-| while | if | until | change_type)+>
+| while | if | until | change_type | foreach )+>
 <!ATTLIST repeat
     name      NMTOKEN    #REQUIRED
     max_repeat  NMTOKEN   "20">
 
 <!ELEMENT if (request | thinktime | transaction | setdynvars | for | repeat
-| while | if | until | change_type)+>
+| while | if | until | change_type | foreach)+>
 <!ATTLIST if
     var       CDATA #REQUIRED
     eq        CDATA #IMPLIED
