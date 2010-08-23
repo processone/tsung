@@ -1140,6 +1140,12 @@ statistics definition, conditional request (IF MODIFIED SINCE), ...
 </sessions>
 \end{Verbatim}
 
+
+If you use an absolute URL, the server used in the URL will override
+the one specified in the \varname{<server>} section. The following relative
+requests in the session will also use this new server value (until a
+new absolute URL is set).
+
 \strong{New in 1.2.2:} You can add any HTTP header now, as in:
 \begin{Verbatim}
    <request>
@@ -1888,7 +1894,21 @@ attribute \userinput{subst="true"}, like:
 \paragraph{Regexp}
 
 If the dynamic value is not a form variable, you can set a regexp by
-hand, for example to get the title of a HTML page:
+hand, for example to get the title of a HTML page: the regexp engine
+uses the \varname{re} module, a Perl like regular expressions module
+for Erlang.
+
+\begin{Verbatim}
+    <request>
+      <dyn_variable name="mytitlevar"
+                    re="&lt;title&gt;(.*)&lt;/title&gt;"/>
+      <http url="/testtsung.html" method="GET" version="1.0"></http>
+    </request>
+\end{Verbatim}
+
+
+Previously (before 1.4.0), Tsung uses the old \varname{regexp} module
+from erlang. This is now deprecated. The syntax was:
 \begin{Verbatim}
     <request>
       <dyn_variable name="mytitlevar"
