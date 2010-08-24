@@ -198,7 +198,8 @@ repeat | if | change_type )*>
     room        CDATA #IMPLIED
     group       CDATA #IMPLIED
     node        CDATA #IMPLIED
-    node_type   CDATA #IMPLIED >
+    node_type   CDATA #IMPLIED
+    send_version (true | false) "false">
 
 <!ELEMENT fs (#PCDATA) >
 <!ATTLIST fs
