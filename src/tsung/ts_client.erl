@@ -162,7 +162,10 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
 %% received data
-handle_info({gen_ts_transport, _Socket, Data}, wait_ack, State) when is_binary(Data)->
+handle_info(Info, StateName, State = #state_rcv{protocol = Transport, socket = Socket}) ->
+    handle_info2(Transport:normalize_incomming_data(Socket, Info), StateName, State).
+
+handle_info2({gen_ts_transport, _Socket, Data}, wait_ack, State) when is_binary(Data)->
     ?DebugF("data received: size=~p ~n",[size(Data)]),
     case handle_data_msg(Data, State) of
         {NewState=#state_rcv{ack_done=true, protocol = Transport, socket = Socket}, Opts} ->
@@ -175,11 +178,11 @@ handle_info({gen_ts_transport, _Socket, Data}, wait_ack, State) when is_binary(D
             {next_state, wait_ack, NewState#state_rcv{socket=NewSocket}, TimeOut}
     end;
 %% for erlang data
-handle_info({gen_ts_transport, _Socket, Data}, wait_ack, State) ->
+handle_info2({gen_ts_transport, _Socket, Data}, wait_ack, State) ->
     handle_info({gen_ts_transport, _Socket, term_to_binary(Data)}, wait_ack, State);
 
 %% inet close messages; persistent session, waiting for ack
-handle_info({gen_ts_transport, _Socket, closed}, wait_ack,
+handle_info2({gen_ts_transport, _Socket, closed}, wait_ack,
             State = #state_rcv{persistent=true})  ->
     ?LOG("connection closed while waiting for ack",?INFO),
     set_connected_status(false),
@@ -188,7 +191,7 @@ handle_info({gen_ts_transport, _Socket, closed}, wait_ack,
     handle_next_action(NewState#state_rcv{socket=none});
 
 %% inet close messages; persistent session
-handle_info({gen_ts_transport, _Socket, closed}, think,
+handle_info2({gen_ts_transport, _Socket, closed}, think,
             State = #state_rcv{persistent=true})  ->
     ?LOG("connection closed, stay alive (persistent)",?INFO),
     set_connected_status(false),
@@ -196,7 +199,7 @@ handle_info({gen_ts_transport, _Socket, closed}, think,
     {next_state, think, State#state_rcv{socket = none}};
 
 %% inet close messages
-handle_info({gen_ts_transport, _Socket, closed}, _StateName, State) ->
+handle_info2({gen_ts_transport, _Socket, closed}, _StateName, State) ->
     ?LOG("connection closed, abort", ?WARN),
     %% the connexion was closed after the last msg was sent, stop quietly
     ts_mon:add({ count, error_closed }),
@@ -205,7 +208,7 @@ handle_info({gen_ts_transport, _Socket, closed}, _StateName, State) ->
     {stop, normal, State#state_rcv{socket = none}};
 
 %% inet errors
-handle_info({gen_ts_transport, _Socket, error, Reason}, _StateName, State)  ->
+handle_info2({gen_ts_transport, _Socket, error, Reason}, _StateName, State)  ->
     ?LOGF("Net error: ~p~n",[Reason], ?WARN),
     CountName="error_inet_"++atom_to_list(Reason),
     ts_mon:add({ count, list_to_atom(CountName) }),
@@ -213,20 +216,20 @@ handle_info({gen_ts_transport, _Socket, error, Reason}, _StateName, State)  ->
     {stop, normal, State};
 
 %% timer expires, no more messages to send
-handle_info({timeout, _Ref, end_thinktime}, think, State= #state_rcv{ count=0 })  ->
+handle_info2({timeout, _Ref, end_thinktime}, think, State= #state_rcv{ count=0 })  ->
     ?LOG("Session ending ~n", ?INFO),
     {stop, normal, State};
 
 %% the timer expires
-handle_info({timeout, _Ref, end_thinktime}, think, State ) ->
+handle_info2({timeout, _Ref, end_thinktime}, think, State ) ->
     handle_next_action(State);
 
-handle_info(timeout, StateName, State ) ->
+handle_info2(timeout, StateName, State ) ->
     ?LOGF("Error: timeout receive in state ~p~n",[StateName], ?ERR),
     ts_mon:add({ count, timeout }),
     {stop, normal, State};
 % bidirectional protocol
-handle_info({gen_ts_transport, Socket, Data}, think,State=#state_rcv{
+handle_info2({gen_ts_transport, Socket, Data}, think,State=#state_rcv{
   clienttype=Type, bidi=true,host=Host,port=Port})  ->
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     ts_mon:add({ sum, size_rcv, size(Data)}),
@@ -247,7 +250,7 @@ handle_info({gen_ts_transport, Socket, Data}, think,State=#state_rcv{
     NewSocket = (State#state_rcv.protocol):set_opts(Socket, [{active, once}]),
     {next_state, think, NewState#state_rcv{socket=NewSocket}};
 % bidi is false, but parse is also false: continue even if we get data
-handle_info({gen_ts_transport, Socket, Data}, think, State = #state_rcv{request=Req} )
+handle_info2({gen_ts_transport, Socket, Data}, think, State = #state_rcv{request=Req} )
   when (Req#ts_request.ack /= parse) ->
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     ts_mon:add({ sum, size_rcv, size(Data)}),
@@ -256,17 +259,17 @@ handle_info({gen_ts_transport, Socket, Data}, think, State = #state_rcv{request=
     ?DebugF("Data was ~p~n",[Data]),
     NewSocket = (State#state_rcv.protocol):set_opts(Socket, [{active, once}]),
     {next_state, think, State#state_rcv{socket=NewSocket}};
-handle_info({gen_ts_transport, _Socket, Data}, think, State) ->
+handle_info2({gen_ts_transport, _Socket, Data}, think, State) ->
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     ts_mon:add({ count, error_unknown_data }),
     ?LOG("Data receive from socket in state think, stop~n", ?ERR),
     ?DebugF("Data was ~p~n",[Data]),
     {stop, normal, State};
 %% pablo TODO:  when this could happen??
-handle_info({inet_reply, _Socket,ok}, StateName, State ) ->
+handle_info2({inet_reply, _Socket,ok}, StateName, State ) ->
     ?LOGF("inet_reply ok received in state ~p~n",[StateName],?NOTICE),
     {next_state, StateName, State};
-handle_info(Msg, StateName, State ) ->
+handle_info2(Msg, StateName, State ) ->
     ?LOGF("Error: Unknown msg ~p receive in state ~p, stop~n", [Msg,StateName], ?ERR),
     ts_mon:add({ count, error_unknown_msg }),
     {stop, normal, State}.
@@ -542,7 +545,7 @@ handle_next_request(Request, State) ->
     %% reconnect if needed
     Proto = {Protocol,State#state_rcv.proto_opts},
     case reconnect(Socket,Host,Port,Proto,State#state_rcv.ip) of
-        {ok, NewSocket} when is_pid(NewSocket) ->
+        {ok, NewSocket} ->
             case catch send(Protocol, NewSocket, Message, Host, Port) of
                 ok ->
                     PageTimeStamp = case State#state_rcv.page_timestamp of
@@ -688,7 +691,7 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort}) ->
     Opts = protocol_options(Protocol, Proto_opts)  ++ [{ip, IP},{port,CPort}],
     Before= now(),
     case connect(Protocol,ServerName, Port, Opts) of
-        {ok, Socket} when is_pid(Socket) ->
+        {ok, Socket} ->
             Elapsed = ts_utils:elapsed(Before, now()),
             ts_mon:add({ sample, connect, Elapsed }),
             set_connected_status(true),
@@ -702,7 +705,7 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort}) ->
             ts_mon:add({ count, list_to_atom(CountName) }),
             {error, Reason}
     end;
-reconnect(Socket, _Server, _Port, _Protocol, _IP) when is_pid(Socket) ->
+reconnect(Socket, _Server, _Port, _Protocol, _IP) ->
     {ok, Socket}.
 
 %%----------------------------------------------------------------------
@@ -711,7 +714,7 @@ reconnect(Socket, _Server, _Port, _Protocol, _IP) when is_pid(Socket) ->
 %% Return: ok | {error, Reason}
 %%----------------------------------------------------------------------
 
-send(Proto, Socket, Message, Host, Port) when is_pid (Socket) ->
+send(Proto, Socket, Message, Host, Port)  ->
     Proto:send(Socket, Message, [{host, Host}, {port, Port}]).
 %send(gen_tcp,Socket,Message,_,_) -> gen_tcp:send(Socket,Message);
 %send(ssl,Socket,Message,_,_)     -> ssl:send(Socket,Message);

@@ -1,6 +1,6 @@
 -module(ts_bosh).
 
--export([ connect/3, send/3, close/1, set_opts/2, protocol_options/1 ]).
+-export([ connect/3, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2 ]).
 
 -export([connect/4]).  %% used for ts_bosh_ssl sessions.
 
@@ -40,6 +40,10 @@
 	    pending_ref,
             type  %% 'tcp' | 'ssl'
             }).
+
+normalize_incomming_data(_Socket, X) -> 
+    X. %% nothing to do here, ts_bosh uses a special process to handle http requests, 
+       %% the incoming data is already delivered to ts_client as {gen_ts_transport, ..} instead of gen_tcp | ssl
 
 connect(Host, Port, Opts) ->
     connect(Host, Port, Opts, tcp).
@@ -176,7 +180,10 @@ do_receive_http_response(State, Socket, Vsn) ->
 		path = Path,
         type = Type,
 		parent_pid = ParentPid} = State,
-	{ok, {{200, "OK"}, _Hdrs, Resp}} = read_response(Type, Socket, Vsn, {200, "OK"}, [], <<>>, httph),
+	{ok, {{200, "OK"}, Hdrs, Resp}} = read_response(Type, Socket, Vsn, {200, "OK"}, [], <<>>, httph),
+    ts_mon:add({ sum, size_rcv, iolist_size([ [if is_atom(H) -> atom_to_list(H); true -> H end, V] || 
+                    {H,V} <- Hdrs])}), %% count header size
+
 	{_El = #xmlElement{name = body, 
 		attributes = Attrs,
 		content = Content}, []}= xmerl_scan:string(binary_to_list(Resp)),
@@ -239,7 +246,10 @@ do_connect(#state{type = Type, host = Host, path = Path, parent_pid = ParentPid}
             },
     {NewState2, Socket} = new_socket(NewState, false),
     ok = make_raw_request(Type, Socket, Host, Path, create_session_msg(Rid, Domain, ?WAIT, ?HOLD)),
-    {ok, {{200, "OK"}, _Hdrs, Resp}} = read_response(Type, Socket, nil, nil, [], <<>>, http),
+    {ok, {{200, "OK"}, Hdrs, Resp}} = read_response(Type, Socket, nil, nil, [], <<>>, http),
+    ts_mon:add({ sum, size_rcv, iolist_size([ [if is_atom(H) -> atom_to_list(H); true -> H end, V] || 
+                    {H,V} <- Hdrs])}), %% count header size
+
     NewState3 = return_socket(NewState2, Socket),
     {_El = #xmlElement{name = body,
 	attributes = Attrs,
