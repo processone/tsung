@@ -62,6 +62,7 @@ parse_config(Element = #xmlElement{name=jabber},
     Room = ts_config:getAttr(string,Element#xmlElement.attributes, room, undefined),
     Nick = ts_config:getAttr(string,Element#xmlElement.attributes, nick, undefined),
     Group = ts_config:getAttr(string,Element#xmlElement.attributes, group, "Tsung Group"),
+    RE = ts_config:getAttr(string,Element#xmlElement.attributes, regexp, undefined),
     Node = case ts_config:getAttr(string, Element#xmlElement.attributes, 'node', undefined) of
                     "" -> user_root;
                     X -> X
@@ -122,6 +123,7 @@ parse_config(Element = #xmlElement{name=jabber},
                                     id     = XMPPId,
                                     data   = Data,
                                     type   = Type,
+                                    regexp = RE,
                                     dest   = Dest,
                                     size   = Size,
                                     show   = Show,

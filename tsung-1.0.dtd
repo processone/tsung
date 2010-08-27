@@ -192,7 +192,7 @@ repeat | if | change_type | foreach)*>
 
 <!ELEMENT jabber (xmpp_authenticate?) >
 <!ATTLIST jabber
-    ack         (global | local | no_ack) #REQUIRED
+    ack         (global | local | no_ack | parse) #REQUIRED
     destination (online | offline | random | unique | previous) "random"
     id          NMTOKEN #IMPLIED
     size        NMTOKEN "0"
@@ -204,6 +204,7 @@ repeat | if | change_type | foreach)*>
     room        CDATA #IMPLIED
     group       CDATA #IMPLIED
     node        CDATA #IMPLIED
+    regexp        CDATA #IMPLIED
     node_type   CDATA #IMPLIED >
 
 <!ELEMENT xmpp_authenticate EMPTY >

@@ -69,14 +69,33 @@ get_message(Req=#jabber{}) ->
 
 
 %%----------------------------------------------------------------------
-%% Function: parse/3
+%% Function: parse/2
 %% Purpose: Parse the given data and return a new state
 %% Args:    Data (binary)
 %%            State (record)
-%% Returns: NewState (record)
+%% Returns:  {NewState, Opts, Close}
+%%  State = #state_rcv{}
+%%  Opts = proplist()
+%%  Close = bool()
 %%----------------------------------------------------------------------
-parse(_Data, State) ->
-    State.
+parse(closed, State) ->
+    ?LOG("XMPP connection closed by server!",?WARN),
+    {State#state_rcv{ack_done = true}, [], true};
+parse(Data, State=#state_rcv{}) ->
+    ?DebugF("RECEIVED : ~p~n",[Data]),
+    case get(regexp) of
+        undefined ->
+            ?LOG("No regexp defined, skip",?WARN),
+            {State#state_rcv{ack_done=true}, [], false};
+        Regexp ->
+            case re:run(Data, Regexp) of
+                {match,_} ->
+                    ?DebugF("XMPP parsing: Match (regexp was ~p)~n",[Regexp]),
+                    {State#state_rcv{ack_done=true}, [], false};
+                nomatch ->
+                    {State#state_rcv{ack_done=false}, [], false}
+            end
+    end.
 
 %%----------------------------------------------------------------------
 %% Function: parse_bidi/2

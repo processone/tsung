@@ -24,13 +24,14 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
--record(jabber_dyndata, {id}).
+-record(jabber_dyndata, {id, regexp}).
 
 -record(jabber, {dest,
                  size,
                  data,
                  type,
                  jud_param,
+                 regexp,
                  cle,
                  id = 0,
                  domain,   %% jabber domain

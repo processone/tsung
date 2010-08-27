@@ -269,7 +269,7 @@ parse_dynvar([],_Binary , _String,_Tree, DynVars) -> DynVars;
 parse_dynvar(D=[{re,_, _}| _],Binary,undefined,Tree,DynVars) ->
     parse_dynvar(D,Binary,Binary,Tree,DynVars);
 parse_dynvar([{re,VarName, RegExp}| DynVarsSpecs],Binary,Data,Tree,DynVars) ->
-    case re:run(Data, RegExp,[{capture,[1],list}]) of
+    case re:run(Data, RegExp,[{capture,[1],list}, dotall]) of
         {match,[Value]} ->
             ?LOGF("DynVar (RE): Match (~p=~p) ~n",[VarName, Value], ?INFO),
             parse_dynvar(DynVarsSpecs, Binary,Data,Tree,
@@ -374,11 +374,9 @@ parse_dynvar(Args, _Binary,_String,_Tree, _DynVars) ->
     ?LOGF("Bad args while parsing Dyn Var (~p)~n", [Args], ?ERR),
     [].
 
-extract_body(<<"\r\n\r\n",Rest/binary>>) ->
-    Rest;
-
-extract_body(<<_:1/binary,Rest/binary>>) ->
-    extract_body(Rest);
-
-extract_body(<<>>) ->
-    <<>>.
+extract_body(Data) ->
+    case re:run(Data,"\r\n\r\n(.*)$",[{capture,all_but_first,binary},dotall]) of
+        nomatch        -> Data;
+        {match, [Val]} -> Val;
+        _              -> Data
+    end.
