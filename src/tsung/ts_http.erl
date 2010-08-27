@@ -159,7 +159,7 @@ init_dynparams() ->
 
 
 %%----------------------------------------------------------------------
-%% @spec subst(Req::#http_request{}, DynData::#dyndata{} ) -> #http_request{}
+%% @spec subst(Req::#http_request{}, DynData::#dynvars{} ) -> #http_request{}
 %% @doc Replace on the fly dynamic element of the HTTP request For
 %%          the moment, we only do dynamic substitution in URL, body,
 %%          userid, passwd, because we see no need for the other HTTP
@@ -167,10 +167,15 @@ init_dynparams() ->
 %% @end
 %%----------------------------------------------------------------------
 subst(Req=#http_request{url=URL, body=Body, headers = Headers, userid=UserId, passwd=Passwd}, DynData) ->
-    Req#http_request{url = ts_search:subst(URL, DynData),
+    Req#http_request{url = escape_url(ts_search:subst(URL, DynData)),
              body   = ts_search:subst(Body, DynData),
              headers = lists:foldl(fun ({Name, Value}, Result) ->
                                            [{Name, ts_search:subst(Value, DynData)} | Result]
                                    end, [], Headers),
              userid = ts_search:subst(UserId, DynData),
              passwd = ts_search:subst(Passwd, DynData)}.
+
+%% URL substitution, we must escape some characters
+%% currently, we only handle space conversion to %20
+escape_url(URL)->
+    re:replace(URL," ","%20",[{return,list},global]).
