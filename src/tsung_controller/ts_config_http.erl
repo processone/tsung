@@ -287,8 +287,12 @@ parse_URL("https://" ++ String) ->
 parse_URL("http://" ++ String) ->
     parse_URL(host, String, [], #url{scheme=http});
 parse_URL(String) when is_list(String) ->
-    [Host, Port] = string:tokens(String,":"),
-    #url{scheme=connect, host=Host, port=list_to_integer(Port)}.
+    case string:tokens(String,":") of
+        [Host, Port] ->
+            #url{scheme=connect, host=Host, port=list_to_integer(Port)};
+        RelativeURL when is_list(RelativeURL) ->
+            parse_URL(path, RelativeURL, [], #url{scheme=http})
+    end.
 
 %%----------------------------------------------------------------------
 %% Func: parse_URL/4 (inspired by yaws_api.erl)
