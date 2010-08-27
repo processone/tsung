@@ -1440,7 +1440,7 @@ When each client starts a session, it chooses randomly a domain (each domain has
 same probability).
 
 \paragraph{raw XML}
-You can send raw XML date to the server using the \varname{raw} type:
+You can send raw XML data to the server using the \varname{raw} type:
 \begin{Verbatim}
 <jabber type="raw" ack="no_ack" data="&lt;stream&gt;foo&lt;/stream&gt;"></jabber>
 \end{Verbatim}
@@ -2297,6 +2297,8 @@ Available options:
         [--tdir <template_dir>] (Path to the HTML tsung templates)
         [--noextra  (don't generate graphics from extra data (os monitor, etc)
         [--stats <file>] (stats file to analyse, default=tsung.log)
+        [--img_format <format>] (output format for images, default=png
+                                 available format: ps, svg, png, pdf)
 \end{Verbatim}
 
 \subsection{Tsung summary}
