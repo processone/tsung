@@ -56,11 +56,19 @@ parse_dyn_var_jsonpath_int_test() ->
     JSONPath = "titi[?val=123].name",
     ?assertEqual([{'myvar',<<"foo">>}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
 
+parse_dyn_var_jsonpath_xmpp_test() ->
+    myset_env(),
+    Data="{\n  \"status\": \"terminated\",\n  \"uid\": \"944370dc04adbee1792732e01097e618af97cc27\",\n  \"updated_at\": 1282660758,\n  \"nodes\": [\n    \"suno-12\",\n    \"suno-13\"\n  ],\n  \"created_at\": 1282660398,\n  \"environment\": \"lenny-x64-big\",\n  \"result\": {\n    \"suno-13\": {\n      \"last_cmd_stdout\": \"\",\n      \"last_cmd_stderr\": \"\",\n      \"cluster\": \"suno\",\n      \"ip\": \"192.168.1.113\",\n      \"last_cmd_exit_status\": 0,\n      \"current_step\": null,\n      \"state\": \"OK\"\n    },\n    \"suno-12\": {\n      \"last_cmd_stdout\": \"\",\n      \"last_cmd_stderr\": \"\",\n      \"cluster\": \"suno\",\n      \"ip\": \"192.168.1.112\",\n      \"last_cmd_exit_status\": 0,\n      \"current_step\": null,\n      \"state\": \"OK\"\n    }\n  },\n  \"site_uid\": \"sophia\",\n  \"notifications\": [\n    \"xmpp:joe@foo.bar/tsung\"\n  ],\n  \"user_uid\": \"joe\"\n}",
+    JSONPath = "nodes",
+    ?assertMatch([{'nodes',[<<"suno-12">>,<<"suno-13">>]}], ts_search:parse_dynvar([{jsonpath,'nodes', JSONPath} ],list_to_binary(Data))).
+
+
 parse_dyn_var_xpath_test() ->
     myset_env(),
     Data="\r\n\r\n<html><body>"++?FORMDATA++"</body></html>",
     XPath = "//input[@name='jsf_tree_64']/@value",
-    ?assertMatch([{'jsf_tree_64',"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA"}], ts_search:parse_dynvar([{xpath,'jsf_tree_64', XPath} ],list_to_binary(Data))).
+    ?assertMatch([{'jsf_tree_64',[<< "H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA" >>]}], ts_search:parse_dynvar([{xpath,'jsf_tree_64', XPath} ],list_to_binary(Data))).
+
 
 parse_dyn_var_xpath_with_scripttag_test() ->
     myset_env(),
@@ -68,7 +76,7 @@ parse_dyn_var_xpath_with_scripttag_test() ->
           " A = B <= C </script>"
           "</head><body>"++?FORMDATA++"</body></html>",
     XPath = "//input[@name='jsf_tree_64']/@value",
-    ?assertMatch([{'jsf_tree_64',"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA"}], ts_search:parse_dynvar([{xpath,'jsf_tree_64', XPath} ],list_to_binary(Data))).
+    ?assertMatch([{'jsf_tree_64', [<< "H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA" >>] }], ts_search:parse_dynvar([{xpath,'jsf_tree_64', XPath} ],list_to_binary(Data))).
 
 
 parse_dyn_var2_test() ->
@@ -82,7 +90,7 @@ parse_dyn_var_xpath2_test() ->
     myset_env(),
     Data="\r\n\r\n<html><body><input type=\"hidden\" name=\"tree64\" id=\"tree64\" value=\"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA\"></body></html>",
     XPath = "//input[@name='tree64']/@value",
-    ?assertMatch([{tree64,"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA"}], ts_search:parse_dynvar([{xpath,tree64, XPath }],list_to_binary(Data))).
+    ?assertMatch([{tree64,[<< "H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA" >>]}], ts_search:parse_dynvar([{xpath,tree64, XPath }],list_to_binary(Data))).
 
 parse_dyn_var3_test() ->
     myset_env(),
@@ -95,7 +103,7 @@ parse_dyn_var_xpath3_test() ->
     myset_env(),
     Data="\r\n\r\n<html><body><hidden name=\"random\" value=\"42\"></form></body></html>",
     XPath = "//hidden[@name='random']/@value",
-    ?assertMatch([{random,"42"}], ts_search:parse_dynvar([{xpath, random, XPath }],list_to_binary(Data))).
+    ?assertMatch([{random,[<<"42">>]}], ts_search:parse_dynvar([{xpath, random, XPath }],list_to_binary(Data))).
 
 parse_dyn_var4_test() ->
     myset_env(),
@@ -108,7 +116,7 @@ parse_dyn_var_xpath4_test() ->
     myset_env(),
     Data="\r\n\r\n<html><body><hidden name='random' value='42'></form></body>/<html>",
     XPath = "//hidden[@name='random']/@value",
-    ?assertMatch([{random,"42"}], ts_search:parse_dynvar([{xpath, random, XPath }],list_to_binary(Data))).
+    ?assertMatch([{random,[<<"42">>]}], ts_search:parse_dynvar([{xpath, random, XPath }],list_to_binary(Data))).
 
 parse_dyn_var_many_test() ->
     myset_env(),
@@ -132,7 +140,7 @@ parse_dyn_var_many_re_test() ->
 
 parse_dyn_var_many_xpath_test() ->
     myset_env(),
-    {Data, Res}= setdata(?MANY),
+    {Data, Res}= setdata(?MANY,binary),
     B=lists:map(fun(A)->{xpath, list_to_atom("random"++integer_to_list(A)),
                          "//input[@type='hidden'][@name='random"++integer_to_list(A)++"']/@value"} end, lists:seq(1,?MANY)),
     {Time, Out}=timer:tc( ts_search,parse_dynvar,[B,list_to_binary(Data)]),
@@ -141,7 +149,7 @@ parse_dyn_var_many_xpath_test() ->
 
 parse_dyn_var_many_xpath_explicit_test() ->
     myset_env(),
-    {Data, Res}= setdata(?MANY),
+    {Data, Res}= setdata(?MANY,binary),
     B=lists:map(fun(A)->{xpath, list_to_atom("random"++integer_to_list(A)),
                          "/html/body/form/input[@type='hidden'][@name='random"++integer_to_list(A)++"']/@value"} end, lists:seq(1,?MANY)),
     {Time, Out}=timer:tc( ts_search,parse_dynvar,[B,list_to_binary(Data)]),
@@ -170,7 +178,7 @@ parse_dyn_var_many_big_re_test() ->
 
 parse_dyn_var_many_big_xpath_test() ->
     myset_env(),
-    {Data, Res}= setdata_big(?MANY),
+    {Data, Res}= setdata_big(?MANY,binary),
     B=lists:map(fun(A)->{xpath, list_to_atom("random"++integer_to_list(A)),
                          "//input[@type='hidden'][@name='random"++integer_to_list(A)++"']/@value"} end, lists:seq(1,?MANY)),
     {Time, Out}=timer:tc( ts_search,parse_dynvar,[B,list_to_binary(Data)]),
@@ -179,7 +187,7 @@ parse_dyn_var_many_big_xpath_test() ->
 
 parse_dyn_var_many_big_xpath_explicit_test() ->
     myset_env(),
-    {Data, Res}= setdata_big(?MANY),
+    {Data, Res}= setdata_big(?MANY,binary),
     B=lists:map(fun(A)->{xpath, list_to_atom("random"++integer_to_list(A)),
                          "/html/body/form/input[@type='hidden'][@name='random"++integer_to_list(A)++"']/@value"} end, lists:seq(1,?MANY)),
     {Time, Out}=timer:tc( ts_search,parse_dynvar,[B,list_to_binary(Data)]),
@@ -187,11 +195,15 @@ parse_dyn_var_many_big_xpath_explicit_test() ->
     ?assertMatch(Res, Out).
 
 setdata(N) ->
+    setdata(N,list).
+setdata(N,Type) ->
     {"\r\n\r\n<html><body><form>"++lists:flatmap(fun(A)->
                                            AI=integer_to_list(A),["<input type='hidden' name='random",AI,"'"," value='value",AI,"'>"] end,lists:seq(1,N))
-++"</form></body>/<html>",  lists:reverse(lists:map(fun(A)->{list_to_atom("random"++integer_to_list(A)) , "value"++integer_to_list(A)} end, lists:seq(1,N)))}.
+++"</form></body>/<html>",  lists:reverse(lists:map(fun(A)->{list_to_atom("random"++integer_to_list(A)) , format_result("value"++integer_to_list(A),Type)} end, lists:seq(1,N)))}.
 
 setdata_big(N) ->
+    setdata_big(N, list).
+setdata_big(N, Type) ->
     Head = "<head><title>ABCDERFDJSJS</title><script type='text/javascript'> "
            "Some javascript code</script><link rel='shortcut icon' "
            " href='favicon.ico' type='image/x-icon'></head>",
@@ -206,7 +218,13 @@ setdata_big(N) ->
               "<p>More text inside a paragraph element</p> "
               "</div>",
     HTML ="\r\n\r\n<html>" ++ Head ++ "<body>" ++ Content ++ Content ++ Form ++ Content ++ "</body></html>",
-    {HTML,lists:reverse(lists:map(fun(A)->{list_to_atom("random"++integer_to_list(A)) , "value"++integer_to_list(A)} end, lists:seq(1,N)))}.
+    {HTML,lists:reverse(lists:map(fun(A)->{list_to_atom("random"++integer_to_list(A)) , format_result("value"++integer_to_list(A),Type)} end, lists:seq(1,N)))}.
+
+
+format_result(Data,binary) ->
+    [list_to_binary(Data)];
+format_result(Data,_) ->
+    Data.
 
 parse_subst1_test() ->
     myset_env(),
@@ -330,11 +348,21 @@ parse_dynvar_xpath_single_test() ->
    Tree = mochiweb_html:parse(list_to_binary(Data)),
    R = mochiweb_xpath:execute(XPath,Tree),
    erlang:display(R),
-   Expected = <<"/index.html">>,
+   Expected = [<<"/index.html">>],
    ?assertEqual(Expected, R).
 
 filter_re_test() ->
-   ?assertEqual(["/toto"], ts_client:filter(["http://toto/", "/toto", "mailto:bidule"], "^/.*").
+    ?assertEqual(["/toto"], ts_client:filter({ok,["http://toto/", "/toto", "mailto:bidule"]}, "^/.*")).
+
+extract_body_test() ->
+    Data = << "HTTP header\r\nHeader: value\r\n\r\nbody\r\n" >>,
+    ?assertEqual(<< "body\r\n" >>, ts_search:extract_body(Data)).
+
+extract_body_nohttp_test() ->
+    Data = << "random\r\nstuff" >>,
+    ?assertEqual(Data, ts_search:extract_body(Data)).
+
+
 
 myset_env()->
     myset_env(0).
