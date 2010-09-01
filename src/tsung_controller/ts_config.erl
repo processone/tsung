@@ -423,11 +423,18 @@ parse(_Element = #xmlElement{name=foreach, attributes=Attrs,content=Content},
 
     VarName = getAttr(atom,Attrs,in),
     ForName = getAttr(atom,Attrs,name),
-    Filter =    case getAttr(string,Attrs,filter)of
-                    "" -> undefined;
+    Filter  = case getAttr(string,Attrs,include) of
+                    "" ->
+                      case getAttr(string,Attrs,exclude) of
+                          "" ->
+                              undefined;
+                          Re2 ->
+                              {ok, RegExp} = re:compile(Re2),
+                              {false,RegExp}
+                      end;
                     Re ->
                         {ok, CompiledRegExp} = re:compile(Re),
-                        CompiledRegExp
+                        {true,CompiledRegExp}
                 end,
     InitialAction = {ctrl_struct, {foreach_start, ForName, VarName, Filter}},
     ?LOGF("Add foreach_start action in session ~p as id ~p",

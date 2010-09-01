@@ -1082,13 +1082,13 @@ filter(false,undefined) ->
     false;
 filter({ok,List},undefined)->
     List;
-filter({ok,List},Re) when is_list(List)->
+filter({ok,List},{Include,Re}) when is_list(List)->
     Filter=fun(A) ->
                    case re:run(A,Re) of
-                       nomatch -> false;
-                       {match,_} -> true
+                       nomatch -> not Include;
+                       {match,_} -> Include
                    end
            end,
     lists:filter(Filter,List);
-filter({ok,Data},Re) ->
-    filter({ok,[Data]},Re).
+filter({ok,Data},{Include,Re}) ->
+    filter({ok,[Data]},{Include,Re}).

@@ -351,8 +351,11 @@ parse_dynvar_xpath_single_test() ->
    Expected = [<<"/index.html">>],
    ?assertEqual(Expected, R).
 
-filter_re_test() ->
-    ?assertEqual(["/toto"], ts_client:filter({ok,["http://toto/", "/toto", "mailto:bidule"]}, "^/.*")).
+filter_re_include_test() ->
+    ?assertEqual(["/toto"], ts_client:filter({ok,["http://toto/", "/toto", "mailto:bidule"]}, {true, "^/.*"})).
+
+filter_re_exclude_test() ->
+    ?assertEqual(["http://toto/", "mailto:bidule"], ts_client:filter({ok,["http://toto/", "/toto", "mailto:bidule"]}, {false,"^/.*"})).
 
 extract_body_test() ->
     Data = << "HTTP header\r\nHeader: value\r\n\r\nbody\r\n" >>,

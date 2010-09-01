@@ -305,7 +305,8 @@ repeat | if | change_type | foreach)*>
 <!ATTLIST foreach
     name     NMTOKEN    #REQUIRED
     in       NMTOKEN    #REQUIRED
-    filter   CDATA    #IMPLIED
+    include    CDATA    #IMPLIED
+    exclude    CDATA    #IMPLIED
 >
 
 <!ELEMENT repeat (request | thinktime | transaction | setdynvars | for | repeat
