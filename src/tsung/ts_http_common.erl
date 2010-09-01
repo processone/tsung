@@ -209,8 +209,8 @@ matchdomain_url(Cookie, Host, URL) ->
 %% Purpose: parse the response from the server and keep information
 %%  about the response if State#state_rcv.session
 %%----------------------------------------------------------------------
-parse(closed, State) ->
-    {State#state_rcv{session= #http{}, ack_done = true}, [], true};
+parse(closed, State=#state_rcv{session=Http}) ->
+    {State#state_rcv{session=reset_session(Http), ack_done = true}, [], true};
 
 parse(Data, State=#state_rcv{session=HTTP}) when HTTP#http.status  == none;
                                                  HTTP#http.partial == true ->
@@ -239,9 +239,9 @@ parse(Data, State=#state_rcv{session=HTTP}) when HTTP#http.status  == none;
             {State#state_rcv{session= Http, ack_done = false,
                              datasize = TotalSize,
                              dyndata= DynData}, [], true};
-        {ok, #http{status=100}, _} -> % Status 100 Continue, ignore.
+        {ok, Http=#http{status=100}, _} -> % Status 100 Continue, ignore.
             %% FIXME: not tested
-            {State#state_rcv{ack_done=false,session=#http{}},[],false};
+            {State#state_rcv{ack_done=false,session=reset_session(Http)},[],false};
         {ok, Http, Tail} ->
             DynData = concat_cookies(Http#http.cookie, State#state_rcv.dyndata),
             check_resp_size(Http, length(Tail), DynData, State#state_rcv{acc=[]}, TotalSize)
@@ -266,7 +266,7 @@ parse(Data, State) ->
     CLength = Http#http.content_length,
     case Http#http.body_size + DataSize of
         CLength -> % end of response
-            {State#state_rcv{session=#http{}, acc=[], ack_done = true, datasize = CLength},
+            {State#state_rcv{session=reset_session(Http), acc=[], ack_done = true, datasize = CLength},
              [], Http#http.close};
         Size ->
             NewHttp = (State#state_rcv.session)#http{body_size = Size},
@@ -279,18 +279,18 @@ parse(Data, State) ->
 %% Purpose: Check response size
 %% Returns: {NewState= record(state_rcv), SockOpts, Close}
 %%----------------------------------------------------------------------
-check_resp_size(#http{content_length=CLength, close=Close}, CLength,
+check_resp_size(Http=#http{content_length=CLength, close=Close}, CLength,
                 DynData, State, DataSize) ->
     %% end of response
-    {State#state_rcv{session= #http{}, ack_done = true,
+    {State#state_rcv{session= reset_session(Http), ack_done = true,
                      datasize = DataSize,
                      dyndata= DynData}, [], Close};
-check_resp_size(#http{content_length=CLength, close = Close},
+check_resp_size(Http=#http{content_length=CLength, close = Close},
                 BodySize, DynData, State, DataSize) when BodySize > CLength ->
     ?LOGF("Error: HTTP Body (~p)> Content-Length (~p) !~n",
           [BodySize, CLength], ?ERR),
     ts_mon:add({ count, error_http_bad_content_length }),
-    {State#state_rcv{session= #http{}, ack_done = true,
+    {State#state_rcv{session= reset_session(Http), ack_done = true,
                      datasize = DataSize,
                      dyndata= DynData}, [], Close};
 check_resp_size(Http, BodySize, DynData, State, DataSize) ->
@@ -320,7 +320,7 @@ read_chunk(<<>>, State, Int, Acc) ->
     { State#state_rcv{acc = AccInt, ack_done = false }, [] }; % read more data
 %% this code has been inspired by inets/http_lib.erl
 %% Extensions not implemented
-read_chunk(<<Char:1/binary, Data/binary>>, State, Int, Acc) ->
+read_chunk(<<Char:1/binary, Data/binary>>, State=#state_rcv{session=Http}, Int, Acc) ->
     case Char of
     <<C>> when $0=<C,C=<$9 ->
         read_chunk(Data, State, 16*Int+(C-$0), Acc+1);
@@ -332,7 +332,7 @@ read_chunk(<<Char:1/binary, Data/binary>>, State, Int, Acc) ->
         read_chunk_data(Data, State, Int+3, Acc+1);
     <<?CR>> when Int==0, size(Data) == 3 -> %% should be the end of transfer
             ?DebugF("Finish tranfer chunk ~p~n", [binary_to_list(Data)]),
-            {State#state_rcv{session= #http{}, ack_done = true,
+            {State#state_rcv{session= reset_session(Http), ack_done = true,
                              datasize = Acc %% FIXME: is it the correct size?
                             }, []};
     <<?CR>> when Int==0, size(Data) < 3 ->  % lack ?CRLF, continue
@@ -343,7 +343,7 @@ read_chunk(<<Char:1/binary, Data/binary>>, State, Int, Acc) ->
     _Other ->
             ?LOGF("Unexpected error while parsing chunk ~p~n", [_Other] ,?WARN),
             ts_mon:add({count, error_http_unexpected_chunkdata}),
-            {State#state_rcv{session= #http{}, ack_done = true}, []}
+            {State#state_rcv{session= reset_session(Http), ack_done = true}, []}
     end.
 
 %%----------------------------------------------------------------------
@@ -557,6 +557,9 @@ parse_line("content-length: "++Tail, Http, _Host)->
 parse_line("connection: close"++_Tail, Http, _Host)->
     ?Debug("Connection Closed in Header ~n"),
     Http#http{close=true};
+parse_line("content-encoding: "++Tail, Http=#http{compressed={Prev,_}}, _Host)->
+    ?DebugF("content encoding:~p ~n",[Tail]),
+    Http#http{compressed={list_to_atom(Tail),Prev}};
 parse_line("transfer-encoding:"++[H|Tail], Http, _Host)->
     ?DebugF("~p transfer encoding~n",[[H]++Tail]),
     case Tail of
@@ -607,3 +610,10 @@ get_line([H|T], true, Cur) ->
     get_line(T, true, [H|Cur]);
 get_line([], _, _) -> %% Headers are fragmented ... We need more data
     {more}.
+
+%% we need to keep the compressed value of the current request
+reset_session(#http{compressed={Current,_},chunk_toread=Val}) when Val > -1 ->
+    #http{compressed={false,Current}, chunk_toread=-2} ;
+reset_session(#http{compressed={Current,_}} ) ->
+    #http{compressed={false,Current}}.
+

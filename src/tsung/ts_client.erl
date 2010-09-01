@@ -907,7 +907,7 @@ handle_data_msg(Data,State=#state_rcv{request=Req,clienttype=Type,maxcount=MaxCo
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
 
     {NewState, Opts, Close} = Type:parse(Data, State),
-    NewBuffer=set_new_buffer(Req, NewState#state_rcv.buffer, Data),
+    NewBuffer=set_new_buffer(NewState, Data),
 
     ?DebugF("Dyndata is now ~p~n",[NewState#state_rcv.dyndata]),
     case NewState#state_rcv.ack_done of
@@ -977,9 +977,9 @@ handle_data_msg(Data,State=#state_rcv{request=Req,datasize=OldSize})
 handle_data_msg(<<32>>, State=#state_rcv{clienttype=ts_jabber}) ->
     {State#state_rcv{ack_done = false},[]};
 %% local ack, set ack_done to true
-handle_data_msg(Data, State=#state_rcv{request=Req, maxcount= MaxCount}) ->
+handle_data_msg(Data, State=#state_rcv{request=Req, clienttype=Type, maxcount= MaxCount}) ->
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
-    NewBuffer= set_new_buffer(Req, State#state_rcv.buffer, Data),
+    NewBuffer= set_new_buffer(State, Data),
     DataSize = size(Data),
     {PageTimeStamp, DynVars} = update_stats(State#state_rcv{datasize=DataSize,
                                                             buffer=NewBuffer}),
@@ -995,14 +995,17 @@ handle_data_msg(Data, State=#state_rcv{request=Req, maxcount= MaxCount}) ->
 %%----------------------------------------------------------------------
 %% Func: set_new_buffer/3
 %%----------------------------------------------------------------------
-set_new_buffer(#ts_request{match=[], dynvar_specs=[]},_,_) ->
+set_new_buffer(#state_rcv{request = #ts_request{match=[], dynvar_specs=[]}} ,_) ->
     << >>;
-set_new_buffer(_, Buffer,closed) ->
-    Buffer;
-set_new_buffer(_, OldBuffer, Data) when is_binary(OldBuffer) andalso is_binary(Data)->
+set_new_buffer(#state_rcv{clienttype=Type, buffer=Buffer, session=Session},closed) ->
+    Type:decode_buffer(Buffer,Session);
+set_new_buffer(#state_rcv{buffer=OldBuffer,ack_done=false},Data) ->
     ?Debug("Bufferize response~n"),
     << OldBuffer/binary, Data/binary >>;
-set_new_buffer(_, _, Data) -> % don't need buffer for non binary responses (erlang fun case)
+set_new_buffer(#state_rcv{clienttype=Type, buffer=OldBuffer, session=Session},Data) ->
+    ?Debug("decode response~n"),
+    Type:decode_buffer(<< OldBuffer/binary, Data/binary >>, Session);
+set_new_buffer(_State, Data) -> % don't need buffer for non binary responses (erlang fun case)
     Data.
 
 %%----------------------------------------------------------------------

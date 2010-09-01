@@ -44,6 +44,7 @@
          parse_config/2,
          to_pairs/1,
          find_pair/2,
+         decode_buffer/2,
          new_session/0]).
 
 
@@ -54,6 +55,13 @@
 %%----------------------------------------------------------------------
 session_defaults() ->
     {ok, true}.
+
+%% @spec decode_buffer(Buffer::binary(),Session::record(pgsql)) ->  NewBuffer::binary()
+%% @doc We need to decode buffer (remove chunks, decompress ...) for
+%%      matching or dyn_variables
+%% @end
+decode_buffer(Buffer,#pgsql{}) ->
+    Buffer. % nothing to do for pgsql
 
 %%----------------------------------------------------------------------
 %% Function: new_session/0

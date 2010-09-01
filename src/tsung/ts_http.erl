@@ -35,6 +35,7 @@
          session_defaults/0,
          parse/2,
          parse_config/2,
+         decode_buffer/2,
          new_session/0]).
 
 %%----------------------------------------------------------------------
@@ -54,6 +55,23 @@ session_defaults() ->
 %%----------------------------------------------------------------------
 new_session() ->
     #http{}.
+
+%% @spec decode_buffer(Buffer::binary(),Session::record(http)) ->  NewBuffer::binary()
+%% @doc We need to decode buffer (remove chunks, decompress ...) for
+%%      matching or dyn_variables
+%% @end
+decode_buffer(Buffer,#http{chunk_toread = -1, compressed={_,false}}) ->
+    Buffer;
+decode_buffer(Buffer,#http{chunk_toread = -1, compressed={_,Val}}) ->
+    {Headers, CompressedBody} = split_body(Buffer),
+    Body = decompress(CompressedBody, Val),
+    << Headers/binary,  "\r\n\r\n", Body/binary >>;
+decode_buffer(Buffer,Http=#http{compressed={_,Comp}})->
+    {Headers, Body} = decode_chunk(Buffer),
+    ?DebugF("body is ~p~n",[Body]),
+    RealBody = decompress(Body, Comp),
+    ?DebugF("decoded buffer: ~p",[RealBody]),
+    <<Headers/binary, "\r\n\r\n", RealBody/binary >>.
 
 %%----------------------------------------------------------------------
 %% Function: get_message/21
@@ -179,3 +197,51 @@ subst(Req=#http_request{url=URL, body=Body, headers = Headers, userid=UserId, pa
 %% currently, we only handle space conversion to %20
 escape_url(URL)->
     re:replace(URL," ","%20",[{return,list},global]).
+
+
+decompress(Buffer,gzip)->
+    zlib:gunzip(Buffer);
+decompress(Buffer,uncompress)->
+    zlib:uncompress(Buffer);
+decompress(Buffer,deflate)->
+    zlib:unzip(Buffer);
+decompress(Buffer,false)->
+    Buffer;
+decompress(Buffer,Else)->
+    ?LOGF("Unknown compression method, skip decompression ~p",[Else],?WARN),
+    Buffer.
+
+decode_chunk(Data)->
+    decode_chunk_header(Data,<<>>).
+
+decode_chunk_header(<<CRLF:4/binary, Data/binary >>,Headers) when CRLF == << "\r\n\r\n">> ->
+    decode_chunk_size(Data,Headers,<< >>, << >>);
+decode_chunk_header(<<CRLF:1/binary, Data/binary >>, Head) ->
+    decode_chunk_header(Data, <<Head/binary, CRLF/binary>> ).
+
+decode_chunk_size(<< >>, Headers, Body,Digits) ->
+    {Headers, Body};
+decode_chunk_size(<<Head:2/binary >>, Headers, Body, <<>>) when Head ==  << "\r\n" >> ->
+    %last CRLF, remove
+    {Headers, Body};
+decode_chunk_size(<<Head:2/binary, Data/binary >>, Headers, Body, <<>>) when Head ==  << "\r\n" >> ->
+    % CRLF but no digits, the CRLF is part of the body
+    decode_chunk_size(Data, Headers, <<Body/binary, Head/binary>>, <<>>);
+decode_chunk_size(<<Head:2/binary, Data/binary >>, Headers, Body,Digits) when Head ==  << "\r\n" >> ->
+    case httpd_util:hexlist_to_integer(binary_to_list(Digits)) of
+        0 ->
+            decode_chunk_size(Data, Headers, Body ,<<>>);
+        Size ->
+            << Chunk:Size/binary, Tail/binary >> = Data,
+            decode_chunk_size(Tail, Headers, << Body/binary, Chunk/binary>> ,<<>>)
+    end;
+decode_chunk_size(<<Digit:1/binary, Data/binary >>, Headers, Body, PrevDigit) ->
+    decode_chunk_size(Data, Headers, Body, <<PrevDigit/binary, Digit/binary>>).
+
+split_body(Data) ->
+    case re:run(Data,"(.*)\r\n\r\n(.*)$",[{capture,all_but_first,binary},ungreedy,dotall]) of
+        nomatch        -> Data;
+        {match, [Header,Body]} -> {Header,<< Body/binary,"\n" >>};
+        _              -> Data
+    end.
+

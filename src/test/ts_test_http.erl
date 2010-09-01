@@ -152,6 +152,34 @@ chunk_header_bad_test()->
     Rep=ts_http_common:parse_line("transfer-encoding: cheddar\r\n",#http{},[]),
     ?assertMatch(#http{chunk_toread=-1}, Rep).
 
+split_body_test() ->
+    Data = << "HTTP header\r\nHeader: value\r\n\r\nbody\r\n" >>,
+    ?assertEqual({<< "HTTP header\r\nHeader: value" >>, << "body\r\n" >>}, ts_http:split_body(Data)).
+
+split_body2_test() ->
+    Data = << "HTTP header\r\nHeader: value\r\n\r\nbody\r\n\r\nnewline in body\r\n" >>,
+    ?assertEqual({<< "HTTP header\r\nHeader: value" >>, << "body\r\n\r\nnewline in body\r\n" >>}, ts_http:split_body(Data)).
+
+split_body3_test() ->
+    Data = << "HTTP header\r\nHeader: value\r\nTransfer-Encoding: chunked\r\n\r\n19\r\nbody\r\n\r\nnewline in body\r\n\r\n" >>,
+    ?assertEqual({<< "HTTP header\r\nHeader: value\r\nTransfer-Encoding: chunked" >>, << "19\r\nbody\r\n\r\nnewline in body\r\n\r\n" >>}, ts_http:split_body(Data)).
+
+decode_buffer_test() ->
+    Data = << "HTTP header\r\nHeader: value\r\nTransfer-Encoding: chunked\r\n\r\n19\r\nbody\r\n\r\nnewline in body\r\n0\r\n\r\n" >>,
+    ?assertEqual(<< "HTTP header\r\nHeader: value\r\nTransfer-Encoding: chunked\r\n\r\nbody\r\n\r\nnewline in body\r\n" >>, ts_http:decode_buffer(Data, #http{chunk_toread=-2})).
+
+decode_buffer2_test() ->
+    Data = << "HTTP header\r\nHeader: value\r\n\r\nbody\r\n\r\nnewline in body\r\n" >>,
+    ?assertEqual(<< "HTTP header\r\nHeader: value\r\n\r\nbody\r\n\r\nnewline in body\r\n" >>, ts_http:decode_buffer(Data, #http{chunk_toread=-1}) ).
+
+compress_chunk_test()->
+    <<A:10/binary, B/binary>> = zlib:gzip("sesame ouvre toi"),
+    Data1 = << "HTTP header\r\nHeader: value\r\nTransfer-Encoding: chunked\r\n\r\nA\r\n" >>,
+    Data2= <<"1A\r\n" >>,
+    Data3= <<"0\r\n\r\n" >>,
+    Data= <<Data1/binary, A/binary, Data2/binary, B/binary, Data3/binary>>,
+    ?assertEqual(<< "HTTP header\r\nHeader: value\r\nTransfer-Encoding: chunked\r\n\r\nsesame ouvre toi" >>, ts_http:decode_buffer(Data, #http{chunk_toread=-2, compressed={false,gzip}})).
+
  myset_env()->
     myset_env(0).
  myset_env(N)->

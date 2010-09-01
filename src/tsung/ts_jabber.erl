@@ -41,6 +41,7 @@
          parse/2,
          parse_bidi/2,
          parse_config/2,
+         decode_buffer/2,
          new_session/0]).
 
 %%----------------------------------------------------------------------
@@ -50,6 +51,13 @@
 %%----------------------------------------------------------------------
 session_defaults() ->
     {ok, true, false}.
+
+%% @spec decode_buffer(Buffer::binary(),Session::record(jabber)) ->  NewBuffer::binary()
+%% @doc We need to decode buffer (remove chunks, decompress ...) for
+%%      matching or dyn_variables
+%% @end
+decode_buffer(Buffer,#jabber{}) ->
+    Buffer. % nothing to do for jabber
 
 %%----------------------------------------------------------------------
 %% Function: new_session/0

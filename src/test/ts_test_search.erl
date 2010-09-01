@@ -362,7 +362,11 @@ extract_body_nohttp_test() ->
     Data = << "random\r\nstuff" >>,
     ?assertEqual(Data, ts_search:extract_body(Data)).
 
-
+badarg_re_test() ->
+    Data = << "Below this line, is 1000 repeated lines">>,
+    Regexp = "is (\\d+) repeated lines",
+    {ok,Regexp2}=re:compile(Regexp),
+    ?assertEqual([{lines, "1000"}], ts_search:parse_dynvar([{re, 'lines', Regexp2 }],Data)).
 
 myset_env()->
     myset_env(0).

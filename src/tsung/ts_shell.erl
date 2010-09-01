@@ -34,6 +34,7 @@
          parse/2,
          parse_bidi/2,
          parse_config/2,
+         decode_buffer/2,
          new_session/0]).
 
 
@@ -86,6 +87,13 @@ session_defaults() ->
 %% @end
 new_session() ->
     #shell{}.
+
+%% @spec decode_buffer(Buffer::binary(),Session::record(shell)) ->  NewBuffer::binary()
+%% @doc We need to decode buffer (remove chunks, decompress ...) for
+%%      matching or dyn_variables
+%% @end
+decode_buffer(Buffer,#shell{}) ->
+    Buffer. % nothing to do for shell
 
 %% @spec init_dynparams() -> dyndata()
 %% @doc Creates a new record/term for storing dynamic request data.
