@@ -172,6 +172,10 @@ decode_buffer2_test() ->
     Data = << "HTTP header\r\nHeader: value\r\n\r\nbody\r\n\r\nnewline in body\r\n" >>,
     ?assertEqual(<< "HTTP header\r\nHeader: value\r\n\r\nbody\r\n\r\nnewline in body\r\n" >>, ts_http:decode_buffer(Data, #http{chunk_toread=-1}) ).
 
+decode_buffer3_test() ->
+    Data = << "HTTP header\r\nHeader: value\r\nTransfer-Encoding: chunked\r\n\r\n17\r\nbody\r\n\r\nnewline in body\r\n3\r\nabc\r\n0\r\n\r\n" >>,
+    ?assertEqual(<< "HTTP header\r\nHeader: value\r\nTransfer-Encoding: chunked\r\n\r\nbody\r\n\r\nnewline in bodyabc" >>, ts_http:decode_buffer(Data, #http{chunk_toread=-2})).
+
 compress_chunk_test()->
     <<A:10/binary, B/binary>> = zlib:gzip("sesame ouvre toi"),
     Data1 = << "HTTP header\r\nHeader: value\r\nTransfer-Encoding: chunked\r\n\r\nA\r\n" >>,

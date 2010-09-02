@@ -257,17 +257,20 @@ decode_chunk_size(<<Head:2/binary >>, Headers, Body, <<>>) when Head ==  << "\r\
     %last CRLF, remove
     {Headers, Body};
 decode_chunk_size(<<Head:2/binary, Data/binary >>, Headers, Body, <<>>) when Head ==  << "\r\n" >> ->
-    % CRLF but no digits, the CRLF is part of the body
-    decode_chunk_size(Data, Headers, <<Body/binary, Head/binary>>, <<>>);
+    % CRLF but no digits, end of chunk
+    ?Debug("decode chunk: crlf, no digit"),
+    decode_chunk_size(Data, Headers, Body, <<>>);
 decode_chunk_size(<<Head:2/binary, Data/binary >>, Headers, Body,Digits) when Head ==  << "\r\n" >> ->
     case httpd_util:hexlist_to_integer(binary_to_list(Digits)) of
         0 ->
             decode_chunk_size(Data, Headers, Body ,<<>>);
         Size ->
+            ?DebugF("decode chunk size ~p~n",[Size]),
             << Chunk:Size/binary, Tail/binary >> = Data,
             decode_chunk_size(Tail, Headers, << Body/binary, Chunk/binary>> ,<<>>)
     end;
 decode_chunk_size(<<Digit:1/binary, Data/binary >>, Headers, Body, PrevDigit) ->
+    ?DebugF("chunk one digit ~p~n",[Digit]),
     decode_chunk_size(Data, Headers, Body, <<PrevDigit/binary, Digit/binary>>).
 
 split_body(Data) ->
