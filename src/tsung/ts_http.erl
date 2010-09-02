@@ -75,7 +75,11 @@ decode_buffer(Buffer,#http{compressed={_,Comp}})->
     <<Headers/binary, "\r\n\r\n", RealBody/binary >>.
 
 dump(protocol,{#ts_request{param=HttpReq},HttpResp,UserId,Server,Size})->
-    Status = integer_to_list(element(2,HttpResp#http.status)),
+    Status = case element(2,HttpResp#http.status) of
+                 none -> "error_no_http_status"; % something is really wrong here ... server not http compliant ?
+                 Int when is_integer(Int) ->
+                     integer_to_list(Int)
+             end,
     Match = case get(last_match) of
                 undefined ->
                     "";
