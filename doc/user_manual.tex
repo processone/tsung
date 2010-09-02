@@ -1950,6 +1950,8 @@ The order is respected for paths without "descendant-or-self" axis, so this: \us
 
 Basic tests shows a x4 improvement in speed over the \emph{regexp} implementation.
 
+It is possible to use Xpath to get a list of elements from an html page, allowing dynamic retrieval of objects. You can either create embedded erlang code to parse the list produced, or use foreach that was introduced in release \strong(1.4.0).
+
 \paragraph{JSONPath}
 
 Another way to analyze the server response has been introduced in the
@@ -2136,9 +2138,11 @@ You can also use dynamic variables, using the \varname{subst} attribute:
 <http url="/" method="GET"/>
 \end{Verbatim}
 
-\subsubsection{Loops, If}
+\subsubsection{Loops, If, Foreach}
 
-\strong{Since 1.3.0}, it's now possible to add conditional/unconditional loops in a session:
+\strong{Since 1.3.0}, it's now possible to add conditional/unconditional loops in a session.
+
+\strong{Since 1.4.0}, it is possible to loop through a list of dynamic variables thanks to foreach.
 
 \paragraph{<for>}
 
@@ -2200,6 +2204,46 @@ dynamic variables:
 \end{Verbatim}
 
 You can use \varname{eq} or \varname{neq} to check the variable.
+
+\paragraph{<foreach>}
+
+Repeat the enclosing actions for all the elements contained in the list specified. The basic syntax is as follows:
+
+\begin{Verbatim}
+<foreach name="element" in="list">
+  <request subst="true">
+    <http url="%%_element%%" method="GET" version="1.1"/>
+  </request>
+</foreach>
+\end{Verbatim}
+
+It is possible to limit the list of elements you're looping through, thanks to the use of the \userinput{include} or \userinput{exclude} attributes inside the foreach statement.
+
+As an example, if you want to include only elements with a local path you can write:
+
+\begin{Verbatim}
+<foreach name="element" in="list" include="^/.*$">
+\end{Verbatim}
+
+If you want to exclude all the elements from a specific URI, you would write:
+
+\begin{Verbatim}
+<foreach name="element" in="list" exclude="http:\/\/.*\.tld\.com\/.*$">
+\end{Verbatim}
+
+You can combine this with a xpath query. For instance the following scenario will retrieve all the images specified on a web page:
+
+\begin{Verbatim}
+<request subst="true">
+  <dyn_variable name="img_list" xpath="//img/@src"/>
+  <http url="/mypage.html" method="GET" version="1.1"/>
+</request>
+<foreach name="img" in="img_list">
+  <request subst="true">
+    <http url="%%_img%%" method="GET" version="1.1"/>
+  </request>
+</foreach>
+\end{Verbatim}
 
 \section{Statistics and reports}
 \label{sec:statistics-reports}
