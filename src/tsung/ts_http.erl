@@ -33,6 +33,7 @@
          add_dynparams/4,
          get_message/1,
          session_defaults/0,
+         dump/2,
          parse/2,
          parse_config/2,
          decode_buffer/2,
@@ -66,12 +67,36 @@ decode_buffer(Buffer,#http{chunk_toread = -1, compressed={_,Val}}) ->
     {Headers, CompressedBody} = split_body(Buffer),
     Body = decompress(CompressedBody, Val),
     << Headers/binary,  "\r\n\r\n", Body/binary >>;
-decode_buffer(Buffer,Http=#http{compressed={_,Comp}})->
+decode_buffer(Buffer,#http{compressed={_,Comp}})->
     {Headers, Body} = decode_chunk(Buffer),
     ?DebugF("body is ~p~n",[Body]),
     RealBody = decompress(Body, Comp),
     ?DebugF("decoded buffer: ~p",[RealBody]),
     <<Headers/binary, "\r\n\r\n", RealBody/binary >>.
+
+dump(protocol,{#ts_request{param=HttpReq},HttpResp,UserId,Server,Size})->
+    Status = integer_to_list(element(2,HttpResp#http.status)),
+    Match = case get(last_match) of
+                undefined ->
+                    "";
+                {count, Val} ->
+                    put(last_match, undefined),
+                    atom_to_list(Val)
+            end,
+    Error = case get(protocol_error) of
+                undefined ->
+                    "";
+                Err ->
+                    put(protocol_error, undefined),
+                    atom_to_list(Err)
+            end,
+    Data=ts_utils:join(":",[integer_to_list(UserId),
+                            atom_to_list(HttpReq#http_request.method), Server,
+                            get(last_url), Status,integer_to_list(Size),Match, Error]),
+    ts_mon:dump({protocol, self(), Data });
+dump(_,_) ->
+    ok.
+
 
 %%----------------------------------------------------------------------
 %% Function: get_message/21
@@ -79,22 +104,25 @@ decode_buffer(Buffer,Http=#http{compressed={_,Comp}})->
 %% Args:    #http_request
 %% Returns: binary
 %%----------------------------------------------------------------------
-get_message(Req=#http_request{method=get}) ->
+get_message(Req=#http_request{url=URL}) ->
+    put(last_url,URL),
+    get_message2(Req).
+get_message2(Req=#http_request{method=get}) ->
     ts_http_common:http_no_body(?GET, Req);
 
-get_message(Req=#http_request{method=head}) ->
+get_message2(Req=#http_request{method=head}) ->
     ts_http_common:http_no_body(?HEAD, Req);
 
-get_message(Req=#http_request{method=delete}) ->
+get_message2(Req=#http_request{method=delete}) ->
     ts_http_common:http_no_body(?DELETE, Req);
 
-get_message(Req=#http_request{method=post}) ->
+get_message2(Req=#http_request{method=post}) ->
     ts_http_common:http_body(?POST, Req);
 
-get_message(Req=#http_request{method=options}) ->
+get_message2(Req=#http_request{method=options}) ->
     ts_http_common:http_no_body(?OPTIONS, Req);
 
-get_message(Req=#http_request{method=put}) ->
+get_message2(Req=#http_request{method=put}) ->
     ts_http_common:http_body(?PUT, Req).
 
 %%----------------------------------------------------------------------
@@ -219,7 +247,7 @@ decode_chunk_header(<<CRLF:4/binary, Data/binary >>,Headers) when CRLF == << "\r
 decode_chunk_header(<<CRLF:1/binary, Data/binary >>, Head) ->
     decode_chunk_header(Data, <<Head/binary, CRLF/binary>> ).
 
-decode_chunk_size(<< >>, Headers, Body,Digits) ->
+decode_chunk_size(<< >>, Headers, Body, _Digits) ->
     {Headers, Body};
 decode_chunk_size(<<Head:2/binary >>, Headers, Body, <<>>) when Head ==  << "\r\n" >> ->
     %last CRLF, remove

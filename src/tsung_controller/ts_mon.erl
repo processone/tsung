@@ -44,7 +44,7 @@
 %% External exports
 -export([start/1, stop/0, newclient/1, endclient/1, sendmes/1, add/2,
          start_clients/1, abort/0, status/0, rcvmes/1, add/1, dumpstats/0,
-         add_match/2
+         add_match/2, dump/1
         ]).
 
 %% gen_server callbacks
@@ -106,8 +106,9 @@ add(nocache,Data) ->
 add(Data) ->
     ts_mon_cache:add(Data).
 
-add_match(Data,{UserId,SessionId,RequestId}) ->
+add_match(Data=[Head|_],{UserId,SessionId,RequestId}) ->
     TimeStamp=now(),
+    put(last_match,Head),
     ts_mon_cache:add_match(Data,{UserId,SessionId,RequestId,TimeStamp}).
 
 status() ->
@@ -125,15 +126,20 @@ newclient({Who, When}) ->
 endclient({Who, When, Elapsed}) ->
     gen_server:cast({global, ?MODULE}, {endclient, Who, When, Elapsed}).
 
-sendmes({none, _, _}) ->
-    skip;
+sendmes({none, _, _})       -> skip;
+sendmes({protocol, _, _})   -> skip;
 sendmes({_Type, Who, What}) ->
     gen_server:cast({global, ?MODULE}, {sendmsg, Who, now(), What}).
 
-rcvmes({none, _, _})-> skip;
-rcvmes({_, _, closed}) -> skip;
+rcvmes({none, _, _})    -> skip;
+rcvmes({protocol, _, _})-> skip;
+rcvmes({_, _, closed})  -> skip;
 rcvmes({_Type, Who, What})  ->
     gen_server:cast({global, ?MODULE}, {rcvmsg, Who, now(), What}).
+
+dump({none, _, _})-> skip;
+dump({Type, Who, What})  ->
+    gen_server:cast({global, ?MODULE}, {dump, Who, now(), What}).
 
 
 %%%----------------------------------------------------------------------
@@ -235,7 +241,8 @@ handle_cast({newclient, Who, When}, State=#state{stats=Stats}) ->
     NewStats = Stats#stats{users_count=OldCount+1},
 
     case State#state.type of
-        none -> ok;
+        none     -> ok;
+        protocol -> ok;
         _ ->
             io:format(State#state.dumpfile,"NewClient:~w:~p~n",[When, Who]),
             io:format(State#state.dumpfile,"load:~w~n",[Clients])
@@ -257,6 +264,8 @@ handle_cast({endclient, Who, When, Elapsed}, State=#state{stats=Stats}) ->
 
     case State#state.type of
         none ->
+            skip;
+        protocol ->
             skip;
         _Type ->
             io:format(State#state.dumpfile,"EndClient:~w:~p~n",[When, Who]),
@@ -285,12 +294,16 @@ handle_cast({sendmsg, Who, When, What}, State = #state{type=light,dumpfile=Log})
     io:format(Log,"Send:~w:~w:~-44s~n",[When,Who, binary_to_list(What)]),
     {noreply, State};
 
-handle_cast({sendmsg, Who, When, What}, State=#state{dumpfile=Log}) when is_binary(What)->
+handle_cast({sendmsg, Who, When, What}, State=#state{type=full,dumpfile=Log}) when is_binary(What)->
     io:format(Log,"Send:~w:~w:~s~n",[When,Who,binary_to_list(What)]),
     {noreply, State};
 
-handle_cast({sendmsg, Who, When, What}, State=#state{dumpfile=Log}) ->
+handle_cast({sendmsg, Who, When, What}, State=#state{type=full,dumpfile=Log}) ->
     io:format(Log,"Send:~w:~w:~p~n",[When,Who,What]),
+    {noreply, State};
+
+handle_cast({dump, Who, When, What}, State=#state{dumpfile=Log}) ->
+    io:format(Log,"~w:~w:~s~n",[ts_utils:time2sec_hires(When),Who,What]),
     {noreply, State};
 
 handle_cast({rcvmsg, _, _, _}, State = #state{type=none}) ->
@@ -303,11 +316,11 @@ handle_cast({rcvmsg, Who, When, What}, State = #state{type=light, dumpfile=Log})
     io:format(Log,"Recv:~w:~w:~-44p~n",[When,Who, What]),
     {noreply, State};
 
-handle_cast({rcvmsg, Who, When, What}, State=#state{dumpfile=Log}) when is_binary(What)->
+handle_cast({rcvmsg, Who, When, What}, State=#state{type=full,dumpfile=Log}) when is_binary(What)->
     io:format(Log, "Recv:~w:~w:~s~n",[When,Who,binary_to_list(What)]),
     {noreply, State};
 
-handle_cast({rcvmsg, Who, When, What}, State=#state{dumpfile=Log}) ->
+handle_cast({rcvmsg, Who, When, What}, State=#state{type=full,dumpfile=Log}) ->
     io:format(Log, "Recv:~w:~w:~p~n",[When,Who,What]),
     {noreply, State};
 

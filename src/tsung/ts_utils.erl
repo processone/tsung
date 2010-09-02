@@ -42,7 +42,7 @@
          check_sum/3, check_sum/5, clean_str/1, file_to_list/1, term_to_list/1,
          decode_base64/1, encode_base64/1, to_lower/1, release_is_newer_or_eq/1,
          randomstr/1,urandomstr/1,urandomstr_noflat/1, eval/1, list_to_number/1,
-         time2sec/1, read_file_raw/1, init_seed/1, jsonpath/2, pmap/2,
+         time2sec/1, time2sec_hires/1, read_file_raw/1, init_seed/1, jsonpath/2, pmap/2,
          concat_atoms/1
         ]).
 
@@ -174,6 +174,9 @@ now_sec() ->
 
 time2sec({MSec, Seconds, _}) ->
     Seconds+1000000*MSec.
+
+time2sec_hires({MSec, Seconds, MuSec}) ->
+    Seconds+1000000*MSec+MuSec/1000000.
 
 %%----------------------------------------------------------------------
 %% Func: add_time/2

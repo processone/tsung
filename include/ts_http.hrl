@@ -62,7 +62,7 @@
 -record(http, {content_length= 0,  % HTTP header: content length
                body_size     = 0,  % current size of body,
                chunk_toread  = -1, % chunk data to be read (-1 = not chunked, -2 = not chunked, but last response was)
-               status        = none, % HTTP resp. status :200, etc. 'none'
+               status        = {none,none}, % HTTP resp. status :200, etc. 'none'
                                      % if no current cnx.
                close         = false, % true if HTTP/1.0 or 'connection: close'
                                      % has been received

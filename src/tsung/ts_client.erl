@@ -902,9 +902,9 @@ handle_data_msg(Data, State=#state_rcv{request=Req}) when Req#ts_request.ack==no
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     {State, []};
 
-handle_data_msg(Data,State=#state_rcv{request=Req,clienttype=Type,maxcount=MaxCount})
+handle_data_msg(Data,State=#state_rcv{dump=Dump,request=Req,id=Id,clienttype=Type,maxcount=MaxCount})
   when Req#ts_request.ack==parse->
-    ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
+    ts_mon:rcvmes({Dump, self(), Data}),
 
     {NewState, Opts, Close} = Type:parse(Data, State),
     NewBuffer=set_new_buffer(NewState, Data),
@@ -913,10 +913,11 @@ handle_data_msg(Data,State=#state_rcv{request=Req,clienttype=Type,maxcount=MaxCo
     case NewState#state_rcv.ack_done of
         true ->
             ?DebugF("Response done:~p~n", [NewState#state_rcv.datasize]),
+            Type:dump(Dump,{Req,NewState#state_rcv.session,Id,
+                            NewState#state_rcv.host,NewState#state_rcv.datasize}),
             {PageTimeStamp, DynVars} = update_stats(NewState#state_rcv{buffer=NewBuffer}),
             MatchArgs={NewState#state_rcv.count, MaxCount,
-                       NewState#state_rcv.session_id,
-                       NewState#state_rcv.id},
+                       NewState#state_rcv.session_id, Id},
             NewDynVars=ts_dynvars:merge(DynVars,(NewState#state_rcv.dyndata)#dyndata.dynvars),
             NewCount  =ts_search:match(Req#ts_request.match,NewBuffer,MatchArgs,NewDynVars),
             NewDynData=(NewState#state_rcv.dyndata)#dyndata{dynvars=NewDynVars},

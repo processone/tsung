@@ -87,7 +87,8 @@ parse(Element = #xmlElement{parents = [], attributes=Attrs}, Conf=#config{}) ->
     DumpType = case Dump of
                    "false" -> none;
                    "true"  -> full;
-                   "light" -> light
+                   "light" -> light;
+                   "protocol" -> protocol
                end,
     lists:foldl(fun parse/2,
                 Conf#config{dump= DumpType, stats_backend=BackEnd,

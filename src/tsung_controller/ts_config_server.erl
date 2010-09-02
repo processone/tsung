@@ -723,8 +723,8 @@ local_launcher([Host],LogDir,Config) ->
     %% set the application spec (read the app file and update some env. var.)
     {ok, {_,_,AppSpec}} = load_app(tsung),
     {value, {env, OldEnv}} = lists:keysearch(env, 1, AppSpec),
-    NewEnv = [ {dump,atom_to_list(?config(dump))},
-               {debug_level,integer_to_list(?config(debug_level))},
+    NewEnv = [ {dump,?config(dump)},
+               {debug_level,?config(debug_level)},
                {log_file,LogDirEnc}],
 
     RepKeyFun = fun(Tuple, List) ->  lists:keyreplace(element(1, Tuple), 1, List, Tuple) end,

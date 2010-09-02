@@ -212,7 +212,7 @@ matchdomain_url(Cookie, Host, URL) ->
 parse(closed, State=#state_rcv{session=Http}) ->
     {State#state_rcv{session=reset_session(Http), ack_done = true}, [], true};
 
-parse(Data, State=#state_rcv{session=HTTP}) when HTTP#http.status  == none;
+parse(Data, State=#state_rcv{session=HTTP}) when element(1,HTTP#http.status)  == none;
                                                  HTTP#http.partial == true ->
 
     List = binary_to_list(Data),
@@ -239,12 +239,12 @@ parse(Data, State=#state_rcv{session=HTTP}) when HTTP#http.status  == none;
             {State#state_rcv{session= Http, ack_done = false,
                              datasize = TotalSize,
                              dyndata= DynData}, [], true};
-        {ok, Http=#http{status=100}, _} -> % Status 100 Continue, ignore.
+        {ok, Http=#http{status={100,_}}, _} -> % Status 100 Continue, ignore.
             %% FIXME: not tested
             {State#state_rcv{ack_done=false,session=reset_session(Http)},[],false};
         {ok, Http, Tail} ->
             DynData = concat_cookies(Http#http.cookie, State#state_rcv.dyndata),
-            check_resp_size(Http, length(Tail), DynData, State#state_rcv{acc=[]}, TotalSize)
+            check_resp_size(Http, length(Tail), DynData, State#state_rcv{acc=[]}, TotalSize, State#state_rcv.dump)
     end;
 
 %% continued chunked transfer
@@ -280,20 +280,20 @@ parse(Data, State) ->
 %% Returns: {NewState= record(state_rcv), SockOpts, Close}
 %%----------------------------------------------------------------------
 check_resp_size(Http=#http{content_length=CLength, close=Close}, CLength,
-                DynData, State, DataSize) ->
+                DynData, State, DataSize, _Dump) ->
     %% end of response
     {State#state_rcv{session= reset_session(Http), ack_done = true,
                      datasize = DataSize,
                      dyndata= DynData}, [], Close};
 check_resp_size(Http=#http{content_length=CLength, close = Close},
-                BodySize, DynData, State, DataSize) when BodySize > CLength ->
+                BodySize, DynData, State, DataSize, Dump) when BodySize > CLength ->
     ?LOGF("Error: HTTP Body (~p)> Content-Length (~p) !~n",
           [BodySize, CLength], ?ERR),
-    ts_mon:add({ count, error_http_bad_content_length }),
+    log_error(Dump, error_http_bad_content_length),
     {State#state_rcv{session= reset_session(Http), ack_done = true,
                      datasize = DataSize,
                      dyndata= DynData}, [], Close};
-check_resp_size(Http, BodySize, DynData, State, DataSize) ->
+check_resp_size(Http, BodySize, DynData, State, DataSize,_Dump) ->
     %% need to read more data
     {State#state_rcv{session  = Http#http{ body_size=BodySize},
                      ack_done = false,
@@ -342,9 +342,10 @@ read_chunk(<<Char:1/binary, Data/binary>>, State=#state_rcv{session=Http}, Int, 
         read_chunk(Data, State, Int, Acc+1);
     _Other ->
             ?LOGF("Unexpected error while parsing chunk ~p~n", [_Other] ,?WARN),
-            ts_mon:add({count, error_http_unexpected_chunkdata}),
+            log_error(State#state_rcv.dump, error_http_unexpected_chunkdata),
             {State#state_rcv{session= reset_session(Http), ack_done = true}, []}
     end.
+
 
 %%----------------------------------------------------------------------
 %% Func: read_chunk_data/4
@@ -534,11 +535,11 @@ http_method(Method) ->
 %% Purpose: Parse HTTP status
 %% Returns: #http
 %%--------------------------------------------------------------------
-parse_status([A,B,C|_],  Http) ->
+parse_status([A,B,C|_], Http=#http{status={Prev,_}}) ->
     Status=list_to_integer([A,B,C]),
     ?DebugF("HTTP Status ~p~n",[Status]),
     ts_mon:add({ count, Status }),
-    Http#http{status=Status}.
+    Http#http{status={Status,Prev}}.
 
 %%--------------------------------------------------------------------
 %% Func: parse_line/3
@@ -612,8 +613,13 @@ get_line([], _, _) -> %% Headers are fragmented ... We need more data
     {more}.
 
 %% we need to keep the compressed value of the current request
-reset_session(#http{compressed={Current,_},chunk_toread=Val}) when Val > -1 ->
-    #http{compressed={false,Current}, chunk_toread=-2} ;
-reset_session(#http{compressed={Current,_}} ) ->
-    #http{compressed={false,Current}}.
+reset_session(#http{status={Status,_},compressed={Current,_},chunk_toread=Val}) when Val > -1 ->
+    #http{compressed={false,Current}, chunk_toread=-2, status={none,Status}} ;
+reset_session(#http{compressed={Current,_}, status={Status,_}} ) ->
+    #http{compressed={false,Current}, status={none,Status}}.
 
+log_error(protocol,Error) ->
+    put(protocol_error,Error),
+    log_error2(protocol,Error).
+log_error2(_,Error)->
+    ts_mon:add({count, Error}).

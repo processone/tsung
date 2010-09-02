@@ -10,7 +10,7 @@
 <!ELEMENT organisation (#PCDATA)>
 
 <!ATTLIST tsung
-     dumptraffic (true | false | light) "false"
+     dumptraffic (true | false | light | protocol) "false"
      backend     (text | rrdtool | fullstats) "text"
      loglevel    (emergency|critical|error|warning|notice|info|debug) "notice"
      version     NMTOKEN #IMPLIED>
