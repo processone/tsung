@@ -302,8 +302,8 @@ handle_cast({sendmsg, Who, When, What}, State=#state{type=full,dumpfile=Log}) ->
     io:format(Log,"Send:~w:~w:~p~n",[When,Who,What]),
     {noreply, State};
 
-handle_cast({dump, Who, When, What}, State=#state{dumpfile=Log}) ->
-    io:format(Log,"~w:~w:~s~n",[ts_utils:time2sec_hires(When),Who,What]),
+handle_cast({dump, Who, When, What}, State=#state{type=protocol,dumpfile=Log}) ->
+    io:format(Log,"~w;~w;~s~n",[ts_utils:time2sec_hires(When),Who,What]),
     {noreply, State};
 
 handle_cast({rcvmsg, _, _, _}, State = #state{type=none}) ->
@@ -418,11 +418,17 @@ start_logger({Machines, DumpType, Backend}, _From, State) ->
 %% @doc open file for dumping traffic
 start_dump(State=#state{type=none}) ->
     {reply, ok, State};
-start_dump(State) ->
+start_dump(State=#state{type=Type}) ->
     Filename = filename:join(State#state.log_dir,?DUMP_FILENAME),
     case file:open(Filename,[write, {delayed_write, ?DELAYED_WRITE_SIZE, ?DELAYED_WRITE_DELAY}]) of
         {ok, Stream} ->
             ?LOG("dump file opened, starting monitor~n",?INFO),
+            case Type of
+                protocol ->
+                    io:format(Stream,"#date;pid;id;http method;host;URL;HTTP status;size;match;error~n",[]);
+                _ ->
+                    ok
+            end,
             {reply, ok, State#state{dumpfile=Stream}};
         {error, Reason} ->
             ?LOGF("Can't open mon dump file! ~p~n",[Reason], ?ERR),

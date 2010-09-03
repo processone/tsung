@@ -94,7 +94,7 @@ dump(protocol,{#ts_request{param=HttpReq},HttpResp,UserId,Server,Size})->
                     put(protocol_error, undefined),
                     atom_to_list(Err)
             end,
-    Data=ts_utils:join(":",[integer_to_list(UserId),
+    Data=ts_utils:join(";",[integer_to_list(UserId),
                             atom_to_list(HttpReq#http_request.method), Server,
                             get(last_url), Status,integer_to_list(Size),Match, Error]),
     ts_mon:dump({protocol, self(), Data });
