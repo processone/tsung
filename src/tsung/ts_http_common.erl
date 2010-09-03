@@ -620,6 +620,8 @@ reset_session(#http{compressed={Current,_}, status={Status,_}} ) ->
 
 log_error(protocol,Error) ->
     put(protocol_error,Error),
-    log_error2(protocol,Error).
+    log_error2(protocol,Error);
+log_error(Type,Error) ->
+    log_error2(Type,Error).
 log_error2(_,Error)->
     ts_mon:add({count, Error}).
