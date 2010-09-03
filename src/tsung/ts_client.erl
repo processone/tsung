@@ -48,7 +48,7 @@
 
 %% gen_server callbacks
 
--export([init/1, wait_ack/2, handle_sync_event/4, handle_event/3,
+-export([init/1, wait_ack/2, think/2,handle_sync_event/4, handle_event/3,
          handle_info/3, terminate/3, code_change/4]).
 
 %%%----------------------------------------------------------------------
@@ -139,6 +139,11 @@ init({#session{id           = SessionId,
 %%          {next_state, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}
 %%--------------------------------------------------------------------
+think(next_msg,State=#state_rcv{protocol=P,socket=S}) ->
+    ?LOG("Global ack received, continue~n", ?DEB),
+    NewSocket = ts_utils:inet_setopts(P, S, [{active, once} ]),
+    handle_next_action(State#state_rcv{socket=NewSocket }).
+
 wait_ack(next_msg,State=#state_rcv{request=R}) when R#ts_request.ack==global->
     NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol,
                                       State#state_rcv.socket,
@@ -879,6 +884,9 @@ protocol_options(erlang,_) -> [].
 %%          returns the choosen thinktime in msec
 %%----------------------------------------------------------------------
 set_thinktime(infinity) -> infinity;
+set_thinktime(wait_global) ->
+    ts_timer:connected(self()),
+    infinity;
 set_thinktime({random, Think}) ->
     set_thinktime(round(ts_stats:exponential(1/Think)));
 set_thinktime({range, Min, Max}) ->

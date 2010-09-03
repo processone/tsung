@@ -700,40 +700,45 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
 %%% Parsing the thinktime element
 parse(Element = #xmlElement{name=thinktime, attributes=Attrs},
       Conf = #config{curid=Id, session_tab = Tab, sessions = [CurS |_]}) ->
-    DefThink  = get_default(Tab,{thinktime, value},thinktime_value),
-    DefRandom = get_default(Tab,{thinktime, random},thinktime_random),
-    {Think, Randomize} =
-        case get_default(Tab,{thinktime, override},thinktime_override) of
-            "true" ->
-                {DefThink, DefRandom};
-            "false" ->
-                case { getAttr(integer, Attrs, min),
-                       getAttr(integer, Attrs, max),
-                       getAttr(float_or_integer, Attrs, value)}  of
-                    {Min, Max, "" } when is_integer(Min), is_integer(Max), Max > 0, Min >0,  Max > Min ->
-                        {"", {"range", Min, Max} };
-                    {"","",""} ->
-                        CurRandom = getAttr(string, Attrs,random,DefRandom),
-                        {DefThink, CurRandom};
-                    {"","",CurThink} when CurThink > 0 ->
-                        CurRandom = getAttr(string, Attrs,random,DefRandom),
-                        {CurThink, CurRandom};
-                    _ ->
-                        exit({error, bad_thinktime})
-                end
+    {RT,T} = case getAttr(Attrs, value)  of
+            "wait_global" ->
+                {wait_global,infinity};
+            _ ->
+                DefThink  = get_default(Tab,{thinktime, value},thinktime_value),
+                DefRandom = get_default(Tab,{thinktime, random},thinktime_random),
+                {Think, Randomize} =
+                    case get_default(Tab,{thinktime, override},thinktime_override) of
+                        "true" ->
+                            {DefThink, DefRandom};
+                        "false" ->
+                            case { getAttr(integer, Attrs, min),
+                                   getAttr(integer, Attrs, max),
+                                   getAttr(float_or_integer, Attrs, value)}  of
+                                {Min, Max, "" } when is_integer(Min), is_integer(Max), Max > 0, Min >0,  Max > Min ->
+                                    {"", {"range", Min, Max} };
+                                {"","",""} ->
+                                    CurRandom = getAttr(string, Attrs,random,DefRandom),
+                                    {DefThink, CurRandom};
+                                {"","",CurThink} when CurThink > 0 ->
+                                    CurRandom = getAttr(string, Attrs,random,DefRandom),
+                                    {CurThink, CurRandom};
+                                _ ->
+                                    exit({error, bad_thinktime})
+                            end
+                    end,
+                     Val=case Randomize of
+                             "true" ->
+                                 {random, Think * 1000};
+                             {"range", Min2, Max2} ->
+                                 {range, Min2 * 1000, Max2 * 1000};
+                             "false" ->
+                                 round(Think * 1000)
+                         end,
+                     {Val, Think}
         end,
-    RealThink = case Randomize of
-                    "true" ->
-                        {random, Think * 1000};
-                    {"range", Min2, Max2} ->
-                        {range, Min2 * 1000, Max2 * 1000};
-                    "false" ->
-                        round(Think * 1000)
-                end,
-    ?LOGF("New thinktime ~p for id (~p:~p)~n",[RealThink, CurS#session.id, Id+1],
-          ?INFO),
-    ets:insert(Tab,{{CurS#session.id, Id+1}, {thinktime, RealThink}}),
-    lists:foldl( fun parse/2, Conf#config{curthink=Think,curid=Id+1},
+    ?LOGF("New thinktime ~p for id (~p:~p)~n",[RT, CurS#session.id, Id+1], ?INFO),
+    ets:insert(Tab,{{CurS#session.id, Id+1}, {thinktime, RT}}),
+    lists:foldl( fun parse/2, Conf#config{curthink=T,curid=Id+1},
                  Element#xmlElement.content);
 
 
