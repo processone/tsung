@@ -136,7 +136,7 @@ repeat | if | change_type | foreach)*>
 <!ELEMENT thinktime EMPTY>
 <!ATTLIST thinktime
     random (true|false) "false"
-    value  NMTOKEN #IMPLIED
+    value  CDATA #IMPLIED
     min    NMTOKEN #IMPLIED
     max    NMTOKEN #IMPLIED
     >

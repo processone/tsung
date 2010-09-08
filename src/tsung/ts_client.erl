@@ -350,7 +350,14 @@ handle_next_action(State=#state_rcv{count=0}) ->
 handle_next_action(State) ->
     Count = State#state_rcv.count-1,
     case set_profile(State#state_rcv.maxcount,State#state_rcv.count,State#state_rcv.session_id) of
-        {thinktime, Think} ->
+        {thinktime, TmpThink} ->
+            Think = case TmpThink of
+                        "%%"++_Tail ->
+                            Raw=ts_search:subst(TmpThink,(State#state_rcv.dyndata)#dyndata.dynvars),
+                            ts_utils:list_to_number(Raw)*1000;
+                        Val ->
+                            Val
+                    end,
             ?DebugF("Starting new thinktime ~p~n", [Think]),
             case (set_thinktime(Think) >= State#state_rcv.hibernate) of
                 true ->

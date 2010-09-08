@@ -703,6 +703,8 @@ parse(Element = #xmlElement{name=thinktime, attributes=Attrs},
     {RT,T} = case getAttr(Attrs, value)  of
             "wait_global" ->
                 {wait_global,infinity};
+            "%%"++Tail -> % dynamic thinktime
+                     {"%%"++Tail,"%%"++Tail};
             _ ->
                 DefThink  = get_default(Tab,{thinktime, value},thinktime_value),
                 DefRandom = get_default(Tab,{thinktime, random},thinktime_random),
