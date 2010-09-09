@@ -122,7 +122,7 @@ repeat | if | change_type | foreach)*>
 
 <!ELEMENT match (#PCDATA)>
 <!ATTLIST match
-    do (continue|loop|abort|restart|log) "continue"
+    do (continue|loop|abort|restart|log|dump) "continue"
     when (match|nomatch) "match"
     subst (true|false) "false"
     loop_back   NMTOKEN "0"
@@ -296,8 +296,8 @@ repeat | if | change_type | foreach)*>
           if | repeat | change_type | foreach )+>
 <!ATTLIST for
     var      CDATA      #REQUIRED
-    from     NMTOKEN    #REQUIRED
-    to       NMTOKEN    #REQUIRED
+    from     CDATA      #REQUIRED
+    to       CDATA      #REQUIRED
     incr     NMTOKEN   "1">
 
 <!ELEMENT foreach (request | thinktime | transaction | setdynvars | foreach |
