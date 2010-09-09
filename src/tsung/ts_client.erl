@@ -480,7 +480,7 @@ ctrl_struct(CtrlData,State,Count) ->
 %% @end
 %%----------------------------------------------------------------------
 ctrl_struct_impl({for_start,Init="%%_"++_,VarName},DynData=#dyndata{dynvars=DynVars}) ->
-    InitialValue = ts_search:subst(Init, DynVars),
+    InitialValue = list_to_integer(ts_search:subst(Init, DynVars)),
     ?LOGF("Initial value of FOR loop is dynamic: ~p",[InitialValue],?DEB),
     ctrl_struct_impl({for_start,InitialValue,VarName},DynData);
 ctrl_struct_impl({for_start,InitialValue,VarName},DynData=#dyndata{dynvars=DynVars}) ->
@@ -488,7 +488,7 @@ ctrl_struct_impl({for_start,InitialValue,VarName},DynData=#dyndata{dynvars=DynVa
     {next,DynData#dyndata{dynvars=NewDynVars}};
 ctrl_struct_impl({for_end,VarName,End="%%_"++_,Increment,Target},DynData=#dyndata{dynvars=DynVars}) ->
     %% end value is a dynamic variable
-    EndValue = ts_search:subst(End, DynVars),
+    EndValue = list_to_integer(ts_search:subst(End, DynVars)),
     ?LOGF("End value of FOR loop is dynamic: ~p",[EndValue],?DEB),
     ctrl_struct_impl({for_end,VarName,EndValue,Increment,Target},DynData);
 ctrl_struct_impl({for_end,VarName,EndValue,Increment,Target},DynData=#dyndata{dynvars=DynVars}) ->
