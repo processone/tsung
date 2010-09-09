@@ -937,14 +937,14 @@ handle_data_msg(Data,State=#state_rcv{dump=Dump,request=Req,id=Id,clienttype=Typ
     case NewState#state_rcv.ack_done of
         true ->
             ?DebugF("Response done:~p~n", [NewState#state_rcv.datasize]),
-            Type:dump(Dump,{Req,NewState#state_rcv.session,Id,
-                            NewState#state_rcv.host,NewState#state_rcv.datasize}),
             {PageTimeStamp, DynVars} = update_stats(NewState#state_rcv{buffer=NewBuffer}),
             MatchArgs={NewState#state_rcv.count, MaxCount,
                        NewState#state_rcv.session_id, Id},
             NewDynVars=ts_dynvars:merge(DynVars,(NewState#state_rcv.dyndata)#dyndata.dynvars),
             NewCount  =ts_search:match(Req#ts_request.match,NewBuffer,MatchArgs,NewDynVars),
             NewDynData=(NewState#state_rcv.dyndata)#dyndata{dynvars=NewDynVars},
+            Type:dump(Dump,{Req,NewState#state_rcv.session,Id,
+                            NewState#state_rcv.host,NewState#state_rcv.datasize}),
             case Close of
                 true ->
                     ?Debug("Close connection required by protocol~n"),
