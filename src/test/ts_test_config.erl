@@ -12,6 +12,7 @@
 -include("ts_profile.hrl").
 -include("ts_config.hrl").
 -include_lib("eunit/include/eunit.hrl").
+-include("xmerl.hrl").
 
 test()->
     ok.
@@ -146,6 +147,14 @@ decode_test() ->
 
 concat_atoms_test() ->
     ?assertEqual('helloworld', ts_utils:concat_atoms(['hello','world'])).
+
+
+int_or_string_test() ->
+     ?assertEqual(123, ts_config:getAttr(integer_or_string,[#xmlAttribute{name=to,value="123"}],to)).
+int_or_string2_test() ->
+    ?assertEqual("%%_toto%%", ts_config:getAttr(integer_or_string,[#xmlAttribute{name=to,value="%%_toto%%"}],to)).
+int_test() ->
+    ?assertEqual(100, ts_config:getAttr(integer,[#xmlAttribute{name=to,value="100"}],to)).
 
 myset_env()->
     myset_env(0).

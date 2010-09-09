@@ -401,8 +401,8 @@ parse(_Element = #xmlElement{name='if', attributes=Attrs,content=Content},
 parse(_Element = #xmlElement{name=for, attributes=Attrs,content=Content},
       Conf = #config{session_tab = Tab, sessions=[CurS|_], curid=Id}) ->
     VarName = getAttr(atom,Attrs,var),
-    InitValue = getAttr(integer,Attrs,from),
-    EndValue = getAttr(integer,Attrs,to),
+    InitValue = getAttr(integer_or_string,Attrs,from),
+    EndValue = getAttr(integer_or_string,Attrs,to),
     Increment = getAttr(integer,Attrs,incr,1),
     InitialAction = {ctrl_struct, {for_start, InitValue, VarName}},
     ?LOGF("Add for_start action in session ~p as id ~p",
@@ -823,6 +823,11 @@ getTypeAttr(float_or_integer, String)->
     case erl_scan:string(String) of
         {ok, [{integer,1,I}],1} -> I;
         {ok, [{float,1,F}],1} -> F
+    end;
+getTypeAttr(integer_or_string, String)->
+    case erl_scan:string(String) of
+        {ok, [{integer,1,I}],1} -> I;
+        _ -> String
     end;
 getTypeAttr(Type, String) ->
     {ok, [{Type,1,Val}],1} = erl_scan:string(String),

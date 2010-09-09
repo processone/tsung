@@ -479,9 +479,18 @@ ctrl_struct(CtrlData,State,Count) ->
 %%             {jump,Target,NewDynData} to jump to action number 'Target'
 %% @end
 %%----------------------------------------------------------------------
+ctrl_struct_impl({for_start,Init="%%_"++_,VarName},DynData=#dyndata{dynvars=DynVars}) ->
+    InitialValue = ts_search:subst(Init, DynVars),
+    ?LOGF("Initial value of FOR loop is dynamic: ~p",[InitialValue],?DEB),
+    ctrl_struct_impl({for_start,InitialValue,VarName},DynData);
 ctrl_struct_impl({for_start,InitialValue,VarName},DynData=#dyndata{dynvars=DynVars}) ->
     NewDynVars = ts_dynvars:set(VarName,InitialValue,DynVars),
     {next,DynData#dyndata{dynvars=NewDynVars}};
+ctrl_struct_impl({for_end,VarName,End="%%_"++_,Increment,Target},DynData=#dyndata{dynvars=DynVars}) ->
+    %% end value is a dynamic variable
+    EndValue = ts_search:subst(End, DynVars),
+    ?LOGF("End value of FOR loop is dynamic: ~p",[EndValue],?DEB),
+    ctrl_struct_impl({for_end,VarName,EndValue,Increment,Target},DynData);
 ctrl_struct_impl({for_end,VarName,EndValue,Increment,Target},DynData=#dyndata{dynvars=DynVars}) ->
     case ts_dynvars:lookup(VarName,DynVars) of
         {ok,Value}  when Value >= EndValue -> % Reach final value, end loop
