@@ -758,10 +758,12 @@ json_get_bin([<<"?",Expr/binary>> | Keys],L) when  is_list(L) ->
                   end,
             ?LOG("ok~n",?ERR),
             case lists:filter(Fun,L) of
-                [Res|_] -> % keep the first result only
-                    json_get_bin(Keys,Res);
                 [] ->
-                    undefined
+                    undefined;
+                [Res] ->
+                    json_get_bin(Keys,Res);
+                Res ->
+                    lists:map(fun(A) -> json_get_bin(Keys,A) end, Res)
             end;
         _ ->
             undefined
