@@ -2638,7 +2638,8 @@ stats: size_sent 150660 498530
   response time ?}
 
 It's not directly possible. But since \strong{version 1.3.0}, you can
-use a new experimental statistic backend: set \userinput{backend="fullstats"}
+use a new experimental statistic backend: set \userinput{backend="fullstats"} in the
+\userinput{<tsung>} section of your configuration file.
 
 This will print every statistics data in a raw format in a file named
 \file{tsung-fullstats.log}. \strong{Warning}: this may impact the performance of

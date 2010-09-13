@@ -96,7 +96,7 @@ a:hover     {background:#ffffaa;}
 <!--CUT DEF section 1 --><H1 ALIGN=center>Tsung User’s manual</H1><DIV CLASS="center">
 
 <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>1.3.3</TD></TR>
-<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>September 8, 2010</TD></TR>
+<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>September 13, 2010</TD></TR>
 </TABLE>
 </DIV><!--TOC section Contents-->
 <H2 CLASS="section"><!--SEC ANCHOR -->Contents</H2><!--SEC END --><UL CLASS="toc"><LI CLASS="li-toc">
@@ -3317,7 +3317,8 @@ max, min, mean, count</TT></P><P>or for HTTP returns code, size ...</P><P><TT> #
 response time ?-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc85">A.7</A>  How can I compute percentile/quartiles/median for transactions or requests
 response time ?</H3><!--SEC END --><P>It’s not directly possible. But since <B>version 1.3.0</B>, you can
-use a new experimental statistic backend: set <FONT COLOR=purple>backend="fullstats"</FONT></P><P>This will print every statistics data in a raw format in a file named
+use a new experimental statistic backend: set <FONT COLOR=purple>backend="fullstats"</FONT> in the
+<FONT COLOR=purple>&lt;tsung&gt;</FONT> section of your configuration file.</P><P>This will print every statistics data in a raw format in a file named
 <TT>tsung-fullstats.log</TT>. <B>Warning</B>: this may impact the performance of
 the controller node (a lot of data has to be written to disk).</P><P>The data looks like:
 </P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
