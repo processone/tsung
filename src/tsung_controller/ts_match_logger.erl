@@ -174,7 +174,7 @@ code_change(_OldVsn, StateData, _Extra) ->
 %%%----------------------------------------------------------------------
 
 log({UserId,SessionId,RequestId,TimeStamp,{count, Val},[]},State=#state{fd=File}) ->
-    TS=ts_utils:time2sec(TimeStamp),
+    TS=ts_utils:time2sec_hires(TimeStamp),
     io:format(File,"~B ~B ~B ~B ~p~n",[TS,UserId,SessionId,RequestId,Val]),
     State;
 log({UserId,SessionId,RequestId,TimeStamp,{count, Val},Bin}, State=#state{logdir=LogDir, dumpid=Id}) ->
