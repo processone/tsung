@@ -778,7 +778,11 @@ parse(Element = #xmlElement{name=setdynvars, attributes=Attrs},
                  "random_number" ->
                      Start = getAttr(integer,Attrs,start,1),
                      End = getAttr(integer,Attrs,'end',10),
-                     {setdynvars,random,{number,Start,End},Vars}
+                     {setdynvars,random,{number,Start,End},Vars};
+                 "jsonpath" ->
+                     From = getAttr(atom, Attrs,from),
+                     JSONPath = getAttr(Attrs,jsonpath),
+                     {setdynvars,jsonpath,{JSONPath, From},Vars}
              end,
     ?LOGF("Add setdynvars in session ~p as id ~p",[CurS#session.id,Id+1],?INFO),
     ets:insert(Tab, {{CurS#session.id, Id+1}, Action}),

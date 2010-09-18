@@ -50,6 +50,19 @@ parse_dyn_var_jsonpath3_test() ->
     JSONPath = "titi[?name=bar].val",
     ?assertEqual([{'myvar',42}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
 
+parse_dyn_var_jsonpath4_test() ->
+    myset_env(),
+    Data="\r\n\r\n{\"titi\": [{\"val\": 123, \"name\": \"foo\"}, {\"val\": 42, \"name\": \"bar\"}]}",
+    JSONPath = "titi[?name=void].val",
+    ?assertEqual([{'myvar',undefined}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
+
+parse_dyn_var_jsonpath5_test() ->
+    myset_env(),
+    Data="\r\n\r\n{\"titi\": [{\"val\": 123, \"status\": \"foo\"}, {\"val\": 42, \"status\": \"OK\"}, {\"val\": 48, \"status\": \"OK\"}]}",
+    JSONPath = "titi[?status=OK].val",
+    ?assertEqual([{'myvar',[42,48]}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
+
+
 parse_dyn_var_jsonpath_int_test() ->
     myset_env(),
     Data="\r\n\r\n{\"titi\": [{\"val\": 123, \"name\": \"foo\"}, {\"val\": 42, \"name\": \"bar\"}]}",
@@ -61,7 +74,6 @@ parse_dyn_var_jsonpath_xmpp_test() ->
     Data="{\n  \"status\": \"terminated\",\n  \"uid\": \"944370dc04adbee1792732e01097e618af97cc27\",\n  \"updated_at\": 1282660758,\n  \"nodes\": [\n    \"suno-12\",\n    \"suno-13\"\n  ],\n  \"created_at\": 1282660398,\n  \"environment\": \"lenny-x64-big\",\n  \"result\": {\n    \"suno-13\": {\n      \"last_cmd_stdout\": \"\",\n      \"last_cmd_stderr\": \"\",\n      \"cluster\": \"suno\",\n      \"ip\": \"192.168.1.113\",\n      \"last_cmd_exit_status\": 0,\n      \"current_step\": null,\n      \"state\": \"OK\"\n    },\n    \"suno-12\": {\n      \"last_cmd_stdout\": \"\",\n      \"last_cmd_stderr\": \"\",\n      \"cluster\": \"suno\",\n      \"ip\": \"192.168.1.112\",\n      \"last_cmd_exit_status\": 0,\n      \"current_step\": null,\n      \"state\": \"OK\"\n    }\n  },\n  \"site_uid\": \"sophia\",\n  \"notifications\": [\n    \"xmpp:joe@foo.bar/tsung\"\n  ],\n  \"user_uid\": \"joe\"\n}",
     JSONPath = "nodes",
     ?assertMatch([{'nodes',[<<"suno-12">>,<<"suno-13">>]}], ts_search:parse_dynvar([{jsonpath,'nodes', JSONPath} ],list_to_binary(Data))).
-
 
 parse_dyn_var_xpath_test() ->
     myset_env(),
@@ -316,6 +328,12 @@ dynvars_random2_test() ->
     [String,String2] = ts_client:set_dynvars(random,{string,20},[toto,titi],[]),
     ?assertMatch({20,20},{length(String),length(String2)}).
 
+dynvars_jsonpath_test() ->
+    myset_env(),
+    Data="\r\n\r\n{\"titi\": [{\"val\": 123, \"name\": \"foo\"}, {\"val\": 42, \"name\": \"bar\"}]}",
+    JSONPath = "titi[?name=bar].val",
+    Dynvars=ts_dynvars:new(data,Data),
+    ?assertEqual(42,ts_client:set_dynvars(jsonpath,{JSONPath,data},[toto],#dyndata{dynvars=Dynvars})).
 
 
 %%TODO: out of order..
