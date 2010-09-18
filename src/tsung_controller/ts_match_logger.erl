@@ -175,10 +175,11 @@ code_change(_OldVsn, StateData, _Extra) ->
 
 log({UserId,SessionId,RequestId,TimeStamp,{count, Val},[]},State=#state{fd=File}) ->
     TS=ts_utils:time2sec_hires(TimeStamp),
-    io:format(File,"~B ~B ~B ~B ~p~n",[TS,UserId,SessionId,RequestId,Val]),
+    io:format(File,"~f ~B ~B ~B ~p~n",[TS,UserId,SessionId,RequestId,Val]),
     State;
 log({UserId,SessionId,RequestId,TimeStamp,{count, Val},Bin}, State=#state{logdir=LogDir, dumpid=Id}) ->
     log({UserId,SessionId,RequestId,TimeStamp,{count, Val},[]}, State),
-    Filename=filename:join(LogDir, "match-"++ integer_to_list(Id) ++".dump"),
+    Name=ts_utils:join("-",lists:map(fun integer_to_list/1,[UserId,SessionId,RequestId,Id])),
+    Filename=filename:join(LogDir, "match-"++ Name ++".dump"),
     file:write_file(Filename,Bin),
     State#state{dumpid=Id+1}.
