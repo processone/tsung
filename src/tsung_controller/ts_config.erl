@@ -103,6 +103,7 @@ parse(Element = #xmlElement{name=server, attributes=Attrs}, Conf=#config{servers
                "ssl" -> ts_ssl;
                "tcp" -> ts_tcp;
                "bosh" -> ts_bosh;
+               "websocket" -> ts_websocket;
                "bosh_ssl" -> 
 			ssl:start(), %%HACK: initialize new ssl here..
 			ts_bosh_ssl;
