@@ -36,7 +36,7 @@
             free = [],
             local_ip,
             local_port,
-            is_fresh = true,
+            session_state = fresh, %% fresh | normal | closing
 	    pending_ref,
             type  %% 'tcp' | 'ssl'
             }).
@@ -51,7 +51,7 @@ connect(Host, Port, Opts) ->
 connect(Host, Port, Opts, Type) when Type =:= 'tcp' ; Type =:= 'ssl' ->
     Parent = self(),
     Path = "/http-bind/",
-    Pid = spawn_link(fun() -> loop(Host, Port, Path, Opts, Type, Parent) end),
+    Pid = spawn(fun() -> loop(Host, Port, Path, Opts, Type, Parent) end),
     {ok, Pid}.
 
 extract_domain("to='" ++ Rest) ->
@@ -75,11 +75,11 @@ send(Pid, Data, _Opts) ->
 	    {'DOWN', MonitorRef, _Type, _Object, _Info} ->
 		    {error, no_bosh_connection};
         {ok, Ref} -> 
-		    erlang:demonitor(MonitorRef),
+		    erlang:demonitor(MonitorRef, [flush]),
 		    ok
     after
         30000 ->
-	        erlang:demonitor(MonitorRef),
+	        erlang:demonitor(MonitorRef, [flush]),
             {error, timeout}
     end.
 
@@ -95,8 +95,8 @@ protocol_options(#proto_opts{}) ->
 loop(Host, Port, Path, Opts, Type, Parent) ->
    {A,B,C} = now(),
    random:seed(A,B,C),
-   process_flag(trap_exit, true),
-   loop(#state{is_fresh = true, 
+   _MonitorRef = erlang:monitor(process,Parent),
+   loop(#state{session_state = fresh, 
    		port = Port,
 		path = Path, 
 		parent_pid = Parent,
@@ -108,6 +108,8 @@ loop(Host, Port, Path, Opts, Type, Parent) ->
 
 loop(#state{parent_pid = ParentPid} = State) ->
     receive
+	{'DOWN', _MonitorRef, _Type, _Object, _Info} ->  %%parent terminates
+        ok;
 	{'EXIT', ParentPid, _Reason} -> %%even 'normal' terminates this
   	    ok; 
         close ->
@@ -132,10 +134,10 @@ loop(#state{parent_pid = ParentPid} = State) ->
 		   sid = Sid,
 		   rid = Rid,
            type = Type} = State,
-            {NewState, Socket} = new_socket(State, false),
+            {NewState, Socket} = new_socket(State, once),
             ok = make_raw_request(Type, Socket, Host, Path, close_stream_msg(Sid, Rid)),
             ParentPid ! {ok, Ref},
-	    loop(NewState);
+	        loop(NewState#state{session_state = closing, open = [{Socket, Rid+1}|NewState#state.open]});
        {stream, Domain, Ref} when State#state.domain == undefined ->
 	    NewState = do_connect(State, Domain),
             ParentPid ! {ok, Ref},
@@ -149,8 +151,14 @@ loop(#state{parent_pid = ParentPid} = State) ->
 			{ok, NewState} ->
 				loop(NewState);
 			terminate ->
-				?LOG("Session terminated by server", ?INFO),
-            			State#state.parent_pid ! {gen_ts_transport, self(), closed}
+                if 
+                    State#state.session_state  /= 'closing' ->
+			            ts_mon:add({count, error_bosh_terminated}),
+				        ?LOG("Session terminated by server", ?INFO);
+                    true ->
+                        ok
+                end,
+                State#state.parent_pid ! {gen_ts_transport, self(), closed}
 		end;
 	{Close, Socket} when Close == tcp_closed ; Close == 'ssl_closed' ->
 		case lists:keymember(Socket, 1, State#state.open) of
@@ -189,13 +197,11 @@ do_receive_http_response(State, Socket, Vsn) ->
 		content = Content}, []}= xmerl_scan:string(binary_to_list(Resp)),
 	case get_attr(Attrs, type) of
 		"terminate" ->
-			ts_mon:add({count, error_bosh_terminated}),
-			State#state.parent_pid ! {gen_ts_transport, self(), closed},
 			terminate;
-		_ ->
+		_R ->
 		NewOpen = lists:keydelete(Socket, 1, Open),
 		NewState2  = if
-			     NewOpen == [] andalso State#state.is_fresh =:= false ->
+			     NewOpen == [] andalso State#state.session_state =:= 'normal' ->
 				socket_setopts(Type, Socket, [{packet, http}, {active, once}]),
 				ok = make_empty_request(Type, Socket,Sid, Rid, Queue, Host, Path),
 				case length(Queue) of
@@ -270,7 +276,7 @@ do_reset(State) ->
            type = Type} =  State,
     {NewState, Socket} = new_socket(State, once),
     ok = make_raw_request(Type, Socket, Host, Path, restart_stream_msg(Sid, Rid, Domain)),
-    NewState#state{is_fresh = false, rid = Rid +1, open = [{Socket, Rid}|State#state.open]}.
+    NewState#state{session_state = normal, rid = Rid +1, open = [{Socket, Rid}|State#state.open]}.
 
 get_attr([], _Name) -> undefined;
 get_attr([#xmlAttribute{name = Name, value = Value}|_], Name) -> Value;

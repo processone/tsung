@@ -177,9 +177,6 @@ handle_info2({gen_ts_transport, _Socket, Data}, wait_ack, State) when is_binary(
             TimeOut=(NewState#state_rcv.proto_opts)#proto_opts.idle_timeout,
             {next_state, wait_ack, NewState#state_rcv{socket=NewSocket}, TimeOut}
     end;
-%% for erlang data
-handle_info2({gen_ts_transport, _Socket, Data}, wait_ack, State) ->
-    handle_info({gen_ts_transport, _Socket, term_to_binary(Data)}, wait_ack, State);
 
 %% inet close messages; persistent session, waiting for ack
 handle_info2({gen_ts_transport, _Socket, closed}, wait_ack,
@@ -189,6 +186,10 @@ handle_info2({gen_ts_transport, _Socket, closed}, wait_ack,
     {NewState, _Opts} = handle_data_msg(closed, State),
     %% socket should be closed in handle_data_msg
     handle_next_action(NewState#state_rcv{socket=none});
+
+%% for erlang data
+handle_info2({gen_ts_transport, _Socket, Data}, wait_ack, State) ->
+    handle_info({gen_ts_transport, _Socket, term_to_binary(Data)}, wait_ack, State);
 
 %% inet close messages; persistent session
 handle_info2({gen_ts_transport, _Socket, closed}, think,
