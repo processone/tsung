@@ -76,22 +76,20 @@ decode_buffer(Buffer,#http{compressed={_,Comp}})->
 
 dump(protocol,{#ts_request{param=HttpReq},HttpResp,UserId,Server,Size})->
     Status = case element(2,HttpResp#http.status) of
-                 none -> "error_no_http_status"; % something is really wrong here ... server not http compliant ?
+                 none -> "error_no_http_status"; % something is really wrong here ... http 0.9 response ?
                  Int when is_integer(Int) ->
                      integer_to_list(Int)
              end,
-    Match = case get(last_match) of
+    Match = case erase(last_match) of
                 undefined ->
                     "";
                 {count, Val} ->
-                    put(last_match, undefined),
                     atom_to_list(Val)
             end,
-    Error = case get(protocol_error) of
+    Error = case erase(protocol_error) of
                 undefined ->
                     "";
                 Err ->
-                    put(protocol_error, undefined),
                     atom_to_list(Err)
             end,
     Data=ts_utils:join(";",[integer_to_list(UserId),
