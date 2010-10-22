@@ -62,6 +62,7 @@
 
 -record(state, {config,
                 logdir,
+                curcfg = 0,       % number of configured launchers
                 client_static_users = 0, % number of clients that already have their static users
                 static_users = 0, % static users not yet given to a client
                 ports,            % dict, used if we need to choose the client port
@@ -290,19 +291,20 @@ handle_call({get_client_config, static, Host}, _From, State=#state{config=Config
             {reply,{ok,NewUsers,StartDate},State#state{start_date=StartDate,static_users=Tail}}
     end;
 %% get randomly generated users
-handle_call({get_client_config, Host}, _From, State) ->
+handle_call({get_client_config, Host}, _From, State=#state{curcfg=OldCfg,total_weight=Total_Weight}) ->
     ?DebugF("get_client_config from ~p~n",[Host]),
     Config = State#state.config,
+    Clients=Config#config.clients,
     %% set start date if not done yet
     StartDate = set_start_date(State#state.start_date),
-    case get_client_cfg(Config#config.arrivalphases,
-                        Config#config.clients, State#state.total_weight,
-                        Host) of
-        {ok,List,Max} ->
-            {reply,{ok,{List,StartDate,Max}},State#state{start_date=StartDate}};
-        _ ->
-            {reply,{error, notfound}, State}
-    end;
+    {value, Client} = lists:keysearch(Host, #client.host, Clients),
+    IsLast = OldCfg + 1 >= length(Clients),% test is this is the last launcher to ask for it's config
+    Get = fun(Phase,Args)-> {get_client_cfg(Phase,Args),Args} end,
+    {Res, _Acc} = lists:mapfoldl(Get, {Total_Weight,Client,IsLast},Config#config.arrivalphases),
+    {NewPhases,ClientParams} = lists:unzip(Res),
+    Reply = {ok,{ClientParams,StartDate,Client#client.maxusers}},
+    NewConfig=Config#config{arrivalphases=NewPhases},
+    {reply,Reply,State#state{config=NewConfig,start_date=StartDate, curcfg = OldCfg +1}};
 
 %%
 handle_call({get_monitor_hosts}, _From, State) ->
@@ -505,42 +507,33 @@ choose_session([#session{popularity=P} | SList], Rand, Cur) ->
 
 
 %%----------------------------------------------------------------------
-%% Func: get_client_cfg/4
-%% Args: list of #arrivalphase, list of #client, String
-%% Purpose: set parameters for given host client
-%% Returns: {ok, {Intensity = float, Users=integer, StartDate = tuple,
-%%                Max = MaxNumber of clients to start}}
-%%          | {error, Reason}
-%%----------------------------------------------------------------------
-get_client_cfg(Arrival, Clients, TotalWeight, Host) ->
-    SortedPhases=lists:keysort(#arrivalphase.phase, Arrival),
-    get_client_cfg(SortedPhases, Clients, TotalWeight,Host, []).
-
-%% get_client_cfg/5
-%% all phases scanned, look for max and return config.
-get_client_cfg([], Clients, _TotalWeight, Host, Cur) ->
-    {value, Client} = lists:keysearch(Host, #client.host, Clients),
-    Max = Client#client.maxusers,
-    {ok, lists:reverse(Cur), Max};
-get_client_cfg([Arrival=#arrivalphase{duration = Duration,
-                                      intensity= PhaseIntensity,
-                                      maxnumber= MaxNumber } | AList],
-               Clients, TotalWeight, Host, Cur) ->
-    {value, Client} = lists:keysearch(Host, #client.host, Clients),
+%% @spec get_client_cfg(ArrivalPhase::record(arrivalphase),
+%%                      Acc={Total_weight:integer(),Client::record(client),IsLast::binary()}) ->
+%%                      {{UpdatedPhase::record(arrivalphase),{Intensity::number(),NUsers::integer(),Duration::integer()}}, Acc}
+%% @doc set parameters for given host client and phase.
+%% @end
+get_client_cfg(Arrival=#arrivalphase{duration = Duration,
+                                     intensity= PhaseIntensity,
+                                     curnumber= CurNumber,
+                                     maxnumber= MaxNumber },
+               Acc = {TotalWeight,Client,IsLast} ) ->
     Weight = Client#client.weight,
     ClientIntensity = PhaseIntensity * Weight / TotalWeight,
-    NUsers = case MaxNumber of
-                 infinity -> %% only use the duration to set the number of users
-                     Duration * 1000 * ClientIntensity;
-                 _ ->
-                     ClientMaxNumber = trunc(MaxNumber * Weight / TotalWeight),
-                     lists:min([ClientMaxNumber, Duration*1000*ClientIntensity])
-             end,
-    %% TODO: store the max number of clients
-    ?LOGF("New arrival phase ~p for client ~p: will start ~p users~n",
-          [Arrival#arrivalphase.phase, Host, NUsers],?NOTICE),
-    get_client_cfg(AList, Clients, TotalWeight, Host,
-                   [{ClientIntensity, round(NUsers)} | Cur]).
+    NUsers = round(case MaxNumber of
+                       infinity -> %% only use the duration to set the number of users
+                           Duration * 1000 * ClientIntensity;
+                       _ ->
+                           TmpMax = case IsLast of
+                                        true ->
+                                            MaxNumber-CurNumber;
+                                        false ->
+                                            trunc(MaxNumber * Weight / TotalWeight)
+                                    end,
+                           lists:min([TmpMax, Duration*1000*ClientIntensity])
+                   end),
+    ?LOGF("New arrival phase ~p for client ~p (last ? ~p): will start ~p users~n",
+          [Arrival#arrivalphase.phase,Client#client.host, IsLast,NUsers],?NOTICE),
+    {Arrival#arrivalphase{curnumber=CurNumber+NUsers}, {ClientIntensity, NUsers, Duration}}.
 
 %%----------------------------------------------------------------------
 %% Func: encode_filename/1
@@ -641,7 +634,9 @@ load_app(Name) when is_atom(Name) ->
 %% Returns: #config
 %% Purpose: duplicate phases 'load_loop' times.
 %%----------------------------------------------------------------------
-loop_load(Config=#config{load_loop=0}) -> Config;
+loop_load(Config=#config{load_loop=0,arrivalphases=Arrival}) ->
+    Sorted=lists:keysort(#arrivalphase.phase, Arrival),
+    Config#config{arrivalphases=Sorted};
 loop_load(Config=#config{load_loop=Loop,arrivalphases=Arrival}) when is_integer(Loop) ->
     loop_load(Config, ts_utils:keymax(#arrivalphase.phase, Arrival), Arrival ).
 
@@ -649,7 +644,8 @@ loop_load(Config=#config{load_loop=Loop,arrivalphases=Arrival}) when is_integer(
 %% max to get a new unique id for all phases. Here we don't care about
 %% the order, so we start with the last iteration (Loop* Max)
 loop_load(Config=#config{load_loop=0},_,Current) ->
-    Config#config{arrivalphases = Current};
+    Sorted=lists:keysort(#arrivalphase.phase, Current),% is it necessary ?
+    Config#config{arrivalphases = Sorted};
 loop_load(Config=#config{load_loop=Loop, arrivalphases=Arrival},Max,Current) ->
     Fun= fun(Phase) -> Phase+Max*Loop end,
     NewArrival = lists:keymap(Fun,#arrivalphase.phase,Arrival),

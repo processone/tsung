@@ -99,7 +99,7 @@
         {phase,
          duration,
          unit,
-         number, %% ?
          intensity,
-         maxnumber
+         maxnumber,
+         curnumber = 0
         }).

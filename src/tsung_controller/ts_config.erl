@@ -269,7 +269,7 @@ parse(Element = #xmlElement{name=arrivalphase, attributes=Attrs},
     Phase     = getAttr(integer,Attrs, phase),
     IDuration  = getAttr(integer, Attrs, duration),
     Unit  = getAttr(string,Attrs, unit, "second"),
-    D = to_seconds(Unit, IDuration),
+    D = 1000 * to_seconds(Unit, IDuration),
     case lists:keysearch(Phase,#arrivalphase.phase,AList) of
         false ->
             lists:foldl(fun parse/2,

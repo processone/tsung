@@ -113,11 +113,12 @@ read_config_maxusers_test() ->
     myset_env(),
     MaxNumber=10,
     ts_config_server:read_config("./src/test/thinkfirst.xml"),
-    {ok,{[{_,Max1},{_,_}],_,_}}=ts_config_server:get_client_config("client1"),
-    {ok,{[{_,Max2},{_,_}],_,_}}=ts_config_server:get_client_config("client2"),
-    {ok,{[{_,Max3},{_,_}],_,_}}=ts_config_server:get_client_config("client3"),
-    {ok,{[{_,Max4},{_,_}],_,_}}=ts_config_server:get_client_config("client4"),
-    ?assert(Max1+Max2+Max3+Max4 =< MaxNumber).
+    {ok,{[{_,Max1,_},{_,_,_}],_,_}}=ts_config_server:get_client_config("client1"),
+    {ok,{[{_,Max2,_},{_,_,_}],_,_}}=ts_config_server:get_client_config("client2"),
+    {ok,{[{_,Max3,_},{_,_,_}],_,_}}=ts_config_server:get_client_config("client3"),
+    {ok,{[{_,Max4,_},{_,_,_}],_,_}}=ts_config_server:get_client_config("client4"),
+    ?LOGF("max: ~p",[[Max1,Max2,Max3,Max4]],?ERR),
+    ?assertEqual(Max1+Max2+Max3+Max4, MaxNumber).
 
 
 cport_list_node_test() ->
