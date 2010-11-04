@@ -528,11 +528,14 @@ handle_next_request(Request, State) ->
             P ->
                 {P, {PrevHost, PrevPort, PrevProto}}
         end,
-
     %% need to reconnect if the server/port/scheme has changed
-    Socket = case {State#state_rcv.host,State#state_rcv.port,State#state_rcv.protocol} of
-                 {Host, Port, Protocol} -> % server setup unchanged
+    Socket = case {State#state_rcv.host,State#state_rcv.port,State#state_rcv.protocol, State#state_rcv.socket} of
+                 {Host, Port, Protocol, _} -> % server setup unchanged
                      State#state_rcv.socket;
+                 {_,_,_, none} ->
+                     ?Debug("Change server configuration inside a session. Socket not opened~n"),
+                     set_connected_status(false),
+                     none;
                  _ ->
                      ?Debug("Change server configuration inside a session ~n"),
                      (State#state_rcv.protocol):close(State#state_rcv.socket),

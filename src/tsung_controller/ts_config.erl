@@ -479,8 +479,8 @@ parse( #xmlElement{name=change_type, attributes=Attrs},
     Store   = getAttr(atom, Attrs, store, false),
     Restore = getAttr(atom, Attrs, restore, false),
     PType = case getAttr(Attrs, server_type) of
-               "ssl" -> ssl;
-               "tcp" -> gen_tcp;
+               "ssl" -> ts_ssl;
+               "tcp" -> ts_tcp;
                "udp" -> gen_udp;
                "erlang" -> erlang
            end,
