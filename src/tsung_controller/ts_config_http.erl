@@ -237,13 +237,13 @@ set_msg(HTTPRequest, {SubstFlag, MatchRegExp, true, Server, {HostHeader, PrevSch
 %% Purpose: set param  in ts_request
 set_msg2(HTTPRequest, Msg) -> Msg#ts_request{ param = HTTPRequest }.
 
-server_to_url(#server{port=80, host= Host, type= gen_tcp})->
+server_to_url(#server{port=80, host= Host, type=ts_tcp})->
     "http://" ++ Host;
-server_to_url(#server{port=Port, host= Host, type= gen_tcp})->
+server_to_url(#server{port=Port, host= Host, type=ts_tcp})->
     "http://" ++ Host ++ ":" ++ integer_to_list(Port);
-server_to_url(#server{port=443, host= Host, type= ssl})->
+server_to_url(#server{port=443, host= Host, type=ts_ssl})->
     "https://" ++ Host;
-server_to_url(#server{port=Port, host= Host, type= ssl})->
+server_to_url(#server{port=Port, host= Host, type=ts_ssl})->
     "https://" ++ Host ++ ":" ++ integer_to_list(Port).
 
 %%--------------------------------------------------------------------
@@ -264,8 +264,8 @@ set_port(#url{scheme=http,port=undefined})   -> 80;
 set_port(#url{port=Port}) when is_integer(Port) -> Port;
 set_port(#url{port=Port}) -> integer_to_list(Port).
 
-set_scheme(http)  -> gen_tcp;
-set_scheme(https) -> ssl.
+set_scheme(http)  -> ts_tcp;
+set_scheme(https) -> ts_ssl.
 
 
 set_query(URLrec = #url{querypart=""}) ->
