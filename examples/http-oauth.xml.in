@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<!DOCTYPE tsung SYSTEM "@prefix@/share/@PACKAGE_NAME@/@DTD@">
+<tsung loglevel="debug" dumptraffic="true" version="1.0">
+
+  <clients>
+    <client host="localhost" weight="1" maxusers="1000" use_controller_vm="true"/>
+  </clients>
+
+  <servers>
+    <server host="127.0.0.1" port="8000" type="tcp"></server>
+  </servers>
+
+	<load>
+   <arrivalphase phase="1" duration="2" unit="second">
+    <users interarrival="1" unit="second"></users>
+   </arrivalphase>
+  </load>
+
+  <sessions>
+    <session name="http_test_1" probability="100" type="ts_http">
+			<!--1. fetching token from SSO
+				using tsung XPath dynvars, the access_token and secret are stored for future use.
+				Please note the <oauth/> element with the consumer information. 
+				By default requests are signed with "HMAC-SHA1" so it's not necessary here.
+			-->
+			<request>
+				<dyn_variable name="access_token" xpath="/tokenCreationResponse/tokenInfo/token/text()"/>
+				<dyn_variable name="access_token_secret" xpath="/tokenCreationResponse/tokenInfo/tokenSecret/text()" />
+        <http url="/token" method="POST" version="1.1" contents="rien">
+         	<oauth consumer_key="key" consumer_secret="secret"  method="HMAC-SHA1"/>
+        </http>
+      </request>
+
+			<!--2. access to protected resources 
+				Using the variables set from the SSO, we are now able to access the protected resource
+				-->
+      <request subst="true">
+        <http url="/echo" method="GET" version="1.1">
+         <oauth consumer_key="key" consumer_secret="secret" access_token="%%_access_token%%" access_token_secret="%%_access_token_secret%%"/>
+        </http>
+      </request>
+
+			<!--3. refreshing token 
+				refreshing the token work mostly as in step 1.
+				Values are overridden-->
+			
+			<request subst="true">
+				<dyn_variable name="access_token" xpath="/tokenCreationResponse/tokenInfo/token/text()"/>
+				<dyn_variable name="access_token_secret" xpath="/tokenCreationResponse/tokenInfo/tokenSecret/text()" />
+        <http url="/token/%%_access_token%%" method="PUT" version="1.1">
+         	<oauth consumer_key="key" consumer_secret="secret"/>
+        </http>
+      </request>
+
+			<!--4. access to protected resources 
+				See step 2.-->
+			
+			<request subst="true">
+        <http url="/echo" method="GET" version="1.1">
+         <oauth consumer_key="key" consumer_secret="secret" access_token="%%access_token_secret%%" access_token_secret="%%access_token_secret%%"/>
+        </http>
+      </request>
+    </session>
+</sessions>
+
+</tsung>
+
+

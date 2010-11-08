@@ -145,7 +145,7 @@ repeat | if | change_type )*>
 <!ELEMENT transaction (request | setdynvars | thinktime | for | repeat)+>
 <!ATTLIST transaction name NMTOKEN #REQUIRED>
 
-<!ELEMENT http ( www_authenticate?, soap?, http_header*, add_cookie*)>
+<!ELEMENT http (oauth?, www_authenticate?, soap?, http_header*, add_cookie*)>
 <!ATTLIST http
     contents           CDATA #IMPLIED
     contents_from_file CDATA #IMPLIED
@@ -183,6 +183,15 @@ repeat | if | change_type )*>
 <!ATTLIST www_authenticate
     passwd CDATA #REQUIRED
     userid CDATA #REQUIRED >
+
+<!ELEMENT oauth EMPTY >
+<!ATTLIST oauth
+    consumer_key CDATA #REQUIRED
+    consumer_secret CDATA #REQUIRED
+ 		access_token CDATA #IMPLIED
+		access_token_secret CDATA #IMPLIED
+		method  (HMAC-SHA1 | PLAINTEXT | RSA-SHA1) "HMAC-SHA1"
+		>
 
 <!ELEMENT jabber EMPTY >
 <!ATTLIST jabber

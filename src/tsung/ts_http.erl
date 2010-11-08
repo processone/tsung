@@ -106,13 +106,13 @@ parse_config(Element, Conf) ->
 add_dynparams(false, DynData, Param, HostData) ->
     add_dynparams(DynData#dyndata.proto, Param, HostData);
 add_dynparams(true, DynData, OldReq=#http_request{url=OldUrl}, HostData) ->
-    Req = subst(OldReq, DynData#dyndata.dynvars),
+    Req = subst(OldReq, DynData#dyndata.dynvars), 
     case Req#http_request.url of
-        OldUrl ->
+        OldUrl ->  
             add_dynparams(DynData#dyndata.proto,Req, HostData);
         "http" ++ _Rest -> % URL has changed and is absolute
             URL=ts_config_http:parse_URL(Req#http_request.url),
-            ?DebugF("URL dynamic subst: ~p~n",[URL]),
+            ?LOGF("URL dynamic subst: ~p~n",[URL],?WARN), 
             NewPort = ts_config_http:set_port(URL),
             NewUrl = case OldUrl of
                          "http"++_ -> % old url absolute: useproxy must be true
@@ -121,17 +121,17 @@ add_dynparams(true, DynData, OldReq=#http_request{url=OldUrl}, HostData) ->
                              ts_config_http:set_query(URL)
                      end,
             NewReq=add_dynparams(DynData#dyndata.proto,
-                                 Req#http_request{url=NewUrl,host_header=undefined},
+                                 Req#http_request{url=NewUrl, host_header=undefined},
                                  {URL#url.host, NewPort}),
             {NewReq, {URL#url.host, NewPort,ts_config_http:set_scheme(URL#url.scheme)}};
         _ -> % Same host:port
             add_dynparams(DynData#dyndata.proto, Req, HostData)
     end.
 
-%% Function: add_dynparams/3
+%% Function: add_dynparams/3 
 add_dynparams(DynData,Param=#http_request{host_header=undefined}, {Host,Port})->
     Header=Host++":"++ integer_to_list(Port),
-    ?DebugF("set host header dynamically: ~s~n",[Header]),
+    ?LOGF("set host header dynamically: ~s~n",[Header],?WARN),
     add_dynparams(DynData, Param#http_request{host_header=Header},{Host,Port});
 %% no cookies
 add_dynparams(#http_dyndata{cookies=[],user_agent=UA},Param, _) ->
@@ -157,11 +157,14 @@ init_dynparams() ->
 %%          request parameters.
 %% @end
 %%----------------------------------------------------------------------
-subst(Req=#http_request{url=URL, body=Body, headers = Headers, userid=UserId, passwd=Passwd}, DynData) ->
+subst(Req=#http_request{url=URL, body=Body, headers = Headers,oauth_url=OUrl, oauth_access_token=AToken, oauth_access_secret=ASecret, userid=UserId, passwd=Passwd}, DynData) ->
     Req#http_request{url = ts_search:subst(URL, DynData),
              body   = ts_search:subst(Body, DynData),
              headers = lists:foldl(fun ({Name, Value}, Result) ->
                                            [{Name, ts_search:subst(Value, DynData)} | Result]
                                    end, [], Headers),
+             oauth_access_token = ts_search:subst(AToken, DynData),
+             oauth_access_secret = ts_search:subst(ASecret, DynData),
+             oauth_url = ts_search:subst(OUrl, DynData),
              userid = ts_search:subst(UserId, DynData),
              passwd = ts_search:subst(Passwd, DynData)}.

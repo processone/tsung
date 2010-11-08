@@ -59,12 +59,13 @@ http_get(Args) ->
 http_no_body(Method,#http_request{url=URL, version=Version, cookie=Cookie,
                               headers=Headers, user_agent=UA,
                               get_ims_date=undefined, soap_action=SOAPAction,
-                              host_header=Host, userid=UserId, passwd=Passwd})->
+                              host_header=Host, userid=UserId, passwd=Passwd}=Req)->
     ?DebugF("~p ~p~n",[Method,URL]),
     R = list_to_binary([Method, " ", URL," ", "HTTP/", Version, ?CRLF,
                     set_header("Host",Host,Headers, ""),
                     set_header("User-Agent",UA,Headers, ?USER_AGENT),
                     authenticate(UserId,Passwd),
+                    oauth_sign(Method,Req),
                     soap_action(SOAPAction),
                     set_cookie_header({Cookie, Host, URL}),
                     headers(Headers),
@@ -75,7 +76,7 @@ http_no_body(Method,#http_request{url=URL, version=Version, cookie=Cookie,
 http_no_body(Method,#http_request{url=URL, version=Version, cookie=Cookie,
                              headers=Headers, user_agent=UA,
                              get_ims_date=Date, soap_action=SOAPAction,
-                             host_header=Host, userid=UserId, passwd=Passwd}) ->
+                             host_header=Host, userid=UserId, passwd=Passwd}=Req) ->
     ?DebugF("~p ~p~n",[Method, URL]),
     list_to_binary([Method, " ", URL," ", "HTTP/", Version, ?CRLF,
                     ["If-Modified-Since: ", Date, ?CRLF],
@@ -83,6 +84,7 @@ http_no_body(Method,#http_request{url=URL, version=Version, cookie=Cookie,
                     set_header("User-Agent",UA,Headers, ?USER_AGENT),
                     soap_action(SOAPAction),
                     authenticate(UserId,Passwd),
+                    oauth_sign(Method,Req),
                     set_cookie_header({Cookie, Host, URL}),
                     headers(Headers),
                     ?CRLF]).
@@ -102,7 +104,7 @@ http_body(Method,#http_request{url=URL, version=Version,
                                user_agent=UA, soap_action=SOAPAction,
                                content_type=ContentType,
                                body=Content, host_header=Host,
-                               userid=UserId, passwd=Passwd}) ->
+                               userid=UserId, passwd=Passwd}=Req) ->
     ContentLength=integer_to_list(size(Content)),
     ?DebugF("Content Length of POST: ~p~n.", [ContentLength]),
     H = [Method, " ", URL," ", "HTTP/", Version, ?CRLF,
@@ -110,6 +112,7 @@ http_body(Method,#http_request{url=URL, version=Version,
                set_header("User-Agent",UA,Headers, ?USER_AGENT),
                authenticate(UserId,Passwd),
                soap_action(SOAPAction),
+               oauth_sign(Method, Req),
                set_cookie_header({Cookie, Host, URL}),
                headers(Headers),
                "Content-Type: ", ContentType, ?CRLF,
@@ -128,6 +131,17 @@ authenticate(UserId,Passwd)->
     AuthStr = ts_utils:encode_base64(lists:append([UserId,":",Passwd])),
     ["Authorization: Basic ",AuthStr,?CRLF].
 
+oauth_sign(_, #http_request{oauth_consumer = undefined})->[];
+oauth_sign(Method, #http_request{url=URL,
+                         oauth_consumer=Consumer,
+                         oauth_access_token=AccessToken,
+                         oauth_access_secret=AccessSecret,
+                         oauth_url=ServerURL})->
+    UrlParams = oauth_uri:params_from_string(URL),
+    ?LOGF("Signing query with  ~p~n",[ServerURL],?WARN), 
+    Params = oauth:signed_params(Method, ServerURL, UrlParams, Consumer, AccessToken, AccessSecret),
+    ["Authorization: OAuth ", oauth_uri:params_to_header_string(Params),?CRLF].
+    
 %%----------------------------------------------------------------------
 %% @spec set_header(Name::string, Val::string | undefined, Headers::List,
 %%                  Default::string) -> list()

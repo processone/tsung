@@ -38,6 +38,10 @@
           body = [],
           id = 0,
           user_agent,
+          oauth_consumer,
+          oauth_access_token,
+          oauth_access_secret,
+          oauth_url,
           userid, % for www_authentication
           passwd, % for www_authentication
           soap_action % for SOAP support

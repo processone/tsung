@@ -36,7 +36,7 @@
 -include("ts_profile.hrl").
 -include("ts_http.hrl").
 -include("ts_config.hrl").
-
+ 
 -include("xmerl.hrl").
 
 %%----------------------------------------------------------------------
@@ -49,7 +49,7 @@
 parse_config(Element = #xmlElement{name=dyn_variable}, Conf = #config{}) ->
     ts_config:parse(Element,Conf);
 parse_config(Element = #xmlElement{name=http},
-             Config=#config{curid = Id, session_tab = Tab, servers = Servers,
+             Config=#config{curid = Id, session_tab = Tab, servers = [Server|_] = Servers,
                             sessions = [CurS | _], dynvar=DynVar,
                             subst    = SubstFlag, match=MatchRegExp}) ->
     Version  = ts_config:getAttr(string,Element#xmlElement.attributes, version, "1.1"),
@@ -96,17 +96,55 @@ parse_config(Element = #xmlElement{name=http},
                             Request2#http_request.headers),
     Request3 = Request2#http_request{headers=Headers,cookie=Cookies},
     %% HTTP Authentication
-    Msg = case lists:keysearch(www_authenticate, #xmlElement.name,
+    Request4 = case lists:keysearch(www_authenticate, #xmlElement.name,
                                Element#xmlElement.content) of
               {value, AuthEl=#xmlElement{} } ->
                   UserId= ts_config:getAttr(string,AuthEl#xmlElement.attributes,
                                               userid, undefined),
                   Passwd= ts_config:getAttr(string,AuthEl#xmlElement.attributes,
                                               passwd, undefined),
-                  NewReq=Request3#http_request{userid=UserId, passwd=Passwd},
+                  Request3#http_request{userid=UserId, passwd=Passwd};
+              _ ->
+                  Request3
+          end,
+    %% OAuth
+    Msg = case lists:keysearch(oauth, #xmlElement.name,
+                               Element#xmlElement.content) of
+              {value, AuthEl2=#xmlElement{} } ->
+                  ConsumerKey = ts_config:getAttr(string,AuthEl2#xmlElement.attributes,
+                                              consumer_key, undefined),
+                  ConsumerSecret = ts_config:getAttr(string,AuthEl2#xmlElement.attributes,
+                                              consumer_secret, undefined),
+                  AccessToken = ts_config:getAttr(string,AuthEl2#xmlElement.attributes,
+                                              access_token, []),
+                  AccessTokenSecret = ts_config:getAttr(string,AuthEl2#xmlElement.attributes,
+                                              access_token_secret, []),
+                  Encoding = ts_config:getAttr(string,AuthEl2#xmlElement.attributes,
+                                              encoding, "HMAC-SHA1"),
+                  AbsoluteURL = case URL of
+                    "http" ++ _Rest ->
+                      hd(string:tokens(URL, "?"));
+                    _Relative ->
+                      server_to_url(Server) ++ hd(string:tokens(URL, "?"))
+                  end,
+                  SigEncoding = case Encoding of
+                    "PLAINTEXT" ->
+                      plaintext;
+                    "HMAC-SHA1" ->
+                      hmac_sha1;
+                    "RSA-SHA1" ->
+                      rsa_sha1
+                  end, 
+                ?LOGF("TOKENS : ~p ~p ~p", [AccessToken, URL, AbsoluteURL], ?WARN),
+                NewReq=Request4#http_request{oauth_access_token=AccessToken,
+                                             oauth_url=AbsoluteURL,
+                                             oauth_access_secret=AccessTokenSecret,
+                                             oauth_consumer={ConsumerKey,
+                                                            ConsumerSecret,
+                                                            SigEncoding}},
                   set_msg(NewReq, {SubstFlag, MatchRegExp, UseProxy, Servers, PreviousHTTPServer, Tab, CurS#session.id} );
               _ ->
-                  set_msg(Request3, {SubstFlag, MatchRegExp, UseProxy, Servers, PreviousHTTPServer, Tab, CurS#session.id} )
+                  set_msg(Request4, {SubstFlag, MatchRegExp, UseProxy, Servers, PreviousHTTPServer, Tab, CurS#session.id} )
           end,
     ts_config:mark_prev_req(Id-1, Tab, CurS),
     ets:insert(Tab,{{CurS#session.id, Id},Msg#ts_request{endpage=true,
