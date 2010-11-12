@@ -101,9 +101,25 @@ parse_config(Element = #xmlElement{name=http},
               {value, AuthEl=#xmlElement{} } ->
                   UserId= ts_config:getAttr(string,AuthEl#xmlElement.attributes,
                                               userid, undefined),
+                  Type = ts_config:getAttr(string,AuthEl#xmlElement.attributes,
+                                              type, undefined),
+                  Nonce = ts_config:getAttr(string,AuthEl#xmlElement.attributes,
+                                              nonce, undefined),
+                  Opaque = ts_config:getAttr(string,AuthEl#xmlElement.attributes,
+                                              opaque, undefined),
+                  Cnonce = ts_config:getAttr(string,AuthEl#xmlElement.attributes,
+                                                cnonce, "%%ts_user_server:get_really_unique_id%%"),
+                  Nc = ts_config:getAttr(string,AuthEl#xmlElement.attributes,
+                                              nc, "00000001"),
                   Passwd= ts_config:getAttr(string,AuthEl#xmlElement.attributes,
                                               passwd, undefined),
-                  Request3#http_request{userid=UserId, passwd=Passwd};
+                  Realm = ts_config:getAttr(string,AuthEl#xmlElement.attributes,
+                                              realm, undefined),
+                  ?LOGF("DIGEST ? : ~p ~p ~p", [Type, Nonce, Realm], ?WARN),
+                  Request3#http_request{userid=UserId, passwd=Passwd, 
+                                        auth_type=Type, digest_nonce=Nonce,
+                                        digest_cnonce=Cnonce, digest_nc=Nc, 
+                                        digest_opaque=Opaque, realm=Realm};
               _ ->
                   Request3
           end,
@@ -135,7 +151,6 @@ parse_config(Element = #xmlElement{name=http},
                     "RSA-SHA1" ->
                       rsa_sha1
                   end, 
-                ?LOGF("TOKENS : ~p ~p ~p", [AccessToken, URL, AbsoluteURL], ?WARN),
                 NewReq=Request4#http_request{oauth_access_token=AccessToken,
                                              oauth_url=AbsoluteURL,
                                              oauth_access_secret=AccessTokenSecret,

@@ -164,7 +164,8 @@ repeat | if | change_type )*>
     xpath    CDATA #IMPLIED
     jsonpath CDATA #IMPLIED
     pgsql_expr CDATA #IMPLIED
-    regexp   CDATA #IMPLIED >
+    regexp   CDATA #IMPLIED 
+		header   CDATA #IMPLIED >
 
 <!ELEMENT http_header EMPTY >
 <!ATTLIST http_header
@@ -182,8 +183,14 @@ repeat | if | change_type )*>
 <!ELEMENT www_authenticate EMPTY >
 <!ATTLIST www_authenticate
     passwd CDATA #REQUIRED
-    userid CDATA #REQUIRED >
-
+    userid CDATA #REQUIRED
+		nonce  CDATA #IMPLIED
+		opaque CDATA #IMPLIED
+		cnonce  CDATA #IMPLIED
+		nc CDATA #IMPLIED
+		realm CDATA #IMPLIED
+		type (basic | digest) "basic" >
+		
 <!ELEMENT oauth EMPTY >
 <!ATTLIST oauth
     consumer_key CDATA #REQUIRED

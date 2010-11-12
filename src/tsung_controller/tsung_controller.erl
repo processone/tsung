@@ -39,7 +39,8 @@
 %%----------------------------------------------------------------------
 start(_Type, _StartArgs) ->
     error_logger:tty(false),
-    {ok, {LogDir, _Name}} = ts_utils:setsubdir(?config(log_file)),
+    %{ok, {LogDir, _Name}} = ts_utils:setsubdir(?config(log_file)),
+    LogDir = "/Users/cstar/devs/processone/tsung-private/build/logdir",
     erlang:display("Log directory is: " ++ LogDir),
     LogFile = filename:join(LogDir, atom_to_list(node()) ++ ".log"),
     case  error_logger:logfile({open, LogFile }) of

@@ -44,6 +44,12 @@
           oauth_url,
           userid, % for www_authentication
           passwd, % for www_authentication
+          auth_type,
+          digest_nonce,
+          digest_opaque,
+          digest_cnonce,
+          digest_nc,
+          realm,
           soap_action % for SOAP support
          }).
 

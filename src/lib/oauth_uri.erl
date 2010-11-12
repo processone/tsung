@@ -59,7 +59,8 @@ params_from_header_string(String) ->
   [param_from_header_string(Param) || Param <- re:split(String, ",\\s*", [{return, list}])].
 
 param_from_header_string(Param) ->
-  [Key, QuotedValue] = string:tokens(Param, "="),
+  [Key|Rest] = string:tokens(Param, "="),
+  QuotedValue = string:join(Rest,"="),
   Value = string:substr(QuotedValue, 2, length(QuotedValue) - 2),
   {decode(Key), decode(Value)}.
 

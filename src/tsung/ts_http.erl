@@ -157,13 +157,20 @@ init_dynparams() ->
 %%          request parameters.
 %% @end
 %%----------------------------------------------------------------------
-subst(Req=#http_request{url=URL, body=Body, headers = Headers,oauth_url=OUrl, oauth_access_token=AToken, oauth_access_secret=ASecret, userid=UserId, passwd=Passwd}, DynData) ->
+subst(Req=#http_request{url=URL, body=Body, headers = Headers,oauth_url=OUrl, 
+                        oauth_access_token=AToken, oauth_access_secret=ASecret, 
+                        digest_cnonce=CNonce, digest_nc=Nc,digest_nonce=Nonce,
+                        realm=Realm, userid=UserId, passwd=Passwd}, DynData) ->
     Req#http_request{url = ts_search:subst(URL, DynData),
              body   = ts_search:subst(Body, DynData),
              headers = lists:foldl(fun ({Name, Value}, Result) ->
                                            [{Name, ts_search:subst(Value, DynData)} | Result]
                                    end, [], Headers),
              oauth_access_token = ts_search:subst(AToken, DynData),
+             digest_nonce = ts_search:subst(Nonce, DynData),
+             digest_cnonce = ts_search:subst(CNonce, DynData),
+             digest_nc = ts_search:subst(Nc, DynData),
+             realm = ts_search:subst(Realm, DynData),
              oauth_access_secret = ts_search:subst(ASecret, DynData),
              oauth_url = ts_search:subst(OUrl, DynData),
              userid = ts_search:subst(UserId, DynData),

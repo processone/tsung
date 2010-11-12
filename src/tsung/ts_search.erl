@@ -277,6 +277,55 @@ parse_dynvar([{regexp,VarName, RegExp}| DynVarsSpecs],
             parse_dynvar(DynVarsSpecs, Binary,String,Tree, ts_dynvars:set(VarName,"",DynVars))
     end;
 
+parse_dynvar([{header,VarName, HeaderName}| DynVarsSpecs],
+                    Binary,String,Tree, DynVars) ->
+    BinHeaders = extract_headers(Binary),
+    Headers = mochiweb_headers:from_binary(BinHeaders),
+    case string:tokens(HeaderName, "/") of
+      [H1] ->
+        V1 = mochiweb_headers:get_value(H1, Headers),
+        ?LOGF("DynVar: Header (~p=~p) ~n",[VarName, V1], ?NOTICE),
+        parse_dynvar(DynVarsSpecs, Binary,String,Tree,
+                        ts_dynvars:set(VarName,V1,DynVars));
+      [H1,SubH] ->
+        Value = case mochiweb_headers:get_value(H1, Headers) of 
+          [] ->
+            {ok, Old} = ts_dynvars:lookup(VarName, DynVars, ""),
+            ?LOGF("DynVar: Header ~p not found ; using ~p ~n",[H1, Old], ?WARN),
+            Old;
+          undefined ->
+            {ok, Old} = ts_dynvars:lookup(VarName, DynVars, ""),
+            ?LOGF("DynVar: Header ~p not found ; using ~p ~n",[H1, Old], ?WARN),
+            Old;
+          SubV when H1 == "www-authenticate" orelse H1 == "authentication-info"->
+            ?LOGF("DynVar: Found header ~p ~n",[SubV], ?WARN),
+            {_, Params} = parse_header(SubV, ","),
+            ?LOGF("DynVar: Parsed subheader ~p ~n",[Params], ?WARN),
+            case lists:keyfind(SubH, 1, Params) of
+              false ->
+                {ok, Old} = ts_dynvars:lookup(VarName, DynVars, ""),
+                ?LOGF("DynVar: SubHeader ~p not found ; using ~p ~n",[VarName, Old], ?WARN),
+                Old;
+              {_, V} ->
+                ?LOGF("DynVar: SubHeader (~p=~p) ~n",[VarName, V], ?DEB),
+                V
+            end; 
+          SubV ->
+            {_, Params}= parse_header(SubV, ";"),
+            case lists:keyfind(SubH, 1, Params) of
+              false ->
+                ?LOGF("DynVar: SubHeader ~p not found ~n",[VarName], ?WARN),
+                {ok, Old} = ts_dynvars:lookup(VarName, DynVars, ""),
+                Old;
+              {_, V} ->
+                ?LOGF("DynVar: SubHeader (~p=~p) ~n",[VarName, V], ?NOTICE),
+                V
+            end
+        end,
+        parse_dynvar(DynVarsSpecs, Binary,String,Tree,
+                        ts_dynvars:set(VarName,Value,DynVars))
+    end;
+
 parse_dynvar(D=[{xpath,_VarName, _Expr}| _DynVarsSpecs],
                 Binary,String,undefined,DynVars) ->
     HTML = extract_body(Binary),
@@ -289,6 +338,8 @@ parse_dynvar(D=[{xpath,_VarName, _Expr}| _DynVarsSpecs],
                     [Type,Exp,Binary],?ERR),
             parse_dynvar(D,Binary,String,xpath_error,DynVars)
     end;
+
+
 
 parse_dynvar(D=[{jsonpath,_VarName, _Expr}| _DynVarsSpecs],
                 Binary,String,undefined,DynVars) ->
@@ -308,6 +359,7 @@ parse_dynvar(D=[{pgsql_expr,_VarName, _Expr}| _DynVarsSpecs],
                 Binary,String,undefined,DynVars) ->
     Pairs=ts_pgsql:to_pairs(Binary),
     parse_dynvar(D,Binary,String,Pairs,DynVars);
+
 
 parse_dynvar([{xpath,VarName,_Expr}|DynVarsSpecs],Binary,String,xpath_error,DynVars)->
     ?LOGF("Couldn't execute XPath: page not parsed (varname=~p)~n",
@@ -355,9 +407,51 @@ parse_dynvar(Args, _Binary,_String,_Tree, _DynVars) ->
 
 extract_body(<<"\r\n\r\n",Rest/binary>>) ->
     Rest;
-
+    
 extract_body(<<_:1/binary,Rest/binary>>) ->
     extract_body(Rest);
 
 extract_body(<<>>) ->
     <<>>.
+    
+extract_headers(<<"\r\n",Rest/binary>>) ->
+    Rest;
+extract_headers(<<_:1/binary,Rest/binary>>) ->
+    extract_headers(Rest);
+extract_headers(<<>>) ->
+    <<>>.
+    
+%% Comes from mochiweb_utils.erl ; very slightly adapted.
+parse_header(String, ";")-> % for Content-Type and friends
+    [Type | Parts] = [string:strip(S) || S <- string:tokens(String, ";")],
+    {string:to_lower(Type),
+     lists:foldr(fun prepare_headers/2, [], Parts)};
+parse_header(String, ",")-> % for Auth
+    [Type | Rest] = [string:strip(S) || S <- string:tokens(String, " ")],
+    Parts = [string:strip(S) || S <- string:tokens(string:join(Rest, " "), ",")],
+    {string:to_lower(Type),
+     lists:foldr(fun prepare_headers/2, [], Parts)}.
+unquote_header("\"" ++ Rest) ->
+    unquote_header(Rest, []);
+unquote_header(S) ->
+    S.
+prepare_headers(S, Acc)->
+    case lists:splitwith(fun (C) -> C =/= $= end, S) of
+        {"", _} ->
+            %% Skip anything with no name
+            Acc;
+        {_, ""} ->
+            %% Skip anything with no value
+            Acc;
+        {Name, [$\= | Value]} ->
+            [{string:to_lower(string:strip(Name)),
+              unquote_header(string:strip(Value))} | Acc]
+    end.
+unquote_header("", Acc) ->
+    lists:reverse(Acc);
+unquote_header("\"", Acc) ->
+    lists:reverse(Acc);
+unquote_header([$\\, C | Rest], Acc) ->
+    unquote_header(Rest, [C | Acc]);
+unquote_header([C | Rest], Acc) ->
+    unquote_header(Rest, [C | Acc]).
