@@ -87,7 +87,7 @@ init({#session{id           = SessionId,
                hibernate    = Hibernate,
                proto_opts   = ProtoOpts,
                size         = Count,
-               type         = CType}, IP, Server,Id}) ->
+               type         = CType}, IP, Server,Id, Dump}) ->
     ?DebugF("Init ... started with count = ~p~n",[Count]),
     ts_utils:init_seed(),
 
@@ -123,7 +123,7 @@ init({#session{id           = SessionId,
                             session    = CType:new_session(),
                             persistent = Persistent,
                             starttime  = StartTime,
-                            dump       = ?config(dump),
+                            dump       = Dump,
                             proto_opts = ProtoOpts,
                             count      = Count,
                             ip         = NewIP,
