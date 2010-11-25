@@ -29,6 +29,7 @@
 -export([ get_message/1
          ]).
 
+-export ([starttls/0]).
 -include("ts_profile.hrl").
 -include("ts_jabber.hrl").
 
@@ -41,6 +42,8 @@
 %%----------------------------------------------------------------------
 get_message(Jabber=#jabber{type = 'connect'}) ->
     connect(Jabber);
+get_message(Jabber=#jabber{type = 'starttls'}) ->
+    starttls();
 get_message(#jabber{type = 'close', id=Id,user_server=UserServer}) ->
     ts_user_server:remove_connected(UserServer,Id),
     close();
@@ -258,6 +261,12 @@ connect(#jabber{domain=Domain, send_version = SendVersion}) ->
 close () -> list_to_binary("</stream:stream>").
 
 %%----------------------------------------------------------------------
+%% Func: starttls/0
+%% Purpose: send the starttls element
+%%----------------------------------------------------------------------
+starttls()->
+    <<"<starttls xmlns=\"urn:ietf:params:xml:ns:xmpp-tls\"/>">>.
+%%----------------------------------------------------------------------
 %% Func: auth_get/1
 %%----------------------------------------------------------------------
 auth_get(#jabber{username=Name,passwd=Passwd})->
@@ -374,7 +383,7 @@ auth_sasl_bind(#jabber{username=Name,passwd=Passwd,domain=Domain})->
 %%----------------------------------------------------------------------
 %% Func: auth_sasl_bind/3
 %%----------------------------------------------------------------------
-auth_sasl_bind(Username, _Passwd, Domain) ->
+auth_sasl_bind(_Username, _Passwd, _Domain) ->
  list_to_binary(["<iq type='set' id='",ts_msg_server:get_id(list),
 "' ><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'><resource>tsung</resource></bind></iq>"]).
 
@@ -389,7 +398,7 @@ auth_sasl_session(#jabber{username=Name,passwd=Passwd,domain=Domain})->
 %%----------------------------------------------------------------------
 %% Func: auth_sasl_session/3
 %%----------------------------------------------------------------------
-auth_sasl_session(Username, _Passwd, Domain) ->
+auth_sasl_session(_Username, _Passwd, _Domain) ->
  list_to_binary(["<iq type='set' id='",ts_msg_server:get_id(list),
 "' ><session xmlns='urn:ietf:params:xml:ns:xmpp-session' /></iq>"]).
 

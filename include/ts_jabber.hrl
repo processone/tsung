@@ -44,7 +44,6 @@
                  muc_service, %% ej: conference.localhost
                  room,        %% MUC room name
                  nick,         %% nickname in MUC room
-
                  pubsub_service, %%ej: pubsub.localhost
                  group,          %% roster group
                  node,           %% pubsub node

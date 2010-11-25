@@ -169,11 +169,12 @@ handle_info2({gen_ts_transport, _Socket, Data}, wait_ack, State) when is_binary(
     ?DebugF("data received: size=~p ~n",[size(Data)]),
     case handle_data_msg(Data, State) of
         {NewState=#state_rcv{ack_done=true, protocol = Transport, socket = Socket}, Opts} ->
-            NewSocket = Transport:set_opts(Socket, [{active, once} | Opts]),
+            NewSocket = Transport:set_opts(Socket, [{active, once} | Opts]), 
             handle_next_action(NewState#state_rcv{socket=NewSocket,
                                                   ack_done=false});
         {NewState=#state_rcv{protocol = Transport, socket = Socket}, Opts} ->
             NewSocket = Transport:set_opts(Socket, [{active, once} | Opts]),
+            ?DebugF("Socket handle_info2 gen_ts_transport :~p ~n",[Socket]),
             TimeOut=(NewState#state_rcv.proto_opts)#proto_opts.idle_timeout,
             {next_state, wait_ack, NewState#state_rcv{socket=NewSocket}, TimeOut}
     end;
@@ -248,7 +249,7 @@ handle_info2({gen_ts_transport, Socket, Data}, think,State=#state_rcv{
                        send(Proto,Socket,Data2,Host,Port), %FIXME: handle errors ?
                        State2
                end,
-    NewSocket = (State#state_rcv.protocol):set_opts(Socket, [{active, once}]),
+    NewSocket = (NewState#state_rcv.protocol):set_opts(NewState#state_rcv.socket, [{active, once}]),
     {next_state, think, NewState#state_rcv{socket=NewSocket}};
 % bidi is false, but parse is also false: continue even if we get data
 handle_info2({gen_ts_transport, Socket, Data}, think, State = #state_rcv{request=Req} )
@@ -363,8 +364,7 @@ handle_next_action(State) ->
                          DD=NewCType:init_dynparams(),
                          {none,NewCType:new_session(),DD#dyndata.proto}
                  end,
-            NewDynData=DynData#dyndata{proto=ProtoDynData},
-            NewState=State#state_rcv{session=Session,socket=Socket,count=Count,clienttype=NewCType,protocol=PType,port=Port,host=Server,dyndata=NewDynData},
+            NewDynData=DynData#dyndata{proto=ProtoDynData}, NewState=State#state_rcv{session=Session,socket=Socket,count=Count,clienttype=NewCType,protocol=PType,port=Port,host=Server,dyndata=NewDynData},
             handle_next_action(NewState);
         Other ->
             ?LOGF("Error: set profile return value is ~p (count=~p)~n",[Other,Count],?ERR),
@@ -508,7 +508,6 @@ jump_if(false,_Target,DynData) -> {next,DynData}.
 handle_next_request(Request, State) ->
     Count = State#state_rcv.count-1,
     Type  = State#state_rcv.clienttype,
-
     {PrevHost, PrevPort, PrevProto} = case Request of
         #ts_request{host=undefined, port=undefined, scheme=undefined} ->
             %% host/port/scheme not defined in request, use the current ones.

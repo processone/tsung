@@ -1,6 +1,6 @@
 -module(ts_ssl).
 
--export([ connect/3, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2 ]).
+-export([ connect/3,connect/2, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2 ]).
 
 -behaviour(gen_ts_transport).
 
@@ -17,6 +17,9 @@ protocol_options(#proto_opts{ssl_ciphers=Ciphers}) ->
 %% -> {ok, Socket}
 connect(Host, Port, Opts) ->
     ssl:connect(Host, Port, opts_to_tcp_opts(Opts)).
+
+connect(Socket, Opts)->
+    ssl:connect(Socket,  opts_to_tcp_opts(Opts)).
 
 opts_to_tcp_opts(Opts) -> Opts.
 

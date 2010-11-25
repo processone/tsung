@@ -42,7 +42,8 @@
          parse_bidi/2,
          parse_config/2,
          new_session/0]).
-
+-export ([starttls_bidi/2,
+          presence_bidi/2]).
 %%----------------------------------------------------------------------
 %% Function: session_default/0
 %% Purpose: default parameters for session (persistent & bidirectional)
@@ -86,17 +87,32 @@ parse(_Data, State) ->
 %% Returns:    Data (binary)
 %%             NewState (record)
 %%----------------------------------------------------------------------
-parse_bidi(Data, State) ->
+parse_bidi(Data,  State) ->
     RcvdXml = binary_to_list(Data),
-    case regexp:first_match(RcvdXml,"<presence[^>]*subscribe[\"\']") of
+    ?LOGF("RECEIVED : ~p~n",[RcvdXml],?DEB),
+    BidiElements = 
+        [{"<presence[^>]*subscribe[\"\']", presence_bidi},
+         {"<proceed", starttls_bidi}],
+    lists:foldl(fun({Regex, Handler}, Acc)->
+        case regexp:first_match(RcvdXml,Regex) of
         {match,_,_} ->
             ?LOGF("RECEIVED : ~p~n",[RcvdXml],?DEB),
-            {match,SubMatches} = regexp:matches(RcvdXml,"<presence[^>]*subscribe[\"\'][^>]*>"),
-            bidi_resp(subscribed,RcvdXml,SubMatches,State);
+            ?MODULE:Handler(RcvdXml, State);
         _Else ->
-            {nodata,State}
-    end.
+            Acc
+        end
+    end, {nodata, State}, BidiElements).
 
+presence_bidi(RcvdXml, State)->
+    {match,SubMatches} = regexp:matches(RcvdXml,"<presence[^>]*subscribe[\"\'][^>]*>"),
+    bidi_resp(subscribed,RcvdXml,SubMatches,State).
+    
+starttls_bidi(_RcvdXml, #state_rcv{socket= Socket}=State)->
+    ssl:start(),
+    {ok, SSL} = ts_ssl:connect(Socket, []),
+    ?LOGF("Upgrading to TLS : ~p",[SSL],?INFO),
+    {nodata, State#state_rcv{socket=SSL,protocol=ts_ssl}}.
+   
 %%----------------------------------------------------------------------
 %% Function: bidi_resp/4
 %% Purpose: Parse XMPP packet, build client response
