@@ -47,8 +47,10 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
         code_change/3]).
 
--record(state, {filename,      % log filename
+-record(state, {filename,     % log filename
                 level,        % type of backend: text|rrdtool|fullstats
+                dumpid=1,     % current dump id
+                logdir,
                 fd            % file descriptor
                }).
 
@@ -77,7 +79,6 @@ stop() ->
 add(Data) ->
     gen_server:cast({global, ?MODULE}, {add, Data}).
 
-
 %%%----------------------------------------------------------------------
 %%% Callback functions from gen_server
 %%%----------------------------------------------------------------------
@@ -98,7 +99,8 @@ init([LogDir]) ->
             ?LOG("starting match logger~n",?NOTICE),
             io:format(Fd,"# timestamp userid sessionid requestid event~n",[]),
             {ok, #state{ fd       = Fd,
-                         filename = Filename
+                         filename = Filename,
+                         logdir   = LogDir
                        }};
         {error, Reason} ->
             ?LOGF("Can't open match log file! ~p~n",[Reason], ?ERR),
@@ -126,12 +128,12 @@ handle_call(Request, _From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
 handle_cast({add, List}, State) when is_list(List)->
-    lists:foreach(fun(X)-> log(X,State#state.fd) end, List),
-    {noreply,State};
+    NewState=lists:foldl(fun(X,Acc)-> log(X,Acc) end,State, List),
+    {noreply,NewState};
 
 handle_cast({add, Data}, State) when is_tuple(Data)->
-    log(Data,State#state.fd),
-    {noreply,State};
+    NewState=log(Data,State),
+    {noreply,NewState};
 
 handle_cast({stop}, State) ->
     {stop, normal, State};
@@ -171,8 +173,13 @@ code_change(_OldVsn, StateData, _Extra) ->
 %%% Internal functions
 %%%----------------------------------------------------------------------
 
-log({UserId,SessionId,RequestId,TimeStamp,{count, Val}}, File) ->
-    TS=ts_utils:time2sec(TimeStamp),
-    io:format(File,"~B ~B ~B ~B ~p~n",[TS,UserId,SessionId,RequestId,Val]).
-
-
+log({UserId,SessionId,RequestId,TimeStamp,{count, Val},[]},State=#state{fd=File}) ->
+    TS=ts_utils:time2sec_hires(TimeStamp),
+    io:format(File,"~f ~B ~B ~B ~p~n",[TS,UserId,SessionId,RequestId,Val]),
+    State;
+log({UserId,SessionId,RequestId,TimeStamp,{count, Val},Bin}, State=#state{logdir=LogDir, dumpid=Id}) ->
+    log({UserId,SessionId,RequestId,TimeStamp,{count, Val},[]}, State),
+    Name=ts_utils:join("-",lists:map(fun integer_to_list/1,[UserId,SessionId,RequestId,Id])),
+    Filename=filename:join(LogDir, "match-"++ Name ++".dump"),
+    file:write_file(Filename,Bin),
+    State#state{dumpid=Id+1}.

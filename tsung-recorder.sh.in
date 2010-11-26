@@ -150,7 +150,7 @@ usage() {
     exit
 }
 
-while getopts "hvf:p:l:d:r:i:P:L:I:u:" Option
+while getopts "hvf:p:l:d:r:i:P:L:I:u" Option
 do
     case $Option in
         f) CONF_OPT_FILE=$OPTARG;;

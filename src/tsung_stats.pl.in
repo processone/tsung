@@ -28,7 +28,8 @@
 use strict;
 use Getopt::Long;
 use vars qw ($help @files $verbose $debug $noplot $noextra $version $stats
-             $template_dir $nohtml $template_dir $gnuplot $logy $rotate_xtics );
+             $template_dir $nohtml $template_dir $gnuplot $logy $rotate_xtics
+             $imgfmt $oldgnuplot );
 my $tagvsn = '@PACKAGE_VERSION@';
 
 GetOptions( "help",\$help,
@@ -42,7 +43,8 @@ GetOptions( "help",\$help,
             "tdir=s",\$template_dir,
             "nohtml",\$nohtml,
             "rotate-xtics",\$rotate_xtics,
-            "noextra",\$noextra
+            "noextra",\$noextra,
+            "img_format=s",\$imgfmt
           );
 
 &usage if $help or $Getopt::Long::error;
@@ -76,6 +78,10 @@ unless ($template_dir) {
 $stats = "tsung.log" unless $stats;
 die "The stats file ($stats) does not exist, abort !" unless -e $stats;
 
+$imgfmt = "png" unless $imgfmt;
+my %imgfmt_list = ("png" => 1,  "svg" => 1,  "pdf" => 1,  "ps" => 1); # hash of all the format we support to make search more efficient
+die "Image format \"$imgfmt\" not supported" unless $imgfmt_list{"$imgfmt"};
+
 my $datadir = "data"; # all data files are created in this subdirectory
 my $imgdir  = "images"; # all data files are created in this subdirectory
 my $gplotdir = "gnuplot_scripts"; # all data files are created in this subdirectory
@@ -90,10 +96,27 @@ foreach my $dir ($datadir, $imgdir, $gplotdir) {
 }
 
 $gnuplot = "gnuplot" unless $gnuplot;
+my $oldgnuplot = is_oldgnuplot($gnuplot);
 $gnuplot .= " >> gnuplot.log 2>&1";
 
 &parse_stats_file($stats);
 &html_report() unless $nohtml;
+
+# returns 1 (=true) if gnuplot doesn't support the "set terminal png size x,y" specifications
+sub is_oldgnuplot {
+    # args
+    my $gnuplot    = shift;
+    my $version = `$gnuplot -V`;
+    if ($version =~ m /gnuplot (\d+).(\d+) patchlevel (\d+)/) {
+        my ($major, $minor,$patchlevel) = ($1,$2,$3);
+        return 0 if $major > 5;
+        return 1 if $major < 3;
+        return 1 if $minor <2; # does it work with gnuplot 4.1 or 4.0 ? we assume no.
+        return 0;
+    } else {
+        return 1;
+    }
+}
 
 # plot stats from file
 sub plot_stats {
@@ -120,22 +143,36 @@ sub plot_stats {
     $datatype = "unknown" unless $datatype;
     open(GP,">$gplotdir/graphes-$datatype.gplot") or die "can't open graphes-$datatype.gplot: $!";
     select GP;
-    foreach my $output_ext ("ps", "png") {
-        if ($output_ext eq "png") {
+    foreach my $output_ext ($imgfmt, "tn.png") {
+        if (($output_ext eq "png") || ($output_ext eq "tn.png")) {
             $output_type = "png";
         } elsif ($output_ext eq "ps") {
             $output_type = "postscript color ";
+        } elsif ($output_ext eq "pdf") {
+            $output_type = "pdf color ";
+        } elsif ($output_ext eq "svg") {
+            $output_type = "svg";
         }
         # gnuplot styles and options
-        print "set size $thumbnail_size,$thumbnail_size\n" if ($output_ext eq "png");
-        print "set xtics rotate by +90\n"  if (($output_ext eq "png") and ($rotate_xtics));
+        print "set size $thumbnail_size,$thumbnail_size\n" if (($output_ext eq "tn.png") && $oldgnuplot);
+        print "set xtics rotate by +90\n"  if ((($output_ext eq "png") || ($output_ext eq "tn.png")) and ($rotate_xtics));
         print "set style data  $style\n";
-        print "set terminal $output_type\n";
+        if (($output_ext eq "tn.png") and not $oldgnuplot) {
+            print "set terminal $output_type tiny size 320,240\n";
+        } elsif ((($output_type eq "svg") or (($output_type eq "png"))) and not $oldgnuplot) {
+            print "set terminal $output_type  size 1024,768\n";
+        } else {
+            print "set terminal $output_type\n";
+        }
         print "set grid\n";
         my $d; # temporary var (title)
         foreach $d (0..$#{$title}) {
             # gnuplot headings
-            print "set output \"$imgdir/graphes-$datatype-@{$title}[$d].$output_ext\"\n";
+            if ($output_ext eq "tn.png") {
+                print "set output \"$imgdir/graphes-$datatype-@{$title}[$d]_$output_ext\"\n";
+            } else  {
+                print "set output \"$imgdir/graphes-$datatype-@{$title}[$d].$output_ext\"\n";
+            }
             print "set title \" @{$title}[$d]\"\n";
             if ($timestamp) {
                 print "set xlabel \"unit = $timestamp sec \"\n";
@@ -414,6 +451,7 @@ sub html_report {
          os_mon      => $extra,
          errors      => $errors,
          title       => $titre,
+         subtitle    => "Stats Report",
          http        => $http,
          stats_subtitle => "Stats Report ",
          graph_subtitle => "Graphs Report ",
@@ -433,10 +471,12 @@ sub html_report {
          async       => $async,
          bosh       => $bosh,
          title       => $titre,
+         subtitle    => "Graphs Report",
          stats_subtitle => "Stats Report ",
          graph_subtitle => "Graphs Report ",
          contact     => $contact,
-         conf        => $xml_conf
+         conf        => $xml_conf,
+         ext         => $imgfmt
         };
     $tt->process("graph.thtml", $vars, "graph.html") or die $tt->error(), "\n";
 }
@@ -460,7 +500,9 @@ type `tsung_stats.pl --version` for details.\n\n";
     "[--tdir <template_dir>] (Path to the HTML tsung templates)\n\t",
     "[--noextra  (don't generate graphics from extra data (os monitor, etc)\n\t",
     "[--rotate-xtics  (rotate legend of x axes)\n\t",
-    "[--stats <file>] (stats file to analyse, default=tsung.log)\n\t";
+    "[--stats <file>] (stats file to analyse, default=tsung.log)\n\t",
+    "[--img_format <format>] (output format for images, default=png
+                                 available format: ps, svg, png, pdf)\n\t";
     exit;
     }
 

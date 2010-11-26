@@ -44,7 +44,7 @@
 %% External exports
 -export([start/1, stop/0, newclient/1, endclient/1, sendmes/1, add/2,
          start_clients/1, abort/0, status/0, rcvmes/1, add/1, dumpstats/0,
-         add_match/2
+         add_match/2, dump/1
         ]).
 
 %% gen_server callbacks
@@ -107,8 +107,11 @@ add(Data) ->
     ts_mon_cache:add(Data).
 
 add_match(Data,{UserId,SessionId,RequestId}) ->
+    add_match(Data,{UserId,SessionId,RequestId,[]});
+add_match(Data=[Head|_],{UserId,SessionId,RequestId,Bin}) ->
     TimeStamp=now(),
-    ts_mon_cache:add_match(Data,{UserId,SessionId,RequestId,TimeStamp}).
+    put(last_match,Head),
+    ts_mon_cache:add_match(Data,{UserId,SessionId,RequestId,TimeStamp, Bin}).
 
 status() ->
     gen_server:call({global, ?MODULE}, {status}).
@@ -125,15 +128,20 @@ newclient({Who, When}) ->
 endclient({Who, When, Elapsed}) ->
     gen_server:cast({global, ?MODULE}, {endclient, Who, When, Elapsed}).
 
-sendmes({none, _, _}) ->
-    skip;
+sendmes({none, _, _})       -> skip;
+sendmes({protocol, _, _})   -> skip;
 sendmes({_Type, Who, What}) ->
     gen_server:cast({global, ?MODULE}, {sendmsg, Who, now(), What}).
 
-rcvmes({none, _, _})-> skip;
-rcvmes({_, _, closed}) -> skip;
+rcvmes({none, _, _})    -> skip;
+rcvmes({protocol, _, _})-> skip;
+rcvmes({_, _, closed})  -> skip;
 rcvmes({_Type, Who, What})  ->
     gen_server:cast({global, ?MODULE}, {rcvmsg, Who, now(), What}).
+
+dump({none, _, _})-> skip;
+dump({Type, Who, What})  ->
+    gen_server:cast({global, ?MODULE}, {dump, Who, now(), What}).
 
 
 %%%----------------------------------------------------------------------
@@ -235,9 +243,10 @@ handle_cast({newclient, Who, When}, State=#state{stats=Stats}) ->
     NewStats = Stats#stats{users_count=OldCount+1},
 
     case State#state.type of
-        none -> ok;
+        none     -> ok;
+        protocol -> ok;
         _ ->
-            io:format(State#state.dumpfile,"NewClient:~w:~p~n",[When, Who]),
+            io:format(State#state.dumpfile,"NewClient:~w:~p~n",[ts_utils:time2sec_hires(When), Who]),
             io:format(State#state.dumpfile,"load:~w~n",[Clients])
     end,
     case Clients > State#state.maxclient of
@@ -258,8 +267,10 @@ handle_cast({endclient, Who, When, Elapsed}, State=#state{stats=Stats}) ->
     case State#state.type of
         none ->
             skip;
+        protocol ->
+            skip;
         _Type ->
-            io:format(State#state.dumpfile,"EndClient:~w:~p~n",[When, Who]),
+            io:format(State#state.dumpfile,"EndClient:~w:~p~n",[ts_utils:time2sec_hires(When), Who]),
             io:format(State#state.dumpfile,"load:~w~n",[Clients])
     end,
     case {Clients, State#state.stop} of
@@ -282,33 +293,37 @@ handle_cast({sendmsg, _, _, _}, State = #state{type = none}) ->
     {noreply, State};
 
 handle_cast({sendmsg, Who, When, What}, State = #state{type=light,dumpfile=Log}) ->
-    io:format(Log,"Send:~w:~w:~-44s~n",[When,Who, binary_to_list(What)]),
+    io:format(Log,"Send:~w:~w:~-44s~n",[ts_utils:time2sec_hires(When),Who, binary_to_list(What)]),
     {noreply, State};
 
-handle_cast({sendmsg, Who, When, What}, State=#state{dumpfile=Log}) when is_binary(What)->
-    io:format(Log,"Send:~w:~w:~s~n",[When,Who,binary_to_list(What)]),
+handle_cast({sendmsg, Who, When, What}, State=#state{type=full,dumpfile=Log}) when is_binary(What)->
+    io:format(Log,"Send:~w:~w:~s~n",[ts_utils:time2sec_hires(When),Who,binary_to_list(What)]),
     {noreply, State};
 
-handle_cast({sendmsg, Who, When, What}, State=#state{dumpfile=Log}) ->
-    io:format(Log,"Send:~w:~w:~p~n",[When,Who,What]),
+handle_cast({sendmsg, Who, When, What}, State=#state{type=full,dumpfile=Log}) ->
+    io:format(Log,"Send:~w:~w:~p~n",[ts_utils:time2sec_hires(When),Who,What]),
+    {noreply, State};
+
+handle_cast({dump, Who, When, What}, State=#state{type=protocol,dumpfile=Log}) ->
+    io:format(Log,"~w;~w;~s~n",[ts_utils:time2sec_hires(When),Who,What]),
     {noreply, State};
 
 handle_cast({rcvmsg, _, _, _}, State = #state{type=none}) ->
     {noreply, State};
 
 handle_cast({rcvmsg, Who, When, What}, State = #state{type=light, dumpfile=Log}) when is_binary(What)->
-    io:format(Log,"Recv:~w:~w:~-44s~n",[When,Who, binary_to_list(What)]),
+    io:format(Log,"Recv:~w:~w:~-44s~n",[ts_utils:time2sec_hires(When),Who, binary_to_list(What)]),
     {noreply, State};
 handle_cast({rcvmsg, Who, When, What}, State = #state{type=light, dumpfile=Log}) ->
-    io:format(Log,"Recv:~w:~w:~-44p~n",[When,Who, What]),
+    io:format(Log,"Recv:~w:~w:~-44p~n",[ts_utils:time2sec_hires(When),Who, What]),
     {noreply, State};
 
-handle_cast({rcvmsg, Who, When, What}, State=#state{dumpfile=Log}) when is_binary(What)->
-    io:format(Log, "Recv:~w:~w:~s~n",[When,Who,binary_to_list(What)]),
+handle_cast({rcvmsg, Who, When, What}, State=#state{type=full,dumpfile=Log}) when is_binary(What)->
+    io:format(Log, "Recv:~w:~w:~s~n",[ts_utils:time2sec_hires(When),Who,binary_to_list(What)]),
     {noreply, State};
 
-handle_cast({rcvmsg, Who, When, What}, State=#state{dumpfile=Log}) ->
-    io:format(Log, "Recv:~w:~w:~p~n",[When,Who,What]),
+handle_cast({rcvmsg, Who, When, What}, State=#state{type=full,dumpfile=Log}) ->
+    io:format(Log, "Recv:~w:~w:~p~n",[ts_utils:time2sec_hires(When),Who,What]),
     {noreply, State};
 
 handle_cast({stop}, State = #state{client = 0}) ->
@@ -405,11 +420,17 @@ start_logger({Machines, DumpType, Backend}, _From, State) ->
 %% @doc open file for dumping traffic
 start_dump(State=#state{type=none}) ->
     {reply, ok, State};
-start_dump(State) ->
+start_dump(State=#state{type=Type}) ->
     Filename = filename:join(State#state.log_dir,?DUMP_FILENAME),
     case file:open(Filename,[write, {delayed_write, ?DELAYED_WRITE_SIZE, ?DELAYED_WRITE_DELAY}]) of
         {ok, Stream} ->
             ?LOG("dump file opened, starting monitor~n",?INFO),
+            case Type of
+                protocol ->
+                    io:format(Stream,"#date;pid;id;http method;host;URL;HTTP status;size;match;error~n",[]);
+                _ ->
+                    ok
+            end,
             {reply, ok, State#state{dumpfile=Stream}};
         {error, Reason} ->
             ?LOGF("Can't open mon dump file! ~p~n",[Reason], ?ERR),
@@ -449,5 +470,5 @@ start_launchers(Machines) ->
     HostList = lists:map(GetHost, Machines),
     ?DebugF("Hostlist is ~p~n",[HostList]),
     %% starts beam on all client hosts
-    lists:foreach(fun(B) -> ts_config_server:newbeam(B) end, HostList).
+    ts_config_server:newbeams(HostList).
 

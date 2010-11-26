@@ -15,7 +15,7 @@
 %%%  You should have received a copy of the GNU General Public License
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-%%% 
+%%%
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
 %%%  the EPL license and distribute linked combinations including
@@ -39,7 +39,7 @@
 
 %% gen_fsm callbacks
 -export([init/1, initialize/2, receiver/2, ack/2, handle_event/3,
-		 handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
+         handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
 
 -record(state, {nclient=0, pidlist = []}).
 
@@ -47,15 +47,15 @@
 %%% API
 %%%----------------------------------------------------------------------
 start(NClients) ->
-	?LOG("starting fsm timer",?INFO),
-	gen_fsm:start_link({global, ?MODULE}, ?MODULE, [NClients], []).
+    ?LOG("starting fsm timer",?INFO),
+    gen_fsm:start_link({global, ?MODULE}, ?MODULE, [NClients], []).
 
 config(NClients) ->
-	?LOG("Configure fsm timer",?INFO),
-	gen_fsm:send_event({global, ?MODULE}, {config, NClients}).
+    ?LOG("Configure fsm timer",?INFO),
+    gen_fsm:send_event({global, ?MODULE}, {config, NClients}).
 
 connected(Pid) ->
-	gen_fsm:send_event({global, ?MODULE}, {connected, Pid}).
+    gen_fsm:send_event({global, ?MODULE}, {connected, Pid}).
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from gen_fsm
@@ -66,46 +66,45 @@ connected(Pid) ->
 %% Returns: {ok, StateName, StateData}          |
 %%          {ok, StateName, StateData, Timeout} |
 %%          ignore                              |
-%%          {stop, StopReason}                   
+%%          {stop, StopReason}
 %%----------------------------------------------------------------------
 init(_Args) ->
-	?LOG("starting timer",?INFO),
-	{ok, initialize, #state{}}.
+    ?LOG("starting timer",?INFO),
+    {ok, initialize, #state{}}.
 
 %%----------------------------------------------------------------------
 %% Func: StateName/2
 %% Returns: {next_state, NextStateName, NextStateData}          |
 %%          {next_state, NextStateName, NextStateData, Timeout} |
-%%          {stop, Reason, NewStateData}                         
+%%          {stop, Reason, NewStateData}
 %%----------------------------------------------------------------------
 initialize({config, Val}, State) ->
-	{next_state, receiver, State#state{nclient=Val}}.
+    {next_state, receiver, State#state{nclient=Val}}.
 
 
 %% now all the clients are connected, let's start to ack them
 receiver({connected, Pid}, #state{pidlist=List, nclient=1}) ->
-	?LOG("All connected, global ack!",?NOTICE),
-	{next_state, ack, #state{pidlist=[Pid|List],nclient=0}, 1};
+    ?LOG("All connected, global ack!",?NOTICE),
+    {next_state, ack, #state{pidlist=[Pid|List],nclient=0}, 1};
 
 %% receive a new connected mes
 receiver({connected, Pid}, #state{pidlist=List, nclient=N}) ->
-	?LOGF("New connected ~p (nclient=~p)",[Pid, N],?DEB),
-	{next_state, receiver, #state{pidlist=List ++ [Pid], nclient=N-1},
-	 ?config(clients_timeout)};
+    ?LOGF("New connected ~p (nclient=~p)",[Pid, N],?DEB),
+    {next_state, receiver, #state{pidlist=List ++ [Pid], nclient=N-1},
+     ?config(clients_timeout)};
 
 %% timeout event, now we start to send ack, by sending a timeout event immediatly
 receiver(timeout, StateData) ->
-	{next_state, ack, StateData,1}.
+    {next_state, ack, StateData,1}.
 
 %% no more ack to send, stop
 ack(timeout, #state{pidlist=[]}) ->
-	{stop, normal, #state{}};
+    {stop, normal, #state{}};
 
 %% ack all pids
 ack(timeout, #state{pidlist=L}) ->
-	lists:foreach(fun(A)->ts_client:next({A}) end, L),
-	{next_state, receiver, #state{pidlist=[]}}.
-												
+    lists:foreach(fun(A)->ts_client:next({A}) end, L),
+    {next_state, receiver, #state{pidlist=[]}}.
 
 %%----------------------------------------------------------------------
 %% Func: StateName/3
@@ -114,7 +113,7 @@ ack(timeout, #state{pidlist=L}) ->
 %%          {reply, Reply, NextStateName, NextStateData}          |
 %%          {reply, Reply, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}                          |
-%%          {stop, Reason, Reply, NewStateData}                    
+%%          {stop, Reason, Reply, NewStateData}
 %%----------------------------------------------------------------------
 
 
@@ -122,10 +121,10 @@ ack(timeout, #state{pidlist=L}) ->
 %% Func: handle_event/3
 %% Returns: {next_state, NextStateName, NextStateData}          |
 %%          {next_state, NextStateName, NextStateData, Timeout} |
-%%          {stop, Reason, NewStateData}                         
+%%          {stop, Reason, NewStateData}
 %%----------------------------------------------------------------------
 handle_event(_Event, StateName, StateData) ->
-	{next_state, StateName, StateData}.
+    {next_state, StateName, StateData}.
 
 %%----------------------------------------------------------------------
 %% Func: handle_sync_event/4
@@ -134,20 +133,20 @@ handle_event(_Event, StateName, StateData) ->
 %%          {reply, Reply, NextStateName, NextStateData}          |
 %%          {reply, Reply, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}                          |
-%%          {stop, Reason, Reply, NewStateData}                    
+%%          {stop, Reason, Reply, NewStateData}
 %%----------------------------------------------------------------------
 handle_sync_event(_Event, _From, StateName, StateData) ->
-	Reply = ok,
-	{reply, Reply, StateName, StateData}.
+    Reply = ok,
+    {reply, Reply, StateName, StateData}.
 
 %%----------------------------------------------------------------------
 %% Func: handle_info/3
 %% Returns: {next_state, NextStateName, NextStateData}          |
 %%          {next_state, NextStateName, NextStateData, Timeout} |
-%%          {stop, Reason, NewStateData}                         
+%%          {stop, Reason, NewStateData}
 %%----------------------------------------------------------------------
 handle_info(_Info, StateName, StateData) ->
-	{next_state, StateName, StateData}.
+    {next_state, StateName, StateData}.
 
 %%----------------------------------------------------------------------
 %% Func: terminate/3
@@ -155,8 +154,8 @@ handle_info(_Info, StateName, StateData) ->
 %% Returns: any
 %%----------------------------------------------------------------------
 terminate(_Reason, _StateName, _StateData) ->
-	?LOG("terminate timer",?INFO),
-	ok.
+    ?LOG("terminate timer",?INFO),
+    ok.
 
 %%--------------------------------------------------------------------
 %% Func: code_change/4

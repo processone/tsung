@@ -77,8 +77,8 @@ add(Data) ->
 
 %% @spec add_match(Data::list(),{UserId::integer(),SessionId::integer(),RequestId::integer(),
 %%                  TimeStamp::tuple()}) -> ok
-add_match(Data,{UserId,SessionId,RequestId,TimeStamp}) ->
-    gen_server:cast(?MODULE, {add_match, Data, {UserId,SessionId,RequestId,TimeStamp}}).
+add_match(Data,{UserId,SessionId,RequestId,TimeStamp,Bin}) ->
+    gen_server:cast(?MODULE, {add_match, Data, {UserId,SessionId,RequestId,TimeStamp,Bin}}).
 
 %%====================================================================
 %% Server functions
@@ -124,9 +124,9 @@ handle_cast({add, Data}, State) when is_list(Data) ->
     {noreply, LastState };
 handle_cast({add, Data}, State) when is_tuple(Data) ->
     {noreply,update_stats(Data, State)};
-handle_cast({add_match, Data=[First|_Tail],{UserId,SessionId,RequestId,TimeStamp}},
+handle_cast({add_match, Data=[First|_Tail],{UserId,SessionId,RequestId,TimeStamp,Bin}},
             State=#state{stats=List, match=MatchList})->
-    NewMatchList=lists:append([{UserId,SessionId,RequestId,TimeStamp,First}], MatchList),
+    NewMatchList=lists:append([{UserId,SessionId,RequestId,TimeStamp,First, Bin}], MatchList),
     {noreply, State#state{stats = lists:append(Data, List), match = NewMatchList}};
 
 handle_cast(_Msg, State) ->

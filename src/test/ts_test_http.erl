@@ -31,6 +31,11 @@
 
 test()->ok.
 
+subst_url_test() ->
+    DynVars=ts_dynvars:new('image', "/images/my image with spaces.png"),
+    Req=ts_http:subst(#http_request{url="%%_image%%"}, DynVars),
+    ?assertEqual("/images/my%20image%20with%20spaces.png", Req#http_request.url).
+
 subst_redirect_test()->
     myset_env(),
     URL="%%_redirect%%",
@@ -41,7 +46,7 @@ subst_redirect_test()->
     {Req,_}=ts_http:add_dynparams(true,#dyndata{proto=Proto,dynvars=DynVars},
                                   #http_request{url=URL},
                                   {"erlang.org",80}),
-    ?assertEqual("GET /bidule/truc HTTP/1.1\r\nHost: erlang.org:80\r\nUser-Agent: Firefox\r\nCookie: toto=bar\r\n\r\n", binary_to_list(ts_http:get_message(Req))).
+    ?assertEqual("GET /bidule/truc HTTP/1.1\r\nHost: erlang.org\r\nUser-Agent: Firefox\r\nCookie: toto=bar\r\n\r\n", binary_to_list(ts_http:get_message(Req))).
 
 cookie_subdomain_test()->
     myset_env(),
@@ -146,6 +151,38 @@ chunk_header_ok3_test()->
 chunk_header_bad_test()->
     Rep=ts_http_common:parse_line("transfer-encoding: cheddar\r\n",#http{},[]),
     ?assertMatch(#http{chunk_toread=-1}, Rep).
+
+split_body_test() ->
+    Data = << "HTTP header\r\nHeader: value\r\n\r\nbody\r\n" >>,
+    ?assertEqual({<< "HTTP header\r\nHeader: value" >>, << "body\r\n" >>}, ts_http:split_body(Data)).
+
+split_body2_test() ->
+    Data = << "HTTP header\r\nHeader: value\r\n\r\nbody\r\n\r\nnewline in body\r\n" >>,
+    ?assertEqual({<< "HTTP header\r\nHeader: value" >>, << "body\r\n\r\nnewline in body\r\n" >>}, ts_http:split_body(Data)).
+
+split_body3_test() ->
+    Data = << "HTTP header\r\nHeader: value\r\nTransfer-Encoding: chunked\r\n\r\n19\r\nbody\r\n\r\nnewline in body\r\n\r\n" >>,
+    ?assertEqual({<< "HTTP header\r\nHeader: value\r\nTransfer-Encoding: chunked" >>, << "19\r\nbody\r\n\r\nnewline in body\r\n\r\n" >>}, ts_http:split_body(Data)).
+
+decode_buffer_test() ->
+    Data = << "HTTP header\r\nHeader: value\r\nTransfer-Encoding: chunked\r\n\r\n19\r\nbody\r\n\r\nnewline in body\r\n0\r\n\r\n" >>,
+    ?assertEqual(<< "HTTP header\r\nHeader: value\r\nTransfer-Encoding: chunked\r\n\r\nbody\r\n\r\nnewline in body\r\n" >>, ts_http:decode_buffer(Data, #http{chunk_toread=-2})).
+
+decode_buffer2_test() ->
+    Data = << "HTTP header\r\nHeader: value\r\n\r\nbody\r\n\r\nnewline in body\r\n" >>,
+    ?assertEqual(<< "HTTP header\r\nHeader: value\r\n\r\nbody\r\n\r\nnewline in body\r\n" >>, ts_http:decode_buffer(Data, #http{chunk_toread=-1}) ).
+
+decode_buffer3_test() ->
+    Data = << "HTTP header\r\nHeader: value\r\nTransfer-Encoding: chunked\r\n\r\n17\r\nbody\r\n\r\nnewline in body\r\n3\r\nabc\r\n0\r\n\r\n" >>,
+    ?assertEqual(<< "HTTP header\r\nHeader: value\r\nTransfer-Encoding: chunked\r\n\r\nbody\r\n\r\nnewline in bodyabc" >>, ts_http:decode_buffer(Data, #http{chunk_toread=-2})).
+
+compress_chunk_test()->
+    <<A:10/binary, B/binary>> = zlib:gzip("sesame ouvre toi"),
+    Data1 = << "HTTP header\r\nHeader: value\r\nTransfer-Encoding: chunked\r\n\r\nA\r\n" >>,
+    Data2= <<"1A\r\n" >>,
+    Data3= <<"0\r\n\r\n" >>,
+    Data= <<Data1/binary, A/binary, Data2/binary, B/binary, Data3/binary>>,
+    ?assertEqual(<< "HTTP header\r\nHeader: value\r\nTransfer-Encoding: chunked\r\n\r\nsesame ouvre toi" >>, ts_http:decode_buffer(Data, #http{chunk_toread=-2, compressed={false,gzip}})).
 
  myset_env()->
     myset_env(0).

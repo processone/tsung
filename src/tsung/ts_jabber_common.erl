@@ -40,26 +40,32 @@
 %% Returns: binary
 %% Purpose: Build a message/request from a #jabber record
 %%----------------------------------------------------------------------
+get_message(Jabber=#jabber{type = 'wait',regexp=RegExp}) ->
+    put(regexp, RegExp),
+    << >>;
+get_message(Jabber=#jabber{id=user_defined, username=User,passwd=Pwd,type = 'connect'}) ->
+    ts_user_server:add_to_connected({User,Pwd}),
+    connect(Jabber);
 get_message(Jabber=#jabber{type = 'connect'}) ->
     connect(Jabber);
 get_message(Jabber=#jabber{type = 'starttls'}) ->
     starttls();
-get_message(#jabber{type = 'close', id=Id,user_server=UserServer}) ->
-    ts_user_server:remove_connected(UserServer,Id),
+get_message(#jabber{type = 'close', id=Id,username=User,passwd=Pwd,user_server=UserServer}) ->
+    ts_user_server:remove_connected(UserServer,set_id(Id,User,Pwd)),
     close();
 get_message(#jabber{type = 'presence'}) ->
     presence();
-get_message(#jabber{type = 'presence:initial', id=Id,user_server=UserServer}) ->
-    ts_user_server:add_to_online(UserServer,Id),
+get_message(#jabber{type = 'presence:initial', id=Id,username=User,passwd=Pwd,user_server=UserServer}) ->
+    ts_user_server:add_to_online(UserServer,set_id(Id,User,Pwd)),
     presence();
-get_message(#jabber{type = 'presence:final', id=Id,user_server=UserServer}) ->
-    ts_user_server:remove_from_online(UserServer,Id),
+get_message(#jabber{type = 'presence:final', id=Id,username=User,passwd=Pwd,user_server=UserServer}) ->
+    ts_user_server:remove_from_online(UserServer,set_id(Id,User,Pwd)),
     presence(unavailable);
 get_message(#jabber{type = 'presence:broadcast', show=Show, status=Status}) ->
     presence(broadcast, Show, Status);
-get_message(Jabber=#jabber{type = 'presence:directed', id=Id,
+get_message(Jabber=#jabber{type = 'presence:directed', id=Id,username=User,passwd=Pwd,
                            show=Show, status=Status,user_server=UserServer}) ->
-    case ts_user_server:get_online(UserServer,Id) of
+    case ts_user_server:get_online(UserServer,set_id(Id,User,Pwd)) of
         {ok, Dest} ->
             presence(directed, Dest, Jabber, Show, Status);
         {error, no_online} ->
@@ -67,8 +73,8 @@ get_message(Jabber=#jabber{type = 'presence:directed', id=Id,
             << >>
     end;
 
-get_message(Jabber=#jabber{id=Id}) when is_integer(Id)->
-    get_message(Jabber#jabber{id=id_to_string(Id)});
+
+
 get_message(Jabber=#jabber{dest=previous}) ->
     Dest = get(previous),
     get_message(Jabber#jabber{dest=Dest});
@@ -82,9 +88,9 @@ get_message(#jabber{type = 'presence:subscribe'}) -> %% must be called AFTER iq:
         RosterJid ->
             presence(subscribe, RosterJid)
     end;
-get_message(Jabber=#jabber{type = 'chat', id=Id, dest=online,
+get_message(Jabber=#jabber{type = 'chat', id=Id, dest=online,username=User,passwd=Pwd,
                            domain=Domain,user_server=UserServer})->
-    case ts_user_server:get_online(UserServer,Id) of
+    case ts_user_server:get_online(UserServer,set_id(Id,User,Pwd)) of
         {ok, Dest} ->
             message(Dest, Jabber, Domain);
         {error, no_online} ->
@@ -107,12 +113,16 @@ get_message(Jabber=#jabber{type = 'chat', dest=random, domain=Domain,user_server
 get_message(Jabber=#jabber{type = 'chat', dest=unique, domain=Domain,user_server=UserServer})->
     {Dest, _} = ts_user_server:get_first(UserServer),
     message(Dest, Jabber, Domain);
+get_message(Jabber=#jabber{type = 'chat', id=_Id, dest = undefined, domain=Domain}) ->
+    %% this can happen if previous is set but undefined, skip
+    ts_mon:add({ count, error_no_previous }),
+    << >>;
 get_message(Jabber=#jabber{type = 'chat', id=_Id, dest = Dest, domain=Domain}) ->
     ?DebugF("~w -> ~w ~n", [_Id,  Dest]),
     message(Dest, Jabber, Domain);
-get_message(#jabber{type = 'iq:roster:add', id=Id, dest = online, username=User,
+get_message(#jabber{type = 'iq:roster:add', id=Id, dest = online, username=User,passwd=Pwd,
                     domain=Domain, group=Group,user_server=UserServer}) ->
-    case ts_user_server:get_online(UserServer,Id) of
+    case ts_user_server:get_online(UserServer,set_id(Id,User,Pwd)) of
         {ok, Dest} ->
             request(roster_add, User, Domain, Dest, Group);
         {error, no_online} ->
@@ -160,8 +170,9 @@ get_message(#jabber{type = 'pubsub:create', id=Id, username=User,
 %% For node subscription, data contain the pubsub nodename (relative to user
 %% hierarchy or absolute)
 get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=User, user_server=UserServer,
+                    passwd=Pwd,
                     dest=online, node=Node, pubsub_service = PubSubComponent, domain = Domain}) ->
-    case ts_user_server:get_online(UserServer,Id) of
+    case ts_user_server:get_online(UserServer,set_id(Id,User,Pwd)) of
         {ok, Dest} ->
             UserFrom = username(User,Id),
             UserTo = username(User, id_to_string(Dest)),
@@ -211,6 +222,8 @@ get_message(#jabber{type = 'muc:nick', room = Room, muc_service = Service, nick 
 get_message(#jabber{type = 'muc:exit', room = Room, muc_service = Service, nick = Nick}) ->
     muc_exit(Room, Nick, Service);
 
+get_message(Jabber=#jabber{id=user_defined}) ->
+    get_message2(Jabber);
 get_message(Jabber=#jabber{username=Name, passwd=Passwd, id=Id}) ->
     FullName = username(Name, Id),
     FullPasswd = password(Passwd,Id),
@@ -413,8 +426,6 @@ registration(#jabber{username=Name,passwd=Passwd})->
 %% Func: message/3
 %% Purpose: send message to defined user at the Service (aim, ...)
 %%----------------------------------------------------------------------
-message(Dest, Jabber, Service) when is_integer(Dest) ->
-    message(id_to_string(Dest),Jabber, Service);
 message(Dest, #jabber{size=Size,data=undefined, username=User}, Service) when is_integer(Size) ->
     put(previous, Dest),
     Username = username(User,Dest),
@@ -501,8 +512,6 @@ request(roster_remove, RosterJid) ->
 %%----------------------------------------------------------------------
 %% Func: request/5
 %%----------------------------------------------------------------------
-request(roster_add, UserName, Domain, Id, Group) when is_integer(Id)->
-    request(roster_add, UserName, Domain, integer_to_list(Id), Group);
 request(roster_add, UserName, Domain, Id, Group)->
         Name = username(UserName,Id),
         RosterJid = Name ++ "@" ++ Domain,
@@ -612,12 +621,16 @@ muc_exit(Room,Nick, Service) ->
 %%% Func: username/2
 %%% Generate the username given a prefix and id
 %%%----------------------------------------------------------------------
-username(Prefix, Id) ->
-    Prefix ++ Id.
+username(Prefix, DestId) when is_integer(DestId)->
+    Prefix ++ integer_to_list(DestId);
+username(_Prefix, DestUser) ->
+    DestUser.
+
 %%% Convert Id to string
 %%% Change this if you want to have padding
-id_to_string(Id) ->
-    integer_to_list(Id).
+id_to_string(Id) when is_integer(Id)->
+    integer_to_list(Id);
+id_to_string(Id) -> Id.
 
 %%%----------------------------------------------------------------------
 %%% Func: password/1
@@ -625,3 +638,10 @@ id_to_string(Id) ->
 %%%----------------------------------------------------------------------
 password(Prefix,Id) ->
     Prefix ++ Id.
+
+%% set the real Id; by default use the Id; but it user and passwd is
+%% defined statically (using csv for example), Id is the tuple { User, Passwd }
+set_id(user_defined,User,Passwd) ->
+    {User,Passwd};
+set_id(Id,_User,_Passwd) ->
+    Id.

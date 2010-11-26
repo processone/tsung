@@ -95,8 +95,8 @@ a:hover     {background:#ffffaa;}
 <!--ENDHTML-->
 <!--CUT DEF section 1 --><H1 ALIGN=center>Tsung User’s manual</H1><DIV CLASS="center">
 
-<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>1.3.2</TD></TR>
-<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>June 20, 2010</TD></TR>
+<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>1.3.3</TD></TR>
+<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>September 13, 2010</TD></TR>
 </TABLE>
 </DIV><!--TOC section Contents-->
 <H2 CLASS="section"><!--SEC ANCHOR -->Contents</H2><!--SEC END --><UL CLASS="toc"><LI CLASS="li-toc">
@@ -192,7 +192,7 @@ a:hover     {background:#ffffaa;}
 </LI><LI CLASS="li-toc"><A HREF="#htoc64">6.7.2  Reading external file</A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc65">6.7.3  Dynamic variables</A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc66">6.7.4  Checking the server’s response</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc67">6.7.5  Loops, If</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc67">6.7.5  Loops, If, Foreach</A>
 </LI></UL>
 </LI></UL>
 </LI><LI CLASS="li-toc"><A HREF="#htoc68">7  Statistics and reports</A>
@@ -1305,6 +1305,23 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
+</TABLE><P><B>Since version 1.4.0</B>, you can use a dynamic variable to set
+the thinktime value:
+</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">&lt;thinktime value='%%_rndthink%%' random='true'&gt;&lt;/thinktime&gt;
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
 </TABLE><!--TOC subsubsection HTTP-->
 <H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc56">6.6.2</A>  HTTP</H4><!--SEC END --><P>This example shows several features of the HTTP protocol support in
 Tsung: GET and POST request, basic authentication, transaction for
@@ -1359,7 +1376,10 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE><P><B>New in 1.2.2:</B> You can add any HTTP header now, as in:
+</TABLE><P>If you use an absolute URL, the server used in the URL will override
+the one specified in the <TT>&lt;server&gt;</TT> section. The following relative
+requests in the session will also use this new server value (until a
+new absolute URL is set).</P><P><B>New in 1.2.2:</B> You can add any HTTP header now, as in:
 </P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
@@ -1721,7 +1741,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE><P>When each client starts a session, it chooses randomly a domain (each domain has the
 same probability).</P><!--TOC paragraph raw XML-->
 <H5 CLASS="paragraph"><!--SEC ANCHOR -->raw XML</H5><!--SEC END --><P>
-You can send raw XML date to the server using the <TT>raw</TT> type:
+You can send raw XML data to the server using the <TT>raw</TT> type:
 </P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
@@ -2267,7 +2287,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 </TABLE></TD></TR>
 </TABLE><P>Much simpler than the old method !</P><!--TOC subsubsection Dynamic variables-->
-<H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc65">6.7.3</A>  Dynamic variables</H4><!--SEC END --><P>In some cases, you may want to use a value given by the server in a
+<H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc65">6.7.3</A>  Dynamic variables</H4><!--SEC END --><P><A NAME="Dynamic variables"></A></P><P>In some cases, you may want to use a value given by the server in a
 response later in the session, and this value is <B>dynamically
 generated</B> by the server for each user. For this, you can use
 <FONT COLOR=purple>&lt;dyn_variable&gt;</FONT> in the scenario</P><P>Let’s take an example with HTTP. You can easily grab a value in a HTML
@@ -2333,7 +2353,29 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 </TABLE><!--TOC paragraph Regexp-->
 <H5 CLASS="paragraph"><!--SEC ANCHOR -->Regexp</H5><!--SEC END --><P>If the dynamic value is not a form variable, you can set a regexp by
-hand, for example to get the title of a HTML page:
+hand, for example to get the title of a HTML page: the regexp engine
+uses the <TT>re</TT> module, a Perl like regular expressions module
+for Erlang.</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">    &lt;request&gt;
+      &lt;dyn_variable name="mytitlevar"
+                    re="&amp;lt;title&amp;gt;(.*)&amp;lt;/title&amp;gt;"/&gt;
+      &lt;http url="/testtsung.html" method="GET" version="1.0"&gt;&lt;/http&gt;
+    &lt;/request&gt;
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><P>Previously (before 1.4.0), Tsung uses the old <TT>regexp</TT> module
+from erlang. This is now deprecated. The syntax was:
 </P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
@@ -2386,7 +2428,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 </TABLE><P>There is a bug in the xpath engine, result nodes from "descendant-or-self" aren’t returned in document order. This isn’t a problem for the most common cases.
 However, queries like <FONT COLOR=purple>//img[1]/@src</FONT> are not recommended, as the order of the <FONT COLOR=purple>&lt;img&gt;</FONT> elements returned from //img is not the expected.
-The order is respected for paths without "descendant-or-self" axis, so this: <FONT COLOR=purple>/html/body/div[2]/img[3]/@src</FONT> is interpreted as expected and can be safely used.</P><P>Basic tests shows a x4 improvement in speed over the <EM>regexp</EM> implementation.</P><!--TOC paragraph JSONPath-->
+The order is respected for paths without "descendant-or-self" axis, so this: <FONT COLOR=purple>/html/body/div[2]/img[3]/@src</FONT> is interpreted as expected and can be safely used.</P><P>Basic tests shows a x4 improvement in speed over the <EM>regexp</EM> implementation.</P><P>It is possible to use Xpath to get a list of elements from an html page, allowing dynamic retrieval of objects. You can either create embedded erlang code to parse the list produced, or use foreach that was introduced in release <B>(</B>1.4.0).</P><!--TOC paragraph JSONPath-->
 <H5 CLASS="paragraph"><!--SEC ANCHOR -->JSONPath</H5><!--SEC END --><P>Another way to analyze the server response has been introduced in the
 release <B>1.3.2</B> when the server is sending JSON data. It is only for the HTTP plugin. This feature uses the mochiweb library
 and <B>only works with erlang R13B and newer version</B>.</P><P>Tsung implements a (very) limited subset of JSONPath as defined here <A HREF="http://goessner.net/articles/JsonPath/"><TT>http://goessner.net/articles/JsonPath/</TT></A></P><P>To utilize jsonpath expression, use a <TT>jsonpath</TT> attribute when
@@ -2584,7 +2626,10 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE></LI></OL><P>A <TT>setdynvars</TT> can be defined anywhere in a session.</P><!--TOC subsubsection Checking the server’s response-->
+</TABLE><P>In this case, we use tsung function <TT>ts_dynvars:lookup</TT> to retrieve the
+dynamic variable named <TT>md5data</TT>. This dyn_variable <TT>md5data</TT>
+can be set in any of the ways described in the Dynamic variables
+section <A HREF="#Dynamic variables">6.7.3</A>.</P></LI></OL><P>A <TT>setdynvars</TT> can be defined anywhere in a session.</P><!--TOC subsubsection Checking the server’s response-->
 <H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc66">6.7.4</A>  Checking the server’s response</H4><!--SEC END --><P>With the tag <TT>match</TT> in a <TT>request</TT> tag, you can check
 the server’s response against a given string, and do some actions
 depending on the result. In any case, if it matches, this will
@@ -2680,8 +2725,8 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE><!--TOC subsubsection Loops, If-->
-<H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc67">6.7.5</A>  Loops, If</H4><!--SEC END --><P><B>Since 1.3.0</B>, it’s now possible to add conditional/unconditional loops in a session:</P><!--TOC paragraph &lt;for&gt;-->
+</TABLE><!--TOC subsubsection Loops, If, Foreach-->
+<H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc67">6.7.5</A>  Loops, If, Foreach</H4><!--SEC END --><P><B>Since 1.3.0</B>, it’s now possible to add conditional/unconditional loops in a session.</P><P><B>Since 1.4.0</B>, it is possible to loop through a list of dynamic variables thanks to foreach.</P><!--TOC paragraph &lt;for&gt;-->
 <H5 CLASS="paragraph"><!--SEC ANCHOR -->&lt;for&gt;</H5><!--SEC END --><P>Repeat the enclosing actions a fixed number of times. A dynamic
 variable is used as counter, so the current iteration could be used in
 requests. List of attributes:</P><DL CLASS="description"><DT CLASS="dt-description">
@@ -2763,7 +2808,80 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE><P>You can use <TT>eq</TT> or <TT>neq</TT> to check the variable.</P><!--TOC section Statistics and reports-->
+</TABLE><P>You can use <TT>eq</TT> or <TT>neq</TT> to check the variable.</P><!--TOC paragraph &lt;foreach&gt;-->
+<H5 CLASS="paragraph"><!--SEC ANCHOR -->&lt;foreach&gt;</H5><!--SEC END --><P>Repeat the enclosing actions for all the elements contained in the list specified. The basic syntax is as follows:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">&lt;foreach name="element" in="list"&gt;
+  &lt;request subst="true"&gt;
+    &lt;http url="%%_element%%" method="GET" version="1.1"/&gt;
+  &lt;/request&gt;
+&lt;/foreach&gt;
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><P>It is possible to limit the list of elements you’re looping through, thanks to the use of the <FONT COLOR=purple>include</FONT> or <FONT COLOR=purple>exclude</FONT> attributes inside the foreach statement.</P><P>As an example, if you want to include only elements with a local path you can write:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">&lt;foreach name="element" in="list" include="^/.*$"&gt;
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><P>If you want to exclude all the elements from a specific URI, you would write:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">&lt;foreach name="element" in="list" exclude="http:\/\/.*\.tld\.com\/.*$"&gt;
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><P>You can combine this with a xpath query. For instance the following scenario will retrieve all the images specified on a web page:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">&lt;request subst="true"&gt;
+  &lt;dyn_variable name="img_list" xpath="//img/@src"/&gt;
+  &lt;http url="/mypage.html" method="GET" version="1.1"/&gt;
+&lt;/request&gt;
+&lt;foreach name="img" in="img_list"&gt;
+  &lt;request subst="true"&gt;
+    &lt;http url="%%_img%%" method="GET" version="1.1"/&gt;
+  &lt;/request&gt;
+&lt;/foreach&gt;
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><!--TOC section Statistics and reports-->
 <H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc68">7</A>  Statistics and reports</H2><!--SEC END --><P>
 <A NAME="sec:statistics-reports"></A></P><!--TOC subsection Available stats-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc69">7.1</A>  Available stats</H3><!--SEC END --><UL CLASS="itemize"><LI CLASS="li-itemize">
@@ -2849,6 +2967,8 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
         [--tdir &lt;template_dir&gt;] (Path to the HTML tsung templates)
         [--noextra  (don't generate graphics from extra data (os monitor, etc)
         [--stats &lt;file&gt;] (stats file to analyse, default=tsung.log)
+        [--img_format &lt;format&gt;] (output format for images, default=png
+                                 available format: ps, svg, png, pdf)
 </PRE></TD></TR>
 </TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
@@ -3197,7 +3317,8 @@ max, min, mean, count</TT></P><P>or for HTTP returns code, size ...</P><P><TT> #
 response time ?-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc85">A.7</A>  How can I compute percentile/quartiles/median for transactions or requests
 response time ?</H3><!--SEC END --><P>It’s not directly possible. But since <B>version 1.3.0</B>, you can
-use a new experimental statistic backend: set <FONT COLOR=purple>backend="fullstats"</FONT></P><P>This will print every statistics data in a raw format in a file named
+use a new experimental statistic backend: set <FONT COLOR=purple>backend="fullstats"</FONT> in the
+<FONT COLOR=purple>&lt;tsung&gt;</FONT> section of your configuration file.</P><P>This will print every statistics data in a raw format in a file named
 <TT>tsung-fullstats.log</TT>. <B>Warning</B>: this may impact the performance of
 the controller node (a lot of data has to be written to disk).</P><P>The data looks like:
 </P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -3326,7 +3447,17 @@ parameter from the config_server; the controller may be overloaded ?
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
 </TABLE></TD></TR>
-<TR><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim"><I>1.3.1 -&gt; 1.3.2 Major bugfixes and enhancements (14 Jun 2010)
+<TR><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim"><I>1.3.2 -&gt; 1.3.3 Minor bugfixes (17 Aug 2010)
+Bugfix:
+    * [TSUN-154] - parent proxy doesn't work anymore in 1.3.x (tested with 1.3.2 and 1.3.0).
+    * [TSUN-155] - url substitution is broken in some cases
+    * [TSUN-156] - Tsung not using sessions with low probabilities
+    * [TSUN-157] - ssl doesn't work with erlang R14A
+    * [TSUN-158] - failure when a proxy is used and an URL substitution is set
+    * [TSUN-159] - HTTP cookies support is broken when a proxy is used
+    * [TSUN-160] - tsung can sometimes hang at the beginning using distributed setup
+    * [TSUN-161] - if statement not allowed in a transaction
+1.3.1 -&gt; 1.3.2 Major bugfixes and enhancements (14 Jun 2010)
 Bugfix:
     * [TSUN-128] - Apostrophes cause string to convert to deep list in setdynvars with Erlang function.
     * [TSUN-130] - static users starting time is wrong

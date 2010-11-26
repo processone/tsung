@@ -52,6 +52,7 @@
                 phases =[],
                 myhostname,
                 intensity,
+                static_done = false,
                 started_users = 0,
                 phase_nusers,   % total number of users to start in the current phase
                 phase_duration, % expected phase duration
@@ -120,32 +121,36 @@ wait({launch, Args, Hostname, Seed}, State) ->
 
 %% starting without configuration. We must ask the config server for
 %% the configuration of this launcher.
-wait({launch, [], Seed}, State) ->
+wait({launch, [], Seed}, State=#state{static_done=Static_done}) ->
     ts_utils:init_seed(Seed),
     MyHostName = State#state.myhostname,
     ?LOGF("Launch msg receive (~p)~n",[MyHostName], ?NOTICE),
     ts_launcher_mgr:check_registered(),
     case ts_config_server:get_client_config(MyHostName) of
-        {ok, {[{Intensity, Users}| Rest], StartDate, Max}} ->
-            Duration = Users/Intensity,
+        {ok, {[{Intensity, Users, Duration}| Rest], StartDate, Max}} ->
             ?LOGF("Expected duration of first phase: ~p sec ~n",[Duration/1000], ?NOTICE),
-            {next_state,wait_static,State#state{phases = Rest,
-                                                nusers = Users,
-                                                phase_nusers = Users,
-                                                start_date=StartDate,
-                                                phase_duration=Duration,
-                                                intensity=Intensity,maxusers=Max }};
+            NewState = State#state{phases         = Rest,
+                                   nusers         = Users,
+                                   phase_nusers   = Users,
+                                   start_date     = StartDate,
+                                   phase_duration = Duration,
+                                   intensity      = Intensity, maxusers=Max },
+            case Static_done of
+                true  ->
+                    wait_static({static, 0}, NewState);
+                false ->
+                    {next_state,wait_static,NewState}
+            end;
         {ok,{[],_,_}} -> % no random users, only static.
             {stop, normal, State}
     end;
 
 %% start with a already known configuration. This case occurs when a
 %% beam is started by a launcher (maxclients reached)
-wait({launch, {[{Intensity, Users}| Rest], Max}, Seed}, State) ->
+wait({launch, {[{Intensity, Users, Duration}| Rest], Max}, Seed}, State) ->
     ?LOGF("Starting with ~p users to do in the current phase (max is ~p)~n",
           [Users, Max],?DEB),
     ts_utils:init_seed(Seed),
-    Duration = Users/Intensity,
     ?LOGF("Expected duration of phase: ~p sec ~n",[Duration/1000], ?NOTICE),
     ts_launcher_mgr:check_registered(),
     {next_state, launcher, State#state{phases = Rest, nusers = Users,
@@ -155,8 +160,9 @@ wait({launch, {[{Intensity, Users}| Rest], Max}, Seed}, State) ->
                                        intensity = Intensity, maxusers=Max},
      State#state.short_timeout};
 wait({static,0}, State) ->
-    %% ignore static
-    {next_state, wait, State}.
+    %% static launcher has no work to do, do not wait for him.
+    ?LOG("Wow, static launcher is already sending me a msg, don't forget it ~n", ?INFO),
+    {next_state, wait, State#state{static_done=true}}.
 
 wait_static({static, Static}, State=#state{maxusers=Max,intensity=Intensity,
                                            nusers=Users,start_date=StartDate}) when is_integer(Static) ->
@@ -198,11 +204,10 @@ launcher(timeout, State=#state{nusers    = Users,
                     Duration = ts_utils:elapsed(State#state.phase_start, BeforeLaunch),
                     case change_phase(Users-1, Phases, Duration,
                                       {State#state.phase_duration, PhaseUsers}) of
-                        {change, NewUsers, NewIntensity, Rest} ->
+                        {change, NewUsers, NewIntensity, PhaseLength,Rest} ->
                             ts_mon:add({ count, newphase }),
-                            PhaseLength = NewUsers/NewIntensity,
                             ?LOGF("Start a new arrival phase (~p ~p); expected duration=~p sec~n",
-                                  [NewUsers, NewIntensity, Duration/1000], ?NOTICE),
+                                  [NewUsers, NewIntensity, PhaseLength/1000], ?NOTICE),
                             {next_state,launcher,State#state{phases = Rest,
                                                              nusers = NewUsers,
                                                              phase_nusers = NewUsers,
@@ -280,7 +285,7 @@ handle_info(_Info, StateName, StateData) ->
 %% Returns: any
 %%----------------------------------------------------------------------
 terminate(Reason, _StateName, _StateData) ->
-    ?LOGF("launcher terminating for reason~p~n",[Reason], ?INFO),
+    ?LOGF("launcher terminating for reason ~p~n",[Reason], ?INFO),
     ts_launcher_mgr:die(dynamic),
     ok.
 
@@ -301,8 +306,15 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%% Purpose: decide if we need to change phase (if current users is
 %%%          reached or if max duration is reached)
 %%% ----------------------------------------------------------------------
-change_phase(N, [{NewIntensity, NewUsers}|Rest], _, _)  when N < 1 ->
-    {change, NewUsers, NewIntensity, Rest};
+change_phase(N, [{NewIntensity, NewUsers,NewDuration}|Rest], CurrentDuration, {TotalDuration,_})  when N < 1 andalso CurrentDuration >= TotalDuration ->
+    {change, NewUsers, NewIntensity, NewDuration, Rest};
+change_phase(N, [{NewIntensity, NewUsers,NewDuration}|Rest], CurrentDuration, {TotalDuration,_})  when N < 1 ->
+    %% no more users, check if we need to wait before changing phase (this can happen if maxnumber is set)
+    ToWait=round(TotalDuration-CurrentDuration),
+    ?LOGF("Need to wait ~p sec before changing phase, going to sleep~n", [ToWait/1000], ?WARN),
+    timer:sleep(ToWait),
+    ?LOG("Waking up~n", ?NOTICE),
+    {change, NewUsers, NewIntensity, NewDuration, Rest};
 change_phase(N, [], _, _) when N < 1 ->
     ?LOG("This was the last phase, wait for connected users to finish their session~n",?NOTICE),
     {stop};
@@ -318,8 +330,8 @@ change_phase(N,NewPhases,Current,{Total, PhaseUsers}) when Current>Total ->
                   [N, Percent],?NOTICE)
     end,
     case NewPhases of
-        [{NewIntensity,NewUsers}|Rest] ->
-            {change, NewUsers, NewIntensity, Rest};
+        [{NewIntensity,NewUsers,NewDuration}|Rest] ->
+            {change, NewUsers, NewIntensity, NewDuration,Rest};
         [] ->
             ?LOG("This was the last phase, wait for connected users to finish their session~n",?NOTICE),
             {stop}
@@ -331,8 +343,9 @@ change_phase(_N, _, _Current, {_Total, _}) ->
 %%% Func: check_max_raised/1
 %%%----------------------------------------------------------------------
 check_max_raised(State=#state{phases=Phases,maxusers=Max,nusers=Users,
-                              started_users=Started,
+                              started_users=Started, phase_start=Start, phase_duration=Duration,
                               intensity=Intensity}) when Started >= Max ->
+    PendingDuration = Duration - ts_utils:elapsed(Start, now()),
     ActiveClients =  ts_client_sup:active_clients(),
     ?DebugF("Current active clients on beam: ~p (max is ~p)~n", [ActiveClients, State#state.maxusers]),
     case ActiveClients >= Max of
@@ -340,7 +353,7 @@ check_max_raised(State=#state{phases=Phases,maxusers=Max,nusers=Users,
             ?LOG("Max number of concurrent clients reached, must start a new beam~n", ?NOTICE),
             Args = case Users of
                        0 ->  Phases;
-                       _ -> [{Intensity,Users-1}|Phases]
+                       _ -> [{Intensity,Users-1,PendingDuration}|Phases]
                    end,
             ts_config_server:newbeam(list_to_atom(State#state.myhostname), {Args, Max}),
             true;
@@ -372,7 +385,6 @@ do_launch({Intensity, MyHostName})->
             ?LOGF("get_next_session failed [~p], skip this session !~n", [Error],?ERR),
             error
     end.
-
 
 set_warm_timeout(StartDate)->
     case ts_utils:elapsed(now(), StartDate) of

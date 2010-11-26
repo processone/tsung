@@ -10,7 +10,7 @@
 <!ELEMENT organisation (#PCDATA)>
 
 <!ATTLIST tsung
-     dumptraffic (true | false | light) "false"
+     dumptraffic (true | false | light | protocol) "false"
      backend     (text | rrdtool | fullstats) "text"
      loglevel    (emergency|critical|error|warning|notice|info|debug) "notice"
      version     NMTOKEN #IMPLIED>
@@ -29,12 +29,16 @@
      type     (machine | batch)  "machine"
      host     NMTOKEN #IMPLIED
      batch    (torque | pbs | lsf | oar) #IMPLIED
+     scan_intf NMTOKEN #IMPLIED
      maxusers NMTOKEN "800"
      use_controller_vm (true | false) "false"
      weight   NMTOKEN "1">
 
 <!ELEMENT ip EMPTY>
-<!ATTLIST ip value NMTOKEN #REQUIRED>
+<!ATTLIST ip
+          value NMTOKEN #REQUIRED
+          scan (true| false)  "false"
+>
 
 <!ELEMENT monitoring ( monitor+ )>
 <!ELEMENT monitor ( snmp? | munin?)>
@@ -93,17 +97,17 @@
 
 <!ELEMENT sessions (session+)>
 <!ELEMENT session ( request | thinktime | transaction | setdynvars | for |
-repeat | if | change_type )*>
+repeat | if | change_type | foreach)*>
 <!ATTLIST session
     name         CDATA #REQUIRED
     bidi         CDATA #IMPLIED
     persistent   (true | false) #IMPLIED
     probability   NMTOKEN #REQUIRED
-    type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs ) #REQUIRED>
+    type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs |ts_shell) #REQUIRED>
 
 <!ELEMENT change_type EMPTY>
 <!ATTLIST change_type
-     new_type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs ) #REQUIRED
+     new_type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs | ts_shell) #REQUIRED
      host NMTOKEN #REQUIRED
      port NMTOKEN #REQUIRED
      server_type NMTOKEN #REQUIRED
@@ -111,14 +115,14 @@ repeat | if | change_type )*>
      restore ( true | false ) "false"
     >
 
-<!ELEMENT request ( match*, dyn_variable*, ( http | jabber | raw | pgsql | ldap | mysql |fs ) )>
+<!ELEMENT request ( match*, dyn_variable*, ( http | jabber | raw | pgsql | ldap | mysql |fs | shell ) )>
 <!ATTLIST request
     subst (true|false) "false"
     >
 
 <!ELEMENT match (#PCDATA)>
 <!ATTLIST match
-    do (continue|loop|abort|restart|log) "continue"
+    do (continue|loop|abort|restart|log|dump) "continue"
     when (match|nomatch) "match"
     subst (true|false) "false"
     loop_back   NMTOKEN "0"
@@ -132,7 +136,7 @@ repeat | if | change_type )*>
 <!ELEMENT thinktime EMPTY>
 <!ATTLIST thinktime
     random (true|false) "false"
-    value  NMTOKEN #IMPLIED
+    value  CDATA #IMPLIED
     min    NMTOKEN #IMPLIED
     max    NMTOKEN #IMPLIED
     >
@@ -142,7 +146,8 @@ repeat | if | change_type )*>
     probability NMTOKEN #REQUIRED
     >
 
-<!ELEMENT transaction (request | setdynvars | thinktime | for | repeat)+>
+<!ELEMENT transaction (request | setdynvars | thinktime | for | repeat
+          | if | foreach)+>
 <!ATTLIST transaction name NMTOKEN #REQUIRED>
 
 <!ELEMENT http (oauth?, www_authenticate?, soap?, http_header*, add_cookie*)>
@@ -162,6 +167,7 @@ repeat | if | change_type )*>
 <!ATTLIST dyn_variable
     name     CDATA #REQUIRED
     xpath    CDATA #IMPLIED
+    re    CDATA #IMPLIED
     jsonpath CDATA #IMPLIED
     pgsql_expr CDATA #IMPLIED
     regexp   CDATA #IMPLIED 
@@ -200,9 +206,9 @@ repeat | if | change_type )*>
 		method  (HMAC-SHA1 | PLAINTEXT | RSA-SHA1) "HMAC-SHA1"
 		>
 
-<!ELEMENT jabber EMPTY >
+<!ELEMENT jabber (xmpp_authenticate?) >
 <!ATTLIST jabber
-    ack         (global | local | no_ack) #REQUIRED
+    ack         (global | local | no_ack | parse) #REQUIRED
     destination (online | offline | random | unique | previous) "random"
     id          NMTOKEN #IMPLIED
     size        NMTOKEN "0"
@@ -215,9 +221,16 @@ repeat | if | change_type )*>
     group       CDATA #IMPLIED
     node        CDATA #IMPLIED
     node_type   CDATA #IMPLIED
-    send_version (true | false) "false">
+    send_version (true | false) "false"
+    regexp        CDATA #IMPLIED >
 
-<!ELEMENT fs (#PCDATA) >
+<!ELEMENT xmpp_authenticate EMPTY >
+<!ATTLIST xmpp_authenticate
+    passwd   CDATA #REQUIRED
+    username CDATA #REQUIRED >
+
+
+<!ELEMENT fs EMPTY >
 <!ATTLIST fs
     cmd      (read|write|open|delete|stats|copy|read_chunk|write_chunk|close)  "write"
     path     CDATA   #IMPLIED
@@ -225,6 +238,12 @@ repeat | if | change_type )*>
     position CDATA   #IMPLIED
     mode     (read | write | append ) #IMPLIED
     dest     CDATA   #IMPLIED
+>
+
+<!ELEMENT shell EMPTY >
+<!ATTLIST shell
+    cmd      CDATA   #REQUIRED
+    args     CDATA   ""
 >
 
 <!ELEMENT pgsql (#PCDATA) >
@@ -276,7 +295,8 @@ repeat | if | change_type )*>
 
 <!ELEMENT setdynvars (var*) >
 <!ATTLIST setdynvars
-    sourcetype   (random_string | urandom_string | random_number | file | erlang | eval)  #REQUIRED
+    sourcetype   (random_string | urandom_string | random_number |
+          file | erlang | eval| jsonpath)  #REQUIRED
     callback     CDATA   #IMPLIED
     code         CDATA   #IMPLIED
     fileid       CDATA   #IMPLIED
@@ -285,27 +305,38 @@ repeat | if | change_type )*>
     length       CDATA   #IMPLIED
     start        CDATA   #IMPLIED
     end          CDATA   #IMPLIED
+    from         CDATA   #IMPLIED
+    jsonpath     CDATA   #IMPLIED
     >
 <!ELEMENT var (#PCDATA) >
 <!ATTLIST var
     name CDATA #REQUIRED>
 
 <!ELEMENT for (request | thinktime | transaction | setdynvars | for |
-          if | repeat | change_type )+>
+          if | repeat | change_type | foreach )+>
 <!ATTLIST for
     var      CDATA      #REQUIRED
-    from     NMTOKEN    #REQUIRED
-    to       NMTOKEN    #REQUIRED
+    from     CDATA      #REQUIRED
+    to       CDATA      #REQUIRED
     incr     NMTOKEN   "1">
 
+<!ELEMENT foreach (request | thinktime | transaction | setdynvars | foreach |
+          if | repeat | change_type | for )+>
+<!ATTLIST foreach
+    name     NMTOKEN    #REQUIRED
+    in       NMTOKEN    #REQUIRED
+    include    CDATA    #IMPLIED
+    exclude    CDATA    #IMPLIED
+>
+
 <!ELEMENT repeat (request | thinktime | transaction | setdynvars | for | repeat
-| while | if | until | change_type)+>
+| while | if | until | change_type | foreach )+>
 <!ATTLIST repeat
     name      NMTOKEN    #REQUIRED
     max_repeat  NMTOKEN   "20">
 
 <!ELEMENT if (request | thinktime | transaction | setdynvars | for | repeat
-| while | if | until | change_type)+>
+| while | if | until | change_type | foreach)+>
 <!ATTLIST if
     var       CDATA #REQUIRED
     eq        CDATA #IMPLIED

@@ -12,6 +12,7 @@
 -include("ts_profile.hrl").
 -include("ts_config.hrl").
 -include_lib("eunit/include/eunit.hrl").
+-include("xmerl.hrl").
 
 test()->
     ok.
@@ -34,17 +35,22 @@ read_config_jabber_muc_test() ->
     ts_user_server:start([]),
     ?assertMatch({ok, Config}, ts_config:read("./examples/jabber_muc.xml",".")).
 
+read_config_xmpp_muc_test() ->
+    myset_env(),
+    ts_user_server:start([]),
+    ?assertMatch({ok, Config}, ts_config:read("./src/test/xmpp-muc.xml",".")).
+
 config_get_session_test() ->
     myset_env(),
     ts_user_server:start([]),
     ts_config_server:start_link(["/tmp"]),
     ok = ts_config_server:read_config("./examples/http_setdynvars.xml"),
-    {ok, {Session,IP,Server,1} }  = ts_config_server:get_next_session("localhost"),
+    {ok, {Session,IP,Server,1,full} }  = ts_config_server:get_next_session("localhost"),
     ?assertEqual(1, Session#session.id).
 
 config_get_session_size_test() ->
     myset_env(),
-    {ok, {Session,IP,Server,2} }  = ts_config_server:get_next_session("localhost"),
+    {ok, {Session,IP,Server,2,_} }  = ts_config_server:get_next_session("localhost"),
     ?assertEqual(13, Session#session.size).
 
 
@@ -62,13 +68,13 @@ read_config_thinkfirst_test() ->
 
 config_minmax_test() ->
     myset_env(),
-    {ok, {Session,IP,Server,3} }  = ts_config_server:get_next_session("localhost"),
+    {ok, {Session,IP,Server,3,_} }  = ts_config_server:get_next_session("localhost"),
     Id = Session#session.id,
     ?assertMatch({thinktime,{range,2000,4000}}, ts_config_server:get_req(Id,7)).
 
 config_minmax2_test() ->
     myset_env(),
-    {ok, {Session,IP,Server,4} }  = ts_config_server:get_next_session("localhost"),
+    {ok, {Session,IP,Server,4,_} }  = ts_config_server:get_next_session("localhost"),
     Id = Session#session.id,
     {thinktime, Req} = ts_config_server:get_req(Id,7),
     Think=ts_client:set_thinktime(Req),
@@ -80,7 +86,7 @@ config_minmax2_test() ->
 config_thinktime_test() ->
     myset_env(),
     ok = ts_config_server:read_config("./examples/thinks.xml"),
-    {ok, {Session,IP,Server,5} }  = ts_config_server:get_next_session("localhost"),
+    {ok, {Session,IP,Server,5,_} }  = ts_config_server:get_next_session("localhost"),
     Id = Session#session.id,
     {thinktime, Req=2000} = ts_config_server:get_req(Id,5),
     {thinktime, 2000} = ts_config_server:get_req(Id,7),
@@ -94,7 +100,7 @@ config_thinktime_test() ->
 config_thinktime2_test() ->
     myset_env(),
     ok = ts_config_server:read_config("./examples/thinks2.xml"),
-    {ok, {Session,{IP,0},Server,6} }  = ts_config_server:get_next_session("localhost"),
+    {ok, {Session,{IP,0},Server,6,none} }  = ts_config_server:get_next_session("localhost"),
     Id = Session#session.id,
     {thinktime, Req} = ts_config_server:get_req(Id,5),
     Ref=ts_client:set_thinktime(Req),
@@ -107,19 +113,49 @@ read_config_maxusers_test() ->
     myset_env(),
     MaxNumber=10,
     ts_config_server:read_config("./src/test/thinkfirst.xml"),
-    {ok,{[{_,Max1},{_,_}],_,_}}=ts_config_server:get_client_config("client1"),
-    {ok,{[{_,Max2},{_,_}],_,_}}=ts_config_server:get_client_config("client2"),
-    {ok,{[{_,Max3},{_,_}],_,_}}=ts_config_server:get_client_config("client3"),
-    {ok,{[{_,Max4},{_,_}],_,_}}=ts_config_server:get_client_config("client4"),
-    ?assert(Max1+Max2+Max3+Max4 =< MaxNumber).
+    {ok,{[{_,Max1,_},{_,_,_}],_,_}}=ts_config_server:get_client_config("client1"),
+    {ok,{[{_,Max2,_},{_,_,_}],_,_}}=ts_config_server:get_client_config("client2"),
+    {ok,{[{_,Max3,_},{_,_,_}],_,_}}=ts_config_server:get_client_config("client3"),
+    {ok,{[{_,Max4,_},{_,_,_}],_,_}}=ts_config_server:get_client_config("client4"),
+    ?LOGF("max: ~p",[[Max1,Max2,Max3,Max4]],?ERR),
+    ?assertEqual(Max1+Max2+Max3+Max4, MaxNumber).
 
-choose_port_test() ->
-    myset_env(),
-    {Dict,3} = ts_config_server:choose_port('client',undefined,{3,5}),
-    {Dict2,4} = ts_config_server:choose_port('client',Dict,{3,5}),
-    {Dict3,5} = ts_config_server:choose_port('client',Dict2,{3,5}),
-    {Dict4,3} = ts_config_server:choose_port('client2',Dict3,{3,5}),
-    ?assertMatch({_,3}, ts_config_server:choose_port('client',Dict4,{3,5})).
+
+cport_list_node_test() ->
+    List=['tsung1@toto',
+          'tsung3@titi',
+          'tsung2@toto',
+          'tsung7@titi',
+          'tsung6@toto',
+          'tsung4@tutu'],
+    Rep =  ts_config_server:get_one_node_per_host(List),
+    ?assertEqual(['tsung1@toto', 'tsung3@titi', 'tsung4@tutu'], lists:sort(Rep)).
+
+
+ifalias_test() ->
+    Res=ts_ip_scan:get_intf_aliases("lo"),
+    ?assertEqual([{127,0,0,1}],Res).
+
+encode_test() ->
+    Encoded="ts_encoded_47myfilepath_47toto_47titi_58sdfsdf_45sdfsdf_44aa_47",
+    Str="/myfilepath/toto/titi:sdfsdf-sdfsdf,aa/",
+    ?assertEqual(Encoded,ts_config_server:encode_filename(Str)).
+
+decode_test() ->
+    Encoded="ts_encoded_47myfilepath_47toto_47titi_58sdfsdf_45sdfsdf_44aa_47",
+    Str="/myfilepath/toto/titi:sdfsdf-sdfsdf,aa/",
+    ?assertEqual(Str,ts_config_server:decode_filename(Encoded)).
+
+concat_atoms_test() ->
+    ?assertEqual('helloworld', ts_utils:concat_atoms(['hello','world'])).
+
+
+int_or_string_test() ->
+     ?assertEqual(123, ts_config:getAttr(integer_or_string,[#xmlAttribute{name=to,value="123"}],to)).
+int_or_string2_test() ->
+    ?assertEqual("%%_toto%%", ts_config:getAttr(integer_or_string,[#xmlAttribute{name=to,value="%%_toto%%"}],to)).
+int_test() ->
+    ?assertEqual(100, ts_config:getAttr(integer,[#xmlAttribute{name=to,value="100"}],to)).
 
 myset_env()->
     myset_env(0).

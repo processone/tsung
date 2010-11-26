@@ -41,6 +41,7 @@
          parse/2,
          parse_bidi/2,
          parse_config/2,
+         decode_buffer/2,
          new_session/0]).
 -export ([starttls_bidi/2,
           presence_bidi/2]).
@@ -51,6 +52,13 @@
 %%----------------------------------------------------------------------
 session_defaults() ->
     {ok, true, false}.
+
+%% @spec decode_buffer(Buffer::binary(),Session::record(jabber)) ->  NewBuffer::binary()
+%% @doc We need to decode buffer (remove chunks, decompress ...) for
+%%      matching or dyn_variables
+%% @end
+decode_buffer(Buffer,#jabber{}) ->
+    Buffer. % nothing to do for jabber
 
 %%----------------------------------------------------------------------
 %% Function: new_session/0
@@ -70,14 +78,33 @@ get_message(Req=#jabber{}) ->
 
 
 %%----------------------------------------------------------------------
-%% Function: parse/3
+%% Function: parse/2
 %% Purpose: Parse the given data and return a new state
 %% Args:    Data (binary)
 %%            State (record)
-%% Returns: NewState (record)
+%% Returns:  {NewState, Opts, Close}
+%%  State = #state_rcv{}
+%%  Opts = proplist()
+%%  Close = bool()
 %%----------------------------------------------------------------------
-parse(_Data, State) ->
-    State.
+parse(closed, State) ->
+    ?LOG("XMPP connection closed by server!",?WARN),
+    {State#state_rcv{ack_done = true}, [], true};
+parse(Data, State=#state_rcv{}) ->
+    ?DebugF("RECEIVED : ~p~n",[Data]),
+    case get(regexp) of
+        undefined ->
+            ?LOG("No regexp defined, skip",?WARN),
+            {State#state_rcv{ack_done=true}, [], false};
+        Regexp ->
+            case re:run(Data, Regexp) of
+                {match,_} ->
+                    ?DebugF("XMPP parsing: Match (regexp was ~p)~n",[Regexp]),
+                    {State#state_rcv{ack_done=true}, [], false};
+                nomatch ->
+                    {State#state_rcv{ack_done=false}, [], false}
+            end
+    end.
 
 %%----------------------------------------------------------------------
 %% Function: parse_bidi/2
@@ -126,11 +153,11 @@ starttls_bidi(_RcvdXml, #state_rcv{socket= Socket}=State)->
 %% subscribed: Complete a pending subscription request
 bidi_resp(subscribed,RcvdXml,SubMatches,State) ->
     JoinedXml=lists:foldl(fun(X,Foo) ->
-        {Start,Len}=X,
-        SubStr = string:substr(RcvdXml,Start,Len),
-        case regexp:first_match(SubStr,"from=[\"\'][^\s]*[\"\'][\s\/\>]") of
-            {match,Start1,Length1} ->
-                MyId=string:substr(SubStr,Start1 +6, Length1 -8),
+        [{Start,Len}]=X,
+        SubStr = string:substr(RcvdXml,Start+1,Len),
+        case re:run(SubStr,"from=[\"']([^\s]*)[\"'][\s\/\>]",[{capture,[1],list}]) of
+            {match,[MyId]} ->
+                %% MyId=string:substr(SubStr,Start1 +6, Length1 -8),
                 ?LOGF("Subscription request from : ~p~n",[MyId],?DEB),
                 MyXml = ["<presence to='", MyId, "' type='subscribed'/>"],
                 lists:append([Foo],[MyXml]);
@@ -165,18 +192,16 @@ parse_config(Element, Conf) ->
 %% if we are testing a single domain (the default case), we  change from {domain,D}.
 %% to the specified domain (D). If {vhost,FileId}, we choose a domain from that file
 %% and set it.
-add_dynparams(Subst,DynData, Param =#jabber{domain={domain,Domain}}, Host) ->
-    UserId = choose_or_cache_user_id(),
-    add_dynparams(Subst,DynData, Param#jabber{id=UserId,
-                                              domain=Domain,
-                                              user_server=default},Host);
+add_dynparams(Subst,DynData, Param =#jabber{id=OldId,username=OldUser,passwd=OldPasswd, domain={domain,Domain}}, Host) ->
+    {Id,User,Pwd} = choose_or_cache_user_id(OldId,OldUser,OldPasswd),
+    add_dynparams(Subst,DynData, Param#jabber{id=Id,username=User,passwd=Pwd,domain=Domain, user_server=default},Host);
 
-add_dynparams(Subst,DynData,Param =#jabber{domain={vhost,FileId}}, Host) ->
-    {UserId,Domain,UserServer} = choose_domain(FileId),
-    add_dynparams(Subst,DynData, Param#jabber{id=UserId,
+add_dynparams(Subst,DynData,Param =#jabber{id=OldId, username=OldUser,passwd=OldPasswd, domain={vhost,FileId}}, Host) ->
+    {Id,User,Pwd} = choose_or_cache_user_id(OldId,OldUser,OldPasswd),
+    {Domain,UserServer} = choose_domain(FileId),
+    add_dynparams(Subst,DynData, Param#jabber{id=Id,username=User, passwd=Pwd,
                                               domain=Domain,
                                               user_server=UserServer},Host);
-
 add_dynparams(_Subst,[], Param, _Host) ->
     Param;
 add_dynparams(false,#dyndata{proto=_DynData}, Param, _Host) ->
@@ -193,11 +218,10 @@ add_dynparams(true,#dyndata{proto=_JabDynData, dynvars=DynVars}, Param, _Host) -
 choose_domain(VHostFileId) ->
     case get(xmpp_vhost_domain) of
         undefined ->
-                Domain = do_choose_domain(VHostFileId),
-                UserServer = global:whereis_name(list_to_atom("us_"++Domain)),
-                UserId =  choose_user_id(UserServer),
-                put(xmpp_vhost_domain,{UserId,Domain,UserServer}),
-                {UserId,Domain,UserServer};
+            Domain = do_choose_domain(VHostFileId),
+            UserServer = global:whereis_name(list_to_atom("us_"++Domain)),
+            put(xmpp_vhost_domain,{Domain,UserServer}),
+            {Domain,UserServer};
         X ->
             X
      end.
@@ -228,14 +252,20 @@ choose_user_id(UserServer) ->
             Id
     end.
 
-choose_or_cache_user_id() ->
+choose_or_cache_user_id(user_defined,User,Pwd) ->
+    put(xmpp_user_id,{User,Pwd}),
+    {user_defined, User,Pwd};
+
+choose_or_cache_user_id(Id,User,Pwd) ->
     case get(xmpp_user_id) of
-            undefined ->
-                    Id = choose_user_id(default),
-                    put(xmpp_user_id,Id),
-                    Id;
-            Id ->
-                Id
+        undefined ->
+            Id = choose_user_id(default),
+            put(xmpp_user_id,Id),
+            Id;
+        {DefinedUser,DefinedPwd} ->
+            {user_defined, DefinedUser,DefinedPwd} ;
+        Id ->
+            {Id,User,Pwd}
     end.
 
 
@@ -248,6 +278,12 @@ subst(Req=#jabber{type = Type}, DynData) when Type == 'muc:chat' ; Type == 'muc:
                room = ts_search:subst(Req#jabber.room, DynData)};
 subst(Req=#jabber{type = Type}, DynData) when Type == 'pubsub:create' ; Type == 'pubsub:subscribe'; Type == 'pubsub:publish'; Type == 'pubsub:delete' ->
     Req#jabber{node = ts_search:subst(Req#jabber.node, DynData)};
+
+subst(Req=#jabber{id=user_defined, username=Name,passwd=Pwd}, DynData) ->
+    NewUser=ts_search:subst(Name,DynData),
+    NewPwd=ts_search:subst(Pwd,DynData),
+    put(xmpp_user_id,{NewUser,NewPwd}),% we need to keep the substitution for futures requests
+    Req#jabber{username=NewUser,passwd=NewPwd};
 
 subst(Req=#jabber{data=Data}, DynData) ->
     Req#jabber{data=ts_search:subst(Data,DynData)}.

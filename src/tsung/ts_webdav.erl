@@ -31,11 +31,18 @@
          session_defaults/0,
          parse/2,
          parse_config/2,
+         decode_buffer/2,
          new_session/0]).
 
 session_defaults() -> {ok, true}.
 new_session() -> #http{}.
 
+%% @spec decode_buffer(Buffer::binary(),Session::record(http)) ->  NewBuffer::binary()
+%% @doc We need to decode buffer (remove chunks, decompress ...) for
+%%      matching or dyn_variables
+%% @end
+decode_buffer(Buffer,Session) ->
+    ts_http:decode_buffer(Buffer,Session).
 
 %% we should implement methods defined in rfc4918
 

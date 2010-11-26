@@ -87,7 +87,8 @@ parse(Element = #xmlElement{parents = [], attributes=Attrs}, Conf=#config{}) ->
     DumpType = case Dump of
                    "false" -> none;
                    "true"  -> full;
-                   "light" -> light
+                   "light" -> light;
+                   "protocol" -> protocol
                end,
     lists:foldl(fun parse/2,
                 Conf#config{dump= DumpType, stats_backend=BackEnd,
@@ -187,6 +188,7 @@ parse(Element = #xmlElement{name=client, attributes=Attrs},
             batch ->
                 ?LOG("Get client nodes from batch scheduler~n",?DEB),
                 Batch = getAttr(atom, Attrs, batch),
+                Scan_Intf = getAttr(Attrs, scan_intf),
                 NodesTmp = get_batch_nodes(Batch),
                 case NodesTmp of
                     []->
@@ -197,10 +199,25 @@ parse(Element = #xmlElement{name=client, attributes=Attrs},
                 %% remove controller host from list to avoid
                 %% overloading the machine running the controller
                 {ok, ControllerHost} = ts_utils:node_to_hostname(node()),
-                Nodes = lists:delete(ControllerHost, NodesTmp),
+                DeleteController=fun(A) when A == ControllerHost -> false;
+                                    (_) -> true
+                                 end,
+                Nodes = lists:filter(DeleteController, NodesTmp),
                 Fun = fun(N)->
-                        {ok, IP } = inet:getaddr(N,inet),
-                        #client{host=N,weight=Weight,ip=[IP],maxusers=MaxUsers}
+                              IP = case Scan_Intf of
+                                       "" ->
+                                           {ok, TmpIP } = inet:getaddr(N,inet),
+                                           TmpIP;
+                                       Interface ->
+                                           case os:type() of
+                                               {unix, linux} ->
+                                                   {scan, Interface};
+                                               OS ->
+                                                   ?LOGF("Scan interface is not supported on OS ~p, abort~n",[OS],?ERR),
+                                                   exit({error, scan_interface_not_supported_on_os})
+                                           end
+                                   end,
+                              #client{host=N,weight=Weight,ip=[IP],maxusers=MaxUsers}
                       end,
                 lists:map(Fun, Nodes);
             _ ->
@@ -232,15 +249,21 @@ parse(Element = #xmlElement{name=client, attributes=Attrs},
 parse(Element = #xmlElement{name=ip, attributes=Attrs},
       Conf = #config{clients=[CurClient|CList]}) ->
     IPList = CurClient#client.ip,
-    ToResolve = case getAttr(Attrs, value) of
-             "resolve" ->
-                 CurClient#client.host;
-             StrIP ->
-                 StrIP
+    IP = case getAttr(atom, Attrs, scan, false) of
+             true ->
+                 {scan, getAttr(string,Attrs, value, "eth0")};
+             _ ->
+                 ToResolve = case getAttr(Attrs, value) of
+                                 "resolve" ->
+                                     CurClient#client.host;
+                                 StrIP ->
+                                     StrIP
+                             end,
+                 ?LOGF("resolving host ~p~n",[ToResolve],?WARN),
+                 {ok,IPtmp} = inet:getaddr(ToResolve,inet),
+                 IPtmp
          end,
-     ?LOGF("resolving host ~p~n",[ToResolve],?WARN),
-    {ok, IP } = inet:getaddr(ToResolve,inet),
-     ?LOGF("resolved host ~p~n",[IP],?WARN),
+    ?LOGF("resolved host ~p~n",[IP],?WARN),
     lists:foldl(fun parse/2,
         Conf#config{clients = [CurClient#client{ip = [IP|IPList]}
                                |CList]},
@@ -253,7 +276,7 @@ parse(Element = #xmlElement{name=arrivalphase, attributes=Attrs},
     Phase     = getAttr(integer,Attrs, phase),
     IDuration  = getAttr(integer, Attrs, duration),
     Unit  = getAttr(string,Attrs, unit, "second"),
-    D = to_seconds(Unit, IDuration),
+    D = 1000 * to_seconds(Unit, IDuration),
     case lists:keysearch(Phase,#arrivalphase.phase,AList) of
         false ->
             lists:foldl(fun parse/2,
@@ -385,8 +408,8 @@ parse(_Element = #xmlElement{name='if', attributes=Attrs,content=Content},
 parse(_Element = #xmlElement{name=for, attributes=Attrs,content=Content},
       Conf = #config{session_tab = Tab, sessions=[CurS|_], curid=Id}) ->
     VarName = getAttr(atom,Attrs,var),
-    InitValue = getAttr(integer,Attrs,from),
-    EndValue = getAttr(integer,Attrs,to),
+    InitValue = getAttr(integer_or_string,Attrs,from),
+    EndValue = getAttr(integer_or_string,Attrs,to),
     Increment = getAttr(integer,Attrs,incr,1),
     InitialAction = {ctrl_struct, {for_start, InitValue, VarName}},
     ?LOGF("Add for_start action in session ~p as id ~p",
@@ -398,6 +421,39 @@ parse(_Element = #xmlElement{name=for, attributes=Attrs,content=Content},
     %%Id+2 -> id of the first action inside the loop
     %%       (id+1 is the for_start action)
     ?LOGF("Add for_end action in session ~p as id ~p, Jump to:~p",
+          [CurS#session.id,NewId+1,Id+2],?INFO),
+    ets:insert(Tab, {{CurS#session.id,NewId+1},EndAction}),
+    NewConf#config{curid=NewId+1};
+
+%%%% Parsing the 'foreach' element
+parse(_Element = #xmlElement{name=foreach, attributes=Attrs,content=Content},
+      Conf = #config{session_tab = Tab, sessions=[CurS|_], curid=Id}) ->
+
+    VarName = getAttr(atom,Attrs,in),
+    ForName = getAttr(atom,Attrs,name),
+    Filter  = case getAttr(string,Attrs,include) of
+                    "" ->
+                      case getAttr(string,Attrs,exclude) of
+                          "" ->
+                              undefined;
+                          Re2 ->
+                              {ok, RegExp} = re:compile(Re2),
+                              {false,RegExp}
+                      end;
+                    Re ->
+                        {ok, CompiledRegExp} = re:compile(Re),
+                        {true,CompiledRegExp}
+                end,
+    InitialAction = {ctrl_struct, {foreach_start, ForName, VarName, Filter}},
+    ?LOGF("Add foreach_start action in session ~p as id ~p",
+          [CurS#session.id,Id+1],?INFO),
+    ets:insert(Tab,{{CurS#session.id,Id+1},InitialAction}),
+    NewConf = lists:foldl(fun parse/2, Conf#config{curid=Id+1}, Content),
+    NewId = NewConf#config.curid,
+    EndAction= {ctrl_struct,{foreach_end,ForName,VarName,Filter,Id+2}},
+    %%Id+2 -> id of the first action inside the loop
+    %%       (id+1 is the foreach_start action)
+    ?LOGF("Add foreach_end action in session ~p as id ~p, Jump to:~p",
           [CurS#session.id,NewId+1,Id+2],?INFO),
     ets:insert(Tab, {{CurS#session.id,NewId+1},EndAction}),
     NewConf#config{curid=NewId+1};
@@ -436,24 +492,27 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
     StrName  = ts_utils:clean_str(getAttr(Attrs, name)),
     {ok, [{atom,1,Name}],1} = erl_scan:string("'"++StrName++"'"),
     {Type,Expr} = case {getAttr(string,Attrs,regexp,none),
+                        getAttr(string,Attrs,re,none),
                         getAttr(string,Attrs,pgsql_expr,none),
                         getAttr(string,Attrs,xpath,none),
                         getAttr(string,Attrs,header,none),
                        getAttr(string,Attrs,jsonpath,none)} of
-                      {none,none,none,none,none} ->
+                      {none,none,none,none,none,none} ->
                           DefaultRegExp = ?DEF_REGEXP_DYNVAR_BEGIN ++ StrName
                               ++?DEF_REGEXP_DYNVAR_END,
                           {regexp,DefaultRegExp};
-                      {none,none,XPath,none,none} ->
+                      {RegExp, none, none,none,none,none}->
+                          {regexp,RegExp};
+                      {none,none,none,XPath,none, none} ->
                           {xpath,XPath};
-                      {none,none,none,none,JSONPath} ->
+                      {none,none,none,none,none,JSONPath} ->
                           {jsonpath,JSONPath};
-                      {none,PG,none,none,none} ->
+                      {none,none,PG,none,none, none} ->
                           {pgsql_expr,PG};
-                      {none,none,none,AuthHeader,none} ->
+                      {none,none,none,none,AuthHeader,none} ->
                           {header, AuthHeader};
-                      {RegExp,_,_,_, _} ->
-                          {regexp,RegExp}
+                      {none,RE,none,none,none, none} ->
+                          {re,RE}
                   end,
     FlattenExpr =lists:flatten(Expr),
     %% precompilation of the exp
@@ -462,6 +521,10 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
                      ?LOGF("Add new regexp: ~s ~n", [Expr],?INFO),
                      {ok, CompiledRegExp} = gregexp:parse(FlattenExpr),
                      {regexp,Name,CompiledRegExp};
+                 re ->
+                     ?LOGF("Add new re: ~s ~n", [Expr],?INFO),
+                     {ok, CompiledRegExp} = re:compile(FlattenExpr),
+                     {re,Name,CompiledRegExp};
                  xpath ->
                      ?LOGF("Add new xpath: ~s ~n", [Expr],?INFO),
                      CompiledXPathExp = mochiweb_xpath:compile_xpath(FlattenExpr),
@@ -647,40 +710,47 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
 %%% Parsing the thinktime element
 parse(Element = #xmlElement{name=thinktime, attributes=Attrs},
       Conf = #config{curid=Id, session_tab = Tab, sessions = [CurS |_]}) ->
-    DefThink  = get_default(Tab,{thinktime, value},thinktime_value),
-    DefRandom = get_default(Tab,{thinktime, random},thinktime_random),
-    {Think, Randomize} =
-        case get_default(Tab,{thinktime, override},thinktime_override) of
-            "true" ->
-                {DefThink, DefRandom};
-            "false" ->
-                case { getAttr(integer, Attrs, min),
-                       getAttr(integer, Attrs, max),
-                       getAttr(float_or_integer, Attrs, value)}  of
-                    {Min, Max, "" } when is_integer(Min), is_integer(Max), Max > 0, Min >0,  Max > Min ->
-                        {"", {"range", Min, Max} };
-                    {"","",""} ->
-                        CurRandom = getAttr(string, Attrs,random,DefRandom),
-                        {DefThink, CurRandom};
-                    {"","",CurThink} when CurThink > 0 ->
-                        CurRandom = getAttr(string, Attrs,random,DefRandom),
-                        {CurThink, CurRandom};
-                    _ ->
-                        exit({error, bad_thinktime})
-                end
+    {RT,T} = case getAttr(Attrs, value)  of
+            "wait_global" ->
+                {wait_global,infinity};
+            "%%"++Tail -> % dynamic thinktime
+                     {"%%"++Tail,"%%"++Tail};
+            _ ->
+                DefThink  = get_default(Tab,{thinktime, value},thinktime_value),
+                DefRandom = get_default(Tab,{thinktime, random},thinktime_random),
+                {Think, Randomize} =
+                    case get_default(Tab,{thinktime, override},thinktime_override) of
+                        "true" ->
+                            {DefThink, DefRandom};
+                        "false" ->
+                            case { getAttr(integer, Attrs, min),
+                                   getAttr(integer, Attrs, max),
+                                   getAttr(float_or_integer, Attrs, value)}  of
+                                {Min, Max, "" } when is_integer(Min), is_integer(Max), Max > 0, Min >0,  Max > Min ->
+                                    {"", {"range", Min, Max} };
+                                {"","",""} ->
+                                    CurRandom = getAttr(string, Attrs,random,DefRandom),
+                                    {DefThink, CurRandom};
+                                {"","",CurThink} when CurThink > 0 ->
+                                    CurRandom = getAttr(string, Attrs,random,DefRandom),
+                                    {CurThink, CurRandom};
+                                _ ->
+                                    exit({error, bad_thinktime})
+                            end
+                    end,
+                     Val=case Randomize of
+                             "true" ->
+                                 {random, Think * 1000};
+                             {"range", Min2, Max2} ->
+                                 {range, Min2 * 1000, Max2 * 1000};
+                             "false" ->
+                                 round(Think * 1000)
+                         end,
+                     {Val, Think}
         end,
-    RealThink = case Randomize of
-                    "true" ->
-                        {random, Think * 1000};
-                    {"range", Min2, Max2} ->
-                        {range, Min2 * 1000, Max2 * 1000};
-                    "false" ->
-                        round(Think * 1000)
-                end,
-    ?LOGF("New thinktime ~p for id (~p:~p)~n",[RealThink, CurS#session.id, Id+1],
-          ?INFO),
-    ets:insert(Tab,{{CurS#session.id, Id+1}, {thinktime, RealThink}}),
-    lists:foldl( fun parse/2, Conf#config{curthink=Think,curid=Id+1},
+    ?LOGF("New thinktime ~p for id (~p:~p)~n",[RT, CurS#session.id, Id+1], ?INFO),
+    ets:insert(Tab,{{CurS#session.id, Id+1}, {thinktime, RT}}),
+    lists:foldl( fun parse/2, Conf#config{curthink=T,curid=Id+1},
                  Element#xmlElement.content);
 
 
@@ -718,7 +788,11 @@ parse(Element = #xmlElement{name=setdynvars, attributes=Attrs},
                  "random_number" ->
                      Start = getAttr(integer,Attrs,start,1),
                      End = getAttr(integer,Attrs,'end',10),
-                     {setdynvars,random,{number,Start,End},Vars}
+                     {setdynvars,random,{number,Start,End},Vars};
+                 "jsonpath" ->
+                     From = getAttr(atom, Attrs,from),
+                     JSONPath = getAttr(Attrs,jsonpath),
+                     {setdynvars,jsonpath,{JSONPath, From},Vars}
              end,
     ?LOGF("Add setdynvars in session ~p as id ~p",[CurS#session.id,Id+1],?INFO),
     ets:insert(Tab, {{CurS#session.id, Id+1}, Action}),
@@ -763,6 +837,11 @@ getTypeAttr(float_or_integer, String)->
     case erl_scan:string(String) of
         {ok, [{integer,1,I}],1} -> I;
         {ok, [{float,1,F}],1} -> F
+    end;
+getTypeAttr(integer_or_string, String)->
+    case erl_scan:string(String) of
+        {ok, [{integer,1,I}],1} -> I;
+        _ -> String
     end;
 getTypeAttr(Type, String) ->
     {ok, [{Type,1,Val}],1} = erl_scan:string(String),

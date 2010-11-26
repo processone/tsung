@@ -40,12 +40,15 @@
 -define(MAX_RETRIES,3). % max number of connection retries
 -define(RETRY_TIMEOUT,10000). % waiting time between retries (msec)
 
+-define(CLIENT_PORT_MIN,1025).
+-define(CLIENT_PORT_MAX,65535).
+
 %% External exports
 -export([start/1, next/1]).
 
 %% gen_server callbacks
 
--export([init/1, wait_ack/2, handle_sync_event/4, handle_event/3,
+-export([init/1, wait_ack/2, think/2,handle_sync_event/4, handle_event/3,
          handle_info/3, terminate/3, code_change/4]).
 
 %%%----------------------------------------------------------------------
@@ -84,9 +87,9 @@ init({#session{id           = SessionId,
                hibernate    = Hibernate,
                proto_opts   = ProtoOpts,
                size         = Count,
-               type         = CType}, IP, Server,Id}) ->
+               type         = CType}, IP, Server,Id, Dump}) ->
     ?DebugF("Init ... started with count = ~p~n",[Count]),
-   ts_utils:init_seed(),
+    ts_utils:init_seed(),
 
     ?DebugF("Get dynparams for ~p~n",[CType]),
     DynData = CType:init_dynparams(),
@@ -95,6 +98,22 @@ init({#session{id           = SessionId,
     NewDynData = DynData#dyndata{dynvars=NewDynVars},
     StartTime= now(),
     set_thinktime(?short_timeout),
+    ?DebugF("IP param: ~p~n",[IP]),
+    NewIP = case IP of
+                { TmpIP, -1 } ->
+                    {ok, MyHostName} = ts_utils:node_to_hostname(node()),
+                    RealIP = case TmpIP of
+                                 {scan, Interface} ->
+                                     ts_ip_scan:get_ip(Interface);
+                                 _ -> TmpIP
+                    end,
+                    {RealIP, "cport-" ++ MyHostName};
+                {{scan, Interface}, PortVal } ->
+                    ?DebugF("Must scan interface: ~p~n",[Interface]),
+                    { ts_ip_scan:get_ip(Interface), PortVal };
+                Val ->
+                    Val
+            end,
     {ok, think, #state_rcv{ port       = Server#server.port,
                             host       = Server#server.host,
                             session_id = SessionId,
@@ -104,10 +123,10 @@ init({#session{id           = SessionId,
                             session    = CType:new_session(),
                             persistent = Persistent,
                             starttime  = StartTime,
-                            dump       = ?config(dump),
+                            dump       = Dump,
                             proto_opts = ProtoOpts,
                             count      = Count,
-                            ip         = IP,
+                            ip         = NewIP,
                             id         = Id,
                             hibernate  = Hibernate,
                             maxcount   = Count,
@@ -120,6 +139,11 @@ init({#session{id           = SessionId,
 %%          {next_state, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}
 %%--------------------------------------------------------------------
+think(next_msg,State=#state_rcv{protocol=P,socket=S}) ->
+    ?LOG("Global ack received, continue~n", ?DEB),
+    NewSocket = ts_utils:inet_setopts(P, S, [{active, once} ]),
+    handle_next_action(State#state_rcv{socket=NewSocket }).
+
 wait_ack(next_msg,State=#state_rcv{request=R}) when R#ts_request.ack==global->
     NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol,
                                       State#state_rcv.socket,
@@ -311,7 +335,14 @@ handle_next_action(State=#state_rcv{count=0}) ->
 handle_next_action(State) ->
     Count = State#state_rcv.count-1,
     case set_profile(State#state_rcv.maxcount,State#state_rcv.count,State#state_rcv.session_id) of
-        {thinktime, Think} ->
+        {thinktime, TmpThink} ->
+            Think = case TmpThink of
+                        "%%"++_Tail ->
+                            Raw=ts_search:subst(TmpThink,(State#state_rcv.dyndata)#dyndata.dynvars),
+                            ts_utils:list_to_number(Raw)*1000;
+                        Val ->
+                            Val
+                    end,
             ?DebugF("Starting new thinktime ~p~n", [Think]),
             case (set_thinktime(Think) >= State#state_rcv.hibernate) of
                 true ->
@@ -397,7 +428,11 @@ set_dynvars(file,{random,FileId,Delimiter},_Vars,_DynData) ->
     ts_utils:split(Line,Delimiter);
 set_dynvars(file,{iter,FileId,Delimiter},_Vars,_DynData) ->
     {ok,Line} = ts_file_server:get_next_line(FileId),
-    ts_utils:split(Line,Delimiter).
+    ts_utils:split(Line,Delimiter);
+set_dynvars(jsonpath,{JSONPath, From},_Vars,DynData) ->
+    {ok, Val} = ts_dynvars:lookup(From,DynData#dyndata.dynvars),
+    JSON=mochijson2:decode(Val),
+    ts_utils:jsonpath(JSONPath, JSON).
 
 %% @spec ctrl_struct(CtrlData::term(),State::#state_rcv{},Count::integer) ->
 %%          {next_state, NextStateName::atom(), NextState::#state_rcv{}} |
@@ -432,9 +467,18 @@ ctrl_struct(CtrlData,State,Count) ->
 %%             {jump,Target,NewDynData} to jump to action number 'Target'
 %% @end
 %%----------------------------------------------------------------------
+ctrl_struct_impl({for_start,Init="%%_"++_,VarName},DynData=#dyndata{dynvars=DynVars}) ->
+    InitialValue = list_to_integer(ts_search:subst(Init, DynVars)),
+    ?LOGF("Initial value of FOR loop is dynamic: ~p",[InitialValue],?DEB),
+    ctrl_struct_impl({for_start,InitialValue,VarName},DynData);
 ctrl_struct_impl({for_start,InitialValue,VarName},DynData=#dyndata{dynvars=DynVars}) ->
     NewDynVars = ts_dynvars:set(VarName,InitialValue,DynVars),
     {next,DynData#dyndata{dynvars=NewDynVars}};
+ctrl_struct_impl({for_end,VarName,End="%%_"++_,Increment,Target},DynData=#dyndata{dynvars=DynVars}) ->
+    %% end value is a dynamic variable
+    EndValue = list_to_integer(ts_search:subst(End, DynVars)),
+    ?LOGF("End value of FOR loop is dynamic: ~p",[EndValue],?DEB),
+    ctrl_struct_impl({for_end,VarName,EndValue,Increment,Target},DynData);
 ctrl_struct_impl({for_end,VarName,EndValue,Increment,Target},DynData=#dyndata{dynvars=DynVars}) ->
     case ts_dynvars:lookup(VarName,DynVars) of
         {ok,Value}  when Value >= EndValue -> % Reach final value, end loop
@@ -488,7 +532,53 @@ ctrl_struct_impl({repeat,RepeatName, While,Rel,VarName,Value,Target,Max},
                     ts_mon:add({ count, Msg}),
                     {next,DynData}
             end
+    end;
+
+ctrl_struct_impl({foreach_start,ForEachName,VarName,Filter}, DynData=#dyndata{dynvars=DynVars}) ->
+    case filter(ts_dynvars:lookup(VarName,DynVars),Filter) of
+        false ->
+            Msg= list_to_atom("error_foreach_"++atom_to_list(VarName)++"undef"),
+            ts_mon:add({ count, Msg}),
+            {next,DynData};
+        [First|_Tail] ->
+            TmpDynVars = ts_dynvars:set(ForEachName,First,DynVars),
+            NewDynVars = ts_dynvars:set(ts_utils:concat_atoms([ForEachName,'_iter']),2,TmpDynVars),
+            {next,DynData#dyndata{dynvars=NewDynVars}};
+        [] ->
+            ?LOGF("empty list for ~p (filter is ~p)",[VarName, Filter],?WARN),
+            NewDynVars = ts_dynvars:set(ts_utils:concat_atoms([ForEachName,'_iter']),1,DynVars),
+            {next,DynData#dyndata{dynvars=NewDynVars}};
+        VarValue ->
+            ?LOGF("foreach warn:~p is not a list (~p), can't iterate",[VarName, VarValue],?WARN),
+            NewDynVars = ts_dynvars:set(ForEachName,VarValue,DynVars),
+            {next,DynData#dyndata{dynvars=NewDynVars}}
+    end;
+
+ctrl_struct_impl({foreach_end,ForEachName,VarName,Filter,Target}, DynData=#dyndata{dynvars=DynVars}) ->
+    IterName=ts_utils:concat_atoms([ForEachName,'_iter']),
+    {ok,Iteration} = ts_dynvars:lookup(IterName,DynVars),
+    ?DebugF("Foreach (var=~p) iteration: ~p~n",[VarName,Iteration]),
+    case filter(ts_dynvars:lookup(VarName,DynVars),Filter) of
+        false ->
+            Msg= list_to_atom("error_foreach_"++atom_to_list(VarName)++"undef"),
+            ts_mon:add({ count, Msg}),
+            {next,DynData};
+        VarValue when is_list(VarValue)->
+            ?DebugF("Foreach list found; value is ~p~n",[VarValue]),
+            case catch lists:nth(Iteration,VarValue) of
+                {'EXIT',_} -> % out of bounds, exit foreach loop
+                    ?LOGF("foreach ~p: last iteration done",[ForEachName],?DEB),
+                    {next,DynData};
+                Val ->
+                    TmpDynVars = ts_dynvars:set(ForEachName,Val,DynVars),
+                    NewDynVars = ts_dynvars:set(IterName,Iteration+1,TmpDynVars),
+                    {jump, Target ,DynData#dyndata{dynvars=NewDynVars}}
+            end;
+        _ ->% not a list, don't loop
+            {next,DynData}
     end.
+
+
 
 rel('eq',A,B)  -> A == B;
 rel('neq',A,B) -> A /= B.
@@ -584,7 +674,8 @@ handle_next_request(Request, State) ->
                                                                host=Host,
                                                                port=Port});
                 {error, Reason} ->
-                    ?LOGF("Error: Unable to send data, reason: ~p~n",[Reason],?ERR),
+                    %% LOG only at INFO level since we report also an error to ts_mon
+                    ?LOGF("Error: Unable to send data, reason: ~p~n",[Reason],?INFO),
                     CountName="error_send_"++atom_to_list(Reason),
                     ts_mon:add({ count, list_to_atom(CountName) }),
                      handle_timeout_while_sending(State);
@@ -688,7 +779,9 @@ set_profile(MaxCount, Count, ProfileId) when is_integer(ProfileId) ->
 %%          {stop, Reason}
 %% purpose: try to reconnect if this is needed (when the socket is set to none)
 %%----------------------------------------------------------------------
-reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort}) ->
+reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,0}) ->
+    reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,0,0});
+reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort, Try}) when is_integer(CPort)->
     ?DebugF("Try to (re)connect to: ~p:~p from ~p using protocol ~p~n",
             [ServerName,Port,IP,Protocol]),
     Opts = protocol_options(Protocol, Proto_opts)  ++ [{ip, IP},{port,CPort}],
@@ -701,20 +794,48 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort}) ->
             ?Debug("(Re)connected~n"),
             {ok, Socket};
         {error, Reason} ->
-                    {A,B,C,D} = IP,
-            ?LOGF("(Re)connect from ~p.~p.~p.~p to ~s:~p, Error: ~p~n",
-                  [A,B,C,D, ServerName, Port, Reason],?ERR),
-            CountName="error_connect_"++atom_to_list(Reason),
-            ts_mon:add({ count, list_to_atom(CountName) }),
+            {A,B,C,D} = IP,
+            %% LOG only at INFO level since we report also an error to ts_mon
+            ?LOGF("(Re)connect from ~p.~p.~p.~p:~p to ~s:~p, Error: ~p~n",
+                  [A,B,C,D, CPort, ServerName, Port , Reason],?INFO),
+            case {Reason,CPort,Try}  of
+                {eaddrinuse, Val,CPortServer} when Val == 0; CPortServer == undefined ->
+                    %% already retry once, don't try again.
+                    ts_mon:add({ count, error_connect_eaddrinuse });
+                {eaddrinuse, Val,CPortServer} when Val > 0 ->
+                    %% retry once when tsung allocates port number
+                    NewCPort = case catch ts_cport:get_port(CPortServer,IP) of
+                        Data when is_integer(Data) ->
+                            Data;
+                        Error ->
+                            ?LOGF("CPort error (~p), reuse the same port ~p~n",[Error],?INFO),
+                            CPort
+                    end,
+                    ?LOGF("Connect failed with client port ~p, retry with ~p~n",[CPort, NewCPort],?INFO),
+                    reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,NewCPort, undefined});
+                _ ->
+                    CountName="error_connect_"++atom_to_list(Reason),
+                    ts_mon:add({ count, list_to_atom(CountName) })
+            end,
             {error, Reason}
     end;
+reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPortServer}) ->
+    CPort = case catch ts_cport:get_port(CPortServer,IP) of
+                   Data when is_integer(Data) ->
+                       Data;
+                   Error ->
+                       ?LOGF("CPort error (~p), use random port ~p~n",[Error],?INFO),
+                       0
+               end,
+    reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort,CPortServer});
 reconnect(Socket, _Server, _Port, _Protocol, _IP) ->
     {ok, Socket}.
+
 
 %%----------------------------------------------------------------------
 %% Func: send/5
 %% Purpose: wrapper function for send
-%% Return: ok | {error, Reason}
+%% Return: ok | {error, Reason} 
 %%----------------------------------------------------------------------
 
 send(Proto, Socket, Message, Host, Port)  ->
@@ -776,6 +897,9 @@ protocol_options(Proto, #proto_opts{} = ProtoOpts) ->
 %%          returns the choosen thinktime in msec
 %%----------------------------------------------------------------------
 set_thinktime(infinity) -> infinity;
+set_thinktime(wait_global) ->
+    ts_timer:connected(self()),
+    infinity;
 set_thinktime({random, Think}) ->
     set_thinktime(round(ts_stats:exponential(1/Think)));
 set_thinktime({range, Min, Max}) ->
@@ -799,12 +923,12 @@ handle_data_msg(Data, State=#state_rcv{request=Req}) when Req#ts_request.ack==no
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     {State, []};
 
-handle_data_msg(Data,State=#state_rcv{request=Req,clienttype=Type,maxcount=MaxCount})
+handle_data_msg(Data,State=#state_rcv{dump=Dump,request=Req,id=Id,clienttype=Type,maxcount=MaxCount})
   when Req#ts_request.ack==parse->
-    ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
+    ts_mon:rcvmes({Dump, self(), Data}),
 
     {NewState, Opts, Close} = Type:parse(Data, State),
-    NewBuffer=set_new_buffer(Req, NewState#state_rcv.buffer, Data),
+    NewBuffer=set_new_buffer(NewState, Data),
 
     ?DebugF("Dyndata is now ~p~n",[NewState#state_rcv.dyndata]),
     case NewState#state_rcv.ack_done of
@@ -812,11 +936,12 @@ handle_data_msg(Data,State=#state_rcv{request=Req,clienttype=Type,maxcount=MaxCo
             ?DebugF("Response done:~p~n", [NewState#state_rcv.datasize]),
             {PageTimeStamp, DynVars} = update_stats(NewState#state_rcv{buffer=NewBuffer}),
             MatchArgs={NewState#state_rcv.count, MaxCount,
-                       NewState#state_rcv.session_id,
-                       NewState#state_rcv.id},
+                       NewState#state_rcv.session_id, Id},
             NewDynVars=ts_dynvars:merge(DynVars,(NewState#state_rcv.dyndata)#dyndata.dynvars),
             NewCount  =ts_search:match(Req#ts_request.match,NewBuffer,MatchArgs,NewDynVars),
             NewDynData=(NewState#state_rcv.dyndata)#dyndata{dynvars=NewDynVars},
+            Type:dump(Dump,{Req,NewState#state_rcv.session,Id,
+                            NewState#state_rcv.host,NewState#state_rcv.datasize}),
             case Close of
                 true ->
                     ?Debug("Close connection required by protocol~n"),
@@ -874,9 +999,9 @@ handle_data_msg(Data,State=#state_rcv{request=Req,datasize=OldSize})
 handle_data_msg(<<32>>, State=#state_rcv{clienttype=ts_jabber}) ->
     {State#state_rcv{ack_done = false},[]};
 %% local ack, set ack_done to true
-handle_data_msg(Data, State=#state_rcv{request=Req, maxcount= MaxCount}) ->
+handle_data_msg(Data, State=#state_rcv{request=Req, clienttype=Type, maxcount= MaxCount}) ->
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
-    NewBuffer= set_new_buffer(Req, State#state_rcv.buffer, Data),
+    NewBuffer= set_new_buffer(State, Data),
     DataSize = size(Data),
     {PageTimeStamp, DynVars} = update_stats(State#state_rcv{datasize=DataSize,
                                                             buffer=NewBuffer}),
@@ -892,14 +1017,17 @@ handle_data_msg(Data, State=#state_rcv{request=Req, maxcount= MaxCount}) ->
 %%----------------------------------------------------------------------
 %% Func: set_new_buffer/3
 %%----------------------------------------------------------------------
-set_new_buffer(#ts_request{match=[], dynvar_specs=[]},_,_) ->
+set_new_buffer(#state_rcv{request = #ts_request{match=[], dynvar_specs=[]}} ,_) ->
     << >>;
-set_new_buffer(_, Buffer,closed) ->
-    Buffer;
-set_new_buffer(_, OldBuffer, Data) when is_binary(OldBuffer)->
+set_new_buffer(#state_rcv{clienttype=Type, buffer=Buffer, session=Session},closed) ->
+    Type:decode_buffer(Buffer,Session);
+set_new_buffer(#state_rcv{buffer=OldBuffer,ack_done=false},Data) ->
     ?Debug("Bufferize response~n"),
     << OldBuffer/binary, Data/binary >>;
-set_new_buffer(_, _, Data) -> % don't need buffer for non binary responses (erlang fun case)
+set_new_buffer(#state_rcv{clienttype=Type, buffer=OldBuffer, session=Session},Data) ->
+    ?Debug("decode response~n"),
+    Type:decode_buffer(<< OldBuffer/binary, Data/binary >>, Session);
+set_new_buffer(_State, Data) -> % don't need buffer for non binary responses (erlang fun case)
     Data.
 
 %%----------------------------------------------------------------------
@@ -972,3 +1100,17 @@ update_stats(State=#state_rcv{page_timestamp=PageTime,send_timestamp=SendTime}) 
             {PageTime, DynVars}
     end.
 
+filter(false,undefined) ->
+    false;
+filter({ok,List},undefined)->
+    List;
+filter({ok,List},{Include,Re}) when is_list(List)->
+    Filter=fun(A) ->
+                   case re:run(A,Re) of
+                       nomatch -> not Include;
+                       {match,_} -> Include
+                   end
+           end,
+    lists:filter(Filter,List);
+filter({ok,Data},{Include,Re}) ->
+    filter({ok,[Data]},{Include,Re}).

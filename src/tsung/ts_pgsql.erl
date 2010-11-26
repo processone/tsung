@@ -44,6 +44,7 @@
          parse_config/2,
          to_pairs/1,
          find_pair/2,
+         decode_buffer/2,
          new_session/0]).
 
 
@@ -54,6 +55,13 @@
 %%----------------------------------------------------------------------
 session_defaults() ->
     {ok, true}.
+
+%% @spec decode_buffer(Buffer::binary(),Session::record(pgsql)) ->  NewBuffer::binary()
+%% @doc We need to decode buffer (remove chunks, decompress ...) for
+%%      matching or dyn_variables
+%% @end
+decode_buffer(Buffer,#pgsql{}) ->
+    Buffer. % nothing to do for pgsql
 
 %%----------------------------------------------------------------------
 %% Function: new_session/0
@@ -211,6 +219,7 @@ process_head(<<Code:8/integer, Size:4/integer-unit:8, Tail/binary>>) ->
         true ->
             << Packet:RealSize/binary, Data/binary >> = Tail,
             {ok, Pair} = pgsql_proto:decode_packet(Code, Packet),
+            ?DebugF("PGSQL: data as string: ~p~n",[pgsql_util:to_string(Packet)]),
             ?LOGF("PGSQL: Pair=~p ~n",[Pair],?DEB),
             {ok, Pair, Data };
         false -> more

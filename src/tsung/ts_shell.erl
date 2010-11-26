@@ -19,12 +19,12 @@
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 %%%
 
--module(ts_fs).
+-module(ts_shell).
 -vc('$Id: ts_erlang.erl,v 0.0 2009/08/20 16:31:58 nniclaus Exp $ ').
 -author('nniclaus@sophia.inria.fr').
 
 -include("ts_profile.hrl").
--include("ts_fs.hrl").
+-include("ts_shell.hrl").
 -include_lib("kernel/include/file.hrl").
 
 -export([init_dynparams/0,
@@ -68,7 +68,7 @@
 %%====================================================================
 
 parse_config(El,Config) ->
-     ts_config_fs:parse_config(El, Config).
+     ts_config_shell:parse_config(El, Config).
 
 
 %% @spec session_defaults() -> {ok, Persistent} | {ok, Persistent, Bidi}
@@ -86,20 +86,20 @@ session_defaults() ->
 %% @doc Initialises the state for a new protocol session.
 %% @end
 new_session() ->
-    #fs{}.
+    #shell{}.
 
-%% @spec decode_buffer(Buffer::binary(),Session::record(fs)) ->  NewBuffer::binary()
+%% @spec decode_buffer(Buffer::binary(),Session::record(shell)) ->  NewBuffer::binary()
 %% @doc We need to decode buffer (remove chunks, decompress ...) for
 %%      matching or dyn_variables
 %% @end
-decode_buffer(Buffer,#fs{}) ->
-    Buffer.
+decode_buffer(Buffer,#shell{}) ->
+    Buffer. % nothing to do for shell
 
 %% @spec init_dynparams() -> dyndata()
 %% @doc Creates a new record/term for storing dynamic request data.
 %% @end
 init_dynparams() ->
-    #dyndata{proto=#fs_dyndata{}}.
+    #dyndata{proto=#shell_dyndata{}}.
 
 %% @spec add_dynparams(Subst, dyndata(), param(), hostdata()) -> {dyndata(), server()} | dyndata()
 %% Subst = term()
@@ -112,9 +112,7 @@ add_dynparams(true, DynData, Param, HostData) ->
     NewParam = subst(Param, DynData#dyndata.dynvars),
     add_dynparams(DynData#dyndata.proto,NewParam, HostData).
 
-add_dynparams(#fs_dyndata{position=Pos,iodev=IODevice}, Req=#fs{}, _HostData) when is_integer(Pos)->
-    Req#fs{position=Pos,iodev=IODevice};
-add_dynparams(#fs_dyndata{}, Param, _HostData) ->
+add_dynparams(#shell_dyndata{}, Param, _HostData) ->
     Param.
 
 %%----------------------------------------------------------------------
@@ -122,8 +120,8 @@ add_dynparams(#fs_dyndata{}, Param, _HostData) ->
 %% Purpose: Replace on the fly dynamic element of the request.
 %% Returns: record()
 %%----------------------------------------------------------------------
-subst(Req=#fs{path=Path,size=Size}, DynVars) ->
-    Req#fs{path=ts_search:subst(Path,DynVars),size=ts_search:subst(Size,DynVars)}.
+subst(Req=#shell{command=Cmd,args=Args}, DynVars) ->
+    Req#shell{command=ts_search:subst(Cmd,DynVars),args=ts_search:subst(Args,DynVars)}.
 
 %% @spec parse(Data::client_data(), State) -> {NewState, Opts, Close}
 %% State = #state_rcv{}
@@ -136,46 +134,10 @@ subst(Req=#fs{path=Path,size=Size}, DynVars) ->
 %% Setting Close to true will cause tsung to close the connection to
 %% the server.
 %% @end
-parse({file, open, _Args, {ok,IODevice}},State=#state_rcv{dyndata=DynData}) ->
-    NewDyn=(DynData#dyndata.proto)#fs_dyndata{iodev=IODevice,position=0},
-    {State#state_rcv{ack_done=true,datasize=0,dyndata=DynData#dyndata{proto=NewDyn}}, [], false};
-parse({file, open, [Path,_], {error,Reason}},State) ->
-    ?LOGF("error while opening file: ~p(~p)~n",[Path, Reason],?ERR),
-    ts_mon:add({count,error_fs_open}),
-    {State#state_rcv{ack_done=true,datasize=0}, [], false};
-parse({file, close, [_IODevice], ok},State=#state_rcv{dyndata=DynData}) ->
-    NewDyn=(DynData#dyndata.proto)#fs_dyndata{iodev=undefined,position=0},
-    {State#state_rcv{ack_done=true,datasize=0,dyndata=DynData#dyndata{proto=NewDyn}}, [], false};
-
-parse({file, pread, [_IODev,Pos,Size], {ok,_Data}},State=#state_rcv{dyndata=DynData,datasize=DataSize}) ->
-    NewDyn=(DynData#dyndata.proto)#fs_dyndata{position=Pos+Size},
-    {State#state_rcv{ack_done=true,datasize=DataSize+Size,dyndata=DynData#dyndata{proto=NewDyn}}, [], false};
-parse({file, pread, [_IODev,Pos,Size], eof},State=#state_rcv{dyndata=DynData,datasize=DataSize}) ->
-    NewDyn=(DynData#dyndata.proto)#fs_dyndata{position=0},
-    {State#state_rcv{ack_done=true,datasize=DataSize+Size,dyndata=DynData#dyndata{proto=NewDyn}}, [], false};
-
-parse({file, write_file, _Args, ok},State) ->
-    {State#state_rcv{ack_done=true,datasize=0}, [], false};
-parse({file, write_file, [Path,_], {error,Reason}},State) ->
-    ?LOGF("error while writing file: ~p (~p)~n",[Path, Reason],?ERR),
-    ts_mon:add({count,error_fs_write}),
-    {State#state_rcv{ack_done=true, datasize=0}, [], false};
-parse({file, pwrite, [IODev,Pos,Data], ok},State=#state_rcv{dyndata=DynData}) ->
-    NewDyn=(DynData#dyndata.proto)#fs_dyndata{position=Pos+length(Data)},
-    {State#state_rcv{ack_done=true,datasize=0,dyndata=DynData#dyndata{proto=NewDyn}}, [], false};
-
-parse({file, delete, [Path], ok},State) ->
-    {State#state_rcv{ack_done=true, datasize=0}, [], false};
-parse({file, delete, [Path], {error,Reason}},State) ->
-    ?LOGF("error while deleting file: ~p (~p)~n",[Path, Reason],?ERR),
-    {State#state_rcv{ack_done=true, datasize=0}, [], false};
-
-parse({ts_utils, read_file_raw, [Path], {ok,Res,Size}},State) ->
-    {State#state_rcv{ack_done=true,datasize=Size}, [], false};
-parse({ts_utils, read_file_raw, [Path], {error,Reason}},State) ->
-    ?LOGF("error while reading file: ~p(~p)~n",[Path,Reason],?ERR),
-    ts_mon:add({count,error_fs_read}),
-    {State#state_rcv{ack_done=true,datasize=0}, [], false}.
+parse({os, cmd, _Args, Res},State) when is_list(Res)->
+    {State#state_rcv{ack_done=true,datasize=length(Res)}, [], false};
+parse({os, cmd, _Args, Res},State) ->
+    {State#state_rcv{ack_done=true,datasize=size(term_to_binary(Res))}, [], false}.
 
 %% @spec parse_bidi(Data, State) -> {nodata, NewState} | {Data, NewState}
 %% Data = client_data()
@@ -191,21 +153,8 @@ parse_bidi(_Data, _State) ->
 %% @spec get_message(param()) -> Message::binary()|tuple()
 %% @doc Creates a new message to send to the connected server.
 %% @end
-get_message(#fs{command=read, path=Path}) ->
-    {ts_utils,read_file_raw,[Path],0};
-get_message(#fs{command=read_chunk, iodev=IODevice,position=Loc, size=Size}) when is_integer(Loc)->
-    {file,pread,[IODevice,Loc,Size],0};
-get_message(#fs{command=write_chunk, iodev=IODevice,position=Loc, size=Size}) when is_integer(Loc)->
-    {file,pwrite,[IODevice,Loc,ts_utils:urandomstr(Size)],Size};
-get_message(#fs{command=open, mode=read,path=Path,position=Loc}) when is_integer(Loc)->
-    {file,open,[Path,[read,raw,binary]],0};
-get_message(#fs{command=open, mode=write,path=Path,position=Loc}) when is_integer(Loc)->
-    {file,open,[Path,[write,raw,binary]],0};
-get_message(#fs{command=close, iodev=IODevice}) ->
-    {file,close,[IODevice],0};
-get_message(#fs{command=delete, path=Path}) ->
-    {file,delete,[Path],0};
-get_message(#fs{command=write,path=Path, size=Size}) ->
-    {file,write_file,[Path,ts_utils:urandomstr(Size),[raw]],Size}.
+get_message(#shell{command=Cmd, args=Args}) ->
+    Msg=Cmd++" "++Args ,
+    {os, cmd, [Msg], length(Msg) }.
 
 

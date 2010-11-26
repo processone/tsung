@@ -42,7 +42,8 @@
          check_sum/3, check_sum/5, clean_str/1, file_to_list/1, term_to_list/1,
          decode_base64/1, encode_base64/1, to_lower/1, release_is_newer_or_eq/1,
          randomstr/1,urandomstr/1,urandomstr_noflat/1, eval/1, list_to_number/1,
-         time2sec/1, read_file_raw/1, init_seed/1, jsonpath/2
+         time2sec/1, time2sec_hires/1, read_file_raw/1, init_seed/1, jsonpath/2, pmap/2,
+         concat_atoms/1
         ]).
 
 level2int("debug")     -> ?DEB;
@@ -76,6 +77,7 @@ get_val(Var) ->
                 {ok,Val}  -> ensure_string(Var, Val)
             end
     end.
+
 
 
 %% ensure atom to string conversion of environnement variable
@@ -173,6 +175,9 @@ now_sec() ->
 time2sec({MSec, Seconds, _}) ->
     Seconds+1000000*MSec.
 
+time2sec_hires({MSec, Seconds, MuSec}) ->
+    Seconds+1000000*MSec+MuSec/1000000.
+
 %%----------------------------------------------------------------------
 %% Func: add_time/2
 %% Purpose: add given Seconds to given Time (same format as now())
@@ -189,31 +194,13 @@ node_to_hostname(Node) ->
     {ok, Hostname}.
 
 to_lower(String)->
-    case check_httpd_old_version() of
-        false ->
-            string:to_lower(String);
-        true  ->
-            httpd_util:to_lower(String)
-    end.
+    string:to_lower(String).
 
 encode_base64(String)->
-    case check_httpd_old_version() of
-        false ->
-            base64:encode_to_string(String);
-        true  ->
-            httpd_util:encode_base64(String)
-    end.
+    base64:encode_to_string(String).
 
 decode_base64(Base64)->
-    case check_httpd_old_version() of
-        false ->
-            base64:decode_to_string(Base64);
-        true ->
-            httpd_util:decode_base64(Base64)
-    end.
-
-%% check erlang version to know if we need to use the old httpd_utils functions
-check_httpd_old_version()-> not release_is_newer_or_eq("5.5.4").
+    base64:decode_to_string(Base64).
 
 % return true if current version of erlang is newer or equal
 release_is_newer_or_eq(Release)->
@@ -226,12 +213,7 @@ release_is_newer_or_eq(Release)->
 %%          these functions will be added to the stdlib)
 %%----------------------------------------------------------------------
 key1search(Tuple,String)->
-    case release_is_newer_or_eq("5.7") of %% should be removed in R13B
-        true ->
-            proplists:get_value(String,Tuple);
-        false ->
-            httpd_util:key1search(Tuple,String)
-    end.
+    proplists:get_value(String,Tuple).
 
 %%----------------------------------------------------------------------
 %% Func: mkey1search/2
@@ -263,16 +245,16 @@ close_socket(gen_udp, Socket)-> gen_udp:close(Socket).
 
 %%----------------------------------------------------------------------
 %% datestr/0
-%% Purpose: print date as a string 'YYYY:MM:DD-HH:MM'
+%% Purpose: print date as a string 'YYYYMMDD-HHMM'
 %%----------------------------------------------------------------------
 datestr()->
-    datestr(erlang:universaltime()).
+    datestr(erlang:localtime()).
 
 %%----------------------------------------------------------------------
 %% datestr/1
 %%----------------------------------------------------------------------
 datestr({{Y,M,D},{H,Min,_S}})->
-    io_lib:format("~w~2.10.0b~2.10.0b-~2.10.0b:~2.10.0b",[Y,M,D,H,Min]).
+    io_lib:format("~w~2.10.0b~2.10.0b-~2.10.0b~2.10.0b",[Y,M,D,H,Min]).
 
 %%----------------------------------------------------------------------
 %% erl_system_args/0
@@ -306,13 +288,21 @@ erl_system_args(extended)->
                    " -kernel inetrc '"++ InetRcFile ++ "'" ;
                _ -> " "
            end,
+    ListenMin = case application:get_env(kernel,inet_dist_listen_min) of
+                    undefined -> "";
+                    {ok, Min} -> " -kernel inet_dist_listen_min " ++ integer_to_list(Min)++ " "
+                end,
+    ListenMax = case application:get_env(kernel,inet_dist_listen_max) of
+                    undefined -> "";
+                    {ok, Max} -> " -kernel inet_dist_listen_max " ++ integer_to_list(Max)++" "
+                end,
     Threads= "+A "++integer_to_list(erlang:system_info(thread_pool_size))++" ",
     ProcessMax="+P "++integer_to_list(erlang:system_info(process_limit))++" ",
     Mea = case  erlang:system_info(version) of
               "5.3" ++ _Tail     -> " +Mea r10b ";
               _ -> " "
           end,
-    lists:append([BasicArgs, Shared, Hybrid, Smp, Mea, Inet, Threads,ProcessMax]).
+    lists:append([BasicArgs, Shared, Hybrid, Smp, Mea, Inet, Threads,ProcessMax,ListenMin,ListenMax]).
 
 %%----------------------------------------------------------------------
 %% setsubdir/1
@@ -421,8 +411,8 @@ make_dir_rec(Path, [Parent|Childs]) ->
 is_ip(String) when is_list(String) ->
     EightBit="(2[0-4][0-9]|25[0-5]|1[0-9][0-9]|[0-9][0-9]|[0-9])",
     RegExp = lists:append(["^",EightBit,"\.",EightBit,"\.",EightBit,"\.",EightBit,"$"]), %"
-    case regexp:first_match(String, RegExp) of
-       {match,_,_} -> true;
+    case re:run(String, RegExp) of
+       {match,_} -> true;
        _ -> false
     end;
 is_ip(_) -> false.
@@ -435,39 +425,47 @@ to_https({url, "http://-"++Rest})-> "https://" ++ Rest;
 to_https({url, URL})-> URL;
 to_https({request, {body,Data}}) when is_list(Data) ->
     %% body request, no headers
-    {ok,RealBody,_Count} = regexp:gsub(Data,"http://ssl-","https://"),
-    {ok, RealBody};
+    re:replace(Data,"http://-","https://",[global]);
 to_https({request, S="CONNECT"++Rest}) -> {ok,S};
 to_https({request, String}) when is_list(String) ->
     EndOfHeader = string:str(String, "\r\n\r\n"),
     Header = string:substr(String, 1, EndOfHeader - 1) ++ "\r\n",
     Body = string:substr(String, EndOfHeader + 4),
-    {ok,TmpHeader,_} = regexp:gsub(Header,"http://-","https://"),
-    {ok,TmpHeader2,_} = regexp:gsub(TmpHeader,"Accept-Encoding: [0-9,a-zA-Z_]+\r\n",""),
-    {ok,RealHeader,_} = regexp:gsub(TmpHeader2,"Host: -","Host: "),
-    {ok,RealBody,Count} = regexp:gsub(Body,"http://-","https://"),
-    RealString = RealHeader ++ "\r\n" ++ RealBody,
+    ReOpts=[global],
+    TmpHeader = re:replace(Header,"http://-","https://",ReOpts),
+    TmpHeader2 = re:replace(TmpHeader,"Accept-Encoding: [0-9,a-zA-Z_]+\r\n","",ReOpts),
+    RealHeader = re:replace(TmpHeader2,"Host: -","Host: ",ReOpts),
+    RealBody = re:replace(Body,"http://-","https://",ReOpts),
+    RealString = [RealHeader,  "\r\n" , RealBody],
     {ok, RealString}.
 
-from_https(String) when is_list(String)->
-    %% remove Secure from Set-Cookie (TSUN-120)
-    {match, Matches} = regexp:matches(String, "Set-Cookie: [^\r]*\r\n"),
-    Fun = fun({0,Length}, {StrAcc, Pos}) ->
-                  {StrAcc ++ string:substr(String, Pos), -1};
-             ({Start,Length}, {StrAcc, Pos}) ->
-                  SetCookie = string:substr(String, Start, Length),
-                  {ok, WithoutSecure, _} = regexp:gsub(SetCookie, "; *Secure", ""),
-                  {StrAcc ++ string:substr(String, Pos, Start - Pos) ++ WithoutSecure, Start + Length}
-          end,
-    {TmpString, _} = lists:foldl(Fun, {"", 1}, Matches ++ [{0, 0}]),
-    %% if location is defined, don't count it (not included in Content-Length)
-    Location = case regexp:first_match(TmpString,"Location: https") of
-                   {match,_,_} -> -1;
-                   _           ->  0
-               end,
-    {ok,NewString,RepCount} = regexp:gsub(TmpString,"https://","http://-"),
-    {ok, NewString}.
 
+%% an iolist can be an improper list, so length fails. but we want the length anyway!
+%% first element should be a binary
+length_iolist([B|Tail]) when is_binary(B)->
+    length_iolist(Tail,1);
+length_iolist([]) ->0;
+length_iolist(_)  ->1. % string -> one element
+length_iolist(Tail,Acc) when not is_list(Tail) ->
+    Acc+1;
+length_iolist([_A|Tail],Acc)->
+    length_iolist(Tail,Acc+1);
+length_iolist([],Acc)-> Acc.
+
+
+%% @spec from_https(string()) -> {ok, String::string() | Data::iodata}
+from_https(String) when is_list(String)->
+    ReOpts=[{newline,crlf},multiline,global,caseless],
+    %% remove Secure from Set-Cookie (TSUN-120)
+    TmpData = re:replace(String,"(.*set-cookie:.*); *secure(.*$.*$)","\\1\\2",ReOpts),
+    Data=re:replace(TmpData,"https://","http://-",[global]),
+    {ok, Data}.
+
+%% concatenate a list of atoms
+concat_atoms(Atoms) when is_list(Atoms) ->
+    String =lists:foldl(fun(A,Acc) ->
+                                Acc++atom_to_list(A) end, "", Atoms),
+    list_to_atom(String).
 
 %% A Perl-style join --- concatenates all strings in Strings,
 %% separated by Sep.
@@ -483,8 +481,7 @@ join2(Sep, [First | List]) when is_list(First)->
 
 %% split a string  (at first occurence of char)
 split(String,Chr) ->
-    {ok, List} = regexp:split(String,Chr),
-    List.
+    re:split(String,Chr,[{return,list}]).
 
 %% split a string in 2 (at first occurence of char)
 split2(String,Chr) ->
@@ -735,7 +732,7 @@ jsonpath(JSONPath,JSON) ->
                 case catch list_to_integer(A) of
                     I when is_integer(I) ->
                         I+1;
-                    E ->
+                    _Error ->
                         list_to_binary(A)
                 end
           end,
@@ -761,10 +758,12 @@ json_get_bin([<<"?",Expr/binary>> | Keys],L) when  is_list(L) ->
                   end,
             ?LOG("ok~n",?ERR),
             case lists:filter(Fun,L) of
-                [Res|_] -> % keep the first result only
-                    json_get_bin(Keys,Res);
                 [] ->
-                    undefined
+                    undefined;
+                [Res] ->
+                    json_get_bin(Keys,Res);
+                Res ->
+                    lists:map(fun(A) -> json_get_bin(Keys,A) end, Res)
             end;
         _ ->
             undefined
@@ -774,3 +773,8 @@ json_get_bin([Key|Keys],{struct,JSON}) when is_list(JSON) ->
     json_get_bin(Keys,Val);
 json_get_bin(_,_) ->
     undefined.
+
+%% Map function F over list L in parallel.
+pmap(F, L) ->
+    Parent = self(),
+    [receive {Pid, Result} -> Result end || Pid <- [spawn(fun() -> Parent ! {self(), F(X)} end) || X <- L]].

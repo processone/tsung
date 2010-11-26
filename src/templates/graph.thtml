@@ -9,13 +9,13 @@
 <tr><th>Transactions</th><th>Requests and connection establishment</th></tr>
 <tr>
  <td>
- <a href="images/graphes-Transactions-mean.ps">
-  <img class="graph" src="images/graphes-Transactions-mean.png" alt="transaction response time"/> 
+ <a href="images/graphes-Transactions-mean.[% ext %]">
+  <img class="graph" src="images/graphes-Transactions-mean_tn.png" alt="transaction response time"/> 
  </a>
  </td>
  <td>
-  <a href="images/graphes-Perfs-mean.ps">
-   <img class="graph" src="images/graphes-Perfs-mean.png" alt="mean request response time"/> 
+  <a href="images/graphes-Perfs-mean.[% ext %]">
+   <img class="graph" src="images/graphes-Perfs-mean_tn.png" alt="mean request response time"/> 
   </a>
  </td>
  </tr>
@@ -30,13 +30,13 @@
 </tr>
 <tr>
  <td>
- <a href="images/graphes-Transactions-rate.ps">
-  <img class="graph" src="images/graphes-Transactions-rate.png" alt="transaction rate"/> 
+ <a href="images/graphes-Transactions-rate.[% ext %]">
+  <img class="graph" src="images/graphes-Transactions-rate_tn.png" alt="transaction rate"/> 
  </a>
  </td>
  <td>
-  <a href="images/graphes-Perfs-rate.ps">
-   <img class="graph" src="images/graphes-Perfs-rate.png" alt="req/sec"/>
+  <a href="images/graphes-Perfs-rate.[% ext %]">
+   <img class="graph" src="images/graphes-Perfs-rate_tn.png" alt="req/sec"/>
   </a>
  </td>
  </tr>
@@ -47,8 +47,8 @@
 </tr>
 <tr>
  <td>
-  <a href="images/graphes-Async-rate.ps">
-   <img class="graph" src="images/graphes-Async-rate.png" alt="req/sec"/>
+  <a href="images/graphes-Async-rate.[% ext %]">
+   <img class="graph" src="images/graphes-Async-rate_tn.png" alt="req/sec"/>
   </a>
  </td>
 [% IF bosh %]
@@ -63,13 +63,13 @@
 <tr><th>Network traffic</th><th>New Users</th></tr>
 <tr>
  <td>
- <a href="images/graphes-Size-rate.ps">
-  <img class="graph" src="images/graphes-Size-rate.png" alt="Kb/sec"/>
+ <a href="images/graphes-Size-rate.[% ext %]">
+  <img class="graph" src="images/graphes-Size-rate_tn.png" alt="Kb/sec"/>
  </a>
  </td>
  <td>
-  <a href="images/graphes-Users_Arrival-rate.ps">
-   <img class="graph" src="images/graphes-Users_Arrival-rate.png" alt="visit/sec"/>
+  <a href="images/graphes-Users_Arrival-rate.[% ext %]">
+   <img class="graph" src="images/graphes-Users_Arrival-rate_tn.png" alt="visit/sec"/>
   </a>
  </td>
  </tr>
@@ -85,13 +85,13 @@
 [% END %]
 </tr>
 <tr>
- <td> <a href="images/graphes-Users-simultaneous.ps">
-  <img class="graph" src="images/graphes-Users-simultaneous.png" alt="Users"/> 
+ <td> <a href="images/graphes-Users-simultaneous.[% ext %]">
+  <img class="graph" src="images/graphes-Users-simultaneous_tn.png" alt="Users"/> 
  </a>
  </td>
 [% IF match %]
- <td> <a href="images/graphes-Match-rate.ps">
-  <img class="graph" src="images/graphes-Match-rate.png" alt="Match"/> 
+ <td> <a href="images/graphes-Match-rate.[% ext %]">
+  <img class="graph" src="images/graphes-Match-rate_tn.png" alt="Match"/> 
  </a>
  </td>
 [% END %]
@@ -106,13 +106,13 @@
 <tr><th>CPU%</th><th>Free Memory</th></tr>
 <tr>
  <td>
- <a href="images/graphes-cpu-mean.ps">
-  <img class="graph" src="images/graphes-cpu-mean.png" alt="cpu"/>
+ <a href="images/graphes-cpu-mean.[% ext %]">
+  <img class="graph" src="images/graphes-cpu-mean_tn.png" alt="cpu"/>
  </a>
  </td>
  <td>
-  <a href="images/graphes-freemem-mean.ps">
-   <img class="graph" src="images/graphes-freemem-mean.png" alt="free memory"/>
+  <a href="images/graphes-freemem-mean.[% ext %]">
+   <img class="graph" src="images/graphes-freemem-mean_tn.png" alt="free memory"/>
   </a>
  </td>
  </tr>
@@ -120,8 +120,8 @@
 <tr><th>CPU Load</th></tr>
 <tr>
  <td>
- <a href="images/graphes-load-mean.ps">
-  <img class="graph" src="images/graphes-load-mean.png" alt="load"/>
+ <a href="images/graphes-load-mean.[% ext %]">
+  <img class="graph" src="images/graphes-load-mean_tn.png" alt="load"/>
  </a>
  </td>
  </tr>
@@ -133,8 +133,8 @@
 [% IF http %]
 <div id="http_status">
 <h3>HTTP return code Status (rate)</h3> 
- <a href="images/graphes-HTTP_CODE-rate.ps">
-  <img class="graph" src="images/graphes-HTTP_CODE-rate.png" alt="HTTP_CODE-rate"/> 
+ <a href="images/graphes-HTTP_CODE-rate.[% ext %]">
+  <img class="graph" src="images/graphes-HTTP_CODE-rate_tn.png" alt="HTTP_CODE-rate"/> 
  </a>
 </div>
 [% END %]
@@ -142,8 +142,8 @@
 [% IF errors %]
 <div id="errors">
 <h3>Errors (rate)</h3> 
- <a href="images/graphes-Errors-rate.ps">
-  <img class="graph" src="images/graphes-Errors-rate.png" alt="Errors-rate"/> 
+ <a href="images/graphes-Errors-rate.[% ext %]">
+  <img class="graph" src="images/graphes-Errors-rate_tn.png" alt="Errors-rate"/> 
  </a>
 </div>
 [% END %]

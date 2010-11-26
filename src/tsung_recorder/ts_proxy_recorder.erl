@@ -98,9 +98,9 @@ recordtag(Host, Args) when is_list(Args)->
 init(Filename) ->
     Date = ts_utils:datestr(),
     %% add date to filename
-    File = case regexp:gsub(Filename,"\.xml$", Date ++ ".xml") of %% "
-               {ok, RealName, _ } -> RealName;
-               _ ->  Date ++ "-" ++ Filename
+    File = case re:replace(Filename,"\.xml$", Date ++ ".xml", [{return,list},global]) of %% "
+               Filename ->  Date ++ "-" ++ Filename;
+               RealName -> RealName
            end,
     case file:open(File,[write]) of
         {ok, Stream} ->

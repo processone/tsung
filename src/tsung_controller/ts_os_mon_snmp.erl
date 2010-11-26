@@ -64,6 +64,8 @@
 -define(SNMP_MEM_AVAIL, [1,3,6,1,4,1,2021,4,6,0]).
 -define(SNMP_MEM_TOTAL, [1,3,6,1,4,1,2021,4,5,0]).
 
+-define(SNMP_TIMEOUT,5000).
+
 start(Args) ->
     ?LOGF("starting os_mon_snmp with args ~p",[Args],?NOTICE),
     gen_server:start_link(?MODULE, Args, []).
@@ -78,12 +80,21 @@ start(Args) ->
 %%--------------------------------------------------------------------
 init({HostStr, {Port, Community, Version}, Interval, MonServer}) ->
     {ok, IP} = inet:getaddr(HostStr, inet),
-    ts_utils:init_seed(),
-    %% wait randomly a few miliseconds to avoid concurrents starts of
-    %% the snmp_mgr (see the unregister call later)
-    Wait = random:uniform(?INIT_WAIT),
-    erlang:start_timer(Wait, self(), connect ),
-    ?LOGF("Starting SNMP mgr on ~p (~p)~n", [IP,Wait], ?DEB),
+    Apps = application:loaded_applications(),
+    case proplists:is_defined(snmp,Apps) of
+        true ->
+            ?LOG("SNMP manager already started~n", ?NOTICE);
+        _ ->
+            ?LOG("Initialize SNMP application~n", ?NOTICE),
+            Res1= application:start(snmp),
+            ?LOGF("Initialize SNMP manager: ~p~n", [Res1],?NOTICE),
+            Res2=snmpm:start(),
+            ?LOGF("Register SNMP manager: ~p~n",[Res2], ?NOTICE),
+            Res3=snmpm:register_user("tsung",snmpm_user_default,undefined),
+            ?LOGF("SNMP initialization: ~p~n", [Res3],?NOTICE)
+    end,
+    erlang:start_timer(5, self(), connect ),
+    ?LOGF("Starting SNMP mgr on ~p~n", [IP], ?DEB),
     {ok, #state{ mon_server = MonServer,
                  host       = HostStr,
                  port       = Port,
@@ -123,43 +134,27 @@ handle_cast(Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-handle_info({timeout,_Ref,connect},State=#state{addr=IP,port=Port,community=Community,version=Version}) ->
-    {ok, Pid} = snmp_mgr:start_link([{agent, IP},
-                                     {agent_udp, Port},
-                                     {community, Community},
-                                     {receive_type, msg},
-                                     Version,
-                                     quiet
-                                    ]),
-    %% since snmp_mgr can handle only a single snmp server, change the
-    %% registered name to start several smp_mgr at once !
-    unregister(snmp_mgr),
+handle_info({timeout,_Ref,connect},State=#state{host=Host, addr=IP,port=Port,community=Community,version=Version}) ->
+    ok = snmpm:register_agent("tsung",Host,
+                         [{engine_id,"myengine"},
+                          {address,IP},
+                          {port,Port},
+                          {version,Version},
+                          {community,Community}]),
+
     ?LOGF("SNMP mgr started; remote node is ~p~n", [IP],?INFO),
     erlang:start_timer(State#state.interval, self(), send_request ),
-    {noreply, State#state{pid=Pid}};
+    {noreply, State};
 
-handle_info({timeout,_Ref,send_request},State=#state{pid=Pid, host=Host}) ->
+handle_info({timeout,_Ref,send_request},State=#state{host=Host}) ->
     ?LOGF("SNMP mgr; get data from host ~p~n", [Host],?DEB),
-    snmp_get(Pid,
+    snmp_get(Host,
              [?SNMP_CPU_RAW_SYSTEM,
               ?SNMP_CPU_RAW_USER,
               ?SNMP_MEM_AVAIL,
-              ?SNMP_CPU_LOAD1]),
+              ?SNMP_CPU_LOAD1],State),
     erlang:start_timer(State#state.interval, self(), send_request ),
     {noreply,State};
-
-handle_info({snmp_msg, Msg, Ip, _Udp}, State) ->
-    PDU = snmp_mgr_misc:get_pdu(Msg),
-    case PDU#pdu.type of
-        'get-response' ->
-            ?LOGF("Got SNMP PDU ~p from ~p~n",[PDU, Ip],?DEB),
-            {Hostname, NewCache} = ts_utils:resolve(Ip, State#state.dnscache),
-            analyse_snmp_data(PDU#pdu.varbinds, Hostname, State),
-            {noreply, State#state{dnscache=NewCache}};
-        _ ->
-            ?LOGF("Got unknown SNMP data ~p from ~p~n",[PDU, Ip],?WARN),
-            {noreply, State}
-    end;
 
 handle_info(Message, State) ->
     {stop, {unknown_message, Message} , State}.
@@ -237,10 +232,21 @@ oid_to_statname(?SNMP_CPU_LOAD1, Name, Value)->
     {sample,CountName, Value/100}.
 
 %%--------------------------------------------------------------------
-%% Function: snmp_get/2
+%% Function: snmp_get/3
 %% Description: ask a list of OIDs to the given snmp_mgr
 %%--------------------------------------------------------------------
-snmp_get(Pid, Oids) ->
-    ?DebugF("send snmp get for oid ~p to pid ~p ",[Oids,Pid]),
-    Pid ! {get, Oids}.
+snmp_get(Agent,OIDs,State)->
+    snmp_get(Agent,OIDs,State,?SNMP_TIMEOUT).
+
+snmp_get(Agent,OIDs,State,TimeOut)->
+    ?LOGF("Running snmp get ~p ~p~n", [Agent,OIDs], ?DEB),
+    Res = snmpm:sync_get("tsung",Agent,OIDs,TimeOut),
+    ?LOGF("Res ~p ~n", [Res], ?DEB),
+    case Res of
+        {ok,{noError,_,List},_Remaining} ->
+            analyse_snmp_data(List,Agent,State);
+        Other ->
+            ?LOGF("SNMP Error:~p for ~p~n", [Other, Agent], ?NOTICE),
+            {error, Other}
+    end.
 

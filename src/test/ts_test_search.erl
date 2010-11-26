@@ -50,17 +50,37 @@ parse_dyn_var_jsonpath3_test() ->
     JSONPath = "titi[?name=bar].val",
     ?assertEqual([{'myvar',42}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
 
+parse_dyn_var_jsonpath4_test() ->
+    myset_env(),
+    Data="\r\n\r\n{\"titi\": [{\"val\": 123, \"name\": \"foo\"}, {\"val\": 42, \"name\": \"bar\"}]}",
+    JSONPath = "titi[?name=void].val",
+    ?assertEqual([{'myvar',undefined}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
+
+parse_dyn_var_jsonpath5_test() ->
+    myset_env(),
+    Data="\r\n\r\n{\"titi\": [{\"val\": 123, \"status\": \"foo\"}, {\"val\": 42, \"status\": \"OK\"}, {\"val\": 48, \"status\": \"OK\"}]}",
+    JSONPath = "titi[?status=OK].val",
+    ?assertEqual([{'myvar',[42,48]}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
+
+
 parse_dyn_var_jsonpath_int_test() ->
     myset_env(),
     Data="\r\n\r\n{\"titi\": [{\"val\": 123, \"name\": \"foo\"}, {\"val\": 42, \"name\": \"bar\"}]}",
     JSONPath = "titi[?val=123].name",
     ?assertEqual([{'myvar',<<"foo">>}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
 
+parse_dyn_var_jsonpath_xmpp_test() ->
+    myset_env(),
+    Data="{\n  \"status\": \"terminated\",\n  \"uid\": \"944370dc04adbee1792732e01097e618af97cc27\",\n  \"updated_at\": 1282660758,\n  \"nodes\": [\n    \"suno-12\",\n    \"suno-13\"\n  ],\n  \"created_at\": 1282660398,\n  \"environment\": \"lenny-x64-big\",\n  \"result\": {\n    \"suno-13\": {\n      \"last_cmd_stdout\": \"\",\n      \"last_cmd_stderr\": \"\",\n      \"cluster\": \"suno\",\n      \"ip\": \"192.168.1.113\",\n      \"last_cmd_exit_status\": 0,\n      \"current_step\": null,\n      \"state\": \"OK\"\n    },\n    \"suno-12\": {\n      \"last_cmd_stdout\": \"\",\n      \"last_cmd_stderr\": \"\",\n      \"cluster\": \"suno\",\n      \"ip\": \"192.168.1.112\",\n      \"last_cmd_exit_status\": 0,\n      \"current_step\": null,\n      \"state\": \"OK\"\n    }\n  },\n  \"site_uid\": \"sophia\",\n  \"notifications\": [\n    \"xmpp:joe@foo.bar/tsung\"\n  ],\n  \"user_uid\": \"joe\"\n}",
+    JSONPath = "nodes",
+    ?assertMatch([{'nodes',[<<"suno-12">>,<<"suno-13">>]}], ts_search:parse_dynvar([{jsonpath,'nodes', JSONPath} ],list_to_binary(Data))).
+
 parse_dyn_var_xpath_test() ->
     myset_env(),
     Data="\r\n\r\n<html><body>"++?FORMDATA++"</body></html>",
     XPath = "//input[@name='jsf_tree_64']/@value",
-    ?assertMatch([{'jsf_tree_64',"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA"}], ts_search:parse_dynvar([{xpath,'jsf_tree_64', XPath} ],list_to_binary(Data))).
+    ?assertMatch([{'jsf_tree_64',[<< "H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA" >>]}], ts_search:parse_dynvar([{xpath,'jsf_tree_64', XPath} ],list_to_binary(Data))).
+
 
 parse_dyn_var_xpath_with_scripttag_test() ->
     myset_env(),
@@ -68,7 +88,7 @@ parse_dyn_var_xpath_with_scripttag_test() ->
           " A = B <= C </script>"
           "</head><body>"++?FORMDATA++"</body></html>",
     XPath = "//input[@name='jsf_tree_64']/@value",
-    ?assertMatch([{'jsf_tree_64',"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA"}], ts_search:parse_dynvar([{xpath,'jsf_tree_64', XPath} ],list_to_binary(Data))).
+    ?assertMatch([{'jsf_tree_64', [<< "H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA" >>] }], ts_search:parse_dynvar([{xpath,'jsf_tree_64', XPath} ],list_to_binary(Data))).
 
 
 parse_dyn_var2_test() ->
@@ -82,7 +102,7 @@ parse_dyn_var_xpath2_test() ->
     myset_env(),
     Data="\r\n\r\n<html><body><input type=\"hidden\" name=\"tree64\" id=\"tree64\" value=\"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA\"></body></html>",
     XPath = "//input[@name='tree64']/@value",
-    ?assertMatch([{tree64,"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA"}], ts_search:parse_dynvar([{xpath,tree64, XPath }],list_to_binary(Data))).
+    ?assertMatch([{tree64,[<< "H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA" >>]}], ts_search:parse_dynvar([{xpath,tree64, XPath }],list_to_binary(Data))).
 
 parse_dyn_var3_test() ->
     myset_env(),
@@ -95,7 +115,7 @@ parse_dyn_var_xpath3_test() ->
     myset_env(),
     Data="\r\n\r\n<html><body><hidden name=\"random\" value=\"42\"></form></body></html>",
     XPath = "//hidden[@name='random']/@value",
-    ?assertMatch([{random,"42"}], ts_search:parse_dynvar([{xpath, random, XPath }],list_to_binary(Data))).
+    ?assertMatch([{random,[<<"42">>]}], ts_search:parse_dynvar([{xpath, random, XPath }],list_to_binary(Data))).
 
 parse_dyn_var4_test() ->
     myset_env(),
@@ -108,7 +128,7 @@ parse_dyn_var_xpath4_test() ->
     myset_env(),
     Data="\r\n\r\n<html><body><hidden name='random' value='42'></form></body>/<html>",
     XPath = "//hidden[@name='random']/@value",
-    ?assertMatch([{random,"42"}], ts_search:parse_dynvar([{xpath, random, XPath }],list_to_binary(Data))).
+    ?assertMatch([{random,[<<"42">>]}], ts_search:parse_dynvar([{xpath, random, XPath }],list_to_binary(Data))).
 
 parse_dyn_var_many_test() ->
     myset_env(),
@@ -120,9 +140,19 @@ parse_dyn_var_many_test() ->
     erlang:display([?MANY," regexp:", Time]),
     ?assertMatch(Res, Out).
 
-parse_dyn_var_many_xpath_test() ->
+parse_dyn_var_many_re_test() ->
     myset_env(),
     {Data, Res}= setdata(?MANY),
+    RegexpFun = fun(A) -> {re,list_to_atom(A), ?DEF_RE_DYNVAR_BEGIN++ A ++?DEF_RE_DYNVAR_END} end,%'
+    B=lists:map(fun(A)->"random"++integer_to_list(A) end, lists:seq(1,?MANY)),
+    C=lists:map(RegexpFun, B),
+    {Time, Out}=timer:tc( ts_search,parse_dynvar,[C,list_to_binary(Data)]),
+    erlang:display([?MANY," re:", Time]),
+    ?assertMatch(Res, Out).
+
+parse_dyn_var_many_xpath_test() ->
+    myset_env(),
+    {Data, Res}= setdata(?MANY,binary),
     B=lists:map(fun(A)->{xpath, list_to_atom("random"++integer_to_list(A)),
                          "//input[@type='hidden'][@name='random"++integer_to_list(A)++"']/@value"} end, lists:seq(1,?MANY)),
     {Time, Out}=timer:tc( ts_search,parse_dynvar,[B,list_to_binary(Data)]),
@@ -131,7 +161,7 @@ parse_dyn_var_many_xpath_test() ->
 
 parse_dyn_var_many_xpath_explicit_test() ->
     myset_env(),
-    {Data, Res}= setdata(?MANY),
+    {Data, Res}= setdata(?MANY,binary),
     B=lists:map(fun(A)->{xpath, list_to_atom("random"++integer_to_list(A)),
                          "/html/body/form/input[@type='hidden'][@name='random"++integer_to_list(A)++"']/@value"} end, lists:seq(1,?MANY)),
     {Time, Out}=timer:tc( ts_search,parse_dynvar,[B,list_to_binary(Data)]),
@@ -148,9 +178,19 @@ parse_dyn_var_many_big_test() ->
     erlang:display([?MANY," regexp_big:", Time]),
     ?assertMatch(Res, Out).
 
-parse_dyn_var_many_big_xpath_test() ->
+parse_dyn_var_many_big_re_test() ->
     myset_env(),
     {Data, Res}= setdata_big(?MANY),
+    RegexpFun = fun(A) -> {re,list_to_atom(A), ?DEF_RE_DYNVAR_BEGIN++ A ++?DEF_RE_DYNVAR_END} end,%'
+    B=lists:map(fun(A)->"random"++integer_to_list(A) end, lists:seq(1,?MANY)),
+    C=lists:map(RegexpFun, B),
+    {Time, Out}=timer:tc( ts_search,parse_dynvar,[C,list_to_binary(Data)]),
+    erlang:display([?MANY," re_big:", Time]),
+    ?assertMatch(Res, Out).
+
+parse_dyn_var_many_big_xpath_test() ->
+    myset_env(),
+    {Data, Res}= setdata_big(?MANY,binary),
     B=lists:map(fun(A)->{xpath, list_to_atom("random"++integer_to_list(A)),
                          "//input[@type='hidden'][@name='random"++integer_to_list(A)++"']/@value"} end, lists:seq(1,?MANY)),
     {Time, Out}=timer:tc( ts_search,parse_dynvar,[B,list_to_binary(Data)]),
@@ -159,7 +199,7 @@ parse_dyn_var_many_big_xpath_test() ->
 
 parse_dyn_var_many_big_xpath_explicit_test() ->
     myset_env(),
-    {Data, Res}= setdata_big(?MANY),
+    {Data, Res}= setdata_big(?MANY,binary),
     B=lists:map(fun(A)->{xpath, list_to_atom("random"++integer_to_list(A)),
                          "/html/body/form/input[@type='hidden'][@name='random"++integer_to_list(A)++"']/@value"} end, lists:seq(1,?MANY)),
     {Time, Out}=timer:tc( ts_search,parse_dynvar,[B,list_to_binary(Data)]),
@@ -167,11 +207,15 @@ parse_dyn_var_many_big_xpath_explicit_test() ->
     ?assertMatch(Res, Out).
 
 setdata(N) ->
+    setdata(N,list).
+setdata(N,Type) ->
     {"\r\n\r\n<html><body><form>"++lists:flatmap(fun(A)->
                                            AI=integer_to_list(A),["<input type='hidden' name='random",AI,"'"," value='value",AI,"'>"] end,lists:seq(1,N))
-++"</form></body>/<html>",  lists:reverse(lists:map(fun(A)->{list_to_atom("random"++integer_to_list(A)) , "value"++integer_to_list(A)} end, lists:seq(1,N)))}.
+++"</form></body>/<html>",  lists:reverse(lists:map(fun(A)->{list_to_atom("random"++integer_to_list(A)) , format_result("value"++integer_to_list(A),Type)} end, lists:seq(1,N)))}.
 
 setdata_big(N) ->
+    setdata_big(N, list).
+setdata_big(N, Type) ->
     Head = "<head><title>ABCDERFDJSJS</title><script type='text/javascript'> "
            "Some javascript code</script><link rel='shortcut icon' "
            " href='favicon.ico' type='image/x-icon'></head>",
@@ -186,7 +230,13 @@ setdata_big(N) ->
               "<p>More text inside a paragraph element</p> "
               "</div>",
     HTML ="\r\n\r\n<html>" ++ Head ++ "<body>" ++ Content ++ Content ++ Form ++ Content ++ "</body></html>",
-    {HTML,lists:reverse(lists:map(fun(A)->{list_to_atom("random"++integer_to_list(A)) , "value"++integer_to_list(A)} end, lists:seq(1,N)))}.
+    {HTML,lists:reverse(lists:map(fun(A)->{list_to_atom("random"++integer_to_list(A)) , format_result("value"++integer_to_list(A),Type)} end, lists:seq(1,N)))}.
+
+
+format_result(Data,binary) ->
+    [list_to_binary(Data)];
+format_result(Data,_) ->
+    Data.
 
 parse_subst1_test() ->
     myset_env(),
@@ -195,6 +245,33 @@ parse_subst1_test() ->
     Regexp = ?DEF_REGEXP_DYNVAR_BEGIN++ StrName ++?DEF_REGEXP_DYNVAR_END,%'
     [{Name,Value}] = ts_search:parse_dynvar([{regexp, 'jsf_tree_64', Regexp }],list_to_binary(Data)),
     ?assertMatch("H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA", ts_search:subst("%%_jsf_tree_64%%",[{Name,Value}])).
+
+parse_subst1_re_test() ->
+    myset_env(),
+    Data=?FORMDATA,
+    StrName="jsf_tree_64",
+    Regexp = ?DEF_RE_DYNVAR_BEGIN++ StrName ++?DEF_RE_DYNVAR_END,%'
+    [{Name,Value}] = ts_search:parse_dynvar([{re, 'jsf_tree_64', Regexp }],list_to_binary(Data)),
+    ?assertMatch("H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA", ts_search:subst("%%_jsf_tree_64%%",[{Name,Value}])).
+
+parse_subst2_re_test() ->
+    myset_env(),
+    Data="<HTML>
+  <HEAD>
+    <meta http-equiv='Content-Type' content='text/html; charset=ISO-8859-1'>
+    <META NAME='author' CONTENT='Test'>
+    <TITLE>4DOM version 0.10.2</TITLE>
+  </HEAD>
+  <BODY>
+    <H1>4DOM version 0.10.2</H1>
+    <H3></H3>
+    <P>4Suite <A HREF='http://4Suite.org/getdoc.epy?file=4Suite/'>http://FourThought.com/4Suite<
+/A>
+    </P>
+",
+    Regexp = "<TITLE>(.*)</TITLE>",
+    [{Name,Value}] = ts_search:parse_dynvar([{re, 'title', Regexp }],list_to_binary(Data)),
+    ?assertMatch("4DOM version 0.10.2", ts_search:subst("%%_title%%",[{Name,Value}])).
 
 parse_extract_fun1_test() ->
     myset_env(),
@@ -251,6 +328,12 @@ dynvars_random2_test() ->
     [String,String2] = ts_client:set_dynvars(random,{string,20},[toto,titi],[]),
     ?assertMatch({20,20},{length(String),length(String2)}).
 
+dynvars_jsonpath_test() ->
+    myset_env(),
+    Data="\r\n\r\n{\"titi\": [{\"val\": 123, \"name\": \"foo\"}, {\"val\": 42, \"name\": \"bar\"}]}",
+    JSONPath = "titi[?name=bar].val",
+    Dynvars=ts_dynvars:new(data,Data),
+    ?assertEqual(42,ts_client:set_dynvars(jsonpath,{JSONPath,data},[toto],#dyndata{dynvars=Dynvars})).
 
 
 %%TODO: out of order..
@@ -270,6 +353,41 @@ dynvars_random2_test() ->
 %    Expected = [<<"img0">>,<<"img1">>,<<"img2">>,<<"img3">>,<<"img4">>],
 %    ?assertMatch(Expected, R).
 
+
+parse_dynvar_xpath_single_test() ->
+   myset_env(),
+   Data="<html><body>"
+        "<div> "
+        "      <img src='img2'> "
+        " </div> "
+        " <img src='img3'> "
+        " <a href='/index.html'></body></html>",
+   XPath = "//a/@href",
+   Tree = mochiweb_html:parse(list_to_binary(Data)),
+   R = mochiweb_xpath:execute(XPath,Tree),
+   erlang:display(R),
+   Expected = [<<"/index.html">>],
+   ?assertEqual(Expected, R).
+
+filter_re_include_test() ->
+    ?assertEqual(["/toto"], ts_client:filter({ok,["http://toto/", "/toto", "mailto:bidule"]}, {true, "^/.*"})).
+
+filter_re_exclude_test() ->
+    ?assertEqual(["http://toto/", "mailto:bidule"], ts_client:filter({ok,["http://toto/", "/toto", "mailto:bidule"]}, {false,"^/.*"})).
+
+extract_body_test() ->
+    Data = << "HTTP header\r\nHeader: value\r\n\r\nbody\r\n" >>,
+    ?assertEqual(<< "body\r\n" >>, ts_search:extract_body(Data)).
+
+extract_body_nohttp_test() ->
+    Data = << "random\r\nstuff" >>,
+    ?assertEqual(Data, ts_search:extract_body(Data)).
+
+badarg_re_test() ->
+    Data = << "Below this line, is 1000 repeated lines">>,
+    Regexp = "is (\\d+) repeated lines",
+    {ok,Regexp2}=re:compile(Regexp),
+    ?assertEqual([{lines, "1000"}], ts_search:parse_dynvar([{re, 'lines', Regexp2 }],Data)).
 
 myset_env()->
     myset_env(0).
