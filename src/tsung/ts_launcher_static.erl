@@ -194,8 +194,8 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%%----------------------------------------------------------------------
 do_launch({ Session, MyHostName})->
     case catch ts_config_server:get_user_param(MyHostName) of
-        {ok, {IPParam, Server, UserId}} ->
-            ts_client_sup:start_child({Session, IPParam, Server, UserId}),
+        {ok, {IPParam, Server, UserId, Dump}} ->
+            ts_client_sup:start_child({Session, IPParam, Server, UserId, Dump}),
             ok;
         Error ->
             ?LOGF("get_next_session failed [~p], skip this session !~n", [Error],?ERR),

@@ -254,7 +254,7 @@ handle_call({get_user_param, HostName}, _From, State=#state{users=UserId}) ->
     {value, Client} = lists:keysearch(HostName, #client.host, Config#config.clients),
     {IPParam, Server} = get_user_param(Client,Config),
     ts_mon:newclient({static,now()}),
-    {reply, {ok, { IPParam, Server, UserId}}, State#state{users=UserId+1}};
+    {reply, {ok, { IPParam, Server, UserId,Config#config.dump}}, State#state{users=UserId+1}};
 
 %% get a new session id and user parameters for the given node
 handle_call({get_next_session, HostName}, _From, State=#state{users=Users}) ->
