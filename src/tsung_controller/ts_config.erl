@@ -925,5 +925,10 @@ backup_config(Dir, Name, Config) ->
     BaseName = filename:basename(Name),
     {ok,IOF}=file:open(filename:join(Dir,BaseName),[write]),
     Export=xmerl:export_simple([Config],xmerl_xml),
-    io:format(IOF,"~s~n",[lists:flatten(Export)]),
+    case catch io:format(IOF,"~s~n",[lists:flatten(Export)]) of
+        {'EXIT', _Error} -> % weird characters in the XML ?
+            io:format(IOF,"~p~n",[lists:flatten(Export)]);
+        _ ->
+            ok
+    end,
     file:close(IOF).
