@@ -54,6 +54,7 @@ class Plot:
                  ylabel  = "",
                  title   = "",
                  legends = None,
+                 position = 0,
                  styles  = ['b-', 'r-', 'g-', 'c-', 'y^', 'kv'],
                  colors  = ['b', 'r', 'g', 'c', 'y', 'k'],
                  dpi     = 150,
@@ -71,6 +72,7 @@ class Plot:
         self.ylabel    = ylabel
         self.title     = title
         self.legends   = legends
+        self.position  = position
         self.dpi       = dpi
         self.thumb_dpi = tn_dpi
         self.xfactor   = xfactor
@@ -113,7 +115,7 @@ class Plot:
             title(self.title)
             xlabel(self.xlabel)
             ylabel(self.ylabel)
-            legend(self.legends)
+            legend(self.legends, loc=self.position)
 
             # we want to draw a grid
             grid(True)
@@ -163,7 +165,7 @@ class Plot:
             boxchart_thumb = os.path.join(self.outdir,
                                     "%s_tn.%s" % (self.name, self.imgtype))
             title(self.title)
-            legend(self.legends)
+            legend(self.legends, loc=self.position)
             ax.set_xticks(ticksp)
             ax.set_xticklabels(percent)
             ylabel(self.ylabel)
@@ -214,6 +216,15 @@ def main(conffile, logs, legends, outdir, verbose):
                           for x in clegends]
                 count += 1
         p.legends = l
+        
+        if config.has_option(s, 'position'):
+            # legend position according to matplotlib standard values (1-10)
+            val = config.get(s, 'position').decode(encoding)
+            if val.isdigit():
+                p.position = int(val)
+            else:
+                p.position = val
+            
 
         if config.has_option(s, 'yfactor'):
             try:
