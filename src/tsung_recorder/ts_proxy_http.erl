@@ -172,7 +172,8 @@ relative_url(true,String,_RequestURI,_RelURL)->
 relative_url(false,String,RequestURI,RelURL)->
     [FullURL_noargs|_] = string:tokens(RequestURI,"?"),
     [RelURL_noargs|_]  = string:tokens(RelURL,"?"),
-    RealString = re:replace(String,FullURL_noargs,RelURL_noargs,[{return,list}]),
+    FullURL = re:replace(FullURL_noargs,"(\\)|\\()","\\\\&",[global,{return,list}]),
+    RealString = re:replace(String,FullURL,RelURL_noargs,[{return,list}]),
     {ok, RealString}.
 
 %%--------------------------------------------------------------------
