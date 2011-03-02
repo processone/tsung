@@ -32,6 +32,10 @@ use Getopt::Long;
 use vars qw ($help @files $dygraph $verbose $debug $noplot $noextra $version $stats
              $template_dir $nohtml $template_dir $gnuplot $logy $rotate_xtics
              $imgfmt $oldgnuplot );
+use File::Spec::Functions qw(rel2abs);
+use File::Basename;
+use File::Copy;
+
 my $tagvsn = '@PACKAGE_VERSION@';
 
 GetOptions( "help",\$help,
@@ -65,9 +69,9 @@ my $CPU_MAX = 3200; # cpu usage should never be higher than 3200% (32 cores at 1
 my $prefix ="@prefix@";
 
 unless ($template_dir) {
-  if (-d (dirname($0) . "/templates/")) {
-    $template_dir = dirname($0)."/templates/";
-  } elsif (-d "$ENV{HOME}/.tsung/templates/") {
+    if (-d (dirname($0) . "/templates/")) {
+        $template_dir = dirname($0)."/templates/";
+    } elsif (-d "$ENV{HOME}/.tsung/templates/") {
         $template_dir = "$ENV{HOME}/.tsung/templates/";
     } elsif (-d "@datadir@/@TEMPLATES_SUBDIR@") {
         $template_dir = "@datadir@/@TEMPLATES_SUBDIR@";
@@ -266,28 +270,28 @@ sub plot_stats_dygraph {
       push @{$rowdata[0]}, $cur_title;
       #print "go for $cur_title\n";
       while (<FILE>) {
-	@fields = split(/ /);
-	($time, $value) = @fields[0,$d+1] if defined @fields[0,$d+1];
-	chomp($value);
-	chomp($time);
-	#print "$time : $value \n";
-	die if not defined $time ;
-	$rowdata[$count] = [$time] if not defined $rowdata[$count]; # new line
-	while (1) { #look for right time
-	  my $actual = @{$rowdata[$count]}[0];
-	  chomp($actual);
-	  die unless defined $actual;
-	  if ($time == $actual) {
-	    push @{$rowdata[$count]}, $value ;
-	    $count++;
-	    last;
-	  } elsif ($time > $actual) {
-	    push @{$rowdata[$count]}, "" ;
-	    $count++;
-	  } else {
-	    last;
-	  }
-	}
+          @fields = split(/ /);
+          ($time, $value) = @fields[0,$d+1] if defined @fields[0,$d+1];
+          chomp($value);
+          chomp($time);
+          #print "$time : $value \n";
+          die if not defined $time ;
+          $rowdata[$count] = [$time] if not defined $rowdata[$count]; # new line
+          while (1) { #look for right time
+              my $actual = @{$rowdata[$count]}[0];
+              chomp($actual);
+              die unless defined $actual;
+              if ($time == $actual) {
+                  push @{$rowdata[$count]}, $value ;
+                  $count++;
+                  last;
+              } elsif ($time > $actual) {
+                  push @{$rowdata[$count]}, "" ;
+                  $count++;
+              } else {
+                  last;
+              }
+          }
       }
       close FILE; #FIXME : ugly open and close multiple time
     }
@@ -500,7 +504,11 @@ sub parse_stats_file {
         print STDOUT "Generation os_mon graphs\n" if $verbose;
         foreach my $key (sort keys %extra_info) {
             my $pos = index($key,":");
-            plot_stats(\@col, $key, undef, \@{$extra_info{$key}}, [$key],$logy);
+            if (not $dygraph) {
+                plot_stats(\@col, $key, undef, \@{$extra_info{$key}}, [$key],$logy);
+            } else {
+                plot_stats_dygraph(\@col, $key, undef, \@{$extra_info{$key}}, [$key],$logy);
+            }
         }
     }
     $extra=0 if (scalar keys %extra_info == 0 ); # no extra information available
@@ -582,7 +590,7 @@ sub html_report {
     $tt->process("graph.thtml", $vars, "graph.html") or die $tt->error(), "\n";
   } else {
     $tt->process("graph_dy.thtml", $vars, "graph.html") or die $tt->error(), "\n";
-    copy (($template_dir . "dygraph-combined.js"), ".") or die "copy failed : $!";
+    copy (($template_dir . "/dygraph-combined.js"), ".") or die "copy failed : $!";
   }
 }
 

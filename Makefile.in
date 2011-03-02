@@ -91,6 +91,7 @@ CONTROLLER_TARGETDIR = $(ERLANG_LIB_DIR)/$(CONTROLLER_APPLICATION)-$(VERSION)
 TARGETDIR = $(ERLANG_LIB_DIR)/$(APPLICATION)-$(VERSION)
 
 TEMPLATES = $(wildcard $(ESRC)/templates/*.thtml)
+TEMPLATES += $(wildcard $(ESRC)/templates/*.js)
 TMP       = $(wildcard *~) $(wildcard src/*~) $(wildcard inc/*~)
 INC_FILES = $(wildcard $(INC)/*.hrl)
 LIBSRC    = $(wildcard $(ESRC)/lib/[^mochi]*.erl)
