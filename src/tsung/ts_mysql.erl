@@ -212,6 +212,15 @@ get_salt(PacketBody) ->
     {Salt2, _Rest7} = asciz_binary(Rest6,[]),
     Salt ++ Salt2.
 
+make_auth(User, "", Database, Salt) ->
+    Caps = ?LONG_PASSWORD bor ?LONG_FLAG bor ?PROTOCOL_41 bor ?TRANSACTIONS
+            bor ?SECURE_CONNECTION bor ?CONNECT_WITH_DB,
+    Maxsize = ?MAX_PACKET_SIZE,
+    UserB = list_to_binary(User),
+    DatabaseB = list_to_binary(Database),
+    binary_to_list(<<Caps:32/little, Maxsize:32/little, 8:8, 0:23/integer-unit:8,
+    UserB/binary, 0:8, 0:8, DatabaseB/binary>>);
+
 make_auth(User, Password, Database, Salt) ->
     EncryptedPassword = encrypt_password(Password, Salt),
     Caps = ?LONG_PASSWORD bor ?LONG_FLAG bor ?PROTOCOL_41 bor ?TRANSACTIONS
