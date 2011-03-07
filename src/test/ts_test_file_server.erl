@@ -39,6 +39,10 @@ config_file_server4_test()->
     myset_env(),
     ?assertMatch({ok,"username3;glop4;"}, ts_file_server:get_next_line()).
 
+config_file_server_dynfun_test()->
+    myset_env(),
+    ?assertMatch({ok,"username1;glop;"}, ts_file_server:get_next_line({self(), {}})).
+
 
 config_file_server_huge_test()->
     myset_env(),
