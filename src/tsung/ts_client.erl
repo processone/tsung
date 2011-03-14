@@ -115,11 +115,12 @@ init({#session{id           = SessionId,
                 Val ->
                     Val
             end,
-    RateConf = case RateLimit of
-                   Token=#token_bucket{} ->
-                       Token#token_bucket{last_packet_date=StartTime};
-                   undefined ->
-                       undefined
+    {RateConf,SizeThresh} = case RateLimit of
+                                Token=#token_bucket{} ->
+                                    Thresh=lists:min([?size_mon_thresh,Token#token_bucket.burst]),
+                                    {Token#token_bucket{last_packet_date=StartTime}, Thresh};
+                                undefined ->
+                                    {undefined, ?size_mon_thresh}
                end,
     {ok, think, #state_rcv{ port       = Server#server.port,
                             host       = Server#server.host,
@@ -132,6 +133,8 @@ init({#session{id           = SessionId,
                             starttime  = StartTime,
                             dump       = Dump,
                             proto_opts = ProtoOpts,
+                            size_mon   = SizeThresh,
+                            size_mon_thresh = SizeThresh,
                             count      = Count,
                             ip         = NewIP,
                             id         = Id,
@@ -429,7 +432,8 @@ handle_next_action(State) ->
         {set_option, undefined, rate_limit, {Rate, Burst}} ->
             ?LOGF("Set rate limits for client: rate=~p, burst=~p~n",[Rate,Burst],?DEB),
             RateConf=#token_bucket{rate=Rate,burst=Burst,last_packet_date=now()},
-            handle_next_action(State#state_rcv{rate_limit=RateConf,count=Count});
+            Thresh=lists:min([Burst,State#state_rcv.size_mon_thresh]),
+            handle_next_action(State#state_rcv{size_mon=Thresh,size_mon_thresh=Thresh,rate_limit=RateConf,count=Count});
         {set_option, Type, Name, Args} ->
             NewState=Type:set_option(Name,Args,State),
             handle_next_action(NewState);
@@ -977,14 +981,14 @@ handle_data_msg(Data,State=#state_rcv{dump=Dump,request=Req,id=Id,clienttype=Typ
                     {NewState#state_rcv{ page_timestamp = PageTimeStamp,
                                          socket = none,
                                          datasize = 0,
-                                         size_mon_thresh= ?size_mon_thresh,
+                                         size_mon = State#state_rcv.size_mon_thresh,
                                          count = NewCount,
                                          dyndata = NewDynData,
                                          buffer = <<>>}, Opts};
                 false ->
                     {NewState#state_rcv{ page_timestamp = PageTimeStamp,
                                          count = NewCount,
-                                         size_mon_thresh= ?size_mon_thresh,
+                                         size_mon = State#state_rcv.size_mon_thresh,
                                          datasize = 0,
                                          dyndata = NewDynData,
                                          buffer = <<>>}, Opts}
@@ -999,12 +1003,12 @@ handle_data_msg(Data,State=#state_rcv{dump=Dump,request=Req,id=Id,clienttype=Typ
             %% artificial spikes in the stats (O B/sec for a long time
             %% and lot's of MB/s at the end of the req). So we update
             %% the stats each time a 512Ko threshold is raised.
-            case NewState#state_rcv.datasize > NewState#state_rcv.size_mon_thresh of
+            case NewState#state_rcv.datasize > NewState#state_rcv.size_mon of
                 true ->
                     ?Debug("Threshold raised, update size_rcv stats~n"),
-                    ts_mon:add({ sum, size_rcv, ?size_mon_thresh}),
-                    NewThresh=NewState#state_rcv.size_mon_thresh+ ?size_mon_thresh,
-                    {NewState#state_rcv{buffer=NewBuffer,size_mon_thresh=NewThresh}, Opts};
+                    ts_mon:add({ sum, size_rcv, NewState#state_rcv.size_mon_thresh}),
+                    NewThresh=NewState#state_rcv.size_mon+ NewState#state_rcv.size_mon_thresh,
+                    {NewState#state_rcv{buffer=NewBuffer,size_mon=NewThresh}, Opts};
                 false->
                     {NewState#state_rcv{buffer=NewBuffer}, Opts}
             end
@@ -1102,12 +1106,12 @@ update_stats_noack(#state_rcv{page_timestamp=PageTime,request=Request}) ->
 %% Returns: {TimeStamp, DynVars}
 %% Purpose: update the statistics
 %%----------------------------------------------------------------------
-update_stats(State=#state_rcv{page_timestamp=PageTime,send_timestamp=SendTime}) ->
+update_stats(State=#state_rcv{size_mon_thresh=T,page_timestamp=PageTime,send_timestamp=SendTime}) ->
     Now = now(),
     Elapsed = ts_utils:elapsed(SendTime, Now),
-    Stats = case   State#state_rcv.size_mon_thresh > ?size_mon_thresh of
+    Stats = case   State#state_rcv.size_mon > T of
                 true ->
-                    LastSize=State#state_rcv.datasize-State#state_rcv.size_mon_thresh+?size_mon_thresh,
+                    LastSize=State#state_rcv.datasize-State#state_rcv.size_mon+T,
                     [{ sample, request, Elapsed},
                      { sum, size_rcv, LastSize}];
                 false->

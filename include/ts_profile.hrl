@@ -105,6 +105,7 @@
          datasize=0,
          id,         % user id
          size_mon_thresh=?size_mon_thresh, % if rcv data is > to this, update stats
+         size_mon=0, % current size (used for threshold computation)
          dyndata=[], % persistent data dynamically added during the
                      % session (Cookies for examples)
          clienttype, % module name (ts_jabber, etc.)

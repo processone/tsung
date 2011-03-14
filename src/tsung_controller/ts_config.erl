@@ -562,7 +562,7 @@ parse( Element = #xmlElement{name=set_option, attributes=Attrs},
                                    "rate_limit" ->
                                        Rate = getAttr(integer, Attrs, value),
                                        Max  = getAttr(integer, Attrs, max, Rate),
-                                       {undefined, rate_limit, {Rate, Max}}
+                                       {undefined, rate_limit, {1024*Rate div 1000, 1024 * Max}}
                                end,
         ets:insert(Tab,{{CurS#session.id, Id+1}, {set_option,Type,Name,Args}}),
         Conf#config{curid=Id+1};
