@@ -67,7 +67,8 @@
           proto_opts,        % tcp/udp buffer sizes
           seed = now,        % random seed: (default= current time)
           vhost_file = none, % file server user for virtual host jabber testing
-          user_server_maxuid = none % user_id max
+          user_server_maxuid = none, % user_id max
+          rate_limit
          }).
 
 
@@ -92,6 +93,7 @@
           bidi         = false,
           hibernate,
           proto_opts,
+          rate_limit,
           size
         }).
 

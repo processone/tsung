@@ -352,6 +352,7 @@ parse(Element = #xmlElement{name=session, attributes=Attrs},
                                                  name         = Name,
                                                  persistent   = Persistent,
                                                  bidi         = Bidi,
+                                                 rate_limit   = Conf#config.rate_limit,
                                                  hibernate    = Conf#config.hibernate,
                                                  proto_opts   = Conf#config.proto_opts
                                                 }
@@ -621,6 +622,12 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     Seed =  getAttr(integer,Attrs, value, now),
                     lists:foldl( fun parse/2, Conf#config{seed=Seed},
                                  Element#xmlElement.content);
+                "rate_limit" ->
+                    Rate =  getAttr(integer,Attrs, value, 512), % 512KB/sec
+                    MaxBurst =  getAttr(integer,Attrs, max, Rate),
+                    TokenBucket= #token_bucket{rate=1024*Rate div 1000, burst= 1024*MaxBurst},
+                    lists:foldl( fun parse/2, Conf#config{rate_limit=TokenBucket},
+                                                          Element#xmlElement.content);
                 "hibernate" ->
                     Hibernate = case  getAttr(integer,Attrs, value, 10000 ) of
                                     infinity -> infinity;

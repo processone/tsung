@@ -65,6 +65,13 @@
          udp_rcv_size,              % udp buffers size
          udp_snd_size}).
 
+-record(token_bucket,
+        {rate,
+         burst,
+         last_packet_date = 0,
+         current_size     = 0
+         }).
+
 -define(size_mon_thresh, 524288).   % 512KB
 
 % state of ts_client gen_server
@@ -102,6 +109,7 @@
                      % session (Cookies for examples)
          clienttype, % module name (ts_jabber, etc.)
          transactions=[], % current transactions
+         rate_limit, % rate limiting parameters
          dump        % type of dump (full, light, none)
         }).
 

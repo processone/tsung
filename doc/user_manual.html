@@ -96,7 +96,7 @@ a:hover     {background:#ffffaa;}
 <!--CUT DEF section 1 --><H1 ALIGN=center>Tsung User’s manual</H1><DIV CLASS="center">
 
 <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>1.3.3</TD></TR>
-<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>September 13, 2010</TD></TR>
+<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>March 14, 2011</TD></TR>
 </TABLE>
 </DIV><!--TOC section Contents-->
 <H2 CLASS="section"><!--SEC ANCHOR -->Contents</H2><!--SEC END --><UL CLASS="toc"><LI CLASS="li-toc">
@@ -1181,7 +1181,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE><P>A new option is available in version <B>1.3.1</B>: hibernate. This
+</TABLE><P>A new option is available in version <B>1.3.1</B>: <TT>hibernate</TT>. This
 is used to reduced memory consumption of simulated users during
 thinktimes. By default, hibernation will be activated for thinktimes
 higher than 10sec. This value can be changed like this:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -1199,7 +1199,28 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE><P>To disable hibernation, you must set the value to <FONT COLOR=purple>infinity</FONT>.</P><!--TOC subsubsection XMPP/Jabber options-->
+</TABLE><P>To disable hibernation, you must set the value to <FONT COLOR=purple>infinity</FONT>.</P><P>A new option is available in version <B>1.4.0</B>:
+<TT>rate_limit</TT>. This will limit the bandwitdh of each client
+(using a token bucket algorithm). The value is in KBytes per
+second. You can also specify a maximum burst value
+(eg. <FONT COLOR=purple>max=’2048’</FONT>). By default the burst size is the same as
+the rate (1024KB in the following example). Currently, only incoming
+traffic is rate limited.</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">  &lt;option name="rate_limit" value="1024"&gt;&lt;/option&gt;
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><!--TOC subsubsection XMPP/Jabber options-->
 <H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc52">6.5.1</A>  XMPP/Jabber options</H4><!--SEC END --><P>
 <A NAME="sec:jabber-options"></A></P><P>Default values for specific protocols can be defined. Here is an
 example of option values for Jabber/XMPP:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0

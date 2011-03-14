@@ -85,6 +85,7 @@ init({#session{id           = SessionId,
                persistent   = Persistent,
                bidi         = Bidi,
                hibernate    = Hibernate,
+               rate_limit   = RateLimit,
                proto_opts   = ProtoOpts,
                size         = Count,
                type         = CType}, IP, Server,Id, Dump}) ->
@@ -114,6 +115,12 @@ init({#session{id           = SessionId,
                 Val ->
                     Val
             end,
+    RateConf = case RateLimit of
+                   Token=#token_bucket{} ->
+                       Token#token_bucket{last_packet_date=StartTime};
+                   undefined ->
+                       undefined
+               end,
     {ok, think, #state_rcv{ port       = Server#server.port,
                             host       = Server#server.host,
                             session_id = SessionId,
@@ -130,6 +137,7 @@ init({#session{id           = SessionId,
                             id         = Id,
                             hibernate  = Hibernate,
                             maxcount   = Count,
+                            rate_limit = RateConf,
                             dyndata    = NewDynData
                            }}.
 
@@ -186,22 +194,27 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
 %% inet data
-handle_info({NetEvent, _Socket, Data}, wait_ack, State) when NetEvent==tcp;
-                                                             NetEvent==ssl ->
+handle_info({NetEvent, _Socket, Data}, wait_ack, State=#state_rcv{rate_limit=TokenParam})
+  when NetEvent==tcp; NetEvent==ssl ->
     ?DebugF("TCP data received: size=~p ~n",[size(Data)]),
-    case handle_data_msg(Data, State) of
-        {NewState=#state_rcv{ack_done=true}, Opts} ->
-            NewSocket = ts_utils:inet_setopts(NewState#state_rcv.protocol,
-                                              NewState#state_rcv.socket,
-                                              [{active, once} | Opts]),
-            handle_next_action(NewState#state_rcv{socket=NewSocket,
+    NewTokenParam = case TokenParam of
+                        undefined ->
+                            undefined;
+                        #token_bucket{rate=R,burst=Burst,current_size=S0, last_packet_date=T0} ->
+                            {S1,_Wait}=token_bucket(R,Burst,S0,T0,size(Data),now(),true),
+                            TokenParam#token_bucket{current_size=S1, last_packet_date=now()}
+                    end,
+    {NewState, Opts} = handle_data_msg(Data, State),
+    NewSocket = ts_utils:inet_setopts(NewState#state_rcv.protocol,
+                                      NewState#state_rcv.socket,
+                                      [{active, once} | Opts]),
+    case NewState#state_rcv.ack_done of
+        true ->
+            handle_next_action(NewState#state_rcv{socket=NewSocket,rate_limit=NewTokenParam,
                                                   ack_done=false});
-        {NewState, Opts} ->
-            NewSocket = ts_utils:inet_setopts(NewState#state_rcv.protocol,
-                                              NewState#state_rcv.socket,
-                                              [{active, once} | Opts]),
+        false ->
             TimeOut=(NewState#state_rcv.proto_opts)#proto_opts.idle_timeout,
-            {next_state, wait_ack, NewState#state_rcv{socket=NewSocket}, TimeOut}
+            {next_state, wait_ack, NewState#state_rcv{socket=NewSocket,rate_limit=NewTokenParam}, TimeOut}
     end;
 handle_info({erlang, _Socket, Data}, wait_ack, State) ->
     ?DebugF("erlang function result received: size=~p ~n",[size(term_to_binary(Data))]),
@@ -1121,3 +1134,31 @@ filter({ok,List},{Include,Re}) when is_list(List)->
     lists:filter(Filter,List);
 filter({ok,Data},{Include,Re}) ->
     filter({ok,[Data]},{Include,Re}).
+
+%% @spec token_bucket(R::integer(),Burst::integer(),S0::integer(),T0::tuple(),P1::integer(),
+%%                    Now::tuple(),Sleep::boolean()) -> {S1::integer(),Wait::integer()}
+
+%% @doc Implement a token bucket to rate limit the traffic: If the
+%%      bucket is full, we wait (if asked) until we can fill the
+%%      bucket with the incoming data
+%%      R = limit rate in Bytes/millisec, Burst = max burst size in Bytes
+%%      T0 arrival date of last packet,
+%%      P1 size in bytes of the packet just received
+%%      S1: new size of the bucket
+%%      Wait: Time to wait
+%% @end
+token_bucket(R,Burst,S0,T0,P1,Now,Sleep) ->
+    S1 = lists:min([S0+R*round(ts_utils:elapsed(T0, Now)),Burst]),
+    case P1 < S1 of
+        true -> % no need to wait
+            {S1-P1,0};
+        false -> % the bucket is full, must wait
+            Wait=(P1-S1) div R,
+            case Sleep of
+                true ->
+                    timer:sleep(Wait),
+                    {0,Wait};
+                false->
+                    {0,Wait}
+            end
+    end.
