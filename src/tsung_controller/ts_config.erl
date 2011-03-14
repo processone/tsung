@@ -552,6 +552,24 @@ parse( #xmlElement{name=change_type, attributes=Attrs},
     Conf#config{main_sess_type=SessType, curid=Id+1,
                 sessions=[CurS#session{type=CType}|Other] };
 
+
+parse( Element = #xmlElement{name=set_option, attributes=Attrs},
+      Conf = #config{sessions=[CurS|_Other], curid=Id,session_tab = Tab}) ->
+
+    case getAttr(atom, Attrs, type) of
+        "" ->
+            {Type,Name,Args} = case getAttr(string, Attrs, name) of
+                                   "rate_limit" ->
+                                       Rate = getAttr(integer, Attrs, value),
+                                       Max  = getAttr(integer, Attrs, max, Rate),
+                                       {undefined, rate_limit, {Rate, Max}}
+                               end,
+        ets:insert(Tab,{{CurS#session.id, Id+1}, {set_option,Type,Name,Args}}),
+        Conf#config{curid=Id+1};
+        Mod ->
+            Mod:parse_config(Element, Conf)
+    end;
+
 %%% Parsing the request element
 parse(Element = #xmlElement{name=request, attributes=Attrs},
       Conf = #config{sessions=[CurSess|_], curid=Id}) ->

@@ -426,6 +426,13 @@ handle_next_action(State) ->
             NewDynData=DynData#dyndata{proto=ProtoDynData},
             NewState=State#state_rcv{session=Session,socket=Socket,count=Count,clienttype=NewCType,protocol=PType,port=Port,host=Server,dyndata=NewDynData},
             handle_next_action(NewState);
+        {set_option, undefined, rate_limit, {Rate, Burst}} ->
+            ?LOGF("Set rate limits for client: rate=~p, burst=~p~n",[Rate,Burst],?DEB),
+            RateConf=#token_bucket{rate=Rate,burst=Burst,last_packet_date=now()},
+            handle_next_action(State#state_rcv{rate_limit=RateConf,count=Count});
+        {set_option, Type, Name, Args} ->
+            NewState=Type:set_option(Name,Args,State),
+            handle_next_action(NewState);
         Other ->
             ?LOGF("Error: set profile return value is ~p (count=~p)~n",[Other,Count],?ERR),
             {stop, set_profile_error, State}

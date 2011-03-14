@@ -95,9 +95,18 @@
     type     (ts_http | ts_jabber | ts_pgsql) #IMPLIED
     value    CDATA #IMPLIED>
 
+<!ELEMENT set_option (user_agent*)>
+<!ATTLIST set_option
+    name     NMTOKEN #REQUIRED
+    id       NMTOKEN #IMPLIED
+    min      NMTOKEN #IMPLIED
+    max      NMTOKEN #IMPLIED
+    type     (ts_http | ts_jabber | ts_pgsql) #IMPLIED
+    value    CDATA #IMPLIED>
+
 <!ELEMENT sessions (session+)>
 <!ELEMENT session ( request | thinktime | transaction | setdynvars | for |
-repeat | if | change_type | foreach)*>
+repeat | if | change_type | foreach | set_option)*>
 <!ATTLIST session
     name         CDATA #REQUIRED
     bidi         CDATA #IMPLIED
