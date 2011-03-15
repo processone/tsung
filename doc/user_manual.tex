@@ -1983,12 +1983,12 @@ Tsung implements a (very) limited subset of JSONPath as defined here \url{http:/
 To utilize jsonpath expression, use a \varname{jsonpath} attribute when
 defining the dyn\_variable, instead of \varname{regexp}, like:
 \begin{Verbatim}
-<dyn_variable name="array3_value" json="field.array[3].value"/>
+<dyn_variable name="array3_value" jsonpath="field.array[3].value"/>
 \end{Verbatim}
 
 You can also use expressions \userinput{Key=Val}, e.g.:
 \begin{Verbatim}
-<dyn_variable name="myvar" json="field.array[?name=bar].value"/>
+<dyn_variable name="myvar" jsonpath="field.array[?name=bar].value"/>
 \end{Verbatim}
 
 \paragraph{PostgreSQL}
