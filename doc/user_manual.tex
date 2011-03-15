@@ -2366,18 +2366,23 @@ use \userinput{--help} to view all available options:
 \begin{Verbatim}
 Available options:
         [--help] (this help text)
-        [--verbose]
-        [--debug]
+        [--verbose] (print all messages)
+        [--debug] (print receive without send messages)
+        [--dygraph] use dygraphs (http://danvk.org/dygraphs/) to render graphs
         [--noplot]  (don't make graphics)
         [--gnuplot <command>]  (path to the gnuplot binary)
         [--nohtml]  (don't create HTML reports)
         [--logy]  (logarithmic scale for Y axis)
         [--tdir <template_dir>] (Path to the HTML tsung templates)
         [--noextra  (don't generate graphics from extra data (os monitor, etc)
+        [--rotate-xtics  (rotate legend of x axes)
         [--stats <file>] (stats file to analyse, default=tsung.log)
         [--img_format <format>] (output format for images, default=png
                                  available format: ps, svg, png, pdf)
 \end{Verbatim}
+
+Version \strong{1.4.0} adds a new graphical output based on
+\url{http://danvk.org/dygraphs/}.
 
 \subsection{Tsung summary}
 Figure \ref{fig:report} shows an example of a summary report.

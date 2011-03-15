@@ -3001,14 +3001,16 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">Available options:
         [--help] (this help text)
-        [--verbose]
-        [--debug]
+        [--verbose] (print all messages)
+        [--debug] (print receive without send messages)
+        [--dygraph] use dygraphs (http://danvk.org/dygraphs/) to render graphs
         [--noplot]  (don't make graphics)
         [--gnuplot &lt;command&gt;]  (path to the gnuplot binary)
         [--nohtml]  (don't create HTML reports)
         [--logy]  (logarithmic scale for Y axis)
         [--tdir &lt;template_dir&gt;] (Path to the HTML tsung templates)
         [--noextra  (don't generate graphics from extra data (os monitor, etc)
+        [--rotate-xtics  (rotate legend of x axes)
         [--stats &lt;file&gt;] (stats file to analyse, default=tsung.log)
         [--img_format &lt;format&gt;] (output format for images, default=png
                                  available format: ps, svg, png, pdf)
@@ -3020,7 +3022,8 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE><!--TOC subsection Tsung summary-->
+</TABLE><P>Version <B>1.4.0</B> adds a new graphical output based on
+<A HREF="http://danvk.org/dygraphs/"><TT>http://danvk.org/dygraphs/</TT></A>.</P><!--TOC subsection Tsung summary-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc73">7.4</A>  Tsung summary</H3><!--SEC END --><P>
 Figure <A HREF="#fig:report">3</A> shows an example of a summary report.
 </P><BLOCKQUOTE CLASS="figure"><DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV>
