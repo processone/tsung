@@ -296,7 +296,7 @@ handle_info({NetEvent, Socket, Data}, think,State=#state_rcv{
                        ts_mon:add({count, async_unknown_data_rcv}),
                        State2;
                    {Data2, State2} ->
-                       ts_mon:add([{ sum, size_sent, size(Data2)},{count, async_data_rcv}]),
+                       ts_mon:add([{ sum, size_sent, size(Data2)},{count, async_data_sent}]),
                        ts_mon:sendmes({State#state_rcv.dump, self(), Data2}),
                        ?LOG("Bidi: send data back to server~n",?DEB),
                        send(Proto,Socket,Data2,Host,Port), %FIXME: handle errors ?

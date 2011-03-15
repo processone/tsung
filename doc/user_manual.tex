@@ -976,6 +976,8 @@ days. \varname{unit} can be \userinput{second}, \userinput{minute} or
 
 
 \subsection{Setting options}
+\label{sec:options}
+
 
 \par Default values can be set-up globally: \varname{thinktime} between requests
 in the scenario,  ssl cipher algorithms, TCP/UDP buffer sizes (the default
@@ -2263,6 +2265,20 @@ You can combine this with a xpath query. For instance the following scenario wil
 </foreach>
 \end{Verbatim}
 
+\subsubsection{Rate limiting}
+
+Since version \strong{1.4.0}, rate limiting can be enabled, either globally
+(see \ref{sec:options}), or for each session separately. 
+
+For example, to limit the rate to 64KB/sec for a given session:
+\begin{Verbatim}
+  <session name="http-example" probability="70" type="ts_http">
+   <set_option name="rate_limit" value="64"></option>
+   ...
+\end{Verbatim}
+
+Only the incoming traffic is rate limited currently.
+
 \section{Statistics and reports}
 \label{sec:statistics-reports}
 
@@ -2298,12 +2314,12 @@ Jabber specific stats:
 \item \varname{request\_noack} Counter of \varname{no\_ack} requests. Since
   response time is meaningless with \varname{no\_ack}
   requests, we keep a separate stats for this. \strong{new in 1.2.2}.
-\item \varname{bidi\_msg\_skip} Only if bidi is true for a
+\item \varname{async\_unknown\_data\_rcv} Only if bidi is true for a
   session. counter the number of messages received from the server
   without doing anything.  \strong{new in 1.2.2}.
-\item \varname{bidi\_msg\_sent} Only if bidi is true for a
+\item \varname{async\_data\_sent} Only if bidi is true for a
   session. Count the number of messages sent to the server in response
-  of a message received from from the server. \strong{new in 1.2.2}.
+  of a message received from the server. \strong{new in 1.2.2}.
 \end{itemize}
 
 \subsection{Design}
