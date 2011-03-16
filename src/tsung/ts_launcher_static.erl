@@ -31,7 +31,7 @@
 -behaviour(gen_fsm). %% a primitive gen_fsm with two state: launcher and wait
 
 %% External exports
--export([start/0, launch/1]).
+-export([start/0, launch/1, stop/1]).
 
 %% gen_fsm callbacks
 -export([init/1, launcher/2,  wait/2, handle_event/3,
@@ -65,6 +65,14 @@ launch({Node, Sessions}) ->
 launch({Node, Host, Sessions}) ->
     ?LOGF("starting on node ~p~n",[[Node]], ?INFO),
     gen_fsm:send_event({?MODULE, Node}, {launch, Sessions, atom_to_list(Host)}).
+
+%%--------------------------------------------------------------------
+%% @spec stop() ->
+%%--------------------------------------------------------------------
+%% Start clients with given session list
+stop(Node) ->
+    ?LOGF("stopping on node ~p~n",[Node], ?INFO),
+    gen_fsm:send_event({?MODULE, Node}, {stop}).
 
 
 %%%----------------------------------------------------------------------
@@ -109,7 +117,10 @@ wait({launch, []}, State) ->
             ?LOG("No static users, stop",?INFO),
             ts_launcher:set_static_users({node(),0}),
             {stop, normal, State}
-    end.
+    end;
+
+wait({stop}, State) ->
+    {stop, normal, State}.
 
 launcher(timeout, State=#state{ users = [{OldWait,Session}|Users]}) ->
     BeforeLaunch = now(),

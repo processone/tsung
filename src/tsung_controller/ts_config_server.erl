@@ -387,6 +387,7 @@ handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId, confi
     Args = set_remote_args(LogDir,Config#config.ports_range),
     Seed = Config#config.seed,
     Node = remote_launcher(Host, NodeId, Args),
+    ts_launcher_static:stop(Node), % no need for static launcher in this case (already have one)
     ts_launcher:launch({Node, Arrivals, Seed}),
     {noreply, State#state{last_beam_id = NodeId+1}};
 
