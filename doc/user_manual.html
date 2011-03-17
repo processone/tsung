@@ -820,7 +820,25 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 traffic will be logged to a file. <EM>Warn:</EM> this will considerably
 slow down Tsung, so use with care. It is useful for debugging
 purpose. You can use the attribute <FONT COLOR=purple>dumptraffic="light"</FONT> to
-dump only the first 44 bytes.</P><P>The <TT>loglevel</TT> can also have a great impact on performance:
+dump only the first 44 bytes.</P><P>Since version <B>1.4.0</B>, you have also a specific logging per
+protocol, using <FONT COLOR=purple>dumptraffic="protocol"</FONT>. It’s currently
+only implemented for HTTP: this will log all requests in a CSV file,
+with the following data:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">#date;pid;id;http method;host;URL;HTTP status;size;match;error
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><P>The <TT>loglevel</TT> can also have a great impact on performance:
 For high load, <FONT COLOR=purple>warning</FONT> is recommended.
 Possible values are:</P><UL CLASS="itemize"><LI CLASS="li-itemize">
 emergency
@@ -2711,6 +2729,8 @@ continue: do nothing, continue (only update match or nomatch counters)
 restarts is 3 by default.
 </LI><LI CLASS="li-itemize">loop: repeat the request, after 5 seconds. The maximum number of
 loops is 20 by default.
+</LI><LI CLASS="li-itemize">dump: dump the content of the response in a file. The filename
+is <TT>match-&lt;userid&gt;-&lt;sessionid&gt;-&lt;requestid&gt;-&lt;dumpid&gt;.dump</TT>
 </LI></UL><P>You can mixed several match tag in a single request:
 </P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>

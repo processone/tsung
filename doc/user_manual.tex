@@ -685,6 +685,16 @@ The default encoding is utf-8.  You can use a different encoding, like in:
  purpose. You can use the attribute \userinput{dumptraffic="light"} to
  dump only the first 44 bytes.
 
+Since version \strong{1.4.0}, you have also a specific logging per
+ protocol, using \userinput{dumptraffic="protocol"}. It's currently
+ only implemented for HTTP: this will log all requests in a CSV file,
+ with the following data:
+
+\begin{Verbatim}
+#date;pid;id;http method;host;URL;HTTP status;size;match;error
+\end{Verbatim}
+
+
  The \varname{loglevel} can also have a great impact on performance:
  For high load, \userinput{warning} is recommended.
  Possible values are:
@@ -2136,6 +2146,8 @@ The list of available actions to do is:
   restarts is 3 by default.
 \item loop: repeat the request, after 5 seconds. The maximum number of
   loops is 20 by default.
+\item dump: dump the content of the response in a file. The filename
+  is \file{match-<userid>-<sessionid>-<requestid>-<dumpid>.dump}
 \end{itemize}
 
 You can mixed several match tag in a single request:
