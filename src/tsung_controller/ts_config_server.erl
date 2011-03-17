@@ -281,14 +281,14 @@ handle_call({get_client_config, static, Host}, _From, State=#state{config=Config
     Done=State#state.client_static_users, % number of clients that already have their static users
     {value, Client} = lists:keysearch(Host, #client.host, Clients),
     StartDate = set_start_date(State#state.start_date),
-    case Done == length(Clients)+1 of
+    case Done +1 == length(Clients) of
         true -> % last client, give him all pending users
             {reply,{ok,StaticUsers,StartDate},State#state{start_date=StartDate,static_users=[]}};
         false ->
             Weight = Client#client.weight,
-            Number=round(length(StaticUsers)*Weight/State#state.total_weight),
+            Number=ts_utils:ceiling(length(StaticUsers)*Weight/State#state.total_weight),
             {NewUsers,Tail}=lists:split(Number,StaticUsers),
-            {reply,{ok,NewUsers,StartDate},State#state{start_date=StartDate,static_users=Tail}}
+            {reply,{ok,NewUsers,StartDate},State#state{client_static_users=Done+1,start_date=StartDate,static_users=Tail}}
     end;
 %% get randomly generated users
 handle_call({get_client_config, Host}, _From, State=#state{curcfg=OldCfg,total_weight=Total_Weight}) ->

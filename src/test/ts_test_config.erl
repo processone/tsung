@@ -112,13 +112,23 @@ config_thinktime2_test() ->
 read_config_maxusers_test() ->
     myset_env(),
     MaxNumber=10,
+    C=lists:map(fun(A)->"client"++integer_to_list(A) end, lists:seq(1,10)),
     ts_config_server:read_config("./src/test/thinkfirst.xml"),
-    {ok,{[{_,Max1,_},{_,_,_}],_,_}}=ts_config_server:get_client_config("client1"),
-    {ok,{[{_,Max2,_},{_,_,_}],_,_}}=ts_config_server:get_client_config("client2"),
-    {ok,{[{_,Max3,_},{_,_,_}],_,_}}=ts_config_server:get_client_config("client3"),
-    {ok,{[{_,Max4,_},{_,_,_}],_,_}}=ts_config_server:get_client_config("client4"),
-    ?LOGF("max: ~p",[[Max1,Max2,Max3,Max4]],?ERR),
-    ?assertEqual(Max1+Max2+Max3+Max4, MaxNumber).
+    M = lists:map(fun(X)->
+                          {ok,{[{_,Max,_},{_,_,_}],_,_}} = ts_config_server:get_client_config(X),
+                          Max
+                  end,  C),
+    ?assertEqual(lists:sum(M), MaxNumber).
+
+read_config_static_test() ->
+    myset_env(),
+    C=lists:map(fun(A)->"client"++integer_to_list(A) end, lists:seq(1,10)),
+    M = lists:map(fun(X)->
+                          {ok,Res,_} = ts_config_server:get_client_config(static,X),
+                          ?LOGF("X: ~p~n",[length(Res)],?ERR),
+                          length(Res)
+                  end,  C),
+    ?assertEqual(lists:sum(M) , 4).
 
 
 cport_list_node_test() ->

@@ -43,7 +43,7 @@
          decode_base64/1, encode_base64/1, to_lower/1, release_is_newer_or_eq/1,
          randomstr/1,urandomstr/1,urandomstr_noflat/1, eval/1, list_to_number/1,
          time2sec/1, time2sec_hires/1, read_file_raw/1, init_seed/1, jsonpath/2, pmap/2,
-         concat_atoms/1
+         concat_atoms/1, ceiling/1
         ]).
 
 level2int("debug")     -> ?DEB;
@@ -778,3 +778,15 @@ json_get_bin(_,_) ->
 pmap(F, L) ->
     Parent = self(),
     [receive {Pid, Result} -> Result end || Pid <- [spawn(fun() -> Parent ! {self(), F(X)} end) || X <- L]].
+
+
+%%
+ceiling(X) ->
+    T = erlang:trunc(X),
+        case (X - T) of
+        Neg when Neg < 0 ->
+                T;
+                   Pos when Pos > 0 -> T + 1;
+        _ -> T
+    end.
+
