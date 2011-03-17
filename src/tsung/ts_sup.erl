@@ -32,7 +32,7 @@
 -behaviour(supervisor).
 
 %% External exports
--export([start_link/0, start_cport/1]).
+-export([start_link/0, start_cport/1, has_cport/1]).
 
 %% supervisor callbacks
 -export([init/1]).
@@ -50,6 +50,9 @@ start_cport({Node, CPortName}) ->
                     transient, 2000, worker, [ts_cport]},
     supervisor:start_child({?MODULE, Node}, PortServer).
 
+has_cport(Node) ->
+    Children = supervisor:which_children({?MODULE, Node}),
+    lists:any(fun({_,_,_,[ts_cport]}) -> true; (_) -> false end, Children).
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from supervisor
