@@ -68,6 +68,11 @@ bidi_nok_test()->
     State=#state_rcv{},
     ?assertMatch({nodata,State}, ts_jabber:parse_bidi(Req,State)).
 
+auth_sasl_test()->
+    myset_env(),
+    Res = << "<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='oof' >AGZvbwBmb28=</auth>" >>,
+    ?assertMatch(Res, ts_jabber_common:auth_sasl("foo","bar","oof")).
+
 myset_env()->
     myset_env(0).
 myset_env(Val)->
