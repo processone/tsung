@@ -420,14 +420,14 @@ message(Dest, #jabber{size=Size,data=undefined, username=User}, Service) when is
     list_to_binary([
                     "<message id='",ts_msg_server:get_id(list), "' to='",
                     Username, "@", Service,
-                    "'><body>",ts_utils:urandomstr_noflat(Size), "</body></message>"]);
+                    "' type='chat'><body>",ts_utils:urandomstr_noflat(Size), "</body></message>"]);
 message(Dest, #jabber{data=Data, username=User}, Service) when is_list(Data) ->
     put(previous, Dest),
     Username = username(User,Dest),
     list_to_binary([
                     "<message id='",ts_msg_server:get_id(list), "' to='",
                     Username, "@", Service,
-                    "'><body>",Data, "</body></message>"]).
+                    "' type='chat'><body>",Data, "</body></message>"]).
 
 %%----------------------------------------------------------------------
 %% Func: presence/0
