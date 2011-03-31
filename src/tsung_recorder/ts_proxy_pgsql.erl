@@ -70,12 +70,19 @@ parse(State=#proxy{parse_status=Status},_,ServerSocket,String) when Status==new 
     <<ProtoMaj:16/integer, ProtoMin:16/integer, Data2/binary>> = StartupPacket,
     ?LOGF("Received data from client: proto maj=~p min=~p~n",[ProtoMaj, ProtoMin],?DEB),
     Res= pgsql_util:split_pair_rec(Data2),
-    Req = get_db_user(Res),
-    ?LOGF("Received data from client: split = ~p~n",[Res],?DEB),
-    ts_proxy_recorder:dorecord({Req#pgsql_request{type=connect}}),
-    Socket = connect(ServerSocket),
-    ts_client_proxy:send(Socket, Data, ?MODULE),
-    {ok, State#proxy{parse_status=open, buffer=[], serversock = Socket} };
+    case get_db_user(Res) of
+        #pgsql_request{database=undefined} ->
+            ?LOGF("Received data from client: split = ~p~n",[Res],?DEB),
+            Socket = connect(ServerSocket),
+            ts_client_proxy:send(Socket, Data, ?MODULE),
+            {ok, State#proxy{buffer=[], serversock = Socket} };
+        Req ->
+            ?LOGF("Received data from client: split = ~p~n",[Res],?DEB),
+            ts_proxy_recorder:dorecord({Req#pgsql_request{type=connect}}),
+            Socket = connect(ServerSocket),
+            ts_client_proxy:send(Socket, Data, ?MODULE),
+            {ok, State#proxy{parse_status=open, buffer=[], serversock = Socket} }
+    end;
 parse(State=#proxy{},_,ServerSocket,String) ->
     NewString = lists:append(State#proxy.buffer, String),
     Data = list_to_binary(NewString),
@@ -120,7 +127,9 @@ get_db_user([], Req)-> Req;
 get_db_user([{"user",User}| Rest], Req)->
     get_db_user(Rest,Req#pgsql_request{username=User});
 get_db_user([{"database",DB}| Rest], Req) ->
-    get_db_user(Rest,Req#pgsql_request{database=DB}).
+    get_db_user(Rest,Req#pgsql_request{database=DB});
+get_db_user([_| Rest], Req) ->
+    get_db_user(Rest,Req).
 
 decode_packet($Q, Data)->
     Size= size(Data)-1,
