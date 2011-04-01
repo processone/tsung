@@ -96,7 +96,7 @@ a:hover     {background:#ffffaa;}
 <!--CUT DEF section 1 --><H1 ALIGN=center>Tsung User’s manual</H1><DIV CLASS="center">
 
 <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>1.3.3</TD></TR>
-<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>March 17, 2011</TD></TR>
+<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>April 1, 2011</TD></TR>
 </TABLE>
 </DIV><!--TOC section Contents-->
 <H2 CLASS="section"><!--SEC ANCHOR -->Contents</H2><!--SEC END --><UL CLASS="toc"><LI CLASS="li-toc">
@@ -2438,16 +2438,14 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 </TABLE><!--TOC paragraph XPath-->
 <H5 CLASS="paragraph"><!--SEC ANCHOR -->XPath</H5><!--SEC END --><P>A new way to analyze the server response has been introduced in the
-release <B>1.3.0</B>. It is only for the HTTP plugin since it is
+release <B>1.3.0</B>. It is availabe only for the HTTP and XMPP plugin since it is
 based on XML/HTML parsing. This feature uses the mochiweb library
 and <B>only works with erlang R12B and newer version</B>.</P><P>This give us some benefices:</P><UL CLASS="itemize"><LI CLASS="li-itemize">
 XPath is simple to write and to read, and match very well with
-HTML pages
+HTML/XML pages
 </LI><LI CLASS="li-itemize">The parser works on binaries(), and doesn’t create any
-string(). In contrast, the regexp module works on string(), so the
-entire page needs to be <TT>binary_to_list/1</TT> transformed before
-processing it.
-</LI><LI CLASS="li-itemize">The cost of parsing the HTML and build the tree is amortized
+string().
+</LI><LI CLASS="li-itemize">The cost of parsing the HTML/XML and build the tree is amortized
 between all the dyn_variables defined for a given request
 </LI></UL><P>To utilize xpath expression, use a <TT>xpath</TT> attribute when
 defining the dyn_variable, instead of <TT>regexp</TT>, like:
@@ -2469,7 +2467,28 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 </TABLE><P>There is a bug in the xpath engine, result nodes from "descendant-or-self" aren’t returned in document order. This isn’t a problem for the most common cases.
 However, queries like <FONT COLOR=purple>//img[1]/@src</FONT> are not recommended, as the order of the <FONT COLOR=purple>&lt;img&gt;</FONT> elements returned from //img is not the expected.
-The order is respected for paths without "descendant-or-self" axis, so this: <FONT COLOR=purple>/html/body/div[2]/img[3]/@src</FONT> is interpreted as expected and can be safely used.</P><P>Basic tests shows a x4 improvement in speed over the <EM>regexp</EM> implementation.</P><P>It is possible to use Xpath to get a list of elements from an html page, allowing dynamic retrieval of objects. You can either create embedded erlang code to parse the list produced, or use foreach that was introduced in release <B>(</B>1.4.0).</P><!--TOC paragraph JSONPath-->
+The order is respected for paths without "descendant-or-self" axis, so this: <FONT COLOR=purple>/html/body/div[2]/img[3]/@src</FONT> is interpreted as expected and can be safely used.</P><P>Basic tests shows a x4 improvement in speed over the <EM>regexp</EM> implementation.</P><P>It is possible to use Xpath to get a list of elements from an html page, allowing dynamic retrieval of objects. You can either create embedded erlang code to parse the list produced, or use foreach that was introduced in release <B>(</B>1.4.0).</P><P>For XMPP, you can get all the contacts in a dynamic variable:
+</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">&lt;request subst="true"&gt;
+    &lt;dyn_variable name="contactJids"
+      xpath="//iq[@type='result']/query[@xmlns='jabber:iq:roster']//item[string-length(@wr:type)=0]/@jid"
+    /&gt;
+    &lt;jabber type="iq:roster:get" ack="local"/&gt;
+&lt;/request&gt;
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><!--TOC paragraph JSONPath-->
 <H5 CLASS="paragraph"><!--SEC ANCHOR -->JSONPath</H5><!--SEC END --><P>
 <A NAME="sec:jsonpath"></A></P><P>Another way to analyze the server response has been introduced in the
 release <B>1.3.2</B> when the server is sending JSON data. It is only for the HTTP plugin. This feature uses the mochiweb library

@@ -297,8 +297,14 @@ parse_dynvar([{regexp,VarName, RegExp}| DynVarsSpecs],
 
 parse_dynvar(D=[{xpath,_VarName, _Expr}| _DynVarsSpecs],
                 Binary,String,undefined,DynVars) ->
-    HTML = extract_body(Binary),
-    try mochiweb_html:parse(HTML) of
+    Body = extract_body(Binary),
+    ToParse = case bit_size(Body) of
+                  0 ->
+                      Binary;
+                  _ ->
+                      Body
+              end,
+    try mochiweb_html:parse(ToParse) of
         Tree ->
             parse_dynvar(D,Binary,String,Tree,DynVars)
     catch
