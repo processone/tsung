@@ -796,9 +796,9 @@ Several virtual IP can be used to simulate more machines. This is
  performance penalty (but don't forget to raise the limit of the OS with
  \command{ulimit -n}, see also FAQ \ref{sec:faq:emfile}).
 
-\subsubsection{Running tsung with a job scheduler}
+\subsubsection{Running Tsung with a job scheduler}
 
-Tsung is able to get it's client node list from a batch/job
+Tsung is able to get its client node list from a batch/job
 scheduler. It currently handle pbs/torque, LSF and OAR. To do this,
  set the \varname{type} attribute to \userinput{batch}, e.g.:
 
@@ -813,7 +813,7 @@ scheduler. It currently handle pbs/torque, LSF and OAR. To do this,
 Tsung is able to monitor remote servers using several backends that
 communicates with remote agent; This
 is configured in the \varname{<monitoring>} section. Available
-statistics are: cpu activity, load average, memory usage.
+statistics are: CPU activity, load average, memory usage.
 
 Note that you can get the nodes to monitor from a job scheduler, like:
 \begin{Verbatim}
