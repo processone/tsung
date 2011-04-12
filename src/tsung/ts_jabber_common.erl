@@ -39,8 +39,10 @@
 %% Returns: binary
 %% Purpose: Build a message/request from a #jabber record
 %%----------------------------------------------------------------------
-get_message(Jabber=#jabber{type = 'wait',regexp=RegExp}) ->
+get_message(Jabber=#jabber{regexp=RegExp}) when RegExp /= undefined->
     put(regexp, RegExp),
+    get_message(Jabber#jabber{regexp=undefined});
+get_message(Jabber=#jabber{type = 'wait'}) ->
     << >>;
 get_message(Jabber=#jabber{id=user_defined, username=User,passwd=Pwd,type = 'connect'}) ->
     ts_user_server:add_to_connected({User,Pwd}),

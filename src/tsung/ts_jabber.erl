@@ -39,6 +39,7 @@
          session_defaults/0,
          subst/2,
          parse/2,
+         dump/2,
          parse_bidi/2,
          parse_config/2,
          decode_buffer/2,
@@ -76,6 +77,9 @@ get_message(Req=#jabber{}) ->
     ts_jabber_common:get_message(Req).
 
 
+dump(_,_) ->
+    ok.
+
 %%----------------------------------------------------------------------
 %% Function: parse/2
 %% Purpose: Parse the given data and return a new state
@@ -89,7 +93,7 @@ get_message(Req=#jabber{}) ->
 parse(closed, State) ->
     ?LOG("XMPP connection closed by server!",?WARN),
     {State#state_rcv{ack_done = true}, [], true};
-parse(Data, State=#state_rcv{}) ->
+parse(Data, State=#state_rcv{datasize=Size}) ->
     ?DebugF("RECEIVED : ~p~n",[Data]),
     case get(regexp) of
         undefined ->
@@ -99,9 +103,9 @@ parse(Data, State=#state_rcv{}) ->
             case re:run(Data, Regexp) of
                 {match,_} ->
                     ?DebugF("XMPP parsing: Match (regexp was ~p)~n",[Regexp]),
-                    {State#state_rcv{ack_done=true}, [], false};
+                    {State#state_rcv{ack_done=true, datasize=Size+size(Data)}, [], false};
                 nomatch ->
-                    {State#state_rcv{ack_done=false}, [], false}
+                    {State#state_rcv{ack_done=false,datasize=Size+size(Data)}, [], false}
             end
     end.
 
