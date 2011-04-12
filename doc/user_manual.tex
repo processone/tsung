@@ -796,9 +796,9 @@ Several virtual IP can be used to simulate more machines. This is
  performance penalty (but don't forget to raise the limit of the OS with
  \command{ulimit -n}, see also FAQ \ref{sec:faq:emfile}).
 
-\subsubsection{Running tsung with a job scheduler}
+\subsubsection{Running Tsung with a job scheduler}
 
-Tsung is able to get it's client node list from a batch/job
+Tsung is able to get its client node list from a batch/job
 scheduler. It currently handle pbs/torque, LSF and OAR. To do this,
  set the \varname{type} attribute to \userinput{batch}, e.g.:
 
@@ -813,7 +813,7 @@ scheduler. It currently handle pbs/torque, LSF and OAR. To do this,
 Tsung is able to monitor remote servers using several backends that
 communicates with remote agent; This
 is configured in the \varname{<monitoring>} section. Available
-statistics are: cpu activity, load average, memory usage.
+statistics are: CPU activity, load average, memory usage.
 
 Note that you can get the nodes to monitor from a job scheduler, like:
 \begin{Verbatim}
@@ -968,7 +968,7 @@ session), one starting after 10 minutes, and a last one starting after
 By default, tsung will end when all started users have finished their
 session. So it can be much longer than the duration of
 arrivalphases. If you want to stop Tsung  after a given duration
-(even if phases are not finised or if some sessions are still actives),
+(even if phases are not finished or if some sessions are still actives),
 you can do this with the \varname{duration} attribute in
 \varname{load} (\strong{feature added in 1.3.2}):
 
@@ -990,7 +990,7 @@ days. \varname{unit} can be \userinput{second}, \userinput{minute} or
 
 
 \par Default values can be set-up globally: \varname{thinktime} between requests
-in the scenario,  ssl cipher algorithms, TCP/UDP buffer sizes (the default
+in the scenario,  SSL cipher algorithms, TCP/UDP buffer sizes (the default
 value is 32KB). These values overrides
 those set in session configuration tags if override is true.
 \begin{Verbatim}
@@ -1015,7 +1015,7 @@ higher than 10sec. This value can be changed like this:
 To disable hibernation, you must set the value to \userinput{infinity}.
 
 A new option is available in version \strong{1.4.0}:
-\varname{rate\_limit}. This will limit the bandwitdh of each client
+\varname{rate\_limit}. This will limit the bandwidth of each client
 (using a token bucket algorithm). The value is in KBytes per
 second. You can also specify a maximum burst value
 (eg. \userinput{max='2048'}). By default the burst size is the same as
@@ -1950,7 +1950,7 @@ from erlang. This is now deprecated. The syntax was:
 \paragraph{XPath}
 
 A new way to analyze the server response has been introduced in the
-release \strong{1.3.0}. It is availabe only for the HTTP and XMPP plugin since it is
+release \strong{1.3.0}. It is available only for the HTTP and XMPP plugin since it is
 based on XML/HTML parsing. This feature uses the mochiweb library
 and \strong{only works with erlang R12B and newer version}.
 
@@ -2018,7 +2018,7 @@ parse the output of the server. Instead, a specific parsing can be
 done to extract content from the server's response; to do this, use the
 \varname{pgsql\_expr} attribute. Use \userinput{data\_row[L][C]} to
 extract the  column C of the  line L of the data output. You can also use
-the litteral name of the column (\ie the field name of the
+the literal name of the column (\ie the field name of the
 table). This example extract 3 dynamic variables from the server's
 response:
 
