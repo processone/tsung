@@ -22,6 +22,8 @@
 -vc('$Id: ts_webdav.erl,v 0.0 2008/03/12 12:47:07 nniclaus Exp $ ').
 -author('nicolas.niclausse@niclux.org').
 
+-behaviour(ts_plugin).
+
 -include("ts_profile.hrl").
 -include("ts_http.hrl").
 
@@ -30,6 +32,8 @@
          get_message/1,
          session_defaults/0,
          parse/2,
+         parse_bidi/2,
+         dump/2,
          parse_config/2,
          decode_buffer/2,
          new_session/0]).
@@ -62,6 +66,12 @@ get_message(Req=#http_request{method=Method}) when Method == mkcol->
     ts_http_common:http_no_body("MKCOL", Req);
 get_message(Req) ->
     ts_http:get_message(Req).
+
+parse_bidi(Data, State) ->
+    ts_http:parse_bidi(Data,State).
+
+dump(A,B) ->
+    ts_http:dump(A,B).
 
 parse(Data, State) ->
     ts_http_common:parse(Data, State).

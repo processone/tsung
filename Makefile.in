@@ -78,6 +78,9 @@ TEMPLATES_DIR = $(datadir)/$(TEMPLATES_SUBDIR)
 MAN_DIR   = $(datadir)/man/man1/
 DOC_DIR   = $(datadir)/doc/tsung
 
+# custom behaviours
+BEHAVIORS  = ebin/ts_plugin.beam
+
 BUILDER_LOG   = /tmp/builder-tsung.log
 
 ERLANG_LIB_DIR = $(libdir)/erlang/lib
@@ -418,17 +421,22 @@ ebin/%.beam: src/lib/%.erl $(INC_FILES)
 	@echo  "Compiling  $< ... "
 	@$(CC) -W0 $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -o ebin $<
 
-ebin/%.beam: src/$(APPLICATION)/%.erl $(INC_FILES)
+# to avoid circular dependency
+ebin/ts_plugin.beam: src/$(APPLICATION)/ts_plugin.erl $(INC_FILES)
 	@echo  "Compiling  $< ... "
-	@$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -o ebin $<
+	@$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -pa ebin -o ebin $<
 
-ebin/%.beam: src/$(RECORDER_APPLICATION)/%.erl  $(INC_FILES)
+ebin/%.beam: src/$(APPLICATION)/%.erl $(INC_FILES) $(BEHAVIORS)
 	@echo  "Compiling  $< ... "
-	@$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -o ebin $<
+	@$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -pa ebin -o ebin $<
 
-ebin/%.beam: src/$(CONTROLLER_APPLICATION)/%.erl  $(INC_FILES)
+ebin/%.beam: src/$(RECORDER_APPLICATION)/%.erl  $(INC_FILES) $(BEHAVIORS)
+	@echo  "Compiling  $< ... "
+	@$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -pa ebin -o ebin $<
+
+ebin/%.beam: src/$(CONTROLLER_APPLICATION)/%.erl  $(INC_FILES) $(BEHAVIORS)
 	@echo "Compiling  $< ... "
-	@$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -o ebin $<
+	@$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -pa ebin -o ebin $<
 
 %:%.sh
 # Override makefile default implicit rule

@@ -22,14 +22,17 @@
 %%% Author  : Pablo Polvorin <ppolv@yahoo.com.ar>
 %%% Purpose : LDAP plugin
 
-
 -module(ts_ldap).
+
+-behavior(ts_plugin).
 
 -export([init_dynparams/0,
          add_dynparams/4,
          get_message/1,
          session_defaults/0,
+         dump/2,
          parse/2,
+         parse_bidi/2,
          parse_config/2,
          decode_buffer/2,
          new_session/0
@@ -73,6 +76,12 @@ new_session() ->
 %%       recognize asn1...
 
 
+dump(A,B)->
+    ts_plugin:dump(A,B).
+
+parse_bidi(A, B) ->
+    ts_plugin:dump(A,B).
+
 %%----------------------------------------------------------------------
 %% Function: parse/2
 %% Purpose: parse the response from the server and keep information
@@ -82,7 +91,6 @@ new_session() ->
 %%----------------------------------------------------------------------
 parse(closed, State) ->
     {State#state_rcv{ack_done = true, datasize=0}, [], true};
-
 
 %% Shortcut, when using ssl i'm getting lots <<>> data. Also, next
 %% clause is an infinite loop if data is <<>>

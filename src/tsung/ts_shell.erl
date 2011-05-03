@@ -23,6 +23,8 @@
 -vc('$Id: ts_erlang.erl,v 0.0 2009/08/20 16:31:58 nniclaus Exp $ ').
 -author('nniclaus@sophia.inria.fr').
 
+-behaviour(ts_plugin).
+
 -include("ts_profile.hrl").
 -include("ts_shell.hrl").
 -include_lib("kernel/include/file.hrl").
@@ -31,6 +33,7 @@
          add_dynparams/4,
          get_message/1,
          session_defaults/0,
+         dump/2,
          parse/2,
          parse_bidi/2,
          parse_config/2,
@@ -122,6 +125,10 @@ add_dynparams(#shell_dyndata{}, Param, _HostData) ->
 %%----------------------------------------------------------------------
 subst(Req=#shell{command=Cmd,args=Args}, DynVars) ->
     Req#shell{command=ts_search:subst(Cmd,DynVars),args=ts_search:subst(Args,DynVars)}.
+
+
+dump(A,B) ->
+    ts_plugin:dump(A,B).
 
 %% @spec parse(Data::client_data(), State) -> {NewState, Opts, Close}
 %% State = #state_rcv{}

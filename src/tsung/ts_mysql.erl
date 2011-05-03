@@ -31,6 +31,8 @@
 -vc('$Id:$ ').
 -author('gregoire.reboul@laposte.net').
 
+-behavior(ts_plugin).
+
 -include("ts_profile.hrl").
 -include("ts_mysql.hrl").
 
@@ -39,6 +41,8 @@
          get_message/1,
          session_defaults/0,
          parse/2,
+         parse_bidi/2,
+         dump/2,
          parse_config/2,
          decode_buffer/2,
          new_session/0]).
@@ -65,6 +69,12 @@ decode_buffer(Buffer,#mysql{}) ->
 %%----------------------------------------------------------------------
 new_session() ->
     #mysql{}.
+
+parse_bidi(Data, State) ->
+    ts_plugin:parse_bidi(Data,State).
+
+dump(A,B) ->
+    ts_plugin:dump(A,B).
 
 %%----------------------------------------------------------------------
 %% Function: get_message/21
@@ -212,7 +222,7 @@ get_salt(PacketBody) ->
     {Salt2, _Rest7} = asciz_binary(Rest6,[]),
     Salt ++ Salt2.
 
-make_auth(User, "", Database, Salt) ->
+make_auth(User, "", Database, _Salt) ->
     Caps = ?LONG_PASSWORD bor ?LONG_FLAG bor ?PROTOCOL_41 bor ?TRANSACTIONS
             bor ?SECURE_CONNECTION bor ?CONNECT_WITH_DB,
     Maxsize = ?MAX_PACKET_SIZE,

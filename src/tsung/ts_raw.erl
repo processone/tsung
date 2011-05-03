@@ -30,6 +30,8 @@
 -module(ts_raw).
 -author('nniclausse@hyperion').
 
+-behavior(ts_plugin).
+
 -include("ts_profile.hrl").
 -include("ts_raw.hrl").
 
@@ -39,6 +41,8 @@
          session_defaults/0,
          subst/2,
          parse/2,
+         parse_bidi/2,
+         dump/2,
          parse_config/2,
          decode_buffer/2,
          new_session/0]).
@@ -90,6 +94,12 @@ get_message(#raw{data=Data})->
 %% no parsing . use only ack
 parse(_Data, State) ->
     State.
+
+parse_bidi(Data, State) ->
+    ts_plugin:parse_bidi(Data,State).
+
+dump(A,B) ->
+    ts_plugin:dump(A,B).
 
 %%
 parse_config(Element, Conf) ->

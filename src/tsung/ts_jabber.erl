@@ -30,6 +30,8 @@
 -module(ts_jabber).
 -author('nniclausse@hyperion').
 
+-behavior(ts_plugin).
+
 -include("ts_profile.hrl").
 -include("ts_jabber.hrl").
 
@@ -76,9 +78,8 @@ new_session() ->
 get_message(Req=#jabber{}) ->
     ts_jabber_common:get_message(Req).
 
-
-dump(_,_) ->
-    ok.
+dump(A,B) ->
+    ts_plugin:dump(A,B).
 
 %%----------------------------------------------------------------------
 %% Function: parse/2

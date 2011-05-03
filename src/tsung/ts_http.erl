@@ -26,6 +26,8 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
+-behavior(ts_plugin).
+
 -include("ts_profile.hrl").
 -include("ts_http.hrl").
 
@@ -35,6 +37,7 @@
          session_defaults/0,
          dump/2,
          parse/2,
+         parse_bidi/2,
          parse_config/2,
          decode_buffer/2,
          new_session/0]).
@@ -74,6 +77,10 @@ decode_buffer(Buffer,#http{compressed={_,Comp}})->
     ?DebugF("decoded buffer: ~p",[RealBody]),
     <<Headers/binary, "\r\n\r\n", RealBody/binary >>.
 
+%% @spec dump(protocol, {Request::ts_request(),Session::term(), Id::integer(),
+%%             Host::string(),DataSize::integer()}) -> ok
+%% @doc log request and response summary
+%% @end
 dump(protocol,{#ts_request{param=HttpReq},HttpResp,UserId,Server,Size})->
     Status = case element(2,HttpResp#http.status) of
                  none -> "error_no_http_status"; % something is really wrong here ... http 0.9 response ?
@@ -136,6 +143,9 @@ get_message2(Req=#http_request{method=put}) ->
 %%----------------------------------------------------------------------
 parse(Data, State) ->
     ts_http_common:parse(Data, State).
+
+parse_bidi(Data, State) ->
+    ts_plugin:parse(Data, State).
 
 %%----------------------------------------------------------------------
 %% Function: parse_config/2

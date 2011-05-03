@@ -23,6 +23,8 @@
 -vc('$Id: ts_erlang.erl,v 0.0 2009/08/20 16:31:58 nniclaus Exp $ ').
 -author('nniclaus@sophia.inria.fr').
 
+-behavior(ts_plugin).
+
 -include("ts_profile.hrl").
 -include("ts_fs.hrl").
 -include_lib("kernel/include/file.hrl").
@@ -31,6 +33,7 @@
          add_dynparams/4,
          get_message/1,
          session_defaults/0,
+         dump/2,
          parse/2,
          parse_bidi/2,
          parse_config/2,
@@ -185,8 +188,11 @@ parse({ts_utils, read_file_raw, [Path], {error,Reason}},State) ->
 %% if the return value is nodata, otherwise the Data binary will be
 %% sent back to the server immediately.
 %% @end
-parse_bidi(_Data, _State) ->
-    erlang:error(dummy_implementation).
+parse_bidi(Data, State) ->
+    ts_plugin:parse_bidi(Data,State).
+
+dump(A,B) ->
+    ts_plugin:dump(A,B).
 
 %% @spec get_message(param()) -> Message::binary()|tuple()
 %% @doc Creates a new message to send to the connected server.

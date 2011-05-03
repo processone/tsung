@@ -33,6 +33,8 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
+-behavior(ts_plugin).
+
 -include("ts_profile.hrl").
 -include("ts_pgsql.hrl").
 
@@ -41,6 +43,8 @@
          get_message/1,
          session_defaults/0,
          parse/2,
+         parse_bidi/2,
+         dump/2,
          parse_config/2,
          to_pairs/1,
          find_pair/2,
@@ -104,6 +108,11 @@ get_message(#pgsql_request{type=authenticate, auth_method=AuthType}) ->
     ?LOGF("PGSQL: Authentication method not implemented ! [~p] ~n",[AuthType],?ERR),
     <<>>.
 
+parse_bidi(Data, State) ->
+    ts_plugin:parse_bidi(Data,State).
+
+dump(A,B) ->
+    ts_plugin:dump(A,B).
 
 %%----------------------------------------------------------------------
 %% Function: parse/2
