@@ -210,7 +210,7 @@ send({sslsocket,A,B},Data, Plugin) ->
     ?LOGF("Received data to send to an ssl socket ~p, using plugin ~p ~n", [Data,Plugin],?DEB),
     {ok, RealData } = Plugin:rewrite_ssl({request,Data}),
     ?LOGF("Sending data to ssl socket ~p ~p (~p)~n", [A, B, RealData],?DEB),
-    ssl:send({sslsocket,A,B}, Data);
+    ssl:send({sslsocket,A,B}, RealData);
 send(undefined,_,_) ->
     ?LOG("No socket ! Error ~n",?CRIT),
     erlang:error(error_no_socket_open);
