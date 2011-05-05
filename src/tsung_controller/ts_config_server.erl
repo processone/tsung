@@ -209,6 +209,7 @@ handle_call({read_config, ConfigFile}, _From, State=#state{logdir=LogDir}) ->
                     spawn(?MODULE, start_file_server, [Config]),
                     NewConfig=loop_load(sort_static(Config#config{sessions=[NewLast]++Sessions})),
                     set_max_duration(Config#config.duration),
+                    ts_job_notify:listen(Config#config.job_notify_port),
                     {reply, ok, State#state{config=NewConfig, static_users=NewConfig#config.static_users,total_weight = Sum}};
                 {error, Reason} ->
                     ?LOGF("Error while checking config: ~p~n",[Reason],?EMERG),

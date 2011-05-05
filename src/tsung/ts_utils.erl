@@ -43,7 +43,7 @@
          decode_base64/1, encode_base64/1, to_lower/1, release_is_newer_or_eq/1,
          randomstr/1,urandomstr/1,urandomstr_noflat/1, eval/1, list_to_number/1,
          time2sec/1, time2sec_hires/1, read_file_raw/1, init_seed/1, jsonpath/2, pmap/2,
-         concat_atoms/1, ceiling/1
+         concat_atoms/1, ceiling/1, accept_loop/3
         ]).
 
 level2int("debug")     -> ?DEB;
@@ -790,3 +790,24 @@ ceiling(X) ->
         _ -> T
     end.
 
+%%--------------------------------------------------------------------
+%% Func: accept_loop/3
+%% Purpose: infinite listen/accept loop, delegating handling of accepts
+%%          to the gen_server proper.
+%% Returns: only returns by throwing an exception
+%%--------------------------------------------------------------------
+accept_loop(PPid, Tag, ServerSock)->
+    case
+        case gen_tcp:accept(ServerSock) of
+            {ok, ClientSock} ->
+                ok = gen_tcp:controlling_process(ClientSock, PPid),
+                gen_server:call(PPid, {accepted, Tag, ClientSock});
+            Error ->
+                gen_server:call(PPid, {accept_error, Tag, Error})
+        end
+        of
+        continue ->
+            accept_loop(PPid, Tag, ServerSock);
+        _->
+            normal
+    end.

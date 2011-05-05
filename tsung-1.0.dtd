@@ -112,11 +112,11 @@ repeat | if | change_type | foreach | set_option)*>
     bidi         CDATA #IMPLIED
     persistent   (true | false) #IMPLIED
     probability   NMTOKEN #REQUIRED
-    type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs |ts_shell) #REQUIRED>
+    type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs |ts_shell|ts_job) #REQUIRED>
 
 <!ELEMENT change_type EMPTY>
 <!ATTLIST change_type
-     new_type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs | ts_shell) #REQUIRED
+     new_type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs | ts_shell|ts_job) #REQUIRED
      host NMTOKEN #REQUIRED
      port NMTOKEN #REQUIRED
      server_type NMTOKEN #REQUIRED
@@ -124,7 +124,8 @@ repeat | if | change_type | foreach | set_option)*>
      restore ( true | false ) "false"
     >
 
-<!ELEMENT request ( match*, dyn_variable*, ( http | jabber | raw | pgsql | ldap | mysql |fs | shell ) )>
+<!ELEMENT request ( match*, dyn_variable*, ( http | jabber | raw |
+          pgsql | ldap | mysql |fs | shell | job ) )>
 <!ATTLIST request
     subst (true|false) "false"
     >
@@ -236,6 +237,25 @@ repeat | if | change_type | foreach | set_option)*>
 <!ATTLIST shell
     cmd      CDATA   #REQUIRED
     args     CDATA   ""
+>
+
+<!ELEMENT job EMPTY >
+<!ATTLIST job
+    type     (oar|torque) "oar"
+    req      (submit|delete|stat|suspend|resume|wait_jobs) #REQUIRED
+    script   CDATA     #IMPLIED
+    walltime CDATA     #IMPLIED
+    duration CDATA     #IMPLIED
+    jobid    CDATA     #IMPLIED
+    script   CDATA     #IMPLIED
+    resources CDATA    #IMPLIED
+    nodes    CDATA   #IMPLIED
+    queue    CDATA   #IMPLIED
+    options  CDATA     #IMPLIED
+    user     CDATA   #IMPLIED
+    name     CDATA   "tsung"
+    notify_port  CDATA   #IMPLIED
+    notify_script  CDATA   #IMPLIED
 >
 
 <!ELEMENT pgsql (#PCDATA) >

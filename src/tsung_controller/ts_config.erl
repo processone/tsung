@@ -664,6 +664,10 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                             lists:foldl( fun parse/2, Conf#config{ports_range={Min,Max}},
                                          Element#xmlElement.content)
                     end;
+                "job_notify_port" ->
+                    Port = getAttr(integer,Attrs, value, ?config(job_notify_port)),
+                    lists:foldl( fun parse/2, Conf#config{job_notify_port=Port},
+                                 Element#xmlElement.content);
                 "tcp_rcv_buffer" ->
                     Size = getAttr(integer,Attrs, value, ?config(rcv_size)),
                     OldProto =  Conf#config.proto_opts,
