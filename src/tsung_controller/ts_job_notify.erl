@@ -92,8 +92,21 @@ wait_jobs(Pid) ->
 %%--------------------------------------------------------------------
 init([]) ->
     ?LOG("Starting~n",?DEB),
-    {ok, #state{jobs=ets:new(jobs,[{keypos, #job.id}])}}.
-
+    case global:whereis_name(ts_config_server) of
+        undefined ->
+            {ok, #state{jobs=ets:new(jobs,[{keypos, #job.id}])}};
+        _Pid ->
+            ?LOG("Config server is alive !~n",?DEB),
+            case ts_config_server:get_jobs_state() of
+                {Jobs,Port} ->
+                    ?LOG("Got backup of node state~n",?DEB),
+                    {noreply,NewState} = handle_cast({listen,Port}, #state{jobs=Jobs,port=Port}),
+                    {ok, NewState};
+                Else ->
+                    ?LOGF("Got this from config server:~p~n",[Else],?DEB),
+                    {ok, #state{jobs=ets:new(jobs,[{keypos, #job.id}])}}
+            end
+    end.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -156,6 +169,7 @@ handle_cast({listen,Port}, State) ->
             ?LOGF("Listening on port ~p done, start accepting loop~n",[Port],?INFO),
             {noreply, State#state
                    {acceptsock=ListenSock,
+                    port=Port,
                     acceptloop_pid = spawn_link(ts_utils,
                                                 accept_loop,
                                                 [self(), unused, ListenSock])}};
@@ -190,25 +204,37 @@ handle_info({tcp, Socket, Data}, State=#state{jobs=Jobs}) ->
     case string:tokens(Data," ") of
         [Id, _Name, "RUNNING"|_] ->
             ?LOGF("look for job ~p in table",[Id],?DEB),
-            [Job]=ets:lookup(Jobs,Id),
-            Now=now(),
-            Queued=ts_utils:elapsed(Job#job.queue_time,Now),
-            ts_mon:add([{sample,tr_job_wait,Queued},{sum,job_running,1}, {sum,job_queued,-1}]),
-            ets:update_element(Jobs,Id,{#job.start_time,Now});
+            case ets:lookup(Jobs,Id) of
+                [] ->
+                    ?LOGF("Job owner of ~p is unknown",[Id],?NOTICE);
+                [Job] ->
+                    Now=now(),
+                    Queued=ts_utils:elapsed(Job#job.queue_time,Now),
+                    ts_mon:add([{sample,tr_job_wait,Queued},{sum,job_running,1}, {sum,job_queued,-1}]),
+                    ets:update_element(Jobs,Id,{#job.start_time,Now})
+            end;
         [Id, _Name, "END"|_] ->
-            [Job]=ets:lookup(Jobs,Id),
-            Now=now(),
-            Duration=ts_utils:elapsed(Job#job.start_time,Now),
-            ts_mon:add([{sample,tr_job_duration,Duration},{sum,job_running,-1}, {sum,job_ok,1}]),
-            ets:delete_object(Jobs,Job),
-            check_jobs(Jobs,Job#job.owner);
+            case ets:lookup(Jobs,Id) of
+                [] ->
+                    ?LOGF("Job owner of ~p is unknown",[Id],?NOTICE);
+                [Job]->
+                    Now=now(),
+                    Duration=ts_utils:elapsed(Job#job.start_time,Now),
+                    ts_mon:add([{sample,tr_job_duration,Duration},{sum,job_running,-1}, {sum,ok_job ,1}]),
+                    ets:delete_object(Jobs,Job),
+                    check_jobs(Jobs,Job#job.owner)
+            end;
         [Id, _Name, "ERROR"|_] ->
-            [Job]=ets:lookup(Jobs,Id),
-            Now=now(),
-            Duration=ts_utils:elapsed(Job#job.start_time,Now),
-            ts_mon:add([{sample,tr_job_duration,Duration},{sum,job_running,-1}, {sum,job_error,1}]),
-            ets:delete_object(Jobs,Job),
-            check_jobs(Jobs,Job#job.owner);
+            case ets:lookup(Jobs,Id) of
+                [] ->
+                    ?LOGF("Job owner of ~p is unknown",[Id],?NOTICE);
+                [Job]->
+                    Now=now(),
+                    Duration=ts_utils:elapsed(Job#job.start_time,Now),
+                    ts_mon:add([{sample,tr_job_duration,Duration},{sum,job_running,-1}, {sum,error_job,1}]),
+                    ets:delete_object(Jobs,Job),
+                    check_jobs(Jobs,Job#job.owner)
+                end;
         [Id, _Name, "INFO"|_] ->
             ok;
         [Id, _Name, "SUSPENDED"|_] ->
@@ -219,6 +245,9 @@ handle_info({tcp, Socket, Data}, State=#state{jobs=Jobs}) ->
     inet:setopts(Socket,[{active,once}]),
     {noreply, State};
 handle_info({tcp_closed, _Socket}, State) ->
+    {noreply, State};
+handle_info({'ETS-TRANSFER',_Tab,_FromPid,_GiftData}, State=#state{}) ->
+    ?LOG("Got ownership on job state table", ?NOTICE),
     {noreply, State};
 handle_info(Info, State) ->
     ?LOGF("Unexpected message received: ~p", [Info], ?WARN),
@@ -235,7 +264,17 @@ handle_info(Info, State) ->
 %% @spec terminate(Reason, State) -> void()
 %% @end
 %%--------------------------------------------------------------------
-terminate(_Reason, _State) ->
+terminate(normal, _State) ->
+    ?LOG("Terminating for normal reason", ?WARN),
+    ok;
+terminate(Reason, State) when is_integer(State#state.port)->
+    ?LOGF("Terminating for reason ~p", [Reason], ?WARN),
+    Pid=global:whereis_name(ts_config_server),
+    ?LOGF("Config server pid is  ~p", [Pid], ?DEB),
+    ets:give_away(State#state.jobs,Pid,State#state.port),
+    ok;
+terminate(Reason, State) ->
+    ?LOGF("Terminating for reason ~p ~p", [Reason,State], ?WARN),
     ok.
 
 %%--------------------------------------------------------------------

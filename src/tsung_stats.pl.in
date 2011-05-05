@@ -370,7 +370,7 @@ sub parse_stats_file {
             } elsif ($type =~ /match/) {
                 $match = 1;
                 $category->{$type} = "match";
-            } elsif ($type ne "users" and $type ne "connected") {
+            } elsif ($type ne "users" and $type ne "connected"  and $type =~ /^job_/) {
                 $category->{$type} = "count";
             } else {
                 $category->{$type} = "gauge";
@@ -429,7 +429,7 @@ sub parse_stats_file {
         $key =~ s/\'//g;
         open (TYPE, "> $datadir/$key.txt") or die "$!";
         foreach my $data (@{$data->{$key}}) {
-      if (($key !~ /^users$/ and $key !~ /^connected$/ and $key !~ /^size_/) and $interval) { #
+      if (($key !~ /^users$/ and $key !~ /^connected$/ and $key !~ /^size_/  and $key !~ /^job_/) and $interval) { #
                 my @tmp;
                 my $time;
                 ($time, $data, @tmp) = split(/\s/,$data);
@@ -439,7 +439,7 @@ sub parse_stats_file {
                 my ($time, @tmp) = split(/\s/,$data);
                 @tmp = map {$_*8/(1024*$interval) } @tmp; # kb/s instead of Bytes/s
                 $data = "$time @tmp";
-            } elsif ($key =~ /^connected/) {
+            } elsif ($key =~ /^connected/ or  $key =~ /^job_/) {
                 my ($time,$rate, $cur) = split(/\s/,$data);
                 $data = "$time $cur $rate";
             }
@@ -449,7 +449,7 @@ sub parse_stats_file {
             push @session, "$key.txt";
         } elsif ($key =~ /^size/) {
             push @size, "$key.txt";
-        } elsif ($key =~ /^users$/ or $key =~ /^connected$/) {
+        } elsif ($key =~ /^users$/ or $key =~ /^connected$/  or $key =~ /^job_/) {
             push @users, "$key.txt";
         } elsif ($key =~ /users/) {
             push @users_rate, "$key.txt";

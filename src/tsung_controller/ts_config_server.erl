@@ -51,7 +51,7 @@
          get_client_config/1, newbeams/1, newbeam/2,
          get_monitor_hosts/0, encode_filename/1, decode_filename/1,
          endlaunching/1, status/0, start_file_server/1, get_user_agents/0,
-         get_client_config/2, get_user_param/1 ]).
+         get_client_config/2, get_user_param/1, get_jobs_state/0 ]).
 
 %%debug
 -export([choose_client_ip/1, choose_session/1]).
@@ -158,6 +158,10 @@ get_user_param(Host)->
 
 endlaunching(Node) ->
     gen_server:cast({global, ?MODULE},{end_launching, Node}).
+
+
+get_jobs_state() ->
+    gen_server:call({global, ?MODULE},{get_jobs_state}).
 
 
 %%====================================================================
@@ -318,6 +322,18 @@ handle_call({status}, _From, State) ->
     Reply = {ok, length(Config#config.clients), State#state.ending_beams},
     {reply, Reply, State};
 
+handle_call({get_jobs_state}, From, State) when State#state.config == undefined ->
+    {reply, not_configured, State};
+handle_call({get_jobs_state}, {Pid,Tag}, State) ->
+    Config = State#state.config,
+    Reply = case Config#config.job_notify_port of
+                {Ets,Port} ->
+                    ets:give_away(Ets,Pid,Port),
+                    {Ets,Port};
+                Else -> Else
+            end,
+    {reply, Reply, State};
+
 handle_call(Request, _From, State) ->
     ?LOGF("Unknown call ~p !~n",[Request],?ERR),
     {reply, ok, State}.
@@ -417,6 +433,8 @@ handle_info({'EXIT', _Pid, {slave_failure,timeout}}, State) ->
 handle_info({'EXIT', Pid, normal}, State) ->
     ?LOGF("spawned process termination (~p) ~n",[Pid],?INFO),
     {noreply, State};
+handle_info({'ETS-TRANSFER',Tab,FromPid,GiftData}, State=#state{config=Config}) ->
+    {noreply, State#state{config=Config#config{job_notify_port={Tab,GiftData}}}};
 handle_info(Info, State) ->
     ?LOGF("Unknown info ~p ! ~n",[Info],?WARN),
     {noreply, State}.
