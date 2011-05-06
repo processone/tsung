@@ -440,19 +440,6 @@ to_https({request, String}) when is_list(String) ->
     {ok, RealString}.
 
 
-%% an iolist can be an improper list, so length fails. but we want the length anyway!
-%% first element should be a binary
-length_iolist([B|Tail]) when is_binary(B)->
-    length_iolist(Tail,1);
-length_iolist([]) ->0;
-length_iolist(_)  ->1. % string -> one element
-length_iolist(Tail,Acc) when not is_list(Tail) ->
-    Acc+1;
-length_iolist([_A|Tail],Acc)->
-    length_iolist(Tail,Acc+1);
-length_iolist([],Acc)-> Acc.
-
-
 %% @spec from_https(string()) -> {ok, String::string() | Data::iodata}
 from_https(String) when is_list(String)->
     ReOpts=[{newline,crlf},multiline,global,caseless],

@@ -145,7 +145,7 @@ parse(Data, State) ->
     ts_http_common:parse(Data, State).
 
 parse_bidi(Data, State) ->
-    ts_plugin:parse(Data, State).
+    ts_plugin:parse_bidi(Data, State).
 
 %%----------------------------------------------------------------------
 %% Function: parse_config/2
