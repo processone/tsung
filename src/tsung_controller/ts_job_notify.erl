@@ -160,7 +160,7 @@ handle_cast({wait_jobs, Pid}, State=#state{jobs=Jobs}) ->
     {noreply, State};
 
 handle_cast({listen, undefined}, State) ->
-    ?LOGF("No listen port defined, can't open listening socket ~p~n",[Name],?ERR),
+    ?LOG("No listen port defined, can't open listening socket ~n",?ERR),
     {noreply, State};
 handle_cast({listen,Port}, State) ->
     Opts = [{reuseaddr, true}, {active, once}],
