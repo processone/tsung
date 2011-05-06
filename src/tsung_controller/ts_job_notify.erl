@@ -159,7 +159,7 @@ handle_cast({wait_jobs, Pid}, State=#state{jobs=Jobs}) ->
     check_jobs(Jobs,Pid),
     {noreply, State};
 
-handle_cast({listen, {undef_var, Name}}, State) ->
+handle_cast({listen, undefined}, State) ->
     ?LOGF("No listen port defined, can't open listening socket ~p~n",[Name],?ERR),
     {noreply, State};
 handle_cast({listen,Port}, State) ->
