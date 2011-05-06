@@ -235,11 +235,11 @@ handle_info({tcp, Socket, Data}, State=#state{jobs=Jobs}) ->
                     ets:delete_object(Jobs,Job),
                     check_jobs(Jobs,Job#job.owner)
                 end;
-        [Id, _Name, "INFO"|_] ->
+        [_Id, _Name, "INFO"|_] ->
             ok;
-        [Id, _Name, "SUSPENDED"|_] ->
+        [_Id, _Name, "SUSPENDED"|_] ->
             ok;
-        [Id, _Name, "RESUMING"|_] ->
+        [_Id, _Name, "RESUMING"|_] ->
             ok
     end,
     inet:setopts(Socket,[{active,once}]),

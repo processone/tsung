@@ -206,10 +206,3 @@ get_message(#job{type=oar,user=U,req=submit, name=N,script=S, resources=R, queue
         ++"\""++S++" "++D++"\"",
     ?LOGF("Will run ~p",[Cmd],?INFO),
     {os, cmd, [Cmd], length(Cmd) }.
-
-
-
-
-
-
-
