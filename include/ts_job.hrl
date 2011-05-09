@@ -53,7 +53,13 @@
 
 -record(job_session, {
           jobid,
-          submission_time
+          owner,
+          submission_time,
+          queue_time,
+          start_time,
+          end_time,
+          dump,
+          status
          }).
 
 

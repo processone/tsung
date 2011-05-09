@@ -30,6 +30,7 @@
 -behaviour(gen_server).
 
 -include("ts_profile.hrl").
+-include("ts_job.hrl").
 
 %% API
 -export([start_link/0]).
@@ -47,7 +48,6 @@
                 acceptloop_pid, % The PID of the companion process that blocks
                 jobs}).
 
--record(job, {id,owner,queue_time,start_time}).
 
 %%%===================================================================
 %%% API
@@ -66,8 +66,8 @@ start_link() ->
 listen(Port) ->
     gen_server:cast({global, ?MODULE}, {listen, Port}).
 
-monitor({JobID, OwnerPid, StartTime, QueuedTime}) ->
-    gen_server:cast({global, ?MODULE}, {monitor, {JobID, OwnerPid, StartTime, QueuedTime}}).
+monitor({JobID, OwnerPid, StartTime, QueuedTime, Dump}) ->
+    gen_server:cast({global, ?MODULE}, {monitor, {JobID, OwnerPid, StartTime, QueuedTime,Dump}}).
 
 demonitor({JobID}) ->
     gen_server:cast({global, ?MODULE}, {monitor, {JobID}}).
@@ -94,7 +94,7 @@ init([]) ->
     ?LOG("Starting~n",?DEB),
     case global:whereis_name(ts_config_server) of
         undefined ->
-            {ok, #state{jobs=ets:new(jobs,[{keypos, #job.id}])}};
+            {ok, #state{jobs=ets:new(jobs,[{keypos, #job_session.jobid}])}};
         _Pid ->
             ?LOG("Config server is alive !~n",?DEB),
             case ts_config_server:get_jobs_state() of
@@ -104,7 +104,7 @@ init([]) ->
                     {ok, NewState};
                 Else ->
                     ?LOGF("Got this from config server:~p~n",[Else],?DEB),
-                    {ok, #state{jobs=ets:new(jobs,[{keypos, #job.id}])}}
+                    {ok, #state{jobs=ets:new(jobs,[{keypos, #job_session.jobid}])}}
             end
     end.
 
@@ -145,9 +145,9 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast({monitor, {JobID, OwnerPid, SubmitTS, QueuedTS}}, State=#state{jobs=Jobs}) ->
+handle_cast({monitor, {JobID, OwnerPid, SubmitTS, QueuedTS,Dump}}, State=#state{jobs=Jobs}) ->
     ?LOGF("monitoring job ~p from pid ~p~n",[JobID,OwnerPid],?DEB),
-    ets:insert(Jobs,#job{id=JobID,owner=OwnerPid, queue_time=QueuedTS}),
+    ets:insert(Jobs,#job_session{jobid=JobID,owner=OwnerPid, submission_time=SubmitTS, queue_time=QueuedTS,dump=Dump}),
     SubmitTime=ts_utils:elapsed(SubmitTS,QueuedTS),
     ts_mon:add([{sum,job_queued,1},{sample,tr_job_submit,SubmitTime}]),
     {noreply, State};
@@ -210,31 +210,33 @@ handle_info({tcp, Socket, Data}, State=#state{jobs=Jobs}) ->
                     ?LOGF("Job owner of ~p is unknown",[Id],?NOTICE);
                 [Job] ->
                     Now=now(),
-                    Queued=ts_utils:elapsed(Job#job.queue_time,Now),
+                    Queued=ts_utils:elapsed(Job#job_session.queue_time,Now),
                     ts_mon:add([{sample,tr_job_wait,Queued},{sum,job_running,1}, {sum,job_queued,-1}]),
-                    ets:update_element(Jobs,Id,{#job.start_time,Now})
+                    ets:update_element(Jobs,Id,{#job_session.start_time,Now})
             end;
-        [Id, _Name, "END"|_] ->
+        [Id, Name, "END"|_] ->
             case ets:lookup(Jobs,Id) of
                 [] ->
                     ?LOGF("Job owner of ~p is unknown",[Id],?NOTICE);
                 [Job]->
                     Now=now(),
-                    Duration=ts_utils:elapsed(Job#job.start_time,Now),
+                    Duration=ts_utils:elapsed(Job#job_session.start_time,Now),
                     ts_mon:add([{sample,tr_job_duration,Duration},{sum,job_running,-1}, {sum,ok_job ,1}]),
+                    ts_job:dump(Job#job_session.dump,{none,Job#job_session{end_time=Now,status="ok"},Name,undefined,undefined}),
                     ets:delete_object(Jobs,Job),
-                    check_jobs(Jobs,Job#job.owner)
+                    check_jobs(Jobs,Job#job_session.owner)
             end;
-        [Id, _Name, "ERROR"|_] ->
+        [Id, Name, "ERROR"|_] ->
             case ets:lookup(Jobs,Id) of
                 [] ->
                     ?LOGF("Job owner of ~p is unknown",[Id],?NOTICE);
                 [Job]->
                     Now=now(),
-                    Duration=ts_utils:elapsed(Job#job.start_time,Now),
+                    Duration=ts_utils:elapsed(Job#job_session.start_time,Now),
                     ts_mon:add([{sample,tr_job_duration,Duration},{sum,job_running,-1}, {sum,error_job,1}]),
+                    ts_job:dump(Job#job_session.dump,{none,Job#job_session{end_time=Now,status="error"},Name,undefined,undefined}),
                     ets:delete_object(Jobs,Job),
-                    check_jobs(Jobs,Job#job.owner)
+                    check_jobs(Jobs,Job#job_session.owner)
                 end;
         [_Id, _Name, "INFO"|_] ->
             ok;
@@ -294,7 +296,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 check_jobs(Jobs,Pid)->
-    case ets:match_object(Jobs, #job{owner=Pid, _='_'}) of
+    case ets:match_object(Jobs, #job_session{owner=Pid, _='_'}) of
         [] ->
             ?LOGF("no jobs for pid ~p~n",[Pid],?DEB),
             Pid ! {erlang, ok, nojobs};

@@ -132,8 +132,14 @@ subst(Job=#job{duration=D,req=Req,jobid=Id}, DynVars) ->
             jobid=ts_search:subst(Id,DynVars)}.
 
 
-dump(A,B) ->
-    ts_plugin:dump(A,B).
+dump(protocol,{none,#job_session{jobid=JobId,owner=Owner,submission_time=Sub,queue_time=Q,
+                              start_time=Start,end_time=E,status=Status},Name,_,_})->
+    {R,_}=lists:mapfoldl(fun(A,Acc) -> {integer_to_list(round(ts_utils:elapsed(Acc,A))),A} end,Sub,[Q,Start,E]),
+    Date=integer_to_list(round(ts_utils:time2sec_hires(Sub))),
+    Data=ts_utils:join(";",[JobId,Name,Date]++R++[Status]),
+    ts_mon:dump({protocol, Owner, Data });
+dump(_P,_Args) ->
+    ok.
 
 %% @spec parse(Data::client_data(), State) -> {NewState, Opts, Close}
 %% State = #state_rcv{}
@@ -146,7 +152,7 @@ dump(A,B) ->
 %% Setting Close to true will cause tsung to close the connection to
 %% the server.
 %% @end
-parse({os, cmd, _Args, Res},State=#state_rcv{session=S}) when is_list(Res)->
+parse({os, cmd, _Args, Res},State=#state_rcv{session=S,dump=Dump}) when is_list(Res)->
     ?LOGF("os:cmd result: ~p",[Res],?DEB),
   %% oarsub output:
   %% [ADMISSION RULE] Modify resource description with type constraints
@@ -156,7 +162,7 @@ parse({os, cmd, _Args, Res},State=#state_rcv{session=S}) when is_list(Res)->
     case lists:last(Lines) of
         "OAR_JOB_ID="++ID ->
             ?LOGF("OK,job id is ~p",[ID],?INFO),
-            ts_job_notify:monitor({ID,self(),S#job_session.submission_time, now()}),
+            ts_job_notify:monitor({ID,self(),S#job_session.submission_time, now(),Dump}),
             {State#state_rcv{ack_done=true,datasize=length(Res)}, [], false};
         _ ->
             {State#state_rcv{ack_done=true,datasize=length(Res)}, [], false}
