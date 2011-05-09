@@ -145,10 +145,10 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast({monitor, {JobID, OwnerPid, SubmitTime, QueuedTime}}, State=#state{jobs=Jobs}) ->
+handle_cast({monitor, {JobID, OwnerPid, SubmitTS, QueuedTS}}, State=#state{jobs=Jobs}) ->
     ?LOGF("monitoring job ~p from pid ~p~n",[JobID,OwnerPid],?DEB),
-    ets:insert(Jobs,#job{id=JobID,owner=OwnerPid, queue_time=QueuedTime}),
-    SubmitTime=ts_utils:elapsed(SubmitTime,QueuedTime),
+    ets:insert(Jobs,#job{id=JobID,owner=OwnerPid, queue_time=QueuedTS}),
+    SubmitTime=ts_utils:elapsed(SubmitTS,QueuedTS),
     ts_mon:add([{sum,job_queued,1},{sample,tr_job_submit,SubmitTime}]),
     {noreply, State};
 handle_cast({demonitor, {JobID}}, State=#state{jobs=Jobs}) ->
