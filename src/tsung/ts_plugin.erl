@@ -30,7 +30,7 @@
 behaviour_info(callbacks) ->
     [{init_dynparams,0},
      {add_dynparams, 4},
-     {get_message, 1},
+     {get_message, 2},
      {session_defaults, 0},
      {dump, 2},
      {parse, 2},

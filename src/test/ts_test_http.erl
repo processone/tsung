@@ -46,7 +46,9 @@ subst_redirect_test()->
     {Req,_}=ts_http:add_dynparams(true,#dyndata{proto=Proto,dynvars=DynVars},
                                   #http_request{url=URL},
                                   {"erlang.org",80}),
-    ?assertEqual("GET /bidule/truc HTTP/1.1\r\nHost: erlang.org\r\nUser-Agent: Firefox\r\nCookie: toto=bar\r\n\r\n", binary_to_list(ts_http:get_message(Req))).
+    Str="GET /bidule/truc HTTP/1.1\r\nHost: erlang.org\r\nUser-Agent: Firefox\r\nCookie: toto=bar\r\n\r\n",
+    {Res,_}=ts_http:get_message(Req,#state_rcv{}),
+    ?assertEqual(Str, binary_to_list(Res)).
 
 cookie_subdomain_test()->
     myset_env(),
@@ -59,7 +61,8 @@ cookie_subdomain_test()->
                                   #http_request{url=URL},
                                   {"www.domain.org",80}),
     Str="GET /bidule/truc HTTP/1.1\r\nHost: www.domain.org:80\r\nUser-Agent: Firefox\r\nCookie: toto=bar\r\n\r\n",
-    ?assertEqual(Str, binary_to_list(ts_http:get_message(Req))).
+    {Res,_}=ts_http:get_message(Req,#state_rcv{}),
+    ?assertEqual(Str, binary_to_list(Res)).
 
 cookie_dotdomain_test()->
     myset_env(),
@@ -72,7 +75,8 @@ cookie_dotdomain_test()->
                                   #http_request{url=URL},
                                   {"www.domain.org",80}),
     Str="GET /bidule/truc HTTP/1.1\r\nHost: www.domain.org:80\r\nUser-Agent: Firefox\r\nCookie: toto=bar\r\n\r\n",
-    ?assertEqual(Str, binary_to_list(ts_http:get_message(Req))).
+    {Res,_}=ts_http:get_message(Req,#state_rcv{}),
+    ?assertEqual(Str, binary_to_list(Res)).
 
 
 
@@ -136,8 +140,8 @@ add_cookie_samekey_nodomain_req_test()->
                                   #http_request{url=URL},
                                   {"www.foobar.net",80}),
     Str="GET /bidule/truc HTTP/1.1\r\nHost: www.foobar.net:80\r\nUser-Agent: Firefox\r\nCookie: RMID=42\r\n\r\n",
-    ?assertEqual(Str, binary_to_list(ts_http:get_message(Req))).
-
+    {Res,_}=ts_http:get_message(Req,#state_rcv{}),
+    ?assertEqual(Str, binary_to_list(Res)).
 
 chunk_header_ok1_test()->
     Rep=ts_http_common:parse_line("transfer-encoding: chunked\r\n",#http{},[]),

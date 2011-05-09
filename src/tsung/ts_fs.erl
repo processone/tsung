@@ -31,7 +31,7 @@
 
 -export([init_dynparams/0,
          add_dynparams/4,
-         get_message/1,
+         get_message/2,
          session_defaults/0,
          dump/2,
          parse/2,
@@ -197,21 +197,24 @@ dump(A,B) ->
 %% @spec get_message(param()) -> Message::binary()|tuple()
 %% @doc Creates a new message to send to the connected server.
 %% @end
-get_message(#fs{command=read, path=Path}) ->
+get_message(R,#state_rcv{session=S}) ->
+    {get_message2(R),S}.
+
+get_message2(#fs{command=read, path=Path}) ->
     {ts_utils,read_file_raw,[Path],0};
-get_message(#fs{command=read_chunk, iodev=IODevice,position=Loc, size=Size}) when is_integer(Loc)->
+get_message2(#fs{command=read_chunk, iodev=IODevice,position=Loc, size=Size}) when is_integer(Loc)->
     {file,pread,[IODevice,Loc,Size],0};
-get_message(#fs{command=write_chunk, iodev=IODevice,position=Loc, size=Size}) when is_integer(Loc)->
+get_message2(#fs{command=write_chunk, iodev=IODevice,position=Loc, size=Size}) when is_integer(Loc)->
     {file,pwrite,[IODevice,Loc,ts_utils:urandomstr(Size)],Size};
-get_message(#fs{command=open, mode=read,path=Path,position=Loc}) when is_integer(Loc)->
+get_message2(#fs{command=open, mode=read,path=Path,position=Loc}) when is_integer(Loc)->
     {file,open,[Path,[read,raw,binary]],0};
-get_message(#fs{command=open, mode=write,path=Path,position=Loc}) when is_integer(Loc)->
+get_message2(#fs{command=open, mode=write,path=Path,position=Loc}) when is_integer(Loc)->
     {file,open,[Path,[write,raw,binary]],0};
-get_message(#fs{command=close, iodev=IODevice}) ->
+get_message2(#fs{command=close, iodev=IODevice}) ->
     {file,close,[IODevice],0};
-get_message(#fs{command=delete, path=Path}) ->
+get_message2(#fs{command=delete, path=Path}) ->
     {file,delete,[Path],0};
-get_message(#fs{command=write,path=Path, size=Size}) ->
+get_message2(#fs{command=write,path=Path, size=Size}) ->
     {file,write_file,[Path,ts_utils:urandomstr(Size),[raw]],Size}.
 
 

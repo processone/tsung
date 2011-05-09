@@ -33,7 +33,7 @@
 
 -export([init_dynparams/0,
          add_dynparams/4,
-         get_message/1,
+         get_message/2,
          session_defaults/0,
          dump/2,
          parse/2,
@@ -113,9 +113,9 @@ dump(_,_) ->
 %% Args:    #http_request
 %% Returns: binary
 %%----------------------------------------------------------------------
-get_message(Req=#http_request{url=URL}) ->
+get_message(Req=#http_request{url=URL},#state_rcv{session=S}) ->
     put(last_url,URL),
-    get_message2(Req).
+    {get_message2(Req),S}.
 get_message2(Req=#http_request{method=get}) ->
     ts_http_common:http_no_body(?GET, Req);
 

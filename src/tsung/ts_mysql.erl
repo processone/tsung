@@ -38,7 +38,7 @@
 
 -export([init_dynparams/0,
          add_dynparams/4,
-         get_message/1,
+         get_message/2,
          session_defaults/0,
          parse/2,
          parse_bidi/2,
@@ -82,22 +82,22 @@ dump(A,B) ->
 %% Args:    record
 %% Returns: binary
 %%----------------------------------------------------------------------
-get_message(#mysql_request{type=connect}) ->
+get_message(#mysql_request{type=connect},#state_rcv{session=S}) ->
     Packet=list_to_binary([]),
     ?LOGF("Opening socket. ~p ~n",[Packet], ?DEB),
-    Packet;
-get_message(#mysql_request{type=authenticate, database=Database, username=Username, passwd=Password, salt=Salt}) ->
+    {Packet,S};
+get_message(#mysql_request{type=authenticate, database=Database, username=Username, passwd=Password, salt=Salt},#state_rcv{session=S}) ->
     Packet=add_header(make_auth(Username, Password, Database, Salt),1),
     ?LOGF("Auth packet: ~p (~s)~n",[Packet,Packet], ?DEB),
-    Packet;
-get_message(#mysql_request{type=sql,sql=Query}) ->
+    {Packet,S};
+get_message(#mysql_request{type=sql,sql=Query},#state_rcv{session=S}) ->
     Packet=add_header([?MYSQL_QUERY_OP, Query],0),
     ?LOGF("Query packet: ~p (~s)~n",[Packet,Packet], ?DEB),
-    Packet;
-get_message(#mysql_request{type=close}) ->
+    {Packet,S};
+get_message(#mysql_request{type=close},#state_rcv{session=S}) ->
     Packet=add_header([?MYSQL_CLOSE_OP],0),
     ?LOGF("Close packet: ~p (~s)~n",[Packet,Packet], ?DEB),
-    Packet.
+    {Packet,S}.
 
 
 

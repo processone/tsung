@@ -37,7 +37,7 @@
 
 -export([init_dynparams/0,
          add_dynparams/4,
-         get_message/1,
+         get_message/2,
          session_defaults/0,
          subst/2,
          parse/2,
@@ -68,15 +68,15 @@ decode_buffer(Buffer,#jabber{}) ->
 %% Returns: record or []
 %%----------------------------------------------------------------------
 new_session() ->
-    #jabber{}.
+    #jabber{}. %FIXME: we should use another record (#jabber_session for ex.)
 %%----------------------------------------------------------------------
 %% Function: get_message/1
 %% Purpose: Build a message/request
 %% Args:    #jabber
 %% Returns: binary
 %%----------------------------------------------------------------------
-get_message(Req=#jabber{}) ->
-    ts_jabber_common:get_message(Req).
+get_message(Req=#jabber{},#state_rcv{session=S}) ->
+    {ts_jabber_common:get_message(Req),S}.
 
 dump(A,B) ->
     ts_plugin:dump(A,B).

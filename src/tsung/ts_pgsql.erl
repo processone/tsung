@@ -40,7 +40,7 @@
 
 -export([init_dynparams/0,
          add_dynparams/4,
-         get_message/1,
+         get_message/2,
          session_defaults/0,
          parse/2,
          parse_bidi/2,
@@ -81,32 +81,31 @@ new_session() ->
 %% Args:    record
 %% Returns: binary
 %%----------------------------------------------------------------------
-get_message(#pgsql_request{type=connect, database=DB, username=UserName}) ->
+get_message(#pgsql_request{type=connect, database=DB, username=UserName},#state_rcv{session=S}) ->
     Version = <<?PROTOCOL_MAJOR:16/integer, ?PROTOCOL_MINOR:16/integer>>,
     User = pgsql_util:make_pair(user, UserName),
-    put(username,UserName), %% needed for md5
     Database = pgsql_util:make_pair(database, DB),
     StartupPacket = <<Version/binary,
                       User/binary,
                       Database/binary,
                       0>>,
     PacketSize = 4 + size(StartupPacket),
-    <<PacketSize:32/integer, StartupPacket/binary>>;
-get_message(#pgsql_request{type=sql,sql=Query}) ->
-    pgsql_proto:encode_message(squery, Query);
-get_message(#pgsql_request{type=close}) ->
-    pgsql_proto:encode_message(terminate, "");
-get_message(#pgsql_request{type=authenticate, auth_method={?PG_AUTH_PASSWD, _Salt},passwd=PassString}) ->
+    {<<PacketSize:32/integer, StartupPacket/binary>>,S#pgsql{username=UserName}};
+get_message(#pgsql_request{type=sql,sql=Query},#state_rcv{session=S}) ->
+    {pgsql_proto:encode_message(squery, Query),S};
+get_message(#pgsql_request{type=close},#state_rcv{session=S}) ->
+    {pgsql_proto:encode_message(terminate, ""),S};
+get_message(#pgsql_request{type=authenticate, auth_method={?PG_AUTH_PASSWD, _Salt},passwd=PassString},#state_rcv{session=S}) ->
     ?LOGF("PGSQL: Must authenticate (passwd= ~p) ~n",[PassString],?DEB),
-    pgsql_proto:encode_message(pass_plain, PassString);
-get_message(#pgsql_request{type=authenticate, auth_method= {?PG_AUTH_MD5, Salt},passwd=PassString}) ->
-    User=get(username),
+    {pgsql_proto:encode_message(pass_plain, PassString),S};
+get_message(#pgsql_request{type=authenticate, auth_method= {?PG_AUTH_MD5, Salt},passwd=PassString},#state_rcv{session=S}) ->
+    User=S#pgsql.username,
     ?LOGF("PGSQL: Must authenticate user ~p with md5 (passwd= ~p, salt=~p) ~n",
           [User,PassString,Salt],?DEB),
-    pgsql_proto:encode_message(pass_md5, {User,PassString,Salt});
-get_message(#pgsql_request{type=authenticate, auth_method=AuthType}) ->
+    {pgsql_proto:encode_message(pass_md5, {User,PassString,Salt}),S};
+get_message(#pgsql_request{type=authenticate, auth_method=AuthType},#state_rcv{session=S}) ->
     ?LOGF("PGSQL: Authentication method not implemented ! [~p] ~n",[AuthType],?ERR),
-    <<>>.
+    {<<>>, S}.
 
 parse_bidi(Data, State) ->
     ts_plugin:parse_bidi(Data,State).

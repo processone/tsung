@@ -47,10 +47,9 @@
          }
        ).
 
-%% unused
 -record(pgsql,
         {
-          fixme
+          username
          }
        ).
 

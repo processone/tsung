@@ -66,8 +66,8 @@ start_link() ->
 listen(Port) ->
     gen_server:cast({global, ?MODULE}, {listen, Port}).
 
-monitor({JobID, OwnerPid, StartTime}) ->
-    gen_server:cast({global, ?MODULE}, {monitor, {JobID, OwnerPid, StartTime}}).
+monitor({JobID, OwnerPid, StartTime, QueuedTime}) ->
+    gen_server:cast({global, ?MODULE}, {monitor, {JobID, OwnerPid, StartTime, QueuedTime}}).
 
 demonitor({JobID}) ->
     gen_server:cast({global, ?MODULE}, {monitor, {JobID}}).
@@ -145,10 +145,11 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast({monitor, {JobID, OwnerPid, QueueTime}}, State=#state{jobs=Jobs}) ->
+handle_cast({monitor, {JobID, OwnerPid, SubmitTime, QueuedTime}}, State=#state{jobs=Jobs}) ->
     ?LOGF("monitoring job ~p from pid ~p~n",[JobID,OwnerPid],?DEB),
-    ets:insert(Jobs,#job{id=JobID,owner=OwnerPid, queue_time=QueueTime}),
-    ts_mon:add({sum,job_queued,1}),
+    ets:insert(Jobs,#job{id=JobID,owner=OwnerPid, queue_time=QueuedTime}),
+    SubmitTime=ts_utils:elapsed(SubmitTime,QueuedTime),
+    ts_mon:add([{sum,job_queued,1},{sample,tr_job_submit,SubmitTime}]),
     {noreply, State};
 handle_cast({demonitor, {JobID}}, State=#state{jobs=Jobs}) ->
     ets:delete(Jobs,JobID),
@@ -160,7 +161,7 @@ handle_cast({wait_jobs, Pid}, State=#state{jobs=Jobs}) ->
     {noreply, State};
 
 handle_cast({listen, undefined}, State) ->
-    ?LOG("No listen port defined, can't open listening socket ~n",?ERR),
+    ?LOG("No listen port defined, can't open listening socket ~n",?NOTICE),
     {noreply, State};
 handle_cast({listen,Port}, State) ->
     Opts = [{reuseaddr, true}, {active, once}],

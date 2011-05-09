@@ -35,7 +35,7 @@
 
 -export([init_dynparams/0,
          add_dynparams/4,
-         get_message/1,
+         get_message/2,
          session_defaults/0,
          dump/2,
          parse/2,
@@ -146,7 +146,7 @@ dump(A,B) ->
 %% Setting Close to true will cause tsung to close the connection to
 %% the server.
 %% @end
-parse({os, cmd, _Args, Res},State) when is_list(Res)->
+parse({os, cmd, _Args, Res},State=#state_rcv{session=S}) when is_list(Res)->
     ?LOGF("os:cmd result: ~p",[Res],?DEB),
   %% oarsub output:
   %% [ADMISSION RULE] Modify resource description with type constraints
@@ -156,9 +156,8 @@ parse({os, cmd, _Args, Res},State) when is_list(Res)->
     case lists:last(Lines) of
         "OAR_JOB_ID="++ID ->
             ?LOGF("OK,job id is ~p",[ID],?INFO),
-            Job=#job_session{jobid=ID},
-            ts_job_notify:monitor({ID,self(),now()}),%FIXME: should use time when oarsub is started instead of now()
-            {State#state_rcv{ack_done=true,session=Job,datasize=length(Res)}, [], false};
+            ts_job_notify:monitor({ID,self(),S#job_session.submission_time, now()}),
+            {State#state_rcv{ack_done=true,datasize=length(Res)}, [], false};
         _ ->
             {State#state_rcv{ack_done=true,datasize=length(Res)}, [], false}
     end;
@@ -183,14 +182,14 @@ parse_bidi(Data, State) ->
 %% @spec get_message(param()) -> Message::binary()|tuple()
 %% @doc Creates a new message to send to the connected server.
 %% @end
-get_message(#job{type=oar,req=wait_jobs}) ->
+get_message(#job{type=oar,req=wait_jobs},#state_rcv{session=Session}) ->
     ts_job_notify:wait_jobs(self()),
-    {erlang, now,[], 0}; % not used
-get_message(Job=#job{duration=D}) when is_integer(D)->
-    get_message(Job#job{duration=integer_to_list(D)});
-get_message(Job=#job{notify_port=P}) when is_integer(P)->
-    get_message(Job#job{notify_port=integer_to_list(P)});
-get_message(#job{type=oar,user=U,req=submit, name=N,script=S, resources=R, queue=Q, walltime=W,notify_port=P, notify_script=NS,duration=D,options=Opts}) ->
+    {{erlang, now,[], 0},Session}; % we could use any function call, the result is not used
+get_message(Job=#job{duration=D},State) when is_integer(D)->
+    get_message(Job#job{duration=integer_to_list(D)},State);
+get_message(Job=#job{notify_port=P},State) when is_integer(P)->
+    get_message(Job#job{notify_port=integer_to_list(P)},State);
+get_message(#job{type=oar,user=U,req=submit, name=N,script=S, resources=R, queue=Q, walltime=W,notify_port=P, notify_script=NS,duration=D,options=Opts},#state_rcv{session=Session}) ->
     Submit = case U of
                  undefined -> "oarsub ";
                  User      -> "sudo -u "++User++" oarsub "
@@ -205,4 +204,5 @@ get_message(#job{type=oar,user=U,req=submit, name=N,script=S, resources=R, queue
         ++" --notify \"exec:" ++NS++" "++P++"\" "
         ++"\""++S++" "++D++"\"",
     ?LOGF("Will run ~p",[Cmd],?INFO),
-    {os, cmd, [Cmd], length(Cmd) }.
+    Message = {os, cmd, [Cmd], length(Cmd) },
+    {Message, Session#job_session{submission_time=now()}}.

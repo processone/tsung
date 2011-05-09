@@ -31,7 +31,7 @@
 
 -export([init_dynparams/0,
          add_dynparams/4,
-         get_message/1,
+         get_message/2,
          session_defaults/0,
          dump/2,
          parse/2,
@@ -160,8 +160,8 @@ parse_bidi(_Data, _State) ->
 %% @spec get_message(param()) -> Message::binary()|tuple()
 %% @doc Creates a new message to send to the connected server.
 %% @end
-get_message(#shell{command=Cmd, args=Args}) ->
+get_message(#shell{command=Cmd, args=Args},#state_rcv{session=S}) ->
     Msg=Cmd++" "++Args ,
-    {os, cmd, [Msg], length(Msg) }.
+    {{os, cmd, [Msg], length(Msg) } , S}.
 
 

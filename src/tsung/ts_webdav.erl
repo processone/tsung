@@ -29,7 +29,7 @@
 
 -export([init_dynparams/0,
          add_dynparams/4,
-         get_message/1,
+         get_message/2,
          session_defaults/0,
          parse/2,
          parse_bidi/2,
@@ -50,22 +50,23 @@ decode_buffer(Buffer,Session) ->
 
 %% we should implement methods defined in rfc4918
 
-get_message(Req=#http_request{method=Method}) when Method == propfind;
-                                                   Method == proppatch;
-                                                   Method == copy;
-                                                   Method == move;
-                                                   Method == lock;
-                                                   Method == mkactivity;
-                                                   Method == unlock;
-                                                   Method == report;
-                                                   Method == 'version-control'
-                                                   ->
+get_message(Req=#http_request{method=Method},#state_rcv{session=S})
+  when Method == propfind;
+       Method == proppatch;
+       Method == copy;
+       Method == move;
+       Method == lock;
+       Method == mkactivity;
+       Method == unlock;
+       Method == report;
+       Method == 'version-control'
+       ->
     M = string:to_upper(atom_to_list(Method)),
-    ts_http_common:http_body(M, Req);
-get_message(Req=#http_request{method=Method}) when Method == mkcol->
-    ts_http_common:http_no_body("MKCOL", Req);
-get_message(Req) ->
-    ts_http:get_message(Req).
+    {ts_http_common:http_body(M, Req),S};
+get_message(Req=#http_request{method=Method},#state_rcv{session=S}) when Method == mkcol->
+    {ts_http_common:http_no_body("MKCOL", Req), S};
+get_message(Req,State) ->
+    ts_http:get_message(Req,State).
 
 parse_bidi(Data, State) ->
     ts_http:parse_bidi(Data,State).

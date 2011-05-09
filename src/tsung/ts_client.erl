@@ -671,7 +671,7 @@ handle_next_request(Request, State) ->
                      none
              end,
 
-    Message = Type:get_message(Param),
+    {Message, NewSession} = Type:get_message(Param,State),
     Now = now(),
 
     %% reconnect if needed
@@ -693,6 +693,7 @@ handle_next_request(Request, State) ->
                                                request  = Request,
                                                port     = Port,
                                                count    = Count,
+                                               session  = NewSession,
                                                page_timestamp= PageTimeStamp,
                                                send_timestamp= Now,
                                                timestamp= Now },
@@ -711,17 +712,19 @@ handle_next_request(Request, State) ->
                     handle_close_while_sending(State#state_rcv{socket=NewSocket,
                                                                protocol=Protocol,
                                                                host=Host,
+                                                               session=NewSession,
                                                                port=Port});
                 {error, Reason} ->
                     %% LOG only at INFO level since we report also an error to ts_mon
                     ?LOGF("Error: Unable to send data, reason: ~p~n",[Reason],?INFO),
                     CountName="error_send_"++atom_to_list(Reason),
                     ts_mon:add({ count, list_to_atom(CountName) }),
-                     handle_timeout_while_sending(State);
+                     handle_timeout_while_sending(State#state_rcv{session=NewSession});
                 {'EXIT', {noproc, _Rest}} ->
                     ?LOG("EXIT from ssl app while sending message !~n", ?WARN),
                     handle_close_while_sending(State#state_rcv{socket=NewSocket,
                                                                protocol=Protocol,
+                                                               session=NewSession,
                                                                host=Host,
                                                                port=Port});
                 Exit ->
@@ -736,7 +739,7 @@ handle_next_request(Request, State) ->
             % the timeout when the number of retries increase, with a
             % simple rule: number of retries * retry_timeout
             set_thinktime(?RETRY_TIMEOUT *  Retries ),
-            {next_state, think, State#state_rcv{retries=Retries}};
+            {next_state, think, State#state_rcv{retries=Retries,session=NewSession}};
         {error,_Reason}  ->
             ts_mon:add({ count, error_abort_max_conn_retries }),
             {stop, normal, State}
