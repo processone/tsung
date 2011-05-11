@@ -1033,7 +1033,7 @@ handle_data_msg(Data,State=#state_rcv{request=Req,datasize=OldSize})
 handle_data_msg(<<32>>, State=#state_rcv{clienttype=ts_jabber}) ->
     {State#state_rcv{ack_done = false},[]};
 %% local ack, set ack_done to true
-handle_data_msg(Data, State=#state_rcv{request=Req, clienttype=Type, maxcount= MaxCount}) ->
+handle_data_msg(Data, State=#state_rcv{request=Req, clienttype=Type, maxcount=MaxCount}) ->
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     NewBuffer= set_new_buffer(State, Data),
     DataSize = size(Data),
@@ -1058,10 +1058,14 @@ set_new_buffer(#state_rcv{clienttype=Type, buffer=Buffer, session=Session},close
 set_new_buffer(#state_rcv{buffer=OldBuffer,ack_done=false},Data) ->
     ?Debug("Bufferize response~n"),
     << OldBuffer/binary, Data/binary >>;
-set_new_buffer(#state_rcv{clienttype=Type, buffer=OldBuffer, session=Session},Data) ->
+set_new_buffer(#state_rcv{clienttype=Type, buffer=OldBuffer, session=Session},Data) when is_binary(Data) ->
     ?Debug("decode response~n"),
     Type:decode_buffer(<< OldBuffer/binary, Data/binary >>, Session);
-set_new_buffer(_State, Data) -> % don't need buffer for non binary responses (erlang fun case)
+set_new_buffer(#state_rcv{clienttype=Type, buffer=OldBuffer, session=Session}, {_M,_F,_A, Res}) when is_list(Res)->
+    %% erlang fun case
+    Data=list_to_binary(Res),
+    Type:decode_buffer(<< OldBuffer/binary, Data/binary >>, Session);
+set_new_buffer(_State, Data) -> % useful ?
     Data.
 
 %%----------------------------------------------------------------------

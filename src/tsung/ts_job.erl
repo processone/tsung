@@ -126,9 +126,12 @@ add_dynparams(#job_dyndata{}, Param, _HostData) ->
 %% Purpose: Replace on the fly dynamic element of the request.
 %% Returns: record()
 %%----------------------------------------------------------------------
-subst(Job=#job{duration=D,req=Req,jobid=Id}, DynVars) ->
+subst(Job=#job{duration=D,req=Req,walltime=WT,resources=Res,options=Opts,jobid=Id}, DynVars) ->
     Job#job{duration=ts_search:subst(D,DynVars),
             req=ts_search:subst(Req,DynVars),
+            resources=ts_search:subst(Res,DynVars),
+            walltime=ts_search:subst(WT,DynVars),
+            options=ts_search:subst(Opts,DynVars),
             jobid=ts_search:subst(Id,DynVars)}.
 
 
