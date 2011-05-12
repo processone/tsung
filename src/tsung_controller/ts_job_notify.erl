@@ -218,6 +218,11 @@ handle_info({tcp, Socket, Data}, State=#state{jobs=Jobs}) ->
             case ets:lookup(Jobs,Id) of
                 [] ->
                     ?LOGF("Job owner of ~p is unknown",[Id],?NOTICE);
+                [Job=#job_session{start_time=undefined}] ->
+                    ?LOGF("ERROR: Start time of job ~p is unknown",[Id],?ERR),
+                    ts_mon:add([{sum,job_running,-1}, {sum,ok_job ,1}]),
+                    ets:delete_object(Jobs,Job),
+                    check_jobs(Jobs,Job#job_session.owner);
                 [Job]->
                     Now=now(),
                     Duration=ts_utils:elapsed(Job#job_session.start_time,Now),
@@ -230,6 +235,11 @@ handle_info({tcp, Socket, Data}, State=#state{jobs=Jobs}) ->
             case ets:lookup(Jobs,Id) of
                 [] ->
                     ?LOGF("Job owner of ~p is unknown",[Id],?NOTICE);
+                [Job=#job_session{start_time=undefined}] ->
+                    ?LOGF("ERROR: start time of job ~p is unknown",[Id],?ERR),
+                    ts_mon:add([{sum,job_running,-1}, {sum,error_job,1}]),
+                    ets:delete_object(Jobs,Job),
+                    check_jobs(Jobs,Job#job_session.owner);
                 [Job]->
                     Now=now(),
                     Duration=ts_utils:elapsed(Job#job_session.start_time,Now),
