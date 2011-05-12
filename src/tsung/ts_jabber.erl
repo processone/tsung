@@ -245,7 +245,7 @@ choose_or_cache_user_id(user_defined,User,Pwd) ->
     put(xmpp_user_id,{User,Pwd}),
     {user_defined, User,Pwd};
 
-choose_or_cache_user_id(Id,User,Pwd) ->
+choose_or_cache_user_id(_OldId,User,Pwd) ->
     case get(xmpp_user_id) of
         undefined ->
             Id = choose_user_id(default),
