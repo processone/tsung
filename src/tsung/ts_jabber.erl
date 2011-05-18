@@ -250,7 +250,7 @@ choose_or_cache_user_id(_OldId,User,Pwd) ->
         undefined ->
             Id = choose_user_id(default),
             put(xmpp_user_id,Id),
-            Id;
+            {Id,User,Pwd};
         {DefinedUser,DefinedPwd} ->
             {user_defined, DefinedUser,DefinedPwd} ;
         Id ->

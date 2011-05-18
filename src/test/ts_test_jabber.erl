@@ -73,6 +73,31 @@ auth_sasl_test()->
     Res = << "<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='oof' >AGZvbwBmb28=</auth>" >>,
     ?assertMatch(Res, ts_jabber_common:auth_sasl("foo","bar","oof")).
 
+choose_id_user_test()->
+    ?assertEqual({user_defined,"user","pwd"}, ts_jabber:choose_or_cache_user_id(user_defined,"user","pwd")).
+choose_id_user1_test()->
+    ts_jabber:choose_or_cache_user_id(user_defined,"user","pwd"),
+    ?assertEqual({user_defined,"user","pwd"}, ts_jabber:choose_or_cache_user_id(0,"user","pwd")).
+choose_id2_test()->
+    erase(xmpp_user_id),
+    ts_user_server:start(),
+    ts_user_server:reset(100),
+    ?assertEqual({1,"user","pwd"}, ts_jabber:choose_or_cache_user_id(0,"user","pwd")).
+choose_id3_test()->
+    erase(xmpp_user_id),
+    ts_jabber:choose_or_cache_user_id(0,"user","pwd"),
+    ?assertEqual({2,"user","pwd"}, ts_jabber:choose_or_cache_user_id(0,"user","pwd")).
+
+add_dynparams_test()->
+    erase(xmpp_user_id),
+    Session = #jabber{id=0,username="foo",passwd="bar",domain={domain,"localdomain"}},
+    ?assertEqual(Session#jabber{id=3,user_server=default,domain="localdomain"}, ts_jabber:add_dynparams(true,[],Session,"localhost")).
+
+add_dynparams2_test()->
+    Session = #jabber{id=0,username="foo",passwd="bar",domain={domain,"localdomain"}},
+    ?assertEqual(Session#jabber{id=3,user_server=default,domain="localdomain"}, ts_jabber:add_dynparams(true,[],Session,"localhost")).
+
+
 myset_env()->
     myset_env(0).
 myset_env(Val)->
