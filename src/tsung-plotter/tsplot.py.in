@@ -32,7 +32,7 @@
 
 import os, sys
 
-LIBDIR         = "@EXPANDED_LIBDIR@"
+LIBDIR         = "@EXPANDED_LIBDIR@/tsung"
 SHAREDIR       = "@EXPANDED_SHAREDIR@"
 USERDIR        = ".tsung"
 CONF           = "http.plots.en.conf"

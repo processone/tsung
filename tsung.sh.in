@@ -14,7 +14,7 @@ case $UNAME in
         *) HOST=`hostname -s`;;
 esac
 
-INSTALL_DIR=@prefix@/lib/erlang/
+INSTALL_DIR=@EXPANDED_LIBDIR@/erlang/
 ERL=@ERL@
 MAIN_DIR=$HOME/.tsung
 LOG_DIR=$MAIN_DIR/log

@@ -3033,7 +3033,7 @@ test -z "$INSTALL_DATA" && INSTALL_DATA='${INSTALL} -m 644'
 
 
   EXP_VAR=EXPANDED_LIBDIR
-  FROM_VAR="$libdir/tsung"
+  FROM_VAR="$libdir"
 
     prefix_save=$prefix
   exec_prefix_save=$exec_prefix
