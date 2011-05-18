@@ -97,6 +97,36 @@ add_dynparams2_test()->
     Session = #jabber{id=0,username="foo",passwd="bar",domain={domain,"localdomain"}},
     ?assertEqual(Session#jabber{id=3,user_server=default,domain="localdomain"}, ts_jabber:add_dynparams(true,[],Session,"localhost")).
 
+get_message_test()->
+    erase(xmpp_user_id),
+    ts_msg_server:start(),
+    Session = #jabber{id=0,username="foo",type='auth_set_plain',passwd="bar",domain={domain,"localdomain"}},
+    Req=ts_jabber:add_dynparams(false,[],Session,"localhost"),
+    RepOK={<<"<iq id='1' type='set' ><query xmlns='jabber:iq:auth'><username>foo4</username><resource>tsung</resource><password>bar4</password></query></iq>" >>,undefined},
+    Rep=ts_jabber:get_message(Req,#state_rcv{}),
+    ?assertEqual(RepOK,Rep ).
+
+get_message2_test()->
+    erase(xmpp_user_id),
+    Session = #jabber{id=user_defined,username="foo",type='auth_set_plain',passwd="bar",domain={domain,"localdomain"}},
+    Req=ts_jabber:add_dynparams(false,[],Session,"localhost"),
+    RepOK={<<"<iq id='2' type='set' ><query xmlns='jabber:iq:auth'><username>foo</username><resource>tsung</resource><password>bar</password></query></iq>" >>,undefined},
+    Rep=ts_jabber:get_message(Req,#state_rcv{}),
+    ?assertEqual(RepOK,Rep ).
+
+
+choose_id_limit_test()->
+    ts_user_server:reset(3),
+    erase(xmpp_user_id),
+    ts_jabber:choose_or_cache_user_id(0,"user","pwd"),
+    erase(xmpp_user_id),
+    ts_jabber:choose_or_cache_user_id(0,"user","pwd"),
+    erase(xmpp_user_id),
+    ts_jabber:choose_or_cache_user_id(0,"user","pwd"),
+    erase(xmpp_user_id),
+    ?assertExit(no_free_userid, ts_jabber:choose_or_cache_user_id(0,"user","pwd")).
+
+
 
 myset_env()->
     myset_env(0).

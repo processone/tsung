@@ -626,6 +626,8 @@ id_to_string(Id) -> Id.
 %%% Func: password/1
 %%% Generate password for a given username
 %%%----------------------------------------------------------------------
+password(Prefix,Id) when is_integer(Id)->
+    Prefix ++ integer_to_list(Id);
 password(Prefix,Id) ->
     Prefix ++ Id.
 
