@@ -15,7 +15,6 @@ Vendor: Process-one
 Packager: Nicolas Niclausse <nicolas@niclux.org>
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-BuildArch: noarch
 
 BuildRequires: erlang
 
@@ -47,20 +46,20 @@ rm -rf $RPM_BUILD_ROOT
 export DESTDIR=$RPM_BUILD_ROOT %makeinstall
 
 install -p -m 644 CHANGES CONTRIBUTORS COPYING README TODO \
-    $RPM_BUILD_ROOT%{_datarootdir}/doc/%{name}/
+    $RPM_BUILD_ROOT%{_datadir}/doc/%{name}/
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
-%doc %{_datarootdir}/doc/tsung/*
+%doc %{_datadir}/doc/tsung/*
 %{_bindir}/tsung
 %{_bindir}/tsung-recorder
 %{_bindir}/tsplot
 %{_libdir}/erlang/lib
 %{_libdir}/tsung
-%{_datarootdir}/tsung
+%{_datadir}/tsung
 %{_mandir}/man1/tsung.1*
 %{_mandir}/man1/tsplot.1*
 %{_mandir}/man1/tsung-recorder.1*
