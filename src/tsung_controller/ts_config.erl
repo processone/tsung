@@ -647,8 +647,8 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     lists:foldl( fun parse/2, Conf#config{rate_limit=TokenBucket},
                                                           Element#xmlElement.content);
                 "hibernate" ->
-                    Hibernate = case  getAttr(integer,Attrs, value, 10000 ) of
-                                    infinity -> infinity;
+                    Hibernate = case  getAttr(integer_or_string,Attrs, value, 10000 ) of
+                                    "infinity" -> infinity;
                                     Seconds -> Seconds * 1000
                                 end,
                     lists:foldl( fun parse/2, Conf#config{hibernate=Hibernate},

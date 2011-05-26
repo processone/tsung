@@ -38,6 +38,7 @@
 
   <options>
     <option name="ports_range" value="on" min="10000"></option>
+    <option name="hibernate" value="3"></option>
   </options>
   <sessions>
    <session probability="100" name="example" type="ts_http">
