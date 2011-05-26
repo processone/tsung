@@ -40,9 +40,6 @@
 -define(MAX_RETRIES,3). % max number of connection retries
 -define(RETRY_TIMEOUT,10000). % waiting time between retries (msec)
 
--define(CLIENT_PORT_MIN,1025).
--define(CLIENT_PORT_MAX,65535).
-
 %% External exports
 -export([start/1, next/1]).
 
