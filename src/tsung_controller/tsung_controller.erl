@@ -82,7 +82,7 @@ status([Host]) when is_atom(Host)->
               {Clients, Count, Connected, Interval, Phase} ->
 
                   S1 = io_lib:format("Tsung is running [OK]~n" ++
-                                     " Current request rate:    ~p req/sec~n" ++
+                                     " Current request rate:    ~.2f req/sec~n" ++
                                      " Current users:           ~p~n" ++
                                      " Current connected users: ~p ~n",
                                      [Count/Interval, Clients, Connected]),
