@@ -38,7 +38,7 @@ More information is available at http://tsung.erlang-projects.org/ .
 %setup -q
 
 %build
-%configure
+%configure --docdir=%{_docdir}/%{name}-%{version}
 make %{?_smp_mflags}
 
 %install
@@ -46,14 +46,14 @@ rm -rf $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
 
 install -p -m 644 CHANGES CONTRIBUTORS COPYING README TODO \
-    $RPM_BUILD_ROOT%{_datadir}/doc/%{name}/
+    $RPM_BUILD_ROOT%{_datadir}/doc/%{name}-%{version}/
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
-%doc %{_datadir}/doc/tsung/*
+%doc %{_datadir}/doc/%{name}-%{version}/*
 %{_bindir}/tsung
 %{_bindir}/tsung-recorder
 %{_bindir}/tsplot

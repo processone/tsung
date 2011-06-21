@@ -19,12 +19,15 @@ ERLANG_XMERL_DIR=@ERLANG_LIB_DIR_xmerl@/include
 
 raw_erlang_prefix=@libdir@/erlang/
 
+PACKAGE_TARNAME=@PACKAGE_TARNAME@
+
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 bindir=@bindir@
 libdir=@libdir@
 datadir=@datadir@
 datarootdir=@datarootdir@
+docdir=@docdir@
 TEMPLATES_SUBDIR=@TEMPLATES_SUBDIR@
 
 CONFIGURE_DEPENDENCIES=@CONFIGURE_DEPENDENCIES@
@@ -72,11 +75,11 @@ endif
 BINDIR    = $(bindir)
 LIBDIR    = $(libdir)/tsung/
 TOOLS_BINDIR = $(LIBDIR)/bin
-CONFDIR   = $(datadir)/doc/tsung/examples
+CONFDIR   = $(docdir)/examples
 SHARE_DIR = $(datadir)/tsung/
 TEMPLATES_DIR = $(datadir)/$(TEMPLATES_SUBDIR)
 MAN_DIR   = $(datadir)/man/man1/
-DOC_DIR   = $(datadir)/doc/tsung
+DOC_DIR   = $(docdir)
 
 # custom behaviours
 BEHAVIORS  = ebin/ts_plugin.beam
