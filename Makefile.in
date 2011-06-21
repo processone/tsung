@@ -19,7 +19,7 @@ ERLANG_XMERL_DIR=@ERLANG_LIB_DIR_xmerl@/include
 
 raw_erlang_prefix=@libdir@/erlang/
 
-prefix=$(DESTDIR)@prefix@
+prefix=@prefix@
 exec_prefix=@exec_prefix@
 bindir=@bindir@
 libdir=@libdir@

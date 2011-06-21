@@ -43,7 +43,7 @@ make %{?_smp_mflags}
 
 %install
 rm -rf $RPM_BUILD_ROOT
-export DESTDIR=$RPM_BUILD_ROOT %makeinstall
+make install DESTDIR=$RPM_BUILD_ROOT
 
 install -p -m 644 CHANGES CONTRIBUTORS COPYING README TODO \
     $RPM_BUILD_ROOT%{_datadir}/doc/%{name}/
