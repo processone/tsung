@@ -14,7 +14,7 @@
   <monitoring>
    <monitor host="localhost"/>
   </monitoring>
-  
+
  <load>
   <arrivalphase phase="1" duration="1" unit="minute">
     <users interarrival="3" unit="second"></users>
@@ -25,20 +25,20 @@
   <session probability="100" name="mysql-example" type="ts_mysql">
       <request>
         <mysql type="connect" />
-      </request>  
+      </request>
       <request>
         <mysql type="authenticate" database="test" username="test" password="test" />
-      </request>  
-      <request>        
+      </request>
+      <request>
         <mysql type="sql">SHOW TABLES</mysql>
-      </request>  
-      <request>        
+      </request>
+      <request>
         <mysql type="sql">SELECT * FROM gens</mysql>
-      </request>      
-      <request>        
+      </request>
+      <request>
         <mysql type="sql">SELECT * FROM te</mysql>
-      </request>            
-      <request>        
+      </request>
+      <request>
         <mysql type="close"></mysql>
       </request>
   </session>
