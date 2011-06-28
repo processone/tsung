@@ -44,7 +44,7 @@
 %% External exports
 -export([start/1, stop/0, newclient/1, endclient/1, sendmes/1, add/2,
          start_clients/1, abort/0, status/0, rcvmes/1, add/1, dumpstats/0,
-         add_match/2, dump/1
+         add_match/2, dump/1, launcher_is_alive/0
         ]).
 
 %% gen_server callbacks
@@ -68,7 +68,8 @@
                 stop = false, % true if we should stop
                 laststats,    % values of last printed stats
                 lastdate,     % date of last printed stats
-                type          % type of logging (none, light, full)
+                type,         % type of logging (none, light, full)
+                launchers=0   % number of launchers started
                }).
 
 -record(stats, {
@@ -142,6 +143,9 @@ rcvmes({_Type, Who, What})  ->
 dump({none, _, _})-> skip;
 dump({Type, Who, What})  ->
     gen_server:cast({global, ?MODULE}, {dump, Who, now(), What}).
+
+launcher_is_alive() ->
+    gen_server:cast({global, ?MODULE}, {launcher_is_alive}).
 
 
 %%%----------------------------------------------------------------------
@@ -326,12 +330,17 @@ handle_cast({rcvmsg, Who, When, What}, State=#state{type=full,dumpfile=Log}) ->
     io:format(Log, "Recv:~w:~w:~p~n",[ts_utils:time2sec_hires(When),Who,What]),
     {noreply, State};
 
-handle_cast({stop}, State = #state{client = 0}) ->
-    ?LOG("Stop asked, no more users, stop~n", ?INFO),
+handle_cast({stop}, State = #state{client = 0, launchers=1}) ->
+    ?LOG("Stop asked, no more users, last launcher stopped, OK to stop~n", ?INFO),
     {stop, normal, State};
-handle_cast({stop}, State) -> % we should stop, wait until no more clients are alive
+handle_cast({stop}, State=#state{launchers=L}) -> % we should stop, wait until no more clients are alive
     ?LOG("A launcher has finished, but not all users have finished, wait before stopping~n", ?NOTICE),
-    {noreply, State#state{stop = true}};
+    {noreply, State#state{stop = true, launchers=L-1}};
+
+handle_cast({launcher_is_alive}, State=#state{launchers=L}) ->
+    ?LOG("A launcher has started~n", ?NOTICE),
+    {noreply, State#state{launchers=L+1}};
+
 
 handle_cast({abort}, State) -> % stop now !
     ?LOG("Aborting by request !~n", ?EMERG),

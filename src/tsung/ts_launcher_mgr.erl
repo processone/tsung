@@ -97,6 +97,7 @@ handle_call({check_registered}, _From,State=#state{synced=undefined}) ->
         _ ->
             ok
     end,
+    ts_mon:launcher_is_alive(),
     {reply, ok, State#state{synced=yes}};
 
 handle_call({check_registered}, _From,State=#state{synced=yes}) ->
