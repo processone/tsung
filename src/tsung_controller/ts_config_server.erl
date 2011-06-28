@@ -581,6 +581,8 @@ replace_str({A,B},X) ->
 %% Func: print_info/0 Print system info
 %%----------------------------------------------------------------------
 print_info() ->
+    {_,_ ,VSN} = lists:keyfind(tsung_controller,1,application:loaded_applications()),
+    ?LOGF("SYSINFO:Tsung version: ~s~n",[VSN],?NOTICE),
     ?LOGF("SYSINFO:Erlang version: ~s~n",[erlang:system_info(system_version)],?NOTICE),
     ?LOGF("SYSINFO:System architecture ~s~n",[erlang:system_info(system_architecture)],?NOTICE),
     ?LOGF("SYSINFO:Current path: ~s~n",[code:which(tsung)],?NOTICE).
