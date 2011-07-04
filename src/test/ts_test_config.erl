@@ -146,6 +146,13 @@ ifalias_test() ->
     Res=ts_ip_scan:get_intf_aliases("lo"),
     ?assertEqual([{127,0,0,1}],Res).
 
+ifalias2_test() ->
+    {ok, L}=ts_utils:file_to_list("src/test/ifcfg.out"),
+    Out=ts_ip_scan:get_intf_aliases(L,"eth0",[],[]),
+    Res=lists:foldl(fun(A,L) -> [{192,168,76,A}|L] end, [],lists:seq(183,190)),
+    ?assertEqual(Out,Res).
+
+
 encode_test() ->
     Encoded="ts_encoded_47myfilepath_47toto_47titi_58sdfsdf_45sdfsdf_44aa_47",
     Str="/myfilepath/toto/titi:sdfsdf-sdfsdf,aa/",

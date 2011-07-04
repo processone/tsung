@@ -1,0 +1,43 @@
+eth0      Link encap:Ethernet  HWaddr 68:B5:99:79:71:5C  
+          inet addr:192.168.76.183  Bcast:192.168.79.255  Mask:255.255.248.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:2853444 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:1157524 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000
+          RX bytes:342116836 (326.2 MiB)  TX bytes:147190992 (140.3 MiB)
+          Interrupt:122 Memory:fb000000-fb7fffff
+ 
+eth0:0    Link encap:Ethernet  HWaddr 68:B5:99:79:71:5C  
+          inet addr:192.168.76.184  Bcast:192.168.79.255  Mask:255.255.248.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          Interrupt:122 Memory:fb000000-fb7fffff
+ 
+eth0:1    Link encap:Ethernet  HWaddr 68:B5:99:79:71:5C  
+          inet addr:192.168.76.185  Bcast:192.168.79.255  Mask:255.255.248.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          Interrupt:122 Memory:fb000000-fb7fffff
+ 
+eth0:2    Link encap:Ethernet  HWaddr 68:B5:99:79:71:5C  
+          inet addr:192.168.76.186  Bcast:192.168.79.255  Mask:255.255.248.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          Interrupt:122 Memory:fb000000-fb7fffff
+ 
+eth0:3    Link encap:Ethernet  HWaddr 68:B5:99:79:71:5C  
+          inet addr:192.168.76.187  Bcast:192.168.79.255  Mask:255.255.248.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          Interrupt:122 Memory:fb000000-fb7fffff
+ 
+eth0:4    Link encap:Ethernet  HWaddr 68:B5:99:79:71:5C  
+          inet addr:192.168.76.188  Bcast:192.168.79.255  Mask:255.255.248.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          Interrupt:122 Memory:fb000000-fb7fffff
+ 
+eth0:5    Link encap:Ethernet  HWaddr 68:B5:99:79:71:5C  
+          inet addr:192.168.76.189  Bcast:192.168.79.255  Mask:255.255.248.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          Interrupt:122 Memory:fb000000-fb7fffff
+ 
+eth0:6    Link encap:Ethernet  HWaddr 68:B5:99:79:71:5C  
+          inet addr:192.168.76.190  Bcast:192.168.79.255  Mask:255.255.248.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          Interrupt:122 Memory:fb000000-fb7fffff 

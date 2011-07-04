@@ -169,8 +169,11 @@ get_intf_aliases(["          inet addr:"++Line|Tail], Interface, Interface, Res)
     get_intf_aliases(Tail, Interface, Interface, lists:append([IP],Res));
 get_intf_aliases(["          "++_Line|Tail], Interface, Current, Res) ->
     get_intf_aliases(Tail, Interface, Current, Res);
+get_intf_aliases([" "|Tail], Interface, Old, Res) ->
+    get_intf_aliases(Tail, Interface, Old, Res);
 get_intf_aliases([Line|Tail], Interface, Old, Res) ->
-    ?DebugF("scan line : ~p~n",[Line]),
+    ?LOGF("scan line : ~p~n",[Line],?DEB),
+    %% ?DebugF("scan line : ~p~n",[Line]),
     case string:str(Line,Interface) of
         1 ->
             [Current|_] =string:tokens(Line," "),
