@@ -38,7 +38,7 @@
          terminate/2, code_change/3]).
 
 
--define(NODE, "os_mon").
+-define(NODE, 'os_mon').
 -define(PROCNET, "/proc/net/dev").
 
 -record(state,{
@@ -267,4 +267,4 @@ start_beam(Host) ->
     Args = ts_utils:erl_system_args(),
     ?LOGF("starting os_mon beam (~p) on host ~p with Args ~p~n",
           [?NODE,Host, Args], ?INFO),
-    slave:start(Host, ?NODE, Args).
+    slave:start(list_to_atom(Host), ?NODE, Args).

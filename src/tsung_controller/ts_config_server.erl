@@ -581,7 +581,10 @@ replace_str({A,B},X) ->
 %% Func: print_info/0 Print system info
 %%----------------------------------------------------------------------
 print_info() ->
-    {_,_ ,VSN} = lists:keyfind(tsung_controller,1,application:loaded_applications()),
+    VSN = case lists:keyfind(tsung_controller,1,application:loaded_applications()) of
+              {_,_ ,V} -> V;
+              _ -> "unknown"
+          end,
     ?LOGF("SYSINFO:Tsung version: ~s~n",[VSN],?NOTICE),
     ?LOGF("SYSINFO:Erlang version: ~s~n",[erlang:system_info(system_version)],?NOTICE),
     ?LOGF("SYSINFO:System architecture ~s~n",[erlang:system_info(system_architecture)],?NOTICE),
@@ -682,7 +685,7 @@ sort_static(Config=#config{static_users=S})->
 %%
 %% @doc start a remote beam
 %%
-start_slave(Host, Name, Args)->
+start_slave(Host, Name, Args) when is_atom(Host), is_atom(Name)->
     case slave:start(Host, Name, Args) of
         {ok, Node} ->
             ?LOGF("started newbeam on node ~p ~n", [Node], ?NOTICE),
@@ -762,7 +765,7 @@ local_launcher([Host],LogDir,Config) ->
 remote_launcher(Host, NodeId, Args)->
     Name = set_nodename(NodeId),
     ?LOGF("starting newbeam on host ~p with Args ~p~n", [Host, Args], ?INFO),
-    start_slave(Host, Name, Args).
+    start_slave(list_to_atom(Host), list_to_atom(Name), Args).
 
 set_remote_args(LogDir,PortsRange)->
     {ok, [[BootController]]}    = init:get_argument(boot),
