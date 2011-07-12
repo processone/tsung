@@ -763,6 +763,10 @@ Several virtual IP can be used to simulate more machines. This is
    1.1.1:} IP is no longer mandatory. If not specified, the default IP will
  be used.
 
+\strong{New in 1.4.0:} You can use  \userinput{<ip scan="yes"
+  value="eth0"/>} to scan for all the IP aliases on a given interface
+(\userinput{eth0} in this example).
+
  In this example, a second machine is used in the Tsung cluster,
  with a higher weight, and 2 cpus. Two Erlang virtual machines will be
  used to take advantage of the number of CPU.
@@ -806,7 +810,11 @@ scheduler. It currently handle pbs/torque, LSF and OAR. To do this,
   <client type="batch" batch="torque" maxusers="30000">
 \end{Verbatim}
 
-
+If you need to scan IP aliases on nodes given by the batch scheduler,
+use \varname{scan\_intf} like this:
+\begin{Verbatim}
+  <client type="batch" batch="torque" scan_intf='eth0'  maxusers="30000">
+\end{Verbatim}
 
 \subsection{Monitoring}
 
@@ -1469,6 +1477,53 @@ The vhost list is read from a file:
 When each client starts a session, it chooses randomly a domain (each domain has the
 same probability).
 
+\paragraph{Reading usernames and password from a CSV file}
+
+Since version 1.4.0, you can now use a CSV file to store the usernames
+and password.
+
+Configure the CSV file:
+\begin{Verbatim}
+ <options>
+  <option name="file_server" id='userdb' value="/home/foo/.tsung/users.csv"/>
+ </options>
+\end{Verbatim}
+
+And then you have to defined two variables of type \userinput{file},
+and the first jabber request (\userinput{connect}) must include a
+\varname{xmpp\_authenticate} tag:
+
+\begin{Verbatim}
+
+<session probability="100" name="jabber-example" type="ts_jabber">
+
+  <setdynvars sourcetype="file" fileid="userdb" delimiter=";" order="iter">
+    <var name="username" />
+    <var name="password" />
+  </setdynvars>
+
+    <request subst='true'>
+      <jabber type="connect" ack="no_ack">
+         <xmpp_authenticate username="%%_username%%" passwd="%%_password%%"/>
+      </jabber>
+    </request>
+
+   <thinktime value="2"></thinktime>
+
+   <transaction name="authenticate">
+
+   <request>
+     <jabber type="auth_get" ack="local"> </jabber>
+   </request>
+   <request>
+     <jabber type="auth_set_plain" ack="local"></jabber>
+   </request>
+
+  </transaction>
+...
+</session>
+\end{Verbatim}
+
 \paragraph{raw XML}
 You can send raw XML data to the server using the \varname{raw} type:
 \begin{Verbatim}
@@ -1807,9 +1862,6 @@ can use it to read external files. For example, if you need to read user
 names and passwd from a CSV file, you can do it with it (currently,
 you can read only a single file).
 
-\begin{quote}
- \strong{Note:} Reading usernames and password from a CSV file is not possible for Jabber.
-\end{quote}
 
 You have to add this in the XML configuration file:
 \begin{Verbatim}
