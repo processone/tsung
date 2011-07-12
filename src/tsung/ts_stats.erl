@@ -54,7 +54,7 @@ sample (F, X, Param, N) ->
     sample(F, [F(Param)|X], Param, N-1 ).
 
 uniform(Min,Max)->
-    Min+random:uniform(Max-Min).
+    Min+random:uniform(Max-Min+1)-1.
 
 %% random sample from an exponential distribution
 exponential(Param) ->

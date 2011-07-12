@@ -451,7 +451,7 @@ set_dynvars(erlang,{Module,Callback},_Vars,DynData) ->
 set_dynvars(code,Fun,_Vars,DynData) ->
     Fun({self(),DynData#dyndata.dynvars});
 set_dynvars(random,{number,Start,End},Vars,_DynData) ->
-    lists:map(fun(_) -> integer_to_list(Start+random:uniform(End-Start)) end,Vars);
+    lists:map(fun(_) -> integer_to_list(ts_stats:uniform(Start,End)) end,Vars);
 set_dynvars(random,{string,Length},Vars,_DynData) ->
     R = fun(_) -> ts_utils:randomstr(Length) end,
     lists:map(R,Vars);
