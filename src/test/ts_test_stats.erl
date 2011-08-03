@@ -13,8 +13,6 @@
 -include_lib("ts_profile.hrl").
 -include_lib("ts_config.hrl").
 
--define(EPSILON,0.01). % error (used to compare floats)
-
 set_dynvar_random_test() ->
     Min=1,
     Max=10,
