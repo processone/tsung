@@ -41,6 +41,7 @@
           parameters,
           formats,
           formats_results,
+          max_rows, % used for type='execute'
           sql
          }).
 

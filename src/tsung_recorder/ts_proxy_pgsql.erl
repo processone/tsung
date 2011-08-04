@@ -115,21 +115,33 @@ process_data(State,RawData = <<Code:8/integer, Size:4/integer-unit:8, Tail/binar
                              ?LOGF("password = ~s~n",[PwdStr],?DEB),
                              ts_proxy_recorder:dorecord({#pgsql_request{type=authenticate, passwd=PwdStr}}),
                              State#proxy{buffer=[]};
-                         {parse,{StringName,StringQuery,NParams,Params} } ->
-                             %%TODO: record
-                             State;
-                         {portal,{PortalName,StringQuery,NParams,Params} } ->
-                             %%TODO: record
-                             State;
+                         {parse,{<< >>,StringQuery,0,_Params} } ->
+                             %% TODO: handle Parameters if defined
+                             ts_proxy_recorder:dorecord({#pgsql_request{type=parse,equery=StringQuery}}),
+                             State#proxy{buffer=[]};
+                         {parse,{StringName,StringQuery,0,_Params} } ->
+                             %% TODO: handle Parameters if defined
+                             ts_proxy_recorder:dorecord({#pgsql_request{type=parse,name_prepared=StringName,equery=StringQuery}}),
+                             State#proxy{buffer=[]};
+                         {portal,{<<>>,<<>>,0,_Params} } ->
+                             ts_proxy_recorder:dorecord({#pgsql_request{type=bind}}),
+                             State#proxy{buffer=[]};
+                         {portal,{<<>>,StringQuery,0,_Params} } ->
+                             ts_proxy_recorder:dorecord({#pgsql_request{type=bind, name_prepared=StringQuery}}),
+                             %%TODO: handle other parameters
+                             State#proxy{buffer=[]};
                          sync ->
-                             %%TODO: record
-                             State;
-                         {describe,{Type,Name} } ->
-                             %%TODO: record
-                             State;
-                         {execute,{NamePortal,MaxParams} } ->
-                             %%TODO: record
-                             State
+                             ts_proxy_recorder:dorecord({#pgsql_request{type=sync}}),
+                             State#proxy{buffer=[]};
+                         {describe,{<<"S">>,Name} } ->
+                             ts_proxy_recorder:dorecord({#pgsql_request{type=describe,name_prepared=Name}}),
+                             State#proxy{buffer=[]};
+                         {describe,{<<"P">>,Name} } ->
+                             ts_proxy_recorder:dorecord({#pgsql_request{type=describe,name_portal=Name}}),
+                             State#proxy{buffer=[]};
+                         {execute,{NamePortal,Max} } ->
+                             ts_proxy_recorder:dorecord({#pgsql_request{type=execute,name_portal=NamePortal,max_rows=Max}}),
+                             State#proxy{buffer=[]}
                      end,
             process_data(NewState,Data);
         false ->
@@ -160,23 +172,29 @@ decode_packet($X, _) ->
     terminate;
 decode_packet($D,  << Type:1/binary, Name/binary >>) -> %describe
     ?LOGF("Extended protocol: describe ~s ~p~n",[Type,Name], ?DEB),
-    {describe,{Type,Name}};
-decode_packet($S,  Data) -> %sync
+    case Name of
+        << 0 >> -> {describe,{Type,[]}};
+        Bin ->     {describe,{Type,Bin}}
+    end;
+decode_packet($S,  _Data) -> %sync
     sync;
 decode_packet($E,  Data) -> %execute
     {NamePortal,PortalSize} = pgsql_util:to_string(Data),
     S1=PortalSize+1,
     << _:S1/binary, MaxParams:32/integer >> = Data,
     ?LOGF("Extended protocol: execute ~p ~p~n",[NamePortal,MaxParams], ?DEB),
-    {execute,{NamePortal,MaxParams}};
+    case MaxParams of
+        0   -> {execute,{NamePortal,unlimited}};
+        Val -> {execute,{NamePortal,Val}}
+    end;
 decode_packet($B, Data) -> %bind
-    [NamePortal, StringQuery | Tail] = binary:split(Data,<<0>>,[global,trim]),
+    [NamePortal, StringQuery | _] = binary:split(Data,<<0>>,[global,trim]),
     Size = size(NamePortal)+size(StringQuery)+2,
     << _:Size/binary, NParams:16/integer,Params/binary >> = Data,
     ?LOGF("Extended protocol: bind ~p ~p ~p~n",[NamePortal,StringQuery,NParams], ?DEB),
     {portal,{NamePortal,StringQuery,NParams,Params}};
 decode_packet($P, Data) -> % parse
-    [StringName, StringQuery | Tail] = binary:split(Data,<<0>>,[global,trim]),
+    [StringName, StringQuery | _] = binary:split(Data,<<0>>,[global,trim]),
     Size = size(StringName)+size(StringQuery)+2,
     << _:Size/binary, NParams:16/integer,Params/binary >> = Data,
     ?LOGF("Extended protocol: parse ~p ~p ~p~n",[StringName,StringQuery,NParams], ?DEB),
@@ -198,7 +216,44 @@ record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=sql, sql=SQL})->
     io:format(Fd,"</request>~n",[]),
     {ok,State};
 record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=close})->
-    io:format(Fd,"<request><pgsql type='close'/></request>", []),
+    io:format(Fd,"<request><pgsql type='close'/></request>~n", []),
+    {ok,State};
+record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=sync})->
+    io:format(Fd,"<request><pgsql type='sync'/></request>~n", []),
+    {ok,State};
+record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=describe,name_prepared=undefined,name_portal=Val}) ->
+    io:format(Fd,"<request><pgsql type='describe' name_portal='~s'/></request>~n", [Val]),
+    {ok,State};
+record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=describe,name_portal=undefined,name_prepared=Val}) ->
+    io:format(Fd,"<request><pgsql type='describe' name_prepared='~s'/></request>~n", [Val]),
+    {ok,State};
+record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=parse,name_portal=undefined,name_prepared=undefined,equery=Query})->
+    io:format(Fd,"<request><pgsql type='parse' /><![CDATA[~s]]></request>~n", [Query]),
+    {ok,State};
+record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=parse,name_portal=undefined,name_prepared=Val,equery=Query})->
+    io:format(Fd,"<request><pgsql type='parse' name_prepared='~s'/><![CDATA[~s]]></request>~n", [Val,Query]),
+    {ok,State};
+record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=parse,name_portal=Portal,name_prepared=Prep,equery=Query})->
+    io:format(Fd,"<request><pgsql type='parse' name_portal='~s' name_prepared='~s'/><![CDATA[~s]]></request>~n", [Portal,Prep,Query]),
+    {ok,State};
+
+record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=bind,name_portal=undefined,name_prepared=undefined})->
+    io:format(Fd,"<request><pgsql type='bind'/></request>~n", []),
+    {ok,State};
+record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=bind,name_portal=undefined,name_prepared=Val})->
+    io:format(Fd,"<request><pgsql type='bind' name_prepared='~s'/></request>~n", [Val]),
+    {ok,State};
+record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=bind,name_portal=Portal,name_prepared=Prep})->
+    io:format(Fd,"<request><pgsql type='bind' name_portal='~s' name_prepared='~s'/></request>~n", [Portal,Prep]),
+    {ok,State};
+record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=execute,name_portal=[],max_rows=unlimited})->
+    io:format(Fd,"<request><pgsql type='execute'/></request>~n", []),
+    {ok,State};
+record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=execute,name_portal=[],max_rows=Max})->
+    io:format(Fd,"<request><pgsql type='execute' max_rows='~p'/></request>~n", [Max]),
+    {ok,State};
+record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=execute,name_portal=Portal,max_rows=Max})->
+    io:format(Fd,"<request><pgsql type='execute' name_portal='~p' max_rows='~p'/></request>~n", [Portal,Max]),
     {ok,State};
 record_request(State=#state_rec{logfd=Fd},
                #pgsql_request{type = authenticate , passwd  = Pass }) ->
