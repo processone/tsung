@@ -263,7 +263,13 @@ repeat | if | change_type | foreach | set_option)*>
     password     CDATA   #IMPLIED
     database     CDATA   #IMPLIED
     username     CDATA   #IMPLIED
-    type        (connect | authenticate | sql | close) #REQUIRED >
+    name_portal   CDATA   #IMPLIED
+    name_prepared CDATA   #IMPLIED
+    query         CDATA   #IMPLIED
+    parameters    CDATA   #IMPLIED
+    formats       CDATA   #IMPLIED
+    formats_results CDATA   #IMPLIED
+    type        (connect | authenticate | sql | close | bind | parse | sync | execute | describe) #REQUIRED >
 
 <!ELEMENT mysql (#PCDATA) >
 <!ATTLIST mysql

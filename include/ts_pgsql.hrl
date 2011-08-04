@@ -35,6 +35,12 @@
           salt,
           auth_method,
           database,
+          name_portal,
+          name_prepared,
+          equery,
+          parameters,
+          formats,
+          formats_results,
           sql
          }).
 
