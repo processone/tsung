@@ -79,7 +79,7 @@ new_session() ->
 %% Function: get_message/21
 %% Purpose: Build a message/request ,
 %% Args:    record
-%% Returns: binary
+%% Returns: {binary,#pgsql}
 %%----------------------------------------------------------------------
 get_message(#pgsql_request{type=connect, database=DB, username=UserName},#state_rcv{session=S}) ->
     Version = <<?PROTOCOL_MAJOR:16/integer, ?PROTOCOL_MINOR:16/integer>>,
@@ -105,7 +105,24 @@ get_message(#pgsql_request{type=authenticate, auth_method= {?PG_AUTH_MD5, Salt},
     {pgsql_proto:encode_message(pass_md5, {User,PassString,Salt}),S};
 get_message(#pgsql_request{type=authenticate, auth_method=AuthType},#state_rcv{session=S}) ->
     ?LOGF("PGSQL: Authentication method not implemented ! [~p] ~n",[AuthType],?ERR),
-    {<<>>, S}.
+    {<<>>, S};
+get_message(#pgsql_request{type=execute,name_portal=Portal,max_rows=Max},#state_rcv{session=S}) ->
+    {pgsql_proto:encode_message(execute,{Portal,Max}), S};
+get_message(#pgsql_request{type=parse,name_prepared=Name,equery=Query},#state_rcv{session=S}) ->
+    {pgsql_proto:encode_message(parse,{Name,Query,""}), S};
+get_message(#pgsql_request{type=bind,formats=Formats,
+                           name_portal=Portal,name_prepared=NPrep,
+                           parameters=Params, formats_results=FormatsResults},
+            #state_rcv{session=S})->
+    {pgsql_proto:encode_message(bind,{Portal,NPrep,Params,Formats,FormatsResults}), S};
+%% describe
+get_message(#pgsql_request{type=describe, name_portal=Name,name_prepared=undefined}, #state_rcv{session=S})->
+    {pgsql_proto:encode_message(describe,{portal,Name}), S};
+get_message(#pgsql_request{type=describe, name_portal=undefined,name_prepared=Name}, #state_rcv{session=S})->
+    {pgsql_proto:encode_message(describe,{prepared_statement,Name}), S};
+%% sync
+get_message(#pgsql_request{type=sync},#state_rcv{session=S}) ->
+    {pgsql_proto:encode_message(sync,[]), S}.
 
 parse_bidi(Data, State) ->
     ts_plugin:parse_bidi(Data,State).

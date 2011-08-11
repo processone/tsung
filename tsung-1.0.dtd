@@ -267,7 +267,7 @@ repeat | if | change_type | foreach | set_option)*>
     name_prepared CDATA   #IMPLIED
     query         CDATA   #IMPLIED
     parameters    CDATA   #IMPLIED
-    max_rows      CDATA   "unlimited"
+    max_rows      CDATA   "0"
     formats       CDATA   #IMPLIED
     formats_results CDATA   #IMPLIED
     type        (connect | authenticate | sql | close | bind | parse | sync | execute | describe) #REQUIRED >

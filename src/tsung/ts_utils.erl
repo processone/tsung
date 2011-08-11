@@ -458,13 +458,13 @@ concat_atoms(Atoms) when is_list(Atoms) ->
 %% separated by Sep.
 join(_Sep, []) -> [];
 join(Sep, List) when is_list(List)->
-    join2(Sep, lists:reverse(List)).
-join2(Sep, [First | List]) when is_integer(First)->
-    join2(Sep, [integer_to_list(First) | List]);
-join2(Sep, [First | List]) when is_float(First)->
-    join2(Sep, [float_to_list(First) | List]);
-join2(Sep, [First | List]) when is_list(First)->
-        lists:foldl(fun(X, Sum) -> X ++ Sep ++ Sum end, First, List).
+    ToStr = fun(A) when is_integer(A) -> integer_to_list(A);
+               (A) when is_list(A) -> A;
+               (A) when is_float(A) -> float_to_list(A);
+               (A) when is_atom(A) -> atom_to_list(A);
+               (A) when is_binary(A) -> binary_to_list(A)
+            end,
+    string:join(lists:map(ToStr,List), Sep).
 
 %% split a string  (at first occurence of char)
 split(String,Chr) ->

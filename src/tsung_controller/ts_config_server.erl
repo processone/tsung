@@ -581,8 +581,8 @@ replace_str({A,B},X) ->
 %% Func: print_info/0 Print system info
 %%----------------------------------------------------------------------
 print_info() ->
-    VSN = case lists:keyfind(tsung_controller,1,application:loaded_applications()) of
-              {_,_ ,V} -> V;
+    VSN = case lists:keysearch(tsung_controller,1,application:loaded_applications()) of
+             {value, {_,_ ,V}} -> V;
               _ -> "unknown"
           end,
     ?LOGF("SYSINFO:Tsung version: ~s~n",[VSN],?NOTICE),

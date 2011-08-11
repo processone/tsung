@@ -123,12 +123,12 @@ process_data(State,RawData = <<Code:8/integer, Size:4/integer-unit:8, Tail/binar
                              %% TODO: handle Parameters if defined
                              ts_proxy_recorder:dorecord({#pgsql_request{type=parse,name_prepared=StringName,equery=StringQuery}}),
                              State#proxy{buffer=[]};
-                         {portal,{<<>>,<<>>,0,_Params} } ->
-                             ts_proxy_recorder:dorecord({#pgsql_request{type=bind}}),
-                             State#proxy{buffer=[]};
-                         {portal,{<<>>,StringQuery,0,_Params} } ->
-                             ts_proxy_recorder:dorecord({#pgsql_request{type=bind, name_prepared=StringQuery}}),
-                             %%TODO: handle other parameters
+                         {bind,{Portal,StringQuery,Params, ParamsFormat,ResFormats} } ->
+                             R={#pgsql_request{type=bind, name_prepared=StringQuery,
+                                               name_portal=Portal,
+                                               parameters=Params,formats=ParamsFormat,
+                                               formats_results=ResFormats}},
+                             ts_proxy_recorder:dorecord(R),
                              State#proxy{buffer=[]};
                          sync ->
                              ts_proxy_recorder:dorecord({#pgsql_request{type=sync}}),
@@ -190,9 +190,18 @@ decode_packet($E,  Data) -> %execute
 decode_packet($B, Data) -> %bind
     [NamePortal, StringQuery | _] = split(Data,<<0>>,[global,trim]),
     Size = size(NamePortal)+size(StringQuery)+2,
-    << _:Size/binary, NParams:16/integer,Params/binary >> = Data,
-    ?LOGF("Extended protocol: bind ~p ~p ~p~n",[NamePortal,StringQuery,NParams], ?DEB),
-    {portal,{NamePortal,StringQuery,NParams,Params}};
+    << _:Size/binary, NParamsFormat:16/integer,Tail1/binary >> = Data,
+    << Formats:NParamsFormat/binary, NParams:16/integer, Tail2/binary>> = Tail1,
+    ParamsFormat = case {NParamsFormat,Formats} of
+                        {0,_}                   -> none;
+                        {1,<< 0:16/integer >> } -> text;
+                        {1,<< 1:16/integer >> } -> binary;
+                        _                       -> auto
+                    end,
+    {Params,<< NFormatRes:16/integer,FormatsResBin/binary >> }=get_params(NParams,Tail2,[]),
+    ResFormats=get_params_format(FormatsResBin,[]),
+    ?LOGF("Extended protocol: bind ~p ~p ~p ~p ~p~n",[NamePortal,StringQuery,Params,ParamsFormat,ResFormats ], ?DEB),
+    {bind,{NamePortal,StringQuery,Params,ParamsFormat,ResFormats}};
 decode_packet($P, Data) -> % parse
     [StringName, StringQuery | _] = split(Data,<<0>>,[global,trim]),
     Size = size(StringName)+size(StringQuery)+2,
@@ -200,6 +209,18 @@ decode_packet($P, Data) -> % parse
     ?LOGF("Extended protocol: parse ~p ~p ~p~n",[StringName,StringQuery,NParams], ?DEB),
     {parse,{StringName,StringQuery,NParams,Params}}.
 
+
+get_params_format(<<>>,Acc) ->
+    lists:reverse(Acc);
+get_params_format(<<0:16/integer,Tail/binary>>,Acc) ->
+    get_params_format(Tail,[text|Acc]);
+get_params_format(<<1:16/integer,Tail/binary>>,Acc) ->
+    get_params_format(Tail,[binary|Acc]).
+
+get_params(0,Tail,Acc) ->
+    {lists:reverse(Acc), Tail};
+get_params(N,<<Size:32/integer,S:Size/binary,Tail/binary>>,Acc) ->
+    get_params(N-1,Tail,[S|Acc]).
 
 split(Bin,Pattern,Options)->
     %% we should remove this once R13B and older are no longer supported by tsung
@@ -245,23 +266,29 @@ record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=describe,name_por
     io:format(Fd,"<request><pgsql type='describe' name_prepared='~s'/></request>~n", [Val]),
     {ok,State};
 record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=parse,name_portal=undefined,name_prepared=undefined,equery=Query})->
-    io:format(Fd,"<request><pgsql type='parse' /><![CDATA[~s]]></request>~n", [Query]),
+    io:format(Fd,"<request><pgsql type='parse'><![CDATA[~s]]></pgsql></request>~n", [Query]),
     {ok,State};
 record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=parse,name_portal=undefined,name_prepared=Val,equery=Query})->
-    io:format(Fd,"<request><pgsql type='parse' name_prepared='~s'/><![CDATA[~s]]></request>~n", [Val,Query]),
+    io:format(Fd,"<request><pgsql type='parse' name_prepared='~s'><![CDATA[~s]]></pgsql></request>~n", [Val,Query]),
     {ok,State};
 record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=parse,name_portal=Portal,name_prepared=Prep,equery=Query})->
-    io:format(Fd,"<request><pgsql type='parse' name_portal='~s' name_prepared='~s'/><![CDATA[~s]]></request>~n", [Portal,Prep,Query]),
+    io:format(Fd,"<request><pgsql type='parse' name_portal='~s' name_prepared='~s'><![CDATA[~s]]></pgsql></request>~n", [Portal,Prep,Query]),
     {ok,State};
 
-record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=bind,name_portal=undefined,name_prepared=undefined})->
-    io:format(Fd,"<request><pgsql type='bind'/></request>~n", []),
-    {ok,State};
-record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=bind,name_portal=undefined,name_prepared=Val})->
-    io:format(Fd,"<request><pgsql type='bind' name_prepared='~s'/></request>~n", [Val]),
-    {ok,State};
-record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=bind,name_portal=Portal,name_prepared=Prep})->
-    io:format(Fd,"<request><pgsql type='bind' name_portal='~s' name_prepared='~s'/></request>~n", [Portal,Prep]),
+record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=bind,name_portal = <<>>,name_prepared=Val, parameters=[],formats=ParamsFormat, formats_results=ResFormats})->
+    ResFormatsStr=ts_utils:join(",",ResFormats),
+     io:format(Fd,"<request><pgsql type='bind' name_prepared='~s' formats='~s' formats_results='~s' /></request>~n", [Val,ParamsFormat,ResFormatsStr]),
+     {ok,State};
+record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=bind,
+                                                          name_portal=Portal,
+                                                          name_prepared=Prep,
+                                                          parameters=Params,
+                                                          formats=ParamsFormat,
+                                                          formats_results=ResFormats})->
+    ParamsStr=ts_utils:join(",",Params),
+    ResFormatsStr=ts_utils:join(",",ResFormats),
+    io:format(Fd,"<request><pgsql type='bind' name_portal='~s' name_prepared='~s' formats='~s' formats_results='~s' parameters='~s'/></request>~n",
+              [Portal,Prep,ParamsFormat,ResFormatsStr,ParamsStr]),
     {ok,State};
 record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=execute,name_portal=[],max_rows=unlimited})->
     io:format(Fd,"<request><pgsql type='execute'/></request>~n", []),
