@@ -70,8 +70,8 @@ bidi_nok_test()->
 
 auth_sasl_test()->
     myset_env(),
-    Res = << "<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='oof' >AGZvbwBmb28=</auth>" >>,
-    ?assertMatch(Res, ts_jabber_common:auth_sasl("foo","bar","oof")).
+    Res = << "<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='PLAIN' >AGp1bGlldAByMG0zMG15cjBtMzA=</auth>" >>,
+    ?assertMatch(Res, ts_jabber_common:auth_sasl("juliet","r0m30myr0m30","PLAIN")).
 
 choose_id_user_test()->
     ?assertEqual({user_defined,"user","pwd"}, ts_jabber:choose_or_cache_user_id(user_defined,"user","pwd")).
