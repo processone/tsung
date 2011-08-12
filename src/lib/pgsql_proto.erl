@@ -566,10 +566,12 @@ encode_message(describe, {Object, Name}) ->
     encode($D, <<ObjectP:8/integer, NameP/binary>>);
 encode_message(flush, _) ->
     encode($H, <<>>);
-encode_message(parse, {Name, Query, _Oids}) ->
+encode_message(parse, {Name, Query, Oids}) ->
     StringName = string(Name),
     StringQuery = string(Query),
-    encode($P, <<StringName/binary, StringQuery/binary, 0:16/integer>>);
+    NOids=length(Oids),
+    OidsBin=lists:foldl(fun(X,Acc)-> << Acc/binary ,X:32/integer>> end, << >>, Oids),
+    encode($P, <<StringName/binary, StringQuery/binary, NOids:16/integer,OidsBin/binary>>);
 encode_message(bind, Bind={NamePortal, NamePrepared,
                            Parameters, ParamsFormats,ResultFormats}) ->
     %%io:format("encode bind: ~p~n", [Bind]),
