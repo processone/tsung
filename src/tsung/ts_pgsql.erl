@@ -108,8 +108,8 @@ get_message(#pgsql_request{type=authenticate, auth_method=AuthType},#state_rcv{s
     {<<>>, S};
 get_message(#pgsql_request{type=execute,name_portal=Portal,max_rows=Max},#state_rcv{session=S}) ->
     {pgsql_proto:encode_message(execute,{Portal,Max}), S};
-get_message(#pgsql_request{type=parse,name_prepared=Name,equery=Query},#state_rcv{session=S}) ->
-    {pgsql_proto:encode_message(parse,{Name,Query,""}), S};
+get_message(#pgsql_request{type=parse,name_prepared=Name,equery=Query, parameters=Params},#state_rcv{session=S}) ->
+    {pgsql_proto:encode_message(parse,{Name,Query,Params}), S};
 get_message(#pgsql_request{type=bind,formats=Formats,
                            name_portal=Portal,name_prepared=NPrep,
                            parameters=Params, formats_results=FormatsResults},
@@ -122,7 +122,10 @@ get_message(#pgsql_request{type=describe, name_portal=undefined,name_prepared=Na
     {pgsql_proto:encode_message(describe,{prepared_statement,Name}), S};
 %% sync
 get_message(#pgsql_request{type=sync},#state_rcv{session=S}) ->
-    {pgsql_proto:encode_message(sync,[]), S}.
+    {pgsql_proto:encode_message(sync,[]), S};
+%% flush
+get_message(#pgsql_request{type=flush},#state_rcv{session=S}) ->
+    {pgsql_proto:encode_message(flush,[]), S}.
 
 parse_bidi(Data, State) ->
     ts_plugin:parse_bidi(Data,State).

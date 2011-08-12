@@ -62,6 +62,8 @@ parse_config(Element = #xmlElement{name=pgsql},
                       {parse,#pgsql_request{type=close}};
                   sync ->
                       {parse,#pgsql_request{type=sync}};
+                  flush ->
+                      {parse,#pgsql_request{type=flush}};
                   execute ->
                       Portal = ts_config:getAttr(Element#xmlElement.attributes, name_portal),
                       Limit = ts_config:getAttr(integer,Element#xmlElement.attributes, max_rows,0),
@@ -69,7 +71,12 @@ parse_config(Element = #xmlElement{name=pgsql},
                   parse ->
                       Name = ts_config:getAttr(Element#xmlElement.attributes, name_prepared),
                       Query = list_to_binary(ts_config:getText(Element#xmlElement.content)),
-                      {no_ack,#pgsql_request{type=parse,name_prepared=Name,equery=Query}};
+                      Params=case ts_config:getAttr(Element#xmlElement.attributes, parameters) of
+                                 "" -> "";
+                                 P ->
+                                     lists:map(fun(S)-> list_to_integer(S) end, ts_utils:split(P,","))
+                             end,
+                      {no_ack,#pgsql_request{type=parse,name_prepared=Name,equery=Query,parameters=Params}};
                   bind ->
                       Portal = ts_config:getAttr(Element#xmlElement.attributes, name_portal),
                       Prep = ts_config:getAttr(Element#xmlElement.attributes, name_prepared),

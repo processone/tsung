@@ -270,7 +270,7 @@ repeat | if | change_type | foreach | set_option)*>
     max_rows      CDATA   "0"
     formats       CDATA   #IMPLIED
     formats_results CDATA   #IMPLIED
-    type        (connect | authenticate | sql | close | bind | parse | sync | execute | describe) #REQUIRED >
+    type        (connect | authenticate | sql | close | bind | parse | cancel|call| sync | execute | describe | flush | copy | copydone| copyfail) #REQUIRED >
 
 <!ELEMENT mysql (#PCDATA) >
 <!ATTLIST mysql

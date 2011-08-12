@@ -16,6 +16,24 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+-define(PARSEBIN,<< 115,99,117,49,0,100,101,99,108,97,
+                    114,101,32,115,99,117,49,32,99,117,114,115,111,
+                    114,32,119,105,116,104,32,104,111,108,100,32,102,
+                    111,114,32,115,101,108,101,99,116,32,98,114,110,
+                    95,99,100,44,32,112,114,101,118,95,112,114,95,
+                    100,116,44,32,99,117,114,114,95,112,114,95,100,
+                    116,44,32,110,101,120,116,95,112,114,95,100,116,
+                    44,32,98,114,110,95,110,109,44,32,98,114,110,95,
+                    97,100,100,114,49,44,32,98,114,110,95,97,100,100,
+                    114,50,44,32,98,114,110,95,97,100,100,114,51,44,
+                    32,99,111,109,112,95,110,109,44,32,99,97,115,104,
+                    95,97,99,44,32,105,98,116,95,103,114,112,95,99,
+                    100,44,32,98,97,110,107,95,99,100,44,32,108,111,
+                    103,95,112,97,116,104,44,32,99,111,95,98,114,110,
+                    95,99,100,32,102,114,111,109,32,32,32,98,114,110,
+                    32,32,119,104,101,114,101,32,98,114,110,46,98,
+                    114,110,95,99,100,32,61,32,36,49,0,0,1,0,0,4,18 >>).
+
 test()->
     ok.
 
@@ -38,6 +56,28 @@ extended_test()->
     myset_env(0),
     Result=ts_proxy_pgsql:process_data(#proxy{},Data),
     ?assertMatch(#proxy{}, Result).
+
+extended_parse_test()->
+    Prep   = <<"scu1">>,
+    Query  = <<"declare scu1 cursor with hold for select brn_cd, prev_pr_dt, curr_pr_dt, next_pr_dt, brn_nm, brn_addr1, brn_addr2, brn_addr3, comp_nm, cash_ac, ibt_grp_cd, bank_cd, log_path, co_brn_cd from   brn  where brn.brn_cd = $1">>,
+    Result = ts_proxy_pgsql:decode_packet($P,?PARSEBIN),
+    ?assertMatch({parse,{Prep, Query,[1042]}}, Result).
+    %% {ok,Dev}=file:open("/tmp/toto.erl.log",[write]),
+    %% State=#state_rec{logfd=Dev},
+    %% Rec = #pgsql_request{type=parse, parameters=[1042], name_prepared=Prep, equery=Query},
+    %% ?assertMatch({ok,State}, ts_proxy_pgsql:record_request(State,Rec)).
+
+encode_parse_test()->
+    Prep   = <<"scu1">>,
+    Query  = <<"declare scu1 cursor with hold for select brn_cd, prev_pr_dt, curr_pr_dt, next_pr_dt, brn_nm, brn_addr1, brn_addr2, brn_addr3, comp_nm, cash_ac, ibt_grp_cd, bank_cd, log_path, co_brn_cd from   brn  where brn.brn_cd = $1">>,
+    Bin=?PARSEBIN,
+    Res= << 80,0,0,0,234,Bin/binary>>,
+    Rep=pgsql_proto:encode_message(parse,{Prep,Query,[1042]}),
+    ?assertEqual(Res,Rep).
+
+encode_parse2_test()->
+    Rep=pgsql_proto:encode_message(parse,{<< >>,<< >>,[]}),
+    ?assertEqual( << 80,0,0,0,8,0,0,0,0 >> ,Rep).
 
 
 myset_env()->
