@@ -36,6 +36,7 @@
 -define(PG_CLOSE_COMPLETE, $3).
 -define(PG_PORTAL_SUSPENDED, $s).
 -define(PG_NO_DATA, $n).
+-define(PG_COPY_RESPONSE, $G).
 
 -export([init/2, idle/2]).
 -export([run/1]).
@@ -524,6 +525,14 @@ decode_packet(Code, Packet) ->
 	    Ret(portal_suspended, []);
 	?PG_CLOSE_COMPLETE ->
 	    Ret(close_complete, []);
+	?PG_COPY_RESPONSE ->
+            <<FormatCode:8/integer, ColN:16/integer, ColFormat/binary>> = Packet,
+            Format = case FormatCode of
+                         0 -> text;
+                         1 -> binary
+                     end,
+            Cols=pgsql_util:int16(ColFormat,[]),
+            Ret(copy_response, {Format,Cols});
 	$t ->
 	    <<NParams:16/integer, OidsP/binary>> = Packet,
 	    Oids = pgsql_util:oids(OidsP, []),
@@ -554,6 +563,12 @@ encode_message(pass_md5, {User, Password, Salt}) ->
 		encode($p, Pass);
 encode_message(terminate, _) ->
     encode($X, <<>>);
+encode_message(copydone, _) ->
+    encode($c, <<>>);
+encode_message(copyfail, Msg) ->
+    encode($f, string(Msg));
+encode_message(copy, Data) ->
+    encode($d, Data );
 encode_message(squery, Query) -> % squery as in simple query.
     encode($Q, string(Query));
 encode_message(close, {Object, Name}) ->
