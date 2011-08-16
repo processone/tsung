@@ -52,59 +52,75 @@ parse_config(Element = #xmlElement{name=pgsql},
                             sessions = [CurS | _], dynvar=DynVar,
                             subst    = SubstFlag, match=MatchRegExp}) ->
 
-    {Ack,Request} = case ts_config:getAttr(atom, Element#xmlElement.attributes, type) of
-                  sql ->
-                      ValRaw = ts_config:getText(Element#xmlElement.content),
-                      SQL = list_to_binary(ts_utils:clean_str(ValRaw)),
-                      ?LOGF("Got SQL query: ~p~n",[SQL], ?NOTICE),
-                      {parse,#pgsql_request{sql=SQL, type= sql}};
-                  close ->
-                      {parse,#pgsql_request{type=close}};
-                  sync ->
-                      {parse,#pgsql_request{type=sync}};
-                  flush ->
-                      {parse,#pgsql_request{type=flush}};
-                  execute ->
-                      Portal = ts_config:getAttr(Element#xmlElement.attributes, name_portal),
-                      Limit = ts_config:getAttr(integer,Element#xmlElement.attributes, max_rows,0),
-                      {no_ack,#pgsql_request{type=execute,name_portal=Portal,max_rows=Limit}};
-                  parse ->
-                      Name = ts_config:getAttr(Element#xmlElement.attributes, name_prepared),
-                      Query = list_to_binary(ts_config:getText(Element#xmlElement.content)),
-                      Params=case ts_config:getAttr(Element#xmlElement.attributes, parameters) of
-                                 "" -> "";
-                                 P ->
-                                     lists:map(fun(S)-> list_to_integer(S) end, ts_utils:split(P,","))
-                             end,
-                      {no_ack,#pgsql_request{type=parse,name_prepared=Name,equery=Query,parameters=Params}};
-                  bind ->
-                      Portal = ts_config:getAttr(Element#xmlElement.attributes, name_portal),
-                      Prep = ts_config:getAttr(Element#xmlElement.attributes, name_prepared),
-                      Formats = case ts_config:getAttr(Element#xmlElement.attributes, formats_results) of
-                                 "" -> "";
-                                 FR ->
-                                     lists:map(fun(A)->list_to_atom(A) end,ts_utils:split(FR,","))
-                             end,
-                      Params=case ts_config:getAttr(Element#xmlElement.attributes, parameters) of
-                                 "" -> "";
-                                 P ->
-                                     ts_utils:split(P,",")
-                             end,
-                      ParamsFormat = ts_config:getAttr(atom,Element#xmlElement.attributes, formats, none),
-                      {no_ack,#pgsql_request{type=bind,name_portal=Portal,name_prepared=Prep,
-                                    formats=ParamsFormat,formats_results=Formats,parameters=Params}};
-                  describe ->
-                      Portal=ts_config:getAttr(string,Element#xmlElement.attributes, name_portal,undefined),
-                      Prep = ts_config:getAttr(string,Element#xmlElement.attributes, name_prepared,undefined),
-                      {no_ack,#pgsql_request{type=describe,name_portal=Portal,name_prepared=Prep}};
-                  authenticate ->
-                      Passwd  = ts_config:getAttr(Element#xmlElement.attributes, password),
-                      {parse,#pgsql_request{passwd=Passwd, type= authenticate}};
-                  connect ->
-                      Database  = ts_config:getAttr(Element#xmlElement.attributes, database),
-                      User  = ts_config:getAttr(Element#xmlElement.attributes, username),
-                      {parse,#pgsql_request{username=User, database=Database,  type=connect}}
-              end,
+    {Ack,Request} =
+        case ts_config:getAttr(atom, Element#xmlElement.attributes, type) of
+            sql ->
+                ValRaw = ts_config:getText(Element#xmlElement.content),
+                SQL = list_to_binary(ts_utils:clean_str(ValRaw)),
+                ?LOGF("Got SQL query: ~p~n",[SQL], ?NOTICE),
+                {parse,#pgsql_request{sql=SQL, type= sql}};
+            close ->
+                {parse,#pgsql_request{type=close}};
+            sync ->
+                {parse,#pgsql_request{type=sync}};
+            flush ->
+                {parse,#pgsql_request{type=flush}};
+            copydone ->
+                {parse,#pgsql_request{type=copydone}};
+            execute ->
+                Portal = ts_config:getAttr(Element#xmlElement.attributes, name_portal),
+                Limit = ts_config:getAttr(integer,Element#xmlElement.attributes, max_rows,0),
+                {no_ack,#pgsql_request{type=execute,name_portal=Portal,max_rows=Limit}};
+            parse ->
+                Name = ts_config:getAttr(Element#xmlElement.attributes, name_prepared),
+                Query = list_to_binary(ts_config:getText(Element#xmlElement.content)),
+                Params=case ts_config:getAttr(Element#xmlElement.attributes, parameters) of
+                           "" -> "";
+                           P ->
+                               lists:map(fun(S)-> list_to_integer(S) end, ts_utils:splitchar(P,$,))
+                       end,
+                {no_ack,#pgsql_request{type=parse,name_prepared=Name,equery=Query,parameters=Params}};
+            bind ->
+                Portal = ts_config:getAttr(Element#xmlElement.attributes, name_portal),
+                Prep = ts_config:getAttr(Element#xmlElement.attributes, name_prepared),
+                Formats = case ts_config:getAttr(Element#xmlElement.attributes, formats_results) of
+                              "" -> "";
+                              FR ->
+                                  lists:map(fun(A)->list_to_atom(A) end,ts_utils:splitchar(FR,$,))
+                          end,
+                Params=case ts_config:getAttr(Element#xmlElement.attributes, parameters) of
+                           "" -> "";
+                           P ->
+                               ts_utils:split(P,",")
+                       end,
+                ParamsFormat = ts_config:getAttr(atom,Element#xmlElement.attributes, formats, none),
+                {no_ack,#pgsql_request{type=bind,name_portal=Portal,name_prepared=Prep,
+                                       formats=ParamsFormat,formats_results=Formats,parameters=Params}};
+            copy ->
+                Contents = case ts_config:getAttr(string, Element#xmlElement.attributes, contents_from_file) of
+                               [] ->
+                                   P=ts_config:getText(Element#xmlElement.content),
+                                   list_to_binary(lists:map(fun(S)-> list_to_integer(S) end, ts_utils:splitchar(P,$,)));
+                               FileName ->
+                                   {ok, FileContent} = file:read_file(FileName),
+                                   FileContent
+                           end,
+                {no_ack,#pgsql_request{type=copy,equery=Contents}};
+            copyfail ->
+                Str = ts_config:getAttr(string,Element#xmlElement.attributes, equery,undefined),
+                {parse,#pgsql_request{type=copyfail,equery=list_to_binary(Str)}};
+            describe ->
+                Portal=ts_config:getAttr(string,Element#xmlElement.attributes, name_portal,undefined),
+                Prep = ts_config:getAttr(string,Element#xmlElement.attributes, name_prepared,undefined),
+                {no_ack,#pgsql_request{type=describe,name_portal=Portal,name_prepared=Prep}};
+            authenticate ->
+                Passwd  = ts_config:getAttr(Element#xmlElement.attributes, password),
+                {parse,#pgsql_request{passwd=Passwd, type= authenticate}};
+            connect ->
+                Database  = ts_config:getAttr(Element#xmlElement.attributes, database),
+                User  = ts_config:getAttr(Element#xmlElement.attributes, username),
+                {parse,#pgsql_request{username=User, database=Database,  type=connect}}
+        end,
     Msg= #ts_request{ack     = Ack,
                      endpage = true,
                      dynvar_specs  = DynVar,

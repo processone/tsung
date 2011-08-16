@@ -123,6 +123,15 @@ get_message(#pgsql_request{type=describe, name_portal=undefined,name_prepared=Na
 %% sync
 get_message(#pgsql_request{type=sync},#state_rcv{session=S}) ->
     {pgsql_proto:encode_message(sync,[]), S};
+%% copyfail
+get_message(#pgsql_request{type=copyfail,equery=Msg},#state_rcv{session=S}) ->
+    {pgsql_proto:encode_message(copyfail,Msg), S};
+%% copydone
+get_message(#pgsql_request{type=copydone},#state_rcv{session=S}) ->
+    {pgsql_proto:encode_message(copydone,<< >> ), S};
+%% copy
+get_message(#pgsql_request{type=copy,equery=Data},#state_rcv{session=S}) ->
+    {pgsql_proto:encode_message(copy,Data), S};
 %% flush
 get_message(#pgsql_request{type=flush},#state_rcv{session=S}) ->
     {pgsql_proto:encode_message(flush,[]), S}.
@@ -176,6 +185,9 @@ parse(Data, State=#state_rcv{acc = [], dyndata=DynData}) ->
             NewDynData=DynData#dyndata{proto=#pgsql_dyndata{auth_method=AuthType}},
             {State#state_rcv{ack_done = true, dyndata=NewDynData},[],false};
 
+        {ok, {copy_response, {_Format,_ColsFormat}},_ } ->
+            ?LOG("PGSQL: Copy response ~n",?DEB),
+            {State#state_rcv{ack_done = true},[],false};
         {ok, _Pair, Tail } ->
             parse(Tail, State);
 

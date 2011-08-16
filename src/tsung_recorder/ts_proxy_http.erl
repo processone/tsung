@@ -289,7 +289,7 @@ record_request(State=#state_rec{prev_host=Host, prev_port=Port, prev_scheme=Sche
                     Id=State#state_rec.ext_file_id,
                     case ts_utils:key1search(ParsedHeader,"content-type") of
                         "multipart/form-data" ++ _Tail->
-                            FileName=append_to_filename(State#state_rec.log_file,".xml","-"++integer_to_list(Id)++".bin"),
+                            FileName=ts_utils:append_to_filename(State#state_rec.log_file,".xml","-"++integer_to_list(Id)++".bin"),
                             ?LOGF("multipart/form-data, write body data in external binary file ~s~n",[FileName],?NOTICE),
                             ok = file:write_file(FileName,list_to_binary(Body)),
                             io:format(Fd," contents_from_file='~s' ", [FileName]),
@@ -348,11 +348,4 @@ record_header(Fd, Headers,HeaderName, Msg, Fun)->
         undefined -> ok;
         Value     -> io:format(Fd,Msg,[Fun(Value)])
     end.
-
-append_to_filename(Filename, From, To) ->
-    case re:replace(Filename,From,To, [{return,list},global] ) of
-        Filename ->  Filename ++"." ++ To;
-        RealName -> RealName
-    end.
-
 

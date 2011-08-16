@@ -43,7 +43,7 @@
          decode_base64/1, encode_base64/1, to_lower/1, release_is_newer_or_eq/1,
          randomstr/1,urandomstr/1,urandomstr_noflat/1, eval/1, list_to_number/1,
          time2sec/1, time2sec_hires/1, read_file_raw/1, init_seed/1, jsonpath/2, pmap/2,
-         concat_atoms/1, ceiling/1, accept_loop/3
+         concat_atoms/1, ceiling/1, accept_loop/3, append_to_filename/3, splitchar/2
         ]).
 
 level2int("debug")     -> ?DEB;
@@ -466,9 +466,22 @@ join(Sep, List) when is_list(List)->
             end,
     string:join(lists:map(ToStr,List), Sep).
 
-%% split a string  (at first occurence of char)
+%% split a string given a string (at first occurence of char)
 split(String,Chr) ->
     re:split(String,Chr,[{return,list}]).
+
+%% split a string given a char (faster)
+splitchar(String,Chr) ->
+    splitchar2(String,Chr,[],[]).
+splitchar2([],_,[],Acc) ->
+    lists:reverse(Acc);
+splitchar2([],_,AccChr,Acc) ->
+    lists:reverse([lists:reverse(AccChr)|Acc]);
+splitchar2([Chr|String],Chr,AccChr,Acc) ->
+    splitchar2(String,Chr,[],[lists:reverse(AccChr)|Acc]);
+splitchar2([Other|String],Chr,AccChr,Acc) ->
+    splitchar2(String,Chr,[Other|AccChr],Acc).
+
 
 %% split a string in 2 (at first occurence of char)
 split2(String,Chr) ->
@@ -798,3 +811,11 @@ accept_loop(PPid, Tag, ServerSock)->
         _->
             normal
     end.
+
+
+append_to_filename(Filename, From, To) ->
+    case re:replace(Filename,From,To, [{return,list},global] ) of
+        Filename ->  Filename ++"." ++ To;
+        RealName -> RealName
+    end.
+

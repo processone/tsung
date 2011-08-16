@@ -36,7 +36,7 @@
 %%--------------------------------------------------------------------
 %% Func: socket_opts/0
 %%--------------------------------------------------------------------
-socket_opts() -> [].
+socket_opts() -> [binary].
 
 %%--------------------------------------------------------------------
 %% Func: gettype/0
@@ -58,13 +58,12 @@ rewrite_ssl(Data)->{ok, Data}.
 %% Purpose: parse PGSQL request
 %% Returns: {ok, NewState}
 %%--------------------------------------------------------------------
-parse(State=#proxy{parse_status=Status},_,_SSocket,String=[0,0,0,8,4,210,22,47]) when Status==new ->
+parse(State=#proxy{parse_status=Status},_,_SSocket,Data= << 0,0,0,8,4,210,22,47 >>) when Status==new ->
     ?LOG("SSL req: ~n",?DEB),
     Socket = connect(undefined),
-    ts_client_proxy:send(Socket, String, ?MODULE),
-    {ok, State#proxy{buffer=[],serversock = Socket }};
-parse(State=#proxy{parse_status=Status},_,ServerSocket,String) when Status==new ->
-    Data = list_to_binary(String),
+    ts_client_proxy:send(Socket, Data, ?MODULE),
+    {ok, State#proxy{buffer= << >>,serversock = Socket }};
+parse(State=#proxy{parse_status=Status},_,ServerSocket,Data) when Status==new ->
     <<PacketSize:32/integer, StartupPacket/binary>> = Data,
     ?LOGF("Received data from client: size=~p [~p]~n",[PacketSize, StartupPacket],?DEB),
     <<ProtoMaj:16/integer, ProtoMin:16/integer, Data2/binary>> = StartupPacket,
@@ -75,20 +74,19 @@ parse(State=#proxy{parse_status=Status},_,ServerSocket,String) when Status==new 
             ?LOGF("Received data from client: split = ~p~n",[Res],?DEB),
             Socket = connect(ServerSocket),
             ts_client_proxy:send(Socket, Data, ?MODULE),
-            {ok, State#proxy{buffer=[], serversock = Socket} };
+            {ok, State#proxy{buffer= <<>>, serversock = Socket} };
         Req ->
             ?LOGF("Received data from client: split = ~p~n",[Res],?DEB),
             ts_proxy_recorder:dorecord({Req#pgsql_request{type=connect}}),
             Socket = connect(ServerSocket),
             ts_client_proxy:send(Socket, Data, ?MODULE),
-            {ok, State#proxy{parse_status=open, buffer=[], serversock = Socket} }
+            {ok, State#proxy{parse_status=open, buffer= <<>>, serversock = Socket} }
     end;
-parse(State=#proxy{},_,ServerSocket,String) ->
-    NewString = lists:append(State#proxy.buffer, String),
-    Data = list_to_binary(NewString),
-    ?LOGF("Received data from client: ~p~n",[Data],?DEB),
-    NewState =  process_data(State,Data),
-    ts_client_proxy:send(ServerSocket, String, ?MODULE),
+parse(State=#proxy{},_,ServerSocket,Data) ->
+    NewData = << (State#proxy.buffer)/binary, Data/binary >>,
+    ?LOGF("Received data from client: ~p~n",[NewData],?DEB),
+    NewState =  process_data(State,NewData),
+    ts_client_proxy:send(ServerSocket, Data, ?MODULE),
     {ok,NewState}.
 
 
@@ -106,54 +104,66 @@ process_data(State,RawData = <<Code:8/integer, Size:4/integer-unit:8, Tail/binar
                              SQLStr= binary_to_list(SQL),
                              ?LOGF("sql = ~s~n",[SQLStr],?DEB),
                              ts_proxy_recorder:dorecord({#pgsql_request{type=sql, sql=SQLStr}}),
-                             State#proxy{buffer=[]};
+                             State#proxy{buffer= <<>>};
                          terminate ->
                              ts_proxy_recorder:dorecord({#pgsql_request{type=close}}),
-                             State#proxy{buffer=[]};
+                             State#proxy{buffer= <<>>};
                          {password, Password} ->
                              PwdStr= binary_to_list(Password),
                              ?LOGF("password = ~s~n",[PwdStr],?DEB),
                              ts_proxy_recorder:dorecord({#pgsql_request{type=authenticate, passwd=PwdStr}}),
-                             State#proxy{buffer=[]};
+                             State#proxy{buffer= <<>>};
                          {parse,{<< >>,StringQuery,Params} } ->
                              %% TODO: handle Parameters if defined
                              ts_proxy_recorder:dorecord({#pgsql_request{type=parse,equery=StringQuery,
                                                                        parameters=Params}}),
-                             State#proxy{buffer=[]};
+                             State#proxy{buffer= <<>>};
                          {parse,{StringName,StringQuery,Params} } ->
                              %% TODO: handle Parameters if defined
                              ts_proxy_recorder:dorecord({#pgsql_request{type=parse,name_prepared=StringName,
                                                                         parameters=Params,
                                                                         equery=StringQuery}}),
-                             State#proxy{buffer=[]};
+                             State#proxy{buffer= <<>>};
                          {bind,{Portal,StringQuery,Params, ParamsFormat,ResFormats} } ->
                              R={#pgsql_request{type=bind, name_prepared=StringQuery,
                                                name_portal=Portal,
                                                parameters=Params,formats=ParamsFormat,
                                                formats_results=ResFormats}},
                              ts_proxy_recorder:dorecord(R),
-                             State#proxy{buffer=[]};
-                         sync ->
-                             ts_proxy_recorder:dorecord({#pgsql_request{type=sync}}),
-                             State#proxy{buffer=[]};
-                         flush ->
-                             ts_proxy_recorder:dorecord({#pgsql_request{type=flush}}),
-                             State#proxy{buffer=[]};
+                             State#proxy{buffer= <<>>};
+                         {copy, CopyData} ->
+                             ts_proxy_recorder:dorecord({#pgsql_request{type=copy,equery=CopyData}}),
+                             State#proxy{buffer= <<>>};
+                         copydone ->
+                             ts_proxy_recorder:dorecord({#pgsql_request{type=copydone}}),
+                             State#proxy{buffer= <<>>};
+                         {copyfail,Msg} ->
+                             ts_proxy_recorder:dorecord({#pgsql_request{type=copyfail,equery=Msg}}),
+                             State#proxy{buffer= <<>>};
                          {describe,{<<"S">>,Name} } ->
                              ts_proxy_recorder:dorecord({#pgsql_request{type=describe,name_prepared=Name}}),
-                             State#proxy{buffer=[]};
+                             State#proxy{buffer= <<>>};
                          {describe,{<<"P">>,Name} } ->
                              ts_proxy_recorder:dorecord({#pgsql_request{type=describe,name_portal=Name}}),
-                             State#proxy{buffer=[]};
+                             State#proxy{buffer= <<>>};
                          {execute,{NamePortal,Max} } ->
                              ts_proxy_recorder:dorecord({#pgsql_request{type=execute,name_portal=NamePortal,max_rows=Max}}),
-                             State#proxy{buffer=[]}
+                             State#proxy{buffer= <<>>};
+                         sync ->
+                             ts_proxy_recorder:dorecord({#pgsql_request{type=sync}}),
+                             State#proxy{buffer= <<>>};
+                         flush ->
+                             ts_proxy_recorder:dorecord({#pgsql_request{type=flush}}),
+                             State#proxy{buffer= <<>>}
                      end,
             process_data(NewState,Data);
         false ->
             ?LOG("need more~n",?DEB),
             State#proxy{buffer=RawData}
-    end.
+    end;
+process_data(State,RawData) ->
+    ?LOG("need more~n",?DEB),
+    State#proxy{buffer=RawData}.
 
 get_db_user(Arg) ->
     get_db_user(Arg,#pgsql_request{}).
@@ -195,6 +205,15 @@ decode_packet($E, Data) -> %execute
         0   -> {execute,{NamePortal,unlimited}};
         Val -> {execute,{NamePortal,Val}}
     end;
+decode_packet($d, Data) -> %copy
+    ?LOGF("Extended protocol: copy ~p~n",[Data], ?DEB),
+    {copy, Data};
+decode_packet($c, _) -> %copy-complete
+    ?LOG("Extended protocol: copydone~n", ?DEB),
+    copydone;
+decode_packet($f, Data) -> %copy-fail
+    ?LOGF("Extended protocol: copy failure~p~n", [Data],?DEB),
+    {copyfail, Data};
 decode_packet($B, Data) -> %bind
     [NamePortal, StringQuery | _] = split(Data,<<0>>,[global,trim]),
     Size = size(NamePortal)+size(StringQuery)+2,
@@ -206,7 +225,7 @@ decode_packet($B, Data) -> %bind
                         {1,<< 1:16/integer >> } -> binary;
                         _                       -> auto
                     end,
-    {Params,<< NFormatRes:16/integer,FormatsResBin/binary >> }=get_params(NParams,Tail2,[]),
+    {Params,<< _NFormatRes:16/integer,FormatsResBin/binary >> }=get_params(NParams,Tail2,[]),
     ResFormats=get_params_format(FormatsResBin,[]),
     ?LOGF("Extended protocol: bind ~p ~p ~p ~p ~p~n",[NamePortal,StringQuery,Params,ParamsFormat,ResFormats ], ?DEB),
     {bind,{NamePortal,StringQuery,Params,ParamsFormat,ResFormats}};
@@ -231,7 +250,7 @@ get_params(0,Tail,Acc) ->
 get_params(N,<<Size:32/integer,S:Size/binary,Tail/binary>>,Acc) ->
     get_params(N-1,Tail,[S|Acc]).
 
-get_params_int(0,Tail,Acc) ->
+get_params_int(0,_,Acc) ->
     lists:reverse(Acc);
 get_params_int(N,<<Val:32/integer,Tail/binary>>,Acc) ->
     get_params_int(N-1,Tail,[Val|Acc]).
@@ -276,6 +295,22 @@ record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=sync})->
     {ok,State};
 record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=flush})->
     io:format(Fd,"<request><pgsql type='flush'/></request>~n", []),
+    {ok,State};
+record_request(State=#state_rec{logfd=Fd,ext_file_id=Id}, #pgsql_request{type=copy,equery=Bin}) when size(Bin) > 1024->
+    FileName=ts_utils:append_to_filename(State#state_rec.log_file,".xml","-"++integer_to_list(Id)++".bin"),
+    ok = file:write_file(FileName,Bin),
+    io:format(Fd,"<request><pgsql type='copy' contents_from_file='~s'/></request>~n", [FileName]),
+    {ok,State#state_rec{ext_file_id=Id+1} };
+record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=copy,equery=Bin}) ->
+    Str=ts_utils:join(",",binary_to_list(Bin)),
+    io:format(Fd,"<request><pgsql type='copy'>~s</pgsql></request>~n", [Str]),
+    {ok,State};
+record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=copyfail,equery=Bin}) ->
+    Str=binary_to_list(Bin),
+    io:format(Fd,"<request><pgsql type='copyfail' query='~s'/></request>~n", [Str]),
+    {ok,State};
+record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=copydone}) ->
+    io:format(Fd,"<request><pgsql type='copydone'/></request>~n", []),
     {ok,State};
 record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=describe,name_prepared=undefined,name_portal=Val}) ->
     io:format(Fd,"<request><pgsql type='describe' name_portal='~s'/></request>~n", [Val]),
@@ -338,7 +373,7 @@ connect(undefined) ->
                                    [{active, once},
                                     {recbuf, ?tcp_buffer},
                                     {sndbuf, ?tcp_buffer}
-                                   ]),
+                                   ]++ socket_opts()),
     ?LOGF("ok, connected  ~p~n",[Socket],?DEB),
     Socket;
 connect(Socket) -> Socket.

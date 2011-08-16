@@ -47,7 +47,7 @@
 
 %%--------------------------------------------------------------------
 %% External exports
--export([start_link/1, read_config/1, get_req/2, get_next_session/1,
+-export([start_link/1, read_config/1, read_config/2, get_req/2, get_next_session/1,
          get_client_config/1, newbeams/1, newbeam/2,
          get_monitor_hosts/0, encode_filename/1, decode_filename/1,
          endlaunching/1, status/0, start_file_server/1, get_user_agents/0,
@@ -124,7 +124,9 @@ get_user_agents()->
 %% Returns: ok | {error, Reason}
 %%--------------------------------------------------------------------
 read_config(ConfigFile)->
-    gen_server:call({global,?MODULE},{read_config, ConfigFile},?config_timeout).
+    read_config(ConfigFile,?config_timeout).
+read_config(ConfigFile,Timeout)->
+    gen_server:call({global,?MODULE},{read_config, ConfigFile},Timeout).
 
 %%--------------------------------------------------------------------
 %% Function: get_client_config/1
