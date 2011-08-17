@@ -157,7 +157,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 %%
 get_intf_aliases(Interface) ->
-    Res=os:cmd("LANG=C /sbin/ifconfig "),
+    Res=os:cmd("LC_ALL=C /sbin/ifconfig "),
     get_intf_aliases(string:tokens(Res,"\n"), Interface,[],[]).
 
 get_intf_aliases([], _, _, Res) ->
