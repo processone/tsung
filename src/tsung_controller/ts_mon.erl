@@ -39,7 +39,6 @@
 
 -include("ts_profile.hrl").
 -include("ts_config.hrl").
--include("rrdtool.hrl").
 
 %% External exports
 -export([start/1, stop/0, newclient/1, endclient/1, sendmes/1, add/2,
@@ -57,7 +56,7 @@
 -define(DELAYED_WRITE_DELAY,5000).  % 5 sec
 
 -record(state, {log,          % log fd
-                backend,      % type of backend: text|rrdtool
+                backend,      % type of backend: text|...
                 log_dir,      % log directory
                 fullstats,    % fullstats log filename
                 dump_interval,%
@@ -188,15 +187,6 @@ init([LogDir]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_call({start_logger, Machines, DumpType, rrdtool}, From, State) ->
-    case whereis(rrdtool) of
-        undefined ->
-            ?LOG("rrdtool port not available, switch to text backend~n",?WARN),
-            start_logger({Machines, DumpType, text}, From, State);
-        _ ->
-            ?LOG("rrdtool port OK !~n",?DEB),
-            start_logger({Machines, DumpType, rrdtool}, From, State)
-    end;
 handle_call({start_logger, Machines, DumpType, Backend}, From, State) ->
     start_logger({Machines, DumpType, Backend}, From, State);
 
