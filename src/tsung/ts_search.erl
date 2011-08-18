@@ -276,25 +276,6 @@ parse_dynvar([{re,VarName, RegExp}| DynVarsSpecs],Binary,Data,Tree,DynVars) ->
             parse_dynvar(DynVarsSpecs, Binary,Data,Tree, ts_dynvars:set(VarName,"",DynVars))
     end;
 
-parse_dynvar(D=[{regexp,_VarName, _RegExp}| _DynVarsSpecs],
-                Binary,undefined,Tree, DynVars) ->
-    parse_dynvar(D,Binary,binary_to_list(Binary),Tree,DynVars);
-
-parse_dynvar([{regexp,VarName, RegExp}| DynVarsSpecs],
-                Binary,String,Tree, DynVars) ->
-    case gregexp:groups(String, RegExp) of
-        {match,[Value|_]} ->
-            ?LOGF("DynVar: Match (~p=~p) ~n",[VarName, Value], ?INFO),
-            parse_dynvar(DynVarsSpecs, Binary,String,Tree,
-                            ts_dynvars:set(VarName,Value,DynVars));
-        nomatch ->
-            ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName], ?WARN),
-            parse_dynvar(DynVarsSpecs, Binary,String,Tree, ts_dynvars:set(VarName,"",DynVars));
-        {match, []} ->
-            ?LOGF("Dyn Var: empty Match (varname=~p), ~n",[VarName], ?NOTICE),
-            parse_dynvar(DynVarsSpecs, Binary,String,Tree, ts_dynvars:set(VarName,"",DynVars))
-    end;
-
 parse_dynvar(D=[{xpath,_VarName, _Expr}| _DynVarsSpecs],
                 Binary,String,undefined,DynVars) ->
     Body = extract_body(Binary),

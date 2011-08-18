@@ -63,7 +63,7 @@
       <thinktime min="2" max="4"></thinktime>
 
       <request subst="true">
-        <dyn_variable name="title" regexp="&lt;title&gt;\(.*\)&lt;/title&gt;"/>
+        <dyn_variable name="title" re="&lt;title&gt;(.*)&lt;/title&gt;"/>
         <http url="/test.html%%_rndint%%&amp;id=%%_id1%%" method="GET" version="1.1"/></request>
       <thinktime value="5" random="true"/>
 

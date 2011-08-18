@@ -37,9 +37,9 @@ It is distributed under the GNU General Public License version 2.
 \subsection{What is Erlang and why is it important for Tsung ?}
 
 \program{Tsung's} main strength is its ability to simulate a huge number of
-simultaneous user from a single CPU. When used on cluster you can
+simultaneous user from a single machine. When used on cluster, you can
 generate a really impressive load on a server with a modest cluster,
-easy to set-up and to maintain.
+easy to set-up and to maintain. You can also use Tsung on a cloud like EC2.
 
 \program{Tsung} is developed in Erlang and this is where the power
 of \program{Tsung} resides.
@@ -68,7 +68,7 @@ History:
 \begin{itemize}
 \item \program{Tsung} development was started by Nicolas Niclausse in
   2001 as a distributed jabber load stress tool for internal use at
-  \url{http://IDEALX.com/}.  It has evolved as an open-source
+  \url{http://IDEALX.com/} (now OpenTrust).  It has evolved as an open-source
   multi-protocol load testing tool several months later. The HTTP
   support was added in 2003, and this tool has been used for several
   industrial projects.  It is now hosted by Erlang-projects, and
@@ -105,7 +105,7 @@ Volume 46, Issue 2-3, October 2001}.
 \item \emph{HTTP and HTTPS} protocol:
   \begin{itemize}
   \item 12 000 simultaneous users.
-  \program{Tsung} were running on a 4-computers cluster. The
+  \program{Tsung} were running on a 4-computers cluster (in 2003). The
   tested platform reached 3 000 requests per second.
  \item 10 million simultaneous users running on a 75-computers cluster,
   generating more than one million requests per second.
@@ -142,7 +142,7 @@ for Petroleum
 client machines
 \item \emph{Multi-Protocols} using a plug-in system: HTTP (both standard
 web traffic and SOAP),  WebDAV, Jabber/XMPP and PostgreSQL are currently
-supported. Experimental LDAP and MySQL plugins were included in the 1.3.0 release.
+supported. LDAP and MySQL plugins were first included in the 1.3.0 release.
 \item \emph{SSL} support
 \item \emph{Several IP addresses} can be used on a single machine using
 the underlying OS IP Aliasing
@@ -211,7 +211,8 @@ are also supported):
 
 \begin{itemize}
 \item Basic and MD5 Authentication
-\item Basic Queries (Extended queries not yet supported)
+\item Simple Protocol
+\item Extended Protocol (new in version \strong{1.4.0} )
 \item Proxy mode to record sessions
 \end{itemize}
 
@@ -223,12 +224,11 @@ This plugin is experimental. It works only with MySQL version 4.1 and higher.
 \end{itemize}
 
 \subsection{LDAP related features}
-This plugin is experimental.
 
 \begin{itemize}
 \item bind
 \item add, modify and search queries
-\item starttls (only with R12B-0 Erlang and up)
+\item starttls
 \end{itemize}
 
 \subsection{Complete reports set}
@@ -282,14 +282,9 @@ MacOS-X).
 
 \subsection{Dependencies}
 \begin{itemize}
-\item Erlang/OTP R10B-0 and up
+\item Erlang/OTP R12B-5 and up
   (\url{http://www.erlang.org/download.html}). Erlang is now
   part of fedora and debian/ubuntu repositories.
-  \item extended regexp module (used for dynamic variables):
-    gregexp.erl available at
-    \url{http://www.cellicium.com/erlang/contribs/} . The module is
-    included in the source and binary distribution of \program{Tsung}. It
-    is released under the EPL License.
   \item pgsql module made by Christian Sunesson (for the PostgreSQL plugin):
     sources available at
     \url{http://jungerl.sourceforge.net/} . The module is
@@ -329,8 +324,14 @@ MacOS-X).
  make install
 \end{Verbatim}
 
-If you want to download the development version, use git: \command{git
-  clone git://git.process-one.net/tsung/mainline.git} (see \url{https://git.process-one.net/tsung}).
+If you want to download the development version, use git:
+
+ \command{git clone git://git.process-one.net/tsung/mainline.git}
+
+(see also \url{https://git.process-one.net/tsung}).
+
+You can also build packages with \command{make deb} (on debian and
+ubuntu) and \command{make rpm} (on fedora, rhel, and other rpm based distribution)
 
 \subsection{Configuration}
 
@@ -340,7 +341,7 @@ there are several sample files in
 
 Log files are saved in \file{~/.tsung/log/} . A new sub-directory
 is created for each test using the current date as name
-(\file{~/.tsung/log/20040217-09:40} for ex.)
+(\file{~/.tsung/log/20040217-0940} for ex.)
 
 \subsection{Running}
 
@@ -569,7 +570,7 @@ for password settings).
 
     <!-- regexp captures stream ID returned by server -->
     <request>
-      <dyn_variable name="sid" regexp="&lt;stream:stream id=&quot;\(.*\)&quot; xmlns:stream"/>
+      <dyn_variable name="sid" re="&lt;stream:stream id=&quot;(.*)&quot; xmlns:stream"/>
       <jabber type="connect" ack="local"></jabber>
     </request>
 
@@ -594,7 +595,7 @@ for password settings).
       <!-- regexp captures nonce value returned by server -->
       <request>
         <dyn_variable name="nonce"
-          regexp="&lt;Nonce encoding=&quot;hex&quot;&gt;\(.*\)&lt;\/Nonce&gt;"/>
+          re="&lt;Nonce encoding=&quot;hex&quot;&gt;(.*)&lt;\/Nonce&gt;"/>
         <jabber type="auth_get" ack="local"></jabber>
       </request>
       <request subst='true'> <jabber type="auth_set_sip" ack="local"></jabber> </request>
@@ -775,7 +776,7 @@ Several virtual IP can be used to simulate more machines. This is
  \strong{Note:} Even if an Erlang VM is now able to handle severals CPUs
  (erlang SMP), benchmarks shows that it's more efficient to use one VM
  per CPU (with SMP disabled) for tsung clients. Only the controller node is using SMP
- erlang. Therefore, you cpu should be equal to the number of cores of
+ erlang. Therefore, \varname{cpu} should be equal to the number of cores of
  your nodes. If you prefer to use erlang SMP, add the \userinput{-s}
  option when starting tsung (and don't set \varname{cpu} in the config
  file).
@@ -791,7 +792,8 @@ Several virtual IP can be used to simulate more machines. This is
  equal to 1.5 for each CPU.
 
  The \varname{maxusers} parameter is used to bypass the limit of
- maximum number of sockets opened by a single process (usually 1024)
+ maximum number of sockets opened by a single process (1024 by
+ default on many OS)
  and the lack of scalability of the \varname{select} system call. When
  the number of users is higher than the limit, a new erlang virtual
  machine will be started to handle new users. The default value of
@@ -1539,8 +1541,15 @@ For PostgreSQL, 4 types of requests are available:
 \begin{enumerate}
 \item connect (to a given database with a given username
 \item authenticate (with password or not)
-\item sql
+\item sql (basic protocol)
 \item close
+\end{enumerate}
+
+In addition, the following parts of the extended protocol is supported:
+\begin{enumerate}
+\item copy, copydone and copyfail
+\item parse, bind, execute, describe
+\item sync, flush
 \end{enumerate}
 
 This example shows most of the features of a PostgreSQL session:
@@ -1580,6 +1589,40 @@ ORDER BY 1,2;]]></pgsql></request>
 
   </session>
 \end{Verbatim}
+
+Example with the extended protocol:
+
+\begin{Verbatim}
+<request><pgsql type='parse' name_prepared='P0_7'><![CDATA[BEGIN;]]></pgsql></request>
+<request><pgsql type='sync'/></request>
+<request><pgsql type='parse' name_prepared='P0_8'><![CDATA[UPDATE pgbench_accounts
+  SET abalance = abalance + $1 WHERE aid = $2;]]></pgsql></request>
+<request><pgsql type='sync'/></request>
+<request><pgsql type='parse' name_prepared='P0_9'><![CDATA[SELECT
+  abalance FROM pgbench_accounts
+  WHERE aid = $1;]]></pgsql></request>
+<request><pgsql type='sync'/></request>
+<request><pgsql type='parse' name_prepared='P0_10'><![CDATA[UPDATE pgbench_tellers
+   SET tbalance = tbalance + $1 WHERE tid = $2;]]></pgsql></request>
+<request><pgsql type='sync'/></request>
+<request><pgsql type='parse' name_prepared='P0_11'><![CDATA[UPDATE pgbench_branches
+   SET bbalance = bbalance + $1 WHERE bid = $2;]]></pgsql></request>
+<request><pgsql type='sync'/></request>
+<request><pgsql type='parse' name_prepared='P0_12'><![CDATA[INSERT
+   INTO pgbench_history (tid, bid, aid, delta, mtime)
+   VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP);]]></pgsql></request>
+<request><pgsql type='sync'/></request>
+<request><pgsql type='parse' name_prepared='P0_13'><![CDATA[END;]]></pgsql></request>
+<request><pgsql type='sync'/></request>
+<request><pgsql type='bind' name_prepared='P0_7' formats='none' formats_results='text' /></request>
+<request><pgsql type='describe' name_portal=''/></request>
+<request><pgsql type='execute'/></request>
+<request><pgsql type='sync'/></request>
+<request><pgsql type='bind' name_portal='' name_prepared='P0_8'
+   formats='none' formats_results='text'
+   parameters='2924,37801'/></request>
+\end{Verbatim}
+% $
 
 \subsubsection{MySQL}
 \label{sec:session:mysql}
@@ -2018,7 +2061,7 @@ This give us some benefices:
 \end{itemize}
 
 To utilize xpath expression, use a \varname{xpath} attribute when
-defining the dyn\_variable, instead of \varname{regexp}, like:
+defining the dyn\_variable, instead of \varname{re}, like:
 \begin{Verbatim}
 <dyn_variable name="field1_value" xpath="//input[@name='field1']/@value"/>
 <dyn_variable name="title" xpath="/html/head/title/text()"/>
@@ -2028,7 +2071,6 @@ There is a bug in the xpath engine, result nodes from "descendant-or-self" aren'
 However, queries like \userinput{//img[1]/@src} are not recommended, as the order of the \userinput{<img>} elements returned from //img is not the expected.
 The order is respected for paths without "descendant-or-self" axis, so this: \userinput{/html/body/div[2]/img[3]/@src} is interpreted as expected and can be safely used.
 
-Basic tests shows a x4 improvement in speed over the \emph{regexp} implementation.
 
 It is possible to use Xpath to get a list of elements from an html page, allowing dynamic retrieval of objects. You can either create embedded erlang code to parse the list produced, or use foreach that was introduced in release \strong(1.4.0).
 
@@ -2052,7 +2094,7 @@ and \strong{only works with erlang R13B and newer version}.
 Tsung implements a (very) limited subset of JSONPath as defined here \url{http://goessner.net/articles/JsonPath/}
 
 To utilize jsonpath expression, use a \varname{jsonpath} attribute when
-defining the dyn\_variable, instead of \varname{regexp}, like:
+defining the dyn\_variable, instead of \varname{re}, like:
 \begin{Verbatim}
 <dyn_variable name="array3_value" jsonpath="field.array[3].value"/>
 \end{Verbatim}
@@ -2284,7 +2326,7 @@ The last element of repeat must be either \userinput{<while>} or \userinput{<unt
    [...]
 
    <request>
-     <dyn_variable name="result" regexp="Result: (.*)"/>
+     <dyn_variable name="result" re="Result: (.*)"/>
      <http url="/random" method="GET" version="1.1"></http>
    </request>
 
@@ -2683,7 +2725,7 @@ you can handle this situation using a dynamic variable:
 
 \begin{Verbatim}
 <request>
-  <dyn_variable name="redirect" regexp="Location: \(http://.*\)\r"/>
+  <dyn_variable name="redirect" re="Location: (http://.*)\r"/>
   <http url="index.html" method="GET" ></http>
 </request>
 
@@ -2697,13 +2739,13 @@ successively using a repeat loop (this works only with version 1.3.0 and up):
 
 \begin{Verbatim}
   <request>
-    <dyn_variable name="redirect" regexp="Location: \(http://.*\)\r"/>
+    <dyn_variable name="redirect" re="Location: (http://.*)\r"/>
     <http url='/test/redirect.html' method='GET'></http>
   </request>
 
   <repeat name="redirect_loop" max_repeat="5">
     <request subst="true">
-      <dyn_variable name="redirect" regexp="Location: \(http://.*\)\r"/>
+      <dyn_variable name="redirect" re="Location: (http://.*)\r"/>
       <http url="%%_redirect%%" method="GET"></http>
     </request>
     <until var="redirect" eq=""/>

@@ -96,7 +96,7 @@ a:hover     {background:#ffffaa;}
 <!--CUT DEF section 1 --><H1 ALIGN=center>Tsung User’s manual</H1><DIV CLASS="center">
 
 <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>1.3.3</TD></TR>
-<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>July 12, 2011</TD></TR>
+<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>August 18, 2011</TD></TR>
 </TABLE>
 </DIV><!--TOC section Contents-->
 <H2 CLASS="section"><!--SEC ANCHOR -->Contents</H2><!--SEC END --><UL CLASS="toc"><LI CLASS="li-toc">
@@ -229,9 +229,9 @@ response time ?</A>
 protocol-independent and can currently be used to stress HTTP, WebDAV, SOAP,
 PostgreSQL, MySQL, LDAP, and Jabber/XMPP servers.</P><P>It is distributed under the GNU General Public License version 2.</P><!--TOC subsection What is Erlang and why is it important for Tsung ?-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc3">1.2</A>  What is Erlang and why is it important for Tsung ?</H3><!--SEC END --><P><EM>Tsung’s</EM> main strength is its ability to simulate a huge number of
-simultaneous user from a single CPU. When used on cluster you can
+simultaneous user from a single machine. When used on cluster, you can
 generate a really impressive load on a server with a modest cluster,
-easy to set-up and to maintain.</P><P><EM>Tsung</EM> is developed in Erlang and this is where the power
+easy to set-up and to maintain. You can also use Tsung on a cloud like EC2.</P><P><EM>Tsung</EM> is developed in Erlang and this is where the power
 of <EM>Tsung</EM> resides.</P><P>Erlang is a <EM>concurrency-oriented</EM> programming language.
 Tsung is based on the Erlang OTP (Open Transaction Platform) and
 inherits several characteristics from Erlang:</P><UL CLASS="itemize"><LI CLASS="li-itemize">
@@ -248,7 +248,7 @@ to <EM>Tsung</EM> does not make the whole running benchmark crash.
 </P><UL CLASS="itemize"><LI CLASS="li-itemize">
 <EM>Tsung</EM> development was started by Nicolas Niclausse in
 2001 as a distributed jabber load stress tool for internal use at
-<A HREF="http://IDEALX.com/"><TT>http://IDEALX.com/</TT></A>. It has evolved as an open-source
+<A HREF="http://IDEALX.com/"><TT>http://IDEALX.com/</TT></A> (now OpenTrust). It has evolved as an open-source
 multi-protocol load testing tool several months later. The HTTP
 support was added in 2003, and this tool has been used for several
 industrial projects. It is now hosted by Erlang-projects, and
@@ -273,7 +273,7 @@ IP/WDM test platform for new generation Internet applications, 2000-2004).</LI><
 </LI><LI CLASS="li-itemize"><EM>HTTP and HTTPS</EM> protocol:
 <UL CLASS="itemize"><LI CLASS="li-itemize">
 12 000 simultaneous users.
-<EM>Tsung</EM> were running on a 4-computers cluster. The
+<EM>Tsung</EM> were running on a 4-computers cluster (in 2003). The
 tested platform reached 3 000 requests per second.
 </LI><LI CLASS="li-itemize">10 million simultaneous users running on a 75-computers cluster,
 generating more than one million requests per second.
@@ -301,7 +301,7 @@ scenarios with extended reports, <EM>Tsung</EM> is for you).
 client machines
 </LI><LI CLASS="li-itemize"><EM>Multi-Protocols</EM> using a plug-in system: HTTP (both standard
 web traffic and SOAP), WebDAV, Jabber/XMPP and PostgreSQL are currently
-supported. Experimental LDAP and MySQL plugins were included in the 1.3.0 release.
+supported. LDAP and MySQL plugins were first included in the 1.3.0 release.
 </LI><LI CLASS="li-itemize"><EM>SSL</EM> support
 </LI><LI CLASS="li-itemize"><EM>Several IP addresses</EM> can be used on a single machine using
 the underlying OS IP Aliasing
@@ -356,7 +356,8 @@ Authentication (plain-text, digest and sip-digest)
 </LI></UL><!--TOC subsection PostgreSQL related features-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc10">2.5</A>  PostgreSQL related features</H3><!--SEC END --><UL CLASS="itemize"><LI CLASS="li-itemize">
 Basic and MD5 Authentication
-</LI><LI CLASS="li-itemize">Basic Queries (Extended queries not yet supported)
+</LI><LI CLASS="li-itemize">Simple Protocol
+</LI><LI CLASS="li-itemize">Extended Protocol (new in version <B>1.4.0</B> )
 </LI><LI CLASS="li-itemize">Proxy mode to record sessions
 </LI></UL><!--TOC subsection MySQL related features-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc11">2.6</A>  MySQL related features</H3><!--SEC END --><P>
@@ -365,11 +366,10 @@ This plugin is experimental. It works only with MySQL version 4.1 and higher.
 Secured Authentication method only (MySQL &gt;= 4.1)
 </LI><LI CLASS="li-itemize">Basic Queries
 </LI></UL><!--TOC subsection LDAP related features-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc12">2.7</A>  LDAP related features</H3><!--SEC END --><P>
-This plugin is experimental.</P><UL CLASS="itemize"><LI CLASS="li-itemize">
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc12">2.7</A>  LDAP related features</H3><!--SEC END --><UL CLASS="itemize"><LI CLASS="li-itemize">
 bind
 </LI><LI CLASS="li-itemize">add, modify and search queries
-</LI><LI CLASS="li-itemize">starttls (only with R12B-0 Erlang and up)
+</LI><LI CLASS="li-itemize">starttls
 </LI></UL><!--TOC subsection Complete reports set-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc13">2.8</A>  Complete reports set</H3><!--SEC END --><P>Measures and statistics produced by Tsung are extremely feature-full.
 They are all represented as a graphic. <EM>Tsung</EM> produces
@@ -402,14 +402,9 @@ available on MacOS X. It should
 work on Erlang supported platforms (Linux, Solaris, *BSD, Win32 and
 MacOS-X).</P><!--TOC subsection Dependencies-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc16">3.1</A>  Dependencies</H3><!--SEC END --><UL CLASS="itemize"><LI CLASS="li-itemize">
-Erlang/OTP R10B-0 and up
+Erlang/OTP R12B-5 and up
 (<A HREF="http://www.erlang.org/download.html"><TT>http://www.erlang.org/download.html</TT></A>). Erlang is now
 part of fedora and debian/ubuntu repositories.
-</LI><LI CLASS="li-itemize">extended regexp module (used for dynamic variables):
-gregexp.erl available at
-<A HREF="http://www.cellicium.com/erlang/contribs/"><TT>http://www.cellicium.com/erlang/contribs/</TT></A> . The module is
-included in the source and binary distribution of <EM>Tsung</EM>. It
-is released under the EPL License.
 </LI><LI CLASS="li-itemize">pgsql module made by Christian Sunesson (for the PostgreSQL plugin):
 sources available at
 <A HREF="http://jungerl.sourceforge.net/"><TT>http://jungerl.sourceforge.net/</TT></A> . The module is
@@ -458,13 +453,13 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE><P>If you want to download the development version, use git: <TT>git
-clone git://git.process-one.net/tsung/mainline.git</TT> (see <A HREF="https://git.process-one.net/tsung"><TT>https://git.process-one.net/tsung</TT></A>).</P><!--TOC subsection Configuration-->
+</TABLE><P>If you want to download the development version, use git:</P><P><TT>git clone git://git.process-one.net/tsung/mainline.git</TT></P><P>(see also <A HREF="https://git.process-one.net/tsung"><TT>https://git.process-one.net/tsung</TT></A>).</P><P>You can also build packages with <TT>make deb</TT> (on debian and
+ubuntu) and <TT>make rpm</TT> (on fedora, rhel, and other rpm based distribution)</P><!--TOC subsection Configuration-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc18">3.3</A>  Configuration</H3><!--SEC END --><P>The default configuration file is <TT>~/.tsung/tsung.xml</TT> (
 there are several sample files in
 <TT>/usr/share/doc/tsung/examples</TT>).</P><P>Log files are saved in <TT>~/.tsung/log/</TT> . A new sub-directory
 is created for each test using the current date as name
-(<TT>~/.tsung/log/20040217-09:40</TT> for ex.)</P><!--TOC subsection Running-->
+(<TT>~/.tsung/log/20040217-0940</TT> for ex.)</P><!--TOC subsection Running-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc19">3.4</A>  Running</H3><!--SEC END --><P>Two commands are installed in the directory <TT>$PREFIX/bin</TT>:
 <TT>tsung</TT> and <TT>tsung-recorder</TT>. A man page is available
 for both commands.</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -690,7 +685,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 
     &lt;!-- regexp captures stream ID returned by server --&gt;
     &lt;request&gt;
-      &lt;dyn_variable name="sid" regexp="&amp;lt;stream:stream id=&amp;quot;\(.*\)&amp;quot; xmlns:stream"/&gt;
+      &lt;dyn_variable name="sid" re="&amp;lt;stream:stream id=&amp;quot;(.*)&amp;quot; xmlns:stream"/&gt;
       &lt;jabber type="connect" ack="local"&gt;&lt;/jabber&gt;
     &lt;/request&gt;
 
@@ -727,7 +722,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
       &lt;!-- regexp captures nonce value returned by server --&gt;
       &lt;request&gt;
         &lt;dyn_variable name="nonce"
-          regexp="&amp;lt;Nonce encoding=&amp;quot;hex&amp;quot;&amp;gt;\(.*\)&amp;lt;\/Nonce&amp;gt;"/&gt;
+          re="&amp;lt;Nonce encoding=&amp;quot;hex&amp;quot;&amp;gt;(.*)&amp;lt;\/Nonce&amp;gt;"/&gt;
         &lt;jabber type="auth_get" ack="local"&gt;&lt;/jabber&gt;
       &lt;/request&gt;
       &lt;request subst='true'&gt; &lt;jabber type="auth_set_sip" ack="local"&gt;&lt;/jabber&gt; &lt;/request&gt;
@@ -915,7 +910,7 @@ used to take advantage of the number of CPU.</P><BLOCKQUOTE CLASS="quote">
 <B>Note:</B> Even if an Erlang VM is now able to handle severals CPUs
 (erlang SMP), benchmarks shows that it’s more efficient to use one VM
 per CPU (with SMP disabled) for tsung clients. Only the controller node is using SMP
-erlang. Therefore, you cpu should be equal to the number of cores of
+erlang. Therefore, <TT>cpu</TT> should be equal to the number of cores of
 your nodes. If you prefer to use erlang SMP, add the <FONT COLOR=purple>-s</FONT>
 option when starting tsung (and don’t set <TT>cpu</TT> in the config
 file).
@@ -927,7 +922,8 @@ of 2, the second one will start twice the number of users as the
 first (the proportions will be 1/3 and 2/3). In the earlier example
 where for the second client has 2 CPU and weight=3, the weight is
 equal to 1.5 for each CPU.</P><P>The <TT>maxusers</TT> parameter is used to bypass the limit of
-maximum number of sockets opened by a single process (usually 1024)
+maximum number of sockets opened by a single process (1024 by
+default on many OS)
 and the lack of scalability of the <TT>select</TT> system call. When
 the number of users is higher than the limit, a new erlang virtual
 machine will be started to handle new users. The default value of
@@ -1887,8 +1883,13 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </P><OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
 connect (to a given database with a given username
 </LI><LI CLASS="li-enumerate">authenticate (with password or not)
-</LI><LI CLASS="li-enumerate">sql
+</LI><LI CLASS="li-enumerate">sql (basic protocol)
 </LI><LI CLASS="li-enumerate">close
+</LI></OL><P>In addition, the following parts of the extended protocol is supported:
+</P><OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
+copy, copydone and copyfail
+</LI><LI CLASS="li-enumerate">parse, bind, execute, describe
+</LI><LI CLASS="li-enumerate">sync, flush
 </LI></OL><P>This example shows most of the features of a PostgreSQL session:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
@@ -1928,6 +1929,48 @@ ORDER BY 1,2;]]&gt;&lt;/pgsql&gt;&lt;/request&gt;
     &lt;request&gt;&lt;pgsql type="close"&gt;&lt;/pgsql&gt;&lt;/request&gt;
 
   &lt;/session&gt;
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><P>Example with the extended protocol:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">&lt;request&gt;&lt;pgsql type='parse' name_prepared='P0_7'&gt;&lt;![CDATA[BEGIN;]]&gt;&lt;/pgsql&gt;&lt;/request&gt;
+&lt;request&gt;&lt;pgsql type='sync'/&gt;&lt;/request&gt;
+&lt;request&gt;&lt;pgsql type='parse' name_prepared='P0_8'&gt;&lt;![CDATA[UPDATE pgbench_accounts
+  SET abalance = abalance + $1 WHERE aid = $2;]]&gt;&lt;/pgsql&gt;&lt;/request&gt;
+&lt;request&gt;&lt;pgsql type='sync'/&gt;&lt;/request&gt;
+&lt;request&gt;&lt;pgsql type='parse' name_prepared='P0_9'&gt;&lt;![CDATA[SELECT
+  abalance FROM pgbench_accounts
+  WHERE aid = $1;]]&gt;&lt;/pgsql&gt;&lt;/request&gt;
+&lt;request&gt;&lt;pgsql type='sync'/&gt;&lt;/request&gt;
+&lt;request&gt;&lt;pgsql type='parse' name_prepared='P0_10'&gt;&lt;![CDATA[UPDATE pgbench_tellers
+   SET tbalance = tbalance + $1 WHERE tid = $2;]]&gt;&lt;/pgsql&gt;&lt;/request&gt;
+&lt;request&gt;&lt;pgsql type='sync'/&gt;&lt;/request&gt;
+&lt;request&gt;&lt;pgsql type='parse' name_prepared='P0_11'&gt;&lt;![CDATA[UPDATE pgbench_branches
+   SET bbalance = bbalance + $1 WHERE bid = $2;]]&gt;&lt;/pgsql&gt;&lt;/request&gt;
+&lt;request&gt;&lt;pgsql type='sync'/&gt;&lt;/request&gt;
+&lt;request&gt;&lt;pgsql type='parse' name_prepared='P0_12'&gt;&lt;![CDATA[INSERT
+   INTO pgbench_history (tid, bid, aid, delta, mtime)
+   VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP);]]&gt;&lt;/pgsql&gt;&lt;/request&gt;
+&lt;request&gt;&lt;pgsql type='sync'/&gt;&lt;/request&gt;
+&lt;request&gt;&lt;pgsql type='parse' name_prepared='P0_13'&gt;&lt;![CDATA[END;]]&gt;&lt;/pgsql&gt;&lt;/request&gt;
+&lt;request&gt;&lt;pgsql type='sync'/&gt;&lt;/request&gt;
+&lt;request&gt;&lt;pgsql type='bind' name_prepared='P0_7' formats='none' formats_results='text' /&gt;&lt;/request&gt;
+&lt;request&gt;&lt;pgsql type='describe' name_portal=''/&gt;&lt;/request&gt;
+&lt;request&gt;&lt;pgsql type='execute'/&gt;&lt;/request&gt;
+&lt;request&gt;&lt;pgsql type='sync'/&gt;&lt;/request&gt;
+&lt;request&gt;&lt;pgsql type='bind' name_portal='' name_prepared='P0_8'
+   formats='none' formats_results='text'
+   parameters='2924,37801'/&gt;&lt;/request&gt;
 </PRE></TD></TR>
 </TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
@@ -2529,7 +2572,7 @@ string().
 </LI><LI CLASS="li-itemize">The cost of parsing the HTML/XML and build the tree is amortized
 between all the dyn_variables defined for a given request
 </LI></UL><P>To utilize xpath expression, use a <TT>xpath</TT> attribute when
-defining the dyn_variable, instead of <TT>regexp</TT>, like:
+defining the dyn_variable, instead of <TT>re</TT>, like:
 </P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
@@ -2548,7 +2591,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 </TABLE><P>There is a bug in the xpath engine, result nodes from "descendant-or-self" aren’t returned in document order. This isn’t a problem for the most common cases.
 However, queries like <FONT COLOR=purple>//img[1]/@src</FONT> are not recommended, as the order of the <FONT COLOR=purple>&lt;img&gt;</FONT> elements returned from //img is not the expected.
-The order is respected for paths without "descendant-or-self" axis, so this: <FONT COLOR=purple>/html/body/div[2]/img[3]/@src</FONT> is interpreted as expected and can be safely used.</P><P>Basic tests shows a x4 improvement in speed over the <EM>regexp</EM> implementation.</P><P>It is possible to use Xpath to get a list of elements from an html page, allowing dynamic retrieval of objects. You can either create embedded erlang code to parse the list produced, or use foreach that was introduced in release <B>(</B>1.4.0).</P><P>For XMPP, you can get all the contacts in a dynamic variable:
+The order is respected for paths without "descendant-or-self" axis, so this: <FONT COLOR=purple>/html/body/div[2]/img[3]/@src</FONT> is interpreted as expected and can be safely used.</P><P>It is possible to use Xpath to get a list of elements from an html page, allowing dynamic retrieval of objects. You can either create embedded erlang code to parse the list produced, or use foreach that was introduced in release <B>(</B>1.4.0).</P><P>For XMPP, you can get all the contacts in a dynamic variable:
 </P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
@@ -2574,7 +2617,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 <A NAME="sec:jsonpath"></A></P><P>Another way to analyze the server response has been introduced in the
 release <B>1.3.2</B> when the server is sending JSON data. It is only for the HTTP plugin. This feature uses the mochiweb library
 and <B>only works with erlang R13B and newer version</B>.</P><P>Tsung implements a (very) limited subset of JSONPath as defined here <A HREF="http://goessner.net/articles/JsonPath/"><TT>http://goessner.net/articles/JsonPath/</TT></A></P><P>To utilize jsonpath expression, use a <TT>jsonpath</TT> attribute when
-defining the dyn_variable, instead of <TT>regexp</TT>, like:
+defining the dyn_variable, instead of <TT>re</TT>, like:
 </P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
@@ -2937,7 +2980,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
    [...]
 
    &lt;request&gt;
-     &lt;dyn_variable name="result" regexp="Result: (.*)"/&gt;
+     &lt;dyn_variable name="result" re="Result: (.*)"/&gt;
      &lt;http url="/random" method="GET" version="1.1"&gt;&lt;/http&gt;
    &lt;/request&gt;
 
@@ -3419,7 +3462,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 <TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
 </TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">&lt;request&gt;
-  &lt;dyn_variable name="redirect" regexp="Location: \(http://.*\)\r"/&gt;
+  &lt;dyn_variable name="redirect" re="Location: (http://.*)\r"/&gt;
   &lt;http url="index.html" method="GET" &gt;&lt;/http&gt;
 &lt;/request&gt;
 
@@ -3442,13 +3485,13 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 <TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
 </TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">  &lt;request&gt;
-    &lt;dyn_variable name="redirect" regexp="Location: \(http://.*\)\r"/&gt;
+    &lt;dyn_variable name="redirect" re="Location: (http://.*)\r"/&gt;
     &lt;http url='/test/redirect.html' method='GET'&gt;&lt;/http&gt;
   &lt;/request&gt;
 
   &lt;repeat name="redirect_loop" max_repeat="5"&gt;
     &lt;request subst="true"&gt;
-      &lt;dyn_variable name="redirect" regexp="Location: \(http://.*\)\r"/&gt;
+      &lt;dyn_variable name="redirect" re="Location: (http://.*)\r"/&gt;
       &lt;http url="%%_redirect%%" method="GET"&gt;&lt;/http&gt;
     &lt;/request&gt;
     &lt;until var="redirect" eq=""/&gt;

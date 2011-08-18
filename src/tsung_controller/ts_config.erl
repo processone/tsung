@@ -509,9 +509,7 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
     %% precompilation of the exp
     DynVar = case Type of
                  regexp ->
-                     ?LOGF("Add new regexp: ~s ~n", [Expr],?INFO),
-                     {ok, CompiledRegExp} = gregexp:parse(FlattenExpr),
-                     {regexp,Name,CompiledRegExp};
+                     exit({error, regexp_obsolete_use_re});
                  re ->
                      ?LOGF("Add new re: ~s ~n", [Expr],?INFO),
                      {ok, CompiledRegExp} = re:compile(FlattenExpr),

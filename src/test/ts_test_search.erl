@@ -24,12 +24,6 @@
 
 test()->
     ok.
-parse_dyn_var_test() ->
-    myset_env(),
-    Data=?FORMDATA,
-    StrName="jsf_tree_64",
-    Regexp = ?DEF_REGEXP_DYNVAR_BEGIN++ StrName ++?DEF_REGEXP_DYNVAR_END,%'
-    ?assertMatch([{'jsf_tree_64',"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA"}], ts_search:parse_dynvar([{regexp,'jsf_tree_64', Regexp} ],list_to_binary(Data))).
 
 
 parse_dyn_var_jsonpath_test() ->
@@ -91,12 +85,6 @@ parse_dyn_var_xpath_with_scripttag_test() ->
     ?assertMatch([{'jsf_tree_64', [<< "H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA" >>] }], ts_search:parse_dynvar([{xpath,'jsf_tree_64', XPath} ],list_to_binary(Data))).
 
 
-parse_dyn_var2_test() ->
-    myset_env(),
-    Data="<input type=\"hidden\" name=\"tree64\" id=\"tree64\" value=\"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA\">",
-    StrName="tree64",
-    Regexp = ?DEF_REGEXP_DYNVAR_BEGIN++ StrName ++?DEF_REGEXP_DYNVAR_END,%'
-    ?assertMatch([{tree64,"H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA"}], ts_search:parse_dynvar([{regexp,tree64, Regexp }],list_to_binary(Data))).
 
 parse_dyn_var_xpath2_test() ->
     myset_env(),
@@ -104,12 +92,6 @@ parse_dyn_var_xpath2_test() ->
     XPath = "//input[@name='tree64']/@value",
     ?assertMatch([{tree64,[<< "H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA" >>]}], ts_search:parse_dynvar([{xpath,tree64, XPath }],list_to_binary(Data))).
 
-parse_dyn_var3_test() ->
-    myset_env(),
-    Data="<hidden name=\"random\" value=\"42\"></form>",
-    StrName="random",
-    Regexp = ?DEF_REGEXP_DYNVAR_BEGIN++ StrName ++?DEF_REGEXP_DYNVAR_END,%'
-    ?assertMatch([{random,"42"}], ts_search:parse_dynvar([{regexp, random, Regexp }],list_to_binary(Data))).
 
 parse_dyn_var_xpath3_test() ->
     myset_env(),
@@ -117,12 +99,6 @@ parse_dyn_var_xpath3_test() ->
     XPath = "//hidden[@name='random']/@value",
     ?assertMatch([{random,[<<"42">>]}], ts_search:parse_dynvar([{xpath, random, XPath }],list_to_binary(Data))).
 
-parse_dyn_var4_test() ->
-    myset_env(),
-    Data="<hidden name='random' value='42'></form>",
-    StrName="random",
-    Regexp = ?DEF_REGEXP_DYNVAR_BEGIN++ StrName ++?DEF_REGEXP_DYNVAR_END,%'
-    ?assertMatch([{random,"42"}], ts_search:parse_dynvar([{regexp, random, Regexp }],list_to_binary(Data))).
 
 parse_dyn_var_xpath4_test() ->
     myset_env(),
@@ -130,15 +106,6 @@ parse_dyn_var_xpath4_test() ->
     XPath = "//hidden[@name='random']/@value",
     ?assertMatch([{random,[<<"42">>]}], ts_search:parse_dynvar([{xpath, random, XPath }],list_to_binary(Data))).
 
-parse_dyn_var_many_test() ->
-    myset_env(),
-    {Data, Res}= setdata(?MANY),
-    RegexpFun = fun(A) -> {regexp,list_to_atom(A), ?DEF_REGEXP_DYNVAR_BEGIN++ A ++?DEF_REGEXP_DYNVAR_END} end,%'
-    B=lists:map(fun(A)->"random"++integer_to_list(A) end, lists:seq(1,?MANY)),
-    C=lists:map(RegexpFun, B),
-    {Time, Out}=timer:tc( ts_search,parse_dynvar,[C,list_to_binary(Data)]),
-    erlang:display([?MANY," regexp:", Time]),
-    ?assertMatch(Res, Out).
 
 parse_dyn_var_many_re_test() ->
     myset_env(),
@@ -168,15 +135,6 @@ parse_dyn_var_many_xpath_explicit_test() ->
     erlang:display([?MANY," xpath_explicit:", Time]),
     ?assertMatch(Res, Out).
 
-parse_dyn_var_many_big_test() ->
-    myset_env(),
-    {Data, Res}= setdata_big(?MANY),
-    RegexpFun = fun(A) -> {regexp,list_to_atom(A), ?DEF_REGEXP_DYNVAR_BEGIN++ A ++?DEF_REGEXP_DYNVAR_END} end,%'
-    B=lists:map(fun(A)->"random"++integer_to_list(A) end, lists:seq(1,?MANY)),
-    C=lists:map(RegexpFun, B),
-    {Time, Out}=timer:tc( ts_search,parse_dynvar,[C,list_to_binary(Data)]),
-    erlang:display([?MANY," regexp_big:", Time]),
-    ?assertMatch(Res, Out).
 
 parse_dyn_var_many_big_re_test() ->
     myset_env(),
@@ -238,14 +196,6 @@ format_result(Data,binary) ->
 format_result(Data,_) ->
     Data.
 
-parse_subst1_test() ->
-    myset_env(),
-    Data=?FORMDATA,
-    StrName="jsf_tree_64",
-    Regexp = ?DEF_REGEXP_DYNVAR_BEGIN++ StrName ++?DEF_REGEXP_DYNVAR_END,%'
-    [{Name,Value}] = ts_search:parse_dynvar([{regexp, 'jsf_tree_64', Regexp }],list_to_binary(Data)),
-    ?assertMatch("H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA", ts_search:subst("%%_jsf_tree_64%%",[{Name,Value}])).
-
 parse_subst1_re_test() ->
     myset_env(),
     Data=?FORMDATA,
@@ -287,22 +237,22 @@ parse_subst_var_fun_test() ->
     myset_env(),
     Data=?FORMDATA,
     StrName="jsf_tree_64",
-    Regexp = ?DEF_REGEXP_DYNVAR_BEGIN++ StrName ++?DEF_REGEXP_DYNVAR_END,%'
-    [{Name,Value}] = ts_search:parse_dynvar([{regexp, 'jsf_tree_64', Regexp }],list_to_binary(Data)),
+    Regexp = ?DEF_RE_DYNVAR_BEGIN++ StrName ++?DEF_RE_DYNVAR_END,%'
+    [{Name,Value}] = ts_search:parse_dynvar([{re, 'jsf_tree_64', Regexp }],list_to_binary(Data)),
     ?assertMatch("H4sIAAAAAAAAAK1VS2/TQBBeo+kalCKAA-MSFT", ts_search:subst("%%_jsf_tree_64%%-%%ts_test_search:new%%",[{Name,Value}])).
 
 parse_subst_badregexp_sid_test() ->
     myset_env(),
     Data="HTTP/1.1 200 OK\r\nServer: nginx/0.7.65\r\nDate: Fri, 05 Feb 2010 08:13:29 GMT\r\nContent-Type: text/xml; charset=utf-8\r\nConnection: keep-alive\r\nContent-Length: 373\r\n\r\n<body polling=\"10\" ver=\"1.6\" secure=\"true\" wait=\"20\" requests=\"2\" hold=\"1\" sid=\"5bfd2b59-3144-4e62-993b-d05d2ae3bee9\" xmpp:version=\"1.0\" xmlns:stream=\"http://etherx.jabber.org/streams\" authid=\"b65b29eb-99c0-4afd-8f97-d6d20f4ddba2\" maxpause=\"10\" from=\"tigase-test\" inactivity=\"10\" ack=\"2995502128855\" xmlns:xmpp=\"urn:xmpp:xbosh\" xmlns=\"http://jabber.org/protocol/httpbind\"/>",
     Regexp = "sid=\".*?\"",
-    [{Name,Value}] = ts_search:parse_dynvar([{regexp, sid, Regexp }],list_to_binary(Data)),
+    [{Name,Value}] = ts_search:parse_dynvar([{re, sid, Regexp }],list_to_binary(Data)),
     ?assertEqual({sid,""},{Name,Value}).
 
 parse_subst_regexp_sid_test() ->
     myset_env(),
     Data="HTTP/1.1 200 OK\r\nServer: nginx/0.7.65\r\nDate: Fri, 05 Feb 2010 08:13:29 GMT\r\nContent-Type: text/xml; charset=utf-8\r\nConnection: keep-alive\r\nContent-Length: 373\r\n\r\n<body polling=\"10\" ver=\"1.6\" secure=\"true\" wait=\"20\" requests=\"2\" hold=\"1\" sid=\"5bfd2b59-3144-4e62-993b-d05d2ae3bee9\" xmpp:version=\"1.0\" xmlns:stream=\"http://etherx.jabber.org/streams\" authid=\"b65b29eb-99c0-4afd-8f97-d6d20f4ddba2\" maxpause=\"10\" from=\"tigase-test\" inactivity=\"10\" ack=\"2995502128855\" xmlns:xmpp=\"urn:xmpp:xbosh\" xmlns=\"http://jabber.org/protocol/httpbind\"/>",
-    Regexp = "sid=\"\\([^\"]*\\)\"",
-    [{Name,Value}] = ts_search:parse_dynvar([{regexp, sid, Regexp }],list_to_binary(Data)),
+    Regexp = "sid=\"([^\"]*)\"",
+    [{Name,Value}] = ts_search:parse_dynvar([{re, sid, Regexp }],list_to_binary(Data)),
     ?assertEqual({sid,"5bfd2b59-3144-4e62-993b-d05d2ae3bee9"},{Name,Value}).
 
 
