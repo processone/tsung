@@ -222,7 +222,8 @@ decode_packet($B, Data) -> %bind
     [NamePortal, StringQuery | _] = split(Data,<<0>>,[global,trim]),
     Size = size(NamePortal)+size(StringQuery)+2,
     << _:Size/binary, NParamsFormat:16/integer,Tail1/binary >> = Data,
-    << Formats:NParamsFormat/binary, NParams:16/integer, Tail2/binary>> = Tail1,
+    SizeParamsFormat=2*NParamsFormat, % 16 bits
+    << Formats:SizeParamsFormat/binary, NParams:16/integer, Tail2/binary>> = Tail1,
     ParamsFormat = case {NParamsFormat,Formats} of
                         {0,_}                   -> none;
                         {1,<< 0:16/integer >> } -> text;
