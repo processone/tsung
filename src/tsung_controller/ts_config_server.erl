@@ -324,7 +324,7 @@ handle_call({status}, _From, State) ->
     Reply = {ok, length(Config#config.clients), State#state.ending_beams},
     {reply, Reply, State};
 
-handle_call({get_jobs_state}, From, State) when State#state.config == undefined ->
+handle_call({get_jobs_state}, _From, State) when State#state.config == undefined ->
     {reply, not_configured, State};
 handle_call({get_jobs_state}, {Pid,Tag}, State) ->
     Config = State#state.config,
@@ -435,7 +435,7 @@ handle_info({'EXIT', _Pid, {slave_failure,timeout}}, State) ->
 handle_info({'EXIT', Pid, normal}, State) ->
     ?LOGF("spawned process termination (~p) ~n",[Pid],?INFO),
     {noreply, State};
-handle_info({'ETS-TRANSFER',Tab,FromPid,GiftData}, State=#state{config=Config}) ->
+handle_info({'ETS-TRANSFER',Tab,_FromPid,GiftData}, State=#state{config=Config}) ->
     {noreply, State#state{config=Config#config{job_notify_port={Tab,GiftData}}}};
 handle_info(Info, State) ->
     ?LOGF("Unknown info ~p ! ~n",[Info],?WARN),
@@ -538,7 +538,7 @@ get_client_cfg(Arrival=#arrivalphase{duration = Duration,
                                      intensity= PhaseIntensity,
                                      curnumber= CurNumber,
                                      maxnumber= MaxNumber },
-               Acc = {TotalWeight,Client,IsLast} ) ->
+               {TotalWeight,Client,IsLast} ) ->
     Weight = Client#client.weight,
     ClientIntensity = PhaseIntensity * Weight / TotalWeight,
     NUsers = round(case MaxNumber of
@@ -764,10 +764,14 @@ local_launcher([Host],LogDir,Config) ->
             {error, Reason}
     end.
 
+remote_launcher(Host, NodeId, Args) when is_list(Host)->
+    remote_launcher(list_to_atom(Host), NodeId, Args);
+remote_launcher(Host, NodeId, Args) when is_list(NodeId)->
+    remote_launcher(Host, list_to_atom(NodeId), Args);
 remote_launcher(Host, NodeId, Args)->
     Name = set_nodename(NodeId),
     ?LOGF("starting newbeam on host ~p with Args ~p~n", [Host, Args], ?INFO),
-    start_slave(list_to_atom(Host), list_to_atom(Name), Args).
+    start_slave(Host, Name, Args).
 
 set_remote_args(LogDir,PortsRange)->
     {ok, [[BootController]]}    = init:get_argument(boot),
