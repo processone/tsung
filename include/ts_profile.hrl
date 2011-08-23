@@ -114,12 +114,31 @@
          dump        % type of dump (full, light, none)
         }).
 
+
 -define(restart_sleep, 2000).
 -define(infinity_timeout, 15000).
 -define(short_timeout, 1).
 -define(config_timeout, 60000).
 -define(check_noclient_timeout, 60000).
 -define(retries, 4).
+
+
+-record(launcher,
+        {nusers,
+         phases =[],
+         myhostname,
+         intensity,
+         static_done = false,
+         started_users = 0,
+         phase_nusers,   % total number of users to start in the current phase
+         phase_duration, % expected phase duration
+         phase_start,    % timestamp
+         start_date,
+         short_timeout = ?short_timeout,
+         maxusers %% if maxusers are currently active, launch a
+                  %% new beam to handle the new users
+        }).
+
 
 -define(TIMEOUT_PARALLEL_SPAWN, 60000).
 -define(MAX_PHASE_EXCEED_PERCENT, 20).

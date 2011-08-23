@@ -48,21 +48,6 @@
 -export([init/1, launcher/2,  wait/2, wait_static/2, handle_event/3,
          handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
 
--record(state, {nusers,
-                phases =[],
-                myhostname,
-                intensity,
-                static_done = false,
-                started_users = 0,
-                phase_nusers,   % total number of users to start in the current phase
-                phase_duration, % expected phase duration
-                phase_start,    % timestamp
-                start_date,
-                short_timeout = ?short_timeout,
-                maxusers %% if maxusers are currently active, launch a
-                         %% new beam to handle the new users
-               }).
-
 %%%----------------------------------------------------------------------
 %%% API
 %%%----------------------------------------------------------------------
@@ -107,7 +92,7 @@ set_static_users({Node,Value}) ->
 init([]) ->
     {ok, MyHostName} = ts_utils:node_to_hostname(node()),
     ts_launcher_mgr:alive(dynamic),
-    {ok, wait, #state{myhostname=MyHostName}}.
+    {ok, wait, #launcher{myhostname=MyHostName}}.
 
 %%----------------------------------------------------------------------
 %% Func: StateName/2
@@ -117,19 +102,19 @@ init([]) ->
 %%----------------------------------------------------------------------
 
 wait({launch, Args, Hostname, Seed}, State) ->
-    wait({launch, Args, Seed}, State#state{myhostname = Hostname});
+    wait({launch, Args, Seed}, State#launcher{myhostname = Hostname});
 
 %% starting without configuration. We must ask the config server for
 %% the configuration of this launcher.
-wait({launch, [], Seed}, State=#state{static_done=Static_done}) ->
+wait({launch, [], Seed}, State=#launcher{static_done=Static_done}) ->
     ts_utils:init_seed(Seed),
-    MyHostName = State#state.myhostname,
+    MyHostName = State#launcher.myhostname,
     ?LOGF("Launch msg receive (~p)~n",[MyHostName], ?NOTICE),
     ts_launcher_mgr:check_registered(),
     case ts_config_server:get_client_config(MyHostName) of
         {ok, {[{Intensity, Users, Duration}| Rest], StartDate, Max}} ->
             ?LOGF("Expected duration of first phase: ~p sec ~n",[Duration/1000], ?NOTICE),
-            NewState = State#state{phases         = Rest,
+            NewState = State#launcher{phases         = Rest,
                                    nusers         = Users,
                                    phase_nusers   = Users,
                                    start_date     = StartDate,
@@ -153,18 +138,29 @@ wait({launch, {[{Intensity, Users, Duration}| Rest], Max}, Seed}, State) ->
     ts_utils:init_seed(Seed),
     ?LOGF("Expected duration of phase: ~p sec ~n",[Duration/1000], ?NOTICE),
     ts_launcher_mgr:check_registered(),
-    {next_state, launcher, State#state{phases = Rest, nusers = Users,
+    {next_state, launcher, State#launcher{phases = Rest, nusers = Users,
                                        phase_nusers = Users,
                                        phase_duration=Duration,
                                        phase_start = now(),
                                        intensity = Intensity, maxusers=Max},
-     State#state.short_timeout};
+     State#launcher.short_timeout};
 wait({static,0}, State) ->
     %% static launcher has no work to do, do not wait for him.
     ?LOG("Wow, static launcher is already sending me a msg, don't forget it ~n", ?INFO),
-    {next_state, wait, State#state{static_done=true}}.
+    {next_state, wait, State#launcher{static_done=true}}.
 
-wait_static({static, Static}, State=#state{maxusers=Max,intensity=Intensity,
+wait_static({static, Static}, State=#launcher{nusers=0,phases=Phases})  ->
+    %% no users in this phase, next one
+    {change, NewUsers, NewIntensity, PhaseLength,Rest}  =  change_phase(0, Phases, 0, {1, 0}),
+    {next_state,launcher,State#launcher{phases = Rest,
+                                     nusers = NewUsers,
+                                     phase_nusers = NewUsers,
+                                     phase_duration=PhaseLength,
+                                     phase_start = now(),
+                                     intensity = NewIntensity}, 1};
+
+
+wait_static({static, Static}, State=#launcher{maxusers=Max,intensity=Intensity,
                                            nusers=Users,start_date=StartDate}) when is_integer(Static) ->
     %% add ts_stats:exponential(Intensity) to start time to avoid
     %% simultaneous start of users when a lot of client beams is
@@ -181,34 +177,34 @@ wait_static({static, Static}, State=#state{maxusers=Max,intensity=Intensity,
                    1 % will fork a new beam as soon a one user is started
            end,
     ?LOGF("Set maximum users per beam to ~p~n",[NewMax],?DEB),
-    {next_state,launcher,State#state{ phase_start = PhaseStart,
+    {next_state,launcher,State#launcher{ phase_start = PhaseStart,
                                       maxusers = NewMax }, Warm}.
 
 
-launcher(_Event, State=#state{nusers = 0, phases = [] }) ->
+launcher(_Event, State=#launcher{nusers = 0, phases = [] }) ->
     ?LOG("no more clients to start, stop  ~n",?INFO),
     {stop, normal, State};
 
-launcher(timeout, State=#state{nusers    = Users,
+launcher(timeout, State=#launcher{nusers    = Users,
                                phase_nusers = PhaseUsers,
                                phases     = Phases,
                                started_users = Started,
                                intensity  = Intensity}) ->
     BeforeLaunch = now(),
-    case do_launch({Intensity,State#state.myhostname}) of
+    case do_launch({Intensity,State#launcher.myhostname}) of
         {ok, Wait} ->
             case check_max_raised(State) of
                 true ->
                     {stop, normal, State};
                 false->
-                    Duration = ts_utils:elapsed(State#state.phase_start, BeforeLaunch),
+                    Duration = ts_utils:elapsed(State#launcher.phase_start, BeforeLaunch),
                     case change_phase(Users-1, Phases, Duration,
-                                      {State#state.phase_duration, PhaseUsers}) of
+                                      {State#launcher.phase_duration, PhaseUsers}) of
                         {change, NewUsers, NewIntensity, PhaseLength,Rest} ->
                             ts_mon:add({ count, newphase }),
                             ?LOGF("Start a new arrival phase (~p ~p); expected duration=~p sec~n",
                                   [NewUsers, NewIntensity, PhaseLength/1000], ?NOTICE),
-                            {next_state,launcher,State#state{phases = Rest,
+                            {next_state,launcher,State#launcher{phases = Rest,
                                                              nusers = NewUsers,
                                                              phase_nusers = NewUsers,
                                                              phase_duration=PhaseLength,
@@ -228,7 +224,7 @@ launcher(timeout, State=#state{nusers    = Users,
                                           false -> 0
                                       end,
                             ?DebugF("Real Wait =~p ~n", [NewWait]),
-                            {next_state,launcher,State#state{nusers = Users-1, started_users=Started+1} , NewWait}
+                            {next_state,launcher,State#launcher{nusers = Users-1, started_users=Started+1} , NewWait}
                     end
             end;
         error ->
@@ -342,12 +338,12 @@ change_phase(_N, _, _Current, {_Total, _}) ->
 %%%----------------------------------------------------------------------
 %%% Func: check_max_raised/1
 %%%----------------------------------------------------------------------
-check_max_raised(State=#state{phases=Phases,maxusers=Max,nusers=Users,
+check_max_raised(State=#launcher{phases=Phases,maxusers=Max,nusers=Users,
                               started_users=Started, phase_start=Start, phase_duration=Duration,
                               intensity=Intensity}) when Started >= Max ->
     PendingDuration = Duration - ts_utils:elapsed(Start, now()),
     ActiveClients =  ts_client_sup:active_clients(),
-    ?DebugF("Current active clients on beam: ~p (max is ~p)~n", [ActiveClients, State#state.maxusers]),
+    ?DebugF("Current active clients on beam: ~p (max is ~p)~n", [ActiveClients, State#launcher.maxusers]),
     case ActiveClients >= Max of
         true ->
             ?LOG("Max number of concurrent clients reached, must start a new beam~n", ?NOTICE),
@@ -355,14 +351,14 @@ check_max_raised(State=#state{phases=Phases,maxusers=Max,nusers=Users,
                        0 ->  Phases;
                        _ -> [{Intensity,Users-1,PendingDuration}|Phases]
                    end,
-            ts_config_server:newbeam(list_to_atom(State#state.myhostname), {Args, Max}),
+            ts_config_server:newbeam(list_to_atom(State#launcher.myhostname), {Args, Max}),
             true;
         false ->
             ?DebugF("Current clients on beam: ~p~n", [ActiveClients]),
             false
     end;
 check_max_raised(_State) -> % number of started users less than max, no need to check
-    ?DebugF("Current started clients on beam: ~p (max is ~p)~n", [_State#state.started_users, _State#state.maxusers]),
+    ?DebugF("Current started clients on beam: ~p (max is ~p)~n", [_State#launcher.started_users, _State#launcher.maxusers]),
     false.
 
 %%%----------------------------------------------------------------------

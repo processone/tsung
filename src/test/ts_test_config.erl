@@ -109,16 +109,24 @@ config_thinktime2_test() ->
     end,
     random:seed(), % reinit seed for others tests
     ?assertMatch({random,1000}, Req).
+
 read_config_maxusers_test() ->
+    read_config_maxusers({5,15},10,"./src/test/thinkfirst.xml").
+
+read_config_maxusers({MaxNumber1,MaxNumber2},Clients,File) ->
     myset_env(),
-    MaxNumber=10,
-    C=lists:map(fun(A)->"client"++integer_to_list(A) end, lists:seq(1,10)),
+    C=lists:map(fun(A)->"client"++integer_to_list(A) end, lists:seq(1,Clients)),
     ts_config_server:read_config("./src/test/thinkfirst.xml"),
-    M = lists:map(fun(X)->
-                          {ok,{[{_,Max,_},{_,_,_}],_,_}} = ts_config_server:get_client_config(X),
-                          Max
-                  end,  C),
-    ?assertEqual(lists:sum(M), MaxNumber).
+    {M1,M2} = lists:unzip(lists:map(fun(X)->
+                          {ok,{[{_,Max,_},{_,Max2,_}],_,_}} = ts_config_server:get_client_config(X),
+                          {Max,Max2}
+                  end,  C)),
+    [Head1|_]=M1,
+    [Head2|_]=M2,
+    ?assertEqual(1, Head1),
+    ?assertEqual(1, Head2),
+    ?assertEqual(lists:sum(M1), MaxNumber1),
+    ?assertEqual(lists:sum(M2), MaxNumber2).
 
 read_config_static_test() ->
     myset_env(),
@@ -173,6 +181,18 @@ int_or_string2_test() ->
     ?assertEqual("%%_toto%%", ts_config:getAttr(integer_or_string,[#xmlAttribute{name=to,value="%%_toto%%"}],to)).
 int_test() ->
     ?assertEqual(100, ts_config:getAttr(integer,[#xmlAttribute{name=to,value="100"}],to)).
+
+launcher_empty_test() ->
+    Intensity=10,
+    Users=2,
+    Duration=25,
+    Res=ts_launcher:wait_static({static,0},#launcher{nusers=0,phases=[{Intensity,Users,Duration}]}),
+    ?assertMatch({next_state,launcher,#launcher{phases = [],
+                                                nusers = Users,
+                                                phase_nusers = Users,
+                                                phase_duration=Duration,
+                                                phase_start = _,
+                                                intensity = Intensity},_},Res).
 
 myset_env()->
     myset_env(0).

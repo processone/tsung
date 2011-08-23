@@ -549,7 +549,7 @@ get_client_cfg(Arrival=#arrivalphase{duration = Duration,
                                         true ->
                                             MaxNumber-CurNumber;
                                         false ->
-                                            trunc(MaxNumber * Weight / TotalWeight)
+                                            lists:max([1,trunc(MaxNumber * Weight / TotalWeight)])
                                     end,
                            lists:min([TmpMax, Duration*1000*ClientIntensity])
                    end),
