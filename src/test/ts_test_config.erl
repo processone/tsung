@@ -125,6 +125,8 @@ read_config_maxusers({MaxNumber1,MaxNumber2},Clients,File) ->
     [Head2|_]=M2,
     ?assertEqual(1, Head1),
     ?assertEqual(1, Head2),
+    ?assert(lists:min(M1) >= 0),
+    ?assert(lists:min(M2) >= 0),
     ?assertEqual(lists:sum(M1), MaxNumber1),
     ?assertEqual(lists:sum(M2), MaxNumber2).
 

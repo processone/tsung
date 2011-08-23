@@ -545,10 +545,12 @@ get_client_cfg(Arrival=#arrivalphase{duration = Duration,
                        infinity -> %% only use the duration to set the number of users
                            Duration * 1000 * ClientIntensity;
                        _ ->
-                           TmpMax = case IsLast of
-                                        true ->
+                           TmpMax = case {IsLast,CurNumber == MaxNumber} of
+                                        {true,_} ->
                                             MaxNumber-CurNumber;
-                                        false ->
+                                        {false,true} ->
+                                            0;
+                                        {false,false} ->
                                             lists:max([1,trunc(MaxNumber * Weight / TotalWeight)])
                                     end,
                            lists:min([TmpMax, Duration*1000*ClientIntensity])
