@@ -252,6 +252,8 @@ get_params_format(<<1:16/integer,Tail/binary>>,Acc) ->
 
 get_params(0,Tail,Acc) ->
     {lists:reverse(Acc), Tail};
+get_params(N,<<-1:32/integer-signed,Tail/binary>>,Acc) ->
+    get_params(N-1,Tail,['null'|Acc]);
 get_params(N,<<Size:32/integer,S:Size/binary,Tail/binary>>,Acc) ->
     get_params(N-1,Tail,[S|Acc]).
 

@@ -63,6 +63,36 @@ extended2_test()->
     Result=ts_proxy_pgsql:process_data(#proxy{},Data),
     ?assertMatch(#proxy{}, Result).
 
+extended3_test()->
+    Data = <<0, 99,117,51,0, 0,10, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+             0,10,
+             0,0,0,26, 50,48,48,56,45,49,50,45,48,53,32,48,57,58,49,57,58,48,48,46,48,48,48,48,48,48,
+             0,0,0,26, 50,48,49,49,45,48,56,45,50,51,32,48,56,58,52,55,58,48,48,46,48,48,48,48,48,48,
+             0,0,0,10, 49,51,52,52,51,55,32,32,32,32,
+             0,0,0,1,  69,
+             0,0,0,5,  75,78,32,32,32,
+             0,0,0,35, 75,79,78,84,69,78,65,32,78,65,83,73,79,78,65,76,32,66,72,68,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,
+             0,0,0,1,  89,
+             0,0,0,1,  89,
+             255,255,255,255,
+             0,0,0,5,  75,78,32,32,32,
+             0,1, 0,0 >>,
+    Result=ts_proxy_pgsql:decode_packet($B,Data),
+    Portal = <<>>,
+    Statement = <<"cu3">>,
+    Params= [<<"2008-12-05 09:19:00.000000">>,
+                                    <<"2011-08-23 08:47:00.000000">>,
+                                    <<"134437    ">>,
+                                    <<"E">>,
+                                    <<"KN   ">>,
+                                    <<"KONTENA NASIONAL BHD               ">>,
+                                    <<"Y">>,
+                                    <<"Y">>,
+                                    'null',
+                                    <<"KN   ">>],
+    Bind = {bind, {Portal, Statement, Params , auto, [text]}},
+    ?assertEqual(Bind, Result).
+
 extended_parse_test()->
     Prep   = <<"scu1">>,
     Query  = <<"declare scu1 cursor with hold for select brn_cd, prev_pr_dt, curr_pr_dt, next_pr_dt, brn_nm, brn_addr1, brn_addr2, brn_addr3, comp_nm, cash_ac, ibt_grp_cd, bank_cd, log_path, co_brn_cd from   brn  where brn.brn_cd = $1">>,

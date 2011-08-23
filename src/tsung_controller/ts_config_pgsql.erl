@@ -91,7 +91,8 @@ parse_config(Element = #xmlElement{name=pgsql},
                 Params=case ts_config:getAttr(Element#xmlElement.attributes, parameters) of
                            "" -> "";
                            P ->
-                               ts_utils:split(P,",")
+                               lists:map(fun("null")-> null;
+                                            (A)     -> A end, ts_utils:split(P,","))
                        end,
                 ParamsFormat = ts_config:getAttr(atom,Element#xmlElement.attributes, formats, none),
                 {no_ack,#pgsql_request{type=bind,name_portal=Portal,name_prepared=Prep,
