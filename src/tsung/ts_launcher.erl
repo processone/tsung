@@ -149,9 +149,9 @@ wait({static,0}, State) ->
     ?LOG("Wow, static launcher is already sending me a msg, don't forget it ~n", ?INFO),
     {next_state, wait, State#launcher{static_done=true}}.
 
-wait_static({static, Static}, State=#launcher{nusers=0,phases=Phases})  ->
+wait_static({static, Static}, State=#launcher{nusers=0,phase_duration=Duration,phases=Phases})  ->
     %% no users in this phase, next one
-    {change, NewUsers, NewIntensity, PhaseLength,Rest}  =  change_phase(0, Phases, 0, {1, 0}),
+    {change, NewUsers, NewIntensity, PhaseLength,Rest}  =  change_phase(0, Phases, 0, {Duration, 0}),
     {next_state,launcher,State#launcher{phases = Rest,
                                      nusers = NewUsers,
                                      phase_nusers = NewUsers,

@@ -188,7 +188,7 @@ launcher_empty_test() ->
     Intensity=10,
     Users=2,
     Duration=25,
-    Res=ts_launcher:wait_static({static,0},#launcher{nusers=0,phases=[{Intensity,Users,Duration}]}),
+    Res=ts_launcher:wait_static({static,0},#launcher{nusers=0,phase_duration=300,phases=[{Intensity,Users,Duration}]}),
     ?assertMatch({next_state,launcher,#launcher{phases = [],
                                                 nusers = Users,
                                                 phase_nusers = Users,
