@@ -725,7 +725,7 @@ set_nodename(NodeId) when is_integer(NodeId)->
                   [Id|_] = string:tokens(Tail,"@"),
                   Id++"_"
           end,
-    "tsung"++ CId++ integer_to_list(NodeId).
+    list_to_atom("tsung"++ CId++ integer_to_list(NodeId)).
 
 %% @spec set_max_duration(integer()) -> ok
 %% @doc start a timer for the maximum duration of the load test. The
