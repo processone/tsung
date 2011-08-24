@@ -113,13 +113,13 @@ wait({launch, [], Seed}, State=#launcher{static_done=Static_done}) ->
     ts_launcher_mgr:check_registered(),
     case ts_config_server:get_client_config(MyHostName) of
         {ok, {[{Intensity, Users, Duration}| Rest], StartDate, Max}} ->
-            ?LOGF("Expected duration of first phase: ~p sec ~n",[Duration/1000], ?NOTICE),
+            ?LOGF("Expected duration of first phase: ~p sec (~p users) ~n",[Duration/1000, Users], ?NOTICE),
             NewState = State#launcher{phases         = Rest,
-                                   nusers         = Users,
-                                   phase_nusers   = Users,
-                                   start_date     = StartDate,
-                                   phase_duration = Duration,
-                                   intensity      = Intensity, maxusers=Max },
+                                      nusers         = Users,
+                                      phase_nusers   = Users,
+                                      start_date     = StartDate,
+                                      phase_duration = Duration,
+                                      intensity      = Intensity, maxusers=Max },
             case Static_done of
                 true  ->
                     wait_static({static, 0}, NewState);
@@ -149,16 +149,9 @@ wait({static,0}, State) ->
     ?LOG("Wow, static launcher is already sending me a msg, don't forget it ~n", ?INFO),
     {next_state, wait, State#launcher{static_done=true}}.
 
-wait_static({static, Static}, State=#launcher{nusers=0,phase_duration=Duration,phases=Phases})  ->
+wait_static({static, _Static}, State=#launcher{nusers=0})  ->
     %% no users in this phase, next one
-    {change, NewUsers, NewIntensity, PhaseLength,Rest}  =  change_phase(0, Phases, 0, {Duration, 0}),
-    {next_state,launcher,State#launcher{phases = Rest,
-                                     nusers = NewUsers,
-                                     phase_nusers = NewUsers,
-                                     phase_duration=PhaseLength,
-                                     phase_start = now(),
-                                     intensity = NewIntensity}, 1};
-
+    skip_empty_phase(State);
 
 wait_static({static, Static}, State=#launcher{maxusers=Max,intensity=Intensity,
                                            nusers=Users,start_date=StartDate}) when is_integer(Static) ->
@@ -185,11 +178,11 @@ launcher(_Event, State=#launcher{nusers = 0, phases = [] }) ->
     ?LOG("no more clients to start, stop  ~n",?INFO),
     {stop, normal, State};
 
-launcher(timeout, State=#launcher{nusers    = Users,
-                               phase_nusers = PhaseUsers,
-                               phases     = Phases,
-                               started_users = Started,
-                               intensity  = Intensity}) ->
+launcher(timeout, State=#launcher{nusers        = Users,
+                                  phase_nusers  = PhaseUsers,
+                                  phases        = Phases,
+                                  started_users = Started,
+                                  intensity     = Intensity}) ->
     BeforeLaunch = now(),
     case do_launch({Intensity,State#launcher.myhostname}) of
         {ok, Wait} ->
@@ -200,9 +193,12 @@ launcher(timeout, State=#launcher{nusers    = Users,
                     Duration = ts_utils:elapsed(State#launcher.phase_start, BeforeLaunch),
                     case change_phase(Users-1, Phases, Duration,
                                       {State#launcher.phase_duration, PhaseUsers}) of
+                        {change, 0, _, PhaseLength,Rest} ->
+                            %% no users in the next phase
+                            skip_empty_phase(State#launcher{phases=Rest,phase_duration=PhaseLength});
                         {change, NewUsers, NewIntensity, PhaseLength,Rest} ->
                             ts_mon:add({ count, newphase }),
-                            ?LOGF("Start a new arrival phase (~p ~p); expected duration=~p sec~n",
+                            ?LOGF("Start a new arrival phase (~p users, ~p); expected duration=~p sec~n",
                                   [NewUsers, NewIntensity, PhaseLength/1000], ?NOTICE),
                             {next_state,launcher,State#launcher{phases = Rest,
                                                              nusers = NewUsers,
@@ -296,6 +292,23 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%%----------------------------------------------------------------------
 %%% Internal functions
 %%%----------------------------------------------------------------------
+
+%%% @spec skip_empty_phase(record(launcher)) -> {next_state, launcher, record(launcher)}
+%%% @doc if a phase contains no users, sleep, before tryinh the next one @end
+skip_empty_phase(State=#launcher{phases=Phases,phase_duration=Duration})->
+    ?LOGF("No user, skip phase (~p ~p)~n",[Phases,Duration],?INFO),
+    case change_phase(0, Phases, 0, {Duration, 0}) of
+        {change, 0, _, PhaseLength, Rest} ->
+            %% next phase is also empty, loop
+            skip_empty_phase(State#launcher{phases=Rest,phase_duration=PhaseLength});
+        {change, NewUsers, NewIntensity, PhaseLength,Rest} ->
+            {next_state,launcher,State#launcher{phases = Rest,
+                                                nusers = NewUsers,
+                                                phase_nusers = NewUsers,
+                                                phase_duration=PhaseLength,
+                                                phase_start = now(),
+                                                intensity = NewIntensity}, 1}
+    end.
 
 %%%----------------------------------------------------------------------
 %%% Func: change_phase/4
