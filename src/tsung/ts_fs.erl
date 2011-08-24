@@ -160,6 +160,10 @@ parse({file, pread, [_IODev,Pos,Size], {ok,_Data}},State=#state_rcv{dyndata=DynD
 parse({file, pread, [_IODev,Pos,Size], eof},State=#state_rcv{dyndata=DynData,datasize=DataSize}) ->
     NewDyn=(DynData#dyndata.proto)#fs_dyndata{position=0},
     {State#state_rcv{ack_done=true,datasize=DataSize+Size,dyndata=DynData#dyndata{proto=NewDyn}}, [], false};
+parse({file, pread, [_IODev,Pos,Size], {error,Reason}},State) ->
+    ?LOGF("error while reading file: ~p~n",[Reason],?ERR),
+    ts_mon:add({count,error_fs_pread}),
+    {State#state_rcv{ack_done=true,datasize=0}, [], false};
 
 parse({file, write_file, _Args, ok},State) ->
     {State#state_rcv{ack_done=true,datasize=0}, [], false};
