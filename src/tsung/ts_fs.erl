@@ -153,14 +153,18 @@ parse({file, open, [Path,_], {error,Reason}},State) ->
 parse({file, close, [_IODevice], ok},State=#state_rcv{dyndata=DynData}) ->
     NewDyn=(DynData#dyndata.proto)#fs_dyndata{iodev=undefined,position=0},
     {State#state_rcv{ack_done=true,datasize=0,dyndata=DynData#dyndata{proto=NewDyn}}, [], false};
+parse({file, close, [_IODevice], {error,Reason}}, State) ->
+    ?LOGF("error while closing file: ~p~n",[Reason],?ERR),
+    ts_mon:add({count,error_fs_close}),
+    {State#state_rcv{ack_done=true,datasize=0}, [], false};
 
 parse({file, pread, [_IODev,Pos,Size], {ok,_Data}},State=#state_rcv{dyndata=DynData,datasize=DataSize}) ->
     NewDyn=(DynData#dyndata.proto)#fs_dyndata{position=Pos+Size},
     {State#state_rcv{ack_done=true,datasize=DataSize+Size,dyndata=DynData#dyndata{proto=NewDyn}}, [], false};
-parse({file, pread, [_IODev,Pos,Size], eof},State=#state_rcv{dyndata=DynData,datasize=DataSize}) ->
+parse({file, pread, [_IODev,_Pos,Size], eof},State=#state_rcv{dyndata=DynData,datasize=DataSize}) ->
     NewDyn=(DynData#dyndata.proto)#fs_dyndata{position=0},
     {State#state_rcv{ack_done=true,datasize=DataSize+Size,dyndata=DynData#dyndata{proto=NewDyn}}, [], false};
-parse({file, pread, [_IODev,Pos,Size], {error,Reason}},State) ->
+parse({file, pread, [_IODev,_Pos,_Size], {error,Reason}},State) ->
     ?LOGF("error while reading file: ~p~n",[Reason],?ERR),
     ts_mon:add({count,error_fs_pread}),
     {State#state_rcv{ack_done=true,datasize=0}, [], false};
@@ -171,17 +175,29 @@ parse({file, write_file, [Path,_], {error,Reason}},State) ->
     ?LOGF("error while writing file: ~p (~p)~n",[Path, Reason],?ERR),
     ts_mon:add({count,error_fs_write}),
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
-parse({file, pwrite, [IODev,Pos,Data], ok},State=#state_rcv{dyndata=DynData}) ->
+parse({file, pwrite, [_IODev,Pos,Data], ok},State=#state_rcv{dyndata=DynData}) ->
     NewDyn=(DynData#dyndata.proto)#fs_dyndata{position=Pos+length(Data)},
     {State#state_rcv{ack_done=true,datasize=0,dyndata=DynData#dyndata{proto=NewDyn}}, [], false};
 
-parse({file, delete, [Path], ok},State) ->
+parse({file, del_dir, [_Path], ok},State) ->
+    {State#state_rcv{ack_done=true, datasize=0}, [], false};
+parse({file, del_dir, [Path], {error,Reason}},State) ->
+    ?LOGF("error while delete directory: ~p (~p)~n",[Path, Reason],?ERR),
+    ts_mon:add({count,error_fs_del_dir}),
+    {State#state_rcv{ack_done=true, datasize=0}, [], false};
+parse({file, make_dir, [_Path], ok},State) ->
+    {State#state_rcv{ack_done=true, datasize=0}, [], false};
+parse({file, make_dir, [Path], {error,Reason}},State) ->
+    ?LOGF("error while creating diretory: ~p (~p)~n",[Path, Reason],?ERR),
+    ts_mon:add({count,error_fs_mkdir}),
+    {State#state_rcv{ack_done=true, datasize=0}, [], false};
+parse({file, delete, [_Path], ok},State) ->
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
 parse({file, delete, [Path], {error,Reason}},State) ->
     ?LOGF("error while deleting file: ~p (~p)~n",[Path, Reason],?ERR),
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
 
-parse({ts_utils, read_file_raw, [Path], {ok,Res,Size}},State) ->
+parse({ts_utils, read_file_raw, [_Path], {ok,_Res,Size}},State) ->
     {State#state_rcv{ack_done=true,datasize=Size}, [], false};
 parse({ts_utils, read_file_raw, [Path], {error,Reason}},State) ->
     ?LOGF("error while reading file: ~p(~p)~n",[Path,Reason],?ERR),
@@ -222,6 +238,10 @@ get_message2(#fs{command=close, iodev=IODevice}) ->
     {file,close,[IODevice],0};
 get_message2(#fs{command=delete, path=Path}) ->
     {file,delete,[Path],0};
+get_message2(#fs{command=del_dir, path=Path}) ->
+    {file,del_dir,[Path],0};
+get_message2(#fs{command=make_dir, path=Path}) ->
+    {file,make_dir,[Path],0};
 get_message2(#fs{command=write,path=Path, size=Size}) ->
     {file,write_file,[Path,ts_utils:urandomstr(Size),[raw]],Size}.
 
