@@ -769,7 +769,7 @@ local_launcher([Host],LogDir,Config) ->
 remote_launcher(Host, NodeId, Args) when is_list(Host)->
     remote_launcher(list_to_atom(Host), NodeId, Args);
 remote_launcher(Host, NodeId, Args) when is_list(NodeId)->
-    remote_launcher(Host, list_to_atom(NodeId), Args);
+    remote_launcher(Host, list_to_integer(NodeId), Args);
 remote_launcher(Host, NodeId, Args)->
     Name = set_nodename(NodeId),
     ?LOGF("starting newbeam on host ~p with Args ~p~n", [Host, Args], ?INFO),
