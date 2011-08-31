@@ -162,6 +162,12 @@ ifalias2_test() ->
     Res=lists:foldl(fun(A,L) -> [{192,168,76,A}|L] end, [],lists:seq(183,190)),
     ?assertEqual(Out,Res).
 
+ifalias_ip_test() ->
+    {ok, L}=ts_utils:file_to_list("src/test/ipcfg.out"),
+    Out=ts_ip_scan:get_ip_aliases(L,[]),
+    Res=lists:foldl(fun(A,L) -> [{192,12,0,A}|L] end, [],lists:seq(1,12)),
+    ?assertEqual(Out,Res).
+
 
 encode_test() ->
     Encoded="ts_encoded_47myfilepath_47toto_47titi_58sdfsdf_45sdfsdf_44aa_47",

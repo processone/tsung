@@ -157,8 +157,26 @@ code_change(_OldVsn, State, _Extra) ->
 
 %%
 get_intf_aliases(Interface) ->
-    Res=os:cmd("LC_ALL=C /sbin/ifconfig "),
-    get_intf_aliases(string:tokens(Res,"\n"), Interface,[],[]).
+    case file:read_file_info("/sbin/ip") of
+        {ok,_} ->
+            Res=os:cmd("LC_ALL=C /sbin/ip -o -f inet addr show dev "++Interface),
+            get_ip_aliases(string:tokens(Res,"\n"), []);
+        {error,Reason} ->
+            ?LOGF("ip command not found (~p), using ifconfig instead~n",[Reason],?NOTICE),
+            Res=os:cmd("LC_ALL=C /sbin/ifconfig "),
+            get_intf_aliases(string:tokens(Res,"\n"), Interface,[],[])
+    end.
+
+
+get_ip_aliases([], Res) ->
+    Res;
+get_ip_aliases([Line|Tail], Res) ->
+    [_,_,_,Net|_] =string:tokens(Line," "),
+    [TmpIP|_] =string:tokens(Net,"/"),
+    ?LOGF("found IP: ~p~n",[TmpIP],?DEB),
+    {ok, IP } = inet:getaddr(TmpIP,inet),
+    get_ip_aliases(Tail,  [IP|Res]).
+
 
 get_intf_aliases([], _, _, Res) ->
     Res;
