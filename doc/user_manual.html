@@ -96,7 +96,7 @@ a:hover     {background:#ffffaa;}
 <!--CUT DEF section 1 --><H1 ALIGN=center>Tsung User’s manual</H1><DIV CLASS="center">
 
 <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>1.4.0</TD></TR>
-<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>August 18, 2011</TD></TR>
+<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>September 2, 2011</TD></TR>
 </TABLE>
 </DIV><!--TOC section Contents-->
 <H2 CLASS="section"><!--SEC ANCHOR -->Contents</H2><!--SEC END --><UL CLASS="toc"><LI CLASS="li-toc">
@@ -220,9 +220,10 @@ a:hover     {background:#ffffaa;}
 response time ?</A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc87">A.8  How can I specify the number of concurrent users ?</A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc88">A.9  SNMP monitoring doesn’t work ?!</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc89">A.10  How can i simulate a fix number of users ?</A>
 </LI></UL>
-</LI><LI CLASS="li-toc"><A HREF="#htoc89">B  Errors list</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc90">C  CHANGELOG</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc90">B  Errors list</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc91">C  CHANGELOG</A>
 </LI></UL><!--TOC section Introduction-->
 <H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc1">1</A>  Introduction</H2><!--SEC END --><!--TOC subsection What is Tsung ?-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc2">1.1</A>  What is Tsung ?</H3><!--SEC END --><P><EM>Tsung</EM> (formerly IDX-Tsunami) is a distributed load testing tool. It is
@@ -1117,7 +1118,30 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE><P>The complete sequence can be executed several times using the
+</TABLE><P>You can limit the number of users started for each phase by using the
+<TT>maxnumber</TT> attribute, just like this:
+</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">  &lt;arrivalphase phase="1" duration="10" unit="minute"&gt;
+    &lt;users maxnumber="100" arrivalrate="10" unit="second"&gt;&lt;/users&gt;
+  &lt;/arrivalphase&gt;
+  &lt;arrivalphase phase="2" duration="10" unit="minute"&gt;
+    &lt;users maxnumber="200" arrivalrate="10" unit="second"&gt;&lt;/users&gt;
+  &lt;/arrivalphase&gt;
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><P>In this case, only 100 users will be created in the first phases, and
+200 more during the second phase.</P><P>The complete sequence can be executed several times using the
 <TT>loop</TT> attribute in the <TT>load</TT> tag
 (<FONT COLOR=purple>loop=’2’</FONT> means the sequence will be looped twice, so the
 complete load will be executed 3 times) (feature available since
@@ -3641,8 +3665,41 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
+</TABLE><!--TOC subsection How can i simulate a fix number of users ?-->
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc89">A.10</A>  How can i simulate a fix number of users ?</H3><!--SEC END --><P>Use <TT>maxnumber</TT> to set the max number of concurrent users in a
+phase, and if you want Tsung to behave like ab, you can use a loop
+in a session (to send requests as fast as possible); you can also define a
+max <TT>duration</TT> in <TT>&lt;load&gt;</TT>.</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">&lt;load duration="5" unit="minute"&gt;
+   &lt;arrivalphase phase="1" duration="10" unit="minute"&gt;
+   &lt;users maxnumber="10" arrivalrate="100" unit="second"&gt;&lt;/users&gt;
+&lt;/arrivalphase&gt;
+&lt;/load&gt;
+&lt;sessions&gt;
+&lt;session probability="100" name="ab"&gt;
+    &lt;for from="1" to="1000" var="i"&gt;
+      &lt;request&gt;
+        &lt;http url="http://myserver/index.html" method="GET"&gt;&lt;/http&gt;
+      &lt;/request&gt;
+    &lt;/for&gt;
+&lt;/session&gt;
+&lt;/sessions&gt;
+
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
 </TABLE><!--TOC section Errors list-->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc89">B</A>  Errors list</H2><!--SEC END --><DL CLASS="description"><DT CLASS="dt-description">
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc90">B</A>  Errors list</H2><!--SEC END --><DL CLASS="description"><DT CLASS="dt-description">
 <B>error_closed</B></DT><DD CLASS="dd-description"> Only for non persistent session (XMPP); the
 server unexpectedly closed the connection; the session is aborted.
 </DD><DT CLASS="dt-description"><B>error_inet_&lt;ERRORNAME&gt;</B></DT><DD CLASS="dd-description"> Network error; see
@@ -3674,7 +3731,7 @@ parameter from the config_server; the controller may be overloaded ?
 </DD><DT CLASS="dt-description"><B>error_mysql_badpacket</B></DT><DD CLASS="dd-description"> Bad packet received for mysql server while parsing data.
 </DD><DT CLASS="dt-description"><B>error_pgsql</B></DT><DD CLASS="dd-description"> Error reported by the postgresql server.
 </DD></DL><!--TOC section CHANGELOG-->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc90">C</A>  CHANGELOG</H2><!--SEC END --><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc91">C</A>  CHANGELOG</H2><!--SEC END --><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
 </TABLE></TD></TR>

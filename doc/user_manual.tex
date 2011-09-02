@@ -932,6 +932,20 @@ second, use:
   </arrivalphase>
 \end{Verbatim}
 
+You can limit the number of users started for each phase by using the
+\varname{maxnumber} attribute, just like this:
+\begin{Verbatim}
+  <arrivalphase phase="1" duration="10" unit="minute">
+    <users maxnumber="100" arrivalrate="10" unit="second"></users>
+  </arrivalphase>
+  <arrivalphase phase="2" duration="10" unit="minute">
+    <users maxnumber="200" arrivalrate="10" unit="second"></users>
+  </arrivalphase>
+\end{Verbatim}
+In this case, only 100 users will be created in the first phases, and
+200 more during the second phase.
+
+
 The complete sequence can be executed several times using the
 \varname{loop} attribute in the \varname{load} tag
 (\userinput{loop='2'} means the sequence will be looped twice, so the
@@ -2873,6 +2887,33 @@ work. This is fixed in erlang R9C-1 and up.
      {error,{invalid_option,InvOpt}};
  is_options_ok([]) -> true.
 \end{Verbatim}
+
+\subsection{How can i simulate a fix number of users ?}
+
+Use \varname{maxnumber} to set the max number of concurrent users in a
+phase, and if you want Tsung to behave like ab, you can use a loop
+in a session (to send requests as fast as possible); you can also define a
+max  \varname{duration} in \varname{<load>}.
+
+
+\begin{Verbatim}
+<load duration="5" unit="minute">
+   <arrivalphase phase="1" duration="10" unit="minute">
+   <users maxnumber="10" arrivalrate="100" unit="second"></users>
+</arrivalphase>
+</load>
+<sessions>
+<session probability="100" name="ab">
+    <for from="1" to="1000" var="i">
+      <request>
+        <http url="http://myserver/index.html" method="GET"></http>
+      </request>
+    </for>
+</session>
+</sessions>
+
+\end{Verbatim}
+
 
 \section{Errors list}
 
