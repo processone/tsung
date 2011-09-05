@@ -247,7 +247,6 @@ repeat | if | change_type | foreach | set_option)*>
     walltime CDATA     #IMPLIED
     duration CDATA     #IMPLIED
     jobid    CDATA     #IMPLIED
-    script   CDATA     #IMPLIED
     resources CDATA    #IMPLIED
     nodes    CDATA   #IMPLIED
     queue    CDATA   #IMPLIED
