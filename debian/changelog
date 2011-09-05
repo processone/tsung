@@ -1,3 +1,8 @@
+tsung (1.4.0-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Nicolas Niclausse <nicolas.niclausse@niclux.org>  Mon, 5 Sep 2011 10:58:05 +0200
 tsung (1.4.0a-1) unstable; urgency=low
 
   * working on 1.4.0
