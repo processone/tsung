@@ -400,6 +400,7 @@ release: Makefile tsung.spec doc
 		$(USERMANUAL) $(USERMANUAL_SRC) $(USERMANUAL_IMG) $(DTD) \
 		COPYING README LISEZMOI TODO $(CONFFILE_SRC) $(TEST_CONFFILE_SRC) \
 		priv/builder.erl tsung.sh.in vsn.mk  src/test/*.csv src/test/*.txt \
+		src/test/*.out \
 		$(DEBIAN)  $(PERL_SCRIPTS_SRC) CONTRIBUTORS CHANGES \
 		$(TSPLOT_SRC) $(TSUNG_PLOTTER_CONF) $(TSUNG_PLOTTER_LIB)\
 		configure configure.in config.guess *.m4 config.sub Makefile.in \

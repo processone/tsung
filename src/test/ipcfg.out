@@ -1,0 +1,12 @@
+5: eth0 inet 192.12.0.1/32 scope global eth0
+5: eth0 inet 192.12.0.2/32 scope global eth0:0
+5: eth0 inet 192.12.0.3/32 scope global eth0:1
+5: eth0 inet 192.12.0.4/32 scope global eth0:2
+5: eth0 inet 192.12.0.5/32 scope global eth0:3
+5: eth0 inet 192.12.0.6/32 scope global eth0:4
+5: eth0 inet 192.12.0.7/32 scope global eth0:5
+5: eth0 inet 192.12.0.8/32 scope global eth0:6
+5: eth0 inet 192.12.0.9/32 scope global eth0:7
+5: eth0 inet 192.12.0.10/32 scope global eth0:8
+5: eth0 inet 192.12.0.11/32 scope global eth0:9
+5: eth0 inet 192.12.0.12/32 scope global eth0:10
