@@ -180,27 +180,22 @@ handle_info({timeout, _Ref, send_request},  State=#state{socket=Socket,host=Host
                                  Acc+Val
                          end,0,NonIdle) / (State#state.interval div 1000),
     Cpu=check_value(RawCpu,{Hostname,"cpu"})/State#state.ncpus,
-    case Cpu > 100 of
-        true ->
-            ?LOGF("CPU usage value from munin too high, skip (host ~p , cpu  ~p)~n", [Hostname,Cpu], ?WARN);
-        false ->
-            ?LOGF(" munin cpu on host ~p is  ~p~n", [Hostname,Cpu], ?DEB),
-            %% returns free + buffer + cache
-            FunFree = fun({Key,Val},Acc) when ((Key=='buffers.value') or
-                                               (Key=='free.value')    or
-                                               (Key=='cached.value') ) ->
-                              Acc+Val;
-                         (_, Acc) -> Acc
-                      end,
-            FreeMem=check_value(lists:foldl(FunFree,0,AllMem),{Hostname,"memory"})/1048576,%MBytes
-            ?LOGF(" munin memory on host ~p is ~p~n", [Hostname,FreeMem], ?DEB),
-            %% load only has one value at present
-            Load = lists:foldl(fun({_Key,Val},Acc) -> Acc+Val end,0,AllLoad),
-            ?LOGF(" munin load on host ~p is ~p~n", [Hostname,Load], ?DEB),
-            ts_os_mon:send(State#state.mon,[{sample_counter, {cpu, Hostname}, Cpu},
-                                            {sample, {freemem, Hostname}, FreeMem},
-                                            {sample, {load, Hostname}, Load}])
-    end,
+    ?LOGF(" munin cpu on host ~p is  ~p~n", [Hostname,Cpu], ?DEB),
+    %% returns free + buffer + cache
+    FunFree = fun({Key,Val},Acc) when ((Key=='buffers.value') or
+                                       (Key=='free.value')    or
+                                       (Key=='cached.value') ) ->
+                      Acc+Val;
+                 (_, Acc) -> Acc
+              end,
+    FreeMem=check_value(lists:foldl(FunFree,0,AllMem),{Hostname,"memory"})/1048576,%MBytes
+    ?LOGF(" munin memory on host ~p is ~p~n", [Hostname,FreeMem], ?DEB),
+    %% load only has one value at present
+    Load = lists:foldl(fun({_Key,Val},Acc) -> Acc+Val end,0,AllLoad),
+    ?LOGF(" munin load on host ~p is ~p~n", [Hostname,Load], ?DEB),
+    ts_os_mon:send(State#state.mon,[{sample_counter, {cpu, Hostname}, Cpu},
+                                    {sample, {freemem, Hostname}, FreeMem},
+                                    {sample, {load, Hostname}, Load}]),
     erlang:start_timer(State#state.interval, self(), send_request ),
     {noreply, State}.
 
