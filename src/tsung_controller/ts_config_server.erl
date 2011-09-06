@@ -352,10 +352,7 @@ handle_cast({newbeams, HostList}, State=#state{logdir   = LogDir,
                                                hostname = LocalHost,
                                                config   = Config}) ->
     LocalVM  = Config#config.use_controller_vm,
-    GetLocal = fun(Host)           when Host == LocalHost and  LocalVM  -> true;
-                  ('localhost')    when LocalVM  -> true;
-                  (_Host)        -> false
-               end,
+    GetLocal = fun(Host)-> is_vm_local(Host,LocalHost,LocalVM) end,
     {LocalBeams, RemoteBeams} = lists:partition(GetLocal,HostList),
     case local_launcher(LocalBeams, LogDir, Config) of
         {error, _Reason} ->
@@ -460,6 +457,11 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
+
+%% @spec is_vm_local(Host::atom(),Localhost::atom(),UseController::boolean()) -> boolean()
+is_vm_local(Host,Host,true)     -> true;
+is_vm_local('localhost',_,true) -> true;
+is_vm_local(_,_,_)              -> false.
 
 set_start_date(undefined)->
      ts_utils:add_time(now(), ?config(warm_time));
