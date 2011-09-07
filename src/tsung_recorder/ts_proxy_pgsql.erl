@@ -33,6 +33,7 @@
 
 
 -export([parse/4, record_request/2, socket_opts/0, gettype/0]).
+-export([client_close/2]).
 
 -export([rewrite_serverdata/1]).
 -export([rewrite_ssl/1]).
@@ -56,6 +57,13 @@ rewrite_serverdata(Data)->{ok, Data}.
 %% Func: rewrite_ssl/1
 %%--------------------------------------------------------------------
 rewrite_ssl(Data)->{ok, Data}.
+
+%%--------------------------------------------------------------------
+%% Func: client_close/2
+%%--------------------------------------------------------------------
+client_close(_Socket,State)->
+    ts_proxy_recorder:dorecord({#pgsql_request{type=close}}),
+    State.
 
 %%--------------------------------------------------------------------
 %% Func: parse/4
@@ -285,18 +293,29 @@ do_split(<<H:1/binary,Tail/binary>>,Pattern,Head,L) ->
 %% Purpose: record request given State=#state_rec and Request=#pgsql_request
 %% Returns: {ok, NewState}
 %%--------------------------------------------------------------------
+record_request(State=#state_rec{logfd=Fd, plugin_state=connected},
+               #pgsql_request{type=connect, username=User, database=DB})->
+    %% connect request while already connected
+    ?LOG("PGSQL: connect request but we are already connected ! record a close request first ~n", ?WARN),
+    io:format(Fd,"<!-- close forced by Tsung; maybe several clients were using the recorder ?-->~n <request><pgsql type='close'/></request>~n", []),
+    io:format(Fd,"<request><pgsql type='connect' database='~s' username='~s'/>", [DB,User]),
+    io:format(Fd,"</request>~n",[]),
+    {ok,State};
 record_request(State=#state_rec{logfd=Fd},
                #pgsql_request{type=connect, username=User, database=DB})->
     io:format(Fd,"<request><pgsql type='connect' database='~s' username='~s'/>", [DB,User]),
     io:format(Fd,"</request>~n",[]),
-    {ok,State};
+    {ok,State#state_rec{plugin_state=connected }};
 record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=sql, sql=SQL})->
     io:format(Fd,"<request> <pgsql type='sql'><![CDATA[~s]]></pgsql>", [SQL]),
     io:format(Fd,"</request>~n",[]),
     {ok,State};
+record_request(State=#state_rec{plugin_state=undefined}, #pgsql_request{type=close})->
+    %% not connected, don't record
+    {ok,State};
 record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=close})->
     io:format(Fd,"<request><pgsql type='close'/></request>~n", []),
-    {ok,State};
+    {ok,State#state_rec{plugin_state=undefined}};
 record_request(State=#state_rec{logfd=Fd}, #pgsql_request{type=sync})->
     io:format(Fd,"<request><pgsql type='sync'/></request>~n", []),
     {ok,State};

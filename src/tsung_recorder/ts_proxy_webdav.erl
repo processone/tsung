@@ -35,6 +35,7 @@
 -export([parse/4, record_request/2, socket_opts/0]).
 -export([gettype/0]).
 
+-export([client_close/2]).
 -export([rewrite_serverdata/1]).
 -export([rewrite_ssl/1]).
 
@@ -59,6 +60,12 @@ rewrite_serverdata(Data)->
 %%--------------------------------------------------------------------
 rewrite_ssl(Data)->
     ts_utils:to_https(Data).
+
+%%--------------------------------------------------------------------
+%% Func: client_close/2
+%%--------------------------------------------------------------------
+client_close(Data,State)->
+    ts_proxy_http:client_close(Data,State).
 
 %%--------------------------------------------------------------------
 %% Func: parse/4

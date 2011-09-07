@@ -147,6 +147,9 @@ handle_cast({record, endsession}, State) ->
     io:format(State#state_rec.logfd,"</session>"),
     {noreply, State};
 
+handle_cast({record, {Request,PluginState}}, State) ->
+    handle_cast({record, {Request}}, State#state_rec{plugin_state=PluginState});
+
 handle_cast({record, {Request}}, State=#state_rec{timestamp=0,plugin=Plugin}) -> % first record
     Name= ts_utils:datestr(),
     Type = Plugin:gettype(),

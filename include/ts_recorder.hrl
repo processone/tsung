@@ -10,6 +10,7 @@
                     prev_host,   % previous hostname
                     timestamp=0, % last request date
                     ext_file_id, % counter of external files (use for ex. in HTTP POST req)
+                    plugin_state, % can be used by the plugin to store some state
                     plugin,
                     thinktime_low = 1000 % dot not record thinktime less than this
                                                 % value (msec)

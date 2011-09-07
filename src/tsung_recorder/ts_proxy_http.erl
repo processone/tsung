@@ -35,6 +35,7 @@
 -export([parse/4, record_request/2, socket_opts/0]).
 -export([decode_basic_auth/1, gettype/0]).
 
+-export([client_close/2]).
 -export([rewrite_serverdata/1]).
 -export([rewrite_ssl/1]).
 
@@ -64,6 +65,12 @@ rewrite_serverdata(Data)->
 rewrite_ssl(Data)->
     %% FIXME: content length may have changed !
     ts_utils:to_https(Data).
+
+%%--------------------------------------------------------------------
+%% Func: client_close/2
+%%--------------------------------------------------------------------
+client_close(_Socket,State)->
+    State.
 
 %%--------------------------------------------------------------------
 %% Func: parse/4

@@ -148,10 +148,11 @@ handle_info({Msg,Socket},State=#proxy{http_version = HTTPVersion,
             {noreply, State#proxy{serversock=undefined}, ?lifetime}
     end;
 
-handle_info({Msg, _Socket}, State) when Msg == tcp_closed;
+handle_info({Msg, Socket}, State=#proxy{plugin=Plugin}) when Msg == tcp_closed;
                                        Msg == ssl_closed->
     ?LOG("socket closed by client~n",?INFO),
-    {stop, normal, State};
+    NewState = Plugin:client_close(Socket, State),
+    {stop, normal, NewState};
 
 % Log properly who caused an error, and exit.
 handle_info({Msg, Socket, Reason}, State) when Msg == tcp_error;
