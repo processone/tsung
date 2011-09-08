@@ -108,7 +108,7 @@ A distributed multi-protocol load testing tool.
       <varlistentry>
         <term><option>-l logfile</option></term>
         <listitem>
-          <para>Specifies the log file to use. The default log file name is <filename>~/tsung/log/YYYYMMDD-HH:MM/tsung.log</filename></para>
+          <para>Specifies the log file to use. The default log file name is <filename>~/tsung/log/YYYYMMDD-HHMM/tsung.log</filename></para>
         </listitem>
       </varlistentry>
       <varlistentry>
