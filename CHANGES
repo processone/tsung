@@ -1,3 +1,8 @@
+1.4.0 -> 1.4.1 Minor bugfixes (13 Sep 2011)
+Bugfix:
+   * [TSUN-188] - munin plugin is not working in 1.4.0
+   * [TSUN-189] - the controller VM is not used in some case
+   * [TSUN-190] - pgsql recorder can record a connect request in an already connected session
 1.3.3 -> 1.4.0 Major enhancements and bugfixes (5 Sep 2011)
 Bugfix:
    * [TSUN-129] - regexp (defined in match or dynvars) can fail when chunk encoding is used.
