@@ -223,6 +223,13 @@ get_message(#jabber{type = 'muc:exit', room = Room, muc_service = Service, nick 
 
 get_message(Jabber=#jabber{id=user_defined}) ->
     get_message2(Jabber);
+
+%% Privacy lists benchmark support
+get_message(#jabber{type = 'privacy:get_names', username = Name, id = Id, domain = Domain}) ->
+    privacy_get_names(username(Name, Id), Domain);
+get_message(#jabber{type = 'privacy:set_active', username = Name, id = Id, domain = Domain}) ->
+    privacy_set_active(username(Name, Id), Domain);
+
 get_message(Jabber=#jabber{username=Name, passwd=Passwd, id=Id}) ->
     FullName = username(Name, Id),
     FullPasswd = password(Passwd,Id),
@@ -606,6 +613,33 @@ muc_nick(Room, Nick, Service) ->
 muc_exit(Room,Nick, Service) ->
     Result = list_to_binary(["<presence to='", Room,"@", Service,"/", Nick, "' type='unavailable'/>"]),
     Result.
+
+
+%%%----------------------------------------------------------------------
+%%% Func: privacy_get_names/2
+%%% Get names of all privacy lists server stores for the user
+%%%----------------------------------------------------------------------
+privacy_get_names(User, Domain) ->
+    Jid = [User,"@",Domain,"/tsung"],
+    Req = ["<iq from='", Jid, "' type='get' id='getlist'>",
+               "<query xmlns='jabber:iq:privacy'/>",
+           "</iq>"],
+    list_to_binary(Req).
+
+%%%----------------------------------------------------------------------
+%%% Func: privacy_set_active/2
+%%% Set the list named according to pattern "<user>@<domain>_list"
+%%% as active
+%%%----------------------------------------------------------------------
+privacy_set_active(User, Domain) ->
+    Jid = [User,"@",Domain,"/tsung"],
+    List = [User,"@",Domain,"_list"],
+    Req = ["<iq from='", Jid, "' type='set' id='active1'>",
+              "<query xmlns='jabber:iq:privacy'>",
+                  "<active name='", List, "'/>",
+              "</query>",
+           "</iq>"],
+    list_to_binary(Req).
 
 
 %%%----------------------------------------------------------------------

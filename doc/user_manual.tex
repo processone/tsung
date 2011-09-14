@@ -205,6 +205,7 @@ are also supported):
 \item raw XML messages
 \item PubSub
 \item Multiple vhost instances supported
+\item privacy lists: get all privacy list names, set list as active
 \end{itemize}
 
 \subsection{PostgreSQL related features}
@@ -605,8 +606,21 @@ for password settings).
 \end{Verbatim}
 \end{itemize}
 
-\section{Using the proxy recorder}
+\subsubsection{Privacy list testing}
 
+There are two actions available to allow for rudimentary privacy lists
+load testing:
+\begin{itemize}
+\item \userinput{privacy:get_names} - gets the list of all names
+of privacy lists stored by the server for a given user
+\item \userinput{privacy:set_active} - sets a list with a predefined
+name as active. The list name is determined from the JID,
+e.g. if the user's JID is "john@average.com" then the list name
+is "john@average.com_list". One should take care of properly seeding
+the server database in order to ensure that such a list exists.
+\end{itemize}
+
+\section{Using the proxy recorder}
 
 The recorder has three plugins: for HTTP, WebDAV and for PostgreSQL.
 
