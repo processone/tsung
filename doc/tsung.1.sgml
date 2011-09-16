@@ -31,11 +31,12 @@ A distributed multi-protocol load testing tool.
     <cmdsynopsis>
       <command>tsung</command>
       <arg><option>-f</option> configuration file</arg>
-      <arg><option>-l</option> log file</arg>
+      <arg><option>-l</option> log dir</arg>
+      <arg><option>-m</option> filename</arg>
       <arg><option>-r</option> command</arg>
       <arg><option>-v</option></arg>
       <arg><option>-h</option></arg>
-      <arg>start|stop|restart|debug|status</arg>
+      <arg>start|stop|debug|status</arg>
     </cmdsynopsis>
   </refsynopsisdiv>
 
@@ -106,9 +107,17 @@ A distributed multi-protocol load testing tool.
         </listitem>
       </varlistentry>
       <varlistentry>
-        <term><option>-l logfile</option></term>
+        <term><option>-l logdir</option></term>
         <listitem>
-          <para>Specifies the log file to use. The default log file name is <filename>~/tsung/log/YYYYMMDD-HHMM/tsung.log</filename></para>
+          <para>Specifies the log directory to use. The default log dir name is <filename>~/.tsung/log/YYYYMMDD-HHMM/</filename></para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><option>-m monitoring_file</option></term>
+        <listitem>
+          <para>Specifies the monitoring log file name to use. The
+          default log file name
+          is <filename>tsung.log</filename>. Use - for standard output</para>
         </listitem>
       </varlistentry>
       <varlistentry>
@@ -128,6 +137,12 @@ A distributed multi-protocol load testing tool.
         <term><option>-F</option></term>
         <listitem>
           <para>Use long names for erlang nodes (FQDN)</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><option>-m</option></term>
+        <listitem>
+          <para>Enable erlang smp on client nodes</para>
         </listitem>
       </varlistentry>
       <varlistentry>

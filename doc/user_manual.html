@@ -475,10 +475,14 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 Usage: tsung &lt;options&gt; start|stop|debug|status
 Options:
     -f &lt;file&gt;     set configuration file (default is ~/.tsung/tsung.xml)
-    -l &lt;logdir&gt;   set log directory (default is ~/.tsung/log/YYYYMMDD-HHxMM/)
+    -l &lt;logdir&gt;   set log directory (default is ~/.tsung/log/YYYYMMDD-HHMM/)
     -i &lt;id&gt;       set controller id (default is empty)
     -r &lt;command&gt;  set remote connector (default is ssh)
+    -s            enable erlang smp on client nodes
+    -m &lt;file&gt;     write monitoring output on this file (default is tsung.log)
+                   (use - for standard output)
     -F            use long names (FQDN) for erlang nodes
+    -w            warmup delay (default is 10 sec)
     -v            print version information and exit
     -h            display this help and exit
 </PRE></TD></TR>

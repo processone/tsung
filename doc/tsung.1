@@ -4,7 +4,7 @@
 tsung \- A distributed multi-protocol load testing tool.
 .SH SYNOPSIS
 .sp
-\fBtsung\fR [ \fB-f configuration file\fR ]  [ \fB-l log file\fR ]  [ \fB-r command\fR ]  [ \fB-v\fR ]  [ \fB-h\fR ]  [ \fBstart|stop|restart|debug|status\fR ] 
+\fBtsung\fR [ \fB-f configuration file\fR ]  [ \fB-l log dir\fR ]  [ \fB-m filename\fR ]  [ \fB-r command\fR ]  [ \fB-v\fR ]  [ \fB-h\fR ]  [ \fBstart|stop|debug|status\fR ] 
 .SH "DESCRIPTION"
 .PP
 \fBtsung\fR is a distributed load testing
@@ -53,8 +53,13 @@ http://tsung.erlang-projects.org/user_manual.html
 \fB-f filename\fR
 specifies the configuration file to use. The default file name is \fI~/.tsung/tsung.xml\fR
 .TP
-\fB-l logfile\fR
-Specifies the log file to use. The default log file name is \fI~/tsung/log/YYYYMMDD-HHMM/tsung.log\fR
+\fB-l logdir\fR
+Specifies the log directory to use. The default log dir name is \fI~/.tsung/log/YYYYMMDD-HHMM/\fR
+.TP
+\fB-m monitoring_file\fR
+Specifies the monitoring log file name to use. The
+default log file name
+is \fItsung.log\fR\&. Use - for standard output
 .TP
 \fB-r command\fR
 Specifies an alternative to ssh (rsh for ex.) for starting a slave node on a remote host
@@ -65,6 +70,9 @@ several controllers on the same host.
 .TP
 \fB-F\fR
 Use long names for erlang nodes (FQDN)
+.TP
+\fB-m\fR
+Enable erlang smp on client nodes
 .TP
 \fB-v\fR
 Show version

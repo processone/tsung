@@ -160,22 +160,26 @@ launcher_is_alive() ->
 %%----------------------------------------------------------------------
 init([LogDir]) ->
     ?LOGF("Init, log dir is ~p~n",[LogDir],?NOTICE),
-    Base = filename:basename(?config(log_file)),
-    Filename = filename:join(LogDir, Base),
-    case file:open(Filename,[write]) of
-        {ok, Stream} ->
-            ?LOG("starting monitor~n",?NOTICE),
-            Stats = #stats{os_mon  = dict:new()},
-            {ok, #state{ log       = Stream,
-                         dump_interval = ?config(dumpstats_interval),
-                         log_dir   = LogDir,
-                         stats     = Stats,
-                         lastdate  = now(),
-                         laststats = Stats
-                       }};
-        {error, Reason} ->
-            ?LOGF("Can't open mon log file! ~p~n",[Reason], ?ERR),
-            {stop, Reason}
+    Stats = #stats{os_mon  = dict:new()},
+    State=#state{ dump_interval = ?config(dumpstats_interval),
+                  log_dir   = LogDir,
+                  stats     = Stats,
+                  lastdate  = now(),
+                  laststats = Stats
+                },
+    case ?config(mon_file) of
+        "-" ->
+            {ok, State#state{log=standard_io}};
+        Name ->
+            Filename = filename:join(LogDir, Name),
+            case file:open(Filename,[write]) of
+                {ok, Stream} ->
+                    ?LOG("starting monitor~n",?NOTICE),
+                    {ok, State#state{log=Stream}};
+                {error, Reason} ->
+                    ?LOGF("Can't open mon log file! ~p~n",[Reason], ?ERR),
+                    {stop, Reason}
+            end
     end.
 
 %%----------------------------------------------------------------------
@@ -362,7 +366,10 @@ terminate(Reason, State) ->
     ts_stats_mon:status(ts_stats_mon), % blocking call to ts_stats_mon; this way, we are
                                        % sure the last call to dumpstats is finished
     io:format(State#state.log,"EndMonitor:~w~n",[now()]),
-    file:close(State#state.log),
+    case State#state.log of
+        standard_io -> ok;
+        Dev         -> file:close(Dev)
+    end,
     file:close(State#state.fullstats),
     slave:stop(node()),
     ok.

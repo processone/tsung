@@ -355,10 +355,14 @@ for both commands.
 Usage: tsung <options> start|stop|debug|status
 Options:
     -f <file>     set configuration file (default is ~/.tsung/tsung.xml)
-    -l <logdir>   set log directory (default is ~/.tsung/log/YYYYMMDD-HHxMM/)
+    -l <logdir>   set log directory (default is ~/.tsung/log/YYYYMMDD-HHMM/)
     -i <id>       set controller id (default is empty)
     -r <command>  set remote connector (default is ssh)
+    -s            enable erlang smp on client nodes
+    -m <file>     write monitoring output on this file (default is tsung.log)
+                   (use - for standard output)
     -F            use long names (FQDN) for erlang nodes
+    -w            warmup delay (default is 10 sec)
     -v            print version information and exit
     -h            display this help and exit
 \end{Verbatim}
