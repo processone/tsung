@@ -42,7 +42,7 @@
 get_message(Jabber=#jabber{regexp=RegExp}) when RegExp /= undefined->
     put(regexp, RegExp),
     get_message(Jabber#jabber{regexp=undefined});
-get_message(Jabber=#jabber{type = 'wait'}) ->
+get_message(_Jabber=#jabber{type = 'wait'}) ->
     << >>;
 get_message(Jabber=#jabber{id=user_defined, username=User,passwd=Pwd,type = 'connect'}) ->
     ts_user_server:add_to_connected({User,Pwd}),
@@ -112,7 +112,7 @@ get_message(Jabber=#jabber{type = 'chat', dest=random, domain=Domain,user_server
 get_message(Jabber=#jabber{type = 'chat', dest=unique, domain=Domain,user_server=UserServer})->
     {Dest, _} = ts_user_server:get_first(UserServer),
     message(Dest, Jabber, Domain);
-get_message(Jabber=#jabber{type = 'chat', id=_Id, dest = undefined, domain=Domain}) ->
+get_message(_Jabber=#jabber{type = 'chat', id=_Id, dest = undefined, domain=_Domain}) ->
     %% this can happen if previous is set but undefined, skip
     ts_mon:add({ count, error_no_previous }),
     << >>;
@@ -394,7 +394,7 @@ auth_sasl_bind(#jabber{username=Name,passwd=Passwd,domain=Domain})->
 %%----------------------------------------------------------------------
 %% Func: auth_sasl_bind/3
 %%----------------------------------------------------------------------
-auth_sasl_bind(Username, _Passwd, Domain) ->
+auth_sasl_bind(_Username, _Passwd, _Domain) ->
  list_to_binary(["<iq type='set' id='",ts_msg_server:get_id(list),
 "' ><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'><resource>tsung</resource></bind></iq>"]).
 
@@ -409,7 +409,7 @@ auth_sasl_session(#jabber{username=Name,passwd=Passwd,domain=Domain})->
 %%----------------------------------------------------------------------
 %% Func: auth_sasl_session/3
 %%----------------------------------------------------------------------
-auth_sasl_session(Username, _Passwd, _Domain) ->
+auth_sasl_session(_Username, _Passwd, _Domain) ->
  list_to_binary(["<iq type='set' id='",ts_msg_server:get_id(list),
 "' ><session xmlns='urn:ietf:params:xml:ns:xmpp-session' /></iq>"]).
 
