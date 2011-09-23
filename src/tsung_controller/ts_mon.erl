@@ -140,7 +140,7 @@ rcvmes({_Type, Who, What})  ->
     gen_server:cast({global, ?MODULE}, {rcvmsg, Who, now(), What}).
 
 dump({none, _, _})-> skip;
-dump({Type, Who, What})  ->
+dump({_Type, Who, What})  ->
     gen_server:cast({global, ?MODULE}, {dump, Who, now(), What}).
 
 launcher_is_alive() ->
@@ -365,7 +365,12 @@ terminate(Reason, State) ->
     export_stats(State),
     ts_stats_mon:status(ts_stats_mon), % blocking call to ts_stats_mon; this way, we are
                                        % sure the last call to dumpstats is finished
-    io:format(State#state.log,"EndMonitor:~w~n",[now()]),
+    case State#state.backend of
+        json ->
+            io:format(State#state.log,"}~n",[]);
+        _ ->
+            io:format(State#state.log,"EndMonitor:~w~n",[now()])
+        end,
     case State#state.log of
         standard_io -> ok;
         Dev         -> file:close(Dev)
@@ -415,12 +420,12 @@ start_logger({Machines, DumpType, Backend}, _From, State) ->
     ?LOGF("Activate clients with ~p backend~n",[Backend],?NOTICE),
     timer:apply_interval(State#state.dump_interval, ?MODULE, dumpstats, [] ),
     start_launchers(Machines),
-    ts_stats_mon:set_output(text,{State#state.log,[]}),
-    ts_stats_mon:set_output(text,{State#state.log,[]}, transaction),
-    ts_stats_mon:set_output(text,{State#state.log,[]}, request),
-    ts_stats_mon:set_output(text,{State#state.log,[]}, connect),
-    ts_stats_mon:set_output(text,{State#state.log,[]}, page),
-    start_dump(State#state{type=DumpType, backend=text}).
+    ts_stats_mon:set_output(Backend,{State#state.log,[]}),
+    ts_stats_mon:set_output(Backend,{State#state.log,[]}, transaction),
+    ts_stats_mon:set_output(Backend,{State#state.log,[]}, request),
+    ts_stats_mon:set_output(Backend,{State#state.log,[]}, connect),
+    ts_stats_mon:set_output(Backend,{State#state.log,[]}, page),
+    start_dump(State#state{type=DumpType, backend=Backend}).
 
 %% @spec start_dump(State::record(state)) -> {reply, Reply, State}
 %% @doc open file for dumping traffic
@@ -446,20 +451,41 @@ start_dump(State=#state{type=Type}) ->
 %%----------------------------------------------------------------------
 %% Func: export_stats/1
 %%----------------------------------------------------------------------
-export_stats(State=#state{log=Log,stats=Stats,laststats=LastStats}) ->
+export_stats(State=#state{log=Log,stats=Stats,laststats=LastStats, backend=json}) ->
+    DateStr = ts_utils:now_sec(),
+    io:format(Log,"{\"timestamp\": ~w, ~n",[DateStr]),
+    %% print number of simultaneous users
+    io:format(Log," \"users\": ~p,~n \"users_max\": ~p,~n",[State#state.client,State#state.maxclient]),
+    Param = {json,(State#state.laststats)#stats.os_mon,State#state.log},
+    dict:fold(fun ts_stats_mon:print_stats/3, Param, (State#state.stats)#stats.os_mon),
+    ts_stats_mon:print_stats({session, sample}, Stats#stats.session,{json,[],Log}),
+    ts_stats_mon:print_stats({users_count, count},
+                                 Stats#stats.users_count,
+                                 {json,LastStats#stats.users_count,Log}),
+    ts_stats_mon:print_stats({finish_users_count, count},
+                             Stats#stats.finish_users_count,
+                             {json,LastStats#stats.finish_users_count,Log}),
+    ts_stats_mon:dumpstats(request),
+    ts_stats_mon:dumpstats(page),
+    ts_stats_mon:dumpstats(connect),
+    ts_stats_mon:dumpstats(transaction),
+    ts_stats_mon:dumpstats(),
+    io:format(Log,"}~n",[]);
+
+export_stats(State=#state{log=Log,stats=Stats,laststats=LastStats, backend=BackEnd}) ->
     DateStr = ts_utils:now_sec(),
     io:format(Log,"# stats: dump at ~w~n",[DateStr]),
     %% print number of simultaneous users
     io:format(Log,"stats: ~p ~p ~p~n",[users,State#state.client,State#state.maxclient]),
-    Param = {(State#state.laststats)#stats.os_mon,State#state.log},
-    dict:fold(fun ts_stats_mon:print_stats_txt/3, Param, (State#state.stats)#stats.os_mon),
-    ts_stats_mon:print_stats_txt({session, sample}, Stats#stats.session,{[],Log}),
-    ts_stats_mon:print_stats_txt({users_count, count},
+    Param = {BackEnd,(State#state.laststats)#stats.os_mon,State#state.log},
+    dict:fold(fun ts_stats_mon:print_stats/3, Param, (State#state.stats)#stats.os_mon),
+    ts_stats_mon:print_stats({session, sample}, Stats#stats.session,{BackEnd,[],Log}),
+    ts_stats_mon:print_stats({users_count, count},
                                  Stats#stats.users_count,
-                                 {LastStats#stats.users_count,Log}),
-    ts_stats_mon:print_stats_txt({finish_users_count, count},
-                                 Stats#stats.finish_users_count,
-                                 {LastStats#stats.finish_users_count,Log}),
+                                 {BackEnd,LastStats#stats.users_count,Log}),
+    ts_stats_mon:print_stats({finish_users_count, count},
+                             Stats#stats.finish_users_count,
+                             {BackEnd,LastStats#stats.finish_users_count,Log}),
     ts_stats_mon:dumpstats(request),
     ts_stats_mon:dumpstats(page),
     ts_stats_mon:dumpstats(connect),
