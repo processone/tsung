@@ -57,24 +57,26 @@
 %%% @doc:  read and parse the xml config file
 %%% @end
 %%%----------------------------------------------------------------------
+read(Filename=standard_io, LogDir) ->
+    ?LOG("Reading config file from stdin~n", ?NOTICE),
+    XML = read_stdio(),
+    handle_read(catch xmerl_scan:string(XML,
+                                      [{fetch_path,["/usr/share/tsung/","./"]},
+                                       {validation,true}]),Filename,LogDir);
 read(Filename, LogDir) ->
-    case catch xmerl_scan:file(Filename,
-                               [{fetch_path,["/usr/share/tsung/","./"]},
-                                {validation,true}]) of
-        {ok, Root = #xmlElement{}} ->  % xmerl-0.15
-            ?LOGF("Reading config file: ~s~n", [Filename], ?NOTICE),
-            Table = ets:new(sessiontable, [ordered_set, protected]),
-            {ok, parse(Root, #config{session_tab = Table})};
-        {Root = #xmlElement{}, _Tail} ->  % xmerl-0.19 and up
-            ?LOGF("Reading config file: ~s~n", [Filename], ?NOTICE),
-            Table = ets:new(sessiontable, [ordered_set, protected]),
-            backup_config(LogDir, Filename, Root),
-            {ok, parse(Root, #config{session_tab = Table, proto_opts=#proto_opts{}})};
-        {error,Reason} ->
-            {error, Reason};
-        {'EXIT',Reason} ->
-            {error, Reason}
-    end.
+    ?LOGF("Reading config file: ~s~n", [Filename], ?NOTICE),
+    handle_read(catch xmerl_scan:file(Filename,
+                                      [{fetch_path,["/usr/share/tsung/","./"]},
+                                       {validation,true}]),Filename,LogDir).
+
+handle_read( {Root = #xmlElement{}, _Tail}, Filename, LogDir) ->
+    Table = ets:new(sessiontable, [ordered_set, protected]),
+    backup_config(LogDir, Filename, Root),
+    {ok, parse(Root, #config{session_tab = Table, proto_opts=#proto_opts{}})};
+handle_read({error,Reason},_,_) ->
+    {error, Reason};
+handle_read({'EXIT',Reason},_,_) ->
+    {error, Reason}.
 
 %%%----------------------------------------------------------------------
 %%% Function: parse/2
@@ -948,6 +950,8 @@ shortnames(Hostname)->
 %%   Use parsed config file to expand all ENTITY
 %% @end
 %%----------------------------------------------------------------------
+backup_config(Dir,standard_io, Config) ->
+    backup_config(Dir, "tsung_stdin.xml", Config);
 backup_config(Dir, Name, Config) ->
     BaseName = filename:basename(Name),
     {ok,IOF}=file:open(filename:join(Dir,BaseName),[write]),
@@ -959,3 +963,15 @@ backup_config(Dir, Name, Config) ->
             ok
     end,
     file:close(IOF).
+
+%% @spec read_stdio()-> string()
+%% @doc Read config from standard input
+%% @end
+read_stdio()->
+    read_stdio(io:get_line(""),[]).
+
+read_stdio(eof, Data)->
+    lists:flatten(Data);
+read_stdio(Data,Acc) ->
+    read_stdio(io:get_line(""),[Acc,Data]).
+

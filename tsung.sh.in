@@ -90,7 +90,7 @@ version() {
 }
 
 checkconfig() {
-    if [ ! -e $CONF_OPT_FILE ]
+    if [ ! -e $CONF_OPT_FILE ] && [ $CONF_OPT_FILE != "-" ]
     then
         echo "Config file $CONF_OPT_FILE doesn't exist, aborting !"
         exit 1
