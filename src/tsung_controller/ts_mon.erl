@@ -416,16 +416,23 @@ start_logger({Machines, DumpType, fullstats}, _From, State) ->
             {stop, Reason, State}
     end;
 
-start_logger({Machines, DumpType, Backend}, _From, State) ->
+start_logger({Machines, DumpType, Backend}, _From, State=#state{log=Log}) ->
     ?LOGF("Activate clients with ~p backend~n",[Backend],?NOTICE),
+    print_headline(Log,Backend),
     timer:apply_interval(State#state.dump_interval, ?MODULE, dumpstats, [] ),
     start_launchers(Machines),
-    ts_stats_mon:set_output(Backend,{State#state.log,[]}),
-    ts_stats_mon:set_output(Backend,{State#state.log,[]}, transaction),
-    ts_stats_mon:set_output(Backend,{State#state.log,[]}, request),
-    ts_stats_mon:set_output(Backend,{State#state.log,[]}, connect),
-    ts_stats_mon:set_output(Backend,{State#state.log,[]}, page),
+    ts_stats_mon:set_output(Backend,{Log,[]}),
+    ts_stats_mon:set_output(Backend,{Log,[]}, transaction),
+    ts_stats_mon:set_output(Backend,{Log,[]}, request),
+    ts_stats_mon:set_output(Backend,{Log,[]}, connect),
+    ts_stats_mon:set_output(Backend,{Log,[]}, page),
     start_dump(State#state{type=DumpType, backend=Backend}).
+
+print_headline(Log,json)->
+    DateStr = ts_utils:now_sec(),
+    io:format(Log,"{~n{\"start_time\": ~p}",[DateStr]);
+print_headline(_Log,_Backend)->
+    ok.
 
 %% @spec start_dump(State::record(state)) -> {reply, Reply, State}
 %% @doc open file for dumping traffic
@@ -453,9 +460,9 @@ start_dump(State=#state{type=Type}) ->
 %%----------------------------------------------------------------------
 export_stats(State=#state{log=Log,stats=Stats,laststats=LastStats, backend=json}) ->
     DateStr = ts_utils:now_sec(),
-    io:format(Log,"{\"timestamp\": ~w, ~n",[DateStr]),
+    io:format(Log,"],~n[{\"timestamp\": ~w}, ~n",[DateStr]),
     %% print number of simultaneous users
-    io:format(Log," \"users\": ~p,~n \"users_max\": ~p,~n",[State#state.client,State#state.maxclient]),
+    io:format(Log," {\"name\": \"users\", \"value:\" ~p, \"max\": ~p}",[State#state.client,State#state.maxclient]),
     Param = {json,(State#state.laststats)#stats.os_mon,State#state.log},
     dict:fold(fun ts_stats_mon:print_stats/3, Param, (State#state.stats)#stats.os_mon),
     ts_stats_mon:print_stats({session, sample}, Stats#stats.session,{json,[],Log}),
@@ -469,8 +476,7 @@ export_stats(State=#state{log=Log,stats=Stats,laststats=LastStats, backend=json}
     ts_stats_mon:dumpstats(page),
     ts_stats_mon:dumpstats(connect),
     ts_stats_mon:dumpstats(transaction),
-    ts_stats_mon:dumpstats(),
-    io:format(Log,"}~n",[]);
+    ts_stats_mon:dumpstats();
 
 export_stats(State=#state{log=Log,stats=Stats,laststats=LastStats, backend=BackEnd}) ->
     DateStr = ts_utils:now_sec(),
