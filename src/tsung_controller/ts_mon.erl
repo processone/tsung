@@ -367,7 +367,7 @@ terminate(Reason, State) ->
                                        % sure the last call to dumpstats is finished
     case State#state.backend of
         json ->
-            io:format(State#state.log,"}~n",[]);
+            io:format(State#state.log,"]}]}~n",[]);
         _ ->
             io:format(State#state.log,"EndMonitor:~w~n",[now()])
         end,
@@ -430,7 +430,7 @@ start_logger({Machines, DumpType, Backend}, _From, State=#state{log=Log}) ->
 
 print_headline(Log,json)->
     DateStr = ts_utils:now_sec(),
-    io:format(Log,"{~n{\"start_time\": ~p}",[DateStr]);
+    io:format(Log,"{~n \"stats\": [~n {\"timestamp\": ~p,~n \"samples\": [ ~n  ",[DateStr]);
 print_headline(_Log,_Backend)->
     ok.
 
@@ -460,11 +460,12 @@ start_dump(State=#state{type=Type}) ->
 %%----------------------------------------------------------------------
 export_stats(State=#state{log=Log,stats=Stats,laststats=LastStats, backend=json}) ->
     DateStr = ts_utils:now_sec(),
-    io:format(Log,"],~n[{\"timestamp\": ~w}, ~n",[DateStr]),
+    io:format(Log,"]},~n {\"timestamp\": ~w, ~n \"samples\": [~n",[DateStr]),
     %% print number of simultaneous users
-    io:format(Log," {\"name\": \"users\", \"value:\" ~p, \"max\": ~p}",[State#state.client,State#state.maxclient]),
+    io:format(Log,"   {\"name\": \"users\", \"value\": ~p, \"max\": ~p}",[State#state.client,State#state.maxclient]),
     Param = {json,(State#state.laststats)#stats.os_mon,State#state.log},
-    dict:fold(fun ts_stats_mon:print_stats/3, Param, (State#state.stats)#stats.os_mon),
+    OSMon=(State#state.stats)#stats.os_mon,
+    dict:fold(fun ts_stats_mon:print_stats/3, Param, OSMon),
     ts_stats_mon:print_stats({session, sample}, Stats#stats.session,{json,[],Log}),
     ts_stats_mon:print_stats({users_count, count},
                                  Stats#stats.users_count,
