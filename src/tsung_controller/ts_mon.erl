@@ -430,7 +430,7 @@ start_logger({Machines, DumpType, Backend}, _From, State=#state{log=Log}) ->
 
 print_headline(Log,json)->
     DateStr = ts_utils:now_sec(),
-    io:format(Log,"{~n \"stats\": [~n {\"timestamp\": ~p,~n  \"samples\": [",[DateStr]);
+    io:format(Log,"{~n \"stats\": [~n {\"timestamp\": ~p,  \"samples\": [",[DateStr]);
 print_headline(_Log,_Backend)->
     ok.
 
@@ -460,7 +460,7 @@ start_dump(State=#state{type=Type}) ->
 %%----------------------------------------------------------------------
 export_stats(State=#state{log=Log,stats=Stats,laststats=LastStats, backend=json}) ->
     DateStr = ts_utils:now_sec(),
-    io:format(Log,"]},~n {\"timestamp\": ~w, ~n  \"samples\": [",[DateStr]),
+    io:format(Log,"]},~n {\"timestamp\": ~w,  \"samples\": [",[DateStr]),
     %% print number of simultaneous users
     io:format(Log,"   {\"name\": \"users\", \"value\": ~p, \"max\": ~p}",[State#state.client,State#state.maxclient]),
     Param = {json,(State#state.laststats)#stats.os_mon,State#state.log},
