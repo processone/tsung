@@ -60,17 +60,23 @@ start(_Type, _StartArgs) ->
     end.
 
 start_phase(load_config, _StartType, _PhaseArgs) ->
-    Conf = ?config(config_file),
-    Timeout = case file:read_file_info(Conf) of
-                  {ok, #file_info{size=Size}} when Size > 10000000 -> % > 10MB
-                      erlang:display(["Can take up to 5mn to read config ",Size]),
-                      300000; % 10mn
-                  {ok, #file_info{size=Size}} when Size > 1000000 ->  % > 1MB
-                      erlang:display(["Can take up to 3mn to read config ",Size]),
-                      180000; % 5mn
-                  {ok, #file_info{size=Size}} ->
-                      120000  % 2mn
-                  end,
+    {Conf,Timeout} =
+        case ?config(config_file) of
+            "-"  ->
+                {standard_io, 120000}; %2mn timeout
+            File ->
+                T = case file:read_file_info(File) of
+                        {ok, #file_info{size=Size}} when Size > 10000000 -> % > 10MB
+                            erlang:display(["Can take up to 5mn to read config ",Size]),
+                            300000; % 10mn
+                        {ok, #file_info{size=Size}} when Size > 1000000 ->  % > 1MB
+                            erlang:display(["Can take up to 3mn to read config ",Size]),
+                            180000; % 5mn
+                        {ok, #file_info{size=_}} ->
+                            120000  % 2mn
+                    end,
+                {File, T}
+        end,
     case ts_config_server:read_config(Conf,Timeout) of
         {error,Reason}->
             erlang:display(["Config Error, aborting ! ", Reason]),
