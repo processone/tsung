@@ -58,7 +58,7 @@
 -record(state, {log,          % log fd
                 backend,      % type of backend: text|...
                 log_dir,      % log directory
-                fullstats,    % fullstats log filename
+                fullstats,    % fullstats fd
                 dump_interval,%
                 dumpfile,     % file used when dumptrafic is set light or full
                 client=0,     % number of clients currently running
@@ -397,35 +397,27 @@ code_change(_OldVsn, StateData, _Extra) ->
 %% Returns: {reply, ok, State} | {stop, Reason, State}
 %%----------------------------------------------------------------------
 %% fulltext backend: open log file with compression enable and delayed_write
-start_logger({Machines, DumpType, fullstats}, _From, State) ->
+start_logger({Machines, DumpType, fullstats}, From, State=#state{fullstats=undefined}) ->
     Filename = filename:join(State#state.log_dir,?FULLSTATS_FILENAME),
     ?LOG("Open file with delayed_write for fullstats backend~n",?NOTICE),
     case file:open(Filename,[write, {delayed_write, ?DELAYED_WRITE_SIZE, ?DELAYED_WRITE_DELAY}]) of
         {ok, Stream} ->
-            ?LOG("Activate clients with fullstats backend~n",?NOTICE),
-            timer:apply_interval(State#state.dump_interval, ?MODULE, dumpstats, [] ),
-            start_launchers(Machines),
-            ts_stats_mon:set_output(fullstats,{State#state.log, Stream}),
-            ts_stats_mon:set_output(fullstats,{State#state.log, Stream}, transaction),
-            ts_stats_mon:set_output(fullstats,{State#state.log, Stream}, request),
-            ts_stats_mon:set_output(fullstats,{State#state.log, Stream}, connect),
-            ts_stats_mon:set_output(fullstats,{State#state.log, Stream}, page),
-            start_dump(State#state{type=DumpType, backend=fullstats, fullstats=Stream});
+            start_logger({Machines, DumpType, fullstats}, From, State#state{fullstats=Stream});
         {error, Reason} ->
             ?LOGF("Can't open mon log file ~p! ~p~n",[Filename,Reason], ?ERR),
             {stop, Reason, State}
     end;
 
-start_logger({Machines, DumpType, Backend}, _From, State=#state{log=Log}) ->
+start_logger({Machines, DumpType, Backend}, _From, State=#state{log=Log,fullstats=FS}) ->
     ?LOGF("Activate clients with ~p backend~n",[Backend],?NOTICE),
     print_headline(Log,Backend),
     timer:apply_interval(State#state.dump_interval, ?MODULE, dumpstats, [] ),
     start_launchers(Machines),
-    ts_stats_mon:set_output(Backend,{Log,[]}),
-    ts_stats_mon:set_output(Backend,{Log,[]}, transaction),
-    ts_stats_mon:set_output(Backend,{Log,[]}, request),
-    ts_stats_mon:set_output(Backend,{Log,[]}, connect),
-    ts_stats_mon:set_output(Backend,{Log,[]}, page),
+    ts_stats_mon:set_output(Backend,{Log,FS}),
+    ts_stats_mon:set_output(Backend,{Log,FS}, transaction),
+    ts_stats_mon:set_output(Backend,{Log,FS}, request),
+    ts_stats_mon:set_output(Backend,{Log,FS}, connect),
+    ts_stats_mon:set_output(Backend,{Log,FS}, page),
     start_dump(State#state{type=DumpType, backend=Backend}).
 
 print_headline(Log,json)->
@@ -463,29 +455,18 @@ export_stats(State=#state{log=Log,stats=Stats,laststats=LastStats, backend=json}
     io:format(Log,"]},~n {\"timestamp\": ~w,  \"samples\": [",[DateStr]),
     %% print number of simultaneous users
     io:format(Log,"   {\"name\": \"users\", \"value\": ~p, \"max\": ~p}",[State#state.client,State#state.maxclient]),
-    Param = {json,(State#state.laststats)#stats.os_mon,State#state.log},
-    OSMon=(State#state.stats)#stats.os_mon,
-    dict:fold(fun ts_stats_mon:print_stats/3, Param, OSMon),
-    ts_stats_mon:print_stats({session, sample}, Stats#stats.session,{json,[],Log}),
-    ts_stats_mon:print_stats({users_count, count},
-                                 Stats#stats.users_count,
-                                 {json,LastStats#stats.users_count,Log}),
-    ts_stats_mon:print_stats({finish_users_count, count},
-                             Stats#stats.finish_users_count,
-                             {json,LastStats#stats.finish_users_count,Log}),
-    ts_stats_mon:dumpstats(request),
-    ts_stats_mon:dumpstats(page),
-    ts_stats_mon:dumpstats(connect),
-    ts_stats_mon:dumpstats(transaction),
-    ts_stats_mon:dumpstats();
+    export_stats_common(json, Stats,LastStats,Log);
 
 export_stats(State=#state{log=Log,stats=Stats,laststats=LastStats, backend=BackEnd}) ->
     DateStr = ts_utils:now_sec(),
     io:format(Log,"# stats: dump at ~w~n",[DateStr]),
     %% print number of simultaneous users
     io:format(Log,"stats: ~p ~p ~p~n",[users,State#state.client,State#state.maxclient]),
-    Param = {BackEnd,(State#state.laststats)#stats.os_mon,State#state.log},
-    dict:fold(fun ts_stats_mon:print_stats/3, Param, (State#state.stats)#stats.os_mon),
+    export_stats_common(BackEnd, Stats,LastStats,Log).
+
+export_stats_common(BackEnd, Stats,LastStats,Log)->
+    Param = {BackEnd,LastStats#stats.os_mon,Log},
+    dict:fold(fun ts_stats_mon:print_stats/3, Param, Stats#stats.os_mon),
     ts_stats_mon:print_stats({session, sample}, Stats#stats.session,{BackEnd,[],Log}),
     ts_stats_mon:print_stats({users_count, count},
                                  Stats#stats.users_count,

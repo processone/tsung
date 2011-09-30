@@ -56,7 +56,7 @@
                 backend,      % type of backend: text|rrdtool|fullstats
                 dump_interval,%
                 type = ts_stats_mon, % type of stats
-                fullstats,    % fullstats filename
+                fullstats,    % fullstats fd
                 stats,        % dict keeping stats info
                 laststats     % values of last printed stats
                }).
