@@ -280,23 +280,23 @@ print_stats({_,_,_}, 0, {Backend,0, Logfile})-> % no data yet
     {Backend,0, Logfile};
 print_stats({{Name,Node},Type},Value,{json,Res,Log}) when (Type =:= sample) orelse (Type =:= sample_counter) ->
     [_,Host] = string:tokens(Node,"@"),
-    print_stats_txt({Name,Type,",{\"name\": \"~p\", \"hostname\": \"" ++ Host
+    print_stats_txt({Name,Type,", {\"name\": \"~p\", \"hostname\": \"" ++ Host
                      ++"\", \"value\": ~p, \"mean\": ~p,\"stdvar\": ~p,\"max\": ~p,\"min\": ~p ,\"global_mean\": ~p ,\"global_count\": ~p}"},Value,{json,Res,Log});
 
 print_stats({Name,Type},Value,{json,Res,Log}) when (Type =:= sample) orelse (Type =:= sample_counter) ->
-    print_stats_txt({Name,Type,",{\"name\": \"~p\", \"value\": ~p, \"mean\": ~p,\"stdvar\": ~p,\"max\":  ~p,\"min\": ~p ,\"global_mean\": ~p ,\"global_count\": ~p}"},Value,{json,Res,Log});
+    print_stats_txt({Name,Type,", {\"name\": \"~p\", \"value\": ~p, \"mean\": ~p,\"stdvar\": ~p,\"max\":  ~p,\"min\": ~p ,\"global_mean\": ~p ,\"global_count\": ~p}"},Value,{json,Res,Log});
 
 print_stats({Name,Type},Value,Other) when Type =:= sample orelse Type =:= sample_counter ->
     print_stats_txt({Name,Type,"stats: ~p ~p ~p ~p ~p ~p ~p ~p~n"},Value,Other);
 
 print_stats({Name,Type},Value,{json,Res,Log}) when is_integer(Name) -> % http return code
     print_stats_txt({"http_"++integer_to_list(Name),Type,
-                     ",{\"name\": \"~s\", \"value\": ~p, \"total\": ~p}"},Value,{json,Res,Log});
+                     ", {\"name\": \"~s\", \"value\": ~p, \"total\": ~p}"},Value,{json,Res,Log});
 
 print_stats({Name=connected,Type},Value,{json,Res,Log}) ->
-    print_stats_txt({Name,Type,",{\"name\": \"~p\", \"value\": ~p, \"max\": ~p}"},Value,{json,Res,Log});
+    print_stats_txt({Name,Type,", {\"name\": \"~p\", \"value\": ~p, \"max\": ~p}"},Value,{json,Res,Log});
 print_stats({Name,Type},Value,{json,Res,Log}) ->
-    print_stats_txt({Name,Type,",{\"name\": \"~p\", \"value\": ~p, \"total\": ~p}"},Value,{json,Res,Log});
+    print_stats_txt({Name,Type,", {\"name\": \"~p\", \"value\": ~p, \"total\": ~p}"},Value,{json,Res,Log});
 print_stats({Name,Type},Value,Other) ->
     print_stats_txt({Name,Type,"stats: ~p ~p ~p~n"},Value,Other).
 
