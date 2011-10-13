@@ -539,7 +539,7 @@ choose_session([#session{popularity=P} | SList], Rand, Cur) ->
 get_client_cfg(Arrival=#arrivalphase{duration = Duration,
                                      intensity= PhaseIntensity,
                                      curnumber= CurNumber,
-                                     maxnumber= MaxNumber }, 
+                                     maxnumber= MaxNumber },
                {TotalWeight,Client,IsLast} ) ->
     Weight = Client#client.weight,
     ClientIntensity = PhaseIntensity * Weight / TotalWeight,
