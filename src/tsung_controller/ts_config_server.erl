@@ -539,13 +539,13 @@ choose_session([#session{popularity=P} | SList], Rand, Cur) ->
 get_client_cfg(Arrival=#arrivalphase{duration = Duration,
                                      intensity= PhaseIntensity,
                                      curnumber= CurNumber,
-                                     maxnumber= MaxNumber },
+                                     maxnumber= MaxNumber }, 
                {TotalWeight,Client,IsLast} ) ->
     Weight = Client#client.weight,
     ClientIntensity = PhaseIntensity * Weight / TotalWeight,
     NUsers = round(case MaxNumber of
                        infinity -> %% only use the duration to set the number of users
-                           Duration * 1000 * ClientIntensity;
+                           Duration * ClientIntensity;
                        _ ->
                            TmpMax = case {IsLast,CurNumber == MaxNumber} of
                                         {true,_} ->
@@ -555,7 +555,7 @@ get_client_cfg(Arrival=#arrivalphase{duration = Duration,
                                         {false,false} ->
                                             lists:max([1,trunc(MaxNumber * Weight / TotalWeight)])
                                     end,
-                           lists:min([TmpMax, Duration*1000*ClientIntensity])
+                           lists:min([TmpMax, Duration*ClientIntensity])
                    end),
     ?LOGF("New arrival phase ~p for client ~p (last ? ~p): will start ~p users~n",
           [Arrival#arrivalphase.phase,Client#client.host, IsLast,NUsers],?NOTICE),

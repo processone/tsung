@@ -271,7 +271,7 @@ parse(Element = #xmlElement{name=arrivalphase, attributes=Attrs},
     Phase     = getAttr(integer,Attrs, phase),
     IDuration  = getAttr(integer, Attrs, duration),
     Unit  = getAttr(string,Attrs, unit, "second"),
-    D = 1000 * to_seconds(Unit, IDuration),
+    D = to_milliseconds(Unit, IDuration),
     case lists:keysearch(Phase,#arrivalphase.phase,AList) of
         false ->
             lists:foldl(fun parse/2,
@@ -292,7 +292,7 @@ parse(Element = #xmlElement{name=user, attributes=Attrs},
     Start   = getAttr(float_or_integer,Attrs, start_time),
     Unit    = getAttr(string,Attrs, unit, "second"),
     Session = getAttr(string,Attrs, session),
-    Delay   = to_seconds(Unit,Start)*1000,
+    Delay   = to_milliseconds(Unit,Start),
     NewUsers= Users++[{Delay,Session}],
     lists:foldl(fun parse/2, Conf#config{static_users = NewUsers},
                 Element#xmlElement.content);
@@ -310,9 +310,9 @@ parse(Element = #xmlElement{name=users, attributes=Attrs},
                     {[],[]} ->
                         exit({invalid_xml,"arrival or interarrival must be specified"});
                     {[], Rate}  when Rate > 0 ->
-                        to_seconds(Unit,Rate) / 1000;
+                        Rate / to_milliseconds(Unit,1);
                     {InterArrival,[]} when InterArrival > 0 ->
-                        1/(1000 * to_seconds(Unit,InterArrival));
+                        1/to_milliseconds(Unit,InterArrival);
                     {_Value, _Value2} ->
                         exit({invalid_xml,"arrivalrate and interarrival can't be defined simultaneously"})
                 end,
@@ -882,6 +882,11 @@ to_seconds("second", Val)-> Val;
 to_seconds("minute", Val)-> Val*60;
 to_seconds("hour",   Val)-> Val*3600;
 to_seconds("millisecond", Val)-> Val/1000.
+
+to_milliseconds("second", Val)-> Val*1000;
+to_milliseconds("minute", Val)-> Val*60000;
+to_milliseconds("hour",   Val)-> Val*3600000;
+to_milliseconds("millisecond", Val)-> Val.
 
 %%%----------------------------------------------------------------------
 %%% Function: get_default/2

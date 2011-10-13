@@ -110,6 +110,29 @@ config_thinktime2_test() ->
     random:seed(), % reinit seed for others tests
     ?assertMatch({random,1000}, Req).
 
+config_arrivalrate_test() ->
+    myset_env(),
+    ok = ts_config_server:read_config("./examples/thinks.xml"),
+    {ok, {[Phase1,Phase2, Phase3],_,_} }  = ts_config_server:get_client_config("localhost"),
+    RealDur = 10 * 60 * 1000,
+    RealNU  = 1200,
+    RealIntensity  = 2 / 1000,
+    ?assertEqual({RealIntensity,RealNU,RealDur}, Phase1),
+    ?assertEqual({RealIntensity/60, RealNU div 60,RealDur}, Phase2),
+    ?assertEqual({RealIntensity/3600,12,RealDur*36}, Phase3).
+
+config_interarrival_test() ->
+    myset_env(),
+    ok = ts_config_server:read_config("./examples/thinks2.xml"),
+    {ok, {[Phase1,Phase2, Phase3],_,_} }  = ts_config_server:get_client_config("localhost"),
+    RealDur = 10 * 60 * 1000,
+    RealNU  = 1200,
+    RealIntensity  = 2 / 1000,
+    ?assertEqual({RealIntensity,RealNU,RealDur}, Phase1),
+    ?assertEqual({RealIntensity/60,RealNU div 60,RealDur}, Phase2),
+    ?assertEqual({RealIntensity/3600,12,RealDur*36}, Phase3).
+
+
 read_config_maxusers_test() ->
     read_config_maxusers({5,15},10,"./src/test/thinkfirst.xml").
 
