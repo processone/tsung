@@ -208,7 +208,7 @@ parse(Element = #xmlElement{name=client, attributes=Attrs},
                                                {unix, linux} ->
                                                    {scan, Interface};
                                                OS ->
-                                                   ?LOGF("Scan interface is not supported on OS ~p, abort~n",[OS],?ERR),
+                                                   io:format(standard_error,"Scan interface is not supported on OS ~p, abort~n",[OS]),
                                                    exit({error, scan_interface_not_supported_on_os})
                                            end
                                    end,
@@ -225,8 +225,7 @@ parse(Element = #xmlElement{name=client, attributes=Attrs},
                 %% must be hostname and not ip:
                 case ts_utils:is_ip(Host) of
                     true ->
-                        ?LOGF("ERROR: client config: 'host' attribute must be a hostname, "++
-                              "not an IP ! (was ~p)~n",[Host],?EMERG),
+                        io:format(standard_error,"ERROR: client config: 'host' attribute must be a hostname, "++ "not an IP ! (was ~p)~n",[Host]),
                         exit({error, badhostname});
                     false ->
                         %% add a new client for each CPU
@@ -281,7 +280,7 @@ parse(Element = #xmlElement{name=arrivalphase, attributes=Attrs},
                                                      |AList]},
                         Element#xmlElement.content);
         _ -> % already existing phase, wrong configuration.
-            ?LOGF("Client config error: phase ~p already defined, abort !~n",[Phase],?EMERG),
+            io:format(standard_error,"Client config error: phase ~p already defined, abort !~n",[Phase]),
             exit({error, already_defined_phase})
     end;
 
@@ -795,7 +794,7 @@ parse(Element = #xmlElement{name=setdynvars, attributes=Attrs},
                              Delimiter = getAttr(string,Attrs,delimiter,";"),
                              {setdynvars,file,{Order,FileId,Delimiter},Vars};
                          false ->
-                             ?LOGF("Unknown_file_id ~p in file setdynvars declaration: you forgot to add a file_server option~n",[FileId],?EMERG),
+                             io:format(standard_error, "Unknown_file_id ~p in file setdynvars declaration: you forgot to add a file_server option~n",[FileId]),
                              exit({error, unknown_file_id})
                      end;
                  "random_string" ->
