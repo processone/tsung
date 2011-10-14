@@ -301,7 +301,7 @@ print_stats({Name,Type},Value,Other) ->
     print_stats_txt({Name,Type,"stats: ~p ~p ~p~n"},Value,Other).
 
 
-%% @spec print_stats_txt
+%% @spec print_stats_txt(tuple(),Data::list(),tuple()) -> {Backend::atom(),LastRest::term(), LogFile::term()}
 print_stats_txt({Name,_,Format}, [Mean,0,Max,Min,Count,MeanFB,CountFB|_], {Backend,LastRes,Logfile})->
     io:format(Logfile, Format,
               [Name, Count, Mean, 0, Max, Min,MeanFB,CountFB ]),

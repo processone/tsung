@@ -67,9 +67,9 @@ launch({Node, Host, Sessions}) ->
     gen_fsm:send_event({?MODULE, Node}, {launch, Sessions, atom_to_list(Host)}).
 
 %%--------------------------------------------------------------------
-%% @spec stop() ->
+%% @spec stop(Node::atom()) -> ok
+%% @doc Start clients with given session list @end
 %%--------------------------------------------------------------------
-%% Start clients with given session list
 stop(Node) ->
     ?LOGF("stopping on node ~p~n",[Node], ?INFO),
     gen_fsm:send_event({?MODULE, Node}, {stop}).

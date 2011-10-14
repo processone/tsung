@@ -123,9 +123,8 @@ add_dynparams(#shell_dyndata{}, Param, _HostData) ->
     Param.
 
 %%----------------------------------------------------------------------
-%% @spec subst(Req, term())
-%% Purpose: Replace on the fly dynamic element of the request.
-%% Returns: record()
+%% @spec subst(record(shell), term()) -> record(shell)
+%% @doc  Replace on the fly dynamic element of the request. @end
 %%----------------------------------------------------------------------
 subst(Req=#shell{command=Cmd,args=Args}, DynVars) ->
     Req#shell{command=ts_search:subst(Cmd,DynVars),args=ts_search:subst(Args,DynVars)}.
@@ -161,7 +160,7 @@ parse({os, cmd, _Args, Res},State) ->
 parse_bidi(_Data, _State) ->
     erlang:error(dummy_implementation).
 
-%% @spec get_message(param()) -> Message::binary()|tuple()
+%% @spec get_message(record(shell),record(state_rcv)) -> {Message::term(),record(state_rcv)}
 %% @doc Creates a new message to send to the connected server.
 %% @end
 get_message(#shell{command=Cmd, args=Args},#state_rcv{session=S}) ->

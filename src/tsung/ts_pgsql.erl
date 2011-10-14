@@ -287,9 +287,10 @@ to_pairs(<<Code:8/integer, Size:4/integer-unit:8, Tail/binary>>, Acc) ->
             lists:reverse(Acc) %
     end.
 
-%% @spec find_pairs(Expr::string(),Pairs::list()) -> term()
+%% @spec find_pair(Expr::string(), Pairs::list()) -> term()
 %% @doc Expr: expression like data_row[4][2], Pairs: list of pairs
 %%      extracted by pgsql_proto:decode_packet.
+%% @end
 find_pair(Expr,Pairs)->
     Fun= fun(A) ->
                 case catch list_to_integer(A) of

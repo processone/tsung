@@ -532,7 +532,7 @@ choose_session([#session{popularity=P} | SList], Rand, Cur) ->
 
 %%----------------------------------------------------------------------
 %% @spec get_client_cfg(ArrivalPhase::record(arrivalphase),
-%%                      Acc={Total_weight:integer(),Client::record(client),IsLast::binary()}) ->
+%%                      Acc::{Total_weight::integer(),Client::record(client),IsLast::binary()}) ->
 %%                      {{UpdatedPhase::record(arrivalphase),{Intensity::number(),NUsers::integer(),Duration::integer()}}, Acc}
 %% @doc set parameters for given host client and phase.
 %% @end
@@ -706,8 +706,8 @@ start_slave(Host, Name, Args) when is_atom(Host), is_atom(Name)->
 choose_port(_,undefined) -> 0;
 choose_port(_, _Range)   -> -1.
 
-%% @spec session_name_to_session(Sessions::list(), Static::list() ) -> StaticUsers::list()
-%% @doc convert session name to session id in static users list
+%% @spec static_name_to_session(Sessions::list(), Static::list() ) -> StaticUsers::list()
+%% @doc convert session name to session id in static users list @end
 static_name_to_session(Sessions, Static) ->
     ?LOGF("Static users with session id ~p~n",[Static],?DEB),
     Search = fun({Delay,Name})->

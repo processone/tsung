@@ -440,7 +440,9 @@ to_https({request, String}) when is_list(String) ->
     {ok, RealString}.
 
 
-%% @spec from_https(string()) -> {ok, String::string() | Data::iodata}
+%% @spec from_https(string()) -> {ok, string() | iodata()}
+%% @doc replace https links with 'http://-'
+%% @end
 from_https(String) when is_list(String)->
     ReOpts=[{newline,crlf},multiline,global,caseless],
     %% remove Secure from Set-Cookie (TSUN-120)

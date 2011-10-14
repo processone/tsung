@@ -50,7 +50,7 @@ dump(_Type,_Data) ->
     ok.
 
 %% @spec parse_bidi(Data::binary(),State::record(state_rcv)) ->
-%%   {NewData::binary()|nodata, NewState::record(state_rcv)
+%%   {NewData::binary()|nodata, NewState::record(state_rcv)}
 %% @doc Parse a block of data from the server. No reply will be sent
 %% if the return value is nodata, otherwise the Data binary will be
 %% sent back to the server immediately.

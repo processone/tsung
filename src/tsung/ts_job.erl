@@ -122,9 +122,9 @@ add_dynparams(#job_dyndata{}, Param, _HostData) ->
     Param.
 
 %%----------------------------------------------------------------------
-%% @spec subst(Req, term())
-%% Purpose: Replace on the fly dynamic element of the request.
-%% Returns: record()
+%% @spec subst(record(job), term()) -> record(job)
+%% @doc Replace on the fly dynamic element of the request.
+%% @end
 %%----------------------------------------------------------------------
 subst(Job=#job{duration=D,req=Req,walltime=WT,resources=Res,options=Opts,jobid=Id}, DynVars) ->
     Job#job{duration=ts_search:subst(D,DynVars),
@@ -188,7 +188,7 @@ parse({Mod, Fun, Args, Res},State) ->
 parse_bidi(Data, State) ->
     ts_plugin:parse_bidi(Data,State).
 
-%% @spec get_message(param()) -> Message::binary()|tuple()
+%% @spec get_message(record(job),record(state_rcv)) -> {Message::term(),record(state_rcv)}
 %% @doc Creates a new message to send to the connected server.
 %% @end
 get_message(#job{type=oar,req=wait_jobs},#state_rcv{session=Session}) ->

@@ -125,9 +125,9 @@ add_dynparams(#fs_dyndata{}, Param, _HostData) ->
     Param.
 
 %%----------------------------------------------------------------------
-%% @spec subst(Req, term())
-%% Purpose: Replace on the fly dynamic element of the request.
-%% Returns: record()
+%% @spec subst(record(fs), dynvars:term()) -> record(fs)
+%% @doc Replace on the fly dynamic element of the request.
+%% @end
 %%----------------------------------------------------------------------
 subst(Req=#fs{path=Path,size=Size}, DynVars) ->
     Req#fs{path=ts_search:subst(Path,DynVars),size=ts_search:subst(Size,DynVars)}.
@@ -218,7 +218,7 @@ parse_bidi(Data, State) ->
 dump(A,B) ->
     ts_plugin:dump(A,B).
 
-%% @spec get_message(param()) -> Message::binary()|tuple()
+%% @spec get_message(record(),record(state_rcv)) -> {term(),record(state_rcv)}
 %% @doc Creates a new message to send to the connected server.
 %% @end
 get_message(R,#state_rcv{session=S}) ->
