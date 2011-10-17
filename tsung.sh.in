@@ -131,6 +131,7 @@ usage() {
     echo "Usage: $prog <options> start|stop|debug|status"
     echo "Options:"
     echo "    -f <file>     set configuration file (default is ~/.tsung/tsung.xml)"
+    echo "                   (use - for standard input)"
     echo "    -l <logdir>   set log directory (default is ~/.tsung/log/YYYYMMDD-HHMM/)"
     echo "    -i <id>       set controller id (default is empty)"
     echo "    -r <command>  set remote connector (default is ssh)"

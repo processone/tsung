@@ -95,8 +95,8 @@ a:hover     {background:#ffffaa;}
 <!--ENDHTML-->
 <!--CUT DEF section 1 --><H1 ALIGN=center>Tsung User’s manual</H1><DIV CLASS="center">
 
-<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>1.4.1</TD></TR>
-<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>September 16, 2011</TD></TR>
+<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>1.4.2</TD></TR>
+<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>October 17, 2011</TD></TR>
 </TABLE>
 </DIV><!--TOC section Contents-->
 <H2 CLASS="section"><!--SEC ANCHOR -->Contents</H2><!--SEC END --><UL CLASS="toc"><LI CLASS="li-toc">
@@ -199,32 +199,33 @@ a:hover     {background:#ffffaa;}
 </LI></UL>
 </LI><LI CLASS="li-toc"><A HREF="#htoc70">7  Statistics and reports</A>
 <UL CLASS="toc"><LI CLASS="li-toc">
-<A HREF="#htoc71">7.1  Available stats</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc72">7.2  Design</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc73">7.3  Generating the report</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc74">7.4  Tsung summary</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc75">7.5  Graphical overview</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc76">7.6  Tsung Plotter</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc77">7.7  RRD</A>
+<A HREF="#htoc71">7.1  File format</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc72">7.2  Available stats</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc73">7.3  Design</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc74">7.4  Generating the report</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc75">7.5  Tsung summary</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc76">7.6  Graphical overview</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc77">7.7  Tsung Plotter</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc78">7.8  RRD</A>
 </LI></UL>
-</LI><LI CLASS="li-toc"><A HREF="#htoc78">8  References</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc79">9  Acknowledgments</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc80">A  Frequently Asked Questions</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc79">8  References</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc80">9  Acknowledgments</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc81">A  Frequently Asked Questions</A>
 <UL CLASS="toc"><LI CLASS="li-toc">
-<A HREF="#htoc81">A.1  Can’t start distributed clients: timeout error </A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc82">A.2  Tsung crashes when I start it </A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc83">A.3  Why do i have error_connect_emfile errors ?</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc84">A.4  Tsung still crashes/fails when I start it !</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc85">A.5  Can I dynamically follow redirect with HTTP ?</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc86">A.6  What is the format of the stats file tsung.log ?</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc87">A.7  How can I compute percentile/quartiles/median for transactions or requests
+<A HREF="#htoc82">A.1  Can’t start distributed clients: timeout error </A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc83">A.2  Tsung crashes when I start it </A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc84">A.3  Why do i have error_connect_emfile errors ?</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc85">A.4  Tsung still crashes/fails when I start it !</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc86">A.5  Can I dynamically follow redirect with HTTP ?</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc87">A.6  What is the format of the stats file tsung.log ?</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc88">A.7  How can I compute percentile/quartiles/median for transactions or requests
 response time ?</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc88">A.8  How can I specify the number of concurrent users ?</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc89">A.9  SNMP monitoring doesn’t work ?!</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc90">A.10  How can i simulate a fix number of users ?</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc89">A.8  How can I specify the number of concurrent users ?</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc90">A.9  SNMP monitoring doesn’t work ?!</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc91">A.10  How can i simulate a fix number of users ?</A>
 </LI></UL>
-</LI><LI CLASS="li-toc"><A HREF="#htoc91">B  Errors list</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc92">C  CHANGELOG</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc92">B  Errors list</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc93">C  CHANGELOG</A>
 </LI></UL><!--TOC section Introduction-->
 <H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc1">1</A>  Introduction</H2><!--SEC END --><!--TOC subsection What is Tsung ?-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc2">1.1</A>  What is Tsung ?</H3><!--SEC END --><P><EM>Tsung</EM> (formerly IDX-Tsunami) is a distributed load testing tool. It is
@@ -456,7 +457,8 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE><P>If you want to download the development version, use git:</P><P><TT>git clone git://git.process-one.net/tsung/mainline.git</TT></P><P>(see also <A HREF="https://git.process-one.net/tsung"><TT>https://git.process-one.net/tsung</TT></A>).</P><P>You can also build packages with <TT>make deb</TT> (on debian and
+</TABLE><P>If you want to download the development version, use git:</P><P><TT>git clone git://git.process-one.net/tsung/mainline.git</TT></P><P>(see also <A HREF="https://git.process-one.net/tsung"><TT>https://git.process-one.net/tsung</TT></A> and the github
+mirror: <A HREF="https://github.com/processone/tsung"><TT>https://github.com/processone/tsung</TT></A>).</P><P>You can also build packages with <TT>make deb</TT> (on debian and
 ubuntu) and <TT>make rpm</TT> (on fedora, rhel, and other rpm based distribution)</P><!--TOC subsection Configuration-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc18">3.3</A>  Configuration</H3><!--SEC END --><P>The default configuration file is <TT>~/.tsung/tsung.xml</TT> (
 there are several sample files in
@@ -475,6 +477,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 Usage: tsung &lt;options&gt; start|stop|debug|status
 Options:
     -f &lt;file&gt;     set configuration file (default is ~/.tsung/tsung.xml)
+                    (use - for standard input)
     -l &lt;logdir&gt;   set log directory (default is ~/.tsung/log/YYYYMMDD-HHMM/)
     -i &lt;id&gt;       set controller id (default is empty)
     -r &lt;command&gt;  set remote connector (default is ssh)
@@ -3152,8 +3155,78 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 </TABLE><P>Only the incoming traffic is rate limited currently.</P><!--TOC section Statistics and reports-->
 <H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc70">7</A>  Statistics and reports</H2><!--SEC END --><P>
-<A NAME="sec:statistics-reports"></A></P><!--TOC subsection Available stats-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc71">7.1</A>  Available stats</H3><!--SEC END --><UL CLASS="itemize"><LI CLASS="li-itemize">
+<A NAME="sec:statistics-reports"></A>
+</P><!--TOC subsection File format-->
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc71">7.1</A>  File format</H3><!--SEC END --><P>By default, tsung use it’s own format (see FAQ <A HREF="#sec:what-format-stats">A.6</A>).</P><P>Since version 1.4.2, you can configure tsung to use a JSON format;
+however in this case, the tools <TT>tsung_stats.pl</TT> and
+<TT>tsung_plotter</TT> will not work with the json files.</P><P>To enable JSON output, use:
+</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">&lt;tsung backend='json' ...&gt;
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><P>Example output file with JSON:
+</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">{
+ "stats": [
+ {"timestamp": 1317413841,  "samples": []},
+ {"timestamp": 1317413851,  "samples": [
+   {"name": "users", "value": 0, "max": 0},
+   {"name": "users_count", "value": 0, "total": 0},
+   {"name": "finish_users_count", "value": 0, "total": 0}]},
+ {"timestamp": 1317413861,  "samples": [
+   {"name": "users", "value": 0, "max": 1},
+   {"name": "load", "hostname": "requiem", "value": 1, "mean":
+     0.0,"stdvar": 0,"max": 0.0,"min": 0.0 ,"global_mean": 0
+     ,"global_count": 0},
+   {"name": "freemem", "hostname": "requiem", "value": 1, "mean":
+     2249.32421875,"stdvar": 0,"max": 2249.32421875,"min":
+     2249.32421875 ,"global_mean": 0 ,"global_count": 0},
+   {"name": "cpu", "hostname": "requiem", "value": 1, "mean":
+     4.790419161676647,"stdvar": 0,"max": 4.790419161676647,"min":
+     4.790419161676647 ,"global_mean": 0 ,"global_count": 0},
+   {"name": "session", "value": 1, "mean": 387.864990234375,"stdvar":
+     0,"max":  387.864990234375,"min": 387.864990234375
+     ,"global_mean": 0 ,"global_count": 0},
+   {"name": "users_count", "value": 1, "total": 1},
+   {"name": "finish_users_count", "value": 1, "total": 1},
+   {"name": "request", "value": 5, "mean": 75.331787109375,"stdvar":
+     46.689242405019954,"max":  168.708984375,"min": 51.744873046875
+     ,"global_mean": 0 ,"global_count": 0},
+   {"name": "page", "value": 1, "mean": 380.7548828125,"stdvar":
+     0.0,"max":  380.7548828125,"min": 380.7548828125 ,"global_mean":
+     0 ,"global_count": 0},
+   {"name": "connect", "value": 1, "mean": 116.70703125,"stdvar":
+     0.0,"max":  116.70703125,"min": 116.70703125 ,"global_mean": 0
+     ,"global_count": 0},
+   {"name": "size_rcv", "value": 703, "total": 703},
+   {"name": "size_sent", "value": 1083, "total": 1083},
+   {"name": "connected", "value": 0, "max": 0}, {"name": "http_304", "value": 5, "total": 5}]}]}
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><!--TOC subsection Available stats-->
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc72">7.2</A>  Available stats</H3><!--SEC END --><UL CLASS="itemize"><LI CLASS="li-itemize">
 <TT>request</TT> Response time for each request.
 </LI><LI CLASS="li-itemize"><TT>page</TT> Response time for each set of requests (a page is a group
 of request not separated by a thinktime).
@@ -3184,7 +3257,7 @@ without doing anything. <B>new in 1.2.2</B>.
 session. Count the number of messages sent to the server in response
 of a message received from the server. <B>new in 1.2.2</B>.
 </LI></UL><!--TOC subsection Design-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc72">7.2</A>  Design</H3><!--SEC END --><P>A bit of explanation on the design and internals of the statistics engine:</P><P>Tsung was designed to handle thousands of requests/sec, for very
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc73">7.3</A>  Design</H3><!--SEC END --><P>A bit of explanation on the design and internals of the statistics engine:</P><P>Tsung was designed to handle thousands of requests/sec, for very
 long period of times (several hours) so it do not write all data to
 the disk (for performance reasons). Instead it computes on the fly an
 estimation of the mean and standard variation for each type of data,
@@ -3202,7 +3275,7 @@ those) :
 </LI><LI CLASS="li-itemize"><TT>sum</TT> for ex. the cumulative HTTP response’s size (it gives an
 estimated bandwidth usage).
 </LI></UL><!--TOC subsection Generating the report-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc73">7.3</A>  Generating the report</H3><!--SEC END --><P>cd to the log directory of your test (say
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc74">7.4</A>  Generating the report</H3><!--SEC END --><P>cd to the log directory of your test (say
 <TT>~/.tsung/log/20040325-16:33/</TT>) and use the script
 <TT>tsung_stats.pl</TT>:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
@@ -3250,7 +3323,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 </TABLE><P>Version <B>1.4.0</B> adds a new graphical output based on
 <A HREF="http://danvk.org/dygraphs/"><TT>http://danvk.org/dygraphs/</TT></A>.</P><!--TOC subsection Tsung summary-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc74">7.4</A>  Tsung summary</H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc75">7.5</A>  Tsung summary</H3><!--SEC END --><P>
 Figure <A HREF="#fig:report">3</A> shows an example of a summary report.
 </P><BLOCKQUOTE CLASS="figure"><DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV>
 <DIV CLASS="center">
@@ -3260,7 +3333,7 @@ Figure <A HREF="#fig:report">3</A> shows an example of a summary report.
 </TABLE></DIV>
 <A NAME="fig:report"></A>
 <DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV></BLOCKQUOTE><!--TOC subsection Graphical overview-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc75">7.5</A>  Graphical overview</H3><!--SEC END --><P>Figure <A HREF="#fig:graph">4</A> shows an example of a graphical report.</P><BLOCKQUOTE CLASS="figure"><DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc76">7.6</A>  Graphical overview</H3><!--SEC END --><P>Figure <A HREF="#fig:graph">4</A> shows an example of a graphical report.</P><BLOCKQUOTE CLASS="figure"><DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV>
 <DIV CLASS="center">
 <IMG SRC="images/tsung-graph.png" ALT="images/tsung-graph.png">
 </DIV>
@@ -3268,7 +3341,7 @@ Figure <A HREF="#fig:report">3</A> shows an example of a summary report.
 </TABLE></DIV>
 <A NAME="fig:graph"></A>
 <DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV></BLOCKQUOTE><!--TOC subsection Tsung Plotter-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc76">7.6</A>  Tsung Plotter</H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc77">7.7</A>  Tsung Plotter</H3><!--SEC END --><P>
 Tsung-Plotter (<TT>tsplot</TT> command) is an optional tool recently
 added in the Tsung distribution (it is written in Python), useful to
 compare different tests runned by Tsung. <TT>tsplot</TT> is able to
@@ -3300,10 +3373,10 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></DIV>
 <A NAME="fig:graph:tsplot"></A>
 <DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV></BLOCKQUOTE><!--TOC subsection RRD-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc77">7.7</A>  RRD</H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc78">7.8</A>  RRD</H3><!--SEC END --><P>
 A contributed perl script <TT>tsung-rrd.pl</TT> is able to create rrd
 files from the tsung log files. It’s available in <TT>/usr/lib/tsung/bin/tsung-rrd.pl</TT></P><!--TOC section References-->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc78">8</A>  References</H2><!--SEC END --><UL CLASS="itemize"><LI CLASS="li-itemize">
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc79">8</A>  References</H2><!--SEC END --><UL CLASS="itemize"><LI CLASS="li-itemize">
 <EM>Tsung</EM> home page: <A HREF="http://tsung.erlang-projects.org/"><TT>http://tsung.erlang-projects.org/</TT></A>
 </LI><LI CLASS="li-itemize"><EM>Tsung</EM> description (French)<SUP><A NAME="text1" HREF="#note1">1</A></SUP>
 </LI><LI CLASS="li-itemize">Erlang web site <A HREF="http://www.erlang.org/"><TT>http://www.erlang.org/</TT></A>
@@ -3313,12 +3386,12 @@ files from the tsung log files. It’s available in <TT>/usr/lib/tsung/bin/tsung
 Joe Armstrong, Stockholm, 2003 <SUP><A NAME="text3" HREF="#note3">3</A></SUP>
 </LI><LI CLASS="li-itemize"><EM>Tutorial on How to write a Tsung plugin</EM>, written by t ty, <A HREF="http://www.process-one.net/en/wiki/Writing_a_Tsung_plugin/"><TT>http://www.process-one.net/en/wiki/Writing_a_Tsung_plugin/</TT></A>
 </LI></UL><!--TOC section Acknowledgments-->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc79">9</A>  Acknowledgments</H2><!--SEC END --><P>The first version of this document was based on a talk given by Mickael
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc80">9</A>  Acknowledgments</H2><!--SEC END --><P>The first version of this document was based on a talk given by Mickael
 Rémond<SUP><A NAME="text4" HREF="#note4">4</A></SUP> during an Object
 Web benchmarking workshop in April 2004 (more info at
 <A HREF="http://jmob.objectweb.org/"><TT>http://jmob.objectweb.org/</TT></A>).</P><!--TOC section Frequently Asked Questions-->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc80">A</A>  Frequently Asked Questions</H2><!--SEC END --><!--TOC subsection Can’t start distributed clients: timeout error -->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc81">A.1</A>  Can’t start distributed clients: timeout error </H3><!--SEC END --><P>Most of the time, when a crash happened at startup without any traffic
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc81">A</A>  Frequently Asked Questions</H2><!--SEC END --><!--TOC subsection Can’t start distributed clients: timeout error -->
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc82">A.1</A>  Can’t start distributed clients: timeout error </H3><!--SEC END --><P>Most of the time, when a crash happened at startup without any traffic
 generated, the problem arise because the main Erlang controller node cannot
 create a "slave" Erlang virtual machine. The message looks like:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
@@ -3454,7 +3527,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 </TABLE></TD></TR>
 </TABLE><!--TOC subsection Tsung crashes when I start it -->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc82">A.2</A>  Tsung crashes when I start it </H3><!--SEC END --><P>Does your Erlang system has ssl support enabled ?</P><P>to test it:
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc83">A.2</A>  Tsung crashes when I start it </H3><!--SEC END --><P>Does your Erlang system has ssl support enabled ?</P><P>to test it:
 </P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
@@ -3474,7 +3547,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 </TABLE></TD></TR>
 </TABLE><!--TOC subsection Why do i have error_connect_emfile errors ?-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc83">A.3</A>  Why do i have error_connect_emfile errors ?</H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc84">A.3</A>  Why do i have error_connect_emfile errors ?</H3><!--SEC END --><P>
 <A NAME="sec:faq:emfile"></A>
 emfile error means : <EM>too many open files</EM></P><P>This happens usually when you set a high value for <TT>maxusers</TT>
 (<TT>in the &lt;client&gt;</TT> section) (the default value is 800).</P><P>The errors means that you are running out of file descriptors; you
@@ -3483,7 +3556,7 @@ file descriptors per process in your system (see <TT>ulimit -n</TT>)</P><P>You c
 <TT>/etc/security/limits.conf</TT> for Linux ) or decrease <TT>maxusers</TT>
 (Tsung will have to start several virtual machine on the same host to
 bypass the maxusers limit).</P><!--TOC subsection Tsung still crashes/fails when I start it !-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc84">A.4</A>  Tsung still crashes/fails when I start it !</H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc85">A.4</A>  Tsung still crashes/fails when I start it !</H3><!--SEC END --><P>
 First look at the log file
 <TT>~/.tsung/log/XXX/tsung_controller@yourhostname'</TT> to see
 if there is a problem.</P><P>If the file is not created and a crashed dump file is present, maybe
@@ -3495,7 +3568,7 @@ don’t forget to set the loglevel to "debug" in the XML file.</P><P>To start th
 an erlang shell on the <TT>tsung_controller</TT> node. Use
 <TT>toolbar:start().</TT> to launch the graphical tools provided by
 Erlang.</P><!--TOC subsection Can I dynamically follow redirect with HTTP ?-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc85">A.5</A>  Can I dynamically follow redirect with HTTP ?</H3><!--SEC END --><P>If your HTTP server sends 30X responses (redirect) with dynamic URLs,
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc86">A.5</A>  Can I dynamically follow redirect with HTTP ?</H3><!--SEC END --><P>If your HTTP server sends 30X responses (redirect) with dynamic URLs,
 you can handle this situation using a dynamic variable:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
@@ -3546,7 +3619,9 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 </TABLE></TD></TR>
 </TABLE><!--TOC subsection What is the format of the stats file tsung.log ?-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc86">A.6</A>  What is the format of the stats file tsung.log ?</H3><!--SEC END --><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc87">A.6</A>  What is the format of the stats file tsung.log ?</H3><!--SEC END --><P>
+<A NAME="sec:what-format-stats"></A>
+</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
 </TABLE></TD></TR>
@@ -3587,7 +3662,7 @@ stats: size_sent 150660 498530
 <TT>session</TT> and transactions (<TT>tr_XXX</TT>:</P><P><TT> # stats:’name’ 10sec_count, 10sec_mean, 10sec_stdvar,
 max, min, mean, count</TT></P><P>or for HTTP returns code, size ...</P><P><TT> # stats:’name’ count(during the last 10sec), totalcount(since the beginning)</TT></P><!--TOC subsection How can I compute percentile/quartiles/median for transactions or requests
 response time ?-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc87">A.7</A>  How can I compute percentile/quartiles/median for transactions or requests
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc88">A.7</A>  How can I compute percentile/quartiles/median for transactions or requests
 response time ?</H3><!--SEC END --><P>It’s not directly possible. But since <B>version 1.3.0</B>, you can
 use a new experimental statistic backend: set <FONT COLOR=purple>backend="fullstats"</FONT> in the
 <FONT COLOR=purple>&lt;tsung&gt;</FONT> section of your configuration file.</P><P>This will print every statistics data in a raw format in a file named
@@ -3625,7 +3700,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 </TABLE><P>You will have to write your own script to analyze the output.
 The format of the file may change in a future release.</P><!--TOC subsection How can I specify the number of concurrent users ?-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc88">A.8</A>  How can I specify the number of concurrent users ?</H3><!--SEC END --><P>You can’t. But it’s on purpose: the load generated by
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc89">A.8</A>  How can I specify the number of concurrent users ?</H3><!--SEC END --><P>You can’t. But it’s on purpose: the load generated by
 <EM>Tsung</EM> is dependent on the arrival time between new
 clients. Indeed, once a client has finished his session in
 <EM>tsung</EM>, it stops. So the number of concurrent users is
@@ -3634,7 +3709,7 @@ is 1000/3600 = 0.2778 visits/second. If you want to simulate the same
 load, set the inter-arrival time is to 1/0.27778 = 3.6 <I>sec</I> (<TT>&lt;users
 interarrival="3.6" unit="second"&gt;</TT> in the <TT>arrivalphase</TT> node in the
 XML config file).</P><!--TOC subsection SNMP monitoring doesn’t work ?!-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc89">A.9</A>  SNMP monitoring doesn’t work ?!</H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc90">A.9</A>  SNMP monitoring doesn’t work ?!</H3><!--SEC END --><P>
 <A NAME="sec:faq:snmp"></A>
 It use SNMP v1 and the ’public’ community. It has been tested with
 <A HREF="http://net-snmp.sourceforge.net/"><TT>http://net-snmp.sourceforge.net/</TT></A>.</P><P>You can try with <TT>snmpwalk</TT> to see if your snmpd config is ok:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -3683,7 +3758,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 </TABLE></TD></TR>
 </TABLE><!--TOC subsection How can i simulate a fix number of users ?-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc90">A.10</A>  How can i simulate a fix number of users ?</H3><!--SEC END --><P>Use <TT>maxnumber</TT> to set the max number of concurrent users in a
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc91">A.10</A>  How can i simulate a fix number of users ?</H3><!--SEC END --><P>Use <TT>maxnumber</TT> to set the max number of concurrent users in a
 phase, and if you want Tsung to behave like ab, you can use a loop
 in a session (to send requests as fast as possible); you can also define a
 max <TT>duration</TT> in <TT>&lt;load&gt;</TT>.</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -3716,7 +3791,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 </TABLE></TD></TR>
 </TABLE><!--TOC section Errors list-->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc91">B</A>  Errors list</H2><!--SEC END --><DL CLASS="description"><DT CLASS="dt-description">
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc92">B</A>  Errors list</H2><!--SEC END --><DL CLASS="description"><DT CLASS="dt-description">
 <B>error_closed</B></DT><DD CLASS="dd-description"> Only for non persistent session (XMPP); the
 server unexpectedly closed the connection; the session is aborted.
 </DD><DT CLASS="dt-description"><B>error_inet_&lt;ERRORNAME&gt;</B></DT><DD CLASS="dd-description"> Network error; see
@@ -3748,7 +3823,7 @@ parameter from the config_server; the controller may be overloaded ?
 </DD><DT CLASS="dt-description"><B>error_mysql_badpacket</B></DT><DD CLASS="dd-description"> Bad packet received for mysql server while parsing data.
 </DD><DT CLASS="dt-description"><B>error_pgsql</B></DT><DD CLASS="dd-description"> Error reported by the postgresql server.
 </DD></DL><!--TOC section CHANGELOG-->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc92">C</A>  CHANGELOG</H2><!--SEC END --><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc93">C</A>  CHANGELOG</H2><!--SEC END --><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
 </TABLE></TD></TR>

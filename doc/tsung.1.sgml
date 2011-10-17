@@ -103,7 +103,8 @@ A distributed multi-protocol load testing tool.
       <varlistentry>
         <term><option>-f filename</option></term>
         <listitem>
-          <para>specifies the configuration file to use. The default file name is <filename>~/.tsung/tsung.xml</filename></para>
+          <para>specifies the configuration file to use. The default
+          file name is <filename>~/.tsung/tsung.xml</filename>. Use - for standard input</para></para>
         </listitem>
       </varlistentry>
       <varlistentry>

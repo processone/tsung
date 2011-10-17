@@ -14,7 +14,7 @@
 %\addauthor{Nicolas}{Niclausse}{nicolas.niclausse@niclux.org}
 
 \doccopyright{Nicolas Niclausse.}
-\docversion{1.4.1}
+\docversion{1.4.2}
 \docreldate{\date{}}
 \docref{tsung-user-manual}
 
@@ -329,7 +329,8 @@ If you want to download the development version, use git:
 
  \command{git clone git://git.process-one.net/tsung/mainline.git}
 
-(see also \url{https://git.process-one.net/tsung}).
+ (see also \url{https://git.process-one.net/tsung} and the github
+ mirror: \url{https://github.com/processone/tsung}).
 
 You can also build packages with \command{make deb} (on debian and
 ubuntu) and \command{make rpm} (on fedora, rhel, and other rpm based distribution)
@@ -355,6 +356,7 @@ for both commands.
 Usage: tsung <options> start|stop|debug|status
 Options:
     -f <file>     set configuration file (default is ~/.tsung/tsung.xml)
+                    (use - for standard input)
     -l <logdir>   set log directory (default is ~/.tsung/log/YYYYMMDD-HHMM/)
     -i <id>       set controller id (default is empty)
     -r <command>  set remote connector (default is ssh)
@@ -615,12 +617,12 @@ for password settings).
 There are two actions available to allow for rudimentary privacy lists
 load testing:
 \begin{itemize}
-\item \userinput{privacy:get_names} - gets the list of all names
+\item \userinput{privacy:get\_names} - gets the list of all names
 of privacy lists stored by the server for a given user
-\item \userinput{privacy:set_active} - sets a list with a predefined
+\item \userinput{privacy:set\_active} - sets a list with a predefined
 name as active. The list name is determined from the JID,
 e.g. if the user's JID is "john@average.com" then the list name
-is "john@average.com_list". One should take care of properly seeding
+is "john@average.com\_list". One should take care of properly seeding
 the server database in order to ensure that such a list exists.
 \end{itemize}
 
@@ -2436,6 +2438,57 @@ Only the incoming traffic is rate limited currently.
 
 \section{Statistics and reports}
 \label{sec:statistics-reports}
+\subsection{File format}
+
+By default, tsung use it's own format (see FAQ \ref{sec:what-format-stats}).
+
+Since version 1.4.2, you can configure tsung to use a JSON format;
+however in this case, the tools \command{tsung\_stats.pl} and
+\command{tsung\_plotter} will not work with the json files.
+
+To enable JSON output, use:
+\begin{Verbatim}
+<tsung backend='json' ...>
+\end{Verbatim}
+
+Example output file with JSON:
+\begin{Verbatim}
+{
+ "stats": [
+ {"timestamp": 1317413841,  "samples": []},
+ {"timestamp": 1317413851,  "samples": [
+   {"name": "users", "value": 0, "max": 0},
+   {"name": "users_count", "value": 0, "total": 0},
+   {"name": "finish_users_count", "value": 0, "total": 0}]},
+ {"timestamp": 1317413861,  "samples": [
+   {"name": "users", "value": 0, "max": 1},
+   {"name": "load", "hostname": "requiem", "value": 1, "mean":
+     0.0,"stdvar": 0,"max": 0.0,"min": 0.0 ,"global_mean": 0
+     ,"global_count": 0},
+   {"name": "freemem", "hostname": "requiem", "value": 1, "mean":
+     2249.32421875,"stdvar": 0,"max": 2249.32421875,"min":
+     2249.32421875 ,"global_mean": 0 ,"global_count": 0},
+   {"name": "cpu", "hostname": "requiem", "value": 1, "mean":
+     4.790419161676647,"stdvar": 0,"max": 4.790419161676647,"min":
+     4.790419161676647 ,"global_mean": 0 ,"global_count": 0},
+   {"name": "session", "value": 1, "mean": 387.864990234375,"stdvar":
+     0,"max":  387.864990234375,"min": 387.864990234375
+     ,"global_mean": 0 ,"global_count": 0},
+   {"name": "users_count", "value": 1, "total": 1},
+   {"name": "finish_users_count", "value": 1, "total": 1},
+   {"name": "request", "value": 5, "mean": 75.331787109375,"stdvar":
+     46.689242405019954,"max":  168.708984375,"min": 51.744873046875
+     ,"global_mean": 0 ,"global_count": 0},
+   {"name": "page", "value": 1, "mean": 380.7548828125,"stdvar":
+     0.0,"max":  380.7548828125,"min": 380.7548828125 ,"global_mean":
+     0 ,"global_count": 0},
+   {"name": "connect", "value": 1, "mean": 116.70703125,"stdvar":
+     0.0,"max":  116.70703125,"min": 116.70703125 ,"global_mean": 0
+     ,"global_count": 0},
+   {"name": "size_rcv", "value": 703, "total": 703},
+   {"name": "size_sent", "value": 1083, "total": 1083},
+   {"name": "connected", "value": 0, "max": 0}, {"name": "http_304", "value": 5, "total": 5}]}]}
+\end{Verbatim}
 
 \subsection{Available stats}
 
@@ -2785,7 +2838,7 @@ successively using a repeat loop (this works only with version 1.3.0 and up):
 \end{Verbatim}
 
 \subsection{What is the format of the stats file tsung.log ?}
-
+\label{sec:what-format-stats}
 \begin{Verbatim}
 # stats: dump at 1218093520
 stats: users 247 247
