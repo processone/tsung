@@ -427,6 +427,7 @@ to_https({request, {body,Data}}) when is_list(Data) ->
     %% body request, no headers
     re:replace(Data,"http://-","https://",[global]);
 to_https({request, S="CONNECT"++Rest}) -> {ok,S};
+to_https({request, []}) -> {ok, []};
 to_https({request, String}) when is_list(String) ->
     EndOfHeader = string:str(String, "\r\n\r\n"),
     Header = string:substr(String, 1, EndOfHeader - 1) ++ "\r\n",
