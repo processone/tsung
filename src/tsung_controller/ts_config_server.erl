@@ -808,6 +808,9 @@ set_remote_args(LogDir,PortsRange)->
 %%      single node per host
 %% @end
 
+get_one_node_per_host([]) ->
+    %%no remote nodes, we are using a controller vm
+    [node()];
 get_one_node_per_host(RemoteNodes) ->
     get_one_node_per_host(RemoteNodes,dict:new()) .
 
