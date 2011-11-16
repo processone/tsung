@@ -847,7 +847,7 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort, Try}) when 
                         Data when is_integer(Data) ->
                             Data;
                         Error ->
-                            ?LOGF("CPort error (~p), reuse the same port ~p~n",[Error],?INFO),
+                            ?LOGF("CPort error (~p), reuse the same port ~p~n",[Error,CPort],?INFO),
                             CPort
                     end,
                     ?LOGF("Connect failed with client port ~p, retry with ~p~n",[CPort, NewCPort],?INFO),
@@ -863,7 +863,7 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPortServer}) ->
                    Data when is_integer(Data) ->
                        Data;
                    Error ->
-                       ?LOGF("CPort error (~p), use random port ~p~n",[Error],?INFO),
+                       ?LOGF("CPort error (~p), use random port~n",[Error],?INFO),
                        0
                end,
     reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort,CPortServer});
@@ -1030,7 +1030,7 @@ handle_data_msg(Data,State=#state_rcv{request=Req,datasize=OldSize})
 handle_data_msg(<<32>>, State=#state_rcv{clienttype=ts_jabber}) ->
     {State#state_rcv{ack_done = false},[]};
 %% local ack, set ack_done to true
-handle_data_msg(Data, State=#state_rcv{request=Req, clienttype=Type, maxcount=MaxCount}) ->
+handle_data_msg(Data, State=#state_rcv{request=Req, maxcount=MaxCount}) ->
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     NewBuffer= set_new_buffer(State, Data),
     DataSize = size(Data),
