@@ -45,6 +45,7 @@
           dnscache=[],
           interval,
           pid,               % pid of snmp_mgr
+          uri,   % use as an identifier for the snmp manager
           host,
           version,
           port,
@@ -97,6 +98,7 @@ init({HostStr, {Port, Community, Version}, Interval, MonServer}) ->
     ?LOGF("Starting SNMP mgr on ~p~n", [IP], ?DEB),
     {ok, #state{ mon_server = MonServer,
                  host       = HostStr,
+                 uri        = "snmp://"++HostStr++":" ++ integer_to_list(Port),
                  port       = Port,
                  addr       = IP,
                  community  = Community,
@@ -134,21 +136,21 @@ handle_cast(Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-handle_info({timeout,_Ref,connect},State=#state{host=Host, addr=IP,port=Port,community=Community,version=Version}) ->
-    ok = snmpm:register_agent("tsung",Host,
+handle_info({timeout,_Ref,connect},State=#state{uri=URI, addr=IP,port=Port,community=Community,version=Version}) ->
+    ok = snmpm:register_agent("tsung",URI,
                          [{engine_id,"myengine"},
                           {address,IP},
                           {port,Port},
                           {version,Version},
                           {community,Community}]),
 
-    ?LOGF("SNMP mgr started; remote node is ~p~n", [IP],?INFO),
+    ?LOGF("SNMP mgr started; remote node is ~p~n", [URI],?INFO),
     erlang:start_timer(State#state.interval, self(), send_request ),
     {noreply, State};
 
-handle_info({timeout,_Ref,send_request},State=#state{host=Host}) ->
-    ?LOGF("SNMP mgr; get data from host ~p~n", [Host],?DEB),
-    snmp_get(Host,
+handle_info({timeout,_Ref,send_request},State=#state{uri=URI}) ->
+    ?LOGF("SNMP mgr; get data from host ~p~n", [URI],?DEB),
+    snmp_get(URI,
              [?SNMP_CPU_RAW_SYSTEM,
               ?SNMP_CPU_RAW_USER,
               ?SNMP_MEM_AVAIL,
@@ -198,6 +200,9 @@ analyse_snmp_data([Val=#varbind{value='NULL'}| Tail], Host, Stats, State) ->
 %% overloaded), the value will be inconsistent, since we assume a
 %% constant time across samples ($INTERVAL)
 
+analyse_snmp_data([#varbind{variabletype='NULL'}| Tail], Host, Stats, State) ->
+    %% skip bad values
+    analyse_snmp_data(Tail, Host, Stats, State);
 analyse_snmp_data([#varbind{oid=?SNMP_CPU_RAW_SYSTEM, value=Val}| Tail], Host, Stats, State) ->
     {value, User} = lists:keysearch(?SNMP_CPU_RAW_USER, #varbind.oid, Tail),
     Value = Val + User#varbind.value,
@@ -238,9 +243,10 @@ oid_to_statname(?SNMP_CPU_LOAD1, Name, Value)->
 snmp_get(Agent,OIDs,State)->
     snmp_get(Agent,OIDs,State,?SNMP_TIMEOUT).
 
-snmp_get(Agent,OIDs,State,TimeOut)->
-    ?LOGF("Running snmp get ~p ~p~n", [Agent,OIDs], ?DEB),
-    Res = snmpm:sync_get("tsung",Agent,OIDs,TimeOut),
+snmp_get(URI="snmp://"++Host,OIDs,State,TimeOut)->
+    ?LOGF("Running snmp get ~p ~p~n", [URI,OIDs], ?DEB),
+    [Agent|_]=string:tokens(Host,":"),
+    Res = snmpm:sync_get("tsung",URI,OIDs,TimeOut),
     ?LOGF("Res ~p ~n", [Res], ?DEB),
     case Res of
         {ok,{noError,_,List},_Remaining} ->
