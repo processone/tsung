@@ -47,11 +47,18 @@
      batch (true | false) "false"
      type (snmp | erlang | munin) "erlang">
 
-<!ELEMENT snmp EMPTY>
+<!ELEMENT snmp (oid)*>
 <!ATTLIST snmp
      version   (v1 | v2) "v1"
      community NMTOKEN "public"
      port      NMTOKEN "161">
+
+<!ELEMENT oid EMPTY>
+<!ATTLIST oid
+     value   NMTOKEN #REQUIRED
+     name    NMTOKEN #REQUIRED
+     type    NMTOKEN "sample"
+     eval    CDATA   #IMPLIED>
 
 <!ELEMENT munin EMPTY>
 <!ATTLIST munin

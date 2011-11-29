@@ -116,6 +116,8 @@ parse(Element = #xmlElement{name=server, attributes=Attrs}, Conf=#config{servers
                                      }|ServerList]},
         Element#xmlElement.content);
 
+
+
 %% Parsing the cluster monitoring element (monitor)
 parse(Element = #xmlElement{name=monitor, attributes=Attrs},
       Conf = #config{monitor_hosts=MHList}) ->
@@ -133,11 +135,13 @@ parse(Element = #xmlElement{name=monitor, attributes=Attrs},
                                                          community, ?config(snmp_community)),
                            Version = getAttr(atom,SnmpEl#xmlElement.attributes,
                                                        version, ?config(snmp_version)),
-                           {snmp, {Port, Community, Version}};
+                           %% parse OIDS def
+                           TmpConf = lists:foldl(fun parse/2, Conf#config{oids=[]}, SnmpEl#xmlElement.content),
+                           {snmp, {Port, Community, Version,TmpConf#config.oids}};
                        _ ->
                            {snmp, {?config(snmp_port),
-                            ?config(snmp_community),
-                            ?config(snmp_version)}}
+                                   ?config(snmp_community),
+                                   ?config(snmp_version),[]}}
                    end;
                munin ->
                    case lists:keysearch(munin,#xmlElement.name,
@@ -160,6 +164,21 @@ parse(Element = #xmlElement{name=monitor, attributes=Attrs},
     lists:foldl(fun parse/2,
         Conf#config{monitor_hosts = lists:append(MHList, NewMon)},
         Element#xmlElement.content);
+
+
+parse(#xmlElement{name=oid, attributes=Attrs}, Conf=#config{oids=OIDS}) ->
+    OIDStr  = getAttr(Attrs, value),
+    OID  = lists:map(fun erlang:list_to_integer/1, string:tokens(OIDStr,".")),
+    Name = getAttr(Attrs, name),
+    Type = case getAttr(atom, Attrs, type, sample) of
+               sample  -> sample;
+               counter -> sample_counter;
+               sum     -> sum
+           end,
+    Snippet = getAttr(string, Attrs, eval, "fun(X)-> X end."),
+    Fun= ts_utils:eval(Snippet),
+    true = is_function(Fun, 1),
+    Conf#config{oids=[{OID,Name,Type,Fun}| OIDS]};
 
 %%
 parse(Element = #xmlElement{name=load, attributes=Attrs}, Conf) ->

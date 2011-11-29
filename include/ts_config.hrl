@@ -68,6 +68,7 @@
           seed = now,        % random seed: (default= current time)
           vhost_file = none, % file server user for virtual host jabber testing
           user_server_maxuid = none, % user_id max
+          oids=[],
           rate_limit,
           job_notify_port
          }).

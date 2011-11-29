@@ -96,7 +96,7 @@ a:hover     {background:#ffffaa;}
 <!--CUT DEF section 1 --><H1 ALIGN=center>Tsung User’s manual</H1><DIV CLASS="center">
 
 <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>1.4.2</TD></TR>
-<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>October 17, 2011</TD></TR>
+<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>November 29, 2011</TD></TR>
 </TABLE>
 </DIV><!--TOC section Contents-->
 <H2 CLASS="section"><!--SEC ANCHOR -->Contents</H2><!--SEC END --><UL CLASS="toc"><LI CLASS="li-toc">
@@ -1065,7 +1065,31 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 </TABLE></TD></TR>
 </TABLE><P>The default version is <FONT COLOR=purple>v1</FONT>, default community
-<FONT COLOR=purple>public</FONT> and default port <FONT COLOR=purple>161</FONT>.</P><!--TOC subsubsection Munin-->
+<FONT COLOR=purple>public</FONT> and default port <FONT COLOR=purple>161</FONT>.</P><P>Since version <B>1.4.2</B>, you can also customize the OIDs
+retrieved from the SNMP server, using one or several <FONT COLOR=purple>oid</FONT>
+element:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">   &lt;monitor host="127.0.0.1" type="snmp"&gt;
+     &lt;snmp version="v2"&gt;
+       &lt;oid value="1.3.6.1.4.1.42.2.145.3.163.1.1.2.11.0"
+            name="heapused" type="sample" eval="fun(X)-&gt; X/100 end."/&gt;
+     &lt;/snmp&gt;
+   &lt;/monitor&gt;
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><P><TT>type</TT> can be <FONT COLOR=purple>sample</FONT>, <FONT COLOR=purple>counter</FONT> or
+<FONT COLOR=purple>sum</FONT>, and optionnaly you can define a function (with erlang
+syntax) to be applied to the value (<TT>eval</TT> attribute).</P><!--TOC subsubsection Munin-->
 <H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc47">6.3.3</A>  Munin</H4><!--SEC END --><P>Since version <B>1.3.1</B>, Tsung is able to retrieve data from a munin-node agent
 (see <A HREF="http://munin.projects.linpro.no/wiki/munin-node"><TT>http://munin.projects.linpro.no/wiki/munin-node</TT></A>). The <TT>type</TT>
 keyword must be set to <FONT COLOR=purple>munin</FONT>, for example:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -1235,7 +1259,8 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 days. <TT>unit</TT> can be <FONT COLOR=purple>second</FONT>, <FONT COLOR=purple>minute</FONT> or
 <FONT COLOR=purple>hour</FONT>.</P><!--TOC subsection Setting options-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc52">6.5</A>  Setting options</H3><!--SEC END --><P>
-<A NAME="sec:options"></A></P><P>Default values can be set-up globally: <TT>thinktime</TT> between requests
+<A NAME="sec:options"></A></P><!--TOC paragraph Thinktimes, SSL, Buffers-->
+<H5 CLASS="paragraph"><!--SEC ANCHOR -->Thinktimes, SSL, Buffers</H5><!--SEC END --><P>Default values can be set-up globally: <TT>thinktime</TT> between requests
 in the scenario, SSL cipher algorithms, TCP/UDP buffer sizes (the default
 value is 32KB). These values overrides
 those set in session configuration tags if override is true.
@@ -1260,7 +1285,8 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE><P>A new option is available in version <B>1.3.1</B>: <TT>hibernate</TT>. This
+</TABLE><!--TOC paragraph Hibernate-->
+<H5 CLASS="paragraph"><!--SEC ANCHOR -->Hibernate</H5><!--SEC END --><P>A new option is available in version <B>1.3.1</B>: <TT>hibernate</TT>. This
 is used to reduced memory consumption of simulated users during
 thinktimes. By default, hibernation will be activated for thinktimes
 higher than 10sec. This value can be changed like this:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -1278,7 +1304,8 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE><P>To disable hibernation, you must set the value to <FONT COLOR=purple>infinity</FONT>.</P><P>A new option is available in version <B>1.4.0</B>:
+</TABLE><P>To disable hibernation, you must set the value to <FONT COLOR=purple>infinity</FONT>.</P><!--TOC paragraph Rate_limit-->
+<H5 CLASS="paragraph"><!--SEC ANCHOR -->Rate_limit</H5><!--SEC END --><P>A new option is available in version <B>1.4.0</B>:
 <TT>rate_limit</TT>. This will limit the bandwidth of each client
 (using a token bucket algorithm). The value is in KBytes per
 second. You can also specify a maximum burst value
@@ -1291,6 +1318,29 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 <TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
 </TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">  &lt;option name="rate_limit" value="1024"&gt;&lt;/option&gt;
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><!--TOC paragraph Ports_range-->
+<H5 CLASS="paragraph"><!--SEC ANCHOR -->Ports_range</H5><!--SEC END --><P>
+If you need to open more than 30000 simultaneous connections on a
+client machine, you will be limited by the number of tcp client ports,
+even if you use several IPs (this is true at least on Linux). To
+bypass this limit, Tsung must not delegate the selection of client
+ports and together with using several IP for each client,
+you have to defined a range for available clients ports, for ex:
+</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">  &lt;option name="ports_range" min="1025" max="65535"/&gt;
 </PRE></TD></TR>
 </TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
