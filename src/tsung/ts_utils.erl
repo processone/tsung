@@ -749,6 +749,10 @@ json_get_bin([Key|Keys],undefined) ->
 json_get_bin([N|Keys],L) when is_integer(N), N =< length(L) ->
     Val =  lists:nth(N,L),
     json_get_bin(Keys,Val);
+json_get_bin([N|Keys], L) when N =:= <<"*">>, is_list(L) ->
+    lists:map(fun(A) -> json_get_bin(Keys,A) end, L);
+json_get_bin([N|Keys],Val) when N =:= <<"*">> ->
+    json_get_bin(Keys,Val);
 json_get_bin([<<"?",Expr/binary>> | Keys],L) when  is_list(L) ->
     case string:tokens(binary_to_list(Expr),"=") of
         [Key,Val] ->

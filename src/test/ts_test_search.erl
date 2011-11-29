@@ -56,6 +56,11 @@ parse_dyn_var_jsonpath5_test() ->
     JSONPath = "titi[?status=OK].val",
     ?assertEqual([{'myvar',[42,48]}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
 
+parse_dyn_var_jsonpath6_test() ->
+    myset_env(),
+    Data="\r\n\r\n{\"titi\": [{\"val\": 123, \"name\": \"foo\"}, {\"val\": 42, \"name\": \"bar\"}]}",
+    JSONPath = "titi[*].val",
+    ?assertEqual([{'myvar',[123,42]}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
 
 parse_dyn_var_jsonpath_int_test() ->
     myset_env(),
