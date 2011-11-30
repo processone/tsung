@@ -169,7 +169,7 @@ parse(Element = #xmlElement{name=monitor, attributes=Attrs},
 parse(#xmlElement{name=oid, attributes=Attrs}, Conf=#config{oids=OIDS}) ->
     OIDStr  = getAttr(Attrs, value),
     OID  = lists:map(fun erlang:list_to_integer/1, string:tokens(OIDStr,".")),
-    Name = getAttr(Attrs, name),
+    Name = getAttr(atom, Attrs, name),
     Type = case getAttr(atom, Attrs, type, sample) of
                sample  -> sample;
                counter -> sample_counter;
