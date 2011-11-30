@@ -31,6 +31,7 @@ NAME=tsung
 CONTROLLER=tsung_controller
 SMP_DISABLE=true
 WARM_TIME=10
+MAX_PROCESS=250000
 
 TSUNGPATH=$INSTALL_DIR/lib/tsung-$VERSION/ebin
 CONTROLLERPATH=$INSTALL_DIR/lib/tsung_controller-$VERSION/ebin
@@ -40,7 +41,7 @@ BOOT_OPT="-boot $INSTALL_DIR/lib/tsung_controller-$VERSION/priv/tsung_controller
 DEBUG_LEVEL=5
 ERL_RSH=" -rsh ssh "
 ERL_DIST_PORTS=" -kernel inet_dist_listen_min 64000 -kernel inet_dist_listen_max 65500 "
-ERL_OPTS=" $ERL_DIST_PORTS -smp auto +P 250000 +A 16 +K true @ERL_OPTS@ "
+ERL_OPTS=" $ERL_DIST_PORTS -smp auto +P $MAX_PROCESS +A 16 +K true @ERL_OPTS@ "
 COOKIE='tsung'
 ERTS_RUN=`$ERL -version 2>&1 | tr -cd 0123456789.`
 ERTS_BOOT=`grep erts $TSUNGPATH/../priv/tsung.rel 2> /dev/null| tr -cd 0123456789.`
@@ -136,6 +137,7 @@ usage() {
     echo "    -i <id>       set controller id (default is empty)"
     echo "    -r <command>  set remote connector (default is ssh)"
     echo "    -s            enable erlang smp on client nodes"
+    echo "    -p <max>      set maximum erlang processes per vm (default is 250000)"
     echo "    -m <file>     write monitoring output on this file (default is tsung.log)"
     echo "                   (use - for standard output)"
     echo "    -F            use long names (FQDN) for erlang nodes"
@@ -145,7 +147,7 @@ usage() {
     exit
 }
 
-while getopts "vhf:l:d:r:i:Fsw:m:" Option
+while getopts "vhf:l:d:r:i:Fsw:m:p:" Option
 do
     case $Option in
         f) CONF_OPT_FILE=$OPTARG;;
@@ -160,6 +162,7 @@ do
             ;;
         m) MON_FILE="mon_file \"$OPTARG\"";;
         d) DEBUG_LEVEL=$OPTARG;;
+        p) MAX_PROCESS=$OPTARG;;
         r) ERL_RSH=" -rsh $OPTARG ";;
         F) NAMETYPE="-name";;
         w) WARM_TIME=$OPTARG;;
