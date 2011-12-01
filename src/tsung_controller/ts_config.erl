@@ -268,7 +268,12 @@ parse(Element = #xmlElement{name=ip, attributes=Attrs},
                                      StrIP
                              end,
                  ?LOGF("resolving host ~p~n",[ToResolve],?WARN),
-                 {ok,IPtmp} = inet:getaddr(ToResolve,inet),
+                 {ok,IPtmp} = case inet:getaddr(ToResolve,inet) of
+                                  {error,nxdomain} -> % retry with IPv6
+                                      inet:getaddr(ToResolve,inet6);
+                                  Val ->
+                                      Val
+                              end,
                  IPtmp
          end,
     ?LOGF("resolved host ~p~n",[IP],?WARN),
