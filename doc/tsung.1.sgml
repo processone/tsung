@@ -35,6 +35,7 @@ A distributed multi-protocol load testing tool.
       <arg><option>-m</option> filename</arg>
       <arg><option>-r</option> command</arg>
       <arg><option>-v</option></arg>
+      <arg><option>-6</option></arg>
       <arg><option>-h</option></arg>
       <arg>start|stop|debug|status</arg>
     </cmdsynopsis>
@@ -150,6 +151,12 @@ A distributed multi-protocol load testing tool.
         <term><option>-v</option></term>
         <listitem>
           <para> Show version</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><option>-6</option></term>
+        <listitem>
+          <para> Use IPv6 for tsung internal communications</para>
         </listitem>
       </varlistentry>
       <varlistentry>

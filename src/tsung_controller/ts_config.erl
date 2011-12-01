@@ -102,12 +102,7 @@ parse(Element = #xmlElement{parents = [], attributes=Attrs}, Conf=#config{}) ->
 parse(Element = #xmlElement{name=server, attributes=Attrs}, Conf=#config{servers=ServerList}) ->
     Server = getAttr(Attrs, host),
     Port   = getAttr(integer, Attrs, port),
-    Type = case getAttr(Attrs, type) of
-               "ssl" -> ssl;
-               "tcp" -> gen_tcp;
-               "udp" -> gen_udp;
-               "erlang" -> erlang
-           end,
+    Type = set_net_type(getAttr(Attrs, type)),
 
     lists:foldl(fun parse/2,
         Conf#config{servers = [#server{host=Server,
@@ -555,12 +550,7 @@ parse( #xmlElement{name=change_type, attributes=Attrs},
     Port    = getAttr(integer, Attrs, port),
     Store   = getAttr(atom, Attrs, store, false),
     Restore = getAttr(atom, Attrs, restore, false),
-    PType = case getAttr(Attrs, server_type) of
-               "ssl" -> ssl;
-               "tcp" -> gen_tcp;
-               "udp" -> gen_udp;
-               "erlang" -> erlang
-           end,
+    PType   = set_net_type(getAttr(Attrs, server_type)),
     SessType=case Conf#config.main_sess_type == CType of
                  false -> CurS#session.type;
                  true  -> CType % back to the main type
@@ -998,3 +988,9 @@ read_stdio(eof, Data)->
 read_stdio(Data,Acc) ->
     read_stdio(io:get_line(""),[Acc,Data]).
 
+set_net_type("tcp")  -> gen_tcp;
+set_net_type("tcp6") -> gen_tcp6;
+set_net_type("udp")  -> gen_udp;
+set_net_type("udp6") -> gen_udp6;
+set_net_type("ssl")  -> ssl;
+set_net_type("ssl6") -> ssl6.

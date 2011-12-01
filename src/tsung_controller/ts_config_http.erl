@@ -192,7 +192,7 @@ set_msg(HTTP=#http_request{url="http" ++ URL},
     Path       = set_query(URLrec),
     HostHeader = set_host_header(URLrec),
     Port       = set_port(URLrec),
-    Scheme     = set_scheme(URLrec#url.scheme),
+    Scheme     = set_scheme({URLrec#url.scheme,Server#server.type}),
     ets:insert(Tab,{{http_server, Id}, {HostHeader, URLrec#url.scheme}}),
 
     {RealServer, RealPath} = case UseProxy of
@@ -218,10 +218,10 @@ set_msg(HTTP=#http_request{url="%%" ++ _TailURL},  {true, MatchRegExp, _Proxy, _
     set_msg2(HTTP,
              #ts_request{ack = parse, subst = true, match = MatchRegExp });
 %% relative URL, no proxy, a single server => we can preset host header at configuration time
-set_msg(HTTPRequest, {SubstFlag, MatchRegExp, false, [Server], [],_Tab,_Id}) ->
+set_msg(HTTPRequest, Args={_SubstFlag, _MatchRegExp, false, [Server], [],_Tab,_Id}) ->
     ?LOG("Relative URL, single server ",?NOTICE),
     URL = server_to_url(Server) ++ HTTPRequest#http_request.url,
-    set_msg(HTTPRequest#http_request{url=URL}, {SubstFlag, MatchRegExp, false, [Server], [],_Tab,_Id});
+    set_msg(HTTPRequest#http_request{url=URL}, Args);
 %% relative URL, no proxy, several servers: don't set host header
 %% since the real server will be choose at run time
 set_msg(HTTPRequest, {SubstFlag, MatchRegExp, false, _Servers, [],_Tab,_Id}) ->
@@ -241,22 +241,32 @@ set_msg(HTTPRequest, {SubstFlag, MatchRegExp, true, Server, {HostHeader, PrevSch
 %% Purpose: set param  in ts_request
 set_msg2(HTTPRequest, Msg) -> Msg#ts_request{ param = HTTPRequest }.
 
-server_to_url(#server{port=80, host= Host, type= gen_tcp})->
-    "http://" ++ Host;
-server_to_url(#server{port=Port, host= Host, type= gen_tcp})->
-    "http://" ++ Host ++ ":" ++ integer_to_list(Port);
-server_to_url(#server{port=443, host= Host, type= ssl})->
-    "https://" ++ Host;
-server_to_url(#server{port=Port, host= Host, type= ssl})->
-    "https://" ++ Host ++ ":" ++ integer_to_list(Port).
+server_to_url(#server{port=443, host= Host, type= Type}) when Type==ssl orelse Type==ssl6->
+    "https://" ++ encode_ipv6_address(Host);
+server_to_url(#server{port=Port, host= Host, type= Type})when Type==ssl orelse Type==ssl6->
+    "https://" ++ encode_ipv6_address(Host) ++ ":" ++ integer_to_list(Port);
+server_to_url(#server{port=80, host= Host})->
+    "http://" ++ encode_ipv6_address(Host);
+server_to_url(#server{port=Port, host= Host})->
+    "http://" ++ encode_ipv6_address(Host) ++ ":" ++ integer_to_list(Port).
 
 %%--------------------------------------------------------------------
 %% Func: set_host_header/1
 %%--------------------------------------------------------------------
 %% if port is undefined, don't need to set port, because it use the default (80 or 443)
-set_host_header(#url{host=Host,port=undefined})   -> Host;
+set_host_header(#url{host=Host,port=undefined}) -> encode_ipv6_address(Host);
 set_host_header(#url{host=Host,port=Port}) when is_integer(Port) ->
-    Host ++ ":" ++ integer_to_list(Port).
+    encode_ipv6_address(Host) ++ ":" ++ integer_to_list(Port).
+
+
+encode_ipv6_address(Host) when hd(Host)==$[ ->
+    %% ipv6; already using [] (rfc2732), no need to add
+    Host;
+encode_ipv6_address(Host)->
+    case string:chr(Host,$:) of
+        0 -> Host; % regular name or ipv4 address
+        _ ->  "["++Host++"]"
+    end.
 
 %%--------------------------------------------------------------------
 %% Func: set_port/1
@@ -268,8 +278,17 @@ set_port(#url{scheme=http,port=undefined})   -> 80;
 set_port(#url{port=Port}) when is_integer(Port) -> Port;
 set_port(#url{port=Port}) -> integer_to_list(Port).
 
-set_scheme(http)  -> gen_tcp;
-set_scheme(https) -> ssl.
+%% @spec set_scheme({http|https,gen_tcp|gen_tcp6|ssl|ssl6})-> gen_tcp|gen_tcp6|ssl|ssl6
+%% @doc set scheme for given protocol and server setup. If the main
+%% server is configured with IPv6, we assume that the we should also
+%% use IPv6 for the given absolut URL
+%% @end
+set_scheme({http, gen_tcp6}) -> gen_tcp6;
+set_scheme({http, ssl6})     -> gen_tcp6;
+set_scheme({http, _})        -> gen_tcp;
+set_scheme({https, ssl6})    -> ssl6;
+set_scheme({https, gen_tcp6})-> ssl6;
+set_scheme({https, _})       -> ssl.
 
 
 set_query(URLrec = #url{querypart=""}) ->
@@ -299,6 +318,9 @@ parse_URL(String) when is_list(String) ->
 %% Returns: #url record
 %%----------------------------------------------------------------------
 % parse host
+parse_URL(host, [$[|Tail] , [], URL) -> % host starts with '[': ipv6 address in url
+    {match,[Host,Rest]} = re:run(Tail,"^([^\\]]*)\\](.*)",[{capture,all_but_first,list}]),
+    parse_URL(host, Rest, lists:reverse(Host), URL);
 parse_URL(host, [], Acc, URL) -> % no path or port
     URL#url{host=lists:reverse(Acc), path= "/"};
 parse_URL(host, [$/|Tail], Acc, URL) -> % path starts here

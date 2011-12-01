@@ -20,7 +20,7 @@
 <!ATTLIST server
      host NMTOKEN #REQUIRED
      port NMTOKEN #REQUIRED
-     type (ssl | tcp | udp | erlang) #REQUIRED>
+     type (ssl | tcp | udp | erlang | ssl6 | tcp6 | udp6) #REQUIRED>
 
 <!ELEMENT clients (client+)>
 <!ELEMENT client (ip*) >

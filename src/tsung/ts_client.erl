@@ -648,7 +648,7 @@ handle_next_request(Request, State) ->
         case Type:add_dynparams(Request#ts_request.subst,
                                 State#state_rcv.dyndata,
                                 Request#ts_request.param,
-                                {PrevHost, PrevPort}) of
+                                {PrevHost, PrevPort, PrevProto}) of
             {Par, NewServer} -> % substitution has changed server setup
                 ?DebugF("Dynparam, new server:  ~p~n",[NewServer]),
                 {Par, NewServer};
@@ -823,7 +823,7 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,0}) ->
 reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort, Try}) when is_integer(CPort)->
     ?DebugF("Try to (re)connect to: ~p:~p from ~p using protocol ~p~n",
             [ServerName,Port,IP,Protocol]),
-    Opts = protocol_options(Protocol, Proto_opts)  ++ [{ip, IP},{port,CPort}],
+    Opts = protocol_options(Protocol, Proto_opts)  ++ socket_opts(IP, CPort, Protocol),
     Before= now(),
     case connect(Protocol,ServerName, Port, Opts) of
         {ok, Socket} ->
@@ -871,14 +871,27 @@ reconnect(Socket, _Server, _Port, _Protocol, _IP) ->
     {ok, Socket}.
 
 
+%% set options for local socket ip/ports
+socket_opts({0,0,0,0}, CPort, Proto) when Proto==gen_tcp6 orelse Proto==ssl6 orelse Proto==gen_udp6 ->
+    %% the config server was not aware if we are using ipv6 or ipv4,
+    %% and it set the local IP to be default one; we need to change it
+    %% for ipv6
+    [{ip, {0,0,0,0,0,0,0,0}},{port,CPort}];
+socket_opts(IP, CPort, _)->
+    [{ip, IP},{port,CPort}].
+
 %%----------------------------------------------------------------------
 %% Func: send/5
 %% Purpose: wrapper function for send
-%% Return: ok | {error, Reason} 
+%% Return: ok | {error, Reason}
 %%----------------------------------------------------------------------
-send(gen_tcp,Socket,Message,_,_) -> gen_tcp:send(Socket,Message);
-send(ssl,Socket,Message,_,_)     -> ssl:send(Socket,Message);
-send(gen_udp,Socket,Message,Host,Port) ->gen_udp:send(Socket,Host,Port,Message);
+send(gen_tcp,Socket,Message,_,_)        -> gen_tcp:send(Socket,Message);
+send(ssl,Socket,Message,_,_)            -> ssl:send(Socket,Message);
+send(gen_udp,Socket,Message,Host,Port)  ->gen_udp:send(Socket,Host,Port,Message);
+% ipv6
+send(gen_tcp6,Socket,Message,_,_)       -> gen_tcp:send(Socket,Message);
+send(ssl6,Socket,Message,_,_)           -> ssl:send(Socket,Message);
+send(gen_udp6,Socket,Message,Host,Port) ->gen_udp:send(Socket,Host,Port,Message);
 send(erlang,Pid,Message,_,_) ->
     Pid ! Message,
     ok.
@@ -887,10 +900,13 @@ send(erlang,Pid,Message,_,_) ->
 %% Func: connect/4
 %% Return: {ok, Socket} | {error, Reason}
 %%----------------------------------------------------------------------
-connect(gen_tcp,Server, Port, Opts)  -> gen_tcp:connect(Server, Port, Opts);
-connect(ssl,Server, Port,Opts)       -> ssl:connect(Server, Port, Opts);
-connect(gen_udp,_Server, _Port, Opts)-> gen_udp:open(0,Opts);
-connect(erlang,Server,Port,Opts)     ->
+connect(gen_tcp,Server, Port, Opts)   -> gen_tcp:connect(Server, Port, Opts);
+connect(ssl,Server, Port,Opts)        -> ssl:connect(Server, Port, Opts);
+connect(gen_udp,_Server, _Port, Opts) -> gen_udp:open(0,Opts);
+connect(gen_tcp6,Server, Port, Opts)  -> gen_tcp:connect(Server, Port, Opts);
+connect(ssl6,Server, Port,Opts)       -> ssl:connect(Server, Port, Opts);
+connect(gen_udp6,_Server, _Port, Opts)-> gen_udp:open(0,Opts);
+connect(erlang,Server,Port,Opts)      ->
     Pid=spawn_link(ts_erlang,client,[self(),Server,Port,Opts]),
     {ok, Pid}.
 
@@ -899,12 +915,16 @@ connect(erlang,Server,Port,Opts)     ->
 %% Func: protocol_options/1
 %% Purpose: set connection's options for the given protocol
 %%----------------------------------------------------------------------
+protocol_options(ssl6,Val) ->
+    [inet6]++protocol_options(ssl,Val);
 protocol_options(ssl,#proto_opts{ssl_ciphers=negociate}) ->
     [binary, {active, once} ];
 protocol_options(ssl,#proto_opts{ssl_ciphers=Ciphers}) ->
     ?DebugF("cipher is ~p~n",[Ciphers]),
     [binary, {active, once}, {ciphers, Ciphers} ];
 
+protocol_options(gen_tcp6,Val) ->
+    [inet6]++protocol_options(gen_tcp,Val);
 protocol_options(gen_tcp,#proto_opts{tcp_rcv_size=Rcv, tcp_snd_size=Snd}) ->
     [binary,
      {active, once},
@@ -912,6 +932,8 @@ protocol_options(gen_tcp,#proto_opts{tcp_rcv_size=Rcv, tcp_snd_size=Snd}) ->
      {sndbuf, Snd},
      {keepalive, true} %% FIXME: should be an option
     ];
+protocol_options(gen_udp6,Val) ->
+    [inet6]++protocol_options(gen_udp,Val);
 protocol_options(gen_udp,#proto_opts{udp_rcv_size=Rcv, udp_snd_size=Snd}) ->
     [binary,
      {active, once},

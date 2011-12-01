@@ -477,9 +477,8 @@ get_user_param(Client,Config)->
 %% Func: choose_client_ip/1
 %% Args: #client, Dict
 %% Purpose: choose an IP for a client
-%% Returns: {ok, IP, NewDict} IP=IPv4 address {A1,A2,A3,A4}
+%% Returns: {ok, IP, NewDict} IP=IP address
 %%----------------------------------------------------------------------
-%% FIXME: and for IPV6 ?
 choose_client_ip(#client{ip = IPList, host=Host}) ->
     choose_rr(IPList, Host, {0,0,0,0}).
 

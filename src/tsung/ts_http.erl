@@ -163,7 +163,7 @@ parse_config(Element, Conf) ->
 %%----------------------------------------------------------------------
 add_dynparams(false, DynData, Param, HostData) ->
     add_dynparams(DynData#dyndata.proto, Param, HostData);
-add_dynparams(true, DynData, OldReq=#http_request{url=OldUrl}, HostData) ->
+add_dynparams(true, DynData, OldReq=#http_request{url=OldUrl}, HostData={PrevHost, PrevPort, PrevProto}) ->
     Req = subst(OldReq, DynData#dyndata.dynvars),
     case Req#http_request.url of
         OldUrl ->
@@ -174,13 +174,13 @@ add_dynparams(true, DynData, OldReq=#http_request{url=OldUrl}, HostData) ->
             NewPort = ts_config_http:set_port(URL),
             NewReq  = add_dynparams(DynData#dyndata.proto,
                                     Req#http_request{host_header=undefined},
-                                    {URL#url.host, NewPort, URL#url.scheme}), % add scheme
+                                    {URL#url.host, NewPort, PrevProto, URL#url.scheme}), % add scheme
             case OldUrl of
                 "http"++_ -> % old url absolute: useproxy must be true
                     NewReq#http_request{url="http"++Rest};
                 _ ->
                     NewUrl=ts_config_http:set_query(URL),
-                    {NewReq#http_request{url=NewUrl}, {URL#url.host, NewPort,ts_config_http:set_scheme(URL#url.scheme)}}
+                    {NewReq#http_request{url=NewUrl}, {URL#url.host, NewPort,ts_config_http:set_scheme({URL#url.scheme,PrevProto})}}
                 end;
         _ -> % Same host:port
             add_dynparams(DynData#dyndata.proto, Req, HostData)
@@ -189,13 +189,13 @@ add_dynparams(true, DynData, OldReq=#http_request{url=OldUrl}, HostData) ->
 %% Function: add_dynparams/3
 add_dynparams(DynData,Param=#http_request{host_header=undefined}, HostData )->
     Header = case HostData of
-                 {Host,80, http}->
+                 {Host,80, _,http}->
                      Host;
-                 {Host,443, https}->
+                 {Host,443,_,https}->
                      Host;
-                 {Host,Port,_} ->
+                 {Host,Port,_,_} ->
                      Host++":"++ integer_to_list(Port);
-                 {Host,Port} ->
+                 {Host,Port,_Proto} ->
                      Host++":"++ integer_to_list(Port)
              end,
     ?DebugF("set host header dynamically: ~s~n",[Header]),

@@ -239,9 +239,12 @@ mkey1search(List, Key) ->
 
 %% close socket if it exists
 close_socket(_Protocol, none) -> ok;
-close_socket(gen_tcp, Socket)-> gen_tcp:close(Socket);
-close_socket(ssl, Socket)    -> ssl:close(Socket);
-close_socket(gen_udp, Socket)-> gen_udp:close(Socket).
+close_socket(gen_tcp, Socket) -> gen_tcp:close(Socket);
+close_socket(gen_tcp6, Socket)-> gen_tcp:close(Socket);
+close_socket(ssl, Socket)     -> ssl:close(Socket);
+close_socket(ssl6, Socket)    -> ssl:close(Socket);
+close_socket(gen_udp, Socket) -> gen_udp:close(Socket);
+close_socket(gen_udp6, Socket)-> gen_udp:close(Socket).
 
 %%----------------------------------------------------------------------
 %% datestr/0
@@ -288,6 +291,12 @@ erl_system_args(extended)->
                    " -kernel inetrc '"++ InetRcFile ++ "'" ;
                _ -> " "
            end,
+    Proto = case init:get_argument(proto_dist) of
+                {ok,[["inet6_tcp"]]}->
+                    ?LOG("IPv6 used for erlang distribution~n",?NOTICE),
+                   " -proto_dist inet6_tcp " ;
+               _ -> " "
+           end,
     ListenMin = case application:get_env(kernel,inet_dist_listen_min) of
                     undefined -> "";
                     {ok, Min} -> " -kernel inet_dist_listen_min " ++ integer_to_list(Min)++ " "
@@ -302,7 +311,7 @@ erl_system_args(extended)->
               "5.3" ++ _Tail     -> " +Mea r10b ";
               _ -> " "
           end,
-    lists:append([BasicArgs, Shared, Hybrid, Smp, Mea, Inet, Threads,ProcessMax,ListenMin,ListenMax]).
+    lists:append([BasicArgs, Shared, Hybrid, Smp, Mea, Inet, Proto, Threads,ProcessMax,ListenMin,ListenMax]).
 
 %%----------------------------------------------------------------------
 %% setsubdir/1
@@ -525,6 +534,8 @@ spawn_par(Fun, PidFrom, Args) ->
 %%----------------------------------------------------------------------
 inet_setopts(_, none, _) -> %socket was closed before
     none;
+inet_setopts(ssl6, Socket, Opts) ->
+    inet_setopts(ssl, Socket, Opts);
 inet_setopts(ssl, Socket, Opts) ->
     case ssl:setopts(Socket, Opts) of
         ok ->
@@ -535,6 +546,10 @@ inet_setopts(ssl, Socket, Opts) ->
             ?LOGF("Error while setting ssl options ~p ~p ~n", [Opts, Error], ?ERR),
             none
     end;
+inet_setopts(gen_tcp6, Socket,  Opts)->
+    inet_setopts(gen_tcp, Socket,  Opts);
+inet_setopts(gen_udp6, Socket,  Opts)->
+    inet_setopts(gen_udp, Socket,  Opts);
 inet_setopts(_Type, Socket,  Opts)->
     case inet:setopts(Socket, Opts) of
         ok ->

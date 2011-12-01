@@ -366,6 +366,7 @@ Options:
     -F            use long names (FQDN) for erlang nodes
     -w            warmup delay (default is 10 sec)
     -v            print version information and exit
+    -6            use IPv6 for tsung internal communications
     -h            display this help and exit
 \end{Verbatim}
 
@@ -757,6 +758,10 @@ virtual machine as the controller.
 The server is the entry point into the cluster (\strong{New in 1.2.0:}
 if several servers are defined, a round robin algorithm is used to
 choose the server).
+
+\varname{Type} can be \userinput{tcp}, \userinput{ssl} or
+\userinput{udp} (for IPv6, use \userinput{tcp6}, \userinput{ssl6} or
+\userinput{udp6} ; only available in  version \strong{1.4.2} and newer)
 
 \subsubsection{Advanced setup}
 

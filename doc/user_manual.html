@@ -96,7 +96,8 @@ a:hover     {background:#ffffaa;}
 <!--CUT DEF section 1 --><H1 ALIGN=center>Tsung User’s manual</H1><DIV CLASS="center">
 
 <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>1.4.2</TD></TR>
-<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>November 29, 2011</TD></TR>
+<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>December
+ 1, 2011</TD></TR>
 </TABLE>
 </DIV><!--TOC section Contents-->
 <H2 CLASS="section"><!--SEC ANCHOR -->Contents</H2><!--SEC END --><UL CLASS="toc"><LI CLASS="li-toc">
@@ -487,6 +488,7 @@ Options:
     -F            use long names (FQDN) for erlang nodes
     -w            warmup delay (default is 10 sec)
     -v            print version information and exit
+    -6            use IPv6 for tsung internal communications
     -h            display this help and exit
 </PRE></TD></TR>
 </TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
@@ -892,7 +894,9 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE><P>This will start the load on the same host and on the same Erlang
 virtual machine as the controller.</P><P>The server is the entry point into the cluster (<B>New in 1.2.0:</B>
 if several servers are defined, a round robin algorithm is used to
-choose the server).</P><!--TOC subsubsection Advanced setup-->
+choose the server).</P><P><TT>Type</TT> can be <FONT COLOR=purple>tcp</FONT>, <FONT COLOR=purple>ssl</FONT> or
+<FONT COLOR=purple>udp</FONT> (for IPv6, use <FONT COLOR=purple>tcp6</FONT>, <FONT COLOR=purple>ssl6</FONT> or
+<FONT COLOR=purple>udp6</FONT> ; only available in version <B>1.4.2</B> and newer)</P><!--TOC subsubsection Advanced setup-->
 <H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc42">6.2.2</A>  Advanced setup</H4><!--SEC END --><P>The next example is more complex, and use several features for
 advanced distributed testing:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
