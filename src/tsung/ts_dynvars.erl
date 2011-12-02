@@ -56,13 +56,19 @@ new(VarNames, Values) when is_list(VarNames),is_list(Values)->
     end.
 
 %% @spec lookup(Key::atom(), Dynvar::dynvars()) -> {ok,Value::term()} | false
-lookup(Key, []) when  is_atom(Key)->
+lookup(Key, []) ->
     false;
 lookup(Key, DynVars) when ?IS_DYNVARS(DynVars), is_atom(Key)->
     case lists:keysearch(Key,1,DynVars) of
         {value,{Key,Value}} -> {ok,Value};
         false -> false
+    end;
+lookup({Key, Index}, DynVars) when ?IS_DYNVARS(DynVars), is_atom(Key), is_integer(Index)->
+    case lists:keysearch(Key,1,DynVars) of
+        {value,{Key,Value}} -> {ok,lists:nth(Index,Value)};
+        false -> false
     end.
+
 
 %% @doc same as lookup/2, only that if the key isn't present, the default
 %%      value is returned instead of returning false.

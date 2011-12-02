@@ -2411,13 +2411,20 @@ dynamic variables:
 \paragraph{<if>}
 
 \begin{Verbatim}
-<if var="tsung_userid" eq="3">  
+<if var="tsung_userid" eq="3">
   <request> <http url="/foo"/> </request>
   <request> <http url="/bar"/> </request>
 </if>
 \end{Verbatim}
 
 You can use \varname{eq} or \varname{neq} to check the variable.
+
+If the dynamic variable is a list (output from xpath for example), you
+can access to the nth element of a list like this:
+\begin{Verbatim}
+<if var="myvar[1]" eq="3">
+\end{Verbatim}
+(here we compare the first element of the list to 3)
 
 \paragraph{<foreach>}
 

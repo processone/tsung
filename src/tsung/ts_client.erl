@@ -617,7 +617,11 @@ ctrl_struct_impl({foreach_end,ForEachName,VarName,Filter,Target}, DynData=#dynda
 
 
 
-rel('eq',A,B)  -> A == B;
+rel(R,A,B) when is_integer(B) ->
+%% jsonpath can output numbers instead of binaries
+    rel(R,A,list_to_binary(integer_to_list(B)));
+rel('eq',A,B)  ->
+    A == B;
 rel('neq',A,B) -> A /= B.
 
 need_jump('while',F) -> F;

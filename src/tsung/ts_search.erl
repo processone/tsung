@@ -265,7 +265,7 @@ parse_dynvar([],_Binary , _String,_Tree, DynVars) -> DynVars;
 parse_dynvar(D=[{re,_, _}| _],Binary,undefined,Tree,DynVars) ->
     parse_dynvar(D,Binary,Binary,Tree,DynVars);
 parse_dynvar([{re,VarName, RegExp}| DynVarsSpecs],Binary,Data,Tree,DynVars) ->
-    case re:run(Data, RegExp,[{capture,[1],list}]) of
+    case re:run(Data, RegExp,[{capture,[1],binary}]) of
         {match,[Value]} ->
             ?LOGF("DynVar (RE): Match (~p=~p) ~n",[VarName, Value], ?INFO),
             parse_dynvar(DynVarsSpecs, Binary,Data,Tree,

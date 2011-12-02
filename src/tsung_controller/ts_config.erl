@@ -403,7 +403,7 @@ parse(Element = #xmlElement{name=transaction, attributes=Attrs},
 %%%% Parsing the 'if' element
 parse(_Element = #xmlElement{name='if', attributes=Attrs,content=Content},
       Conf = #config{session_tab = Tab, sessions=[CurS|_], curid=Id}) ->
-    VarName = getAttr(atom,Attrs,var),
+    VarName=get_dynvar_name(getAttr(string,Attrs,var)),
     {Rel,Value} = case getAttr(string,Attrs,eq,none) of
                 none -> {neq,getAttr(string,Attrs,neq)};
                 X ->  {eq,X}
@@ -413,7 +413,7 @@ parse(_Element = #xmlElement{name='if', attributes=Attrs,content=Content},
     NewConf = lists:foldl(fun parse/2, Conf#config{curid=Id+1}, Content),
     NewId = NewConf#config.curid,
     ?LOGF("endif in session ~p as id ~p",[CurS#session.id,NewId+1],?INFO),
-    InitialAction = {ctrl_struct, {if_start, Rel, VarName, Value , NewId+1}},
+    InitialAction = {ctrl_struct, {if_start, Rel, VarName, list_to_binary(Value) , NewId+1}},
     %%NewId+1 -> id of the first action after the if
     ets:insert(Tab,{{CurS#session.id,Id+1},InitialAction}),
     NewConf;
@@ -477,7 +477,8 @@ parse(_Element = #xmlElement{name=foreach, attributes=Attrs,content=Content},
 parse(_Element = #xmlElement{name=repeat,attributes=Attrs,content=Content},
     Conf = #config{session_tab = Tab, sessions=[CurS|_], curid=Id}) ->
     MaxRepeat = getAttr(integer,Attrs,max_repeat,20),
-    RepeatName = getAttr(atom,Attrs,name),
+    RepeatName = get_dynvar_name(getAttr(string,Attrs,name)),
+
     [LastElement|_] = lists:reverse([E || E=#xmlElement{} <- Content]),
     case LastElement of
         #xmlElement{name=While,attributes=WhileAttrs}
@@ -490,7 +491,7 @@ parse(_Element = #xmlElement{name=repeat,attributes=Attrs,content=Content},
             Var = getAttr(atom,WhileAttrs,var),
             NewConf = lists:foldl(fun parse/2, Conf#config{curid=Id}, Content),
             NewId = NewConf#config.curid,
-            EndAction = {ctrl_struct,{repeat,RepeatName, While,Rel,Var,Value,Id+1, MaxRepeat}},
+            EndAction = {ctrl_struct,{repeat,RepeatName, While,Rel,Var,list_to_binary(Value),Id+1, MaxRepeat}},
                                  %Id+1 -> id of the first action inside the loop
             ?LOGF("Add repeat action in session ~p as id ~p, Jump to: ~p",
                   [CurS#session.id,NewId+1,Id+1],?INFO),
@@ -999,3 +1000,10 @@ set_net_type("udp")  -> gen_udp;
 set_net_type("udp6") -> gen_udp6;
 set_net_type("ssl")  -> ssl;
 set_net_type("ssl6") -> ssl6.
+
+get_dynvar_name(VarNameStr) ->
+    %% check if the var name is for an array (myvar[N])
+    case re:run(VarNameStr,"(.+)\[(\d+)\]",[{capture,all_but_first,list},dotall]) of
+        {match,[Name,Index]} -> {list_to_atom(Name),Index};
+        _                    -> list_to_atom(VarNameStr)
+    end.
