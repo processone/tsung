@@ -4,7 +4,7 @@
 tsung \- A distributed multi-protocol load testing tool.
 .SH SYNOPSIS
 .sp
-\fBtsung\fR [ \fB-f configuration file\fR ]  [ \fB-l log dir\fR ]  [ \fB-m filename\fR ]  [ \fB-r command\fR ]  [ \fB-v\fR ]  [ \fB-h\fR ]  [ \fBstart|stop|debug|status\fR ] 
+\fBtsung\fR [ \fB-f configuration file\fR ]  [ \fB-l log dir\fR ]  [ \fB-m filename\fR ]  [ \fB-r command\fR ]  [ \fB-v\fR ]  [ \fB-6\fR ]  [ \fB-h\fR ]  [ \fBstart|stop|debug|status\fR ] 
 .SH "DESCRIPTION"
 .PP
 \fBtsung\fR is a distributed load testing
@@ -77,6 +77,9 @@ Enable erlang smp on client nodes
 .TP
 \fB-v\fR
 Show version
+.TP
+\fB-6\fR
+Use IPv6 for tsung internal communications
 .TP
 \fB-h\fR
 Show usage
