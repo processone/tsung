@@ -266,7 +266,7 @@ install: doc boot install_recorder install_controller $(CONFFILE)
 	install -m 0644 $(TEMPLATES) $(DESTDIR)$(TEMPLATES_DIR)/
 	install -m 0644 $(DTD) $(DESTDIR)$(SHARE_DIR)/
 
-install_recorder:
+install_recorder: boot
 	install -d $(DESTDIR)$(RECORDER_TARGETDIR)/priv
 	install -d $(DESTDIR)$(RECORDER_TARGETDIR)/ebin
 	install -d $(DESTDIR)$(RECORDER_TARGETDIR)/src
@@ -281,7 +281,7 @@ install_recorder:
 	install -m 0644 $(RECORDER_SRC) $(RECORDER_SRC_APPFILES) $(DESTDIR)$(RECORDER_TARGETDIR)/src
 	@echo $(BUILD_OPTIONS_DOT) > $(DESTDIR)$(RECORDER_TARGETDIR)/BUILD_OPTIONS
 
-install_controller:
+install_controller: boot
 	install -d $(DESTDIR)$(CONTROLLER_TARGETDIR)/priv
 	install -d $(DESTDIR)$(CONTROLLER_TARGETDIR)/ebin
 	install -d $(DESTDIR)$(CONTROLLER_TARGETDIR)/src
@@ -302,57 +302,57 @@ boot: tsung priv/tsung.boot priv/tsung_recorder.boot priv/tsung_controller.boot
 
 priv/tsung.boot: builder.beam  $(SRC_APPFILES)
 # use builder to make boot file
-	@rm -rf temp
-	@mkdir -p temp/lib/$(APPLICATION)-$(VERSION)/ebin
-	@cp $(TARGET) $(LIB_TARGET) temp/lib/$(APPLICATION)-$(VERSION)/ebin
-	@ln -sf $(PWD)/src/$(APPLICATION) temp/lib/$(APPLICATION)-$(VERSION)/src
-	@ln -sf $(PWD)/include temp/lib/$(APPLICATION)-$(VERSION)/include
-	@ln -sf $(PWD)/priv temp/lib/$(APPLICATION)-$(VERSION)/priv
-	@ln -sf $(PWD)/builder.beam temp/lib/$(APPLICATION)-$(VERSION)/
-	@ln -sf $(PWD) temp/lib/$(APPLICATION)-$(VERSION)
+	@rm -rf temp_ts
+	@mkdir -p temp_ts/lib/$(APPLICATION)-$(VERSION)/ebin
+	@cp $(TARGET) $(LIB_TARGET) temp_ts/lib/$(APPLICATION)-$(VERSION)/ebin
+	@ln -sf $(PWD)/src/$(APPLICATION) temp_ts/lib/$(APPLICATION)-$(VERSION)/src
+	@ln -sf $(PWD)/include temp_ts/lib/$(APPLICATION)-$(VERSION)/include
+	@ln -sf $(PWD)/priv temp_ts/lib/$(APPLICATION)-$(VERSION)/priv
+	@ln -sf $(PWD)/builder.beam temp_ts/lib/$(APPLICATION)-$(VERSION)/
+	@ln -sf $(PWD) temp_ts/lib/$(APPLICATION)-$(VERSION)
 	@echo -n "build main app boot script ... "
-	@(cd temp/lib/$(APPLICATION)-$(VERSION) \
+	@(cd temp_ts/lib/$(APPLICATION)-$(VERSION) \
 	 && echo $(BUILD_OPTIONS) > $(BUILD_OPTIONS_FILE) \
 	 && $(ERL) -noshell -s builder go -s init stop >> $(BUILDER_LOG) 2>&1 \
 	)
-	@cp temp/lib/$(APPLICATION)-$(VERSION)/ebin/*.app ebin
-	@rm -rf temp
+	@cp temp_ts/lib/$(APPLICATION)-$(VERSION)/ebin/*.app ebin
+	@rm -rf temp_ts
 	@echo "done"
 
 priv/tsung_controller.boot: builder.beam $(CONTROLLER_SRC_APPFILES)
 # use builder to make boot file
-	@rm -rf temp
-	@mkdir -p temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/ebin
-	@cp $(CONTROLLER_TARGET) temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/ebin
-	@ln -sf $(PWD)/src/$(CONTROLLER_APPLICATION) temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/src
-	@ln -sf $(PWD)/include temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/include
-	@ln -sf $(PWD)/priv temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/priv
-	@ln -sf $(PWD)/builder.beam temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/
+	@rm -rf temp_tsc
+	@mkdir -p temp_tsc/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/ebin
+	@cp $(CONTROLLER_TARGET) temp_tsc/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/ebin
+	@ln -sf $(PWD)/src/$(CONTROLLER_APPLICATION) temp_tsc/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/src
+	@ln -sf $(PWD)/include temp_tsc/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/include
+	@ln -sf $(PWD)/priv temp_tsc/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/priv
+	@ln -sf $(PWD)/builder.beam temp_tsc/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/
 	@echo -n "build controller boot script ... "
-	@(cd temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION) \
+	@(cd temp_tsc/lib/$(CONTROLLER_APPLICATION)-$(VERSION) \
 	 && echo $(BUILD_OPTIONS) > $(BUILD_OPTIONS_FILE) \
 	 && $(ERL) -noshell -s builder go -s init stop >> $(BUILDER_LOG) 2>&1 \
 	)
-	@cp temp/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/ebin/*.app ebin
-	@rm -rf temp
+	@cp temp_tsc/lib/$(CONTROLLER_APPLICATION)-$(VERSION)/ebin/*.app ebin
+	@rm -rf temp_tsc
 	@echo "done"
 
 priv/tsung_recorder.boot: builder.beam $(RECORDER_SRC_APPFILES)
 # use builder to make boot file
-	@rm -rf temp
-	@mkdir -p temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/ebin
-	@cp $(RECORDER_TARGET) temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/ebin
-	@ln -sf $(PWD)/src/$(RECORDER_APPLICATION) temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/src
-	@ln -sf $(PWD)/include temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/include
-	@ln -sf $(PWD)/priv temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/priv
-	@ln -sf $(PWD)/builder.beam temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/
+	@rm -rf temp_tsr
+	@mkdir -p temp_tsr/lib/$(RECORDER_APPLICATION)-$(VERSION)/ebin
+	@cp $(RECORDER_TARGET) temp_tsr/lib/$(RECORDER_APPLICATION)-$(VERSION)/ebin
+	@ln -sf $(PWD)/src/$(RECORDER_APPLICATION) temp_tsr/lib/$(RECORDER_APPLICATION)-$(VERSION)/src
+	@ln -sf $(PWD)/include temp_tsr/lib/$(RECORDER_APPLICATION)-$(VERSION)/include
+	@ln -sf $(PWD)/priv temp_tsr/lib/$(RECORDER_APPLICATION)-$(VERSION)/priv
+	@ln -sf $(PWD)/builder.beam temp_tsr/lib/$(RECORDER_APPLICATION)-$(VERSION)/
 	@echo -n "build recorder boot script ... "
-	@(cd temp/lib/$(RECORDER_APPLICATION)-$(VERSION) \
+	@(cd temp_tsr/lib/$(RECORDER_APPLICATION)-$(VERSION) \
 	 && echo $(BUILD_OPTIONS) > $(BUILD_OPTIONS_FILE) \
 	 && $(ERL) -noshell -s builder go -s init stop  >> $(BUILDER_LOG) 2>&1 \
 	)
-	@cp temp/lib/$(RECORDER_APPLICATION)-$(VERSION)/ebin/*.app ebin
-	@rm -rf temp
+	@cp temp_tsr/lib/$(RECORDER_APPLICATION)-$(VERSION)/ebin/*.app ebin
+	@rm -rf temp_tsr
 	@echo "done"
 
 
