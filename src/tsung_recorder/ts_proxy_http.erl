@@ -298,20 +298,21 @@ record_request(State=#state_rec{prev_host=Host, prev_port=Port, prev_scheme=Sche
                     State#state_rec.ext_file_id;
                 _  ->
                     Id=State#state_rec.ext_file_id,
-                    case ts_utils:key1search(ParsedHeader,"content-type") of
-                        "multipart/form-data" ++ _Tail->
+                    case save_binary_post(ts_utils:key1search(ParsedHeader,"content-type")) of
+                        true ->
                             FileName=ts_utils:append_to_filename(State#state_rec.log_file,".xml","-"++integer_to_list(Id)++".bin"),
                             ?LOGF("multipart/form-data, write body data in external binary file ~s~n",[FileName],?NOTICE),
                             ok = file:write_file(FileName,list_to_binary(Body)),
                             io:format(Fd," contents_from_file='~s' ", [FileName]),
                             Id+1;
-                        _CT ->
+                        false ->
                             Body2 = ts_utils:export_text(Body),
                             ?LOG("Write body data in XML encoded string ~n",?NOTICE),
                             io:format(Fd," contents='~s' ", [Body2]),
                             Id
                     end
             end,
+
 
     %% Content-type recording (This is useful for SOAP post for example):
     record_header(Fd,ParsedHeader,"content-type", "content_type='~s' "),
@@ -328,6 +329,12 @@ record_request(State=#state_rec{prev_host=Host, prev_port=Port, prev_scheme=Sche
 
     io:format(Fd,"</http></request>~n",[]),
     {ok,State#state_rec{prev_port=NewPort,ext_file_id=NewId,prev_host=NewHost,prev_scheme=NewScheme}}.
+
+
+%% should we save the content of a  POST in an external binary file ?
+save_binary_post("multipart/form-data"++_Tail) -> true;
+save_binary_post("application/x-amf") -> true;
+save_binary_post(_) -> false.
 
 %%--------------------------------------------------------------------
 %% Func: decode_basic_auth/1
