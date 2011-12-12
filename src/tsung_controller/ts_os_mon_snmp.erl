@@ -234,18 +234,24 @@ analyse_snmp_data([#varbind{oid=OID, value=Val}| Tail], Host, Stats, State=#stat
 %% Description: ask a list of OIDs to the given snmp_mgr
 %%--------------------------------------------------------------------
 snmp_get(Agent,OIDs,State)->
-    snmp_get(Agent,OIDs,State,?SNMP_TIMEOUT).
+    snmp_get(Agent,[OIDs],State,?SNMP_TIMEOUT,[]).
 
-snmp_get(URI="snmp://"++Host, OIDs, State, TimeOut)->
-    ?LOGF("Running snmp get ~p ~p~n", [URI,OIDs], ?DEB),
+snmp_get("snmp://"++Host, [], State, _TimeOut, Results )->
     [Agent|_]=string:tokens(Host,":"),
+    analyse_snmp_data(Results,Agent,State);
+snmp_get(URI, [OIDs|Tail], State, TimeOut,PrevRes)->
+    ?LOGF("Running snmp get ~p ~p~n", [URI,OIDs], ?DEB),
     Res = snmpm:sync_get("tsung",URI,OIDs,TimeOut),
     ?LOGF("Res ~p ~n", [Res], ?DEB),
     case Res of
-        {ok,{noError,_,List},_Remaining} ->
-            analyse_snmp_data(List,Agent,State);
+        {ok,{noError,_,Results},_Remaining} ->
+            snmp_get(URI, Tail, State, TimeOut, Results++PrevRes);
+        {error, {send_failed,_,tooBig}} ->
+            %% split the OID list in two, and retry
+            ?LOGF("SNMP :too big packet, split and retry (~p)~n", [URI], ?INFO),
+            snmp_get(URI, tuple_to_list(lists:split(length(OIDs) div 2, OIDs)), State, TimeOut, PrevRes);
         Other ->
-            ?LOGF("SNMP Error:~p for ~p~n", [Other, Agent], ?NOTICE),
+            ?LOGF("SNMP Error:~p for ~p~n", [Other, URI], ?NOTICE),
             {error, Other}
     end.
 
