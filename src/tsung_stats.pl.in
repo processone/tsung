@@ -64,6 +64,7 @@ my $match =0;
 my $async =0;
 my $errors =0;
 my $maxval;
+my $os_mon_other;
 my $category;
 my $CPU_MAX = 3200; # cpu usage should never be higher than 3200% (32 cores at 100%)
 
@@ -355,6 +356,11 @@ sub parse_stats_file {
             } elsif ($type =~ /^\w{4}packets:/) {
                 next if $values =~ /^0/; # skip when no data is available
                 $category->{$type} = "os_mon_packets";
+            } elsif ($type =~ /^(\w+):os_mon/) {
+                next if $values =~ /^0/; # skip when no data is available
+                $category->{$type} = "os_mon_other";
+                push @{$os_mon_other}, $1;
+
             } elsif ($type =~ /^\d+$/) {
                 $category->{$type} = "http_status";
             } elsif ($type eq "request" or $type eq "page" or $type eq "session" or  $type eq "connect" or $type eq "async_rcv") {
@@ -583,6 +589,7 @@ sub html_report {
          subtitle    => "Graphs Report",
          stats_subtitle => "Stats Report ",
          graph_subtitle => "Graphs Report ",
+         os_mon_other=> $os_mon_other,
          contact     => $contact,
          conf        => $xml_conf,
          ext         => $imgfmt

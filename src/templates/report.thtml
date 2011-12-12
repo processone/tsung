@@ -155,6 +155,13 @@
 		<td class="stats">[%  data.minmean.$key %] / sec</td>
      </tr>
    [% END %]
+   [% IF cat_data.$key == "os_mon_other" %]
+     <tr>
+		<td class="stats">$key</td>
+		<td class="stats">[%  data.maxmean.$key %] / sec</td>
+		<td class="stats">[%  data.minmean.$key %] / sec</td>
+     </tr>
+   [% END %]
  [% END %]
  </table>
 </div>
