@@ -359,7 +359,8 @@ sub parse_stats_file {
             } elsif ($type =~ /^(\w+):os_mon/) {
                 next if $values =~ /^0/; # skip when no data is available
                 $category->{$type} = "os_mon_other";
-                push @{$os_mon_other}, $1;
+                my $osname = $1;
+                push @{$os_mon_other}, $osname unless (grep {/^$osname$/ } @{$os_mon_other}) ;
 
             } elsif ($type =~ /^\d+$/) {
                 $category->{$type} = "http_status";
