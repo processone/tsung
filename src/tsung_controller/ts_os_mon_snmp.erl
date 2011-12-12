@@ -248,10 +248,10 @@ snmp_get(URI, [OIDs|Tail], State, TimeOut,PrevRes)->
             snmp_get(URI, Tail, State, TimeOut, Results++PrevRes);
         {error, {send_failed,_,tooBig}} ->
             %% split the OID list in two, and retry
-            ?LOGF("SNMP :too big packet, split and retry (~p)~n", [URI], ?INFO),
+            ?LOGF("SNMP: too big packet, split and retry (~p)~n", [URI], ?INFO),
             snmp_get(URI, tuple_to_list(lists:split(length(OIDs) div 2, OIDs)), State, TimeOut, PrevRes);
         Other ->
-            ?LOGF("SNMP Error:~p for ~p~n", [Other, URI], ?NOTICE),
+            ?LOGF("SNMP Error:~p for ~p~n", [Other, URI], ?WARN),
             {error, Other}
     end.
 
