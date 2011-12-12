@@ -12,9 +12,11 @@
 
   1.2.  What This Package Is
 
-  The purpose of tsung is to simulate users in order to test
-  the scalability and performances of IP based client/server
-  applications.
+  Tsung is multi-protocol distributed load testing tool.
+
+  It can be used to test the scalability and performances of IP based
+  client/server applications (supported protocols: HTTP, WebDAV, SOAP,
+  PostgreSQL, MySQL, LDAP and Jabber/XMPP)
 
   A User's manual is available :
           http://tsung.erlang-projects.org/user_manual.html
@@ -25,6 +27,7 @@
   Join the mailing-list:
   https://lists.process-one.net/mailman/listinfo/tsung-users
 
+  or use the tracker https://support.process-one.net/browse/TSUN
 
 
 
