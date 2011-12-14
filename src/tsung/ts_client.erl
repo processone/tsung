@@ -78,16 +78,27 @@ next({Pid}) ->
 %%          ignore               |
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
-init({#session{id           = SessionId,
+init(#session{ id           = SessionId,
                persistent   = Persistent,
                bidi         = Bidi,
                hibernate    = Hibernate,
                rate_limit   = RateLimit,
                proto_opts   = ProtoOpts,
                size         = Count,
-               type         = CType}, IP, Server,Id, Dump}) ->
+               client_ip    = IP,
+               userid       = Id,
+               dump         = Dump,
+               seed         = Seed,
+               server       = Server,
+               type         = CType}) ->
     ?DebugF("Init ... started with count = ~p~n",[Count]),
-    ts_utils:init_seed(),
+    case Seed of
+        now ->
+            ts_utils:init_seed();
+        SeedVal when is_integer(SeedVal) ->
+            %% use a different but fixed seed for each client.
+            ts_utils:init_seed({Id,SeedVal})
+    end,
 
     ?DebugF("Get dynparams for ~p~n",[CType]),
     DynData = CType:init_dynparams(),

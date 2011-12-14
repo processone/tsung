@@ -96,7 +96,12 @@
           hibernate,
           proto_opts,
           rate_limit,
-          size
+          size,
+          client_ip,
+          server,
+          userid,
+          seed,
+          dump
         }).
 
 -record(arrivalphase,

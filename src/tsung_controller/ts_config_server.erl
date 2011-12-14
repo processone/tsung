@@ -261,7 +261,7 @@ handle_call({get_user_param, HostName}, _From, State=#state{users=UserId}) ->
     {value, Client} = lists:keysearch(HostName, #client.host, Config#config.clients),
     {IPParam, Server} = get_user_param(Client,Config),
     ts_mon:newclient({static,now()}),
-    {reply, {ok, { IPParam, Server, UserId,Config#config.dump}}, State#state{users=UserId+1}};
+    {reply, {ok, { IPParam, Server, UserId,Config#config.dump,Config#config.seed}}, State#state{users=UserId+1}};
 
 %% get a new session id and user parameters for the given node
 handle_call({get_next_session, HostName}, _From, State=#state{users=Users}) ->
@@ -273,8 +273,9 @@ handle_call({get_next_session, HostName}, _From, State=#state{users=Users}) ->
             ?LOGF("Session ~p choosen~n",[Id],?INFO),
             ts_mon:newclient({Id,now()}),
             {IPParam, Server} = get_user_param(Client,Config),
-            {reply, {ok, {Session, IPParam, Server, Users, Config#config.dump}},
-             State#state{users=Users+1}};
+            {reply, {ok, Session#session{client_ip= IPParam, server=Server,userid=Users,
+                                         dump=Config#config.dump, seed=Config#config.seed}},
+             State#state{users=Users+1} };
         Other ->
             {reply, {error, Other}, State}
     end;

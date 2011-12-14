@@ -1107,6 +1107,18 @@ you have to defined a range for available clients ports, for ex:
   <option name="ports_range" min="1025" max="65535"/>
 \end{Verbatim}
 
+\paragraph{Setting the  seed for random numbers}
+
+If you want to use a fixed seed for the random generator, you can use
+the \varname{seed} option, like this (by default, tsung will use the
+current time to set the seed, therefore random numbers should be
+different for every test).
+
+\begin{Verbatim}
+<option name="seed" value="42"/>
+\end{Verbatim}
+
+
 \subsubsection{XMPP/Jabber options}
 \label{sec:jabber-options}
 
