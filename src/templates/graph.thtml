@@ -119,20 +119,22 @@
  </tr>
 
 
+ [% IF os_mon_other %]
 
- [% USE table(os_mon_other, cols=2) %]
- [% FOREACH row = table.rows %]
- <tr>
-    [% FOREACH key = row %]
- <td>
+    [% USE table(os_mon_other, cols=2) %]
+     [% FOREACH row = table.rows %]
+       <tr>
+          [% FOREACH key = row %]
+           <td>
               <a href="images/graphes-$key-mean.[% ext %]">
               <img class="graph" src="images/graphes-$key-mean_tn.png" alt="other"/>
               </a>
 
-</td>
-    [% END %]
-</tr>
-[% END %]
+           </td>
+           [% END %]
+       </tr>
+     [% END %]
+ [% END %]
 
 </table>
 </div>
