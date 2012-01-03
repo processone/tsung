@@ -224,9 +224,9 @@ launcher(timeout, State=#launcher{nusers        = Users,
                     end
             end;
         error ->
-            % retry with the same user, wait randomly a few msec
+            % retry with the next user, wait randomly a few msec
             RndWait = random:uniform(?NEXT_AFTER_FAILED_TIMEOUT),
-            {next_state,launcher,State , RndWait}
+            {next_state,launcher,State#launcher{nusers = Users-1} , RndWait}
     end.
 
 
@@ -381,7 +381,7 @@ do_launch({Intensity, MyHostName})->
     %%Get one client
     %%set the profile of the client
     case catch ts_config_server:get_next_session(MyHostName) of
-        {timeout, _ } ->
+        [{'EXIT', {timeout, _ }}] ->
             ?LOG("get_next_session failed (timeout), skip this session !~n", ?ERR),
             ts_mon:add({ count, error_next_session }),
             error;
@@ -391,8 +391,9 @@ do_launch({Intensity, MyHostName})->
             ?DebugF("client launched, wait ~p ms before launching next client~n",[X]),
             {ok, X};
         Error ->
-            ?LOGF("get_next_session failed [~p], skip this session !~n", [Error],?ERR),
-            error
+            ?LOGF("get_next_session failed for unexpected reason [~p], abort !~n", [Error],?ERR),
+            ts_mon:add({ count, error_next_session }),
+            exit(shutdown)
     end.
 
 set_warm_timeout(StartDate)->
