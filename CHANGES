@@ -1,3 +1,16 @@
+1.4.1 -> 1.4.2 Minor enhancements and bugfixes (4 Jan 2012)
+Bugfix:
+   * [TSUN-199] - computation of NUsers is wrong
+   * [TSUN-206] - build failure with erlang R15B
+Improvements:
+   * [TSUN-202] - IPv6 support
+   * [TSUN-203] - snmp oids should be customizable in the config file
+   * [TSUN-205] - handle dyn_variables as array in test conditions (if/until/while)
+New Features:
+   * [TSUN-191] - allow outputting log to stdout
+   * [TSUN-192] - structured log output (JSON)
+   * [TSUN-193] - accept configuration from stdin
+   * [TSUN-197] - Have bug and error message on stderr and not stdout.
 1.4.0 -> 1.4.1 Minor bugfixes (13 Sep 2011)
 Bugfix:
    * [TSUN-188] - munin plugin is not working in 1.4.0
