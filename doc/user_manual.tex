@@ -159,7 +159,7 @@ agents on remote servers or \emph{SNMP}
 different type of users during the same benchmark. You can define
 the proportion of the various behaviours in the benchmark scenario.
 \item \emph{Stochastic processes}: in order to generate a realistic traffic,
-user thinktimes and the arrival rate can be randomize using a probability
+user thinktimes and the arrival rate can be randomized using a probability
 distribution (currently exponential)
 \end{itemize}
 
@@ -364,7 +364,7 @@ Options:
     -m <file>     write monitoring output on this file (default is tsung.log)
                    (use - for standard output)
     -F            use long names (FQDN) for erlang nodes
-    -w            warmup delay (default is 10 sec)
+    -w            warm-up delay (default is 10 sec)
     -v            print version information and exit
     -6            use IPv6 for tsung internal communications
     -h            display this help and exit
@@ -798,7 +798,7 @@ Several virtual IP can be used to simulate more machines. This is
  used to take advantage of the number of CPU.
 
  \begin{quote}
- \strong{Note:} Even if an Erlang VM is now able to handle severals CPUs
+ \strong{Note:} Even if an Erlang VM is now able to handle several CPUs
  (erlang SMP), benchmarks shows that it's more efficient to use one VM
  per CPU (with SMP disabled) for tsung clients. Only the controller node is using SMP
  erlang. Therefore, \varname{cpu} should be equal to the number of cores of
@@ -807,7 +807,7 @@ Several virtual IP can be used to simulate more machines. This is
  file).
  \end{quote}
 
- By default, the load is distributed uniformly on all CPU (one cpu
+ By default, the load is distributed uniformly on all CPU (one CPU
  per client by default). The weight parameter (integer) can be used to
  take into account the speed of the client machine. For instance, if
  one real client has a weight of 1 and the other client has a weight
@@ -830,7 +830,7 @@ Several virtual IP can be used to simulate more machines. This is
 \subsubsection{Running Tsung with a job scheduler}
 
 Tsung is able to get its client node list from a batch/job
-scheduler. It currently handle pbs/torque, LSF and OAR. To do this,
+scheduler. It currently handle PBS/torque, LSF and OAR. To do this,
  set the \varname{type} attribute to \userinput{batch}, e.g.:
 
 \begin{Verbatim}
@@ -920,7 +920,7 @@ element:
 \end{Verbatim}
 
 \varname{type} can be \userinput{sample}, \userinput{counter} or
-\userinput{sum}, and optionnaly you can define a function (with erlang
+\userinput{sum}, and optionally you can define a function (with erlang
 syntax) to be applied to the value (\varname{eval} attribute).
 
 \subsubsection{Munin}
@@ -1098,7 +1098,7 @@ traffic is rate limited.
 
 \paragraph{Ports\_range}
 If you need to open more than 30000 simultaneous connections on a
-client machine, you will be limited by the number of tcp client ports,
+client machine, you will be limited by the number of TCP client ports,
 even if you use several IPs (this is true at least on Linux). To
 bypass this limit, Tsung must not delegate the selection of client
 ports and together with using several IP for each client,
@@ -2190,7 +2190,7 @@ You can also use expressions \userinput{Key=Val}, e.g.:
 \paragraph{PostgreSQL}
 \strong{New in 1.3.2!}
 
-Since the  postgreSQL protocol is binary, regexp are not useful to
+Since the  PostgreSQL protocol is binary, regexp are not useful to
 parse the output of the server. Instead, a specific parsing can be
 done to extract content from the server's response; to do this, use the
 \varname{pgsql\_expr} attribute. Use \userinput{data\_row[L][C]} to
@@ -2500,7 +2500,7 @@ By default, tsung use it's own format (see FAQ \ref{sec:what-format-stats}).
 
 Since version 1.4.2, you can configure tsung to use a JSON format;
 however in this case, the tools \command{tsung\_stats.pl} and
-\command{tsung\_plotter} will not work with the json files.
+\command{tsung\_plotter} will not work with the JSON files.
 
 To enable JSON output, use:
 \begin{Verbatim}
