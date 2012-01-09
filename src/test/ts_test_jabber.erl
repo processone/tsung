@@ -100,7 +100,7 @@ add_dynparams2_test()->
 get_message_test()->
     erase(xmpp_user_id),
     ts_msg_server:start(),
-    Session = #jabber{id=0,username="foo",type='auth_set_plain',passwd="bar",domain={domain,"localdomain"}},
+    Session = #jabber{id=0,username="foo",type='auth_set_plain',passwd="bar",domain={domain,"localdomain"},resource="tsung"},
     Req=ts_jabber:add_dynparams(false,[],Session,"localhost"),
     RepOK={<<"<iq id='1' type='set' ><query xmlns='jabber:iq:auth'><username>foo4</username><resource>tsung</resource><password>bar4</password></query></iq>" >>,undefined},
     Rep=ts_jabber:get_message(Req,#state_rcv{}),
@@ -108,7 +108,7 @@ get_message_test()->
 
 get_message2_test()->
     erase(xmpp_user_id),
-    Session = #jabber{id=user_defined,username="foo",type='auth_set_plain',passwd="bar",domain={domain,"localdomain"}},
+    Session = #jabber{id=user_defined,username="foo",type='auth_set_plain',passwd="bar",domain={domain,"localdomain"},resource="tsung"},
     Req=ts_jabber:add_dynparams(false,[],Session,"localhost"),
     RepOK={<<"<iq id='2' type='set' ><query xmlns='jabber:iq:auth'><username>foo</username><resource>tsung</resource><password>bar</password></query></iq>" >>,undefined},
     Rep=ts_jabber:get_message(Req,#state_rcv{}),
