@@ -268,11 +268,12 @@ subst(Req=#jabber{type = Type}, DynData) when Type == 'muc:chat' ; Type == 'muc:
 subst(Req=#jabber{type = Type}, DynData) when Type == 'pubsub:create' ; Type == 'pubsub:subscribe'; Type == 'pubsub:publish'; Type == 'pubsub:delete' ->
     Req#jabber{node = ts_search:subst(Req#jabber.node, DynData)};
 
-subst(Req=#jabber{id=user_defined, username=Name,passwd=Pwd}, DynData) ->
-    NewUser=ts_search:subst(Name,DynData),
-    NewPwd=ts_search:subst(Pwd,DynData),
+subst(Req=#jabber{id=user_defined, username=Name,passwd=Pwd, data=Data}, DynData) ->
+    NewUser = ts_search:subst(Name,DynData),
+    NewPwd  = ts_search:subst(Pwd,DynData),
+    NewData = ts_search:subst(Data,DynData),
     put(xmpp_user_id,{NewUser,NewPwd}),% we need to keep the substitution for futures requests
-    Req#jabber{username=NewUser,passwd=NewPwd};
+    Req#jabber{username=NewUser,passwd=NewPwd,data=NewData};
 
 subst(Req=#jabber{data=Data}, DynData) ->
     Req#jabber{data=ts_search:subst(Data,DynData)}.
