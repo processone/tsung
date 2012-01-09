@@ -96,7 +96,7 @@ a:hover     {background:#ffffaa;}
 <!--CUT DEF section 1 --><H1 ALIGN=center>Tsung User’s manual</H1><DIV CLASS="center">
 
 <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>1.4.2</TD></TR>
-<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>January 4, 2012</TD></TR>
+<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>January 9, 2012</TD></TR>
 </TABLE>
 </DIV><!--TOC section Contents-->
 <H2 CLASS="section"><!--SEC ANCHOR -->Contents</H2><!--SEC END --><UL CLASS="toc"><LI CLASS="li-toc">
@@ -1994,7 +1994,10 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 </TABLE></TD></TR>
 </TABLE><P>Beware: you must encode XML characters like <FONT COLOR=purple>&lt;</FONT>
-,<FONT COLOR=purple>&gt;</FONT>, <FONT COLOR=purple>&amp;</FONT>, etc.</P><!--TOC subsubsection PostgreSQL-->
+,<FONT COLOR=purple>&gt;</FONT>, <FONT COLOR=purple>&amp;</FONT>, etc.</P><!--TOC paragraph resource-->
+<H5 CLASS="paragraph"><!--SEC ANCHOR -->resource</H5><!--SEC END --><P>By default, the XMPP resource is set to <FONT COLOR=purple>tsung</FONT>. Since
+version 1.4.3, you can override this (in all <TT>auth_*</TT> and
+<TT>register</TT> requests) using the <TT>resource</TT> attribute.</P><!--TOC subsubsection PostgreSQL-->
 <H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc59">6.6.4</A>  PostgreSQL</H4><!--SEC END --><P>For PostgreSQL, 4 types of requests are available:
 </P><OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
 connect (to a given database with a given username

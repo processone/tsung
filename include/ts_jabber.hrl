@@ -49,6 +49,7 @@
                  pubsub_service, %%ej: pubsub.localhost
                  group,          %% roster group
                  node,           %% pubsub node
+                 resource,
                  node_type
                 }).
 

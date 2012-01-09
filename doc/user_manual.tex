@@ -1618,6 +1618,12 @@ You can send raw XML data to the server using the \varname{raw} type:
 Beware: you must encode XML characters like \userinput{<}
 ,\userinput{>}, \userinput{\&}, etc.
 
+\paragraph{resource}
+
+By default, the XMPP resource is set to \userinput{tsung}. Since
+version 1.4.3, you can override this (in all \varname{auth\_*} and
+\varname{register} requests) using the \varname{resource} attribute.
+
 \subsubsection{PostgreSQL}
 
 For PostgreSQL, 4 types of requests are available:
