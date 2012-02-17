@@ -265,7 +265,7 @@ parse_subst_regexp_sid_test() ->
 
 dynvars_urandom_test() ->
     myset_env(),
-    ?assertMatch(["qxvmvtglimieyhemzlxc"],ts_client:set_dynvars(urandom,{string,20},[toto],[])).
+    ?assertMatch([<<"qxvmvtglimieyhemzlxc">>],ts_client:set_dynvars(urandom,{string,20},[toto],[])).
 
 dynvars_urandom_neg_test() ->
     myset_env(),
@@ -273,17 +273,17 @@ dynvars_urandom_neg_test() ->
 
 dynvars_urandom2_test() ->
     myset_env(),
-    ?assertMatch(["qxvmvtglimieyhemzlxc","qxvmvtglimieyhemzlxc"],ts_client:set_dynvars(urandom,{string,20},[toto,tutu],[])).
+    ?assertMatch([<<"qxvmvtglimieyhemzlxc">>,<<"qxvmvtglimieyhemzlxc">>],ts_client:set_dynvars(urandom,{string,20},[toto,tutu],[])).
 
 dynvars_random_test() ->
     myset_env(),
     [String] = ts_client:set_dynvars(random,{string,20},[toto],[]),
-    ?assertMatch(20,length(String)).
+    ?assertMatch(20,length(binary_to_list(String))).
 
 dynvars_random2_test() ->
     myset_env(),
     [String,String2] = ts_client:set_dynvars(random,{string,20},[toto,titi],[]),
-    ?assertMatch({20,20},{length(String),length(String2)}).
+    ?assertMatch({20,20},{length(binary_to_list(String)),length(binary_to_list(String2))}).
 
 dynvars_jsonpath_test() ->
     myset_env(),

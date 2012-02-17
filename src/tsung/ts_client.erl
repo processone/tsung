@@ -102,7 +102,7 @@ init(#session{ id           = SessionId,
 
     ?DebugF("Get dynparams for ~p~n",[CType]),
     DynData = CType:init_dynparams(),
-    NewDynVars = ts_dynvars:set(tsung_userid,integer_to_list(Id),
+    NewDynVars = ts_dynvars:set(tsung_userid,Id,
                                 DynData#dyndata.dynvars),
     NewDynData = DynData#dyndata{dynvars=NewDynVars},
     StartTime= now(),
@@ -453,7 +453,7 @@ handle_next_action(State) ->
 
 %%----------------------------------------------------------------------
 %% @spec set_dynvars (Type::erlang|random|urandom|file, Args::tuple(),
-%%                    Variables::list(), DynData::#dyndata{}) -> list()
+%%                    Variables::list(), DynData::#dyndata{}) -> integer()|binary()|list()
 %% @doc setting the value of several dynamic variables at once.
 %% @end
 %%----------------------------------------------------------------------
@@ -462,15 +462,14 @@ set_dynvars(erlang,{Module,Callback},_Vars,DynData) ->
 set_dynvars(code,Fun,_Vars,DynData) ->
     Fun({self(),DynData#dyndata.dynvars});
 set_dynvars(random,{number,Start,End},Vars,_DynData) ->
-    lists:map(fun(_) -> integer_to_list(ts_stats:uniform(Start,End)) end,Vars);
+    lists:map(fun(_) -> ts_stats:uniform(Start,End) end,Vars);
 set_dynvars(random,{string,Length},Vars,_DynData) ->
-    R = fun(_) -> ts_utils:randomstr(Length) end,
+    R = fun(_) -> ts_utils:randombinstr(Length) end,
     lists:map(R,Vars);
 set_dynvars(urandom,{string,Length},Vars,_DynData) ->
     %% not random, but much faster
-    RS= ts_utils:urandomstr(Length),
-    N=length(Vars),
-    lists:duplicate(N,RS);
+    R = fun(_) -> ts_utils:urandombinstr(Length) end,
+    lists:map(R,Vars);
 set_dynvars(file,{random,FileId,Delimiter},_Vars,_DynData) ->
     {ok,Line} = ts_file_server:get_random_line(FileId),
     ts_utils:split(Line,Delimiter);
@@ -628,9 +627,10 @@ ctrl_struct_impl({foreach_end,ForEachName,VarName,Filter,Target}, DynData=#dynda
 
 
 
-rel(R,A,B) when is_integer(B) ->
-%% jsonpath can output numbers instead of binaries
+rel(R,A,B) when is_integer(B) and not is_integer(A)->
     rel(R,A,list_to_binary(integer_to_list(B)));
+rel(R,A,B) when is_integer(A) and not is_integer(B)->
+    rel(R,B,list_to_binary(integer_to_list(A)));
 rel('eq',A,B)  ->
     A == B;
 rel('neq',A,B) -> A /= B.

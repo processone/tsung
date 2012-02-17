@@ -43,7 +43,8 @@
          decode_base64/1, encode_base64/1, to_lower/1, release_is_newer_or_eq/1,
          randomstr/1,urandomstr/1,urandomstr_noflat/1, eval/1, list_to_number/1,
          time2sec/1, time2sec_hires/1, read_file_raw/1, init_seed/1, jsonpath/2, pmap/2,
-         concat_atoms/1, ceiling/1, accept_loop/3, append_to_filename/3, splitchar/2
+         concat_atoms/1, ceiling/1, accept_loop/3, append_to_filename/3, splitchar/2,
+         randombinstr/1,urandombinstr/1
         ]).
 
 level2int("debug")     -> ?DEB;
@@ -61,6 +62,8 @@ level2int("emergency") -> ?EMERG.
 -define(LT,"&lt;").
 -define(DUPSTR_SIZE,20).
 -define(DUPSTR,"qxvmvtglimieyhemzlxc").
+-define(DUPBINSTR_SIZE,20).
+-define(DUPBINSTR,<<"qxvmvtglimieyhemzlxc">>).
 
 %%----------------------------------------------------------------------
 %% Func: get_val/1
@@ -676,6 +679,19 @@ urandomstr_noflat(Size)  when is_integer(Size), Size >= 0 ->
     lists:nthtail(?DUPSTR_SIZE-Size, ?DUPSTR).
 
 %%----------------------------------------------------------------------
+%% @spec urandombinstr(Size::integer()) ->binary()
+%% @doc same as urandomstr/1, but returns a binary.
+%% @end
+%%----------------------------------------------------------------------
+urandombinstr(Size) when is_integer(Size) , Size >= ?DUPBINSTR_SIZE ->
+    Loop = Size div ?DUPBINSTR_SIZE,
+    Rest = Size rem ?DUPBINSTR_SIZE,
+    Res=lists:foldl(fun(X,Acc)-> <<Acc/binary, ?DUPBINSTR/binary>> end, << >>,lists:seq(1,Loop)),
+    << Res/binary, ?DUPBINSTR:Rest/binary>>;
+urandombinstr(Size) when is_integer(Size), Size >= 0 ->
+    <<?DUPBINSTR:Size/binary>> .
+
+%%----------------------------------------------------------------------
 %% @spec urandomstr(Size::integer()) ->string()
 %% @doc same as urandomstr_noflat/1, but returns a flat list.
 %% @end
@@ -690,6 +706,19 @@ urandomstr(Size) when is_integer(Size), Size >= 0 ->
 %%----------------------------------------------------------------------
 randomstr(Size) when is_integer(Size), Size >= 0 ->
      lists:map(fun (_) -> random:uniform(25) + $a  end, lists:seq(1,Size)).
+
+%%----------------------------------------------------------------------
+%% @spec randombinstr(Size::integer()) ->binary()
+%% @doc returns a random binary string. slow if Size is high.
+%% @end
+%%----------------------------------------------------------------------
+randombinstr(0) -> <<>>;
+randombinstr(Size) when is_integer(Size), Size > 0 ->
+    randombinstr(Size,<<>>).
+randombinstr(0,Bin) -> Bin;
+randombinstr(Size,Bin) ->
+    C=random:uniform(25)+$a,
+    randombinstr(Size-1, << Bin/binary, C >>).
 
 
 %%----------------------------------------------------------------------
