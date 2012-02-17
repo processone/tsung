@@ -1417,11 +1417,7 @@ get_vsn(App, [[App, Vsn]|_]) -> Vsn;
 get_vsn(App, [_|T]) -> get_vsn(App, T).
 
 get_erts_vsn() ->
-    {ok, [[Root]]} = init:get_argument(root),
-    {ok, Fs} = file:list_dir(Root),
-    get_erts_vsn(Fs).
-get_erts_vsn([[$e,$r,$t,$s,$-|Vsn]|_]) -> Vsn;
-get_erts_vsn([_|T]) -> get_erts_vsn(T).
+    erlang:system_info(version).
 
 out(Dir, App, Ext, Term) ->
     FN = filename:join(Dir, App++Ext),
