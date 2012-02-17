@@ -96,7 +96,7 @@ a:hover     {background:#ffffaa;}
 <!--CUT DEF section 1 --><H1 ALIGN=center>Tsung User’s manual</H1><DIV CLASS="center">
 
 <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>1.4.2</TD></TR>
-<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>January 9, 2012</TD></TR>
+<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>February 17, 2012</TD></TR>
 </TABLE>
 </DIV><!--TOC section Contents-->
 <H2 CLASS="section"><!--SEC ANCHOR -->Contents</H2><!--SEC END --><UL CLASS="toc"><LI CLASS="li-toc">
@@ -3529,7 +3529,9 @@ use an agent)
 </LI><LI CLASS="li-enumerate">Tsung and Erlang are not installed on all clients nodes
 </LI><LI CLASS="li-enumerate">Erlang version or location (install path) is not the same on all clients nodes
 </LI><LI CLASS="li-enumerate">A firewall is dropping erlang packets: indeed erlang virtual machines use
-several TCP ports (dynamically generated) to communicate.
+several TCP ports (dynamically generated) to communicate (if you are
+using EC2, you may have to change the Security Group that is applied on the VMs used
+for Tsung: open port-range “0 – 65535”)
 </LI><LI CLASS="li-enumerate">SELinux: You should disable SELinux on all clients.
 </LI><LI CLASS="li-enumerate">Bad <TT>/etc/hosts:</TT>
 This one is wrong (real hostname should not refer to localhost/loopback):

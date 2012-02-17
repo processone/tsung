@@ -2762,7 +2762,9 @@ several problems:
 \item Tsung and Erlang are not installed on all clients nodes
 \item Erlang version or location (install path) is not the same on all clients nodes
 \item A firewall is dropping erlang packets: indeed erlang virtual machines use
-several TCP ports (dynamically generated) to communicate.
+several TCP ports (dynamically generated) to communicate (if you are
+using EC2, you may have to change the Security Group that is applied on the VMs used
+for Tsung: open port-range “0 – 65535”)
 \item SELinux: You should disable SELinux on all clients.
 \item Bad \file{/etc/hosts:}
 This one is wrong (real hostname should not refer to localhost/loopback):
