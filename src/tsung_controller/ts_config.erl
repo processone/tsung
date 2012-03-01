@@ -994,12 +994,13 @@ read_stdio(eof, Data)->
 read_stdio(Data,Acc) ->
     read_stdio(io:get_line(""),[Acc,Data]).
 
-set_net_type("tcp")  -> gen_tcp;
-set_net_type("tcp6") -> gen_tcp6;
-set_net_type("udp")  -> gen_udp;
-set_net_type("udp6") -> gen_udp6;
-set_net_type("ssl")  -> ssl;
-set_net_type("ssl6") -> ssl6.
+set_net_type("tcp")   -> gen_tcp;
+set_net_type("tcp6")  -> gen_tcp6;
+set_net_type("udp")   -> gen_udp;
+set_net_type("udp6")  -> gen_udp6;
+set_net_type("ssl")   -> ssl;
+set_net_type("ssl6")  -> ssl6;
+set_net_type("erlang")-> gen_tcp.
 
 get_dynvar_name(VarNameStr) ->
     %% check if the var name is for an array (myvar[N])
