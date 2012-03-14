@@ -334,6 +334,9 @@ record_request(State=#state_rec{prev_host=Host, prev_port=Port, prev_scheme=Sche
 %% should we save the content of a  POST in an external binary file ?
 save_binary_post("multipart/form-data"++_Tail) -> true;
 save_binary_post("application/x-amf") -> true;
+save_binary_post("application/x-silverlight-app") -> true;
+save_binary_post("application/xaml+xml") -> true;
+save_binary_post("application/x-ms-xbap") -> true;
 save_binary_post(_) -> false.
 
 %%--------------------------------------------------------------------
