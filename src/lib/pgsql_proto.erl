@@ -253,8 +253,8 @@ idle(Sock, Pid) ->
 	%% simplistic version using the unnammed prepared statement and portal.
 	{equery, Ref, Pid, {Query, Params}} ->
 	    ParseP =    encode_message(parse, {"", Query, []}),
-	    BindP =     encode_message(bind,  {"", "", Params, [binary]}),
-	    DescribeP = encode_message(describe, {portal, ""}), 
+	    BindP =     encode_message(bind,  {"", "", Params, auto, [binary]}),
+	    DescribeP = encode_message(describe, {portal, ""}),
 	    ExecuteP =  encode_message(execute,  {"", 0}),
 	    SyncP =     encode_message(sync, []),
 	    ok = send(Sock, [ParseP, BindP, DescribeP, ExecuteP, SyncP]),
@@ -294,7 +294,7 @@ idle(Sock, Pid) ->
 	{execute, Ref, Pid, {Name, Params}} ->
 	    %%io:format("execute: ~p ~p ~n", [Name, Params]),
 	    begin % Issue first requests for the prepared statement.
-		BindP     = encode_message(bind, {"", Name, Params, [binary]}),
+		BindP     = encode_message(bind, {"", Name, Params, auto, [binary]}),
 		DescribeP = encode_message(describe, {portal, ""}),
 		ExecuteP  = encode_message(execute, {"", 0}),
 		FlushP    = encode_message(flush, []),
