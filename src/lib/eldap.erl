@@ -359,13 +359,6 @@ try_connect([],_) ->
 do_connect(Host, Data, Opts) when Data#eldap.use_tls == false ->
     gen_tcp:connect(Host, Data#eldap.port, Opts, Data#eldap.timeout);
 do_connect(Host, Data, Opts) when Data#eldap.use_tls == true ->
-    Vsn = erlang:system_info(version),
-    if Vsn >= "5.3" ->
-	    %% In R9C, but not in R9B
-	    {_,_,X} = erlang:now(),
-	    ssl:seed("bkrlnateqqo" ++ integer_to_list(X));
-       true -> true
-    end,
     ssl:connect(Host, Data#eldap.port, [{verify,0}|Opts]).
 
 
