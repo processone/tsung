@@ -59,7 +59,8 @@
 -record(proto_opts,
         {ssl_ciphers   = negociate, % for ssl only
          retry_timeout = 10,        % retry sending in microsec
-         idle_timeout  = 600000,
+         idle_timeout  = 600000,    % timeout for local ack
+         global_ack_timeout = infinity, % timeout for global ack
          tcp_rcv_size  = 32768,     % tcp buffers size
          tcp_snd_size  = 32768,
          udp_rcv_size,              % udp buffers size
