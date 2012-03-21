@@ -241,8 +241,13 @@ init_dynparams() ->
 %% Purpose: Replace on the fly dynamic element of the request.
 %% Returns: #pgsql_request
 %%----------------------------------------------------------------------
-subst(Req=#pgsql_request{sql=SQL}, DynData) ->
-    Req#pgsql_request{sql=ts_search:subst(SQL, DynData)}.
+subst(Req=#pgsql_request{sql=SQL,database=DB,username=User,passwd=Passwd, parameters=Params}, DynData) ->
+    Req#pgsql_request{sql=ts_search:subst(SQL, DynData),
+                      username=ts_search:subst(User, DynData),
+                      passwd=ts_search:subst(Passwd, DynData),
+                      parameters=ts_search:subst(Params, DynData),
+                      database=ts_search:subst(DB, DynData)
+                     }.
 
 
 %%% -- Internal funs --------------------
