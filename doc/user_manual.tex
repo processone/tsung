@@ -1069,6 +1069,17 @@ those set in session configuration tags if override is true.
   <option name="udp_rcv_buffer" value="16384"></option>
 \end{Verbatim}
 
+\paragraph{Timeout for acknowledgments of messages}
+
+This is used to set the local ack timeout and global ack timeout(ms). 
+By default, local ack timeout will be 10min(600000) and global ack timeout will
+be \userinput{infinity}. This value can be changed like this:
+
+\begin{Verbatim}
+  <option name="local_ack_timeout" value="300000"></option>
+  <option name="glocal_ack_timeout" value="6000000"></option>
+\end{Verbatim}
+
 \paragraph{Hibernate}
 
 A new option is available in version \strong{1.3.1}: \varname{hibernate}. This
@@ -1077,7 +1088,7 @@ thinktimes. By default, hibernation will be activated for thinktimes
 higher than 10sec. This value can be changed like this:
 
 \begin{Verbatim}
-<option name="hibernate" value="5"></option>
+  <option name="hibernate" value="5"></option>
 \end{Verbatim}
 
 To disable hibernation, you must set the value to \userinput{infinity}.
@@ -1115,7 +1126,7 @@ current time to set the seed, therefore random numbers should be
 different for every test).
 
 \begin{Verbatim}
-<option name="seed" value="42"/>
+  <option name="seed" value="42"/>
 \end{Verbatim}
 
 

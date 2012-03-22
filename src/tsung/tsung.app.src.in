@@ -34,6 +34,8 @@
                      {http_modified_since_date, "Fri, 14 Nov 2003 02:43:31 GMT"},
                      {client_retry_timeout, 10}, % retry sending (in microsec.)
                      {ssl_ciphers, negociate},
+                     {local_ack_timeout, 600000},
+                     {global_ack_timeout, infinity},
 
 %%% -------- JABBER OPTIONS
                      {jabber_users, 2000000},
