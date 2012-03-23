@@ -228,7 +228,7 @@ handle_info({NetEvent, _Socket, Data}, wait_ack, State=#state_rcv{rate_limit=Tok
                 global ->
                     (NewState#state_rcv.proto_opts)#proto_opts.global_ack_timeout;
                 _ ->
-                    (NewState#state_rcv.proto_opts)#proto_opts.idle_timeout
+                    (NewState#state_rcv.proto_opts)#proto_opts.local_ack_timeout
             end,
             {next_state, wait_ack, NewState#state_rcv{socket=NewSocket,rate_limit=NewTokenParam}, TimeOut}
     end;
@@ -242,7 +242,7 @@ handle_info({erlang, _Socket, Data}, wait_ack, State) ->
                 global ->
                     (NewState#state_rcv.proto_opts)#proto_opts.global_ack_timeout;
                 _ ->
-                    (NewState#state_rcv.proto_opts)#proto_opts.idle_timeout
+                    (NewState#state_rcv.proto_opts)#proto_opts.local_ack_timeout
             end,
             {next_state, wait_ack, NewState, TimeOut}
     end;
