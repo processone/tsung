@@ -21,7 +21,6 @@
                      {debug_level, 2},
                      {snd_size, 32768},      % send buffer size
                      {rcv_size, 32768},      % receive buffer size
-                     {tcp_timeout, 600000},  % 10min timeout
                      {connect_timeout, 30000},
                      {max_warm_delay, 15000},
                      {dump, full},           % full or light
@@ -34,7 +33,7 @@
                      {http_modified_since_date, "Fri, 14 Nov 2003 02:43:31 GMT"},
                      {client_retry_timeout, 10}, % retry sending (in microsec.)
                      {ssl_ciphers, negociate},
-                     {local_ack_timeout, 600000},
+                     {local_ack_timeout, 600000}, % 10min timeout
                      {global_ack_timeout, infinity},
 
 %%% -------- JABBER OPTIONS
