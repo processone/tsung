@@ -224,12 +224,18 @@ init_dynparams() ->
 %%          request parameters.
 %% @end
 %%----------------------------------------------------------------------
-subst(Req=#http_request{url=URL, body=Body, headers = Headers, userid=UserId, passwd=Passwd}, DynData) ->
+subst(Req=#http_request{url=URL, body=Body, headers = Headers, cookie = Cookies,
+                        userid=UserId, passwd=Passwd}, DynData) ->
     Req#http_request{url = escape_url(ts_search:subst(URL, DynData)),
              body   = ts_search:subst(Body, DynData),
              headers = lists:foldl(fun ({Name, Value}, Result) ->
                                            [{Name, ts_search:subst(Value, DynData)} | Result]
                                    end, [], Headers),
+             cookie = lists:foldl(
+                        fun (#cookie{ value = Value } = C, Result) ->
+                            [C#cookie{ value = ts_search:subst(Value, DynData) }
+                             | Result]
+                        end, [], Cookies),
              userid = ts_search:subst(UserId, DynData),
              passwd = ts_search:subst(Passwd, DynData)}.
 
