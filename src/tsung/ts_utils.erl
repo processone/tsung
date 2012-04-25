@@ -446,7 +446,7 @@ to_https({url, "http://-"++Rest})-> "https://" ++ Rest;
 to_https({url, URL})-> URL;
 to_https({request, {body,Data}}) when is_list(Data) ->
     %% body request, no headers
-    re:replace(Data,"http://-","https://",[global]);
+    {ok, re:replace(Data,"http://-","https://",[global])};
 to_https({request, S="CONNECT"++Rest}) -> {ok,S};
 to_https({request, []}) -> {ok, []};
 to_https({request, String}) when is_list(String) ->
