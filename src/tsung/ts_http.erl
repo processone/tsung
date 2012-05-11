@@ -193,6 +193,14 @@ add_dynparams(DynData,Param=#http_request{host_header=undefined}, HostData )->
                      Host;
                  {Host,443,_,https}->
                      Host;
+                 {Host,80,   gen_tcp}->
+                     Host;
+                 {Host,443,  ssl}->
+                     Host;
+                 {Host,80,   gen_tcp6}->
+                     Host;
+                 {Host,443,  ssl6}->
+                     Host;
                  {Host,Port,_,_} ->
                      Host++":"++ integer_to_list(Port);
                  {Host,Port,_Proto} ->
