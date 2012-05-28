@@ -203,6 +203,20 @@ get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=User,
     UserFrom = username(User,Id),
     subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node);
 
+%% For node unsubscribe, data contain the pubsub nodename (relative to user
+%% hierarchy or absolute)
+get_message(#jabber{type = 'pubsub:unsubscribe', id=Id, username=User, user_server=UserServer,
+                    dest=random, node=Node, domain=Domain, pubsub_service=PubSubComponent, subid=SubId}) ->
+    Dest = ts_user_server:get_id(UserServer),
+    UserFrom = username(User,Id),
+    UserTo = username(User,id_to_string(Dest)),
+    unsubscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node, SubId);
+
+get_message(#jabber{type = 'pubsub:unsubscribe', id=Id, username=User,
+                    dest=UserTo, node=Node, domain=Domain, pubsub_service=PubSubComponent, subid=SubId}) ->
+    UserFrom = username(User,Id),
+    unsubscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node, SubId);
+
 %% For node publication, data contain the pubsub nodename (relative to user
 %% hierarchy or absolute)
 get_message(#jabber{type = 'pubsub:publish', size=Size, id=Id,
@@ -582,6 +596,25 @@ subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node) ->
             "<subscribe", pubsub_node_attr(Node, Domain, UserTo),
             " jid='", UserFrom, "@", Domain, "'/>"
             "</pubsub></iq>"]).
+
+%%%----------------------------------------------------------------------
+%%% Func: unsubscribe_pubsub_node/4
+%%% Unsubscribe from a pubsub node: Generate XML packet
+%%% If node name is undefined (data attribute), we unsubscribe from target user
+%%% root node
+%%% Nodenames are relative to the User pubsub hierarchy (ejabberd); they are
+%%% absolute with leading slash.
+%%%----------------------------------------------------------------------
+unsubscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node, SubId) ->
+    list_to_binary(["<iq to='", PubSubComponent, "' type='set' id='", ts_msg_server:get_id(list),"'>"
+            "<pubsub xmlns='http://jabber.org/protocol/pubsub'>"
+	            "<unsubscribe",
+					pubsub_node_attr(Node, Domain, UserTo),
+	            	" jid='", UserFrom, "@", Domain, "'"
+					" subid='", SubId, "'"
+				"/>"
+            "</pubsub>"
+		"</iq>"]).
 
 %%%----------------------------------------------------------------------
 %%% Func: publish_pubsub_node/4

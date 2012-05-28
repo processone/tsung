@@ -50,7 +50,8 @@
                  group,          %% roster group
                  node,           %% pubsub node
                  resource,
-                 node_type
+                 node_type,
+				 subid
                 }).
 
 -define(setroster_intensity, 1/(ts_utils:get_val(setroster)*1000)).
