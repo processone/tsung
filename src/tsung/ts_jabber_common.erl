@@ -608,13 +608,13 @@ subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node) ->
 unsubscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node, SubId) ->
     list_to_binary(["<iq to='", PubSubComponent, "' type='set' id='", ts_msg_server:get_id(list),"'>"
             "<pubsub xmlns='http://jabber.org/protocol/pubsub'>"
-	            "<unsubscribe",
-					pubsub_node_attr(Node, Domain, UserTo),
-	            	" jid='", UserFrom, "@", Domain, "'"
-					" subid='", SubId, "'"
-				"/>"
-            "</pubsub>"
-		"</iq>"]).
+                    "<unsubscribe",
+                    pubsub_node_attr(Node, Domain, UserTo),
+                    " jid='", UserFrom, "@", Domain, "'",
+                    " subid='", SubId, "'",
+                    "/>",
+                    "</pubsub>",
+                    "</iq>"]).
 
 %%%----------------------------------------------------------------------
 %%% Func: publish_pubsub_node/4
