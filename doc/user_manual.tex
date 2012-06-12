@@ -2255,7 +2255,7 @@ You can set dynamic variables not only while parsing server data, but
 you can build them using external files or generate them with a function
 or generate random numbers/strings:
 
-Six types of dynamic variables are currently implemented (\varname{sourcetype} tag):
+Several types of dynamic variables are implemented (\varname{sourcetype} tag):
 \begin{enumerate}
 \item Dynamic variables defined by calling an erlang function:
 \begin{Verbatim}
@@ -2309,6 +2309,14 @@ section \ref{Dynamic variables}.
   <setdynvars sourcetype="jsonpath" from='notification' jsonpath="result[?state=OK].node">
       <var name="deployed" />
   </setdynvars>
+\end{Verbatim}
+\item You can create dynamic variables to get the hostname and port of
+  the current server
+\begin{Verbatim}
+    <setdynvars sourcetype="server">
+      <var name="host" />
+      <var name="port" />
+    </setdynvars>
 \end{Verbatim}
 
 \end{enumerate}
