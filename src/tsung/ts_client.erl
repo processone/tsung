@@ -430,6 +430,8 @@ handle_next_action(State) ->
         {change_type, NewCType, Server, Port, PType, Store, Restore} ->
             ?DebugF("Change client type, use: ~p ~p~n",[NewCType, [Server , Port, PType, Store, Restore]]),
             DynData=State#state_rcv.dyndata,
+            NewPort = ts_search:subst(Port,DynData#dyndata.dynvars),
+            NewServer = ts_search:subst(Server,DynData#dyndata.dynvars),
             case Store of
                 true -> % keep state
                     put({state, State#state_rcv.clienttype} , {State#state_rcv.socket,State#state_rcv.session,DynData#dyndata.proto});
@@ -445,7 +447,7 @@ handle_next_action(State) ->
                          {none,NewCType:new_session(),DD#dyndata.proto}
                  end,
             NewDynData=DynData#dyndata{proto=ProtoDynData},
-            NewState=State#state_rcv{session=Session,socket=Socket,count=Count,clienttype=NewCType,protocol=PType,port=Port,host=Server,dyndata=NewDynData},
+            NewState=State#state_rcv{session=Session,socket=Socket,count=Count,clienttype=NewCType,protocol=PType,port=NewPort,host=NewServer,dyndata=NewDynData},
             handle_next_action(NewState);
         {set_option, undefined, rate_limit, {Rate, Burst}} ->
             ?LOGF("Set rate limits for client: rate=~p, burst=~p~n",[Rate,Burst],?DEB),
