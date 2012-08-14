@@ -163,9 +163,9 @@ get_message(Jabber=#jabber{type = 'raw'}) ->
 %% For node creation, data contains the pubsub nodename (relative to user
 %% hierarchy or absolute, optional)
 get_message(#jabber{type = 'pubsub:create', id=Id, username=User,
-                    node=Node, node_type=NodeType, pubsub_service = PubSubComponent, domain = Domain}) ->
+                    node=Node, node_type=NodeType, data = Data, pubsub_service = PubSubComponent, domain = Domain}) ->
     Username = username(User,Id),
-    create_pubsub_node(Domain, PubSubComponent, Username, Node, NodeType);
+    create_pubsub_node(Domain, PubSubComponent, Username, Node, NodeType, Data);
 %% For node subscription, data contain the pubsub nodename (relative to user
 %% hierarchy or absolute)
 get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=User, user_server=UserServer,
@@ -557,13 +557,43 @@ raw(#jabber{data=Data}) when is_list(Data) ->
 %%% Nodenames are relative to the User pubsub hierarchy (ejabberd); they are
 %%% absolute with leading slash.
 %%%----------------------------------------------------------------------
-create_pubsub_node(Domain, PubSubComponent,Username, Node, NodeType) ->
+create_pubsub_node(Domain, PubSubComponent,Username, Node, NodeType, Data) ->
     list_to_binary(["<iq to='", PubSubComponent, "' type='set' id='",
             ts_msg_server:get_id(list),"'>"
             "<pubsub xmlns='http://jabber.org/protocol/pubsub'>"
             "<create", pubsub_node_attr(Node, Domain, Username),
-                       pubsub_node_type(NodeType),
-            "/></pubsub></iq>"]).
+                       pubsub_node_type(NodeType), "/>",
+            "<configure> <x xmlns='jabber:x:data' type='submit'>",
+            create_pubsub_node_options(Data),
+            "</x></configure></pubsub></iq>"]).
+
+create_pubsub_node_options(undefined) ->
+  "";
+create_pubsub_node_options(Data) when is_list(Data) ->
+  case erl_scan:string(Data) of
+    {ok, Ts, _} ->
+      field_elements(erl_parse:parse_term(Ts));
+
+    _ ->
+      ?LOG("Warn: Invalid erlang term scanned from data in pubsub create node", ?WARN),
+      ""
+  end.
+
+field_value(Value) when is_list(Value) ->
+  F = fun(Item, Acc) ->
+      Acc ++ "<value>" ++ atom_to_list(Item) ++ "</value>"
+  end,
+  lists:foldl(F, "", Value);
+field_value(Value) ->
+  "<value>" ++ atom_to_list(Value) ++ "</value>".
+field_elements({ok, Fields}) ->
+  F = fun({Field, Value}, Acc) ->
+      Acc ++ "<field var='" ++ atom_to_list(Field) ++ "'>" ++ field_value(Value) ++ "</field>"
+  end,
+  lists:foldl(F, "", Fields);
+field_elements(_) ->
+  ?LOG("Warn: Invalid erlang term parsed from data in pubsub create node", ?WARN),
+  "".
 
 %% Generate pubsub node attribute
 pubsub_node_attr(undefined, _Domain, _Username) -> " ";
