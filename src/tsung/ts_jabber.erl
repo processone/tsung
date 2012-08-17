@@ -280,8 +280,8 @@ subst(Req=#jabber{id=user_defined, username=Name,passwd=Pwd, data=Data}, DynData
     put(xmpp_user_id,{NewUser,NewPwd}),% we need to keep the substitution for futures requests
     Req#jabber{username=NewUser,passwd=NewPwd,data=NewData};
 
-subst(Req=#jabber{data=Data}, DynData) ->
-    Req#jabber{data=ts_search:subst(Data,DynData)}.
+subst(Req=#jabber{data=Data,resource=Resource}, DynData) ->
+    Req#jabber{data=ts_search:subst(Data,DynData),resource=ts_search:subst(Resource,DynData)}.
 
 
 %%----------------------------------------------------------------------
