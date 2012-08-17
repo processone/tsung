@@ -464,7 +464,7 @@ handle_next_action(State) ->
 %%----------------------------------------------------------------------
 %% @spec set_dynvars (Type::erlang|random|urandom|file, Args::tuple(),
 %%                    Variables::list(), DynData::#dyndata{},
-%%                    Server::string(),Port:integer()}) -> integer()|binary()|list()
+%%                    {Server::string(),Port:integer()}) -> integer()|binary()|list()
 %% @doc setting the value of several dynamic variables at once.
 %% @end
 %%----------------------------------------------------------------------
