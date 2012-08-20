@@ -224,6 +224,7 @@ repeat | if | change_type | foreach | set_option)*>
     regexp      CDATA #IMPLIED
     resource    CDATA "tsung"
     node_type   CDATA #IMPLIED
+    version     CDATA #IMPLIED
     subid       CDATA #IMPLIED >
 
 <!ELEMENT xmpp_authenticate EMPTY >

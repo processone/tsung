@@ -124,6 +124,25 @@ pubsub_unsubscribe_test()->
     {Rep,_}=ts_jabber:get_message(Req,#state_rcv{}),
     ?assertEqual(RepOK,Rep ).
 
+connect_legacy_test()->
+    erase(xmpp_user_id),
+    ts_msg_server:start(),
+    ts_user_server:reset(1),
+    Session = #jabber{id=0,username="foo",type='connect',passwd="bar",domain={domain,"localdomain"},resource="tsung", version="legacy"},
+    Req=ts_jabber:add_dynparams(false,[],Session,"localhost"),
+    RepOK= <<"<?xml version='1.0'?><stream:stream  id='4' to='localdomain' xmlns='jabber:client' xmlns:stream='http://etherx.jabber.org/streams'>" >>,
+    {Rep,_} = ts_jabber:get_message(Req,#state_rcv{}),
+    ?assertEqual(RepOK,Rep).
+
+connect_xmpp_test()->
+    erase(xmpp_user_id),
+    ts_msg_server:start(),
+    ts_user_server:reset(1),
+    Session = #jabber{id=0,username="foo",type='connect',passwd="bar",domain={domain,"localdomain"},resource="tsung", version="1.0"},
+    Req=ts_jabber:add_dynparams(false,[],Session,"localhost"),
+    RepOK= <<"<?xml version='1.0'?><stream:stream  id='5' to='localdomain' xmlns='jabber:client' version='1.0' xmlns:stream='http://etherx.jabber.org/streams'>" >>,
+    {Rep,_} = ts_jabber:get_message(Req,#state_rcv{}),
+    ?assertEqual(RepOK,Rep).
 
 choose_id_limit_test()->
     ts_user_server:reset(3),
@@ -135,8 +154,6 @@ choose_id_limit_test()->
     ts_jabber:choose_or_cache_user_id(0,"user","pwd"),
     erase(xmpp_user_id),
     ?assertExit(no_free_userid, ts_jabber:choose_or_cache_user_id(0,"user","pwd")).
-
-
 
 myset_env()->
     myset_env(0).

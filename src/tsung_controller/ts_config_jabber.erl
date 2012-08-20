@@ -60,6 +60,7 @@ parse_config(Element = #xmlElement{name=jabber},
     Status= ts_config:getAttr(string,Element#xmlElement.attributes, status, "Available"),
     Resource= ts_config:getAttr(string,Element#xmlElement.attributes, resource, "tsung"),
     Type= list_to_atom(TypeStr),
+    Version = ts_config:getAttr(string,Element#xmlElement.attributes, version, "1.0"),
     Room = ts_config:getAttr(string,Element#xmlElement.attributes, room, undefined),
     Nick = ts_config:getAttr(string,Element#xmlElement.attributes, nick, undefined),
     Group = ts_config:getAttr(string,Element#xmlElement.attributes, group, "Tsung Group"),
@@ -138,7 +139,8 @@ parse_config(Element = #xmlElement{name=jabber},
                                     pubsub_service = PubSub_service,
                                     node = Node,
                                     node_type = NodeType,
-									subid = SubId
+                                    subid = SubId,
+                                    version = Version
                                    }
                    },
     ts_config:mark_prev_req(Id-1, Tab, CurS),

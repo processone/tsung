@@ -51,7 +51,8 @@
                  node,           %% pubsub node
                  resource,
                  node_type,
-                 subid
+                 subid,
+                 version %% 1.0 or "legacy", used by type=connect
                 }).
 
 -define(setroster_intensity, 1/(ts_utils:get_val(setroster)*1000)).

@@ -277,13 +277,19 @@ get_message2(Jabber=#jabber{type = 'auth_sasl_session'}) ->
 %%----------------------------------------------------------------------
 %% Func: connect/1
 %%----------------------------------------------------------------------
-connect(#jabber{domain=Domain}) ->
+connect(#jabber{domain=Domain, version = Version}) ->
+    VersionStr = case Version of
+                     "legacy" ->
+                         "";
+                     V when is_list(V) ->
+                         "version='" ++ Version ++"' "
+                 end,
     list_to_binary([
       "<?xml version='1.0'?><stream:stream  id='",
       ts_msg_server:get_id(list),
       "' to='",
       Domain,
-      "' xmlns='jabber:client' version='1.0' xmlns:stream='http://etherx.jabber.org/streams'>"]).
+      "' xmlns='jabber:client' ",VersionStr,"xmlns:stream='http://etherx.jabber.org/streams'>"]).
 
 %%----------------------------------------------------------------------
 %% Func: close/0
