@@ -276,7 +276,7 @@ parse_dynvar([{re,VarName, RegExp}| DynVarsSpecs],Binary,Data,Tree,DynVars) ->
         nomatch ->
             ?LOGF("Dyn Var (RE): no Match (varname=~p), ~n",[VarName], ?WARN),
             ?LOGF("Regexp was: ~p ~n",[RegExp], ?INFO),
-            parse_dynvar(DynVarsSpecs, Binary,Data,Tree, ts_dynvars:set(VarName,"",DynVars))
+            parse_dynvar(DynVarsSpecs, Binary,Data,Tree, ts_dynvars:set(VarName,<< >> ,DynVars))
     end;
 
 parse_dynvar(D=[{xpath,_VarName, _Expr}| _DynVarsSpecs],
@@ -332,33 +332,41 @@ parse_dynvar([{pgsql_expr,VarName,_Expr}|DynVarsSpecs],Binary,String,pgsql_error
     parse_dynvar(DynVarsSpecs, Binary,String,json_error,DynVars);
 
 parse_dynvar([{xpath,VarName, Expr}| DynVarsSpecs],Binary,String,Tree,DynVars)->
-    Value = mochiweb_xpath:execute(Expr,Tree),
-    ?DebugF("Xpath result: ~p~n", [Value]),
-    case Value of
-        [] -> ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?WARN);
-        _  -> ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,Value],?INFO)
-    end,
+    Value = case mochiweb_xpath:execute(Expr,Tree) of
+                [] ->
+                    ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?WARN),
+                    << >>;
+                Val  ->
+                    ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,Val],?INFO),
+                    Val
+            end,
     parse_dynvar(DynVarsSpecs, Binary,String,Tree,ts_dynvars:set(VarName,Value,DynVars));
 
 parse_dynvar([{jsonpath,VarName, Expr}| DynVarsSpecs],Binary,String,JSON,DynVars)->
-    Values = ts_utils:jsonpath(Expr,JSON),
-    case Values of
-        undefined -> ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?WARN);
-        _  -> ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,Values],?INFO)
-    end,
+    Values = case ts_utils:jsonpath(Expr,JSON) of
+                undefined ->
+                    ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?WARN),
+                     << >>;
+                 Val  ->
+                     ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,Val],?INFO),
+                     Val
+             end,
     parse_dynvar(DynVarsSpecs, Binary,String,JSON,ts_dynvars:set(VarName,Values,DynVars));
 
 parse_dynvar([{pgsql_expr,VarName, Expr}| DynVarsSpecs],Binary,String,PGSQL,DynVars)->
-    Values = ts_pgsql:find_pair(Expr,PGSQL),
-    case Values of
-        undefined -> ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?WARN);
-        _  -> ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,Values],?INFO)
-    end,
+    Values = case ts_pgsql:find_pair(Expr,PGSQL) of
+                 undefined ->
+                     ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?WARN),
+                     << >>;
+                 Val  ->
+                     ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,Val],?INFO),
+                     Val
+                 end,
     parse_dynvar(DynVarsSpecs, Binary,String,PGSQL,ts_dynvars:set(VarName,Values,DynVars));
 
 parse_dynvar(Args, _Binary,_String,_Tree, _DynVars) ->
     ?LOGF("Bad args while parsing Dyn Var (~p)~n", [Args], ?ERR),
-    [].
+    << >>.
 
 extract_body(Data) ->
     case re:run(Data,"\r\n\r\n(.*)$",[{capture,all_but_first,binary},dotall]) of
