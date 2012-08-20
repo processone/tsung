@@ -97,7 +97,7 @@ init([LogDir]) ->
     case file:open(Filename,[write, {delayed_write, ?DELAYED_WRITE_SIZE, ?DELAYED_WRITE_DELAY}]) of
         {ok, Fd} ->
             ?LOG("starting match logger~n",?NOTICE),
-            io:format(Fd,"# timestamp userid sessionid requestid event~n",[]),
+            io:format(Fd,"# timestamp userid sessionid requestid event transaction~n",[]),
             {ok, #state{ fd       = Fd,
                          filename = Filename,
                          logdir   = LogDir
@@ -128,7 +128,7 @@ handle_call(Request, _From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
 handle_cast({add, List}, State) when is_list(List)->
-    NewState=lists:foldl(fun(X,Acc)-> log(X,Acc) end,State, List),
+    NewState=lists:foldr(fun(X,Acc)-> log(X,Acc) end,State, List),
     {noreply,NewState};
 
 handle_cast({add, Data}, State) when is_tuple(Data)->
@@ -173,13 +173,19 @@ code_change(_OldVsn, StateData, _Extra) ->
 %%% Internal functions
 %%%----------------------------------------------------------------------
 
-log({UserId,SessionId,RequestId,TimeStamp,{count, Val},[]},State=#state{fd=File}) ->
+log({UserId,SessionId,RequestId,TimeStamp,{count, Val},[], Tr},State=#state{fd=File}) ->
     TS=ts_utils:time2sec_hires(TimeStamp),
-    io:format(File,"~f ~B ~B ~B ~p~n",[TS,UserId,SessionId,RequestId,Val]),
+    io:format(File,"~f ~B ~B ~B ~p ~s~n",[TS,UserId,SessionId,RequestId,Val,log_transaction(Tr)]),
     State;
-log({UserId,SessionId,RequestId,TimeStamp,{count, Val},Bin}, State=#state{logdir=LogDir, dumpid=Id}) ->
-    log({UserId,SessionId,RequestId,TimeStamp,{count, Val},[]}, State),
+log({UserId,SessionId,RequestId,TimeStamp,{count, Val},Bin, Tr}, State=#state{logdir=LogDir, dumpid=Id}) ->
+    log({UserId,SessionId,RequestId,TimeStamp,{count, Val},[],Tr}, State),
     Name=ts_utils:join("-",lists:map(fun integer_to_list/1,[UserId,SessionId,RequestId,Id])),
     Filename=filename:join(LogDir, "match-"++ Name ++".dump"),
     file:write_file(Filename,Bin),
     State#state{dumpid=Id+1}.
+
+
+log_transaction([]) ->
+    "-";
+log_transaction([{TransactionName,_}| _Tail]) ->
+    TransactionName.

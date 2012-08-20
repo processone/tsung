@@ -1005,7 +1005,7 @@ handle_data_msg(Data, State=#state_rcv{request=Req}) when Req#ts_request.ack==no
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     {State, []};
 
-handle_data_msg(Data,State=#state_rcv{dump=Dump,request=Req,id=Id,clienttype=Type,maxcount=MaxCount})
+handle_data_msg(Data,State=#state_rcv{dump=Dump,request=Req,id=Id,clienttype=Type,maxcount=MaxCount,transactions=Transactions})
   when Req#ts_request.ack==parse->
     ts_mon:rcvmes({Dump, self(), Data}),
 
@@ -1020,7 +1020,7 @@ handle_data_msg(Data,State=#state_rcv{dump=Dump,request=Req,id=Id,clienttype=Typ
             MatchArgs={NewState#state_rcv.count, MaxCount,
                        NewState#state_rcv.session_id, Id},
             NewDynVars=ts_dynvars:merge(DynVars,(NewState#state_rcv.dyndata)#dyndata.dynvars),
-            NewCount  =ts_search:match(Req#ts_request.match,NewBuffer,MatchArgs,NewDynVars),
+            NewCount  =ts_search:match(Req#ts_request.match,NewBuffer,MatchArgs,NewDynVars,Transactions),
             NewDynData=(NewState#state_rcv.dyndata)#dyndata{dynvars=NewDynVars},
             Type:dump(Dump,{Req,NewState#state_rcv.session,Id,
                             NewState#state_rcv.host,NewState#state_rcv.datasize}),
@@ -1081,7 +1081,7 @@ handle_data_msg(Data,State=#state_rcv{request=Req,datasize=OldSize})
 handle_data_msg(<<32>>, State=#state_rcv{clienttype=ts_jabber}) ->
     {State#state_rcv{ack_done = false},[]};
 %% local ack, set ack_done to true
-handle_data_msg(Data, State=#state_rcv{request=Req, maxcount=MaxCount}) ->
+handle_data_msg(Data, State=#state_rcv{request=Req, maxcount=MaxCount, transactions=Transactions}) ->
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     NewBuffer= set_new_buffer(State, Data),
     DataSize = size(Data),
@@ -1090,7 +1090,7 @@ handle_data_msg(Data, State=#state_rcv{request=Req, maxcount=MaxCount}) ->
     MatchArgs={State#state_rcv.count,MaxCount,State#state_rcv.session_id,
                State#state_rcv.id},
     NewDynVars=ts_dynvars:merge(DynVars,(State#state_rcv.dyndata)#dyndata.dynvars),
-    NewCount  =ts_search:match(Req#ts_request.match, NewBuffer, MatchArgs,NewDynVars),
+    NewCount  =ts_search:match(Req#ts_request.match, NewBuffer, MatchArgs, NewDynVars, Transactions),
     NewDynData=(State#state_rcv.dyndata)#dyndata{dynvars=NewDynVars},
     {State#state_rcv{ack_done = true, buffer= NewBuffer, dyndata = NewDynData,
                      page_timestamp= PageTimeStamp, count=NewCount},[]}.

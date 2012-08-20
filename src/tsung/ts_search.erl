@@ -31,7 +31,7 @@
 -module(ts_search).
 -vc('$Id$ ').
 
--export([subst/2, match/4, parse_dynvar/2]).
+-export([subst/2, match/5, parse_dynvar/2]).
 
 -include("ts_profile.hrl").
 
@@ -115,40 +115,40 @@ extract_function([H|Tail],DynVar,  Acc, Mod, Fun) ->
     extract_function(Tail, DynVar, Acc, Mod, [H|Fun]).
 
 %%----------------------------------------------------------------------
-%% @spec match(Match::#match{}, Data::binary() | list, {Counts::integer(),
-%% Max::integer(), SessionId::integer(),UserId::integer()}, Dynvars::term()
-%%  ) ->  Count::integer()
+%% @spec match(Match::#match{}, Data::binary() | list,
+%%             {Counts::integer(), Max::integer(), SessionId::integer(), UserId::integer()},
+%%             Dynvars::term(), Transactions::list() ) -> Count::integer()
 %% @doc search for regexp in Data; send result to ts_mon
 %% @end
 %%----------------------------------------------------------------------
-match([], _Data, {Count, _MaxC, _SessionId, _UserId}, _DynVars) -> Count;
-match([Match=#match{'skip_headers'=http}|Tail], Data, Counts,DynVars) when is_binary(Data)->
+match([], _Data, {Count, _MaxC, _SessionId, _UserId}, _DynVars, _Tr) -> Count;
+match([Match=#match{'skip_headers'=http}|Tail], Data, Counts, DynVars, Tr) when is_binary(Data)->
     %% keep http body only
     case re:run(Data,"\\r\\n\\r\\n(.*)",[{capture,all_but_first,binary},dotall]) of
         {match,[NewData]} ->
-            match([Match#match{'skip_headers'=no}|Tail], NewData, Counts, DynVars);
+            match([Match#match{'skip_headers'=no}|Tail], NewData, Counts, DynVars, Tr);
         _ ->
             ?LOGF("Skip http headers failure, data was: ~p ~n",[Data], ?ERR),
-            match([Match#match{'skip_headers'=no}|Tail], Data, Counts, DynVars)
+            match([Match#match{'skip_headers'=no}|Tail], Data, Counts, DynVars, Tr)
         end;
 
-match([Match=#match{'apply_to_content'=undefined}|Tail], Data, Counts,DynVars) ->
+match([Match=#match{'apply_to_content'=undefined}|Tail], Data, Counts,DynVars,Tr) ->
     ?DebugF("Matching Data size ~p; apply undefined~n",[size(Data)]),
-    match([Match|Tail], Data, Counts, [],DynVars);
-match([Match=#match{'apply_to_content'={Module,Fun}}|Tail], Data, Counts,DynVars) ->
+    match([Match|Tail], Data, Counts, [],DynVars, Tr);
+match([Match=#match{'apply_to_content'={Module,Fun}}|Tail], Data, Counts,DynVars,Tr) ->
     ?DebugF("Matching Data size ~p; apply ~p:~p~n",[size(Data),Module,Fun]),
     NewData = Module:Fun(Data),
     ?DebugF("Match: apply result =~p~n",[NewData]),
-    match([Match|Tail], NewData, Counts, [],DynVars).
+    match([Match|Tail], NewData, Counts, [],DynVars, Tr).
 
 %% @spec match(Match::#match{}, Data::binary() | list(), Count::tuple(),
 %%             Stats::list(), DynVars::term()) -> Count::integer()
-match([], _Data, {Count,_, _,_}, Stats, _) ->
+match([], _Data, {Count,_, _,_}, Stats, _, _) ->
     %% all matches done, add stats, and return Count unchanged (continue)
     ts_mon:add(Stats),
     Count;
 match([Match=#match{regexp=RawRegExp,subst=Subst, do=Action, 'when'=When}
-       |Tail], Data,Counts,Stats,DynVars)->
+       |Tail], Data,Counts,Stats,DynVars, Tr)->
     RegExp  = case Subst of
         true -> subst(RawRegExp, DynVars);
         _    -> RawRegExp
@@ -157,10 +157,10 @@ match([Match=#match{regexp=RawRegExp,subst=Subst, do=Action, 'when'=When}
     case re:run(Data, RegExp) of
         {When,_} ->
             ?LOGF("Ok Match (regexp=~p) do=~p~n",[RegExp,Action], ?INFO),
-            setcount(Match, Counts, [{count, match}| Stats], Data);
+            setcount(Match, Counts, [{count, match}| Stats], Data, Tr);
         When -> % nomatch
             ?LOGF("Bad Match (regexp=~p) do=~p~n",[RegExp, Action], ?INFO),
-            setcount(Match, Counts, [{count, nomatch} | Stats],Data);
+            setcount(Match, Counts, [{count, nomatch} | Stats],Data,Tr);
         {match,_} -> % match but when=nomatch
             ?LOGF("Ok Match (regexp=~p)~n",[RegExp], ?INFO),
             case Action of
@@ -168,7 +168,7 @@ match([Match=#match{regexp=RawRegExp,subst=Subst, do=Action, 'when'=When}
                 restart -> put(restart_count, 0);
                 _       -> ok
             end,
-            match(Tail, Data, Counts, [{count, match} | Stats],DynVars);
+            match(Tail, Data, Counts, [{count, match} | Stats],DynVars, Tr);
         nomatch -> % nomatch but when=match
             ?LOGF("Bad Match (regexp=~p)~n",[RegExp], ?INFO),
             case Action of
@@ -176,10 +176,10 @@ match([Match=#match{regexp=RawRegExp,subst=Subst, do=Action, 'when'=When}
                 restart -> put(restart_count, 0);
                 _       -> ok
             end,
-            match(Tail, Data, Counts,[{count, nomatch} | Stats],DynVars);
+            match(Tail, Data, Counts,[{count, nomatch} | Stats],DynVars,Tr);
         {error,_Error} ->
             ?LOGF("Error while matching: bad REGEXP (~p)~n", [RegExp], ?ERR),
-            match(Tail, Data, Counts,[{count, badregexp} | Stats],DynVars)
+            match(Tail, Data, Counts,[{count, badregexp} | Stats],DynVars,Tr)
     end.
 
 %%----------------------------------------------------------------------
@@ -190,18 +190,18 @@ match([Match=#match{regexp=RawRegExp,subst=Subst, do=Action, 'when'=When}
 %%   - if restart is true, we must start again the whole session, set count to MaxCount
 %%   - if stop is true, set count to 0
 %%----------------------------------------------------------------------
-setcount(#match{do=continue}, {Count, _MaxC, _SessionId, _UserId}, Stats,_)->
+setcount(#match{do=continue}, {Count, _MaxC, _SessionId, _UserId}, Stats,_,_)->
     ts_mon:add(Stats),
     Count;
-setcount(#match{do=log}, {Count, MaxC, SessionId, UserId}, Stats,_)->
-    ts_mon:add_match(Stats,{UserId,SessionId,MaxC-Count}),
+setcount(#match{do=log}, {Count, MaxC, SessionId, UserId}, Stats,_,Tr)->
+    ts_mon:add_match(Stats,{UserId,SessionId,MaxC-Count,Tr}),
     Count;
-setcount(#match{do=dump}, {Count, MaxC, SessionId, UserId}, Stats,Data)->
-    ts_mon:add_match(Stats,{UserId,SessionId,MaxC-Count, Data}),
+setcount(#match{do=dump}, {Count, MaxC, SessionId, UserId}, Stats, Data, Tr)->
+    ts_mon:add_match(Stats,{UserId,SessionId,MaxC-Count, Data, Tr}),
     Count;
-setcount(#match{do=restart, max_restart=MaxRestart}, {Count, MaxC,SessionId,UserId}, Stats,_)->
+setcount(#match{do=restart, max_restart=MaxRestart}, {Count, MaxC,SessionId,UserId}, Stats,_, Tr)->
     CurRestart = get(restart_count),
-    Ids={UserId,SessionId,MaxC-Count},
+    Ids={UserId,SessionId,MaxC-Count,Tr},
     ?LOGF("Restart on (no)match ~p~n",[CurRestart], ?INFO),
     case CurRestart of
         undefined ->
@@ -217,7 +217,7 @@ setcount(#match{do=restart, max_restart=MaxRestart}, {Count, MaxC,SessionId,User
             ts_mon:add_match([{count, match_restart} | Stats],Ids),
             MaxC
     end;
-setcount(#match{do=loop,loop_back=Back,max_loop=MaxLoop,sleep_loop=Sleep},{Count,_MaxC,_SessionId,_UserId},Stats,_)->
+setcount(#match{do=loop,loop_back=Back,max_loop=MaxLoop,sleep_loop=Sleep},{Count,_MaxC,_SessionId,_UserId},Stats,_,_)->
     CurLoop = get(loop_count),
     ?LOGF("Loop on (no)match ~p~n",[CurLoop], ?INFO),
     ts_mon:add([{count, match_loop} | Stats]),
@@ -235,8 +235,8 @@ setcount(#match{do=loop,loop_back=Back,max_loop=MaxLoop,sleep_loop=Sleep},{Count
             timer:sleep(Sleep),
             Count + 1 + Back
     end;
-setcount(#match{do=abort}, {Count,MaxC,SessionId,UserId}, Stats,_) ->
-    ts_mon:add_match([{count, match_stop} | Stats],{UserId,SessionId,MaxC-Count}),
+setcount(#match{do=abort}, {Count,MaxC,SessionId,UserId}, Stats,_, Tr) ->
+    ts_mon:add_match([{count, match_stop} | Stats],{UserId,SessionId,MaxC-Count,Tr}),
     0.
 
 %%----------------------------------------------------------------------

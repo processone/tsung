@@ -106,12 +106,12 @@ add(nocache,Data) ->
 add(Data) ->
     ts_mon_cache:add(Data).
 
-add_match(Data,{UserId,SessionId,RequestId}) ->
-    add_match(Data,{UserId,SessionId,RequestId,[]});
-add_match(Data=[Head|_],{UserId,SessionId,RequestId,Bin}) ->
+add_match(Data,{UserId,SessionId,RequestId,Tr}) ->
+    add_match(Data,{UserId,SessionId,RequestId,[],Tr});
+add_match(Data=[Head|_],{UserId,SessionId,RequestId,Bin,Tr}) ->
     TimeStamp=now(),
     put(last_match,Head),
-    ts_mon_cache:add_match(Data,{UserId,SessionId,RequestId,TimeStamp, Bin}).
+    ts_mon_cache:add_match(Data,{UserId,SessionId,RequestId,TimeStamp, Bin,Tr}).
 
 status() ->
     gen_server:call({global, ?MODULE}, {status}).
