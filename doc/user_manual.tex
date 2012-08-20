@@ -1183,11 +1183,17 @@ value (the sum of all probabilities must be equal to 100)
 Sessions define the content of the scenario itself. They describe
 the requests to execute.
 
-
 Each session has a given probability. This is used to decide which
 session a new user will execute. The sum of all session\verb|'|s
 probabilities must be 100.
 
+\strong{Since Tsung 1.4.3}, you can use weights instead of
+probabilities. In the following example, there will be twice as many
+sessions of type s1 than s2.
+\begin{Verbatim}
+  <session name="s1" weight="2" type="ts_http">
+  <session name="s2" weight="1" type="ts_http">
+\end{Verbatim}
 
 
 A transaction is just a way to have customized statistics. Say if you

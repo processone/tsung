@@ -118,7 +118,8 @@ repeat | if | change_type | foreach | set_option)*>
     name         CDATA #REQUIRED
     bidi         CDATA #IMPLIED
     persistent   (true | false) #IMPLIED
-    probability   NMTOKEN #REQUIRED
+    probability   NMTOKEN #IMPLIED
+    weight        NMTOKEN #IMPLIED
     type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs |ts_shell|ts_job) #REQUIRED>
 
 <!ELEMENT change_type EMPTY>

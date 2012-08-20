@@ -358,7 +358,9 @@ parse(Element = #xmlElement{name=session, attributes=Attrs},
     Name        = getAttr(Attrs, name),
     ?LOGF("Session name for id ~p is ~p~n",[Id+1, Name],?NOTICE),
     ?LOGF("Session type: persistent=~p, bidi=~p~n",[Persistent,Bidi],?NOTICE),
-    Probability = getAttr(float_or_integer, Attrs, probability),
+    Probability = getAttr(float_or_integer, Attrs, probability, 0),
+    Weight      = getAttr(float_or_integer, Attrs, weight, 0),
+    {Popularity, NewUseWeights, NewTotal} = get_popularity(Probability, Weight, Conf#config.use_weights,Conf#config.total_popularity),
     NewSList = case SList of
                    [] -> []; % first session
                    [Previous|Tail] ->
@@ -367,7 +369,7 @@ parse(Element = #xmlElement{name=session, attributes=Attrs},
                end,
     lists:foldl(fun parse/2,
                 Conf#config{sessions = [#session{id           = Id + 1,
-                                                 popularity   = Probability,
+                                                 popularity   = Popularity,
                                                  type         = Type,
                                                  name         = Name,
                                                  persistent   = Persistent,
@@ -378,6 +380,8 @@ parse(Element = #xmlElement{name=session, attributes=Attrs},
                                                 }
                                         |NewSList],
                             main_sess_type = Type,
+                            use_weights=NewUseWeights,
+                            total_popularity=NewTotal,
                             curid=0, cur_req_id=0},% re-initialize request id
                 Element#xmlElement.content);
 
@@ -1016,3 +1020,22 @@ get_dynvar_name(VarNameStr) ->
         {match,[Name,Index]} -> {list_to_atom(Name),Index};
         _                    -> list_to_atom(VarNameStr)
     end.
+
+
+%% @spec get_popularity(Proba::number(),Weight::number(),UseWeight:true|false|undefined, Total::number()) ->
+%%   {Value::number(), UseWeight:boolean(),  Total:: number()}
+%% check if we are using popularity or weights; keep the total up to date.
+get_popularity(Proba,Weight,_,_) when is_number(Proba), Proba > 0, is_number(Weight), Weight > 0 ->
+    erlang:error({"can't mix probabilites and weights", Proba, Weight} );
+get_popularity(Proba, Weight, true,_)     when is_number(Proba), Proba > 0->
+    erlang:error({"can't use probability when using weight"});
+get_popularity(_, Weight, false,_)        when is_number(Weight), Weight > 0->
+    erlang:error({"can't use weights when using probabilities"});
+get_popularity(_, Weight, undefined,_)    when is_number(Weight), Weight > 0 ->
+    {Weight, true, Weight};
+get_popularity(Proba, _, undefined,Total) when is_number(Proba) ->
+    {Proba, false, Proba+Total};
+get_popularity(Proba, _, false,Total) when is_number(Proba) ->
+    {Proba, false, Proba+Total};
+get_popularity(_, Weight, true, Total)    when is_number(Weight) ->
+    {Weight, true, Weight+Total}.

@@ -54,7 +54,7 @@
          get_client_config/2, get_user_param/1, get_jobs_state/0 ]).
 
 %%debug
--export([choose_client_ip/1, choose_session/1]).
+-export([choose_client_ip/1, choose_session/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
@@ -268,7 +268,7 @@ handle_call({get_next_session, HostName}, _From, State=#state{users=Users}) ->
     Config = State#state.config,
     {value, Client} = lists:keysearch(HostName, #client.host, Config#config.clients),
     ?DebugF("get new session for ~p~n",[_From]),
-    case choose_session(Config#config.sessions) of
+    case choose_session(Config#config.sessions, Config#config.total_popularity) of
         {ok, Session=#session{id=Id}} ->
             ?LOGF("Session ~p choosen~n",[Id],?INFO),
             ts_mon:newclient({Id,now()}),
@@ -327,7 +327,7 @@ handle_call({status}, _From, State) ->
 
 handle_call({get_jobs_state}, _From, State) when State#state.config == undefined ->
     {reply, not_configured, State};
-handle_call({get_jobs_state}, {Pid,Tag}, State) ->
+handle_call({get_jobs_state}, {Pid,_Tag}, State) ->
     Config = State#state.config,
     Reply = case Config#config.job_notify_port of
                 {Ets,Port} ->
@@ -514,15 +514,15 @@ choose_rr(List, Key, _) ->
     {ok, lists:nth(I, List)}.
 
 %%----------------------------------------------------------------------
-%% Func: choose_session/1
+%% Func: choose_session/2
 %% Args: List of #session
 %% Purpose: choose an session randomly
 %% Returns: #session
 %%----------------------------------------------------------------------
-choose_session([Session]) -> %% only one Session
+choose_session([Session], _Total) -> %% only one Session
     {ok, Session};
-choose_session(Sessions) ->
-    choose_session(Sessions, random:uniform() * 100,0).
+choose_session(Sessions,Total) ->
+    choose_session(Sessions, random:uniform() * Total, 0).
 
 choose_session([S=#session{popularity=P} | _],Rand,Cur) when Rand =< P+Cur->
     {ok, S};
@@ -635,15 +635,16 @@ setup_user_servers(FileId,Val) when is_atom(FileId), is_integer(Val) ->
 %% Func: check_config/1
 %% Returns: ok | {error, ErrorList}
 %%----------------------------------------------------------------------
-check_config(Config)->
-    Pop= ts_utils:check_sum(Config#config.sessions, #session.popularity, ?SESSION_POP_ERROR_MSG),
+check_config(Config=#config{use_weights=true})->
     %% FIXME: we should not depend on a protocol specific feature here
-    Agents = ts_config_http:check_user_agent_sum(Config#config.session_tab),
-    case lists:filter(fun(X)-> X /= ok  end, [Pop, Agents]) of
-        []        -> ok;
-        ErrorList -> {error, ErrorList}
+    ts_config_http:check_user_agent_sum(Config#config.session_tab);
+check_config(Config)->
+    case abs(100-Config#config.total_popularity) < 0.05 of
+        false ->
+            {error, {bad_sum, Config#config.total_popularity ,?SESSION_POP_ERROR_MSG}};
+        true  ->
+            ts_config_http:check_user_agent_sum(Config#config.session_tab)
     end.
-
 
 load_app(Name) when is_atom(Name) ->
     FName = atom_to_list(Name) ++ ".app",
@@ -826,3 +827,5 @@ get_one_node_per_host([Node | Nodes], Dict) ->
             NewDict = dict:store(Host, Node, Dict),
             get_one_node_per_host(Nodes,NewDict)
     end.
+
+
