@@ -35,13 +35,17 @@
 
 -include("ts_profile.hrl").
 
+%% @type dynvar() = {Key::atom(), Value::string()} | [].
+%% @type dynvars() = [dynvar()]
+
 %% ----------------------------------------------------------------------
-%% Function: subst/2
-%% Purpose: search into a given string and replace %%Mod:Fun%% strings
-%%          by the result of the call to Mod:Fun(Pid) where Pid is the
-%%          Pid of the client The substitution tag are intended to
-%%          be used in tsung.xml scenarii files.
-%% Returns: new string
+%% @spec subst(Data::term(), DynVar::dynvars() ) -> term()
+%% @doc search into a given string and replace %%Mod:Fun%% (resp
+%%          %%__Variable%%) strings by the result of the call to
+%%          Mod:Fun(Pid) (resp the value of the variable) where Pid
+%%          is the Pid of the client. The substitution tag are
+%%          intended to be used in tsung.xml scenarii files.
+%% @end
 %% ----------------------------------------------------------------------
 subst(Int, _DynVar) when is_integer(Int) ->
     Int;
@@ -236,10 +240,9 @@ setcount(#match{do=abort}, {Count,MaxC,SessionId,UserId}, Stats,_) ->
     0.
 
 %%----------------------------------------------------------------------
-%% Func: parse_dynvar/2
-%% Args: DynVarSpecs, Data
-%% Purpose: look for dynamic variables in Data
-%% Returns: DynVars (List)
+%% @spec parse_dynvar(Dynvarspecs::list(), Data::binary | list) -> dynvars()
+%% @doc Look for dynamic variables in Data
+%% @end
 %%----------------------------------------------------------------------
 parse_dynvar([], _Data) -> ts_dynvars:new();
 parse_dynvar(DynVarSpecs, Data)  when is_binary(Data) ->
