@@ -490,7 +490,10 @@ set_dynvars(file,{iter,FileId,Delimiter},_Vars,_DynData,_) ->
 set_dynvars(jsonpath,{JSONPath, From},_Vars,DynData,_) ->
     {ok, Val} = ts_dynvars:lookup(From,DynData#dyndata.dynvars),
     JSON=mochijson2:decode(Val),
-    ts_utils:jsonpath(JSONPath, JSON);
+    case ts_utils:jsonpath(JSONPath, JSON) of
+        undefined -> << >>;
+        V         -> V
+    end;
 set_dynvars(server,_,_,_,{Host,Port}) ->
     [Host,Port].
 
