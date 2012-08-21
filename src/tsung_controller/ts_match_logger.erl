@@ -64,7 +64,7 @@
 %% @end
 %%----------------------------------------------------------------------
 start(LogDir) ->
-    ?LOG("starting match logger, global ~n",?NOTICE),
+    ?LOG("starting match logger, global ~n",?INFO),
     gen_server:start_link({global, ?MODULE}, ?MODULE, [LogDir], []).
 
 stop() ->
@@ -91,12 +91,12 @@ add(Data) ->
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
 init([LogDir]) ->
-    ?LOG("starting match logger~n",?NOTICE),
+    ?LOG("starting match logger~n",?INFO),
     Base = filename:basename(?config(match_log_file)),
     Filename = filename:join(LogDir, Base),
     case file:open(Filename,[write, {delayed_write, ?DELAYED_WRITE_SIZE, ?DELAYED_WRITE_DELAY}]) of
         {ok, Fd} ->
-            ?LOG("starting match logger~n",?NOTICE),
+            ?LOG("starting match logger~n",?INFO),
             io:format(Fd,"# timestamp userid sessionid requestid event transaction~n",[]),
             {ok, #state{ fd       = Fd,
                          filename = Filename,
@@ -157,7 +157,7 @@ handle_info(_Info, State) ->
 %% Returns: any (ignored by gen_server)
 %%----------------------------------------------------------------------
 terminate(Reason, State) ->
-    ?LOGF("stoping match logger (~p)~n",[Reason],?NOTICE),
+    ?LOGF("stopping match logger (~p)~n",[Reason],?INFO),
     file:close(State#state.fd),
     ok.
 

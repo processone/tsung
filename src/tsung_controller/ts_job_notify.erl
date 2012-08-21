@@ -96,12 +96,12 @@ wait_jobs(Pid) ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-    ?LOG("Starting~n",?DEB),
+    ?LOG("Starting~n",?INFO),
     case global:whereis_name(ts_config_server) of
         undefined ->
             {ok, #state{jobs=ets:new(jobs,[{keypos, #job_session.jobid}])}};
         _Pid ->
-            ?LOG("Config server is alive !~n",?DEB),
+            ?LOG("Config server is alive !~n",?INFO),
             case ts_config_server:get_jobs_state() of
                 {Jobs,Port} ->
                     ?LOG("Got backup of node state~n",?DEB),
@@ -166,7 +166,7 @@ handle_cast({wait_jobs, Pid}, State=#state{jobs=Jobs}) ->
     {noreply, State};
 
 handle_cast({listen, undefined}, State) ->
-    ?LOG("No listen port defined, can't open listening socket ~n",?NOTICE),
+    ?LOG("No listen port defined, can't open listening socket ~n",?INFO),
     {noreply, State};
 handle_cast({listen,Port}, State) ->
     Opts = [{reuseaddr, true}, {active, once}],

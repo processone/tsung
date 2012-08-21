@@ -159,7 +159,7 @@ launcher_is_alive() ->
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
 init([LogDir]) ->
-    ?LOGF("Init, log dir is ~p~n",[LogDir],?NOTICE),
+    ?LOGF("Init, log dir is ~p~n",[LogDir],?INFO),
     Stats = #stats{os_mon  = dict:new()},
     State=#state{ dump_interval = ?config(dumpstats_interval),
                   log_dir   = LogDir,
@@ -174,7 +174,7 @@ init([LogDir]) ->
             Filename = filename:join(LogDir, Name),
             case file:open(Filename,[write]) of
                 {ok, Stream} ->
-                    ?LOG("starting monitor~n",?NOTICE),
+                    ?LOG("starting monitor~n",?INFO),
                     {ok, State#state{log=Stream}};
                 {error, Reason} ->
                     ?LOGF("Can't open mon log file! ~p~n",[Reason], ?ERR),
@@ -332,7 +332,7 @@ handle_cast({stop}, State=#state{launchers=L}) -> % we should stop, wait until n
     {noreply, State#state{stop = true, launchers=L-1}};
 
 handle_cast({launcher_is_alive}, State=#state{launchers=L}) ->
-    ?LOG("A launcher has started~n", ?NOTICE),
+    ?LOG("A launcher has started~n", ?INFO),
     {noreply, State#state{launchers=L+1}};
 
 
@@ -485,10 +485,10 @@ export_stats_common(BackEnd, Stats,LastStats,Log)->
 %% @doc start the launcher on clients nodes
 %%----------------------------------------------------------------------
 start_launchers(Machines) ->
-    ?DebugF("Need to start tsung client on ~p~n",[Machines]),
+    ?LOGF("Tsung clients setup: ~p~n",[Machines],?DEB),
     GetHost = fun(A) -> list_to_atom(A#client.host) end,
     HostList = lists:map(GetHost, Machines),
-    ?DebugF("Hostlist is ~p~n",[HostList]),
+    ?LOGF("Starting tsung clients on hosts: ~p~n",[HostList],?NOTICE),
     %% starts beam on all client hosts
     ts_config_server:newbeams(HostList).
 

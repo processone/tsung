@@ -50,7 +50,6 @@
          }).
 
 start(Args) ->
-    ?LOGF("starting os_mon_erlang with args ~p",[Args],?NOTICE),
     gen_server:start_link(?MODULE, Args, []).
 
 %%--------------------------------------------------------------------
@@ -181,7 +180,7 @@ client_start() ->
 %% Purpose: Load ts_os_mon code on all Erlang nodes
 %%--------------------------------------------------------------------
 load_code(Nodes) ->
-    ?LOGF("loading tsung monitor on nodes ~p~n", [Nodes], ?NOTICE),
+    ?LOGF("Loading tsung monitor on nodes ~p~n", [Nodes], ?NOTICE),
     LoadCode = fun(Mod)->
                        {_, Binary, _} = code:get_object_code(Mod),
                        rpc:multicall(Nodes, code, load_binary, [Mod, Mod, Binary], infinity)
@@ -257,6 +256,6 @@ get_os_data(packets, {unix, _}, Data) ->
 %%--------------------------------------------------------------------
 start_beam(Host) ->
     Args = ts_utils:erl_system_args(),
-    ?LOGF("starting os_mon beam (~p) on host ~p with Args ~p~n",
-          [?NODE,Host, Args], ?INFO),
+    ?LOGF("Starting os_mon beam on host ~p ~n", [Host], ?NOTICE),
+    ?LOGF("~p Args: ~p~n", [Host, Args], ?DEB),
     slave:start(list_to_atom(Host), ?NODE, Args).

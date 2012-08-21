@@ -365,7 +365,7 @@ handle_cast({newbeams, HostList}, State=#state{logdir   = LogDir,
             {BeamsIds, LastId} = lists:mapfoldl(fun(A,Acc) -> {{A, Acc}, Acc+1} end, Id0, RemoteBeams),
             Fun = fun({Host,Id}) -> remote_launcher(Host, Id, Args) end,
             RemoteNodes = ts_utils:pmap(Fun, BeamsIds),
-            ?LOG("All remote beams started, sync ~n",?NOTICE),
+            ?LOG("All remote beams started, syncing ~n",?NOTICE),
             global:sync(),
             StartLaunchers = fun(Node) ->
                                      ts_launcher_static:launch({Node,[]}),
@@ -591,10 +591,10 @@ print_info() ->
              {value, {_,_ ,V}} -> V;
               _ -> "unknown"
           end,
-    ?LOGF("SYSINFO:Tsung version: ~s~n",[VSN],?NOTICE),
-    ?LOGF("SYSINFO:Erlang version: ~s~n",[erlang:system_info(system_version)],?NOTICE),
-    ?LOGF("SYSINFO:System architecture ~s~n",[erlang:system_info(system_architecture)],?NOTICE),
-    ?LOGF("SYSINFO:Current path: ~s~n",[code:which(tsung)],?NOTICE).
+    ?LOGF("SYSINFO:Tsung version: ~s~n",[VSN],?WARN),
+    ?LOGF("SYSINFO:Erlang version: ~s~n",[erlang:system_info(system_version)],?WARN),
+    ?LOGF("SYSINFO:System architecture ~s~n",[erlang:system_info(system_architecture)],?WARN),
+    ?LOGF("SYSINFO:Current path: ~s~n",[code:which(tsung)],?WARN).
 
 %%----------------------------------------------------------------------
 %% Func: start_file_server/1
@@ -695,9 +695,9 @@ sort_static(Config=#config{static_users=S})->
 start_slave(Host, Name, Args) when is_atom(Host), is_atom(Name)->
     case slave:start(Host, Name, Args) of
         {ok, Node} ->
-            ?LOGF("started newbeam on node ~p ~n", [Node], ?NOTICE),
+            ?LOGF("Remote beam started on node ~p ~n", [Node], ?NOTICE),
             Res = net_adm:ping(Node),
-            ?LOGF("ping ~p ~p~n", [Node,Res], ?NOTICE),
+            ?LOGF("ping ~p ~p~n", [Node,Res], ?INFO),
             Node;
         {error, Reason} ->
             ?LOGF("Can't start newbeam on host ~p (reason: ~p) ! Aborting!~n",[Host, Reason],?EMERG),
