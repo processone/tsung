@@ -216,10 +216,10 @@ launcher(timeout, State=#launcher{nusers        = Users,
                             %% remove the time to launch a client to the next
                             %% wait.
                             NewWait = case Wait > LaunchDuration of
-                                          true -> round(Wait - LaunchDuration);
+                                          true -> trunc(Wait - LaunchDuration);
                                           false -> 0
                                       end,
-                            ?DebugF("Real Wait =~p ~n", [NewWait]),
+                            ?DebugF("Real Wait = ~p (was ~p)~n", [NewWait,Wait]),
                             {next_state,launcher,State#launcher{nusers = Users-1, started_users=Started+1} , NewWait}
                     end
             end;
