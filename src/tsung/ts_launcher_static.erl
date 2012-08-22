@@ -123,7 +123,7 @@ wait({stop}, State) ->
     {stop, normal, State}.
 
 launcher(timeout, State=#state{ users = [{OldWait,Session}|Users]}) ->
-    BeforeLaunch = now(),
+    BeforeLaunch = ?NOW,
     ?LOGF("Launch static user using session ~p ~n", [Session],?DEB),
     do_launch({Session,State#state.myhostname}),
     Wait = set_waiting_time(BeforeLaunch, Users, OldWait),
@@ -138,7 +138,7 @@ launcher(timeout, State=#state{ users = [{OldWait,Session}|Users]}) ->
 
 set_waiting_time(_Before, []        , _Previous) -> 0; % last user
 set_waiting_time(Before , [{Next,_}|_], Previous)  ->
-    LaunchDuration = ts_utils:elapsed(now(), Before),
+    LaunchDuration = ts_utils:elapsed(?NOW, Before),
     %% to keep the rate of new users as expected, remove the time to
     %% launch a client to the next wait.
     NewWait = Next - Previous - LaunchDuration,

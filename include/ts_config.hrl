@@ -27,6 +27,8 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
+-include("ts_macros.hrl").
+
 -define(TSUNGPATH, "TSUNGPATH").
 -define(SESSION_POP_ERROR_MSG, "Total sum of session popularity is not equal to 100").
 

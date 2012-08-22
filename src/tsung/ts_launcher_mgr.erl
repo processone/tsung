@@ -27,6 +27,7 @@
 -vc('$Id: ts_launcher_mgr.erl,v 0.0 2009/12/09 11:54:33 nniclaus Exp $ ').
 -author('nicolas.niclausse@niclux.org').
 
+-include("ts_macros.hrl").
 -include("ts_profile.hrl").
 
 -behaviour(gen_server).

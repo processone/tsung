@@ -26,7 +26,7 @@
 
 -vc('$Id$ ').
 
--include("ts_profile.hrl").
+-include("ts_macros.hrl").
 
 %%-compile(export_all).
 -export([reset/1,

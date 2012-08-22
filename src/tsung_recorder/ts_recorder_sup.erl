@@ -34,7 +34,7 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
--include("ts_profile.hrl").
+-include("ts_macros.hrl").
 
 -behaviour(supervisor).
 

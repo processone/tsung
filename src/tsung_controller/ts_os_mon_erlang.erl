@@ -28,7 +28,7 @@
 -author('nicolas.niclausse@niclux.org').
 
 
--include("ts_profile.hrl").
+-include("ts_macros.hrl").
 -include("ts_os_mon.hrl").
 
 -export([start/1, updatestats/2, client_start/0]).

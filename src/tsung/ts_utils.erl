@@ -26,7 +26,7 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
--include("ts_profile.hrl").
+-include("ts_macros.hrl").
 
 %% to get file_info record definition
 -include_lib("kernel/include/file.hrl").
@@ -120,7 +120,11 @@ debug(From, Message, Args, Level) ->
 elapsed({Before1, Before2, Before3}, {After1, After2, After3}) ->
     After  = After1  * 1000000000  + After2  * 1000 + After3/1000,
     Before = Before1 * 1000000000  + Before2 * 1000 + Before3/1000,
-    After - Before.
+    case After - Before of
+        Neg when Neg < 0 -> % time duration must not be negative
+             0;
+        Val -> Val
+    end.
 
 %%----------------------------------------------------------------------
 %% Func: chop/1

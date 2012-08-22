@@ -34,7 +34,6 @@
 
 -behaviour(gen_server).
 
--include("ts_profile.hrl").
 -include("ts_config.hrl").
 
 -define(DELAYED_WRITE_SIZE,524288). % 512KB

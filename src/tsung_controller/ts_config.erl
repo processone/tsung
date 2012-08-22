@@ -1027,7 +1027,7 @@ get_dynvar_name(VarNameStr) ->
 %% check if we are using popularity or weights; keep the total up to date.
 get_popularity(Proba,Weight,_,_) when is_number(Proba), Proba > 0, is_number(Weight), Weight > 0 ->
     erlang:error({"can't mix probabilites and weights", Proba, Weight} );
-get_popularity(Proba, Weight, true,_)     when is_number(Proba), Proba > 0->
+get_popularity(Proba, _Weight, true,_)     when is_number(Proba), Proba > 0->
     erlang:error({"can't use probability when using weight"});
 get_popularity(_, Weight, false,_)        when is_number(Weight), Weight > 0->
     erlang:error({"can't use weights when using probabilities"});

@@ -29,7 +29,7 @@
 -export([start/2, start_phase/3, stop/1, stop_all/1, status/1]).
 -behaviour(application).
 
--include("ts_profile.hrl").
+-include("ts_macros.hrl").
 -include_lib("kernel/include/file.hrl").
 
 %%----------------------------------------------------------------------

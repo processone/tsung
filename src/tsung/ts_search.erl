@@ -33,6 +33,7 @@
 
 -export([subst/2, match/5, parse_dynvar/2]).
 
+-include("ts_macros.hrl").
 -include("ts_profile.hrl").
 
 %% @type dynvar() = {Key::atom(), Value::string()} | [].

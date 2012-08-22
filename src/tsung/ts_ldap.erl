@@ -38,6 +38,7 @@
          new_session/0
          ]).
 
+-include("ts_macros.hrl").
 -include("ts_profile.hrl").
 -include("ts_ldap.hrl").
 -include("ELDAPv3.hrl").

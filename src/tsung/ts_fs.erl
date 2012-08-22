@@ -29,6 +29,7 @@
 
 -behavior(ts_plugin).
 
+-include("ts_macros.hrl").
 -include("ts_profile.hrl").
 -include("ts_fs.hrl").
 -include_lib("kernel/include/file.hrl").

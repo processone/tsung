@@ -30,7 +30,7 @@
 -behaviour(gen_server).
 
 
--include("ts_profile.hrl").
+-include("ts_macros.hrl").
 -include("ts_os_mon.hrl").
 -include_lib("snmp/include/snmp_types.hrl").
 

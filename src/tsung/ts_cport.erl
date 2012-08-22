@@ -29,7 +29,7 @@
 
 -behaviour(gen_server).
 
--include("ts_profile.hrl").
+-include("ts_macros.hrl").
 
 %% API
 -export([start_link/1, get_port/2]).

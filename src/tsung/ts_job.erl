@@ -29,6 +29,7 @@
 
 -behaviour(ts_plugin).
 
+-include("ts_macros.hrl").
 -include("ts_profile.hrl").
 -include("ts_job.hrl").
 -include_lib("kernel/include/file.hrl").
@@ -165,7 +166,7 @@ parse({os, cmd, _Args, Res},State=#state_rcv{session=S,dump=Dump}) when is_list(
     case lists:last(Lines) of
         "OAR_JOB_ID="++ID ->
             ?LOGF("OK,job id is ~p",[ID],?INFO),
-            ts_job_notify:monitor({ID,self(),S#job_session.submission_time, now(),Dump}),
+            ts_job_notify:monitor({ID,self(),S#job_session.submission_time, ?NOW,Dump}),
             {State#state_rcv{ack_done=true,datasize=length(Res)}, [], false};
         _ ->
             {State#state_rcv{ack_done=true,datasize=length(Res)}, [], false}
@@ -214,4 +215,4 @@ get_message(#job{type=oar,user=U,req=submit, name=N,script=S, resources=R, queue
         ++"\""++S++" "++D++"\"",
     ?LOGF("Will run ~p",[Cmd],?INFO),
     Message = {os, cmd, [Cmd], length(Cmd) },
-    {Message, Session#job_session{submission_time=now()}}.
+    {Message, Session#job_session{submission_time=?NOW}}.

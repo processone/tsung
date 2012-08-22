@@ -34,8 +34,8 @@
 %%% to the client at anytime (full bidirectional protocol, as jabber
 %%% for ex)
 
--include("ts_profile.hrl").
 -include("ts_config.hrl").
+-include("ts_profile.hrl").
 
 -define(MAX_RETRIES,3). % max number of connection retries
 -define(RETRY_TIMEOUT,10000). % waiting time between retries (msec)
@@ -105,7 +105,7 @@ init(#session{ id           = SessionId,
     NewDynVars = ts_dynvars:set(tsung_userid,Id,
                                 DynData#dyndata.dynvars),
     NewDynData = DynData#dyndata{dynvars=NewDynVars},
-    StartTime= now(),
+    StartTime= ?NOW,
     set_thinktime(?short_timeout),
     ?DebugF("IP param: ~p~n",[IP]),
     NewIP = case IP of
@@ -212,8 +212,8 @@ handle_info({NetEvent, _Socket, Data}, wait_ack, State=#state_rcv{rate_limit=Tok
                         undefined ->
                             undefined;
                         #token_bucket{rate=R,burst=Burst,current_size=S0, last_packet_date=T0} ->
-                            {S1,_Wait}=token_bucket(R,Burst,S0,T0,size(Data),now(),true),
-                            TokenParam#token_bucket{current_size=S1, last_packet_date=now()}
+                            {S1,_Wait}=token_bucket(R,Burst,S0,T0,size(Data),?NOW,true),
+                            TokenParam#token_bucket{current_size=S1, last_packet_date=?NOW}
                     end,
     {NewState, Opts} = handle_data_msg(Data, State),
     NewSocket = ts_utils:inet_setopts(NewState#state_rcv.protocol,
@@ -400,14 +400,14 @@ handle_next_action(State) ->
                     {next_state, think, State#state_rcv{count=Count}}
             end;
         {transaction, start, Tname} ->
-            Now = now(),
+            Now = ?NOW,
             ?LOGF("Starting new transaction ~p (now~p)~n", [Tname,Now], ?INFO),
             TrList = State#state_rcv.transactions,
             NewState = State#state_rcv{transactions=[{Tname,Now}|TrList],
                                    count=Count},
             handle_next_action(NewState);
         {transaction, stop, Tname} ->
-            Now = now(),
+            Now = ?NOW,
             ?LOGF("Stopping transaction ~p (~p)~n", [Tname, Now], ?INFO),
             TrList = State#state_rcv.transactions,
             {value, {_, Tr}} = lists:keysearch(Tname, 1, TrList),
@@ -449,7 +449,7 @@ handle_next_action(State) ->
             handle_next_action(NewState);
         {set_option, undefined, rate_limit, {Rate, Burst}} ->
             ?LOGF("Set rate limits for client: rate=~p, burst=~p~n",[Rate,Burst],?DEB),
-            RateConf=#token_bucket{rate=Rate,burst=Burst,last_packet_date=now()},
+            RateConf=#token_bucket{rate=Rate,burst=Burst,last_packet_date=?NOW},
             Thresh=lists:min([Burst,State#state_rcv.size_mon_thresh]),
             handle_next_action(State#state_rcv{size_mon=Thresh,size_mon_thresh=Thresh,rate_limit=RateConf,count=Count});
         {set_option, Type, Name, Args} ->
@@ -701,7 +701,7 @@ handle_next_request(Request, State) ->
              end,
 
     {Message, NewSession} = Type:get_message(Param,State),
-    Now = now(),
+    Now = ?NOW,
 
     %% reconnect if needed
     Proto = {Protocol,State#state_rcv.proto_opts},
@@ -785,7 +785,7 @@ size_msg({_Mod,_Fun,_Args,Size}) -> Size.
 %% Args: State
 %%----------------------------------------------------------------------
 finish_session(State) ->
-    Now = now(),
+    Now = ?NOW,
     set_connected_status(false),
     Elapsed = ts_utils:elapsed(State#state_rcv.starttime, Now),
     case State#state_rcv.transactions of
@@ -856,10 +856,10 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort, Try}) when 
     ?DebugF("Try to (re)connect to: ~p:~p from ~p using protocol ~p~n",
             [ServerName,Port,IP,Protocol]),
     Opts = protocol_options(Protocol, Proto_opts)  ++ socket_opts(IP, CPort, Protocol),
-    Before= now(),
+    Before= ?NOW,
     case connect(Protocol,ServerName, Port, Opts) of
         {ok, Socket} ->
-            Elapsed = ts_utils:elapsed(Before, now()),
+            Elapsed = ts_utils:elapsed(Before, ?NOW),
             ts_mon:add({ sample, connect, Elapsed }),
             set_connected_status(true),
             ?Debug("(Re)connected~n"),
@@ -1146,7 +1146,7 @@ set_connected_status(false, Old) when Old==undefined; Old==false ->
 %% Purpose: update the statistics for no_ack requests
 %%----------------------------------------------------------------------
 update_stats_noack(#state_rcv{page_timestamp=PageTime,request=Request}) ->
-    Now = now(),
+    Now = ?NOW,
     Stats= [{ count, request_noack}], % count and not sample because response time is not defined in this case
     case Request#ts_request.endpage of
         true -> % end of a page, compute page reponse time
@@ -1165,7 +1165,7 @@ update_stats_noack(#state_rcv{page_timestamp=PageTime,request=Request}) ->
 %% Purpose: update the statistics
 %%----------------------------------------------------------------------
 update_stats(State=#state_rcv{size_mon_thresh=T,page_timestamp=PageTime,send_timestamp=SendTime}) ->
-    Now = now(),
+    Now = ?NOW,
     Elapsed = ts_utils:elapsed(SendTime, Now),
     Stats = case   State#state_rcv.size_mon > T of
                 true ->

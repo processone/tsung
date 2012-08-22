@@ -260,7 +260,7 @@ handle_call({get_user_param, HostName}, _From, State=#state{users=UserId}) ->
     Config = State#state.config,
     {value, Client} = lists:keysearch(HostName, #client.host, Config#config.clients),
     {IPParam, Server} = get_user_param(Client,Config),
-    ts_mon:newclient({static,now()}),
+    ts_mon:newclient({static,?NOW}),
     {reply, {ok, { IPParam, Server, UserId,Config#config.dump,Config#config.seed}}, State#state{users=UserId+1}};
 
 %% get a new session id and user parameters for the given node
@@ -271,7 +271,7 @@ handle_call({get_next_session, HostName}, _From, State=#state{users=Users}) ->
     case choose_session(Config#config.sessions, Config#config.total_popularity) of
         {ok, Session=#session{id=Id}} ->
             ?LOGF("Session ~p choosen~n",[Id],?INFO),
-            ts_mon:newclient({Id,now()}),
+            ts_mon:newclient({Id,?NOW}),
             {IPParam, Server} = get_user_param(Client,Config),
             {reply, {ok, Session#session{client_ip= IPParam, server=Server,userid=Users,
                                          dump=Config#config.dump, seed=Config#config.seed}},
@@ -465,7 +465,7 @@ is_vm_local('localhost',_,true) -> true;
 is_vm_local(_,_,_)              -> false.
 
 set_start_date(undefined)->
-     ts_utils:add_time(now(), ?config(warm_time));
+     ts_utils:add_time(?NOW, ?config(warm_time));
 set_start_date(Date) -> Date.
 
 get_user_param(Client,Config)->

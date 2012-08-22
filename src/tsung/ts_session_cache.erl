@@ -50,7 +50,7 @@
 
 -define(DUMP_STATS_INTERVAL, 500). % in milliseconds
 
--include("ts_profile.hrl").
+-include("ts_macros.hrl").
 
 %%====================================================================
 %% External functions

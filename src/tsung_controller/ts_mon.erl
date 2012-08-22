@@ -37,7 +37,6 @@
 
 -behaviour(gen_server).
 
--include("ts_profile.hrl").
 -include("ts_config.hrl").
 
 %% External exports
@@ -109,7 +108,7 @@ add(Data) ->
 add_match(Data,{UserId,SessionId,RequestId,Tr}) ->
     add_match(Data,{UserId,SessionId,RequestId,[],Tr});
 add_match(Data=[Head|_],{UserId,SessionId,RequestId,Bin,Tr}) ->
-    TimeStamp=now(),
+    TimeStamp=?NOW,
     put(last_match,Head),
     ts_mon_cache:add_match(Data,{UserId,SessionId,RequestId,TimeStamp, Bin,Tr}).
 
@@ -131,17 +130,17 @@ endclient({Who, When, Elapsed}) ->
 sendmes({none, _, _})       -> skip;
 sendmes({protocol, _, _})   -> skip;
 sendmes({_Type, Who, What}) ->
-    gen_server:cast({global, ?MODULE}, {sendmsg, Who, now(), What}).
+    gen_server:cast({global, ?MODULE}, {sendmsg, Who, ?NOW, What}).
 
 rcvmes({none, _, _})    -> skip;
 rcvmes({protocol, _, _})-> skip;
 rcvmes({_, _, closed})  -> skip;
 rcvmes({_Type, Who, What})  ->
-    gen_server:cast({global, ?MODULE}, {rcvmsg, Who, now(), What}).
+    gen_server:cast({global, ?MODULE}, {rcvmsg, Who, ?NOW, What}).
 
 dump({none, _, _})-> skip;
 dump({_Type, Who, What})  ->
-    gen_server:cast({global, ?MODULE}, {dump, Who, now(), What}).
+    gen_server:cast({global, ?MODULE}, {dump, Who, ?NOW, What}).
 
 launcher_is_alive() ->
     gen_server:cast({global, ?MODULE}, {launcher_is_alive}).
@@ -164,7 +163,7 @@ init([LogDir]) ->
     State=#state{ dump_interval = ?config(dumpstats_interval),
                   log_dir   = LogDir,
                   stats     = Stats,
-                  lastdate  = now(),
+                  lastdate  = ?NOW,
                   laststats = Stats
                 },
     case ?config(mon_file) of
@@ -197,7 +196,7 @@ handle_call({start_logger, Machines, DumpType, Backend}, From, State) ->
 %%% get status
 handle_call({status}, _From, State) ->
     Request   = ts_stats_mon:status(request),
-    Interval  = ts_utils:elapsed(State#state.lastdate, now()) / 1000,
+    Interval  = ts_utils:elapsed(State#state.lastdate, ?NOW) / 1000,
     Phase     = ts_stats_mon:status(newphase,sum),
     Connected =  case ts_stats_mon:status(connected,sum) of
                      {ok, Val} -> Val;
@@ -284,7 +283,7 @@ handle_cast({dumpstats}, State=#state{stats=Stats}) ->
     NewSessions = ts_stats_mon:reset_all_stats(Stats#stats.session),
     NewOSmon = ts_stats_mon:reset_all_stats(Stats#stats.os_mon),
     NewStats = Stats#stats{session=NewSessions, os_mon=NewOSmon},
-    {noreply, State#state{laststats = Stats, stats=NewStats,lastdate=now()}};
+    {noreply, State#state{laststats = Stats, stats=NewStats,lastdate=?NOW}};
 
 
 handle_cast({sendmsg, _, _, _}, State = #state{type = none}) ->
@@ -369,7 +368,7 @@ terminate(Reason, State) ->
         json ->
             io:format(State#state.log,"]}]}~n",[]);
         _ ->
-            io:format(State#state.log,"EndMonitor:~w~n",[now()])
+            io:format(State#state.log,"EndMonitor:~w~n",[?NOW])
         end,
     case State#state.log of
         standard_io -> ok;

@@ -56,7 +56,6 @@
 
 -define(DICT, dict).
 
--include("ts_profile.hrl").
 -include("ts_config.hrl").
 -include("xmerl.hrl").
 
