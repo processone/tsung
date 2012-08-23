@@ -97,6 +97,7 @@ parse_config(Element = #xmlElement{name=jabber},
     MUC_service = ts_config:get_default(Tab, muc_service, muc_service),
     PubSub_service =ts_config:get_default(Tab, pubsub_service, pubsub_service),
 
+    UserPrefix=ts_config:get_default(Tab, jabber_username, jabber_username),
 
     %% Authentication
     {XMPPId, UserName, Passwd} = case lists:keysearch(xmpp_authenticate, #xmlElement.name,
@@ -108,9 +109,8 @@ parse_config(Element = #xmlElement{name=jabber},
                                                         passwd, undefined),
                               {user_defined,User,PWD};
                           _ ->
-                              GUserName=ts_config:get_default(Tab, jabber_username, jabber_username),
                               GPasswd  =ts_config:get_default(Tab, jabber_passwd, jabber_passwd),
-                              {0,GUserName,GPasswd}
+                              {0,UserPrefix,GPasswd}
                       end,
 
 
@@ -140,7 +140,8 @@ parse_config(Element = #xmlElement{name=jabber},
                                     node = Node,
                                     node_type = NodeType,
                                     subid = SubId,
-                                    version = Version
+                                    version = Version,
+                                    prefix = UserPrefix
                                    }
                    },
     ts_config:mark_prev_req(Id-1, Tab, CurS),

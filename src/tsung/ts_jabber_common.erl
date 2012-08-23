@@ -63,11 +63,13 @@ get_message(#jabber{type = 'presence:final', id=Id,username=User,passwd=Pwd,user
     presence(unavailable);
 get_message(#jabber{type = 'presence:broadcast', show=Show, status=Status}) ->
     presence(broadcast, Show, Status);
-get_message(Jabber=#jabber{type = 'presence:directed', id=Id,username=User,passwd=Pwd,
+get_message(Jabber=#jabber{type = 'presence:directed', id=Id,username=User,passwd=Pwd,prefix=Prefix,
                            show=Show, status=Status,user_server=UserServer}) ->
     case ts_user_server:get_online(UserServer,set_id(Id,User,Pwd)) of
-        {ok, Dest} ->
+        {ok, {Dest,_}} ->
             presence(directed, Dest, Jabber, Show, Status);
+        {ok, Dest} ->
+            presence(directed, ts_jabber:username(Prefix,Dest), Jabber, Show, Status);
         {error, no_online} ->
             ts_mon:add({ count, error_no_online }),
             << >>
@@ -91,6 +93,8 @@ get_message(#jabber{type = 'presence:subscribe'}) -> %% must be called AFTER iq:
 get_message(Jabber=#jabber{type = 'chat', id=Id, dest=online,username=User,passwd=Pwd,
                            domain=Domain,user_server=UserServer})->
     case ts_user_server:get_online(UserServer,set_id(Id,User,Pwd)) of
+        {ok, {Dest,_}} ->
+            message(Dest, Jabber, Domain);
         {ok, Dest} ->
             message(Dest, Jabber, Domain);
         {error, no_online} ->
@@ -101,6 +105,8 @@ get_message(Jabber=#jabber{type = 'chat', id=Id, dest=online,username=User,passw
 get_message(Jabber=#jabber{type = 'chat', domain = Domain,
                            dest=offline,user_server=UserServer}) ->
     case ts_user_server:get_offline(UserServer) of
+        {ok, {Dest,_}} ->
+            message(Dest, Jabber, Domain);
         {ok, Dest} ->
             message(Dest, Jabber, Domain);
         {error, no_offline} ->
@@ -121,19 +127,23 @@ get_message(Jabber=#jabber{type = 'chat', id=_Id, dest = Dest, domain=Domain}) -
     ?DebugF("~w -> ~w ~n", [_Id,  Dest]),
     message(Dest, Jabber, Domain);
 get_message(#jabber{type = 'iq:roster:add', id=Id, dest = online, username=User,passwd=Pwd,
-                    domain=Domain, group=Group,user_server=UserServer}) ->
+                    domain=Domain, group=Group,user_server=UserServer, prefix=Prefix}) ->
     case ts_user_server:get_online(UserServer,set_id(Id,User,Pwd)) of
-        {ok, Dest} ->
-            request(roster_add, User, Domain, Dest, Group);
+        {ok, {Dest,_}} ->
+            request(roster_add, Domain, Dest, Group);
+        {ok, DestId} ->
+            request(roster_add, Domain, ts_jabber:username(Prefix,DestId), Group);
         {error, no_online} ->
             ts_mon:add({ count, error_no_online }),
             << >>
     end;
-get_message(#jabber{type = 'iq:roster:add',dest = offline, username=User,
+get_message(#jabber{type = 'iq:roster:add',dest = offline, prefix=Prefix,
                     domain=Domain, group=Group, user_server=UserServer})->
     case ts_user_server:get_offline(UserServer) of
+        {ok, {Dest,_}} ->
+            request(roster_add, Domain, Dest, Group);
         {ok, Dest} ->
-            request(roster_add, User, Domain, Dest, Group);
+            request(roster_add, Domain, ts_jabber:username(Prefix,Dest), Group);
         {error, no_offline} ->
             ts_mon:add({ count, error_no_offline }),
             << >>
@@ -163,66 +173,71 @@ get_message(Jabber=#jabber{type = 'raw'}) ->
 %% -- Pubsub benchmark support --
 %% For node creation, data contains the pubsub nodename (relative to user
 %% hierarchy or absolute, optional)
-get_message(#jabber{type = 'pubsub:create', id=Id, username=User,
-                    node=Node, node_type=NodeType, data = Data, pubsub_service = PubSubComponent, domain = Domain}) ->
-    Username = username(User,Id),
+get_message(#jabber{type = 'pubsub:create', username=Username, node=Node, node_type=NodeType,
+                    data = Data, pubsub_service = PubSubComponent, domain = Domain}) ->
     create_pubsub_node(Domain, PubSubComponent, Username, Node, NodeType, Data);
 %% For node subscription, data contain the pubsub nodename (relative to user
 %% hierarchy or absolute)
-get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=User, user_server=UserServer,
-                    passwd=Pwd,
+get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=UserFrom, user_server=UserServer,
+                    passwd=Pwd, prefix=Prefix,
                     dest=online, node=Node, pubsub_service = PubSubComponent, domain = Domain}) ->
-    case ts_user_server:get_online(UserServer,set_id(Id,User,Pwd)) of
+    case ts_user_server:get_online(UserServer,set_id(Id,UserFrom,Pwd)) of
+        {ok, {UserTo,_}} ->
+            subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node);
         {ok, Dest} ->
-            UserFrom = username(User,Id),
-            UserTo = username(User, id_to_string(Dest)),
+            UserTo = ts_jabber:username(Prefix, id_to_string(Dest)),
             subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node);
         {error, no_online} ->
             ts_mon:add({ count, error_no_online }),
             << >>
     end;
-get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=User, user_server=UserServer,
+get_message(#jabber{type = 'pubsub:subscribe', username=UserFrom, user_server=UserServer, prefix=Prefix,
                     dest=offline, node=Node, domain = Domain, pubsub_service = PubSubComponent}) ->
     case ts_user_server:get_offline(UserServer) of
-        {ok, Dest} ->
-            UserFrom = username(User,Id),
-            UserTo = username(User,id_to_string(Dest)),
+        {ok, {UserTo,_}} ->
+            subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node);
+        {ok, DestId} ->
+            UserTo = ts_jabber:username(Prefix,id_to_string(DestId)),
             subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node);
         {error, no_offline} ->
             ts_mon:add({ count, error_no_offline }),
             << >>
     end;
-get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=User, user_server=UserServer,
+get_message(#jabber{type = 'pubsub:subscribe', username=UserFrom, user_server=UserServer, prefix=Prefix,
                     dest=random, node=Node, domain = Domain, pubsub_service = PubSubComponent}) ->
-    Dest = ts_user_server:get_id(UserServer),
-    UserFrom = username(User,Id),
-    UserTo = username(User,id_to_string(Dest)),
-    subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node);
+    case ts_user_server:get_id(UserServer) of
+        {UserTo,_} ->
+            subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node);
+        DestId     ->
+            UserTo = ts_jabber:username(Prefix,id_to_string(DestId)),
+            subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node)
+    end;
 
-get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=User,
+get_message(#jabber{type = 'pubsub:subscribe', username=UserFrom,
                     dest=UserTo, node=Node, domain = Domain, pubsub_service = PubSubComponent}) ->
-    UserFrom = username(User,Id),
-    subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node);
+    subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node); %% FIXME is it ok ?!
 
 %% For node unsubscribe, data contain the pubsub nodename (relative to user
 %% hierarchy or absolute)
-get_message(#jabber{type = 'pubsub:unsubscribe', id=Id, username=User, user_server=UserServer,
+get_message(#jabber{type = 'pubsub:unsubscribe', username=UserFrom, user_server=UserServer, prefix=Prefix,
                     dest=random, node=Node, domain=Domain, pubsub_service=PubSubComponent, subid=SubId}) ->
-    Dest = ts_user_server:get_id(UserServer),
-    UserFrom = username(User,Id),
-    UserTo = username(User,id_to_string(Dest)),
-    unsubscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node, SubId);
 
-get_message(#jabber{type = 'pubsub:unsubscribe', id=Id, username=User,
+    case ts_user_server:get_id(UserServer) of
+        {UserTo,_} ->
+            unsubscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node, SubId);
+        DestId     ->
+            UserTo = ts_jabber:username(Prefix,id_to_string(DestId)),
+            unsubscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node, SubId)
+    end;
+
+get_message(#jabber{type = 'pubsub:unsubscribe', username=UserFrom,
                     dest=UserTo, node=Node, domain=Domain, pubsub_service=PubSubComponent, subid=SubId}) ->
-    UserFrom = username(User,Id),
     unsubscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node, SubId);
 
 %% For node publication, data contain the pubsub nodename (relative to user
 %% hierarchy or absolute)
-get_message(#jabber{type = 'pubsub:publish', size=Size, id=Id,
-                    username=User, node=Node, pubsub_service = PubSubComponent, domain = Domain}) ->
-    Username = username(User,Id),
+get_message(#jabber{type = 'pubsub:publish', size=Size, username=Username,
+                    node=Node, pubsub_service=PubSubComponent, domain=Domain}) ->
     publish_pubsub_node(Domain, PubSubComponent, Username, Node, Size);
 
 
@@ -240,15 +255,13 @@ get_message(Jabber=#jabber{id=user_defined}) ->
     get_message2(Jabber);
 
 %% Privacy lists benchmark support
-get_message(#jabber{type = 'privacy:get_names', username = Name, id = Id, domain = Domain}) ->
-    privacy_get_names(username(Name, Id), Domain);
-get_message(#jabber{type = 'privacy:set_active', username = Name, id = Id, domain = Domain}) ->
-    privacy_set_active(username(Name, Id), Domain);
+get_message(#jabber{type = 'privacy:get_names', username = Name, domain = Domain}) ->
+    privacy_get_names(Name, Domain);
+get_message(#jabber{type = 'privacy:set_active', username = Name, domain = Domain}) ->
+    privacy_set_active(Name, Domain);
 
-get_message(Jabber=#jabber{username=Name, passwd=Passwd, id=Id}) ->
-    FullName = username(Name, Id),
-    FullPasswd = password(Passwd,Id),
-    get_message2(Jabber#jabber{username=FullName,passwd=FullPasswd}).
+get_message(Jabber) ->
+    get_message2(Jabber).
 
 
 
@@ -447,16 +460,14 @@ registration(#jabber{username=Name,passwd=Passwd,resource=Resource})->
 %% Func: message/3
 %% Purpose: send message to defined user at the Service (aim, ...)
 %%----------------------------------------------------------------------
-message(Dest, #jabber{size=Size,data=undefined, username=User}, Service) when is_integer(Size) ->
+message(Dest, #jabber{size=Size,data=undefined, username=Username}, Service) when is_integer(Size) ->
     put(previous, Dest),
-    Username = username(User,Dest),
     list_to_binary([
                     "<message id='",ts_msg_server:get_id(list), "' to='",
                     Username, "@", Service,
                     "' type='chat'><body>",ts_utils:urandomstr_noflat(Size), "</body></message>"]);
-message(Dest, #jabber{data=Data, username=User}, Service) when is_list(Data) ->
+message(Dest, #jabber{data=Data, username=Username}, Service) when is_list(Data) ->
     put(previous, Dest),
-    Username = username(User,Dest),
     list_to_binary([
                     "<message id='",ts_msg_server:get_id(list), "' to='",
                     Username, "@", Service,
@@ -477,8 +488,6 @@ presence(unavailable)->
 %%----------------------------------------------------------------------
 %% Func: presence/2
 %%----------------------------------------------------------------------
-presence(Type, Jabber=#jabber{dest=Dest}) when is_integer(Dest)->
-    presence(Type, Jabber#jabber{dest=integer_to_list(Dest)}) ;
 presence(roster, Jabber)->
     presence(subscribed, Jabber);
 presence(subscribe, RosterJid)->
@@ -488,8 +497,7 @@ presence(subscribe, RosterJid)->
            "' type='subscribe'/>"]);
 presence(Type, Jabber) when is_atom(Type)->
     presence(atom_to_list(Type), Jabber);
-presence(Type, #jabber{dest=Dest, domain=Domain, username=UserName})->
-    DestName = username(UserName, Dest),
+presence(Type, #jabber{dest=DestName, domain=Domain})->
     list_to_binary([
       "<presence id='",ts_msg_server:get_id(list),
       "' to='", DestName, "@" , Domain,
@@ -505,10 +513,7 @@ presence(broadcast, Show, Status) ->
 %%----------------------------------------------------------------------
 %% Func: presence/4
 %%----------------------------------------------------------------------
-presence(directed, Dest, Jabber, Show, Status) when is_integer(Dest) ->
-    presence(directed, integer_to_list(Dest), Jabber, Show, Status);
-presence(directed, Dest, #jabber{username=UserName,domain=Domain}, Show, Status) ->
-    DestName = username(UserName,Dest),
+presence(directed, DestName, #jabber{domain=Domain}, Show, Status) ->
     list_to_binary([
           "<presence id='",ts_msg_server:get_id(list),
           "' to='", DestName, "@" , Domain , "'>",
@@ -531,17 +536,16 @@ request(roster_remove, RosterJid) ->
                 ,RosterJid,
                 "' subscription='remove'/></query></iq>"]).
 %%----------------------------------------------------------------------
-%% Func: request/5
+%% Func: request/4
 %%----------------------------------------------------------------------
-request(roster_add, UserName, Domain, Id, Group)->
-        Name = username(UserName,Id),
-        RosterJid = Name ++ "@" ++ Domain,
+request(roster_add, Domain, Dest, Group)->
+        RosterJid = Dest ++ "@" ++ Domain,
         _ = put(rosterjid,RosterJid),
         list_to_binary([
                 "<iq id='" ,ts_msg_server:get_id(list),
                 "' type='set'>","<query xmlns='jabber:iq:roster'><item jid='",
                 RosterJid,
-                "' name='",RosterJid,"'><group>",Group,"</group></item></query></iq>"]).
+                "' name='",RosterJid,"'><group>",Group,"</group></item></query></iq>"]);
 %% Func: request/4
 request(roster_get, _UserName, _Domain, _Id)->
     list_to_binary([
@@ -714,29 +718,12 @@ privacy_set_active(User, Domain) ->
     list_to_binary(Req).
 
 
-%%%----------------------------------------------------------------------
-%%% Func: username/2
-%%% Generate the username given a prefix and id
-%%%----------------------------------------------------------------------
-username(Prefix, DestId) when is_integer(DestId)->
-    Prefix ++ integer_to_list(DestId);
-username(_Prefix, DestUser) ->
-    DestUser.
 
 %%% Convert Id to string
 %%% Change this if you want to have padding
 id_to_string(Id) when is_integer(Id)->
     integer_to_list(Id);
 id_to_string(Id) -> Id.
-
-%%%----------------------------------------------------------------------
-%%% Func: password/1
-%%% Generate password for a given username
-%%%----------------------------------------------------------------------
-password(Prefix,Id) when is_integer(Id)->
-    Prefix ++ integer_to_list(Id);
-password(Prefix,Id) ->
-    Prefix ++ Id.
 
 %% set the real Id; by default use the Id; but it user and passwd is
 %% defined statically (using csv for example), Id is the tuple { User, Passwd }

@@ -60,7 +60,7 @@ session_defaults() ->
 %% @doc We need to decode buffer (remove chunks, decompress ...) for
 %%      matching or dyn_variables
 %% @end
-decode_buffer(Buffer,#jabber{}) ->
+decode_buffer(Buffer,#jabber_session{}) ->
     Buffer. % nothing to do for jabber
 
 %%----------------------------------------------------------------------
@@ -69,7 +69,7 @@ decode_buffer(Buffer,#jabber{}) ->
 %% Returns: record or []
 %%----------------------------------------------------------------------
 new_session() ->
-    #jabber{}. %FIXME: we should use another record (#jabber_session for ex.)
+    #jabber_session{}.
 %%----------------------------------------------------------------------
 %% Function: get_message/1
 %% Purpose: Build a message/request
@@ -182,23 +182,49 @@ parse_config(Element, Conf) ->
 %% if we are testing a single domain (the default case), we  change from {domain,D}.
 %% to the specified domain (D). If {vhost,FileId}, we choose a domain from that file
 %% and set it.
-add_dynparams(Subst,DynData, Param =#jabber{id=OldId,username=OldUser,passwd=OldPasswd, domain={domain,Domain}}, Host) ->
-    {Id,User,Pwd} = choose_or_cache_user_id(OldId,OldUser,OldPasswd),
-    add_dynparams(Subst,DynData, Param#jabber{id=Id,username=User,passwd=Pwd,domain=Domain, user_server=default},Host);
+%% handle domain (first request in session)
+add_dynparams(Subst,DynData=#dyndata{proto=JDynData}, Param=#jabber{domain={domain,Domain}}, Host) when JDynData#jabber_dyndata.domain == undefined ->
+    NewJDynData = JDynData#jabber_dyndata{domain=Domain, user_server=default},
+    add_dynparams(Subst,DynData#dyndata{proto=NewJDynData}, Param,Host);
 
-add_dynparams(Subst,DynData,Param =#jabber{id=OldId, username=OldUser,passwd=OldPasswd, domain={vhost,FileId}}, Host) ->
-    {Id,User,Pwd} = choose_or_cache_user_id(OldId,OldUser,OldPasswd),
+add_dynparams(Subst,DynData=#dyndata{proto=JDynData}, Param =#jabber{domain={vhost,FileId}}, Host) when JDynData#jabber_dyndata.domain == undefined->
     {Domain,UserServer} = choose_domain(FileId),
-    add_dynparams(Subst,DynData, Param#jabber{id=Id,username=User, passwd=Pwd,
-                                              domain=Domain,
-                                              user_server=UserServer},Host);
-add_dynparams(_Subst,[], Param, _Host) ->
-    Param;
-add_dynparams(false,#dyndata{proto=_DynData}, Param, _Host) ->
+    NewJDynData = JDynData#jabber_dyndata{domain=Domain,user_server=UserServer},
+    add_dynparams(Subst,DynData#dyndata{proto=NewJDynData}, Param, Host);
+
+%% handle username/passwd (first request in session)
+add_dynparams(Subst,DynData=#dyndata{proto=JDynData}, Param=#jabber{id=user_defined,username=User,passwd=Passwd}, Host) when JDynData#jabber_dyndata.id == undefined->
+    NewJDynData = JDynData#jabber_dyndata{id=user_defined,username=User,passwd=Passwd},
+    add_dynparams(Subst,DynData#dyndata{proto=NewJDynData}, Param, Host);
+add_dynparams(Subst,DynData=#dyndata{proto=JDynData}, Param=#jabber{prefix=Prefix,passwd=Passwd}, Host) when JDynData#jabber_dyndata.id == undefined->
+    Id = case ts_user_server:get_idle(JDynData#jabber_dyndata.user_server) of
+             {error, no_free_userid} ->
+                 ts_mon:add({ count, error_no_free_userid }),
+                 exit(no_free_userid);
+             Val->
+                 Val
+    end,
+    {NewUser,NewPasswd} = {username(Prefix,Id), password(Passwd,Id)},
+    NewJDynData = JDynData#jabber_dyndata{id=Id,username=NewUser,passwd=NewPasswd},
+    add_dynparams(Subst,DynData#dyndata{proto=NewJDynData}, Param,Host);
+
+
+%% regular case
+add_dynparams(Subst,DynData=#dyndata{proto=JDynData}, Param =#jabber{}, Host) ->
+    ?LOG("glop0~n",?DEB),
+    add_dynparams2(Subst,DynData, Param#jabber{id=JDynData#jabber_dyndata.id,
+                                              username=JDynData#jabber_dyndata.username,
+                                              passwd=JDynData#jabber_dyndata.passwd,
+                                              domain=JDynData#jabber_dyndata.domain,
+                                              user_server=JDynData#jabber_dyndata.user_server},Host).
+
+add_dynparams2(false,#dyndata{}, Param, _Host) ->
     Param; %%ID substitution already done
-add_dynparams(true,#dyndata{proto=_JabDynData, dynvars=DynVars}, Param, _Host) ->
+add_dynparams2(true,#dyndata{proto=_JabDynData, dynvars=DynVars}, Param, _Host) ->
     ?DebugF("Subst in jabber msg (~p) with dyn vars ~p~n",[Param,DynVars]),
+    ?LOG("glop1~n",?DEB),
    NewParam = subst(Param, DynVars),
+    ?LOG("glop2~n",?DEB),
    updatejab(DynVars, NewParam).
 
 
@@ -206,20 +232,9 @@ add_dynparams(true,#dyndata{proto=_JabDynData, dynvars=DynVars}, Param, _Host) -
 %% than use side effects, as get_message/1 andn add_dynparams/4 aren't allowed
 %% to return a new DynData, and so they can't modify the session state.
 choose_domain(VHostFileId) ->
-    case get(xmpp_vhost_domain) of
-        undefined ->
-            Domain = do_choose_domain(VHostFileId),
-            UserServer = global:whereis_name(list_to_atom("us_"++Domain)),
-            put(xmpp_vhost_domain,{Domain,UserServer}),
-            {Domain,UserServer};
-        X ->
-            X
-     end.
-
-do_choose_domain(VHostFileId) ->
-    {ok,D} = ts_file_server:get_random_line(VHostFileId),
-    D.
-
+    {ok,Domain} = ts_file_server:get_random_line(VHostFileId),
+    UserServer = global:whereis_name(list_to_atom("us_"++Domain)),
+    {Domain,UserServer}.
 
 init_dynparams() ->
     #dyndata{proto=#jabber_dyndata{}}.
@@ -231,59 +246,31 @@ init_dynparams() ->
     %% ( add_dynparams/4 gets a copy of the request, from
     %%   the request we can check the file name, etc)
 
-
-
-choose_user_id(UserServer) ->
-    case ts_user_server:get_idle(UserServer) of
-        {error, no_free_userid} ->
-            ts_mon:add({ count, error_no_free_userid }),
-            exit(no_free_userid);
-        Id->
-            Id
-    end.
-
-choose_or_cache_user_id(user_defined,User,Pwd) ->
-    put(xmpp_user_id,{User,Pwd}),
-    {user_defined, User,Pwd};
-
-choose_or_cache_user_id(_OldId,User,Pwd) ->
-    case get(xmpp_user_id) of
-        undefined ->
-            Id = choose_user_id(default),
-            put(xmpp_user_id,Id),
-            {Id,User,Pwd};
-        {DefinedUser,DefinedPwd} ->
-            {user_defined, DefinedUser,DefinedPwd} ;
-        Id ->
-            {Id,User,Pwd}
-    end.
-
-
 %%----------------------------------------------------------------------
 %% Function: subst/2
 %% Purpose: Replace on the fly dynamic element
 %%----------------------------------------------------------------------
-subst(Req=#jabber{type = Type}, DynData) when Type == 'muc:chat' ; Type == 'muc:join'; Type == 'muc:nick' ; Type == 'muc:exit' ->
-    Req#jabber{nick = ts_search:subst(Req#jabber.nick, DynData),
-               room = ts_search:subst(Req#jabber.room, DynData)};
-subst(Req=#jabber{type = Type}, DynData) when Type == 'pubsub:create' ; Type == 'pubsub:subscribe'; Type == 'pubsub:publish'; Type == 'pubsub:delete' ->
-    Req#jabber{node = ts_search:subst(Req#jabber.node, DynData)};
-subst(Req=#jabber{type = Type}, DynData) when Type == 'pubsub:unsubscribe' ->
-    NewNode=ts_search:subst(Req#jabber.node,DynData),
-    NewSubId=ts_search:subst(Req#jabber.subid,DynData),
-    put(xmpp_user_id,{NewNode,NewSubId}),% we need to keep the substitution for futures requests
-    Req#jabber{node=NewNode,subid=NewSubId};
-
-subst(Req=#jabber{id=user_defined, username=Name,passwd=Pwd, data=Data}, DynData) ->
+subst(Req=#jabber{id=user_defined, username=Name,passwd=Pwd, data=Data, resource=Resource}, DynData) ->
     NewUser = ts_search:subst(Name,DynData),
     NewPwd  = ts_search:subst(Pwd,DynData),
     NewData = ts_search:subst(Data,DynData),
-    put(xmpp_user_id,{NewUser,NewPwd}),% we need to keep the substitution for futures requests
-    Req#jabber{username=NewUser,passwd=NewPwd,data=NewData};
+    subst2(Req#jabber{username=NewUser,passwd=NewPwd,data=NewData,resource=ts_search:subst(Resource,DynData)}, DynData);
 
 subst(Req=#jabber{data=Data,resource=Resource}, DynData) ->
-    Req#jabber{data=ts_search:subst(Data,DynData),resource=ts_search:subst(Resource,DynData)}.
+    subst2(Req#jabber{data=ts_search:subst(Data,DynData),resource=ts_search:subst(Resource,DynData)},DynData).
 
+
+subst2(Req=#jabber{type = Type}, DynData) when Type == 'muc:chat' ; Type == 'muc:join'; Type == 'muc:nick' ; Type == 'muc:exit' ->
+    Req#jabber{nick = ts_search:subst(Req#jabber.nick, DynData),
+               room = ts_search:subst(Req#jabber.room, DynData)};
+subst2(Req=#jabber{type = Type}, DynData) when Type == 'pubsub:create' ; Type == 'pubsub:subscribe'; Type == 'pubsub:publish'; Type == 'pubsub:delete' ->
+    Req#jabber{node = ts_search:subst(Req#jabber.node, DynData)};
+subst2(Req=#jabber{type = Type}, DynData) when Type == 'pubsub:unsubscribe' ->
+    NewNode=ts_search:subst(Req#jabber.node,DynData),
+    NewSubId=ts_search:subst(Req#jabber.subid,DynData),
+    Req#jabber{node=NewNode,subid=NewSubId};
+subst2(Req, DynData) ->
+    Req.
 
 %%----------------------------------------------------------------------
 %% Func: updatejab/2
@@ -299,4 +286,23 @@ updatejab([{sid, Val}|Rest], Param)->
    updatejab(Rest, Param#jabber{sid = Val});
 updatejab([_|Rest], Param)->
    updatejab(Rest, Param).
+
+
+
+%%%----------------------------------------------------------------------
+%%% Func: username/2
+%%% Generate the username given a prefix and id
+%%%----------------------------------------------------------------------
+username(Prefix, DestId) when is_integer(DestId)->
+    Prefix ++ integer_to_list(DestId);
+username(Prefix, DestId) ->
+    Prefix ++ DestId.
+
+%%%----------------------------------------------------------------------
+%%% Func: password/1
+%%% Generate password for a given username
+%%%----------------------------------------------------------------------
+password(Prefix,Id) ->
+    username(Prefix,Id).
+
 

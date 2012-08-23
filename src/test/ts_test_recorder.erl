@@ -10,7 +10,7 @@
 -compile(export_all).
 
 -include("ts_http.hrl").
--include("ts_profile.hrl").
+-include("ts_macros.hrl").
 -include_lib("eunit/include/eunit.hrl").
 -import(ts_http_common,[parse_req/1, parse_req/2]).
 

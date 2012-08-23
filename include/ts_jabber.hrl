@@ -24,7 +24,14 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
--record(jabber_dyndata, {id, regexp}).
+-record(jabber_session, { }).
+
+-record(jabber_dyndata, {id,
+                         regexp,
+                         user_server,
+                         username,
+                         passwd,
+                         domain}).
 
 -record(jabber, {dest,
                  size,
@@ -52,7 +59,8 @@
                  resource,
                  node_type,
                  subid,
-                 version %% 1.0 or "legacy", used by type=connect
+                 version, %% 1.0 or "legacy", used by type=connect
+                 prefix   %% username prefix
                 }).
 
 -define(setroster_intensity, 1/(ts_utils:get_val(setroster)*1000)).
