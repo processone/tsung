@@ -495,8 +495,12 @@ join(Sep, List) when is_list(List)->
     string:join(lists:map(ToStr,List), Sep).
 
 %% split a string given a string (at first occurence of char)
-split(String,Chr) ->
-    re:split(String,Chr,[{return,list}]).
+split(String,Chr) when is_list(String), is_list(Chr) ->
+    re:split(String,Chr,[{return,list}]);
+
+split(String,Chr) when is_binary(String), is_binary(Chr) ->
+    binary:split(String,[Chr],[global]).
+
 
 %% split a string given a char (faster)
 splitchar(String,Chr) ->

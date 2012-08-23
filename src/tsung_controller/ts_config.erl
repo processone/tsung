@@ -816,7 +816,7 @@ parse(Element = #xmlElement{name=setdynvars, attributes=Attrs},
                      FileId = getAttr(atom,Attrs,fileid,none),
                      case lists:keysearch(FileId,1,Conf#config.file_server) of
                          {value,_Val} ->
-                             Delimiter = getAttr(string,Attrs,delimiter,";"),
+                             Delimiter = list_to_binary(getAttr(string,Attrs,delimiter,";")),
                              {setdynvars,file,{Order,FileId,Delimiter},Vars};
                          false ->
                              io:format(standard_error, "Unknown_file_id ~p in file setdynvars declaration: you forgot to add a file_server option~n",[FileId]),
