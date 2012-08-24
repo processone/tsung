@@ -640,6 +640,10 @@ rel(R,A,B) when is_integer(B) and not is_integer(A)->
     rel(R,A,list_to_binary(integer_to_list(B)));
 rel(R,A,B) when is_integer(A) and not is_integer(B)->
     rel(R,B,list_to_binary(integer_to_list(A)));
+rel(R,A,B) when is_list(B) ->
+    rel(R,A,list_to_binary(B));
+rel(R,A,B) when is_list(A) ->
+    rel(R,list_to_binary(A),B);
 rel('eq',A,B)  ->
     A == B;
 rel('neq',A,B) -> A /= B.
