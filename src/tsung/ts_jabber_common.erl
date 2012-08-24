@@ -90,35 +90,34 @@ get_message(#jabber{type = 'presence:subscribe'}) -> %% must be called AFTER iq:
         RosterJid ->
             presence(subscribe, RosterJid)
     end;
-get_message(Jabber=#jabber{type = 'chat', id=Id, dest=online,username=User,passwd=Pwd,
+get_message(Jabber=#jabber{type = 'chat', id=Id, dest=online,username=User,passwd=Pwd, prefix=Prefix,
                            domain=Domain,user_server=UserServer})->
     case ts_user_server:get_online(UserServer,set_id(Id,User,Pwd)) of
         {ok, {Dest,_}} ->
             message(Dest, Jabber, Domain);
         {ok, Dest} ->
-            message(Dest, Jabber, Domain);
+            message(ts_jabber:username(Prefix,Dest), Jabber, Domain);
         {error, no_online} ->
             ts_mon:add({ count, error_no_online }),
             << >>
     end;
 
-get_message(Jabber=#jabber{type = 'chat', domain = Domain,
-                           dest=offline,user_server=UserServer}) ->
+get_message(Jabber=#jabber{type = 'chat',domain=Domain,prefix=Prefix,dest=offline,user_server=UserServer})->
     case ts_user_server:get_offline(UserServer) of
         {ok, {Dest,_}} ->
             message(Dest, Jabber, Domain);
         {ok, Dest} ->
-            message(Dest, Jabber, Domain);
+            message(ts_jabber:username(Prefix,Dest), Jabber, Domain);
         {error, no_offline} ->
             ts_mon:add({ count, error_no_offline }),
             << >>
     end;
-get_message(Jabber=#jabber{type = 'chat', dest=random, domain=Domain,user_server=UserServer}) ->
+get_message(Jabber=#jabber{type = 'chat', dest=random, prefix=Prefix, domain=Domain,user_server=UserServer}) ->
     Dest = ts_user_server:get_id(UserServer),
-    message(Dest, Jabber, Domain);
-get_message(Jabber=#jabber{type = 'chat', dest=unique, domain=Domain,user_server=UserServer})->
+    message(ts_jabber:username(Prefix,Dest), Jabber, Domain); % FIXME: handle user_defined ?
+get_message(Jabber=#jabber{type = 'chat', dest=unique, prefix=Prefix, domain=Domain,user_server=UserServer})->
     {Dest, _} = ts_user_server:get_first(UserServer),
-    message(Dest, Jabber, Domain);
+    message(ts_jabber:username(Prefix,Dest), Jabber, Domain); % FIXME: handle user_defined ?
 get_message(_Jabber=#jabber{type = 'chat', id=_Id, dest = undefined, domain=_Domain}) ->
     %% this can happen if previous is set but undefined, skip
     ts_mon:add({ count, error_no_previous }),
@@ -185,7 +184,7 @@ get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=UserFrom, user_se
         {ok, {UserTo,_}} ->
             subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node);
         {ok, Dest} ->
-            UserTo = ts_jabber:username(Prefix, id_to_string(Dest)), %%FIXME: we need the username prefix here
+            UserTo = ts_jabber:username(Prefix, Dest), %%FIXME: we need the username prefix here
             subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node);
         {error, no_online} ->
             ts_mon:add({ count, error_no_online }),
@@ -197,7 +196,7 @@ get_message(#jabber{type = 'pubsub:subscribe', username=UserFrom, user_server=Us
         {ok, {UserTo,_}} ->
             subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node);
         {ok, DestId} ->
-            UserTo = ts_jabber:username(Prefix,id_to_string(DestId)),
+            UserTo = ts_jabber:username(Prefix,DestId),
             subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node);
         {error, no_offline} ->
             ts_mon:add({ count, error_no_offline }),
@@ -209,7 +208,7 @@ get_message(#jabber{type = 'pubsub:subscribe', username=UserFrom, user_server=Us
         {UserTo,_} ->
             subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node);
         DestId     ->
-            UserTo = ts_jabber:username(Prefix,id_to_string(DestId)),
+            UserTo = ts_jabber:username(Prefix,DestId),
             subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node)
     end;
 
@@ -226,7 +225,7 @@ get_message(#jabber{type = 'pubsub:unsubscribe', username=UserFrom, user_server=
         {UserTo,_} ->
             unsubscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node, SubId);
         DestId     ->
-            UserTo = ts_jabber:username(Prefix,id_to_string(DestId)),
+            UserTo = ts_jabber:username(Prefix,DestId),
             unsubscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node, SubId)
     end;
 
@@ -460,17 +459,17 @@ registration(#jabber{username=Name,passwd=Passwd,resource=Resource})->
 %% Func: message/3
 %% Purpose: send message to defined user at the Service (aim, ...)
 %%----------------------------------------------------------------------
-message(Dest, #jabber{size=Size,data=undefined, username=Username}, Service) when is_integer(Size) ->
+message(Dest, #jabber{size=Size,data=undefined}, Service) when is_integer(Size) ->
     put(previous, Dest),
     list_to_binary([
                     "<message id='",ts_msg_server:get_id(list), "' to='",
-                    Username, "@", Service,
+                    Dest, "@", Service,
                     "' type='chat'><body>",ts_utils:urandomstr_noflat(Size), "</body></message>"]);
-message(Dest, #jabber{data=Data, username=Username}, Service) when is_list(Data) ->
+message(Dest, #jabber{data=Data}, Service) when is_list(Data) ->
     put(previous, Dest),
     list_to_binary([
                     "<message id='",ts_msg_server:get_id(list), "' to='",
-                    Username, "@", Service,
+                    Dest, "@", Service,
                     "' type='chat'><body>",Data, "</body></message>"]).
 
 %%----------------------------------------------------------------------
@@ -718,12 +717,6 @@ privacy_set_active(User, Domain) ->
     list_to_binary(Req).
 
 
-
-%%% Convert Id to string
-%%% Change this if you want to have padding
-id_to_string(Id) when is_integer(Id)->
-    integer_to_list(Id);
-id_to_string(Id) -> Id.
 
 %% set the real Id; by default use the Id; but it user and passwd is
 %% defined statically (using csv for example), Id is the tuple { User, Passwd }

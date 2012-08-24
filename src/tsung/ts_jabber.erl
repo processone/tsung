@@ -45,7 +45,9 @@
          parse_bidi/2,
          parse_config/2,
          decode_buffer/2,
-         new_session/0]).
+         new_session/0,
+         username/2,
+         userid/1]).
 
 %%----------------------------------------------------------------------
 %% Function: session_default/0
@@ -61,6 +63,13 @@ session_defaults() ->
 %% @end
 decode_buffer(Buffer,#jabber_session{}) ->
     Buffer. % nothing to do for jabber
+
+
+
+%% @spec userid({Session::record(jabber_session),Dynvars:::dynvars()}) ->  userid::string()
+%% @doc  return the current userid %% @end
+userid({#jabber_session{username=UID},_DynVars})-> UID.
+
 
 %%----------------------------------------------------------------------
 %% Function: new_session/0
