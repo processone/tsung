@@ -54,7 +54,7 @@ get_id()->
 get_id(list)->
    integer_to_list(get_id());
 
-get_id({Pid,_DynData}) when is_pid(Pid)-> % to use this fun in substitutions
+get_id({_,_DynData}) -> % to use this fun in substitutions
     get_id(list).
 
 reset()->
