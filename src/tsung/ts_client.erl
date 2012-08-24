@@ -415,7 +415,7 @@ handle_next_action(State) ->
             handle_next_action(NewState);
         {setdynvars,SourceType,Args,VarNames} ->
             DynVars=State#state_rcv.dynvars,
-            Result = set_dynvars(SourceType,Args,VarNames,DynVars,{State#state_rcv.host,State#state_rcv.port}),
+            Result = set_dynvars(SourceType,Args,VarNames,DynVars,{State#state_rcv.host,State#state_rcv.port},State#state_rcv.session),
             NewDynVars = ts_dynvars:set(VarNames,Result,DynVars),
             ?DebugF("set dynvars: ~p ~n",[NewDynVars]),
             handle_next_action(State#state_rcv{dynvars = NewDynVars, count=Count});
@@ -457,37 +457,37 @@ handle_next_action(State) ->
 %%----------------------------------------------------------------------
 %% @spec set_dynvars (Type::erlang|random|urandom|file, Args::tuple(),
 %%                    Variables::list(), DynVars::#dynvars{},
-%%                    {Server::string(),Port::integer()}) -> integer()|binary()|list()
+%%                    {Server::string(),Port::integer()}, Session::record()) -> integer()|binary()|list()
 %% @doc setting the value of several dynamic variables at once.
 %% @end
 %%----------------------------------------------------------------------
-set_dynvars(erlang,{Module,Callback},_Vars,DynVars,_) ->
-    Module:Callback({self(),DynVars});
-set_dynvars(code,Fun,_Vars,DynVars,_) ->
-    Fun({self(),DynVars});
-set_dynvars(random,{number,Start,End},Vars,_DynVars,_) ->
+set_dynvars(erlang,{Module,Callback},_Vars,DynVars,_,Session) ->
+    Module:Callback({Session,DynVars});
+set_dynvars(code,Fun,_Vars,DynVars,_,Session) ->
+    Fun({Session,DynVars});
+set_dynvars(random,{number,Start,End},Vars,_DynVars,_,_) ->
     lists:map(fun(_) -> ts_stats:uniform(Start,End) end,Vars);
-set_dynvars(random,{string,Length},Vars,_DynVars,_) ->
+set_dynvars(random,{string,Length},Vars,_DynVars,_,_) ->
     R = fun(_) -> ts_utils:randombinstr(Length) end,
     lists:map(R,Vars);
-set_dynvars(urandom,{string,Length},Vars,_DynVars,_) ->
+set_dynvars(urandom,{string,Length},Vars,_DynVars,_,_) ->
     %% not random, but much faster
     R = fun(_) -> ts_utils:urandombinstr(Length) end,
     lists:map(R,Vars);
-set_dynvars(file,{random,FileId,Delimiter},_Vars,_DynVars,_) ->
+set_dynvars(file,{random,FileId,Delimiter},_Vars,_DynVars,_,_) ->
     {ok,Line} = ts_file_server:get_random_line(FileId),
     ts_utils:split(Line,Delimiter);
-set_dynvars(file,{iter,FileId,Delimiter},_Vars,_DynVars,_) ->
+set_dynvars(file,{iter,FileId,Delimiter},_Vars,_DynVars,_,_) ->
     {ok,Line} = ts_file_server:get_next_line(FileId),
     ts_utils:split(Line,Delimiter);
-set_dynvars(jsonpath,{JSONPath, From},_Vars,DynVars,_) ->
+set_dynvars(jsonpath,{JSONPath, From},_Vars,DynVars,_,_) ->
     {ok, Val} = ts_dynvars:lookup(From,DynVars),
     JSON=mochijson2:decode(Val),
     case ts_utils:jsonpath(JSONPath, JSON) of
         undefined -> << >>;
         V         -> V
     end;
-set_dynvars(server,_,_,_,{Host,Port}) ->
+set_dynvars(server,_,_,_,{Host,Port},_) ->
     [Host,Port].
 
 
