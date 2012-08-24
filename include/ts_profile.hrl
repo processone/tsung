@@ -24,11 +24,6 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
--record(dyndata,
-        {dynvars = [], % dynamic variables
-         proto         % dynamic data specific to protocol (#http_dyndata for HTTP)
-       }).
-
 -record(match,
         { regexp,
           subst = false,
@@ -102,13 +97,13 @@
                      % (Waiting for more data)
          buffer = <<>>, % buffer when we have to keep the response (we need
                      % all the response to do pattern matching)
-         session,    % record of session status; depends on 'clienttype'
+         session,    % record of session status; depends on 'clienttype' (cas be used to store data dynamically generated during the
+                     % session (Cookies for examples))
          datasize=0,
          id,         % user id
          size_mon_thresh=?size_mon_thresh, % if rcv data is > to this, update stats
          size_mon=0, % current size (used for threshold computation)
-         dyndata=[], % persistent data dynamically added during the
-                     % session (Cookies for examples)
+         dynvars=[], %
          clienttype, % module name (ts_jabber, etc.)
          transactions=[], % current transactions
          rate_limit, % rate limiting parameters

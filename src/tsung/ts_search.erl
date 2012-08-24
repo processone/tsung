@@ -43,7 +43,7 @@
 %% @spec subst(Data::term(), DynVar::dynvars() ) -> term()
 %% @doc search into a given string and replace %%Mod:Fun%% (resp
 %%          %%__Variable%%) strings by the result of the call to
-%%          Mod:Fun(Pid) (resp the value of the variable) where Pid
+%%          Mod:Fun({Pid, DynVars }) (resp the value of the variable) where Pid
 %%          is the Pid of the client. The substitution tag are
 %%          intended to be used in tsung.xml scenarii files.
 %% @end

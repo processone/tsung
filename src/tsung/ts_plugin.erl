@@ -28,8 +28,7 @@
 -export([behaviour_info/1]).
 
 behaviour_info(callbacks) ->
-    [{init_dynparams,0},
-     {add_dynparams, 4},
+    [{add_dynparams, 4},
      {get_message, 2},
      {session_defaults, 0},
      {dump, 2},

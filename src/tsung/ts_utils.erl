@@ -451,7 +451,7 @@ to_https({url, URL})-> URL;
 to_https({request, {body,Data}}) when is_list(Data) ->
     %% body request, no headers
     {ok, re:replace(Data,"http://-","https://",[global])};
-to_https({request, S="CONNECT"++Rest}) -> {ok,S};
+to_https({request, S="CONNECT"++_Rest}) -> {ok,S};
 to_https({request, []}) -> {ok, []};
 to_https({request, String}) when is_list(String) ->
     EndOfHeader = string:str(String, "\r\n\r\n"),
@@ -694,7 +694,7 @@ urandomstr_noflat(Size)  when is_integer(Size), Size >= 0 ->
 urandombinstr(Size) when is_integer(Size) , Size >= ?DUPBINSTR_SIZE ->
     Loop = Size div ?DUPBINSTR_SIZE,
     Rest = Size rem ?DUPBINSTR_SIZE,
-    Res=lists:foldl(fun(X,Acc)-> <<Acc/binary, ?DUPBINSTR/binary>> end, << >>,lists:seq(1,Loop)),
+    Res=lists:foldl(fun(_X,Acc)-> <<Acc/binary, ?DUPBINSTR/binary>> end, << >>,lists:seq(1,Loop)),
     << Res/binary, ?DUPBINSTR:Rest/binary>>;
 urandombinstr(Size) when is_integer(Size), Size >= 0 ->
     <<?DUPBINSTR:Size/binary>> .
@@ -805,7 +805,7 @@ jsonpath(JSONPath,JSON) ->
     json_get_bin(Keys,JSON).
 json_get_bin([],Val) ->
     Val;
-json_get_bin([Key|Keys],undefined) ->
+json_get_bin([_Key|_Keys],undefined) ->
     undefined;
 json_get_bin([N|Keys],L) when is_integer(N), N =< length(L) ->
     Val =  lists:nth(N,L),

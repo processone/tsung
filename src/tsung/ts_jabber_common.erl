@@ -185,7 +185,7 @@ get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=UserFrom, user_se
         {ok, {UserTo,_}} ->
             subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node);
         {ok, Dest} ->
-            UserTo = ts_jabber:username(Prefix, id_to_string(Dest)),
+            UserTo = ts_jabber:username(Prefix, id_to_string(Dest)), %%FIXME: we need the username prefix here
             subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node);
         {error, no_online} ->
             ts_mon:add({ count, error_no_online }),

@@ -45,18 +45,11 @@
           sql
          }).
 
-%%
--record(pgsql_dyndata,
+-record(pgsql_session,
         {
           auth_method,
-          username, % FIXME: add this at config time in #pgsql_request ?
+          username,
           salt
-         }
-       ).
-
--record(pgsql,
-        {
-          username
          }
        ).
 

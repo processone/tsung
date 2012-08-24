@@ -35,7 +35,7 @@
 
 client(MasterPid,Server,Port,Opts)->
     receive
-        {Module, Fun, Args, Size} ->
+        {Module, Fun, Args, _Size} ->
             Res=apply(Module,Fun,Args),
             MasterPid ! {erlang,self(),{Module,Fun,Args,Res}},
             client(MasterPid,Server,Port,Opts)

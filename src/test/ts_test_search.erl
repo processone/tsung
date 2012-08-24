@@ -290,7 +290,7 @@ dynvars_jsonpath_test() ->
     Data="\r\n\r\n{\"titi\": [{\"val\": 123, \"name\": \"foo\"}, {\"val\": 42, \"name\": \"bar\"}]}",
     JSONPath = "titi[?name=bar].val",
     Dynvars=ts_dynvars:new(data,Data),
-    ?assertEqual(42,ts_client:set_dynvars(jsonpath,{JSONPath,data},[toto],#dyndata{dynvars=Dynvars},{})).
+    ?assertEqual(42,ts_client:set_dynvars(jsonpath,{JSONPath,data},[toto],Dynvars,{})).
 
 
 %%TODO: out of order..

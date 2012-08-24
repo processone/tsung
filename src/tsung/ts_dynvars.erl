@@ -56,7 +56,7 @@ new(VarNames, Values) when is_list(VarNames),is_list(Values)->
     end.
 
 %% @spec lookup(Key::atom(), Dynvar::dynvars()) -> {ok,Value::term()} | false
-lookup(Key, []) ->
+lookup(_Key, []) ->
     false;
 lookup(Key, DynVars) when ?IS_DYNVARS(DynVars), is_atom(Key)->
     case lists:keysearch(Key,1,DynVars) of

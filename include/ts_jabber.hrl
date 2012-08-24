@@ -24,9 +24,7 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
--record(jabber_session, { }).
-
--record(jabber_dyndata, {id,
+-record(jabber_session, {id,
                          regexp,
                          user_server,
                          username,
@@ -59,7 +57,7 @@
                  resource,
                  node_type,
                  subid,
-                 version, %% 1.0 or "legacy", used by type=connect
+                 version ="1.0", %% 1.0 or "legacy", used by type=connect
                  prefix   %% username prefix
                 }).
 

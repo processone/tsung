@@ -29,7 +29,7 @@
 
 %% use by the client to create the request
 
--record(fs_dyndata,
+-record(fs_session,
         {
           position=0,
           iodev
@@ -45,9 +45,5 @@
           dest,
           position
               }).
-
--record(fs_sess, {
-          fixme
-         }).
 
 

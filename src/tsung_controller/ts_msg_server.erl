@@ -44,7 +44,7 @@
 %%% API
 %%%----------------------------------------------------------------------
 start() ->
-	?LOG("Starting ~n",?INFO),
+    ?LOG("Starting ~n",?INFO),
     gen_server:start_link({global,?MODULE}, ?MODULE, [], []).
 
 

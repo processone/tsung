@@ -39,8 +39,7 @@
 -include("ts_profile.hrl").
 -include("ts_pgsql.hrl").
 
--export([init_dynparams/0,
-         add_dynparams/4,
+-export([add_dynparams/4,
          get_message/2,
          session_defaults/0,
          parse/2,
@@ -65,7 +64,7 @@ session_defaults() ->
 %% @doc We need to decode buffer (remove chunks, decompress ...) for
 %%      matching or dyn_variables
 %% @end
-decode_buffer(Buffer,#pgsql{}) ->
+decode_buffer(Buffer,#pgsql_session{}) ->
     Buffer. % nothing to do for pgsql
 
 %%----------------------------------------------------------------------
@@ -74,13 +73,13 @@ decode_buffer(Buffer,#pgsql{}) ->
 %% Returns: record or []
 %%----------------------------------------------------------------------
 new_session() ->
-    #pgsql{}.
+    #pgsql_session{}.
 
 %%----------------------------------------------------------------------
 %% Function: get_message/21
 %% Purpose: Build a message/request ,
 %% Args:    record
-%% Returns: {binary,#pgsql}
+%% Returns: {binary,#pgsql_session}
 %%----------------------------------------------------------------------
 get_message(#pgsql_request{type=connect, database=DB, username=UserName},#state_rcv{session=S}) ->
     Version = <<?PROTOCOL_MAJOR:16/integer, ?PROTOCOL_MINOR:16/integer>>,
@@ -91,7 +90,7 @@ get_message(#pgsql_request{type=connect, database=DB, username=UserName},#state_
                       Database/binary,
                       0>>,
     PacketSize = 4 + size(StartupPacket),
-    {<<PacketSize:32/integer, StartupPacket/binary>>,S#pgsql{username=UserName}};
+    {<<PacketSize:32/integer, StartupPacket/binary>>,S#pgsql_session{username=UserName}};
 get_message(#pgsql_request{type=sql,sql=Query},#state_rcv{session=S}) ->
     {pgsql_proto:encode_message(squery, Query),S};
 get_message(#pgsql_request{type=close},#state_rcv{session=S}) ->
@@ -100,7 +99,7 @@ get_message(#pgsql_request{type=authenticate, auth_method={?PG_AUTH_PASSWD, _Sal
     ?LOGF("PGSQL: Must authenticate (passwd= ~p) ~n",[PassString],?DEB),
     {pgsql_proto:encode_message(pass_plain, PassString),S};
 get_message(#pgsql_request{type=authenticate, auth_method= {?PG_AUTH_MD5, Salt},passwd=PassString},#state_rcv{session=S}) ->
-    User=S#pgsql.username,
+    User=S#pgsql_session.username,
     ?LOGF("PGSQL: Must authenticate user ~p with md5 (passwd= ~p, salt=~p) ~n",
           [User,PassString,Salt],?DEB),
     {pgsql_proto:encode_message(pass_md5, {User,PassString,Salt}),S};
@@ -155,7 +154,7 @@ parse(closed, State) ->
 %% new response, compute data size (for stats)
 parse(Data, State=#state_rcv{acc = [], datasize= 0}) ->
     parse(Data, State#state_rcv{datasize= size(Data)});
-parse(Data, State=#state_rcv{acc = [], dyndata=DynData}) ->
+parse(Data, State=#state_rcv{acc = [], session=S}) ->
     case process_head(Data) of
         {ok, {ready_for_query, idle}, _ } ->
             {State#state_rcv{ack_done = true},[],false};
@@ -183,8 +182,8 @@ parse(Data, State=#state_rcv{acc = [], dyndata=DynData}) ->
             end;
 
         {ok, {authenticate, AuthType}, _ } ->
-            NewDynData=DynData#dyndata{proto=#pgsql_dyndata{auth_method=AuthType}},
-            {State#state_rcv{ack_done = true, dyndata=NewDynData},[],false};
+            NewS=S#pgsql_session{auth_method=AuthType},
+            {State#state_rcv{ack_done = true, session=NewS},[],false};
 
         {ok, {copy_response, {_Format,_ColsFormat}},_ } ->
             ?LOG("PGSQL: Copy response ~n",?DEB),
@@ -218,39 +217,30 @@ parse_config(Element, Conf) ->
 %%                                               Host  = String
 %% Returns: #pgsql_request
 %%----------------------------------------------------------------------
-add_dynparams(false, DynData, Param, HostData) ->
-    add_dynparams(DynData#dyndata.proto, Param, HostData);
-add_dynparams(true, DynData, Param, HostData) ->
-    NewParam = subst(Param, DynData#dyndata.dynvars),
-    add_dynparams(DynData#dyndata.proto,NewParam, HostData).
+add_dynparams(false, {_DynVars,Session}, Param, HostData) ->
+    add_dynparams(Session, Param, HostData);
+add_dynparams(true, {DynVars,Session}, Param, HostData) ->
+    NewParam = subst(Param, DynVars),
+    add_dynparams(Session,NewParam, HostData).
 
 add_dynparams(DynPgsql, Param, _HostData) ->
     ?DebugF("Dyndata=~p, param=~p~n",[DynPgsql, Param]),
-    Param#pgsql_request{auth_method=DynPgsql#pgsql_dyndata.auth_method,
-                        salt=DynPgsql#pgsql_dyndata.salt}.
-
-%%----------------------------------------------------------------------
-%% Function: init_dynparams/0
-%% Purpose:  initial dynamic parameters value
-%% Returns:  #dyndata
-%%----------------------------------------------------------------------
-init_dynparams() ->
-    #dyndata{proto=#pgsql_dyndata{}}.
+    Param#pgsql_request{auth_method=DynPgsql#pgsql_session.auth_method, salt=DynPgsql#pgsql_session.salt}.
 
 %%----------------------------------------------------------------------
 %% Function: subst/2
 %% Purpose: Replace on the fly dynamic element of the request.
 %% Returns: #pgsql_request
 %%----------------------------------------------------------------------
-subst(Req=#pgsql_request{sql=SQL,database=DB,username=User,passwd=Passwd, parameters=Params}, DynData) ->
-    Req#pgsql_request{sql=ts_search:subst(SQL, DynData),
-                      username=ts_search:subst(User, DynData),
-                      passwd=ts_search:subst(Passwd, DynData),
+subst(Req=#pgsql_request{sql=SQL,database=DB,username=User,passwd=Passwd, parameters=Params}, DynVars) ->
+    Req#pgsql_request{sql=ts_search:subst(SQL, DynVars),
+                      username=ts_search:subst(User, DynVars),
+                      passwd=ts_search:subst(Passwd, DynVars),
                       parameters=case is_list(Params) of
-                                     true -> lists:map(fun(X)-> ts_search:subst(X, DynData) end, Params);
+                                     true -> lists:map(fun(X)-> ts_search:subst(X, DynVars) end, Params);
                                      false -> Params
                                  end,
-                      database=ts_search:subst(DB, DynData)
+                      database=ts_search:subst(DB, DynVars)
                      }.
 
 
