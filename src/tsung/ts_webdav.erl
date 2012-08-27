@@ -31,8 +31,7 @@
 -include("ts_profile.hrl").
 -include("ts_http.hrl").
 
--export([init_dynparams/0,
-         add_dynparams/4,
+-export([add_dynparams/4,
          get_message/2,
          session_defaults/0,
          parse/2,
@@ -85,8 +84,6 @@ parse_config(Element, Conf) ->
 
 add_dynparams(Subst, DynData, Param, HostData) ->
     ts_http:add_dynparams(Subst, DynData, Param, HostData).
-
-init_dynparams() -> ts_http:init_dynparams().
 
 %%% methode PROPFIND; entetes: Depth (optionel); body: XML
 %%% methode COPY; entete Destination: URL, If (optionel), Overwrite (Optionel), Depth; Body: XML (Optionel)
