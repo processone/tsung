@@ -96,7 +96,7 @@ a:hover     {background:#ffffaa;}
 <!--CUT DEF section 1 --><H1 ALIGN=center>Tsung User’s manual</H1><DIV CLASS="center">
 
 <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>1.4.2</TD></TR>
-<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>August 20, 2012</TD></TR>
+<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>August 30, 2012</TD></TR>
 </TABLE>
 </DIV><!--TOC section Contents-->
 <H2 CLASS="section"><!--SEC ANCHOR -->Contents</H2><!--SEC END --><UL CLASS="toc"><LI CLASS="li-toc">
@@ -3382,12 +3382,14 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </LI><LI CLASS="li-itemize"><TT>page</TT> Response time for each set of requests (a page is a group
 of request not separated by a thinktime).
 </LI><LI CLASS="li-itemize"><TT>connect</TT> Duration of the connection establishment.
-</LI><LI CLASS="li-itemize"><TT>reconnect</TT> number of reconnection.
+</LI><LI CLASS="li-itemize"><TT>reconnect</TT> Number of reconnection.
 </LI><LI CLASS="li-itemize"><TT>size_rcv</TT> Size of responses in bytes.
 </LI><LI CLASS="li-itemize"><TT>size_sent</TT> Size of requests in bytes.
 </LI><LI CLASS="li-itemize"><TT>session</TT> Duration of a user’s session.
-</LI><LI CLASS="li-itemize"><TT>users</TT> Number of simultaneous users.
-</LI><LI CLASS="li-itemize"><TT>connected</TT> Number of simultaneous connected users. <B>new
+</LI><LI CLASS="li-itemize"><TT>users</TT> Number of simultaneous users (it’s session has started, but not yet finished).
+</LI><LI CLASS="li-itemize"><TT>connected</TT> number of users with an opened TCP/UDP connection (example: for
+HTTP, during a think time, the TCP connection can be closed by the server,
+and it won’t be reopened until the thinktime has expired). <B>new
 in 1.2.2</B>.
 </LI><LI CLASS="li-itemize">custom transactions
 </LI></UL><P>The mean response time (for requests, page, etc.) is computed every 10
@@ -3407,6 +3409,12 @@ without doing anything. <B>new in 1.2.2</B>.
 </LI><LI CLASS="li-itemize"><TT>async_data_sent</TT> Only if bidi is true for a
 session. Count the number of messages sent to the server in response
 of a message received from the server. <B>new in 1.2.2</B>.
+</LI></UL><P>OS monitoring stats:
+</P><UL CLASS="itemize"><LI CLASS="li-itemize">
+<TT>{load,&lt;host&gt;}</TT> System load average during the last minute
+</LI><LI CLASS="li-itemize"><TT>{cpu,&lt;host}</TT> CPU percentage (Maximum is 100%, ex: on dual core
+system, 100% means: both cores are 100% used)
+</LI><LI CLASS="li-itemize"><TT>{freemem,&lt;host&gt;}</TT> Free Memory
 </LI></UL><!--TOC subsection Design-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc73">7.3</A>  Design</H3><!--SEC END --><P>A bit of explanation on the design and internals of the statistics engine:</P><P>Tsung was designed to handle thousands of requests/sec, for very
 long period of times (several hours) so it do not write all data to

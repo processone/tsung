@@ -2585,12 +2585,14 @@ Example output file with JSON:
 \item  \varname{page} Response time for each set of requests (a page is a group
   of request not separated by a thinktime).
 \item  \varname{connect} Duration of the connection establishment.
-\item  \varname{reconnect} number of reconnection.
+\item  \varname{reconnect} Number of reconnection.
 \item  \varname{size\_rcv} Size of responses in bytes.
 \item  \varname{size\_sent} Size of requests in bytes.
 \item  \varname{session} Duration of a user's session.
-\item  \varname{users} Number of simultaneous users.
-\item  \varname{connected} Number of simultaneous connected users. \strong{new
+\item  \varname{users} Number of simultaneous users (it's session has started, but not yet finished).
+\item  \varname{connected} number of users with an opened TCP/UDP connection (example: for
+HTTP, during a think time, the TCP connection can be closed by the server,
+and it won't be reopened until the thinktime has expired). \strong{new
   in 1.2.2}.
 \item  custom transactions
 \end{itemize}
@@ -2617,6 +2619,16 @@ Jabber specific stats:
   session. Count the number of messages sent to the server in response
   of a message received from the server. \strong{new in 1.2.2}.
 \end{itemize}
+
+OS monitoring stats:
+\begin{itemize}
+\item \varname{\{load,<host>\}} System load average during the last minute
+\item \varname{\{cpu,<host\}} CPU percentage (Maximum is 100\%, ex: on dual core
+  system, 100\% means: both cores are 100\% used)
+\item \varname{\{freemem,<host>\}} Free Memory
+\end{itemize}
+
+
 
 \subsection{Design}
 

@@ -90,7 +90,7 @@ $stats = "tsung.log" unless $stats;
 die "The stats file ($stats) does not exist, abort !" unless -e $stats;
 
 $imgfmt = "png" unless $imgfmt;
-my %imgfmt_list = ("png" => 1,  "svg" => 1,  "pdf" => 1,  "ps" => 1); # hash of all the format we support to make search more efficient
+my %imgfmt_list = ("png" => 1, "svg" => 1,  "pdf" => 1,  "ps" => 1); # hash of all the format we support to make search more efficient
 die "Image format \"$imgfmt\" not supported" unless $imgfmt_list{"$imgfmt"};
 
 my $datadir = "data"; # all data files are created in this subdirectory
@@ -135,11 +135,15 @@ sub is_oldgnuplot {
     }
 }
 
+sub gnuplot_has_cairo {
+    return (system("$gnuplot -e 'set term pngcairo' 2> /dev/null ") == 0)
+}
 
 # plot stats from file with gnuplot
 sub plot_stats {
     # args:
-    my $title     = shift; # arrayref contaning data titles
+    my $names     = shift; # arrayref contaning data names
+    my $titles    = shift; # arrayref contaning data titles
     my $datatype  = shift; # type of data (added in filenames)
     my $timestamp = shift;
     my $files     = shift; # arrayref contaning data files
@@ -158,51 +162,76 @@ sub plot_stats {
         return;
     }
 
+    my $has_pngcairo = &gnuplot_has_cairo();
+    print STDERR "Using pngcairo support in gnuplot\n" if $verbose and $has_pngcairo;
+
     $datatype = "unknown" unless $datatype;
     open(GP,">$gplotdir/graphes-$datatype.gplot") or die "can't open graphes-$datatype.gplot: $!";
     select GP;
-    foreach my $output_ext ($imgfmt, "tn.png") {
-        if (($output_ext eq "png") || ($output_ext eq "tn.png")) {
-            $output_type = "png";
-        } elsif ($output_ext eq "ps") {
+    foreach my $output_fmt ($imgfmt, "tn.png") {
+        my $output_ext;
+        my $output_type;
+        if (($output_fmt eq "png") || ($output_fmt eq "tn.png")) {
+            $output_ext = "png";
+            if ($has_pngcairo) {
+                $output_type = "pngcairo ";
+            } else {
+                $output_type = "png ";
+            }
+        } elsif ($output_fmt eq "ps") {
             $output_type = "postscript color ";
-        } elsif ($output_ext eq "pdf") {
+            $output_ext = "ps";
+        } elsif ($output_fmt eq "pdf") {
             $output_type = "pdf color ";
-        } elsif ($output_ext eq "svg") {
-            $output_type = "svg";
+            $output_ext = "pdf";
+        } elsif ($output_fmt eq "svg") {
+            $output_type = "svg ";
+            $output_ext = "svg";
         }
         # gnuplot styles and options
-        print "set size $thumbnail_size,$thumbnail_size\n" if (($output_ext eq "tn.png") && $oldgnuplot);
-        print "set xtics rotate by +90\n"  if ((($output_ext eq "png") || ($output_ext eq "tn.png")) and ($rotate_xtics));
+        print "set size $thumbnail_size,$thumbnail_size\n" if (($output_fmt eq "tn.png") and $oldgnuplot);
+        print "set xtics rotate\n"  if (($output_ext eq "png") and ($rotate_xtics));
         print "set style data  $style\n";
-        if (($output_ext eq "tn.png") and not $oldgnuplot) {
+        if (($output_fmt eq "tn.png") and not $oldgnuplot  and ($output_type !~ /pngcairo/)) {
             print "set terminal $output_type tiny size 320,240\n";
-        } elsif ((($output_type eq "svg") or (($output_type eq "png"))) and not $oldgnuplot) {
-            print "set terminal $output_type  size 1024,768\n";
+        } elsif (($output_fmt eq "tn.png") and not $oldgnuplot) {
+            print "set terminal $output_type size 320,240 font 'Verdana,7' \n";
+        } elsif ((($output_ext eq "svg") or (($output_ext eq "png")) ) and not $oldgnuplot) {
+            print "set terminal $output_type size 1024,768\n";
         } else {
             print "set terminal $output_type\n";
         }
         print "set grid\n";
+        # remove border on top and right and set color to gray
+        print "set style line 11 lc rgb '#808080' lt 1\n";
+        print "set border 3 back ls 11\n";
+        print "set tics nomirror\n";
+        print "set style line 1 lc rgb '#8b1a0e' pt 1 ps 1 lt 2 lw 2\n"; # --- red
+        print "set style line 2 lc rgb '#5e9c36' pt 6 ps 1 lt 2 lw 2\n"; # --- green
+
         my $d; # temporary var (title)
-        foreach $d (0..$#{$title}) {
+        foreach $d (0..$#{$names}) {
             # gnuplot headings
-            if ($output_ext eq "tn.png") {
-                print "set output \"$imgdir/graphes-$datatype-@{$title}[$d]_$output_ext\"\n";
+            if ($output_fmt eq "tn.png") {
+                print "set output \"$imgdir/graphes-$datatype-@{$names}[$d]_$output_fmt\"\n";
             } else  {
-                print "set output \"$imgdir/graphes-$datatype-@{$title}[$d].$output_ext\"\n";
+                print "set output \"$imgdir/graphes-$datatype-@{$names}[$d].$output_ext\"\n";
             }
-            print "set title \" @{$title}[$d]\"\n";
+            print "set title \" @{$titles}[$d]\"\n";
             if ($timestamp) {
                 print "set xlabel \"unit = $timestamp sec \"\n";
             } else {
-                print "set xlabel \"unit = sec \"\n";
+                print "set xlabel \"time (sec of the running test)\"\n";
             }
             print "set ylabel \"".$ylabel->[$d]."\"\n" if $ylabel->[$d];
             print "show title\n";
             print "set $legend_loc\n";
             print "set logscale y\n" if $logy;
+
             print "plot ";
+            my $lineindex=0;
             foreach $filename (@{$files}) {
+                $lineindex++;
                 print " \"$datadir/$filename\" using ";
                 # if $timestamp isn't defined, use the first column as timestamp
                 if ($timestamp) {
@@ -213,7 +242,7 @@ sub plot_stats {
                 my $cur_title = $filename;
                 $cur_title =~ s/\.txt$//;
                 $cur_title =~ s/:os_mon//;
-                print " title \"$cur_title\"" ;
+                print " title \"$cur_title\" ls $lineindex" ;
                 print "," unless ($filename eq @{$files}[$#{$files}]); # unless last occurence
             }
             print "\n"; # plot done
@@ -483,17 +512,17 @@ sub parse_stats_file {
         close TYPE;
     }
   if (not $dygraph) {
-    plot_stats(\@col,"Session",undef,\@session,["sessions/sec"],$logy) unless $noplot;
-    plot_stats(\@colcount,"HTTP_CODE",undef,\@code,["number/sec","total"],$logy) if not $noplot and @code;
-    plot_stats(\@col,"Perfs",undef,\@tps,["rate","msec"],$logy) unless $noplot;
-    plot_stats(\@col,"Transactions",undef,\@transactions,["transactions/sec","msec"],$logy) unless $noplot;
-    plot_stats(\@colcount,"Match",undef,\@match,["rate","rate"],$logy) unless $noplot;
-    plot_stats(\@colcount,"Event",undef,\@time,["rate","msec"],$logy) unless $noplot;
-    plot_stats(\@colasync,"Async",undef,\@async,["rate","rate"],$logy) unless $noplot;
-    plot_stats(\@colcount,"Errors",undef,\@errors,["errors/sec","total"],$logy) unless $noplot;
-    plot_stats(\@colusers,"Users",undef,\@users,["value", "total"],$logy) unless $noplot;
-    plot_stats(\@colcount,"Users_Arrival",undef,\@users_rate,["number of users/sec", "total"],$logy) unless $noplot;
-    plot_stats(\@colcount,"Size",undef,\@size,["Kbits/sec","total Kbits"],$logy) unless $noplot;
+    plot_stats(\@col,\@col,"Session",undef,\@session,["sessions/sec"],$logy) unless $noplot;
+    plot_stats(\@colcount,["HTTP Code Response rate","total"], "HTTP_CODE",undef,\@code,["number/sec","total"],$logy) if not $noplot and @code;
+    plot_stats(\@col,["Request and tcp/udp connection rate","Mean request (and connection) duration","stdvar","max_sample","min_sample"],"Perfs",undef,\@tps,["Requests rate (r/sec)","Requests duration (msec)"],$logy) unless $noplot;
+    plot_stats(\@col,["Transaction and page rate", "Mean transaction and page duration","stdvar","max_sample","min_sample"],"Transactions",undef,\@transactions,["transactions/sec","Transaction duration (msec)"],$logy) unless $noplot;
+    plot_stats(\@colcount,\@colcount,"Match",undef,\@match,["rate","rate"],$logy) unless $noplot;
+    plot_stats(\@colcount,\@colcount,"Event",undef,\@time,["rate","msec"],$logy) unless $noplot;
+    plot_stats(\@colasync,\@colasync,"Async",undef,\@async,["rate","rate"],$logy) unless $noplot;
+    plot_stats(\@colcount,\@colcount,"Errors",undef,\@errors,["errors/sec","total"],$logy) unless $noplot;
+    plot_stats(\@colusers,["Simultaneous users and opened TCP/UDP connections","maximum_simultaneous"],"Users",undef,\@users,["value", "total"],$logy) unless $noplot;
+    plot_stats(\@colcount,["Users arrival/departure rate", "Total users"],"Users_Arrival",undef,\@users_rate,["number of users/sec", "total"],$logy) unless $noplot;
+    plot_stats(\@colcount,["Network throughput","Total send/receive bytes"],"Size",undef,\@size,["Kbits/sec","total Kbits"],$logy) unless $noplot;
   } else {
     plot_stats_dygraph(\@col,"Session",undef,\@session,["sessions/sec"],$logy) unless $noplot;
     plot_stats_dygraph(\@colcount,"HTTP_CODE",undef,\@code,["number/sec","total"],$logy) if not $noplot and @code;
@@ -513,7 +542,7 @@ sub parse_stats_file {
         foreach my $key (sort keys %extra_info) {
             my $pos = index($key,":");
             if (not $dygraph) {
-                plot_stats(\@col, $key, undef, \@{$extra_info{$key}}, [$key],$logy);
+                plot_stats(\@col,\@col, $key, undef, \@{$extra_info{$key}}, [$key],$logy);
             } else {
                 plot_stats_dygraph(\@col, $key, undef, \@{$extra_info{$key}}, [$key],$logy);
             }
