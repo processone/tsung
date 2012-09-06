@@ -40,8 +40,10 @@
 %% Returns: binary
 %% Purpose: Build a message/request from a #jabber record
 %%----------------------------------------------------------------------
-get_message(Jabber=#jabber{type = 'wait',regexp=RegExp}) ->
+get_message(Jabber=#jabber{regexp=RegExp}) when RegExp /= undefined->
     put(regexp, RegExp),
+    get_message(Jabber#jabber{regexp=undefined});
+get_message(_Jabber=#jabber{type = 'wait'}) ->
     << >>;
 get_message(Jabber=#jabber{id=user_defined, username=User,passwd=Pwd,type = 'connect'}) ->
     ts_user_server:add_to_connected({User,Pwd}),
@@ -113,7 +115,7 @@ get_message(Jabber=#jabber{type = 'chat', dest=random, domain=Domain,user_server
 get_message(Jabber=#jabber{type = 'chat', dest=unique, domain=Domain,user_server=UserServer})->
     {Dest, _} = ts_user_server:get_first(UserServer),
     message(Dest, Jabber, Domain);
-get_message(Jabber=#jabber{type = 'chat', id=_Id, dest = undefined, domain=Domain}) ->
+get_message(_Jabber=#jabber{type = 'chat', id=_Id, dest = undefined, domain=_Domain}) ->
     %% this can happen if previous is set but undefined, skip
     ts_mon:add({ count, error_no_previous }),
     << >>;
@@ -224,6 +226,13 @@ get_message(#jabber{type = 'muc:exit', room = Room, muc_service = Service, nick 
 
 get_message(Jabber=#jabber{id=user_defined}) ->
     get_message2(Jabber);
+
+%% Privacy lists benchmark support
+get_message(#jabber{type = 'privacy:get_names', username = Name, id = Id, domain = Domain}) ->
+    privacy_get_names(username(Name, Id), Domain);
+get_message(#jabber{type = 'privacy:set_active', username = Name, id = Id, domain = Domain}) ->
+    privacy_set_active(username(Name, Id), Domain);
+
 get_message(Jabber=#jabber{username=Name, passwd=Passwd, id=Id}) ->
     FullName = username(Name, Id),
     FullPasswd = password(Passwd,Id),
@@ -298,54 +307,54 @@ auth_get(Username, _Passwd, Type) ->
 %%----------------------------------------------------------------------
 %% Func: auth_set_plain/1
 %%----------------------------------------------------------------------
-auth_set_plain(#jabber{username=Name,passwd=Passwd})->
-    auth_set_plain(Name, Passwd, "auth").
+auth_set_plain(#jabber{username=Name,passwd=Passwd,resource=Resource})->
+    auth_set_plain(Name, Passwd, "auth", Resource).
 
 
 %%----------------------------------------------------------------------
 %% Func: auth_set_plain/3
 %%----------------------------------------------------------------------
-auth_set_plain(Username, Passwd, Type) ->
+auth_set_plain(Username, Passwd, Type, Resource) ->
  list_to_binary([
    "<iq id='", ts_msg_server:get_id(list),
    "' type='set' >",
    "<query xmlns='jabber:iq:", Type, "'>",
    "<username>", Username, "</username>",
-   "<resource>tsung</resource>",
+   "<resource>", Resource,"</resource>",
    "<password>", Passwd, "</password></query></iq>"]).
 
 
 %%----------------------------------------------------------------------
 %% Func: auth_set_digest/2
 %%----------------------------------------------------------------------
-auth_set_digest(#jabber{username=Name,passwd=Passwd}, Sid)->
-        auth_set_digest(Name, Passwd, "auth", Sid).
+auth_set_digest(#jabber{username=Name,passwd=Passwd, resource=Resource}, Sid)->
+        auth_set_digest(Name, Passwd, "auth", Sid, Resource).
 
 
 %%----------------------------------------------------------------------
 %% Func: auth_set_digest/4
 %%----------------------------------------------------------------------
-auth_set_digest(Username, Passwd, Type, Sid) ->
+auth_set_digest(Username, Passwd, Type, Sid, Resource) ->
  {Digest} = ts_digest:digest(Sid, Passwd),
  list_to_binary([
    "<iq id='", ts_msg_server:get_id(list),
    "' type='set' >",
    "<query xmlns='jabber:iq:", Type, "'>",
    "<username>", Username, "</username>",
-   "<resource>tsung</resource>",
+   "<resource>",Resource,"</resource>",
    "<digest>", Digest, "</digest></query></iq>"]).
 
 
 %%----------------------------------------------------------------------
 %% Func: auth_set_sip/3
 %%----------------------------------------------------------------------
-auth_set_sip(#jabber{username=Name,passwd=Passwd,domain=Domain}, Nonce, Realm)->
-        auth_set_sip(Name, Passwd, Domain, "auth", Nonce, Realm).
+auth_set_sip(#jabber{username=Name,passwd=Passwd,domain=Domain,resource=Resource}, Nonce, Realm)->
+        auth_set_sip(Name, Passwd, Domain, "auth", Nonce, Realm,Resource).
 
 %%----------------------------------------------------------------------
 %% Func: auth_set_sip/6
 %%----------------------------------------------------------------------
-auth_set_sip(Username, Passwd, Domain, Type, Nonce, Realm) ->
+auth_set_sip(Username, Passwd, Domain, Type, Nonce, Realm,Resource) ->
  Jid = Username ++ "@" ++ Realm,
  {SipDigest,Integrity} = ts_digest:sip_digest(Nonce, Jid, Realm, Passwd),
  list_to_binary([
@@ -353,7 +362,7 @@ auth_set_sip(Username, Passwd, Domain, Type, Nonce, Realm) ->
    "' type='set' >",
    "<query xmlns='jabber:iq:", Type, "'>",
         "<username>", Jid, "</username>",
-        "<resource>tsung</resource>",
+        "<resource>",Resource,"</resource>",
         "<x xmlns='xmpp:assert' version='1.0'>",
                 "<ContextInfo><ServiceValue><Realm>", Domain,
                 "</Realm></ServiceValue></ContextInfo>",
@@ -389,16 +398,18 @@ auth_sasl(Username, Passwd, Mechanism) ->
 %%----------------------------------------------------------------------
 %% Func: auth_sasl_bind/1
 %%----------------------------------------------------------------------
-auth_sasl_bind(#jabber{username=Name,passwd=Passwd,domain=Domain})->
-        auth_sasl_bind(Name, Passwd, Domain).
+auth_sasl_bind(#jabber{username=Name,passwd=Passwd,domain=Domain, resource=Resource})->
+        auth_sasl_bind(Name, Passwd, Domain, Resource).
 
 
 %%----------------------------------------------------------------------
 %% Func: auth_sasl_bind/3
 %%----------------------------------------------------------------------
-auth_sasl_bind(_Username, _Passwd, _Domain) ->
+auth_sasl_bind(_Username, _Passwd, _Domain, Resource) ->
  list_to_binary(["<iq type='set' id='",ts_msg_server:get_id(list),
-"' ><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'><resource>tsung</resource></bind></iq>"]).
+                 "' ><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'>",
+                 "<resource>",Resource,"</resource>",
+                 "</bind></iq>"]).
 
 
 %%----------------------------------------------------------------------
@@ -419,8 +430,8 @@ auth_sasl_session(_Username, _Passwd, _Domain) ->
 %% Func: registration/1
 %% Purpose: register message
 %%----------------------------------------------------------------------
-registration(#jabber{username=Name,passwd=Passwd})->
-    auth_set_plain(Name, Passwd, "register").
+registration(#jabber{username=Name,passwd=Passwd,resource=Resource})->
+    auth_set_plain(Name, Passwd, "register",Resource).
 
 %%----------------------------------------------------------------------
 %% Func: message/3
@@ -432,14 +443,14 @@ message(Dest, #jabber{size=Size,data=undefined, username=User}, Service) when is
     list_to_binary([
                     "<message id='",ts_msg_server:get_id(list), "' to='",
                     Username, "@", Service,
-                    "'><body>",ts_utils:urandomstr_noflat(Size), "</body></message>"]);
+                    "' type='chat'><body>",ts_utils:urandomstr_noflat(Size), "</body></message>"]);
 message(Dest, #jabber{data=Data, username=User}, Service) when is_list(Data) ->
     put(previous, Dest),
     Username = username(User,Dest),
     list_to_binary([
                     "<message id='",ts_msg_server:get_id(list), "' to='",
                     Username, "@", Service,
-                    "'><body>",Data, "</body></message>"]).
+                    "' type='chat'><body>",Data, "</body></message>"]).
 
 %%----------------------------------------------------------------------
 %% Func: presence/0
@@ -618,6 +629,33 @@ muc_exit(Room,Nick, Service) ->
 
 
 %%%----------------------------------------------------------------------
+%%% Func: privacy_get_names/2
+%%% Get names of all privacy lists server stores for the user
+%%%----------------------------------------------------------------------
+privacy_get_names(User, Domain) ->
+    Jid = [User,"@",Domain,"/tsung"],
+    Req = ["<iq from='", Jid, "' type='get' id='getlist'>",
+               "<query xmlns='jabber:iq:privacy'/>",
+           "</iq>"],
+    list_to_binary(Req).
+
+%%%----------------------------------------------------------------------
+%%% Func: privacy_set_active/2
+%%% Set the list named according to pattern "<user>@<domain>_list"
+%%% as active
+%%%----------------------------------------------------------------------
+privacy_set_active(User, Domain) ->
+    Jid = [User,"@",Domain,"/tsung"],
+    List = [User,"@",Domain,"_list"],
+    Req = ["<iq from='", Jid, "' type='set' id='active1'>",
+              "<query xmlns='jabber:iq:privacy'>",
+                  "<active name='", List, "'/>",
+              "</query>",
+           "</iq>"],
+    list_to_binary(Req).
+
+
+%%%----------------------------------------------------------------------
 %%% Func: username/2
 %%% Generate the username given a prefix and id
 %%%----------------------------------------------------------------------
@@ -636,6 +674,8 @@ id_to_string(Id) -> Id.
 %%% Func: password/1
 %%% Generate password for a given username
 %%%----------------------------------------------------------------------
+password(Prefix,Id) when is_integer(Id)->
+    Prefix ++ integer_to_list(Id);
 password(Prefix,Id) ->
     Prefix ++ Id.
 

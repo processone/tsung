@@ -36,6 +36,7 @@
 -define(PG_CLOSE_COMPLETE, $3).
 -define(PG_PORTAL_SUSPENDED, $s).
 -define(PG_NO_DATA, $n).
+-define(PG_COPY_RESPONSE, $G).
 
 -export([init/2, idle/2]).
 -export([run/1]).
@@ -252,8 +253,8 @@ idle(Sock, Pid) ->
 	%% simplistic version using the unnammed prepared statement and portal.
 	{equery, Ref, Pid, {Query, Params}} ->
 	    ParseP =    encode_message(parse, {"", Query, []}),
-	    BindP =     encode_message(bind,  {"", "", Params, [binary]}),
-	    DescribeP = encode_message(describe, {portal, ""}), 
+	    BindP =     encode_message(bind,  {"", "", Params, auto, [binary]}),
+	    DescribeP = encode_message(describe, {portal, ""}),
 	    ExecuteP =  encode_message(execute,  {"", 0}),
 	    SyncP =     encode_message(sync, []),
 	    ok = send(Sock, [ParseP, BindP, DescribeP, ExecuteP, SyncP]),
@@ -293,7 +294,7 @@ idle(Sock, Pid) ->
 	{execute, Ref, Pid, {Name, Params}} ->
 	    %%io:format("execute: ~p ~p ~n", [Name, Params]),
 	    begin % Issue first requests for the prepared statement.
-		BindP     = encode_message(bind, {"", Name, Params, [binary]}),
+		BindP     = encode_message(bind, {"", Name, Params, auto, [binary]}),
 		DescribeP = encode_message(describe, {portal, ""}),
 		ExecuteP  = encode_message(execute, {"", 0}),
 		FlushP    = encode_message(flush, []),
@@ -524,6 +525,14 @@ decode_packet(Code, Packet) ->
 	    Ret(portal_suspended, []);
 	?PG_CLOSE_COMPLETE ->
 	    Ret(close_complete, []);
+	?PG_COPY_RESPONSE ->
+            <<FormatCode:8/integer, ColN:16/integer, ColFormat/binary>> = Packet,
+            Format = case FormatCode of
+                         0 -> text;
+                         1 -> binary
+                     end,
+            Cols=pgsql_util:int16(ColFormat,[]),
+            Ret(copy_response, {Format,Cols});
 	$t ->
 	    <<NParams:16/integer, OidsP/binary>> = Packet,
 	    Oids = pgsql_util:oids(OidsP, []),
@@ -554,6 +563,12 @@ encode_message(pass_md5, {User, Password, Salt}) ->
 		encode($p, Pass);
 encode_message(terminate, _) ->
     encode($X, <<>>);
+encode_message(copydone, _) ->
+    encode($c, <<>>);
+encode_message(copyfail, Msg) ->
+    encode($f, string(Msg));
+encode_message(copy, Data) ->
+    encode($d, Data );
 encode_message(squery, Query) -> % squery as in simple query.
     encode($Q, string(Query));
 encode_message(close, {Object, Name}) ->
@@ -566,58 +581,67 @@ encode_message(describe, {Object, Name}) ->
     encode($D, <<ObjectP:8/integer, NameP/binary>>);
 encode_message(flush, _) ->
     encode($H, <<>>);
-encode_message(parse, {Name, Query, _Oids}) ->
+encode_message(parse, {Name, Query, Oids}) ->
     StringName = string(Name),
     StringQuery = string(Query),
-    encode($P, <<StringName/binary, StringQuery/binary, 0:16/integer>>);
-encode_message(bind, Bind={NamePortal, NamePrepared, 
-			   Parameters, ResultFormats}) ->
+    NOids=length(Oids),
+    OidsBin=lists:foldl(fun(X,Acc)-> << Acc/binary ,X:32/integer>> end, << >>, Oids),
+    encode($P, <<StringName/binary, StringQuery/binary, NOids:16/integer,OidsBin/binary>>);
+encode_message(bind, Bind={NamePortal, NamePrepared,
+                           Parameters, ParamsFormats,ResultFormats}) ->
     %%io:format("encode bind: ~p~n", [Bind]),
     PortalP = string(NamePortal),
     PreparedP = string(NamePrepared),
-    
-    ParamFormatsList = lists:map(
-			 fun (Bin) when is_binary(Bin) -> <<1:16/integer>>; 
-			     (Text) -> <<0:16/integer>> end, 
-			 Parameters),
-    ParamFormatsP = erlang:concat_binary(ParamFormatsList),
-
     NParameters = length(Parameters),
+
+    {NParametersFormat, ParamFormatsP} =
+        case ParamsFormats of
+            none  -> {0,<<>>};
+            binary-> {1,<<1:16/integer>>};
+            text  -> {1,<<0:16/integer>>};
+            auto  ->
+                ParamFormatsList = lists:map(
+                                     fun (Bin) when is_binary(Bin) -> <<1:16/integer>>;
+                                         (Text) -> <<0:16/integer>> end,
+                                     Parameters),
+                {NParameters, erlang:list_to_binary(ParamFormatsList)}
+    end,
+
     ParametersList = lists:map(
-		       fun (null) ->
-			       Minus = -1, 
-			       <<Minus:32/integer>>;
-			   (Bin) when is_binary(Bin) -> 
-			       Size = size(Bin), 
-			       <<Size:32/integer, Bin/binary>>;
-			   (Integer) when is_integer(Integer) ->
-			       List = integer_to_list(Integer),
-			       Bin = list_to_binary(List),
-			       Size = size(Bin),
-			       <<Size:32/integer, Bin/binary>>;
-			   (Text) ->
-			       Bin = list_to_binary(Text),
-			       Size = size(Bin),
-			       <<Size:32/integer, Bin/binary>>
-		       end,
-		       Parameters),
-    ParametersP = erlang:concat_binary(ParametersList),
-    
+                       fun (null) ->
+                               Minus = -1,
+                               <<Minus:32/integer>>;
+                           (Bin) when is_binary(Bin) ->
+                               Size = size(Bin),
+                               <<Size:32/integer, Bin/binary>>;
+                           (Integer) when is_integer(Integer) ->
+                               List = integer_to_list(Integer),
+                               Bin = list_to_binary(List),
+                               Size = size(Bin),
+                               <<Size:32/integer, Bin/binary>>;
+                           (Text) ->
+                               Bin = list_to_binary(Text),
+                               Size = size(Bin),
+                               <<Size:32/integer, Bin/binary>>
+                       end,
+                       Parameters),
+    ParametersP = erlang:list_to_binary(ParametersList),
+
     NResultFormats = length(ResultFormats),
     ResultFormatsList = lists:map(
-			  fun (binary) -> <<1:16/integer>>;
-			      (text) ->	  <<0:16/integer>> end, 
-			  ResultFormats),
-    ResultFormatsP = erlang:concat_binary(ResultFormatsList),
-    
-    %%io:format("encode bind: ~p~n", [{PortalP, PreparedP, 
-	%%			     NParameters, ParamFormatsP,
-	%%			     NParameters, ParametersP,
-	%%			     NResultFormats, ResultFormatsP}]),
-    encode($B, <<PortalP/binary, PreparedP/binary, 
-		NParameters:16/integer, ParamFormatsP/binary,
-		NParameters:16/integer, ParametersP/binary,
-		NResultFormats:16/integer, ResultFormatsP/binary>>);
+                          fun (binary) -> <<1:16/integer>>;
+                              (text) ->   <<0:16/integer>> end,
+                          ResultFormats),
+    ResultFormatsP = erlang:list_to_binary(ResultFormatsList),
+
+    %%io:format("encode bind: ~p~n", [{PortalP, PreparedP,
+    %%			     NParameters, ParamFormatsP,
+    %%			     NParameters, ParametersP,
+    %%			     NResultFormats, ResultFormatsP}]),
+    encode($B, <<PortalP/binary, PreparedP/binary,
+                 NParametersFormat:16/integer, ParamFormatsP/binary,
+                 NParameters:16/integer, ParametersP/binary,
+                 NResultFormats:16/integer, ResultFormatsP/binary>>);
 encode_message(execute, {Portal, Limit}) ->
     String = string(Portal),
     encode($E, <<String/binary, Limit:32/integer>>);

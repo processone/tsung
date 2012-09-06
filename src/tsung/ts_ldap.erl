@@ -22,14 +22,17 @@
 %%% Author  : Pablo Polvorin <ppolv@yahoo.com.ar>
 %%% Purpose : LDAP plugin
 
-
 -module(ts_ldap).
+
+-behavior(ts_plugin).
 
 -export([init_dynparams/0,
          add_dynparams/4,
-         get_message/1,
+         get_message/2,
          session_defaults/0,
+         dump/2,
          parse/2,
+         parse_bidi/2,
          parse_config/2,
          decode_buffer/2,
          new_session/0
@@ -73,6 +76,12 @@ new_session() ->
 %%       recognize asn1...
 
 
+dump(A,B)->
+    ts_plugin:dump(A,B).
+
+parse_bidi(A, B) ->
+    ts_plugin:dump(A,B).
+
 %%----------------------------------------------------------------------
 %% Function: parse/2
 %% Purpose: parse the response from the server and keep information
@@ -82,7 +91,6 @@ new_session() ->
 %%----------------------------------------------------------------------
 parse(closed, State) ->
     {State#state_rcv{ack_done = true, datasize=0}, [], true};
-
 
 %% Shortcut, when using ssl i'm getting lots <<>> data. Also, next
 %% clause is an infinite loop if data is <<>>
@@ -265,28 +273,31 @@ init_dynparams() ->
 %%-----Messages
 %%----------------------------------------------------------------
 
-get_message(#ldap_request{type=bind,user=User,password=Password}) ->
+get_message(Req,#state_rcv{session=S}) ->
+    {get_message2(Req),S}.
+
+get_message2(#ldap_request{type=bind,user=User,password=Password}) ->
     X = ts_ldap_common:bind_msg(ts_msg_server:get_id(),User,Password),
     iolist_to_binary(X);
 %% TODO: we really need to consult the central msg_server to find a session-specific id?, any reason to prevent
 %% the same id to be used in different sessions?
 
-get_message(#ldap_request{type=search,base=Base,scope=Scope,filter=Filter,attributes=Attributes}) ->
+get_message2(#ldap_request{type=search,base=Base,scope=Scope,filter=Filter,attributes=Attributes}) ->
     EncodedFilter = ts_ldap_common:encode_filter(Filter),
     X = ts_ldap_common:search_msg(ts_msg_server:get_id(),Base,Scope,EncodedFilter,Attributes),
     iolist_to_binary(X);
 
-get_message(#ldap_request{type=start_tls}) ->
+get_message2(#ldap_request{type=start_tls}) ->
     X = ts_ldap_common:start_tls_msg(ts_msg_server:get_id()),
     iolist_to_binary(X);
 
-get_message(#ldap_request{type=unbind}) ->
+get_message2(#ldap_request{type=unbind}) ->
     iolist_to_binary(ts_ldap_common:unbind_msg(ts_msg_server:get_id()));
 
-get_message(#ldap_request{type=add,dn=DN,attrs=Attrs}) ->
+get_message2(#ldap_request{type=add,dn=DN,attrs=Attrs}) ->
     iolist_to_binary(ts_ldap_common:add_msg(ts_msg_server:get_id(),DN,Attrs));
 
 
-get_message(#ldap_request{type=modify,dn=DN,modifications=Modifications}) ->
+get_message2(#ldap_request{type=modify,dn=DN,modifications=Modifications}) ->
     iolist_to_binary(ts_ldap_common:modify_msg(ts_msg_server:get_id(),DN,Modifications)).
 

@@ -45,12 +45,12 @@ config_get_session_test() ->
     ts_user_server:start([]),
     ts_config_server:start_link(["/tmp"]),
     ok = ts_config_server:read_config("./examples/http_setdynvars.xml"),
-    {ok, {Session,IP,Server,1,full} }  = ts_config_server:get_next_session("localhost"),
+    {ok, Session=#session{userid=1,dump=full} }  = ts_config_server:get_next_session("localhost"),
     ?assertEqual(1, Session#session.id).
 
 config_get_session_size_test() ->
     myset_env(),
-    {ok, {Session,IP,Server,2,_} }  = ts_config_server:get_next_session("localhost"),
+    {ok, Session=#session{userid=2} }  = ts_config_server:get_next_session("localhost"),
     ?assertEqual(13, Session#session.size).
 
 
@@ -68,13 +68,13 @@ read_config_thinkfirst_test() ->
 
 config_minmax_test() ->
     myset_env(),
-    {ok, {Session,IP,Server,3,_} }  = ts_config_server:get_next_session("localhost"),
+    {ok, Session=#session{userid=3} }  = ts_config_server:get_next_session("localhost"),
     Id = Session#session.id,
     ?assertMatch({thinktime,{range,2000,4000}}, ts_config_server:get_req(Id,7)).
 
 config_minmax2_test() ->
     myset_env(),
-    {ok, {Session,IP,Server,4,_} }  = ts_config_server:get_next_session("localhost"),
+    {ok, Session=#session{userid=4} }  = ts_config_server:get_next_session("localhost"),
     Id = Session#session.id,
     {thinktime, Req} = ts_config_server:get_req(Id,7),
     Think=ts_client:set_thinktime(Req),
@@ -86,7 +86,7 @@ config_minmax2_test() ->
 config_thinktime_test() ->
     myset_env(),
     ok = ts_config_server:read_config("./examples/thinks.xml"),
-    {ok, {Session,IP,Server,5,_} }  = ts_config_server:get_next_session("localhost"),
+    {ok, Session=#session{userid=5} }  = ts_config_server:get_next_session("localhost"),
     Id = Session#session.id,
     {thinktime, Req=2000} = ts_config_server:get_req(Id,5),
     {thinktime, 2000} = ts_config_server:get_req(Id,7),
@@ -100,7 +100,7 @@ config_thinktime_test() ->
 config_thinktime2_test() ->
     myset_env(),
     ok = ts_config_server:read_config("./examples/thinks2.xml"),
-    {ok, {Session,{IP,0},Server,6,none} }  = ts_config_server:get_next_session("localhost"),
+    {ok, Session=#session{userid=6} }  = ts_config_server:get_next_session("localhost"),
     Id = Session#session.id,
     {thinktime, Req} = ts_config_server:get_req(Id,5),
     Ref=ts_client:set_thinktime(Req),
@@ -109,16 +109,59 @@ config_thinktime2_test() ->
     end,
     random:seed(), % reinit seed for others tests
     ?assertMatch({random,1000}, Req).
-read_config_maxusers_test() ->
+
+config_arrivalrate_test() ->
     myset_env(),
-    MaxNumber=10,
+    ok = ts_config_server:read_config("./examples/thinks.xml"),
+    {ok, {[Phase1,Phase2, Phase3],_,_} }  = ts_config_server:get_client_config("localhost"),
+    RealDur = 10 * 60 * 1000,
+    RealNU  = 1200,
+    RealIntensity  = 2 / 1000,
+    ?assertEqual({RealIntensity,RealNU,RealDur}, Phase1),
+    ?assertEqual({RealIntensity/60, RealNU div 60,RealDur}, Phase2),
+    ?assertEqual({RealIntensity/3600,12,RealDur*36}, Phase3).
+
+config_interarrival_test() ->
+    myset_env(),
+    ok = ts_config_server:read_config("./examples/thinks2.xml"),
+    {ok, {[Phase1,Phase2, Phase3],_,_} }  = ts_config_server:get_client_config("localhost"),
+    RealDur = 10 * 60 * 1000,
+    RealNU  = 1200,
+    RealIntensity  = 2 / 1000,
+    ?assertEqual({RealIntensity,RealNU,RealDur}, Phase1),
+    ?assertEqual({RealIntensity/60,RealNU div 60,RealDur}, Phase2),
+    ?assertEqual({RealIntensity/3600,12,RealDur*36}, Phase3).
+
+
+read_config_maxusers_test() ->
+    read_config_maxusers({5,15},10,"./src/test/thinkfirst.xml").
+
+read_config_maxusers({MaxNumber1,MaxNumber2},Clients,File) ->
+    myset_env(),
+    C=lists:map(fun(A)->"client"++integer_to_list(A) end, lists:seq(1,Clients)),
     ts_config_server:read_config("./src/test/thinkfirst.xml"),
-    {ok,{[{_,Max1,_},{_,_,_}],_,_}}=ts_config_server:get_client_config("client1"),
-    {ok,{[{_,Max2,_},{_,_,_}],_,_}}=ts_config_server:get_client_config("client2"),
-    {ok,{[{_,Max3,_},{_,_,_}],_,_}}=ts_config_server:get_client_config("client3"),
-    {ok,{[{_,Max4,_},{_,_,_}],_,_}}=ts_config_server:get_client_config("client4"),
-    ?LOGF("max: ~p",[[Max1,Max2,Max3,Max4]],?ERR),
-    ?assertEqual(Max1+Max2+Max3+Max4, MaxNumber).
+    {M1,M2} = lists:unzip(lists:map(fun(X)->
+                          {ok,{[{_,Max,_},{_,Max2,_}],_,_}} = ts_config_server:get_client_config(X),
+                          {Max,Max2}
+                  end,  C)),
+    [Head1|_]=M1,
+    [Head2|_]=M2,
+    ?assertEqual(1, Head1),
+    ?assertEqual(1, Head2),
+    ?assert(lists:min(M1) >= 0),
+    ?assert(lists:min(M2) >= 0),
+    ?assertEqual(lists:sum(M1), MaxNumber1),
+    ?assertEqual(lists:sum(M2), MaxNumber2).
+
+read_config_static_test() ->
+    myset_env(),
+    C=lists:map(fun(A)->"client"++integer_to_list(A) end, lists:seq(1,10)),
+    M = lists:map(fun(X)->
+                          {ok,Res,_} = ts_config_server:get_client_config(static,X),
+                          ?LOGF("X: ~p~n",[length(Res)],?ERR),
+                          length(Res)
+                  end,  C),
+    ?assertEqual(lists:sum(M) , 4).
 
 
 cport_list_node_test() ->
@@ -135,6 +178,19 @@ cport_list_node_test() ->
 ifalias_test() ->
     Res=ts_ip_scan:get_intf_aliases("lo"),
     ?assertEqual([{127,0,0,1}],Res).
+
+ifalias2_test() ->
+    {ok, L}=ts_utils:file_to_list("src/test/ifcfg.out"),
+    Out=ts_ip_scan:get_intf_aliases(L,"eth0",[],[]),
+    Res=lists:foldl(fun(A,L) -> [{192,168,76,A}|L] end, [],lists:seq(183,190)),
+    ?assertEqual(Out,Res).
+
+ifalias_ip_test() ->
+    {ok, L}=ts_utils:file_to_list("src/test/ipcfg.out"),
+    Out=ts_ip_scan:get_ip_aliases(L,[]),
+    Res=lists:foldl(fun(A,L) -> [{192,12,0,A}|L] end, [],lists:seq(1,12)),
+    ?assertEqual(Out,Res).
+
 
 encode_test() ->
     Encoded="ts_encoded_47myfilepath_47toto_47titi_58sdfsdf_45sdfsdf_44aa_47",
@@ -156,6 +212,18 @@ int_or_string2_test() ->
     ?assertEqual("%%_toto%%", ts_config:getAttr(integer_or_string,[#xmlAttribute{name=to,value="%%_toto%%"}],to)).
 int_test() ->
     ?assertEqual(100, ts_config:getAttr(integer,[#xmlAttribute{name=to,value="100"}],to)).
+
+launcher_empty_test() ->
+    Intensity=10,
+    Users=2,
+    Duration=25,
+    Res=ts_launcher:wait_static({static,0},#launcher{nusers=0,phase_duration=300,phases=[{Intensity,Users,Duration}]}),
+    ?assertMatch({next_state,launcher,#launcher{phases = [],
+                                                nusers = Users,
+                                                phase_nusers = Users,
+                                                phase_duration=Duration,
+                                                phase_start = _,
+                                                intensity = Intensity},_},Res).
 
 myset_env()->
     myset_env(0).

@@ -14,7 +14,7 @@
 %\addauthor{Nicolas}{Niclausse}{nicolas.niclausse@niclux.org}
 
 \doccopyright{Nicolas Niclausse.}
-\docversion{1.3.3}
+\docversion{1.4.2}
 \docreldate{\date{}}
 \docref{tsung-user-manual}
 
@@ -37,9 +37,9 @@ It is distributed under the GNU General Public License version 2.
 \subsection{What is Erlang and why is it important for Tsung ?}
 
 \program{Tsung's} main strength is its ability to simulate a huge number of
-simultaneous user from a single CPU. When used on cluster you can
+simultaneous user from a single machine. When used on cluster, you can
 generate a really impressive load on a server with a modest cluster,
-easy to set-up and to maintain.
+easy to set-up and to maintain. You can also use Tsung on a cloud like EC2.
 
 \program{Tsung} is developed in Erlang and this is where the power
 of \program{Tsung} resides.
@@ -68,7 +68,7 @@ History:
 \begin{itemize}
 \item \program{Tsung} development was started by Nicolas Niclausse in
   2001 as a distributed jabber load stress tool for internal use at
-  \url{http://IDEALX.com/}.  It has evolved as an open-source
+  \url{http://IDEALX.com/} (now OpenTrust).  It has evolved as an open-source
   multi-protocol load testing tool several months later. The HTTP
   support was added in 2003, and this tool has been used for several
   industrial projects.  It is now hosted by Erlang-projects, and
@@ -105,7 +105,7 @@ Volume 46, Issue 2-3, October 2001}.
 \item \emph{HTTP and HTTPS} protocol:
   \begin{itemize}
   \item 12 000 simultaneous users.
-  \program{Tsung} were running on a 4-computers cluster. The
+  \program{Tsung} were running on a 4-computers cluster (in 2003). The
   tested platform reached 3 000 requests per second.
  \item 10 million simultaneous users running on a 75-computers cluster,
   generating more than one million requests per second.
@@ -142,7 +142,7 @@ for Petroleum
 client machines
 \item \emph{Multi-Protocols} using a plug-in system: HTTP (both standard
 web traffic and SOAP),  WebDAV, Jabber/XMPP and PostgreSQL are currently
-supported. Experimental LDAP and MySQL plugins were included in the 1.3.0 release.
+supported. LDAP and MySQL plugins were first included in the 1.3.0 release.
 \item \emph{SSL} support
 \item \emph{Several IP addresses} can be used on a single machine using
 the underlying OS IP Aliasing
@@ -159,7 +159,7 @@ agents on remote servers or \emph{SNMP}
 different type of users during the same benchmark. You can define
 the proportion of the various behaviours in the benchmark scenario.
 \item \emph{Stochastic processes}: in order to generate a realistic traffic,
-user thinktimes and the arrival rate can be randomize using a probability
+user thinktimes and the arrival rate can be randomized using a probability
 distribution (currently exponential)
 \end{itemize}
 
@@ -205,13 +205,15 @@ are also supported):
 \item raw XML messages
 \item PubSub
 \item Multiple vhost instances supported
+\item privacy lists: get all privacy list names, set list as active
 \end{itemize}
 
 \subsection{PostgreSQL related features}
 
 \begin{itemize}
 \item Basic and MD5 Authentication
-\item Basic Queries (Extended queries not yet supported)
+\item Simple Protocol
+\item Extended Protocol (new in version \strong{1.4.0} )
 \item Proxy mode to record sessions
 \end{itemize}
 
@@ -223,12 +225,11 @@ This plugin is experimental. It works only with MySQL version 4.1 and higher.
 \end{itemize}
 
 \subsection{LDAP related features}
-This plugin is experimental.
 
 \begin{itemize}
 \item bind
 \item add, modify and search queries
-\item starttls (only with R12B-0 Erlang and up)
+\item starttls
 \end{itemize}
 
 \subsection{Complete reports set}
@@ -282,14 +283,9 @@ MacOS-X).
 
 \subsection{Dependencies}
 \begin{itemize}
-\item Erlang/OTP R10B-0 and up
+\item Erlang/OTP R12B-5 and up
   (\url{http://www.erlang.org/download.html}). Erlang is now
   part of fedora and debian/ubuntu repositories.
-  \item extended regexp module (used for dynamic variables):
-    gregexp.erl available at
-    \url{http://www.cellicium.com/erlang/contribs/} . The module is
-    included in the source and binary distribution of \program{Tsung}. It
-    is released under the EPL License.
   \item pgsql module made by Christian Sunesson (for the PostgreSQL plugin):
     sources available at
     \url{http://jungerl.sourceforge.net/} . The module is
@@ -329,8 +325,15 @@ MacOS-X).
  make install
 \end{Verbatim}
 
-If you want to download the development version, use git: \command{git
-  clone git://git.process-one.net/tsung/mainline.git} (see \url{https://git.process-one.net/tsung}).
+If you want to download the development version, use git:
+
+ \command{git clone git://git.process-one.net/tsung/mainline.git}
+
+ (see also \url{https://git.process-one.net/tsung} and the github
+ mirror: \url{https://github.com/processone/tsung}).
+
+You can also build packages with \command{make deb} (on debian and
+ubuntu) and \command{make rpm} (on fedora, rhel, and other rpm based distribution)
 
 \subsection{Configuration}
 
@@ -340,7 +343,7 @@ there are several sample files in
 
 Log files are saved in \file{~/.tsung/log/} . A new sub-directory
 is created for each test using the current date as name
-(\file{~/.tsung/log/20040217-09:40} for ex.)
+(\file{~/.tsung/log/20040217-0940} for ex.)
 
 \subsection{Running}
 
@@ -353,11 +356,17 @@ for both commands.
 Usage: tsung <options> start|stop|debug|status
 Options:
     -f <file>     set configuration file (default is ~/.tsung/tsung.xml)
-    -l <logfile>  set log file (default is ~/.tsung/log/tsung.log)
+                    (use - for standard input)
+    -l <logdir>   set log directory (default is ~/.tsung/log/YYYYMMDD-HHMM/)
     -i <id>       set controller id (default is empty)
     -r <command>  set remote connector (default is ssh)
+    -s            enable erlang smp on client nodes
+    -m <file>     write monitoring output on this file (default is tsung.log)
+                   (use - for standard output)
     -F            use long names (FQDN) for erlang nodes
+    -w            warm-up delay (default is 10 sec)
     -v            print version information and exit
+    -6            use IPv6 for tsung internal communications
     -h            display this help and exit
 \end{Verbatim}
 
@@ -569,7 +578,7 @@ for password settings).
 
     <!-- regexp captures stream ID returned by server -->
     <request>
-      <dyn_variable name="sid" regexp="&lt;stream:stream id=&quot;\(.*\)&quot; xmlns:stream"/>
+      <dyn_variable name="sid" re="&lt;stream:stream id=&quot;(.*)&quot; xmlns:stream"/>
       <jabber type="connect" ack="local"></jabber>
     </request>
 
@@ -594,7 +603,7 @@ for password settings).
       <!-- regexp captures nonce value returned by server -->
       <request>
         <dyn_variable name="nonce"
-          regexp="&lt;Nonce encoding=&quot;hex&quot;&gt;\(.*\)&lt;\/Nonce&gt;"/>
+          re="&lt;Nonce encoding=&quot;hex&quot;&gt;(.*)&lt;\/Nonce&gt;"/>
         <jabber type="auth_get" ack="local"></jabber>
       </request>
       <request subst='true'> <jabber type="auth_set_sip" ack="local"></jabber> </request>
@@ -604,8 +613,21 @@ for password settings).
 \end{Verbatim}
 \end{itemize}
 
-\section{Using the proxy recorder}
+\subsubsection{Privacy list testing}
 
+There are two actions available to allow for rudimentary privacy lists
+load testing:
+\begin{itemize}
+\item \userinput{privacy:get\_names} - gets the list of all names
+of privacy lists stored by the server for a given user
+\item \userinput{privacy:set\_active} - sets a list with a predefined
+name as active. The list name is determined from the JID,
+e.g. if the user's JID is "john@average.com" then the list name
+is "john@average.com\_list". One should take care of properly seeding
+the server database in order to ensure that such a list exists.
+\end{itemize}
+
+\section{Using the proxy recorder}
 
 The recorder has three plugins: for HTTP, WebDAV and for PostgreSQL.
 
@@ -685,6 +707,16 @@ The default encoding is utf-8.  You can use a different encoding, like in:
  purpose. You can use the attribute \userinput{dumptraffic="light"} to
  dump only the first 44 bytes.
 
+Since version \strong{1.4.0}, you have also a specific logging per
+ protocol, using \userinput{dumptraffic="protocol"}. It's currently
+ only implemented for HTTP: this will log all requests in a CSV file,
+ with the following data:
+
+\begin{Verbatim}
+#date;pid;id;http method;host;URL;HTTP status;size;match;error
+\end{Verbatim}
+
+
  The \varname{loglevel} can also have a great impact on performance:
  For high load, \userinput{warning} is recommended.
  Possible values are:
@@ -727,6 +759,10 @@ The server is the entry point into the cluster (\strong{New in 1.2.0:}
 if several servers are defined, a round robin algorithm is used to
 choose the server).
 
+\varname{Type} can be \userinput{tcp}, \userinput{ssl} or
+\userinput{udp} (for IPv6, use \userinput{tcp6}, \userinput{ssl6} or
+\userinput{udp6} ; only available in  version \strong{1.4.2} and newer)
+
 \subsubsection{Advanced setup}
 
 The next example is more complex, and use several features for
@@ -753,21 +789,25 @@ Several virtual IP can be used to simulate more machines. This is
    1.1.1:} IP is no longer mandatory. If not specified, the default IP will
  be used.
 
+\strong{New in 1.4.0:} You can use  \userinput{<ip scan="yes"
+  value="eth0"/>} to scan for all the IP aliases on a given interface
+(\userinput{eth0} in this example).
+
  In this example, a second machine is used in the Tsung cluster,
  with a higher weight, and 2 cpus. Two Erlang virtual machines will be
  used to take advantage of the number of CPU.
 
  \begin{quote}
- \strong{Note:} Even if an Erlang VM is now able to handle severals CPUs
+ \strong{Note:} Even if an Erlang VM is now able to handle several CPUs
  (erlang SMP), benchmarks shows that it's more efficient to use one VM
  per CPU (with SMP disabled) for tsung clients. Only the controller node is using SMP
- erlang. Therefore, you cpu should be equal to the number of cores of
+ erlang. Therefore, \varname{cpu} should be equal to the number of cores of
  your nodes. If you prefer to use erlang SMP, add the \userinput{-s}
  option when starting tsung (and don't set \varname{cpu} in the config
  file).
  \end{quote}
 
- By default, the load is distributed uniformly on all CPU (one cpu
+ By default, the load is distributed uniformly on all CPU (one CPU
  per client by default). The weight parameter (integer) can be used to
  take into account the speed of the client machine. For instance, if
  one real client has a weight of 1 and the other client has a weight
@@ -777,7 +817,8 @@ Several virtual IP can be used to simulate more machines. This is
  equal to 1.5 for each CPU.
 
  The \varname{maxusers} parameter is used to bypass the limit of
- maximum number of sockets opened by a single process (usually 1024)
+ maximum number of sockets opened by a single process (1024 by
+ default on many OS)
  and the lack of scalability of the \varname{select} system call. When
  the number of users is higher than the limit, a new erlang virtual
  machine will be started to handle new users. The default value of
@@ -786,24 +827,28 @@ Several virtual IP can be used to simulate more machines. This is
  performance penalty (but don't forget to raise the limit of the OS with
  \command{ulimit -n}, see also FAQ \ref{sec:faq:emfile}).
 
-\subsubsection{Running tsung with a job scheduler}
+\subsubsection{Running Tsung with a job scheduler}
 
-Tsung is able to get it's client node list from a batch/job
-scheduler. It currently handle pbs/torque, LSF and OAR. To do this,
+Tsung is able to get its client node list from a batch/job
+scheduler. It currently handle PBS/torque, LSF and OAR. To do this,
  set the \varname{type} attribute to \userinput{batch}, e.g.:
 
 \begin{Verbatim}
   <client type="batch" batch="torque" maxusers="30000">
 \end{Verbatim}
 
-
+If you need to scan IP aliases on nodes given by the batch scheduler,
+use \varname{scan\_intf} like this:
+\begin{Verbatim}
+  <client type="batch" batch="torque" scan_intf='eth0'  maxusers="30000">
+\end{Verbatim}
 
 \subsection{Monitoring}
 
 Tsung is able to monitor remote servers using several backends that
 communicates with remote agent; This
 is configured in the \varname{<monitoring>} section. Available
-statistics are: cpu activity, load average, memory usage.
+statistics are: CPU activity, load average, memory usage.
 
 Note that you can get the nodes to monitor from a job scheduler, like:
 \begin{Verbatim}
@@ -861,6 +906,23 @@ community and port number. It uses the MIB provided in
 The default version is \userinput{v1}, default community
 \userinput{public} and default port \userinput{161}.
 
+Since version \strong{1.4.2}, you can also customize the OIDs
+retrieved from the SNMP server, using one or several \userinput{oid}
+element:
+
+\begin{Verbatim}
+   <monitor host="127.0.0.1" type="snmp">
+     <snmp version="v2">
+       <oid value="1.3.6.1.4.1.42.2.145.3.163.1.1.2.11.0"
+            name="heapused" type="sample" eval="fun(X)-> X/100 end."/>
+     </snmp>
+   </monitor>
+\end{Verbatim}
+
+\varname{type} can be \userinput{sample}, \userinput{counter} or
+\userinput{sum}, and optionally you can define a function (with erlang
+syntax) to be applied to the value (\varname{eval} attribute).
+
 \subsubsection{Munin}
 
 Since version \strong{1.3.1}, Tsung is able to retrieve data from a munin-node agent
@@ -912,6 +974,20 @@ second, use:
   </arrivalphase>
 \end{Verbatim}
 
+You can limit the number of users started for each phase by using the
+\varname{maxnumber} attribute, just like this:
+\begin{Verbatim}
+  <arrivalphase phase="1" duration="10" unit="minute">
+    <users maxnumber="100" arrivalrate="10" unit="second"></users>
+  </arrivalphase>
+  <arrivalphase phase="2" duration="10" unit="minute">
+    <users maxnumber="200" arrivalrate="10" unit="second"></users>
+  </arrivalphase>
+\end{Verbatim}
+In this case, only 100 users will be created in the first phases, and
+200 more during the second phase.
+
+
 The complete sequence can be executed several times using the
 \varname{loop} attribute in the \varname{load} tag
 (\userinput{loop='2'} means the sequence will be looped twice, so the
@@ -958,7 +1034,7 @@ session), one starting after 10 minutes, and a last one starting after
 By default, tsung will end when all started users have finished their
 session. So it can be much longer than the duration of
 arrivalphases. If you want to stop Tsung  after a given duration
-(even if phases are not finised or if some sessions are still actives),
+(even if phases are not finished or if some sessions are still actives),
 you can do this with the \varname{duration} attribute in
 \varname{load} (\strong{feature added in 1.3.2}):
 
@@ -976,9 +1052,11 @@ days. \varname{unit} can be \userinput{second}, \userinput{minute} or
 
 
 \subsection{Setting options}
+\label{sec:options}
 
+\paragraph{Thinktimes, SSL, Buffers}
 \par Default values can be set-up globally: \varname{thinktime} between requests
-in the scenario,  ssl cipher algorithms, TCP/UDP buffer sizes (the default
+in the scenario,  SSL cipher algorithms, TCP/UDP buffer sizes (the default
 value is 32KB). These values overrides
 those set in session configuration tags if override is true.
 \begin{Verbatim}
@@ -991,16 +1069,67 @@ those set in session configuration tags if override is true.
   <option name="udp_rcv_buffer" value="16384"></option>
 \end{Verbatim}
 
-A new option is available in version \strong{1.3.1}: hibernate. This
+\paragraph{Timeout for acknowledgments of messages}
+
+This is used to set the idle timeout(used for 'parse' and 'local' ack) and
+global ack timeout(used for 'global' ack). By default, idle timeout will be
+10min(600000) and global ack timeout will be \userinput{infinity}. This value
+can be changed like this:
+
+\begin{Verbatim}
+  <option name="idle_timeout" value="300000"></option>
+  <option name="glocal_ack_timeout" value="6000000"></option>
+\end{Verbatim}
+
+\paragraph{Hibernate}
+
+A new option is available in version \strong{1.3.1}: \varname{hibernate}. This
 is used to reduced memory consumption of simulated users during
 thinktimes. By default, hibernation will be activated for thinktimes
 higher than 10sec. This value can be changed like this:
 
 \begin{Verbatim}
-<option name="hibernate" value="5"></option>
+  <option name="hibernate" value="5"></option>
 \end{Verbatim}
 
 To disable hibernation, you must set the value to \userinput{infinity}.
+
+\paragraph{Rate\_limit}
+
+A new option is available in version \strong{1.4.0}:
+\varname{rate\_limit}. This will limit the bandwidth of each client
+(using a token bucket algorithm). The value is in KBytes per
+second. You can also specify a maximum burst value
+(eg. \userinput{max='2048'}). By default the burst size is the same as
+the rate (1024KB in the following example). Currently, only incoming
+traffic is rate limited.
+
+\begin{Verbatim}
+  <option name="rate_limit" value="1024"></option>
+\end{Verbatim}
+
+\paragraph{Ports\_range}
+If you need to open more than 30000 simultaneous connections on a
+client machine, you will be limited by the number of TCP client ports,
+even if you use several IPs (this is true at least on Linux). To
+bypass this limit, Tsung must not delegate the selection of client
+ports and together with using several IP for each client,
+you have to defined a range for available clients ports, for ex:
+\begin{Verbatim}
+  <option name="ports_range" min="1025" max="65535"/>
+\end{Verbatim}
+
+\paragraph{Setting the  seed for random numbers}
+
+If you want to use a fixed seed for the random generator, you can use
+the \varname{seed} option, like this (by default, tsung will use the
+current time to set the seed, therefore random numbers should be
+different for every test).
+
+\begin{Verbatim}
+  <option name="seed" value="42"/>
+\end{Verbatim}
+
 
 \subsubsection{XMPP/Jabber options}
 \label{sec:jabber-options}
@@ -1445,6 +1574,53 @@ The vhost list is read from a file:
 When each client starts a session, it chooses randomly a domain (each domain has the
 same probability).
 
+\paragraph{Reading usernames and password from a CSV file}
+
+Since version 1.4.0, you can now use a CSV file to store the usernames
+and password.
+
+Configure the CSV file:
+\begin{Verbatim}
+ <options>
+  <option name="file_server" id='userdb' value="/home/foo/.tsung/users.csv"/>
+ </options>
+\end{Verbatim}
+
+And then you have to defined two variables of type \userinput{file},
+and the first jabber request (\userinput{connect}) must include a
+\varname{xmpp\_authenticate} tag:
+
+\begin{Verbatim}
+
+<session probability="100" name="jabber-example" type="ts_jabber">
+
+  <setdynvars sourcetype="file" fileid="userdb" delimiter=";" order="iter">
+    <var name="username" />
+    <var name="password" />
+  </setdynvars>
+
+    <request subst='true'>
+      <jabber type="connect" ack="no_ack">
+         <xmpp_authenticate username="%%_username%%" passwd="%%_password%%"/>
+      </jabber>
+    </request>
+
+   <thinktime value="2"></thinktime>
+
+   <transaction name="authenticate">
+
+   <request>
+     <jabber type="auth_get" ack="local"> </jabber>
+   </request>
+   <request>
+     <jabber type="auth_set_plain" ack="local"></jabber>
+   </request>
+
+  </transaction>
+...
+</session>
+\end{Verbatim}
+
 \paragraph{raw XML}
 You can send raw XML data to the server using the \varname{raw} type:
 \begin{Verbatim}
@@ -1454,14 +1630,27 @@ You can send raw XML data to the server using the \varname{raw} type:
 Beware: you must encode XML characters like \userinput{<}
 ,\userinput{>}, \userinput{\&}, etc.
 
+\paragraph{resource}
+
+By default, the XMPP resource is set to \userinput{tsung}. Since
+version 1.4.3, you can override this (in all \varname{auth\_*} and
+\varname{register} requests) using the \varname{resource} attribute.
+
 \subsubsection{PostgreSQL}
 
 For PostgreSQL, 4 types of requests are available:
 \begin{enumerate}
 \item connect (to a given database with a given username
 \item authenticate (with password or not)
-\item sql
+\item sql (basic protocol)
 \item close
+\end{enumerate}
+
+In addition, the following parts of the extended protocol is supported:
+\begin{enumerate}
+\item copy, copydone and copyfail
+\item parse, bind, execute, describe
+\item sync, flush
 \end{enumerate}
 
 This example shows most of the features of a PostgreSQL session:
@@ -1501,6 +1690,40 @@ ORDER BY 1,2;]]></pgsql></request>
 
   </session>
 \end{Verbatim}
+
+Example with the extended protocol:
+
+\begin{Verbatim}
+<request><pgsql type='parse' name_prepared='P0_7'><![CDATA[BEGIN;]]></pgsql></request>
+<request><pgsql type='sync'/></request>
+<request><pgsql type='parse' name_prepared='P0_8'><![CDATA[UPDATE pgbench_accounts
+  SET abalance = abalance + $1 WHERE aid = $2;]]></pgsql></request>
+<request><pgsql type='sync'/></request>
+<request><pgsql type='parse' name_prepared='P0_9'><![CDATA[SELECT
+  abalance FROM pgbench_accounts
+  WHERE aid = $1;]]></pgsql></request>
+<request><pgsql type='sync'/></request>
+<request><pgsql type='parse' name_prepared='P0_10'><![CDATA[UPDATE pgbench_tellers
+   SET tbalance = tbalance + $1 WHERE tid = $2;]]></pgsql></request>
+<request><pgsql type='sync'/></request>
+<request><pgsql type='parse' name_prepared='P0_11'><![CDATA[UPDATE pgbench_branches
+   SET bbalance = bbalance + $1 WHERE bid = $2;]]></pgsql></request>
+<request><pgsql type='sync'/></request>
+<request><pgsql type='parse' name_prepared='P0_12'><![CDATA[INSERT
+   INTO pgbench_history (tid, bid, aid, delta, mtime)
+   VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP);]]></pgsql></request>
+<request><pgsql type='sync'/></request>
+<request><pgsql type='parse' name_prepared='P0_13'><![CDATA[END;]]></pgsql></request>
+<request><pgsql type='sync'/></request>
+<request><pgsql type='bind' name_prepared='P0_7' formats='none' formats_results='text' /></request>
+<request><pgsql type='describe' name_portal=''/></request>
+<request><pgsql type='execute'/></request>
+<request><pgsql type='sync'/></request>
+<request><pgsql type='bind' name_portal='' name_prepared='P0_8'
+   formats='none' formats_results='text'
+   parameters='2924,37801'/></request>
+\end{Verbatim}
+% $
 
 \subsubsection{MySQL}
 \label{sec:session:mysql}
@@ -1783,9 +2006,6 @@ can use it to read external files. For example, if you need to read user
 names and passwd from a CSV file, you can do it with it (currently,
 you can read only a single file).
 
-\begin{quote}
- \strong{Note:} Reading usernames and password from a CSV file is not possible for Jabber.
-\end{quote}
 
 You have to add this in the XML configuration file:
 \begin{Verbatim}
@@ -1926,7 +2146,7 @@ from erlang. This is now deprecated. The syntax was:
 \paragraph{XPath}
 
 A new way to analyze the server response has been introduced in the
-release \strong{1.3.0}. It is only for the HTTP plugin since it is
+release \strong{1.3.0}. It is available only for the HTTP and XMPP plugin since it is
 based on XML/HTML parsing. This feature uses the mochiweb library
 and \strong{only works with erlang R12B and newer version}.
 
@@ -1934,17 +2154,15 @@ This give us some benefices:
 
 \begin{itemize}
 \item XPath is simple to write and to read, and match very well with
-  HTML pages
+  HTML/XML pages
 \item The parser works on binaries(), and doesn't create any
-  string(). In contrast, the regexp module works on string(), so the
-  entire page needs to be \varname{binary\_to\_list/1} transformed before
-  processing it.
-\item The cost of parsing the HTML and build the tree is amortized
+  string().
+\item The cost of parsing the HTML/XML and build the tree is amortized
   between all the dyn\_variables defined for a given request
 \end{itemize}
 
 To utilize xpath expression, use a \varname{xpath} attribute when
-defining the dyn\_variable, instead of \varname{regexp}, like:
+defining the dyn\_variable, instead of \varname{re}, like:
 \begin{Verbatim}
 <dyn_variable name="field1_value" xpath="//input[@name='field1']/@value"/>
 <dyn_variable name="title" xpath="/html/head/title/text()"/>
@@ -1954,11 +2172,21 @@ There is a bug in the xpath engine, result nodes from "descendant-or-self" aren'
 However, queries like \userinput{//img[1]/@src} are not recommended, as the order of the \userinput{<img>} elements returned from //img is not the expected.
 The order is respected for paths without "descendant-or-self" axis, so this: \userinput{/html/body/div[2]/img[3]/@src} is interpreted as expected and can be safely used.
 
-Basic tests shows a x4 improvement in speed over the \emph{regexp} implementation.
 
 It is possible to use Xpath to get a list of elements from an html page, allowing dynamic retrieval of objects. You can either create embedded erlang code to parse the list produced, or use foreach that was introduced in release \strong(1.4.0).
 
+For XMPP, you can get all the contacts in a dynamic variable:
+\begin{Verbatim}
+<request subst="true">
+    <dyn_variable name="contactJids"
+      xpath="//iq[@type='result']/query[@xmlns='jabber:iq:roster']//item[string-length(@wr:type)=0]/@jid"
+    />
+    <jabber type="iq:roster:get" ack="local"/>
+</request>
+\end{Verbatim}
+
 \paragraph{JSONPath}
+\label{sec:jsonpath}
 
 Another way to analyze the server response has been introduced in the
 release \strong{1.3.2} when the server is sending JSON data. It is only for the HTTP plugin. This feature uses the mochiweb library
@@ -1967,25 +2195,25 @@ and \strong{only works with erlang R13B and newer version}.
 Tsung implements a (very) limited subset of JSONPath as defined here \url{http://goessner.net/articles/JsonPath/}
 
 To utilize jsonpath expression, use a \varname{jsonpath} attribute when
-defining the dyn\_variable, instead of \varname{regexp}, like:
+defining the dyn\_variable, instead of \varname{re}, like:
 \begin{Verbatim}
-<dyn_variable name="array3_value" json="field.array[3].value"/>
+<dyn_variable name="array3_value" jsonpath="field.array[3].value"/>
 \end{Verbatim}
 
 You can also use expressions \userinput{Key=Val}, e.g.:
 \begin{Verbatim}
-<dyn_variable name="myvar" json="field.array[?name=bar].value"/>
+<dyn_variable name="myvar" jsonpath="field.array[?name=bar].value"/>
 \end{Verbatim}
 
 \paragraph{PostgreSQL}
 \strong{New in 1.3.2!}
 
-Since the  postgreSQL protocol is binary, regexp are not useful to
+Since the  PostgreSQL protocol is binary, regexp are not useful to
 parse the output of the server. Instead, a specific parsing can be
 done to extract content from the server's response; to do this, use the
 \varname{pgsql\_expr} attribute. Use \userinput{data\_row[L][C]} to
 extract the  column C of the  line L of the data output. You can also use
-the litteral name of the column (\ie the field name of the
+the literal name of the column (\ie the field name of the
 table). This example extract 3 dynamic variables from the server's
 response:
 
@@ -2074,6 +2302,14 @@ In this case, we use tsung function \varname{ts\_dynvars:lookup} to retrieve the
 dynamic variable named \varname{md5data}. This dyn\_variable \varname{md5data}
 can be set in any of the ways described in the Dynamic variables
 section \ref{Dynamic variables}.
+\item A dynamic variable can be generated by applying a JSONPath
+  specification (see \ref{sec:jsonpath}) to an existing dynamic
+  variable:
+\begin{Verbatim}
+  <setdynvars sourcetype="jsonpath" from='notification' jsonpath="result[?state=OK].node">
+      <var name="deployed" />
+  </setdynvars>
+\end{Verbatim}
 
 \end{enumerate}
 
@@ -2113,6 +2349,8 @@ The list of available actions to do is:
   restarts is 3 by default.
 \item loop: repeat the request, after 5 seconds. The maximum number of
   loops is 20 by default.
+\item dump: dump the content of the response in a file. The filename
+  is \file{match-<userid>-<sessionid>-<requestid>-<dumpid>.dump}
 \end{itemize}
 
 You can mixed several match tag in a single request:
@@ -2179,7 +2417,7 @@ attributes:
 
 \begin{description}
 \item[name] Name of the repeat
-\item[max\_repeat] Max number of loops
+\item[max\_repeat] Max number of loops (default value is 20)
 \end{description}
 
 The last element of repeat must be either \userinput{<while>} or \userinput{<until>} example:
@@ -2189,7 +2427,7 @@ The last element of repeat must be either \userinput{<while>} or \userinput{<unt
    [...]
 
    <request>
-     <dyn_variable name="result" regexp="Result: (.*)"/>
+     <dyn_variable name="result" re="Result: (.*)"/>
      <http url="/random" method="GET" version="1.1"></http>
    </request>
 
@@ -2203,13 +2441,20 @@ dynamic variables:
 \paragraph{<if>}
 
 \begin{Verbatim}
-<if var="tsung_userid" eq="3">  
+<if var="tsung_userid" eq="3">
   <request> <http url="/foo"/> </request>
   <request> <http url="/bar"/> </request>
 </if>
 \end{Verbatim}
 
 You can use \varname{eq} or \varname{neq} to check the variable.
+
+If the dynamic variable is a list (output from xpath for example), you
+can access to the nth element of a list like this:
+\begin{Verbatim}
+<if var="myvar[1]" eq="3">
+\end{Verbatim}
+(here we compare the first element of the list to 3)
 
 \paragraph{<foreach>}
 
@@ -2251,8 +2496,73 @@ You can combine this with a xpath query. For instance the following scenario wil
 </foreach>
 \end{Verbatim}
 
+\subsubsection{Rate limiting}
+
+Since version \strong{1.4.0}, rate limiting can be enabled, either globally
+(see \ref{sec:options}), or for each session separately. 
+
+For example, to limit the rate to 64KB/sec for a given session:
+\begin{Verbatim}
+  <session name="http-example" probability="70" type="ts_http">
+   <set_option name="rate_limit" value="64"></option>
+   ...
+\end{Verbatim}
+
+Only the incoming traffic is rate limited currently.
+
 \section{Statistics and reports}
 \label{sec:statistics-reports}
+\subsection{File format}
+
+By default, tsung use it's own format (see FAQ \ref{sec:what-format-stats}).
+
+Since version 1.4.2, you can configure tsung to use a JSON format;
+however in this case, the tools \command{tsung\_stats.pl} and
+\command{tsung\_plotter} will not work with the JSON files.
+
+To enable JSON output, use:
+\begin{Verbatim}
+<tsung backend='json' ...>
+\end{Verbatim}
+
+Example output file with JSON:
+\begin{Verbatim}
+{
+ "stats": [
+ {"timestamp": 1317413841,  "samples": []},
+ {"timestamp": 1317413851,  "samples": [
+   {"name": "users", "value": 0, "max": 0},
+   {"name": "users_count", "value": 0, "total": 0},
+   {"name": "finish_users_count", "value": 0, "total": 0}]},
+ {"timestamp": 1317413861,  "samples": [
+   {"name": "users", "value": 0, "max": 1},
+   {"name": "load", "hostname": "requiem", "value": 1, "mean":
+     0.0,"stdvar": 0,"max": 0.0,"min": 0.0 ,"global_mean": 0
+     ,"global_count": 0},
+   {"name": "freemem", "hostname": "requiem", "value": 1, "mean":
+     2249.32421875,"stdvar": 0,"max": 2249.32421875,"min":
+     2249.32421875 ,"global_mean": 0 ,"global_count": 0},
+   {"name": "cpu", "hostname": "requiem", "value": 1, "mean":
+     4.790419161676647,"stdvar": 0,"max": 4.790419161676647,"min":
+     4.790419161676647 ,"global_mean": 0 ,"global_count": 0},
+   {"name": "session", "value": 1, "mean": 387.864990234375,"stdvar":
+     0,"max":  387.864990234375,"min": 387.864990234375
+     ,"global_mean": 0 ,"global_count": 0},
+   {"name": "users_count", "value": 1, "total": 1},
+   {"name": "finish_users_count", "value": 1, "total": 1},
+   {"name": "request", "value": 5, "mean": 75.331787109375,"stdvar":
+     46.689242405019954,"max":  168.708984375,"min": 51.744873046875
+     ,"global_mean": 0 ,"global_count": 0},
+   {"name": "page", "value": 1, "mean": 380.7548828125,"stdvar":
+     0.0,"max":  380.7548828125,"min": 380.7548828125 ,"global_mean":
+     0 ,"global_count": 0},
+   {"name": "connect", "value": 1, "mean": 116.70703125,"stdvar":
+     0.0,"max":  116.70703125,"min": 116.70703125 ,"global_mean": 0
+     ,"global_count": 0},
+   {"name": "size_rcv", "value": 703, "total": 703},
+   {"name": "size_sent", "value": 1083, "total": 1083},
+   {"name": "connected", "value": 0, "max": 0}, {"name": "http_304", "value": 5, "total": 5}]}]}
+\end{Verbatim}
 
 \subsection{Available stats}
 
@@ -2286,12 +2596,12 @@ Jabber specific stats:
 \item \varname{request\_noack} Counter of \varname{no\_ack} requests. Since
   response time is meaningless with \varname{no\_ack}
   requests, we keep a separate stats for this. \strong{new in 1.2.2}.
-\item \varname{bidi\_msg\_skip} Only if bidi is true for a
+\item \varname{async\_unknown\_data\_rcv} Only if bidi is true for a
   session. counter the number of messages received from the server
   without doing anything.  \strong{new in 1.2.2}.
-\item \varname{bidi\_msg\_sent} Only if bidi is true for a
+\item \varname{async\_data\_sent} Only if bidi is true for a
   session. Count the number of messages sent to the server in response
-  of a message received from from the server. \strong{new in 1.2.2}.
+  of a message received from the server. \strong{new in 1.2.2}.
 \end{itemize}
 
 \subsection{Design}
@@ -2338,18 +2648,23 @@ use \userinput{--help} to view all available options:
 \begin{Verbatim}
 Available options:
         [--help] (this help text)
-        [--verbose]
-        [--debug]
+        [--verbose] (print all messages)
+        [--debug] (print receive without send messages)
+        [--dygraph] use dygraphs (http://danvk.org/dygraphs/) to render graphs
         [--noplot]  (don't make graphics)
         [--gnuplot <command>]  (path to the gnuplot binary)
         [--nohtml]  (don't create HTML reports)
         [--logy]  (logarithmic scale for Y axis)
         [--tdir <template_dir>] (Path to the HTML tsung templates)
         [--noextra  (don't generate graphics from extra data (os monitor, etc)
+        [--rotate-xtics  (rotate legend of x axes)
         [--stats <file>] (stats file to analyse, default=tsung.log)
         [--img_format <format>] (output format for images, default=png
                                  available format: ps, svg, png, pdf)
 \end{Verbatim}
+
+Version \strong{1.4.0} adds a new graphical output based on
+\url{http://danvk.org/dygraphs/}.
 
 \subsection{Tsung summary}
 Figure \ref{fig:report} shows an example of a summary report.
@@ -2459,7 +2774,9 @@ several problems:
 \item Tsung and Erlang are not installed on all clients nodes
 \item Erlang version or location (install path) is not the same on all clients nodes
 \item A firewall is dropping erlang packets: indeed erlang virtual machines use
-several TCP ports (dynamically generated) to communicate.
+several TCP ports (dynamically generated) to communicate (if you are
+using EC2, you may have to change the Security Group that is applied on the VMs used
+for Tsung: open port-range “0 – 65535”)
 \item SELinux: You should disable SELinux on all clients.
 \item Bad \file{/etc/hosts:}
 This one is wrong (real hostname should not refer to localhost/loopback):
@@ -2569,7 +2886,7 @@ you can handle this situation using a dynamic variable:
 
 \begin{Verbatim}
 <request>
-  <dyn_variable name="redirect" regexp="Location: \(http://.*\)\r"/>
+  <dyn_variable name="redirect" re="Location: (http://.*)\r"/>
   <http url="index.html" method="GET" ></http>
 </request>
 
@@ -2583,13 +2900,13 @@ successively using a repeat loop (this works only with version 1.3.0 and up):
 
 \begin{Verbatim}
   <request>
-    <dyn_variable name="redirect" regexp="Location: \(http://.*\)\r"/>
+    <dyn_variable name="redirect" re="Location: (http://.*)\r"/>
     <http url='/test/redirect.html' method='GET'></http>
   </request>
 
   <repeat name="redirect_loop" max_repeat="5">
     <request subst="true">
-      <dyn_variable name="redirect" regexp="Location: \(http://.*\)\r"/>
+      <dyn_variable name="redirect" re="Location: (http://.*)\r"/>
       <http url="%%_redirect%%" method="GET"></http>
     </request>
     <until var="redirect" eq=""/>
@@ -2597,7 +2914,7 @@ successively using a repeat loop (this works only with version 1.3.0 and up):
 \end{Verbatim}
 
 \subsection{What is the format of the stats file tsung.log ?}
-
+\label{sec:what-format-stats}
 \begin{Verbatim}
 # stats: dump at 1218093520
 stats: users 247 247
@@ -2717,6 +3034,33 @@ work. This is fixed in erlang R9C-1 and up.
      {error,{invalid_option,InvOpt}};
  is_options_ok([]) -> true.
 \end{Verbatim}
+
+\subsection{How can i simulate a fix number of users ?}
+
+Use \varname{maxnumber} to set the max number of concurrent users in a
+phase, and if you want Tsung to behave like ab, you can use a loop
+in a session (to send requests as fast as possible); you can also define a
+max  \varname{duration} in \varname{<load>}.
+
+
+\begin{Verbatim}
+<load duration="5" unit="minute">
+   <arrivalphase phase="1" duration="10" unit="minute">
+   <users maxnumber="10" arrivalrate="100" unit="second"></users>
+</arrivalphase>
+</load>
+<sessions>
+<session probability="100" name="ab">
+    <for from="1" to="1000" var="i">
+      <request>
+        <http url="http://myserver/index.html" method="GET"></http>
+      </request>
+    </for>
+</session>
+</sessions>
+
+\end{Verbatim}
+
 
 \section{Errors list}
 

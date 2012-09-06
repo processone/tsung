@@ -18,10 +18,16 @@
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 %%%
+%%%  In addition, as a special exception, you have the permission to
+%%%  link the code of this program with any library released under
+%%%  the EPL license and distribute linked combinations including
+%%%  the two.
 
 -module(ts_fs).
 -vc('$Id: ts_erlang.erl,v 0.0 2009/08/20 16:31:58 nniclaus Exp $ ').
 -author('nniclaus@sophia.inria.fr').
+
+-behavior(ts_plugin).
 
 -include("ts_profile.hrl").
 -include("ts_fs.hrl").
@@ -29,8 +35,9 @@
 
 -export([init_dynparams/0,
          add_dynparams/4,
-         get_message/1,
+         get_message/2,
          session_defaults/0,
+         dump/2,
          parse/2,
          parse_bidi/2,
          parse_config/2,
@@ -118,9 +125,9 @@ add_dynparams(#fs_dyndata{}, Param, _HostData) ->
     Param.
 
 %%----------------------------------------------------------------------
-%% @spec subst(Req, term())
-%% Purpose: Replace on the fly dynamic element of the request.
-%% Returns: record()
+%% @spec subst(record(fs), dynvars:term()) -> record(fs)
+%% @doc Replace on the fly dynamic element of the request.
+%% @end
 %%----------------------------------------------------------------------
 subst(Req=#fs{path=Path,size=Size}, DynVars) ->
     Req#fs{path=ts_search:subst(Path,DynVars),size=ts_search:subst(Size,DynVars)}.
@@ -146,13 +153,21 @@ parse({file, open, [Path,_], {error,Reason}},State) ->
 parse({file, close, [_IODevice], ok},State=#state_rcv{dyndata=DynData}) ->
     NewDyn=(DynData#dyndata.proto)#fs_dyndata{iodev=undefined,position=0},
     {State#state_rcv{ack_done=true,datasize=0,dyndata=DynData#dyndata{proto=NewDyn}}, [], false};
+parse({file, close, [_IODevice], {error,Reason}}, State) ->
+    ?LOGF("error while closing file: ~p~n",[Reason],?ERR),
+    ts_mon:add({count,error_fs_close}),
+    {State#state_rcv{ack_done=true,datasize=0}, [], false};
 
 parse({file, pread, [_IODev,Pos,Size], {ok,_Data}},State=#state_rcv{dyndata=DynData,datasize=DataSize}) ->
     NewDyn=(DynData#dyndata.proto)#fs_dyndata{position=Pos+Size},
     {State#state_rcv{ack_done=true,datasize=DataSize+Size,dyndata=DynData#dyndata{proto=NewDyn}}, [], false};
-parse({file, pread, [_IODev,Pos,Size], eof},State=#state_rcv{dyndata=DynData,datasize=DataSize}) ->
+parse({file, pread, [_IODev,_Pos,Size], eof},State=#state_rcv{dyndata=DynData,datasize=DataSize}) ->
     NewDyn=(DynData#dyndata.proto)#fs_dyndata{position=0},
     {State#state_rcv{ack_done=true,datasize=DataSize+Size,dyndata=DynData#dyndata{proto=NewDyn}}, [], false};
+parse({file, pread, [_IODev,_Pos,_Size], {error,Reason}},State) ->
+    ?LOGF("error while reading file: ~p~n",[Reason],?ERR),
+    ts_mon:add({count,error_fs_pread}),
+    {State#state_rcv{ack_done=true,datasize=0}, [], false};
 
 parse({file, write_file, _Args, ok},State) ->
     {State#state_rcv{ack_done=true,datasize=0}, [], false};
@@ -160,17 +175,29 @@ parse({file, write_file, [Path,_], {error,Reason}},State) ->
     ?LOGF("error while writing file: ~p (~p)~n",[Path, Reason],?ERR),
     ts_mon:add({count,error_fs_write}),
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
-parse({file, pwrite, [IODev,Pos,Data], ok},State=#state_rcv{dyndata=DynData}) ->
+parse({file, pwrite, [_IODev,Pos,Data], ok},State=#state_rcv{dyndata=DynData}) ->
     NewDyn=(DynData#dyndata.proto)#fs_dyndata{position=Pos+length(Data)},
     {State#state_rcv{ack_done=true,datasize=0,dyndata=DynData#dyndata{proto=NewDyn}}, [], false};
 
-parse({file, delete, [Path], ok},State) ->
+parse({file, del_dir, [_Path], ok},State) ->
+    {State#state_rcv{ack_done=true, datasize=0}, [], false};
+parse({file, del_dir, [Path], {error,Reason}},State) ->
+    ?LOGF("error while delete directory: ~p (~p)~n",[Path, Reason],?ERR),
+    ts_mon:add({count,error_fs_del_dir}),
+    {State#state_rcv{ack_done=true, datasize=0}, [], false};
+parse({file, make_dir, [_Path], ok},State) ->
+    {State#state_rcv{ack_done=true, datasize=0}, [], false};
+parse({file, make_dir, [Path], {error,Reason}},State) ->
+    ?LOGF("error while creating diretory: ~p (~p)~n",[Path, Reason],?ERR),
+    ts_mon:add({count,error_fs_mkdir}),
+    {State#state_rcv{ack_done=true, datasize=0}, [], false};
+parse({file, delete, [_Path], ok},State) ->
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
 parse({file, delete, [Path], {error,Reason}},State) ->
     ?LOGF("error while deleting file: ~p (~p)~n",[Path, Reason],?ERR),
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
 
-parse({ts_utils, read_file_raw, [Path], {ok,Res,Size}},State) ->
+parse({ts_utils, read_file_raw, [_Path], {ok,_Res,Size}},State) ->
     {State#state_rcv{ack_done=true,datasize=Size}, [], false};
 parse({ts_utils, read_file_raw, [Path], {error,Reason}},State) ->
     ?LOGF("error while reading file: ~p(~p)~n",[Path,Reason],?ERR),
@@ -185,27 +212,37 @@ parse({ts_utils, read_file_raw, [Path], {error,Reason}},State) ->
 %% if the return value is nodata, otherwise the Data binary will be
 %% sent back to the server immediately.
 %% @end
-parse_bidi(_Data, _State) ->
-    erlang:error(dummy_implementation).
+parse_bidi(Data, State) ->
+    ts_plugin:parse_bidi(Data,State).
 
-%% @spec get_message(param()) -> Message::binary()|tuple()
+dump(A,B) ->
+    ts_plugin:dump(A,B).
+
+%% @spec get_message(record(),record(state_rcv)) -> {term(),record(state_rcv)}
 %% @doc Creates a new message to send to the connected server.
 %% @end
-get_message(#fs{command=read, path=Path}) ->
+get_message(R,#state_rcv{session=S}) ->
+    {get_message2(R),S}.
+
+get_message2(#fs{command=read, path=Path}) ->
     {ts_utils,read_file_raw,[Path],0};
-get_message(#fs{command=read_chunk, iodev=IODevice,position=Loc, size=Size}) when is_integer(Loc)->
+get_message2(#fs{command=read_chunk, iodev=IODevice,position=Loc, size=Size}) when is_integer(Loc)->
     {file,pread,[IODevice,Loc,Size],0};
-get_message(#fs{command=write_chunk, iodev=IODevice,position=Loc, size=Size}) when is_integer(Loc)->
+get_message2(#fs{command=write_chunk, iodev=IODevice,position=Loc, size=Size}) when is_integer(Loc)->
     {file,pwrite,[IODevice,Loc,ts_utils:urandomstr(Size)],Size};
-get_message(#fs{command=open, mode=read,path=Path,position=Loc}) when is_integer(Loc)->
+get_message2(#fs{command=open, mode=read,path=Path,position=Loc}) when is_integer(Loc)->
     {file,open,[Path,[read,raw,binary]],0};
-get_message(#fs{command=open, mode=write,path=Path,position=Loc}) when is_integer(Loc)->
+get_message2(#fs{command=open, mode=write,path=Path,position=Loc}) when is_integer(Loc)->
     {file,open,[Path,[write,raw,binary]],0};
-get_message(#fs{command=close, iodev=IODevice}) ->
+get_message2(#fs{command=close, iodev=IODevice}) ->
     {file,close,[IODevice],0};
-get_message(#fs{command=delete, path=Path}) ->
+get_message2(#fs{command=delete, path=Path}) ->
     {file,delete,[Path],0};
-get_message(#fs{command=write,path=Path, size=Size}) ->
+get_message2(#fs{command=del_dir, path=Path}) ->
+    {file,del_dir,[Path],0};
+get_message2(#fs{command=make_dir, path=Path}) ->
+    {file,make_dir,[Path],0};
+get_message2(#fs{command=write,path=Path, size=Size}) ->
     {file,write_file,[Path,ts_utils:urandomstr(Size),[raw]],Size}.
 
 

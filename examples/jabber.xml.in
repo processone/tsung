@@ -89,7 +89,7 @@
 
     <!-- regexp captures stream ID returned by server -->
     <request>
-      <dyn_variable name="sid" regexp="&lt;stream:stream id=&quot;\(.*\)&quot; xmlns:stream"/>
+      <dyn_variable name="sid" re="&lt;stream:stream id=&quot;(.*)&quot; xmlns:stream"/>
       <jabber type="connect" ack="local"></jabber>
     </request>
 
@@ -118,7 +118,7 @@
     <transaction name="auth_sipdigest">
       <!-- regexp captures nonce value returned by server -->
       <request>
-        <dyn_variable name="nonce" regexp="&lt;Nonce encoding=&quot;hex&quot;&gt;\(.*\)&lt;\/Nonce&gt;"/>
+        <dyn_variable name="nonce" re="&lt;Nonce encoding=&quot;hex&quot;&gt;(.*)&lt;\/Nonce&gt;"/>
         <jabber type="auth_get" ack="local"></jabber>
       </request>
       <request subst='true'> <jabber type="auth_set_sip" ack="local"></jabber> </request>

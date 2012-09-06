@@ -2,65 +2,67 @@
 %define version @PACKAGE_VERSION@
 %define release 1
 
-Summary: A distributed multi-protocol load testing tool.
-URL: http://tsung.erlang-projects.org/
 Name: %{name}
 Version: %{version}
-Release: %{release}
+Release: %{release}%{?dist}
+Summary: A distributed multi-protocol load testing tool
+
+Group: Development/Tools
+License: GPLv2
+URL: http://tsung.erlang-projects.org/
 Source0: http://tsung.erlang-projects.org/dist/%{name}-%{version}.tar.gz
-License: GPL2
 Vendor: Process-one
 Packager: Nicolas Niclausse <nicolas@niclux.org>
-Group: Development/Tools
-BuildArch: noarch
+
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+
 BuildRequires: erlang
+
 Requires: erlang
-BuildRoot: %{_tmppath}/%{name}-buildroot
-Prefix: %{_prefix}
+Requires: perl(Template)
 
 %description
- tsung is a distributed load testing tool.
- It is protocol-independent and can currently be used to stress and
- benchmark HTTP, Jabber/XMPP, PostgreSQL, MySQL and LDAP servers.
- It simulates user behaviour using an XML description file, reports
- many measurements in real time (statistics can be customized with
- transactions, and graphics generated using gnuplot).
- For HTTP, it supports 1.0 and 1.1, has a proxy mode to record
- sessions, supports GET and POST methods, Cookies, and Basic
- WWW-authentication. It also has support for SSL.
- .
- More information is available at http://tsung.erlang-projects.org/ .
+tsung is a distributed load testing tool.
+It is protocol-independent and can currently be used to stress and
+benchmark HTTP, Jabber/XMPP, PostgreSQL, MySQL and LDAP servers.
+It simulates user behaviour using an XML description file, reports
+many measurements in real time (statistics can be customized with
+transactions, and graphics generated using gnuplot).
+For HTTP, it supports 1.0 and 1.1, has a proxy mode to record
+sessions, supports GET and POST methods, Cookies, and Basic
+WWW-authentication. It also has support for SSL.
+
+More information is available at http://tsung.erlang-projects.org/ .
 
 %prep
-%setup
-%configure
+%setup -q
 
+%build
+%configure --docdir=%{_docdir}/%{name}-%{version}
 make %{?_smp_mflags}
 
 %install
 rm -rf $RPM_BUILD_ROOT
-export DESTDIR=$RPM_BUILD_ROOT %makeinstall
-install -m644 CONTRIBUTORS $RPM_BUILD_ROOT/usr/share/doc/%{name}/
-install -m644 README $RPM_BUILD_ROOT/usr/share/doc/%{name}/
-install -m644 TODO $RPM_BUILD_ROOT/usr/share/doc/%{name}/
-install -m644 COPYING $RPM_BUILD_ROOT/usr/share/doc/%{name}/
-install -m644 CHANGES $RPM_BUILD_ROOT/usr/share/doc/%{name}/
+make install DESTDIR=$RPM_BUILD_ROOT
+
+install -p -m 644 CHANGES CONTRIBUTORS COPYING README TODO \
+    $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %files
-%defattr(-,root,root)
-/usr/bin/tsung
-/usr/bin/tsung-recorder
-/usr/bin/tsplot
+%defattr(-,root,root,-)
+%doc %{_docdir}/%{name}-%{version}/*
+%{_bindir}/tsung
+%{_bindir}/tsung-recorder
+%{_bindir}/tsplot
 %{_libdir}/erlang/lib
 %{_libdir}/tsung
-/usr/share/tsung
-%doc /usr/share/doc/tsung/*
-%doc /usr/share/man/man1/tsung.1.gz
-%doc /usr/share/man/man1/tsplot.1.gz
-%doc /usr/share/man/man1/tsung-recorder.1.gz
+%{_datadir}/tsung
+%{_mandir}/man1/tsung.1*
+%{_mandir}/man1/tsplot.1*
+%{_mandir}/man1/tsung-recorder.1*
 
 %changelog
 * Wed Sep 20 2006 Nicolas Niclausse <Nicolas.Niclausse@sophia.inria.fr> 1.2.1-1

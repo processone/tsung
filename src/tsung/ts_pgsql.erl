@@ -33,14 +33,18 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
+-behavior(ts_plugin).
+
 -include("ts_profile.hrl").
 -include("ts_pgsql.hrl").
 
 -export([init_dynparams/0,
          add_dynparams/4,
-         get_message/1,
+         get_message/2,
          session_defaults/0,
          parse/2,
+         parse_bidi/2,
+         dump/2,
          parse_config/2,
          to_pairs/1,
          find_pair/2,
@@ -75,35 +79,68 @@ new_session() ->
 %% Function: get_message/21
 %% Purpose: Build a message/request ,
 %% Args:    record
-%% Returns: binary
+%% Returns: {binary,#pgsql}
 %%----------------------------------------------------------------------
-get_message(#pgsql_request{type=connect, database=DB, username=UserName}) ->
+get_message(#pgsql_request{type=connect, database=DB, username=UserName},#state_rcv{session=S}) ->
     Version = <<?PROTOCOL_MAJOR:16/integer, ?PROTOCOL_MINOR:16/integer>>,
     User = pgsql_util:make_pair(user, UserName),
-    put(username,UserName), %% needed for md5
     Database = pgsql_util:make_pair(database, DB),
     StartupPacket = <<Version/binary,
                       User/binary,
                       Database/binary,
                       0>>,
     PacketSize = 4 + size(StartupPacket),
-    <<PacketSize:32/integer, StartupPacket/binary>>;
-get_message(#pgsql_request{type=sql,sql=Query}) ->
-    pgsql_proto:encode_message(squery, Query);
-get_message(#pgsql_request{type=close}) ->
-    pgsql_proto:encode_message(terminate, "");
-get_message(#pgsql_request{type=authenticate, auth_method={?PG_AUTH_PASSWD, _Salt},passwd=PassString}) ->
+    {<<PacketSize:32/integer, StartupPacket/binary>>,S#pgsql{username=UserName}};
+get_message(#pgsql_request{type=sql,sql=Query},#state_rcv{session=S}) ->
+    {pgsql_proto:encode_message(squery, Query),S};
+get_message(#pgsql_request{type=close},#state_rcv{session=S}) ->
+    {pgsql_proto:encode_message(terminate, ""),S};
+get_message(#pgsql_request{type=authenticate, auth_method={?PG_AUTH_PASSWD, _Salt},passwd=PassString},#state_rcv{session=S}) ->
     ?LOGF("PGSQL: Must authenticate (passwd= ~p) ~n",[PassString],?DEB),
-    pgsql_proto:encode_message(pass_plain, PassString);
-get_message(#pgsql_request{type=authenticate, auth_method= {?PG_AUTH_MD5, Salt},passwd=PassString}) ->
-    User=get(username),
+    {pgsql_proto:encode_message(pass_plain, PassString),S};
+get_message(#pgsql_request{type=authenticate, auth_method= {?PG_AUTH_MD5, Salt},passwd=PassString},#state_rcv{session=S}) ->
+    User=S#pgsql.username,
     ?LOGF("PGSQL: Must authenticate user ~p with md5 (passwd= ~p, salt=~p) ~n",
           [User,PassString,Salt],?DEB),
-    pgsql_proto:encode_message(pass_md5, {User,PassString,Salt});
-get_message(#pgsql_request{type=authenticate, auth_method=AuthType}) ->
+    {pgsql_proto:encode_message(pass_md5, {User,PassString,Salt}),S};
+get_message(#pgsql_request{type=authenticate, auth_method=AuthType},#state_rcv{session=S}) ->
     ?LOGF("PGSQL: Authentication method not implemented ! [~p] ~n",[AuthType],?ERR),
-    <<>>.
+    {<<>>, S};
+get_message(#pgsql_request{type=execute,name_portal=Portal,max_rows=Max},#state_rcv{session=S}) ->
+    {pgsql_proto:encode_message(execute,{Portal,Max}), S};
+get_message(#pgsql_request{type=parse,name_prepared=Name,equery=Query, parameters=Params},#state_rcv{session=S}) ->
+    {pgsql_proto:encode_message(parse,{Name,Query,Params}), S};
+get_message(#pgsql_request{type=bind,formats=Formats,
+                           name_portal=Portal,name_prepared=NPrep,
+                           parameters=Params, formats_results=FormatsResults},
+            #state_rcv{session=S})->
+    {pgsql_proto:encode_message(bind,{Portal,NPrep,Params,Formats,FormatsResults}), S};
+%% describe
+get_message(#pgsql_request{type=describe, name_portal=Name,name_prepared=undefined}, #state_rcv{session=S})->
+    {pgsql_proto:encode_message(describe,{portal,Name}), S};
+get_message(#pgsql_request{type=describe, name_portal=undefined,name_prepared=Name}, #state_rcv{session=S})->
+    {pgsql_proto:encode_message(describe,{prepared_statement,Name}), S};
+%% sync
+get_message(#pgsql_request{type=sync},#state_rcv{session=S}) ->
+    {pgsql_proto:encode_message(sync,[]), S};
+%% copyfail
+get_message(#pgsql_request{type=copyfail,equery=Msg},#state_rcv{session=S}) ->
+    {pgsql_proto:encode_message(copyfail,Msg), S};
+%% copydone
+get_message(#pgsql_request{type=copydone},#state_rcv{session=S}) ->
+    {pgsql_proto:encode_message(copydone,<< >> ), S};
+%% copy
+get_message(#pgsql_request{type=copy,equery=Data},#state_rcv{session=S}) ->
+    {pgsql_proto:encode_message(copy,Data), S};
+%% flush
+get_message(#pgsql_request{type=flush},#state_rcv{session=S}) ->
+    {pgsql_proto:encode_message(flush,[]), S}.
 
+parse_bidi(Data, State) ->
+    ts_plugin:parse_bidi(Data,State).
+
+dump(A,B) ->
+    ts_plugin:dump(A,B).
 
 %%----------------------------------------------------------------------
 %% Function: parse/2
@@ -148,6 +185,9 @@ parse(Data, State=#state_rcv{acc = [], dyndata=DynData}) ->
             NewDynData=DynData#dyndata{proto=#pgsql_dyndata{auth_method=AuthType}},
             {State#state_rcv{ack_done = true, dyndata=NewDynData},[],false};
 
+        {ok, {copy_response, {_Format,_ColsFormat}},_ } ->
+            ?LOG("PGSQL: Copy response ~n",?DEB),
+            {State#state_rcv{ack_done = true},[],false};
         {ok, _Pair, Tail } ->
             parse(Tail, State);
 
@@ -201,8 +241,13 @@ init_dynparams() ->
 %% Purpose: Replace on the fly dynamic element of the request.
 %% Returns: #pgsql_request
 %%----------------------------------------------------------------------
-subst(Req=#pgsql_request{sql=SQL}, DynData) ->
-    Req#pgsql_request{sql=ts_search:subst(SQL, DynData)}.
+subst(Req=#pgsql_request{sql=SQL,database=DB,username=User,passwd=Passwd, parameters=Params}, DynData) ->
+    Req#pgsql_request{sql=ts_search:subst(SQL, DynData),
+                      username=ts_search:subst(User, DynData),
+                      passwd=ts_search:subst(Passwd, DynData),
+                      parameters=ts_search:subst(Params, DynData),
+                      database=ts_search:subst(DB, DynData)
+                     }.
 
 
 %%% -- Internal funs --------------------
@@ -247,9 +292,10 @@ to_pairs(<<Code:8/integer, Size:4/integer-unit:8, Tail/binary>>, Acc) ->
             lists:reverse(Acc) %
     end.
 
-%% @spec find_pairs(Expr::string(),Pairs::list()) -> term()
+%% @spec find_pair(Expr::string(), Pairs::list()) -> term()
 %% @doc Expr: expression like data_row[4][2], Pairs: list of pairs
 %%      extracted by pgsql_proto:decode_packet.
+%% @end
 find_pair(Expr,Pairs)->
     Fun= fun(A) ->
                 case catch list_to_integer(A) of

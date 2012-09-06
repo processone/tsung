@@ -35,6 +35,13 @@
           salt,
           auth_method,
           database,
+          name_portal,
+          name_prepared,
+          equery,
+          parameters,
+          formats,
+          formats_results,
+          max_rows, % used for type='execute'
           sql
          }).
 
@@ -47,10 +54,9 @@
          }
        ).
 
-%% unused
 -record(pgsql,
         {
-          fixme
+          username
          }
        ).
 

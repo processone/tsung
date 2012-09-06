@@ -72,6 +72,8 @@
           text-align: center;
           }
       </style>
+    <script type="text/javascript" src="dygraph-combined.js"></script> 
+
   </head>
 <body>
 	<div id="headerBox">

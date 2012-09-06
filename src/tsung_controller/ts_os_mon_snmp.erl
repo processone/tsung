@@ -45,7 +45,10 @@
           dnscache=[],
           interval,
           pid,               % pid of snmp_mgr
+          uri,   % use as an identifier for the snmp manager
           host,
+          oids = [], % custom OIDS
+          funs, % store fun to be applied in a dict
           version,
           port,
           community,
@@ -78,7 +81,7 @@ start(Args) ->
 %%          ignore               |
 %%          {stop, Reason}
 %%--------------------------------------------------------------------
-init({HostStr, {Port, Community, Version}, Interval, MonServer}) ->
+init({HostStr, {Port, Community, Version, DynOIDS}, Interval, MonServer}) ->
     {ok, IP} = inet:getaddr(HostStr, inet),
     Apps = application:loaded_applications(),
     case proplists:is_defined(snmp,Apps) of
@@ -94,11 +97,20 @@ init({HostStr, {Port, Community, Version}, Interval, MonServer}) ->
             ?LOGF("SNMP initialization: ~p~n", [Res3],?NOTICE)
     end,
     erlang:start_timer(5, self(), connect ),
+    FunsL= [{?SNMP_CPU_RAW_SYSTEM,cpu_system,sample_counter,fun(X)-> X/(Interval/1000) end},
+           {?SNMP_CPU_RAW_USER,cpu_user,sample_counter,fun(X)-> X/(Interval/1000) end},
+           {?SNMP_MEM_AVAIL,freemem,sample,fun(X)-> X/1000 end},
+           {?SNMP_CPU_LOAD1,load,sample,fun(X)-> X*100 end}] ++ DynOIDS,
+    OIDS=lists:map(fun({Oid,_Name,_Type,_Fun})-> Oid end,FunsL),
+    Funs=lists:foldl(fun({Oid,Name,Type,Fun},Acc)->dict:store(Oid,{Name,Type,Fun},Acc) end,dict:new(),FunsL),
     ?LOGF("Starting SNMP mgr on ~p~n", [IP], ?DEB),
     {ok, #state{ mon_server = MonServer,
                  host       = HostStr,
+                 uri        = "snmp://"++HostStr++":" ++ integer_to_list(Port),
                  port       = Port,
                  addr       = IP,
+                 oids       = OIDS,
+                 funs       = Funs,
                  community  = Community,
                  version    = Version,
                  interval   = Interval}}.
@@ -134,25 +146,21 @@ handle_cast(Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-handle_info({timeout,_Ref,connect},State=#state{host=Host, addr=IP,port=Port,community=Community,version=Version}) ->
-    ok = snmpm:register_agent("tsung",Host,
+handle_info({timeout,_Ref,connect},State=#state{uri=URI, addr=IP,port=Port,community=Community,version=Version}) ->
+    ok = snmpm:register_agent("tsung",URI,
                          [{engine_id,"myengine"},
                           {address,IP},
                           {port,Port},
                           {version,Version},
                           {community,Community}]),
 
-    ?LOGF("SNMP mgr started; remote node is ~p~n", [IP],?INFO),
+    ?LOGF("SNMP mgr started; remote node is ~p~n", [URI],?INFO),
     erlang:start_timer(State#state.interval, self(), send_request ),
     {noreply, State};
 
-handle_info({timeout,_Ref,send_request},State=#state{host=Host}) ->
-    ?LOGF("SNMP mgr; get data from host ~p~n", [Host],?DEB),
-    snmp_get(Host,
-             [?SNMP_CPU_RAW_SYSTEM,
-              ?SNMP_CPU_RAW_USER,
-              ?SNMP_MEM_AVAIL,
-              ?SNMP_CPU_LOAD1],State),
+handle_info({timeout,_Ref,send_request},State=#state{uri=URI,oids=OIDS}) ->
+    ?LOGF("SNMP mgr; get data from host ~p~n", [URI],?DEB),
+    snmp_get(URI, OIDS, State),
     erlang:start_timer(State#state.interval, self(), send_request ),
     {noreply,State};
 
@@ -198,6 +206,9 @@ analyse_snmp_data([Val=#varbind{value='NULL'}| Tail], Host, Stats, State) ->
 %% overloaded), the value will be inconsistent, since we assume a
 %% constant time across samples ($INTERVAL)
 
+analyse_snmp_data([#varbind{variabletype='NULL'}| Tail], Host, Stats, State) ->
+    %% skip bad values
+    analyse_snmp_data(Tail, Host, Stats, State);
 analyse_snmp_data([#varbind{oid=?SNMP_CPU_RAW_SYSTEM, value=Val}| Tail], Host, Stats, State) ->
     {value, User} = lists:keysearch(?SNMP_CPU_RAW_USER, #varbind.oid, Tail),
     Value = Val + User#varbind.value,
@@ -210,43 +221,37 @@ analyse_snmp_data([User=#varbind{oid=?SNMP_CPU_RAW_USER}| Tail], Host, Stats, St
     %%put this entry at the end, this will be used when SYSTEM match
     analyse_snmp_data(Tail ++ [User], Host, Stats, State);
 
-analyse_snmp_data([#varbind{oid=OID, value=Val}| Tail], Host, Stats, State) ->
-    {Type, Name, Value}= oid_to_statname(OID, Host, Val),
+analyse_snmp_data([#varbind{oid=OID, value=Val}| Tail], Host, Stats, State=#state{funs=F}) ->
+    {DataName, Type, Fun} = dict:fetch(OID,F),
+    Value = Fun(Val),
+    Name = {DataName,Host},
     ?LOGF("Analyse SNMP: ~p:~p:~p ~n", [Type, Name, Value],?DEB),
-   analyse_snmp_data(Tail, Host, [{Type, Name, Value}| Stats], State).
+    analyse_snmp_data(Tail, Host, [{Type, Name, Value}| Stats], State).
 
-%%--------------------------------------------------------------------
-%% Function: oid_to_statname/3
-%%--------------------------------------------------------------------
-oid_to_statname(?SNMP_CPU_RAW_IDLE, Name, Value) ->
-    CountName = {cpu_idle, Name},
-    ?DebugF("Adding counter value for ~p~n",[CountName]),
-    {sample_counter, CountName, Value/(?INTERVAL/1000)}; % FIXME ? Interval ??
-oid_to_statname(?SNMP_MEM_AVAIL, Name, Value)->
-    CountName = {freemem, Name},
-    ?DebugF("Adding counter value for ~p~n",[CountName]),
-    {sample,CountName, Value/1000};
-oid_to_statname(?SNMP_CPU_LOAD1, Name, Value)->
-    CountName = {load, Name},
-    ?DebugF("Adding counter value for ~p~n",[CountName]),
-    {sample,CountName, Value/100}.
 
 %%--------------------------------------------------------------------
 %% Function: snmp_get/3
 %% Description: ask a list of OIDs to the given snmp_mgr
 %%--------------------------------------------------------------------
 snmp_get(Agent,OIDs,State)->
-    snmp_get(Agent,OIDs,State,?SNMP_TIMEOUT).
+    snmp_get(Agent,[OIDs],State,?SNMP_TIMEOUT,[]).
 
-snmp_get(Agent,OIDs,State,TimeOut)->
-    ?LOGF("Running snmp get ~p ~p~n", [Agent,OIDs], ?DEB),
-    Res = snmpm:sync_get("tsung",Agent,OIDs,TimeOut),
+snmp_get("snmp://"++Host, [], State, _TimeOut, Results )->
+    [Agent|_]=string:tokens(Host,":"),
+    analyse_snmp_data(Results,Agent,State);
+snmp_get(URI, [OIDs|Tail], State, TimeOut,PrevRes)->
+    ?LOGF("Running snmp get ~p ~p~n", [URI,OIDs], ?DEB),
+    Res = snmpm:sync_get("tsung",URI,OIDs,TimeOut),
     ?LOGF("Res ~p ~n", [Res], ?DEB),
     case Res of
-        {ok,{noError,_,List},_Remaining} ->
-            analyse_snmp_data(List,Agent,State);
+        {ok,{noError,_,Results},_Remaining} ->
+            snmp_get(URI, Tail, State, TimeOut, Results++PrevRes);
+        {error, {send_failed,_,tooBig}} ->
+            %% split the OID list in two, and retry
+            ?LOGF("SNMP: too big packet, split and retry (~p)~n", [URI], ?INFO),
+            snmp_get(URI, tuple_to_list(lists:split(length(OIDs) div 2, OIDs)), State, TimeOut, PrevRes);
         Other ->
-            ?LOGF("SNMP Error:~p for ~p~n", [Other, Agent], ?NOTICE),
+            ?LOGF("SNMP Error:~p for ~p~n", [Other, URI], ?WARN),
             {error, Other}
     end.
 

@@ -1,3 +1,52 @@
+1.4.1 -> 1.4.2 Minor enhancements and bugfixes (4 Jan 2012)
+Bugfix:
+   * [TSUN-199] - computation of NUsers is wrong
+   * [TSUN-206] - build failure with erlang R15B
+Improvements:
+   * [TSUN-202] - IPv6 support
+   * [TSUN-203] - snmp oids should be customizable in the config file
+   * [TSUN-205] - handle dyn_variables as array in test conditions (if/until/while)
+New Features:
+   * [TSUN-191] - allow outputting log to stdout
+   * [TSUN-192] - structured log output (JSON)
+   * [TSUN-193] - accept configuration from stdin
+   * [TSUN-197] - Have bug and error message on stderr and not stdout.
+1.4.0 -> 1.4.1 Minor bugfixes (13 Sep 2011)
+Bugfix:
+   * [TSUN-188] - munin plugin is not working in 1.4.0
+   * [TSUN-189] - the controller VM is not used in some case
+   * [TSUN-190] - pgsql recorder can record a connect request in an already connected session
+1.3.3 -> 1.4.0 Major enhancements and bugfixes (5 Sep 2011)
+Bugfix:
+   * [TSUN-129] - regexp (defined in match or dynvars) can fail when chunk encoding is used.
+   * [TSUN-150] - Munin monitoring broken by cpu stats config request
+   * [TSUN-163] - Tsung doesn't detect subdomains.
+   * [TSUN-166] - snmp monitoring does not work with erlang R14A
+   * [TSUN-171] - maxnumber set in a phase is not always enforced
+   * [TSUN-172] - auth sasl can't authenticate against ejabberd
+   * [TSUN-178] - some characters can make url and headers rewriting fail in the recorder
+   * [TSUN-179] - tsung generated message stanzas are not XMPP compliant
+   * [TSUN-180] - file server crash if a dynamic substitution use it
+   * [TSUN-182] - When many clients are configured with few static users, none of them are launched.
+   * [TSUN-183] - tsung can stop too soon in some cases
+   * [TSUN-184] - 'random_number' with start and end actually returns a number from start+1 to end
+   * [TSUN-187] - Client IP scan is very slow on Linux; also uses obsolete "ifconfig"
+Improvements:
+   * [TSUN-54] - tsung is very slow when a lot of dynamic variables are set
+   * [TSUN-96] - generating more than 64k connections from a single machine
+   * [TSUN-106] - Add content-encoding support for dynvar extraction
+   * [TSUN-123] - add option to read usernames from an external file for jabber
+   * [TSUN-125] - use the new re module everywhere instead of regexp/gregexp
+   * [TSUN-152] - Add "state_rcv" record as parameter to "get_message" function.
+   * [TSUN-153] - dynvar used in match may contain regexp special characters
+   * [TSUN-185] - handle postgresql extended protocol
+New Features:
+   * [TSUN-162] - add foreach tag (loop when a dyn_variable is a list)
+   * [TSUN-164] - add a switch to allow light queries/replies logging
+   * [TSUN-165] - add a way to synchronize users for all plugins.
+   * [TSUN-167] - add do=dump option to matching
+   * [TSUN-168] - thinktimes value could be dynamically generated with dyn_variable
+   * [TSUN-181] - add option to simulate slow connections
 1.3.2 -> 1.3.3 Minor bugfixes (17 Aug 2010)
 Bugfix:
     * [TSUN-154] - parent proxy doesn't work anymore in 1.3.x (tested with 1.3.2 and 1.3.0).

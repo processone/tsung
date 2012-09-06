@@ -27,11 +27,12 @@
 -author('nicolas.niclausse@niclux.org').
 
 -include("ts_profile.hrl").
+-include("ts_config.hrl").
 
 -behaviour(gen_fsm). %% a primitive gen_fsm with two state: launcher and wait
 
 %% External exports
--export([start/0, launch/1]).
+-export([start/0, launch/1, stop/1]).
 
 %% gen_fsm callbacks
 -export([init/1, launcher/2,  wait/2, handle_event/3,
@@ -66,6 +67,14 @@ launch({Node, Host, Sessions}) ->
     ?LOGF("starting on node ~p~n",[[Node]], ?INFO),
     gen_fsm:send_event({?MODULE, Node}, {launch, Sessions, atom_to_list(Host)}).
 
+%%--------------------------------------------------------------------
+%% @spec stop(Node::atom()) -> ok
+%% @doc Start clients with given session list @end
+%%--------------------------------------------------------------------
+stop(Node) ->
+    ?LOGF("stopping on node ~p~n",[Node], ?INFO),
+    gen_fsm:send_event({?MODULE, Node}, {stop}).
+
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from gen_fsm
@@ -79,7 +88,6 @@ launch({Node, Host, Sessions}) ->
 %%          {stop, StopReason}
 %%----------------------------------------------------------------------
 init([]) ->
-    ts_utils:init_seed(),
     {ok, MyHostName} = ts_utils:node_to_hostname(node()),
     ts_launcher_mgr:alive(static),
     {ok, wait, #state{myhostname=MyHostName}}.
@@ -109,7 +117,10 @@ wait({launch, []}, State) ->
             ?LOG("No static users, stop",?INFO),
             ts_launcher:set_static_users({node(),0}),
             {stop, normal, State}
-    end.
+    end;
+
+wait({stop}, State) ->
+    {stop, normal, State}.
 
 launcher(timeout, State=#state{ users = [{OldWait,Session}|Users]}) ->
     BeforeLaunch = now(),
@@ -194,8 +205,8 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%%----------------------------------------------------------------------
 do_launch({ Session, MyHostName})->
     case catch ts_config_server:get_user_param(MyHostName) of
-        {ok, {IPParam, Server, UserId}} ->
-            ts_client_sup:start_child({Session, IPParam, Server, UserId}),
+        {ok, {IPParam, Server, UserId, Dump, Seed}} ->
+            ts_client_sup:start_child(Session#session{client_ip=IPParam,server=Server,userid=UserId, dump=Dump,seed=Seed}),
             ok;
         Error ->
             ?LOGF("get_next_session failed [~p], skip this session !~n", [Error],?ERR),

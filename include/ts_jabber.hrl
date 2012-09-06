@@ -49,7 +49,8 @@
                  group,          %% roster group
                  node,           %% pubsub node
                  node_type,
-                 send_version   %% if true, send version='1.0' on stream headers
+                 send_version,   %% if true, send version='1.0' on stream headers
+                 resource
                 }).
 
 -define(setroster_intensity, 1/(ts_utils:get_val(setroster)*1000)).

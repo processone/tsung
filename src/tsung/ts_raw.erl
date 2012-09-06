@@ -30,15 +30,19 @@
 -module(ts_raw).
 -author('nniclausse@hyperion').
 
+-behavior(ts_plugin).
+
 -include("ts_profile.hrl").
 -include("ts_raw.hrl").
 
 -export([init_dynparams/0,
          add_dynparams/4,
-         get_message/1,
+         get_message/2,
          session_defaults/0,
          subst/2,
          parse/2,
+         parse_bidi/2,
+         dump/2,
          parse_config/2,
          decode_buffer/2,
          new_session/0]).
@@ -71,13 +75,13 @@ new_session() ->
 %% Args:    #jabber
 %% Returns: binary
 %%----------------------------------------------------------------------
-get_message(#raw{datasize=Size}) when is_list(Size) ->
-    get_message(#raw{datasize=list_to_integer(Size)});
-get_message(#raw{datasize=Size}) when is_integer(Size), Size > 0 ->
+get_message(#raw{datasize=Size},S) when is_list(Size) ->
+    get_message(#raw{datasize=list_to_integer(Size)},S);
+get_message(#raw{datasize=Size},#state_rcv{session=S}) when is_integer(Size), Size > 0 ->
     BitSize = Size*8,
-   << 0:BitSize >> ;
-get_message(#raw{data=Data})->
-    Data.
+   {<< 0:BitSize >>,S} ;
+get_message(#raw{data=Data},#state_rcv{session=S})->
+    {Data,S}.
 
 
 %%----------------------------------------------------------------------
@@ -90,6 +94,12 @@ get_message(#raw{data=Data})->
 %% no parsing . use only ack
 parse(_Data, State) ->
     State.
+
+parse_bidi(Data, State) ->
+    ts_plugin:parse_bidi(Data,State).
+
+dump(A,B) ->
+    ts_plugin:dump(A,B).
 
 %%
 parse_config(Element, Conf) ->

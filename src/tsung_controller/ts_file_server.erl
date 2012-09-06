@@ -84,16 +84,34 @@ start() ->
 
 
 
+get_random_line({Pid,_DynData}) when is_pid(Pid)->
+    %% called within a substitution (eg. file is 'default')
+    case get_random_line(default) of
+        {ok, Val} -> Val;
+        Error     ->  Error
+    end;
 get_random_line(FileID)->
     gen_server:call({global, ?MODULE}, {get_random_line, FileID}).
 get_random_line() ->
     get_random_line(default).
 
+get_next_line({Pid,_DynData}) when is_pid(Pid)->
+    %% called within a substitution (eg. file is 'default')
+    case get_next_line(default) of
+        {ok, Val} -> Val;
+        Error     ->  Error
+    end;
 get_next_line(FileID)->
     gen_server:call({global, ?MODULE}, {get_next_line, FileID}).
 get_next_line() ->
     get_next_line(default).
 
+get_all_lines({Pid,_DynData}) when is_pid(Pid)->
+    %% called within a substitution (eg. file is 'default')
+    case get_all_lines(default) of
+        {ok, Val} -> Val;
+        Error     ->  Error
+    end;
 get_all_lines(FileID)->
     gen_server:call({global, ?MODULE}, {get_all_lines, FileID}).
 get_all_lines() ->

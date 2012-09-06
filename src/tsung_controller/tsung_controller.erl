@@ -30,6 +30,7 @@
 -behaviour(application).
 
 -include("ts_profile.hrl").
+-include_lib("kernel/include/file.hrl").
 
 %%----------------------------------------------------------------------
 %% Func: start/2
@@ -39,7 +40,7 @@
 %%----------------------------------------------------------------------
 start(_Type, _StartArgs) ->
     error_logger:tty(false),
-    {ok, {LogDir, _Name}} = ts_utils:setsubdir(?config(log_file)),
+    {ok, {LogDir, _Name}} = ts_utils:setsubdir(?config(log_dir)),
     erlang:display("Log directory is: " ++ LogDir),
     LogFile = filename:join(LogDir, atom_to_list(node()) ++ ".log"),
     case  error_logger:logfile({open, LogFile }) of
@@ -48,21 +49,37 @@ start(_Type, _StartArgs) ->
                 {ok, Pid} ->
                     {ok, Pid};
                 Error ->
-                    ?LOGF("Can't start ! ~p ~n",[Error], ?ERR),
+                    io:format(standard_error,"Can't start ! ~p ~n",[Error]),
                     Error
             end;
         {error, Reason} ->
             Msg = "Error while opening log file: " ,
-            ?LOGF(Msg ++ " ~p ~n",[Reason], ?ERR),
-            erlang:display(Msg ++ Reason),
+            io:format(standard_error,Msg ++ " ~p ~n",[Reason]),
             {error, Reason}
     end.
 
 start_phase(load_config, _StartType, _PhaseArgs) ->
-    case ts_config_server:read_config(?config(config_file)) of
+    {Conf,Timeout} =
+        case ?config(config_file) of
+            "-"  ->
+                {standard_io, 120000}; %2mn timeout
+            File ->
+                T = case file:read_file_info(File) of
+                        {ok, #file_info{size=Size}} when Size > 10000000 -> % > 10MB
+                            io:format(standard_error,"Can take up to 5mn to read config ~p~n ",[Size]),
+                            300000; % 10mn
+                        {ok, #file_info{size=Size}} when Size > 1000000 ->  % > 1MB
+                            io:format(standard_error,"Can take up to 3mn to read config ~p~n ",[Size]),
+                            180000; % 5mn
+                        {ok, #file_info{size=_}} ->
+                            120000  % 2mn
+                    end,
+                {File, T}
+        end,
+    case ts_config_server:read_config(Conf,Timeout) of
         {error,Reason}->
-            erlang:display(["Config Error, aborting ! ", Reason]),
-            init:stop();
+            io:format(standard_error,"Config Error, aborting ! ~p~n ",[Reason]),
+            init:stop(1);
         ok -> ok
     end;
 start_phase(start_os_monitoring, _StartType, _PhaseArgs) ->
@@ -82,7 +99,7 @@ status([Host]) when is_atom(Host)->
               {Clients, Count, Connected, Interval, Phase} ->
 
                   S1 = io_lib:format("Tsung is running [OK]~n" ++
-                                     " Current request rate:    ~p req/sec~n" ++
+                                     " Current request rate:    ~.2f req/sec~n" ++
                                      " Current users:           ~p~n" ++
                                      " Current connected users: ~p ~n",
                                      [Count/Interval, Clients, Connected]),

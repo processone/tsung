@@ -31,14 +31,18 @@
 -vc('$Id:$ ').
 -author('gregoire.reboul@laposte.net').
 
+-behavior(ts_plugin).
+
 -include("ts_profile.hrl").
 -include("ts_mysql.hrl").
 
 -export([init_dynparams/0,
          add_dynparams/4,
-         get_message/1,
+         get_message/2,
          session_defaults/0,
          parse/2,
+         parse_bidi/2,
+         dump/2,
          parse_config/2,
          decode_buffer/2,
          new_session/0]).
@@ -66,28 +70,34 @@ decode_buffer(Buffer,#mysql{}) ->
 new_session() ->
     #mysql{}.
 
+parse_bidi(Data, State) ->
+    ts_plugin:parse_bidi(Data,State).
+
+dump(A,B) ->
+    ts_plugin:dump(A,B).
+
 %%----------------------------------------------------------------------
 %% Function: get_message/21
 %% Purpose: Build a message/request ,
 %% Args:    record
 %% Returns: binary
 %%----------------------------------------------------------------------
-get_message(#mysql_request{type=connect}) ->
+get_message(#mysql_request{type=connect},#state_rcv{session=S}) ->
     Packet=list_to_binary([]),
     ?LOGF("Opening socket. ~p ~n",[Packet], ?DEB),
-    Packet;
-get_message(#mysql_request{type=authenticate, database=Database, username=Username, passwd=Password, salt=Salt}) ->
+    {Packet,S};
+get_message(#mysql_request{type=authenticate, database=Database, username=Username, passwd=Password, salt=Salt},#state_rcv{session=S}) ->
     Packet=add_header(make_auth(Username, Password, Database, Salt),1),
     ?LOGF("Auth packet: ~p (~s)~n",[Packet,Packet], ?DEB),
-    Packet;
-get_message(#mysql_request{type=sql,sql=Query}) ->
+    {Packet,S};
+get_message(#mysql_request{type=sql,sql=Query},#state_rcv{session=S}) ->
     Packet=add_header([?MYSQL_QUERY_OP, Query],0),
     ?LOGF("Query packet: ~p (~s)~n",[Packet,Packet], ?DEB),
-    Packet;
-get_message(#mysql_request{type=close}) ->
+    {Packet,S};
+get_message(#mysql_request{type=close},#state_rcv{session=S}) ->
     Packet=add_header([?MYSQL_CLOSE_OP],0),
     ?LOGF("Close packet: ~p (~s)~n",[Packet,Packet], ?DEB),
-    Packet.
+    {Packet,S}.
 
 
 
@@ -211,6 +221,15 @@ get_salt(PacketBody) ->
     <<_ServerChar:16/binary-unit:8, Rest6/binary>> = Rest5,
     {Salt2, _Rest7} = asciz_binary(Rest6,[]),
     Salt ++ Salt2.
+
+make_auth(User, "", Database, _Salt) ->
+    Caps = ?LONG_PASSWORD bor ?LONG_FLAG bor ?PROTOCOL_41 bor ?TRANSACTIONS
+            bor ?SECURE_CONNECTION bor ?CONNECT_WITH_DB,
+    Maxsize = ?MAX_PACKET_SIZE,
+    UserB = list_to_binary(User),
+    DatabaseB = list_to_binary(Database),
+    binary_to_list(<<Caps:32/little, Maxsize:32/little, 8:8, 0:23/integer-unit:8,
+    UserB/binary, 0:8, 0:8, DatabaseB/binary>>);
 
 make_auth(User, Password, Database, Salt) ->
     EncryptedPassword = encrypt_password(Password, Salt),

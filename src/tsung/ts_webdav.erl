@@ -17,19 +17,27 @@
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 %%%
+%%%  In addition, as a special exception, you have the permission to
+%%%  link the code of this program with any library released under
+%%%  the EPL license and distribute linked combinations including
+%%%  the two.
 
 -module(ts_webdav).
 -vc('$Id: ts_webdav.erl,v 0.0 2008/03/12 12:47:07 nniclaus Exp $ ').
 -author('nicolas.niclausse@niclux.org').
+
+-behaviour(ts_plugin).
 
 -include("ts_profile.hrl").
 -include("ts_http.hrl").
 
 -export([init_dynparams/0,
          add_dynparams/4,
-         get_message/1,
+         get_message/2,
          session_defaults/0,
          parse/2,
+         parse_bidi/2,
+         dump/2,
          parse_config/2,
          decode_buffer/2,
          new_session/0]).
@@ -46,22 +54,29 @@ decode_buffer(Buffer,Session) ->
 
 %% we should implement methods defined in rfc4918
 
-get_message(Req=#http_request{method=Method}) when Method == propfind;
-                                                   Method == proppatch;
-                                                   Method == copy;
-                                                   Method == move;
-                                                   Method == lock;
-                                                   Method == mkactivity;
-                                                   Method == unlock;
-                                                   Method == report;
-                                                   Method == 'version-control'
-                                                   ->
+get_message(Req=#http_request{method=Method},#state_rcv{session=S})
+  when Method == propfind;
+       Method == proppatch;
+       Method == copy;
+       Method == move;
+       Method == lock;
+       Method == mkactivity;
+       Method == unlock;
+       Method == report;
+       Method == 'version-control'
+       ->
     M = string:to_upper(atom_to_list(Method)),
-    ts_http_common:http_body(M, Req);
-get_message(Req=#http_request{method=Method}) when Method == mkcol->
-    ts_http_common:http_no_body("MKCOL", Req);
-get_message(Req) ->
-    ts_http:get_message(Req).
+    {ts_http_common:http_body(M, Req),S};
+get_message(Req=#http_request{method=Method},#state_rcv{session=S}) when Method == mkcol->
+    {ts_http_common:http_no_body("MKCOL", Req), S};
+get_message(Req,State) ->
+    ts_http:get_message(Req,State).
+
+parse_bidi(Data, State) ->
+    ts_http:parse_bidi(Data,State).
+
+dump(A,B) ->
+    ts_http:dump(A,B).
 
 parse(Data, State) ->
     ts_http_common:parse(Data, State).

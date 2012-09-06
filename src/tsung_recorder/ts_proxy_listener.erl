@@ -54,8 +54,6 @@
 
 %% Self callbacks
 
--export([accept_loop/3]).
-
 -record(state, {
           plugin,
           acceptsock,  % The socket we are accept()ing at
@@ -206,7 +204,7 @@ activate(State=#state{plugin=Plugin})->
                 {ok, ServerSock} ->
                     {ok, State#state
                       {acceptsock=ServerSock,
-                       acceptloop_pid = spawn_link(?MODULE,
+                       acceptloop_pid = spawn_link(ts_utils,
                                                    accept_loop,
                                                    [self(), unused, ServerSock])}};
                 {error, Reason} ->
@@ -217,27 +215,6 @@ activate(State=#state{plugin=Plugin})->
             {ok, State}
     end.
 
-%%--------------------------------------------------------------------
-%% Func: accept_loop/3
-%% Purpose: infinite listen/accept loop, delegating handling of accepts
-%%          to the gen_server proper.
-%% Returns: only returns by throwing an exception
-%%--------------------------------------------------------------------
-accept_loop(PPid, Tag, ServerSock)->
-    case
-        case gen_tcp:accept(ServerSock) of
-            {ok, ClientSock} ->
-                ok = gen_tcp:controlling_process(ClientSock, PPid),
-                gen_server:call(PPid, {accepted, Tag, ClientSock});
-            Error ->
-                gen_server:call(PPid, {accept_error, Tag, Error})
-        end
-        of
-        continue ->
-            accept_loop(PPid, Tag, ServerSock);
-        _->
-            normal
-    end.
 
 %% Local Variables:
 %% tab-width:4

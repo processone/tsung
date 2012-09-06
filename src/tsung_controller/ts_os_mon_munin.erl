@@ -40,6 +40,7 @@
 
 -define(READ_TIMEOUT,2500). % 2.5 sec
 -define(SEND_TIMEOUT,5000).
+-define(RETRY_SLEEP,30000).
 
 %% if interval is more than this, we must send ping to avoid closed
 %% connection from munin node server (default timeout is 10s in recent
@@ -254,8 +255,13 @@ read_munin_data(Socket,{ok, Data}, Acc) when is_list(Acc)->
                      ?LOGF("Unknown data received from munin server: ~p~n",[Data],?WARN),
                      Acc
              end,
-    read_munin_data(Socket,gen_tcp:recv(Socket,0,?READ_TIMEOUT), NewAcc).
-%% no clause for errors: let it crash ! (OTP supervision tree rules ...)
+    read_munin_data(Socket,gen_tcp:recv(Socket,0,?READ_TIMEOUT), NewAcc);
+read_munin_data(Socket,{error, timeout}, Acc) when is_list(Acc)->
+    %% the remote server may be overloaded, wait a bit before retrying
+    ?LOG("munin: timeout error, server must be overloaded, sleep for 30 sec~n", ?WARN),
+    gen_tcp:close(Socket),
+    timer:sleep(?RETRY_SLEEP),
+    erlang:error(server_timeout).
 
 %% check is this a valid value (positive at least)
 check_value(Val,_) when Val > 0 -> Val;

@@ -59,11 +59,19 @@
 -record(proto_opts,
         {ssl_ciphers   = negociate, % for ssl only
          retry_timeout = 10,        % retry sending in microsec
-         idle_timeout  = 600000,
+         idle_timeout  = 600000,    % timeout for local ack
+         global_ack_timeout = infinity, % timeout for global ack
          tcp_rcv_size  = 32768,     % tcp buffers size
          tcp_snd_size  = 32768,
          udp_rcv_size,              % udp buffers size
          udp_snd_size}).
+
+-record(token_bucket,
+        {rate,
+         burst,
+         last_packet_date = 0,
+         current_size     = 0
+         }).
 
 -define(size_mon_thresh, 524288).   % 512KB
 
@@ -98,12 +106,15 @@
          datasize=0,
          id,         % user id
          size_mon_thresh=?size_mon_thresh, % if rcv data is > to this, update stats
+         size_mon=0, % current size (used for threshold computation)
          dyndata=[], % persistent data dynamically added during the
                      % session (Cookies for examples)
          clienttype, % module name (ts_jabber, etc.)
          transactions=[], % current transactions
+         rate_limit, % rate limiting parameters
          dump        % type of dump (full, light, none)
         }).
+
 
 -define(restart_sleep, 2000).
 -define(infinity_timeout, 15000).
@@ -111,6 +122,24 @@
 -define(config_timeout, 60000).
 -define(check_noclient_timeout, 60000).
 -define(retries, 4).
+
+
+-record(launcher,
+        {nusers,
+         phases =[],
+         myhostname,
+         intensity,
+         static_done = false,
+         started_users = 0,
+         phase_nusers,   % total number of users to start in the current phase
+         phase_duration, % expected phase duration
+         phase_start,    % timestamp
+         start_date,
+         short_timeout = ?short_timeout,
+         maxusers %% if maxusers are currently active, launch a
+                  %% new beam to handle the new users
+        }).
+
 
 -define(TIMEOUT_PARALLEL_SPAWN, 60000).
 -define(MAX_PHASE_EXCEED_PERCENT, 20).

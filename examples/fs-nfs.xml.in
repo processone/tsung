@@ -1,0 +1,104 @@
+<?xml version="1.0"?>
+<!DOCTYPE tsung SYSTEM "@prefix@/share/@PACKAGE_NAME@/@DTD@">
+<tsung loglevel="notice" dumptraffic="false">
+
+<!-- Get clients from torque batch manager. Ideally, we need 256 cores to do this test. -->
+  <clients>
+    <client type="batch" batch="torque" maxusers="8000"/>
+  </clients>
+
+<!-- server is not used by fs plugin, so this is meaningless -->
+  <servers>
+    <server host="127.0.0.1" port="5432" type="erlang"/>
+  </servers>
+
+  <monitoring>
+   <monitor batch="true" host="torque" type="erlang"/>
+   <monitor host="nef-server" type="munin"/>
+  </monitoring>
+
+<!-- 4 phases, from 32 to 256 simultaneous users -->
+ <load>
+ <arrivalphase phase="1" duration="10" unit="minute">
+    <users maxnumber="32" arrivalrate="10" unit="second"/>
+  </arrivalphase>
+  <arrivalphase phase="2" duration="20" unit="minute">
+    <users maxnumber="64" arrivalrate="10" unit="second"/>
+  </arrivalphase>
+  <arrivalphase phase="3" duration="30" unit="minute">
+    <users maxnumber="128" arrivalrate="10" unit="second"/>
+  </arrivalphase>
+  <arrivalphase phase="4" duration="45" unit="minute">
+    <users maxnumber="256" arrivalrate="10" unit="second"/>
+  </arrivalphase>
+ </load>
+
+<options>
+  <!-- Use the same seed for each test -->
+  <option name="seed" value="43"/>
+</options>
+
+<sessions>
+  <session probability="100" name="fs-example" type="ts_fs">
+    <!-- First create a directory for the current user -->
+    <transaction name="mkdir">
+    <request subst="true">
+      <fs cmd="make_dir" path="/mnt/bench/%%_tsung_userid%%"/>
+    </request>
+    </transaction>
+
+    <!-- Then write 100 files (6.5MB per file) sequentially-->
+    <for from="1" to="100" var="file" incr="1">
+    <transaction name="write_file">
+      <request subst="true">
+        <fs cmd="open" mode="write" path="/mnt/bench/%%_tsung_userid%%/tsung-write.bin.%%_file%%"/>
+      </request>
+      <for from="0" to="100" var="chunk" incr="1">
+        <request><fs cmd="write_chunk" size="65536"/></request>
+      </for>
+      <request><fs cmd="close"/></request>
+    </transaction>
+    <thinktime random='false' value="1"/>
+    </for>
+
+
+    <!-- Get an id of a users from another node to avoid cache effects on the
+         client side. Here we assume that each client machine has 8 cores -->
+
+     <setdynvars sourcetype="eval" code="fun({Pid,DynVars})->
+                                    {ok,Val} = ts_dynvars:lookup(tsung_userid,DynVars),
+                                    {Id,Mod} = case list_to_integer(Val) of
+                                       I when I > 128 -> {I,256};
+                                       I when I > 64  -> {I,128};
+                                       I when I > 32  -> {I,64};
+                                       I              -> {I,32}
+                                    end,
+                                    case Id &lt; 9 of
+                                     true -> (abs(Id+8) rem Mod) +1;
+                                     _ ->
+                                             (abs(Id-9) rem Mod) +1
+                                    end
+                                  end.">
+        <var name="previd"/>
+     </setdynvars>
+
+    <!-- Wait 30 sec  -->
+    <thinktime min="30" max="31"/>
+
+    <!-- Read 100 files from another tsung user, using the computed id -->
+      <for from="1" to="100" var="file" incr="1">
+        <transaction name="read_file">
+          <request subst="true">
+            <fs cmd="open" mode="read" path="/mnt/bench/%%_previd%%/tsung-write.bin.%%_file%%"/>
+          </request>
+       <for from="1" to="100" var="chunk" incr="1">
+         <request><fs cmd="read_chunk" size="65536"/></request>
+       </for>
+       <request><fs cmd="close"/></request>
+        </transaction>
+        <thinktime random='false' value="1"/>
+      </for>
+
+</session>
+ </sessions>
+</tsung>

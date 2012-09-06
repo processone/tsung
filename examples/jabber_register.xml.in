@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!DOCTYPE tsung SYSTEM "@prefix@/share/@PACKAGE_NAME@/@DTD@">
 <tsung loglevel="notice" dumptraffic="false" version="1.0">
-  
+
   <clients>
     <client host="localhost" use_controller_vm="true">
     </client>
@@ -10,7 +10,7 @@
 <servers>
    <server host='127.0.0.1' port='5222' type='tcp'/>
 </servers>
-  
+
 <!-- register 200000 users in less than 15 minutes  -->
 <load>
   <arrivalphase phase="1" duration="15" unit="minute">
@@ -28,20 +28,20 @@
 
 <sessions>
   <session probability="100" name="jabber-example" type="ts_jabber">
-    
+
     <request>
       <jabber type="connect" ack="local"></jabber>
     </request>
-    
-    <request> 
+
+    <request>
       <match do="abort" when="match">error</match>
       <jabber type="register" ack="local" id="new"></jabber>
     </request>
-    
-    <request> 
+
+    <request>
       <jabber type="close" ack="local"></jabber>
     </request>
-    
+
   </session>
 </sessions>
 </tsung>

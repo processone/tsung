@@ -18,7 +18,7 @@
 -export([string/1, make_pair/2, split_pair/1]).
 -export([split_pair_rec/1]).
 -export([count_string/1, to_string/1]).
--export([oids/2, coldescs/2, datacoldescs/3]).
+-export([oids/2, coldescs/2, datacoldescs/3, int16/2]).
 -export([decode_row/2, decode_descs/1]).
 -export([errordesc/1]).
 
@@ -145,7 +145,12 @@ oids(<<>>, Oids) ->
     lists:reverse(Oids);
 oids(<<Oid:32/integer, Rest/binary>>, Oids) ->
     oids(Rest, [Oid|Oids]).
-    
+
+int16(<<>>, Vals) ->
+    lists:reverse(Vals);
+int16(<<Val:16/integer, Rest/binary>>, Vals) ->
+    int16(Rest, [Val|Vals]).
+
 coldescs(<<>>, Descs) ->
     lists:reverse(Descs);
 coldescs(Bin, Descs) ->

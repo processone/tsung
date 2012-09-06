@@ -742,7 +742,7 @@ sh_script(Fname, Mode,Dict) ->
 		    []
 	    end,
     OptionalSname =
-	case regexp:match(XOpts, "-sname") of
+	case re:run(XOpts, "-sname",[{capture,all_but_first,binary},dotall]) of
 	    {match,_,_} -> false;
 	    nomatch -> true
 	end,
@@ -993,7 +993,7 @@ parse_mod_expr1({record_field,_,R,{atom,_,A}}) ->
 
 
 check_f(F, Ext) -> 
-    case regexp:match(F, ".*"++Ext++"\$") of
+    case re:run(F, ".*"++Ext++"\$",[{capture,all_but_first,binary},dotall]) of
 	{match, _, _} -> true;
 	_ -> false
     end.
@@ -1345,7 +1345,8 @@ d_expand(Ds) ->
 
 
 d_expand([D|Ds], Cur) ->
-    Pat = regexp:sh_to_awk(D),
+    %% Pat = re:sh_to_awk(D),
+    Pat = D,
     Cur1 = lists:foldl(
 	     fun(C, Acc) ->
 		     case list_dir(C) of
@@ -1363,7 +1364,7 @@ d_expand([], Cur) ->
     Cur.
 
 matches(Str, Pat) ->
-    case regexp:match(Str,Pat) of
+    case re:run(Str,Pat,[{capture,all_but_first,binary},dotall]) of
 	{match,_,_} ->
 	    true;
 	nomatch ->
@@ -1401,7 +1402,7 @@ apps(Apps, Dict) ->
     do_apps(Apps, Vss).
 
 app(D) ->
-    case regexp:match(D,".*-[0-9].*") of
+    case re:run(D,".*-[0-9].*",[{capture,all_but_first,binary},dotall]) of
 	nomatch -> false;
 	_ -> true
     end.
@@ -1416,11 +1417,7 @@ get_vsn(App, [[App, Vsn]|_]) -> Vsn;
 get_vsn(App, [_|T]) -> get_vsn(App, T).
 
 get_erts_vsn() ->
-    {ok, [[Root]]} = init:get_argument(root),
-    {ok, Fs} = file:list_dir(Root),
-    get_erts_vsn(Fs).
-get_erts_vsn([[$e,$r,$t,$s,$-|Vsn]|_]) -> Vsn;
-get_erts_vsn([_|T]) -> get_erts_vsn(T).
+    erlang:system_info(version).
 
 out(Dir, App, Ext, Term) ->
     FN = filename:join(Dir, App++Ext),

@@ -11,8 +11,14 @@
  </servers>
 
  <load>
-  <arrivalphase phase="1" duration="10" unit="minute">
-    <users interarrival="30" unit="second"></users>
+  <arrivalphase phase="1" duration="600" unit="second">
+    <users arrivalrate="2" unit="second"></users>
+  </arrivalphase>
+  <arrivalphase phase="2" duration="600" unit="second">
+    <users arrivalrate="2" unit="minute"></users>
+  </arrivalphase>
+  <arrivalphase phase="3" duration="6" unit="hour">
+    <users arrivalrate="2" unit="hour"></users>
   </arrivalphase>
  </load>
 

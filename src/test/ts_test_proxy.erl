@@ -26,6 +26,14 @@ relative_url_test()->
     ?assertMatch({ok,"foo /bar/foo.html foo bar"},
                  ts_proxy_http:relative_url(false,String,AbsURI,RelURL)).
 
+relative_url2_test()->
+    myset_env(),
+     String= "foo http://www.glop.com/(;-)/foo.html foo bar",
+     AbsURI="http://www.glop.com/(;-)/foo.html?toto=bar",
+     RelURL="/(;-)/foo.html?toto=bar",
+    ?assertMatch({ok,"foo /(;-)/foo.html foo bar"},
+                 ts_proxy_http:relative_url(false,String,AbsURI,RelURL)).
+
 rewrite_http_none_test()->
      myset_env(),
     Data="HTTP/1.1 200 OK
@@ -104,12 +112,20 @@ rewrite_http_encode_test()->
     {ok, Res} = ts_utils:to_https({request,Data}),
      ?assertEqual(list_to_binary(NewData), iolist_to_binary(Res)).
 
+
 rewrite_http_encode2_test()->
      myset_env(),
     Data="GET http://gforge-qualif.foo.fr/ HTTP/1.1\r\nHost: gforge-qualif.foo.fr\r\nUser-Agent: Mozilla/5.0 (X11; U; Linux x86_64; fr; rv:1.9.1.6) Gecko/20100107 Fedora/3.5.6-1.fc12 Firefox/3.5.6\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\nAccept-Language: fr,en-us;q=0.7,en;q=0.3\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-15,utf-8;q=0.7,*;q=0.7\r\nKeep-Alive: 300\r\nProxy-Connection: keep-alive\r\nPragma: no-cache\r\nCache-Control: no-cache\r\n\r\n",
     NewData="GET http://gforge-qualif.foo.fr/ HTTP/1.1\r\nHost: gforge-qualif.foo.fr\r\nUser-Agent: Mozilla/5.0 (X11; U; Linux x86_64; fr; rv:1.9.1.6) Gecko/20100107 Fedora/3.5.6-1.fc12 Firefox/3.5.6\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\nAccept-Language: fr,en-us;q=0.7,en;q=0.3\r\nAccept-Charset: ISO-8859-15,utf-8;q=0.7,*;q=0.7\r\nKeep-Alive: 300\r\nProxy-Connection: keep-alive\r\nPragma: no-cache\r\nCache-Control: no-cache\r\n\r\n",
     {ok, Res} = ts_utils:to_https({request,Data}),
     ?assertEqual(list_to_binary(NewData), iolist_to_binary(Res)).
+
+rewrite_http_encode3_test()->
+     myset_env(),
+    Data="GET http://-secure.foo.com/ HTTP/1.1\r\nHost: -secure.com\r\nUser-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:2.0b9) Gecko/20100101 Firefox/4.0b9\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\nAccept-Language: fr,en-us;q=0.7,en;q=0.3\r\nAccept-Encoding: gzip, deflate\r\nAccept-Charset: ISO-8859-15,utf-8;q=0.7,*;q=0.7\r\nKeep-Alive: 115\r\nProxy-Connection: keep-alive\r\n\r\n",
+    NewData="GET https://secure.foo.com/ HTTP/1.1\r\nHost: secure.com\r\nUser-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:2.0b9) Gecko/20100101 Firefox/4.0b9\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\nAccept-Language: fr,en-us;q=0.7,en;q=0.3\r\nAccept-Charset: ISO-8859-15,utf-8;q=0.7,*;q=0.7\r\nKeep-Alive: 115\r\nProxy-Connection: keep-alive\r\n\r\n",
+    {ok, Res} = ts_utils:to_https({request,Data}),
+     ?assertEqual(list_to_binary(NewData), iolist_to_binary(Res)).
 
 rewrite_webdav_test()->
     myset_env(),

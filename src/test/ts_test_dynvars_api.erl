@@ -24,6 +24,13 @@ dynvars_new_ok_test() ->
    ?assertEqual([{one,1},{two,2},{three,"three"},{four,4}],
                 ts_dynvars:new(Keys, Values)).
 
+dynvars_array_test() ->
+   Keys = [one,two,three,four],
+    Values = [[10,11,12],2,"three",4],
+    DynVars= ts_dynvars:new(Keys, Values),
+   ?assertEqual({ok,[10,11,12]}, ts_dynvars:lookup(one, DynVars)),
+   ?assertEqual({ok,11}, ts_dynvars:lookup({one,2}, DynVars)).
+
 dynvars_new_more_test() ->
    Keys = [one,two,three],
    Values = [1,2,"three",[]],

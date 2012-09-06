@@ -27,9 +27,30 @@
 
 -include("ts_profile.hrl").
 -include("ts_http.hrl").
+-include("ts_config.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 test()->ok.
+
+ipv6_url_test() ->
+    URL=ts_config_http:parse_URL("http://[2178:2:5:0:28f:0:3]:8080/toto.php?titi=[43]"),
+    ?assertMatch(#url{path="/toto.php",port=8080,host="2178:2:5:0:28f:0:3",scheme=http}, URL).
+
+ipv6_url2_test() ->
+    S=ts_config_http:server_to_url(#server{host="2178:2:5:0:28f:0:3",port=80,type=gen_tcp} ),
+    ?assertEqual("http://[2178:2:5:0:28f:0:3]", S).
+
+ipv6_url3_test() ->
+    S=ts_config_http:server_to_url(#server{host="[2178:2:5:0:28f:0:3]",port=80,type=gen_tcp} ),
+    ?assertEqual("http://[2178:2:5:0:28f:0:3]", S).
+
+ipv6_url4_test() ->
+    S=ts_config_http:server_to_url(#server{host="2178:2:5:0:28f:0:3",port=8080,type=gen_tcp} ),
+    ?assertEqual("http://[2178:2:5:0:28f:0:3]:8080", S).
+
+ipv4_url_test() ->
+    URL=ts_config_http:parse_URL("http://127.0.0.1:8080/"),
+    ?assertMatch(#url{path="/",port=8080,host="127.0.0.1",scheme=http}, URL).
 
 subst_url_test() ->
     DynVars=ts_dynvars:new('image', "/images/my image with spaces.png"),
@@ -45,8 +66,22 @@ subst_redirect_test()->
     DynVars=ts_dynvars:new(redirect,"http://erlang.org/bidule/truc"),
     {Req,_}=ts_http:add_dynparams(true,#dyndata{proto=Proto,dynvars=DynVars},
                                   #http_request{url=URL},
-                                  {"erlang.org",80}),
-    ?assertEqual("GET /bidule/truc HTTP/1.1\r\nHost: erlang.org\r\nUser-Agent: Firefox\r\nCookie: toto=bar\r\n\r\n", binary_to_list(ts_http:get_message(Req))).
+                                  {"erlang.org",80,gen_tcp}),
+    Str="GET /bidule/truc HTTP/1.1\r\nHost: erlang.org\r\nUser-Agent: Firefox\r\nCookie: toto=bar\r\n\r\n",
+    {Res,_}=ts_http:get_message(Req,#state_rcv{}),
+    ?assertMatch(Str, binary_to_list(Res)).
+
+subst_redirect_proto_test()->
+    myset_env(),
+    URL="%%_redirect%%",
+    Cookie="toto=bar; path=/; domain=erlang.org",
+    Cookies=ts_http_common:add_new_cookie(Cookie,"erlang.org",[]),
+    Proto=#http_dyndata{cookies=Cookies,user_agent="Firefox"},
+    DynVars=ts_dynvars:new(redirect,"http://erlang.org/bidule/truc"),
+    Rep=ts_http:add_dynparams(true,#dyndata{proto=Proto,dynvars=DynVars},
+                                  #http_request{url=URL},
+                                  {"erlang.org",80,gen_tcp6}),
+    ?assertMatch({_,{"erlang.org",80,gen_tcp6}}, Rep).
 
 cookie_subdomain_test()->
     myset_env(),
@@ -57,9 +92,10 @@ cookie_subdomain_test()->
     DynVars=ts_dynvars:new(),
     Req=ts_http:add_dynparams(false,#dyndata{proto=Proto,dynvars=DynVars},
                                   #http_request{url=URL},
-                                  {"www.domain.org",80}),
+                                  {"www.domain.org",80,gen_tcp}),
     Str="GET /bidule/truc HTTP/1.1\r\nHost: www.domain.org:80\r\nUser-Agent: Firefox\r\nCookie: toto=bar\r\n\r\n",
-    ?assertEqual(Str, binary_to_list(ts_http:get_message(Req))).
+    {Res,_}=ts_http:get_message(Req,#state_rcv{}),
+    ?assertEqual(Str, binary_to_list(Res)).
 
 cookie_dotdomain_test()->
     myset_env(),
@@ -70,9 +106,10 @@ cookie_dotdomain_test()->
     DynVars=ts_dynvars:new(),
     Req=ts_http:add_dynparams(false,#dyndata{proto=Proto,dynvars=DynVars},
                                   #http_request{url=URL},
-                                  {"www.domain.org",80}),
+                                  {"www.domain.org",80, gen_tcp}),
     Str="GET /bidule/truc HTTP/1.1\r\nHost: www.domain.org:80\r\nUser-Agent: Firefox\r\nCookie: toto=bar\r\n\r\n",
-    ?assertEqual(Str, binary_to_list(ts_http:get_message(Req))).
+    {Res,_}=ts_http:get_message(Req,#state_rcv{}),
+    ?assertEqual(Str, binary_to_list(Res)).
 
 
 
@@ -134,10 +171,10 @@ add_cookie_samekey_nodomain_req_test()->
     DynVars=ts_dynvars:new(),
     Req=ts_http:add_dynparams(false,#dyndata{proto=Proto,dynvars=DynVars},
                                   #http_request{url=URL},
-                                  {"www.foobar.net",80}),
+                                  {"www.foobar.net",80, gen_tcp}),
     Str="GET /bidule/truc HTTP/1.1\r\nHost: www.foobar.net:80\r\nUser-Agent: Firefox\r\nCookie: RMID=42\r\n\r\n",
-    ?assertEqual(Str, binary_to_list(ts_http:get_message(Req))).
-
+    {Res,_}=ts_http:get_message(Req,#state_rcv{}),
+    ?assertEqual(Str, binary_to_list(Res)).
 
 chunk_header_ok1_test()->
     Rep=ts_http_common:parse_line("transfer-encoding: chunked\r\n",#http{},[]),

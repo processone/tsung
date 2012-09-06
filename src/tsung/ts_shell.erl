@@ -18,10 +18,16 @@
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 %%%
+%%%  In addition, as a special exception, you have the permission to
+%%%  link the code of this program with any library released under
+%%%  the EPL license and distribute linked combinations including
+%%%  the two.
 
 -module(ts_shell).
 -vc('$Id: ts_erlang.erl,v 0.0 2009/08/20 16:31:58 nniclaus Exp $ ').
 -author('nniclaus@sophia.inria.fr').
+
+-behaviour(ts_plugin).
 
 -include("ts_profile.hrl").
 -include("ts_shell.hrl").
@@ -29,8 +35,9 @@
 
 -export([init_dynparams/0,
          add_dynparams/4,
-         get_message/1,
+         get_message/2,
          session_defaults/0,
+         dump/2,
          parse/2,
          parse_bidi/2,
          parse_config/2,
@@ -116,12 +123,15 @@ add_dynparams(#shell_dyndata{}, Param, _HostData) ->
     Param.
 
 %%----------------------------------------------------------------------
-%% @spec subst(Req, term())
-%% Purpose: Replace on the fly dynamic element of the request.
-%% Returns: record()
+%% @spec subst(record(shell), term()) -> record(shell)
+%% @doc  Replace on the fly dynamic element of the request. @end
 %%----------------------------------------------------------------------
 subst(Req=#shell{command=Cmd,args=Args}, DynVars) ->
     Req#shell{command=ts_search:subst(Cmd,DynVars),args=ts_search:subst(Args,DynVars)}.
+
+
+dump(A,B) ->
+    ts_plugin:dump(A,B).
 
 %% @spec parse(Data::client_data(), State) -> {NewState, Opts, Close}
 %% State = #state_rcv{}
@@ -150,11 +160,11 @@ parse({os, cmd, _Args, Res},State) ->
 parse_bidi(_Data, _State) ->
     erlang:error(dummy_implementation).
 
-%% @spec get_message(param()) -> Message::binary()|tuple()
+%% @spec get_message(record(shell),record(state_rcv)) -> {Message::term(),record(state_rcv)}
 %% @doc Creates a new message to send to the connected server.
 %% @end
-get_message(#shell{command=Cmd, args=Args}) ->
+get_message(#shell{command=Cmd, args=Args},#state_rcv{session=S}) ->
     Msg=Cmd++" "++Args ,
-    {os, cmd, [Msg], length(Msg) }.
+    {{os, cmd, [Msg], length(Msg) } , S}.
 
 

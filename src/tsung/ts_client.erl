@@ -40,9 +40,6 @@
 -define(MAX_RETRIES,3). % max number of connection retries
 -define(RETRY_TIMEOUT,10000). % waiting time between retries (msec)
 
--define(CLIENT_PORT_MIN,1025).
--define(CLIENT_PORT_MAX,65535).
-
 %% External exports
 -export([start/1, next/1]).
 
@@ -81,19 +78,31 @@ next({Pid}) ->
 %%          ignore               |
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
-init({#session{id           = SessionId,
+init(#session{ id           = SessionId,
                persistent   = Persistent,
                bidi         = Bidi,
                hibernate    = Hibernate,
+               rate_limit   = RateLimit,
                proto_opts   = ProtoOpts,
                size         = Count,
-               type         = CType}, IP, Server,Id, Dump}) ->
+               client_ip    = IP,
+               userid       = Id,
+               dump         = Dump,
+               seed         = Seed,
+               server       = Server,
+               type         = CType}) ->
     ?DebugF("Init ... started with count = ~p~n",[Count]),
-    ts_utils:init_seed(),
+    case Seed of
+        now ->
+            ts_utils:init_seed();
+        SeedVal when is_integer(SeedVal) ->
+            %% use a different but fixed seed for each client.
+            ts_utils:init_seed({Id,SeedVal})
+    end,
 
     ?DebugF("Get dynparams for ~p~n",[CType]),
     DynData = CType:init_dynparams(),
-    NewDynVars = ts_dynvars:set(tsung_userid,integer_to_list(Id),
+    NewDynVars = ts_dynvars:set(tsung_userid,Id,
                                 DynData#dyndata.dynvars),
     NewDynData = DynData#dyndata{dynvars=NewDynVars},
     StartTime= now(),
@@ -114,6 +123,13 @@ init({#session{id           = SessionId,
                 Val ->
                     Val
             end,
+    {RateConf,SizeThresh} = case RateLimit of
+                                Token=#token_bucket{} ->
+                                    Thresh=lists:min([?size_mon_thresh,Token#token_bucket.burst]),
+                                    {Token#token_bucket{last_packet_date=StartTime}, Thresh};
+                                undefined ->
+                                    {undefined, ?size_mon_thresh}
+               end,
     {ok, think, #state_rcv{ port       = Server#server.port,
                             host       = Server#server.host,
                             session_id = SessionId,
@@ -125,11 +141,14 @@ init({#session{id           = SessionId,
                             starttime  = StartTime,
                             dump       = Dump,
                             proto_opts = ProtoOpts,
+                            size_mon   = SizeThresh,
+                            size_mon_thresh = SizeThresh,
                             count      = Count,
                             ip         = NewIP,
                             id         = Id,
                             hibernate  = Hibernate,
                             maxcount   = Count,
+                            rate_limit = RateConf,
                             dyndata    = NewDynData
                            }}.
 
@@ -186,21 +205,49 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
 %% received data
+handle_info({erlang, _Socket, Data}, wait_ack, State) ->
+    ?DebugF("erlang function result received: size=~p ~n",[size(term_to_binary(Data))]),
+    case handle_data_msg(Data, State) of
+        {NewState=#state_rcv{ack_done=true}, _Opts} ->
+            handle_next_action(NewState#state_rcv{ack_done=false});
+        {NewState, _Opts} ->
+            TimeOut = case (NewState#state_rcv.request)#ts_request.ack of
+                global ->
+                    (NewState#state_rcv.proto_opts)#proto_opts.global_ack_timeout;
+                _ ->
+                    (NewState#state_rcv.proto_opts)#proto_opts.idle_timeout
+            end,
+            {next_state, wait_ack, NewState, TimeOut}
+    end;
+
 handle_info(Info, StateName, State = #state_rcv{protocol = Transport, socket = Socket}) ->
     handle_info2(Transport:normalize_incomming_data(Socket, Info), StateName, State).
 
-handle_info2({gen_ts_transport, _Socket, Data}, wait_ack, State) when is_binary(Data)->
+handle_info2({gen_ts_transport, _Socket, Data}, wait_ack, State=#state_rcv{rate_limit=TokenParam}) when is_binary(Data)->
     ?DebugF("data received: size=~p ~n",[size(Data)]),
-    case handle_data_msg(Data, State) of
-        {NewState=#state_rcv{ack_done=true, protocol = Transport, socket = Socket}, Opts} ->
-            NewSocket = Transport:set_opts(Socket, [{active, once} | Opts]), 
-            handle_next_action(NewState#state_rcv{socket=NewSocket,
+    NewTokenParam = case TokenParam of
+                        undefined ->
+                            undefined;
+                        #token_bucket{rate=R,burst=Burst,current_size=S0, last_packet_date=T0} ->
+                            {S1,_Wait}=token_bucket(R,Burst,S0,T0,size(Data),now(),true),
+                            TokenParam#token_bucket{current_size=S1, last_packet_date=now()}
+                    end,
+    {NewState, Opts} = handle_data_msg(Data, State),
+    NewSocket = ts_utils:inet_setopts(NewState#state_rcv.protocol,
+                                      NewState#state_rcv.socket,
+                                      [{active, once} | Opts]),
+    case NewState#state_rcv.ack_done of
+        true ->
+            handle_next_action(NewState#state_rcv{socket=NewSocket,rate_limit=NewTokenParam,
                                                   ack_done=false});
-        {NewState=#state_rcv{protocol = Transport, socket = Socket}, Opts} ->
-            NewSocket = Transport:set_opts(Socket, [{active, once} | Opts]),
-            ?DebugF("Socket handle_info2 gen_ts_transport :~p ~n",[Socket]),
-            TimeOut=(NewState#state_rcv.proto_opts)#proto_opts.idle_timeout,
-            {next_state, wait_ack, NewState#state_rcv{socket=NewSocket}, TimeOut}
+        false ->
+            TimeOut = case (NewState#state_rcv.request)#ts_request.ack of
+                global ->
+                    (NewState#state_rcv.proto_opts)#proto_opts.global_ack_timeout;
+                _ ->
+                    (NewState#state_rcv.proto_opts)#proto_opts.idle_timeout
+            end,
+            {next_state, wait_ack, NewState#state_rcv{socket=NewSocket,rate_limit=NewTokenParam}, TimeOut}
     end;
 
 %% inet close messages; persistent session, waiting for ack
@@ -211,10 +258,6 @@ handle_info2({gen_ts_transport, _Socket, closed}, wait_ack,
     {NewState, _Opts} = handle_data_msg(closed, State),
     %% socket should be closed in handle_data_msg
     handle_next_action(NewState#state_rcv{socket=none});
-
-%% for erlang data
-handle_info2({gen_ts_transport, _Socket, Data}, wait_ack, State) ->
-    handle_info({gen_ts_transport, _Socket, term_to_binary(Data)}, wait_ack, State);
 
 %% inet close messages; persistent session
 handle_info2({gen_ts_transport, _Socket, closed}, think,
@@ -267,7 +310,7 @@ handle_info2({gen_ts_transport, Socket, Data}, think,State=#state_rcv{
                        ts_mon:add({count, async_unknown_data_rcv}),
                        State2;
                    {Data2, State2} ->
-                       ts_mon:add([{ sum, size_sent, size(Data2)},{count, async_data_rcv}]),
+                       ts_mon:add([{ sum, size_sent, size(Data2)},{count, async_data_sent}]),
                        ts_mon:sendmes({State#state_rcv.dump, self(), Data2}),
                        ?LOG("Bidi: send data back to server~n",?DEB),
                        send(Proto,Socket,Data2,Host,Port), %FIXME: handle errors ?
@@ -397,6 +440,14 @@ handle_next_action(State) ->
                  end,
             NewDynData=DynData#dyndata{proto=ProtoDynData}, NewState=State#state_rcv{session=Session,socket=Socket,count=Count,clienttype=NewCType,protocol=PType,port=Port,host=Server,dyndata=NewDynData},
             handle_next_action(NewState);
+        {set_option, undefined, rate_limit, {Rate, Burst}} ->
+            ?LOGF("Set rate limits for client: rate=~p, burst=~p~n",[Rate,Burst],?DEB),
+            RateConf=#token_bucket{rate=Rate,burst=Burst,last_packet_date=now()},
+            Thresh=lists:min([Burst,State#state_rcv.size_mon_thresh]),
+            handle_next_action(State#state_rcv{size_mon=Thresh,size_mon_thresh=Thresh,rate_limit=RateConf,count=Count});
+        {set_option, Type, Name, Args} ->
+            NewState=Type:set_option(Name,Args,State),
+            handle_next_action(NewState);
         Other ->
             ?LOGF("Error: set profile return value is ~p (count=~p)~n",[Other,Count],?ERR),
             {stop, set_profile_error, State}
@@ -405,7 +456,7 @@ handle_next_action(State) ->
 
 %%----------------------------------------------------------------------
 %% @spec set_dynvars (Type::erlang|random|urandom|file, Args::tuple(),
-%%                    Variables::list(), DynData::#dyndata{}) -> list()
+%%                    Variables::list(), DynData::#dyndata{}) -> integer()|binary()|list()
 %% @doc setting the value of several dynamic variables at once.
 %% @end
 %%----------------------------------------------------------------------
@@ -414,15 +465,14 @@ set_dynvars(erlang,{Module,Callback},_Vars,DynData) ->
 set_dynvars(code,Fun,_Vars,DynData) ->
     Fun({self(),DynData#dyndata.dynvars});
 set_dynvars(random,{number,Start,End},Vars,_DynData) ->
-    lists:map(fun(_) -> integer_to_list(Start+random:uniform(End-Start)) end,Vars);
+    lists:map(fun(_) -> ts_stats:uniform(Start,End) end,Vars);
 set_dynvars(random,{string,Length},Vars,_DynData) ->
-    R = fun(_) -> ts_utils:randomstr(Length) end,
+    R = fun(_) -> ts_utils:randombinstr(Length) end,
     lists:map(R,Vars);
 set_dynvars(urandom,{string,Length},Vars,_DynData) ->
     %% not random, but much faster
-    RS= ts_utils:urandomstr(Length),
-    N=length(Vars),
-    lists:duplicate(N,RS);
+    R = fun(_) -> ts_utils:urandombinstr(Length) end,
+    lists:map(R,Vars);
 set_dynvars(file,{random,FileId,Delimiter},_Vars,_DynData) ->
     {ok,Line} = ts_file_server:get_random_line(FileId),
     ts_utils:split(Line,Delimiter);
@@ -580,7 +630,12 @@ ctrl_struct_impl({foreach_end,ForEachName,VarName,Filter,Target}, DynData=#dynda
 
 
 
-rel('eq',A,B)  -> A == B;
+rel(R,A,B) when is_integer(B) and not is_integer(A)->
+    rel(R,A,list_to_binary(integer_to_list(B)));
+rel(R,A,B) when is_integer(A) and not is_integer(B)->
+    rel(R,B,list_to_binary(integer_to_list(A)));
+rel('eq',A,B)  ->
+    A == B;
 rel('neq',A,B) -> A /= B.
 
 need_jump('while',F) -> F;
@@ -610,7 +665,7 @@ handle_next_request(Request, State) ->
         case Type:add_dynparams(Request#ts_request.subst,
                                 State#state_rcv.dyndata,
                                 Request#ts_request.param,
-                                {PrevHost, PrevPort}) of
+                                {PrevHost, PrevPort, PrevProto}) of
             {Par, NewServer} -> % substitution has changed server setup
                 ?DebugF("Dynparam, new server:  ~p~n",[NewServer]),
                 {Par, NewServer};
@@ -632,7 +687,7 @@ handle_next_request(Request, State) ->
                      none
              end,
 
-    Message = Type:get_message(Param),
+    {Message, NewSession} = Type:get_message(Param,State),
     Now = now(),
 
     %% reconnect if needed
@@ -654,6 +709,7 @@ handle_next_request(Request, State) ->
                                                request  = Request,
                                                port     = Port,
                                                count    = Count,
+                                               session  = NewSession,
                                                page_timestamp= PageTimeStamp,
                                                send_timestamp= Now,
                                                timestamp= Now },
@@ -672,17 +728,19 @@ handle_next_request(Request, State) ->
                     handle_close_while_sending(State#state_rcv{socket=NewSocket,
                                                                protocol=Protocol,
                                                                host=Host,
+                                                               session=NewSession,
                                                                port=Port});
                 {error, Reason} ->
                     %% LOG only at INFO level since we report also an error to ts_mon
                     ?LOGF("Error: Unable to send data, reason: ~p~n",[Reason],?INFO),
                     CountName="error_send_"++atom_to_list(Reason),
                     ts_mon:add({ count, list_to_atom(CountName) }),
-                     handle_timeout_while_sending(State);
+                     handle_timeout_while_sending(State#state_rcv{session=NewSession});
                 {'EXIT', {noproc, _Rest}} ->
                     ?LOG("EXIT from ssl app while sending message !~n", ?WARN),
                     handle_close_while_sending(State#state_rcv{socket=NewSocket,
                                                                protocol=Protocol,
+                                                               session=NewSession,
                                                                host=Host,
                                                                port=Port});
                 Exit ->
@@ -697,7 +755,7 @@ handle_next_request(Request, State) ->
             % the timeout when the number of retries increase, with a
             % simple rule: number of retries * retry_timeout
             set_thinktime(?RETRY_TIMEOUT *  Retries ),
-            {next_state, think, State#state_rcv{retries=Retries}};
+            {next_state, think, State#state_rcv{retries=Retries,session=NewSession}};
         {error,_Reason}  ->
             ts_mon:add({ count, error_abort_max_conn_retries }),
             {stop, normal, State}
@@ -784,7 +842,7 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,0}) ->
 reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort, Try}) when is_integer(CPort)->
     ?DebugF("Try to (re)connect to: ~p:~p from ~p using protocol ~p~n",
             [ServerName,Port,IP,Protocol]),
-    Opts = protocol_options(Protocol, Proto_opts)  ++ [{ip, IP},{port,CPort}],
+    Opts = protocol_options(Protocol, Proto_opts)  ++ socket_opts(IP, CPort, Protocol),
     Before= now(),
     case connect(Protocol,ServerName, Port, Opts) of
         {ok, Socket} ->
@@ -808,7 +866,7 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort, Try}) when 
                         Data when is_integer(Data) ->
                             Data;
                         Error ->
-                            ?LOGF("CPort error (~p), reuse the same port ~p~n",[Error],?INFO),
+                            ?LOGF("CPort error (~p), reuse the same port ~p~n",[Error,CPort],?INFO),
                             CPort
                     end,
                     ?LOGF("Connect failed with client port ~p, retry with ~p~n",[CPort, NewCPort],?INFO),
@@ -824,7 +882,7 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPortServer}) ->
                    Data when is_integer(Data) ->
                        Data;
                    Error ->
-                       ?LOGF("CPort error (~p), use random port ~p~n",[Error],?INFO),
+                       ?LOGF("CPort error (~p), use random port~n",[Error],?INFO),
                        0
                end,
     reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort,CPortServer});
@@ -832,27 +890,25 @@ reconnect(Socket, _Server, _Port, _Protocol, _IP) ->
     {ok, Socket}.
 
 
+%% set options for local socket ip/ports
+socket_opts({0,0,0,0}, CPort, Proto) when Proto==gen_tcp6 orelse Proto==ssl6 orelse Proto==gen_udp6 ->
+    %% the config server was not aware if we are using ipv6 or ipv4,
+    %% and it set the local IP to be default one; we need to change it
+    %% for ipv6
+    [{ip, {0,0,0,0,0,0,0,0}},{port,CPort}];
+socket_opts(IP, CPort, _)->
+    [{ip, IP},{port,CPort}].
+
 %%----------------------------------------------------------------------
 %% Func: send/5
 %% Purpose: wrapper function for send
-%% Return: ok | {error, Reason} 
+%% Return: ok | {error, Reason}
 %%----------------------------------------------------------------------
-
+send(erlang,Pid,Message,_,_) ->
+    Pid ! Message,
+    ok;
 send(Proto, Socket, Message, Host, Port)  ->
     Proto:send(Socket, Message, [{host, Host}, {port, Port}]).
-%send(gen_tcp,Socket,Message,_,_) -> gen_tcp:send(Socket,Message);
-%send(ssl,Socket,Message,_,_)     -> ssl:send(Socket,Message);
-%send(gen_udp,Socket,Message,Host,Port) ->gen_udp:send(Socket,Host,Port,Message);
-%send(erlang,Pid,Message,_,_) ->
-%    Pid ! Message,
-%    ok.
-
-%%----------------------------------------------------------------------
-%% Func: connect/4
-%% Return: {ok, Socket} | {error, Reason}
-%%----------------------------------------------------------------------
-connect(Proto, Server, Port, Opts) ->
-    Proto:connect(Server, Port, Opts).
 
 %connect(gen_tcp,Server, Port, Opts)  -> gen_tcp:connect(Server, Port, Opts);
 %connect(ssl,Server, Port,Opts)       -> ssl:connect(Server, Port, Opts);
@@ -860,36 +916,19 @@ connect(Proto, Server, Port, Opts) ->
 %connect(erlang,Server,Port,Opts)     ->
 %    Pid=spawn_link(ts_erlang,client,[self(),Server,Port,Opts]),
 %    {ok, Pid}.
-
+connect(erlang,Server,Port,Opts)      ->
+    Pid=spawn_link(ts_erlang,client,[self(),Server,Port,Opts]),
+    {ok, Pid};
+connect(Proto, Server, Port, Opts) ->
+    Proto:connect(Server, Port, Opts).
 
 %%----------------------------------------------------------------------
 %% Func: protocol_options/1
 %% Purpose: set connection's options for the given protocol
 %%----------------------------------------------------------------------
+protocol_options(erlang,_) -> [];
 protocol_options(Proto, #proto_opts{} = ProtoOpts) ->
     Proto:protocol_options(ProtoOpts).
-%protocol_options(ssl,#proto_opts{ssl_ciphers=negociate}) ->
-%    [binary, {active, once} ];
-%protocol_options(ssl,#proto_opts{ssl_ciphers=Ciphers}) ->
-%    ?DebugF("cipher is ~p~n",[Ciphers]),
-%    [binary, {active, once}, {ciphers, Ciphers} ];
-
-%protocol_options(gen_tcp,#proto_opts{tcp_rcv_size=Rcv, tcp_snd_size=Snd}) ->
-%    [binary,
-%     {active, once},
-%     {recbuf, Rcv},
-%     {sndbuf, Snd},
-%     {keepalive, true} %% FIXME: should be an option
-%    ];
-%protocol_options(gen_udp,#proto_opts{udp_rcv_size=Rcv, udp_snd_size=Snd}) ->
-%    [binary,
-%     {active, once},
-%     {recbuf, Rcv},
-%     {sndbuf, Snd}
-%    ];
-%protocol_options(erlang,_) -> [].
-
-
 
 %%----------------------------------------------------------------------
 %% Func: set_thinktime/1
@@ -950,14 +989,14 @@ handle_data_msg(Data,State=#state_rcv{dump=Dump,request=Req,id=Id,clienttype=Typ
                     {NewState#state_rcv{ page_timestamp = PageTimeStamp,
                                          socket = none,
                                          datasize = 0,
-                                         size_mon_thresh= ?size_mon_thresh,
+                                         size_mon = State#state_rcv.size_mon_thresh,
                                          count = NewCount,
                                          dyndata = NewDynData,
                                          buffer = <<>>}, Opts};
                 false ->
                     {NewState#state_rcv{ page_timestamp = PageTimeStamp,
                                          count = NewCount,
-                                         size_mon_thresh= ?size_mon_thresh,
+                                         size_mon = State#state_rcv.size_mon_thresh,
                                          datasize = 0,
                                          dyndata = NewDynData,
                                          buffer = <<>>}, Opts}
@@ -972,12 +1011,12 @@ handle_data_msg(Data,State=#state_rcv{dump=Dump,request=Req,id=Id,clienttype=Typ
             %% artificial spikes in the stats (O B/sec for a long time
             %% and lot's of MB/s at the end of the req). So we update
             %% the stats each time a 512Ko threshold is raised.
-            case NewState#state_rcv.datasize > NewState#state_rcv.size_mon_thresh of
+            case NewState#state_rcv.datasize > NewState#state_rcv.size_mon of
                 true ->
                     ?Debug("Threshold raised, update size_rcv stats~n"),
-                    ts_mon:add({ sum, size_rcv, ?size_mon_thresh}),
-                    NewThresh=NewState#state_rcv.size_mon_thresh+ ?size_mon_thresh,
-                    {NewState#state_rcv{buffer=NewBuffer,size_mon_thresh=NewThresh}, Opts};
+                    ts_mon:add({ sum, size_rcv, NewState#state_rcv.size_mon_thresh}),
+                    NewThresh=NewState#state_rcv.size_mon+ NewState#state_rcv.size_mon_thresh,
+                    {NewState#state_rcv{buffer=NewBuffer,size_mon=NewThresh}, Opts};
                 false->
                     {NewState#state_rcv{buffer=NewBuffer}, Opts}
             end
@@ -999,7 +1038,7 @@ handle_data_msg(Data,State=#state_rcv{request=Req,datasize=OldSize})
 handle_data_msg(<<32>>, State=#state_rcv{clienttype=ts_jabber}) ->
     {State#state_rcv{ack_done = false},[]};
 %% local ack, set ack_done to true
-handle_data_msg(Data, State=#state_rcv{request=Req, clienttype=Type, maxcount= MaxCount}) ->
+handle_data_msg(Data, State=#state_rcv{request=Req, maxcount=MaxCount}) ->
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     NewBuffer= set_new_buffer(State, Data),
     DataSize = size(Data),
@@ -1024,10 +1063,14 @@ set_new_buffer(#state_rcv{clienttype=Type, buffer=Buffer, session=Session},close
 set_new_buffer(#state_rcv{buffer=OldBuffer,ack_done=false},Data) ->
     ?Debug("Bufferize response~n"),
     << OldBuffer/binary, Data/binary >>;
-set_new_buffer(#state_rcv{clienttype=Type, buffer=OldBuffer, session=Session},Data) ->
+set_new_buffer(#state_rcv{clienttype=Type, buffer=OldBuffer, session=Session},Data) when is_binary(Data) ->
     ?Debug("decode response~n"),
     Type:decode_buffer(<< OldBuffer/binary, Data/binary >>, Session);
-set_new_buffer(_State, Data) -> % don't need buffer for non binary responses (erlang fun case)
+set_new_buffer(#state_rcv{clienttype=Type, buffer=OldBuffer, session=Session}, {_M,_F,_A, Res}) when is_list(Res)->
+    %% erlang fun case
+    Data=list_to_binary(Res),
+    Type:decode_buffer(<< OldBuffer/binary, Data/binary >>, Session);
+set_new_buffer(_State, Data) -> % useful ?
     Data.
 
 %%----------------------------------------------------------------------
@@ -1075,12 +1118,12 @@ update_stats_noack(#state_rcv{page_timestamp=PageTime,request=Request}) ->
 %% Returns: {TimeStamp, DynVars}
 %% Purpose: update the statistics
 %%----------------------------------------------------------------------
-update_stats(State=#state_rcv{page_timestamp=PageTime,send_timestamp=SendTime}) ->
+update_stats(State=#state_rcv{size_mon_thresh=T,page_timestamp=PageTime,send_timestamp=SendTime}) ->
     Now = now(),
     Elapsed = ts_utils:elapsed(SendTime, Now),
-    Stats = case   State#state_rcv.size_mon_thresh > ?size_mon_thresh of
+    Stats = case   State#state_rcv.size_mon > T of
                 true ->
-                    LastSize=State#state_rcv.datasize-State#state_rcv.size_mon_thresh+?size_mon_thresh,
+                    LastSize=State#state_rcv.datasize-State#state_rcv.size_mon+T,
                     [{ sample, request, Elapsed},
                      { sum, size_rcv, LastSize}];
                 false->
@@ -1114,3 +1157,31 @@ filter({ok,List},{Include,Re}) when is_list(List)->
     lists:filter(Filter,List);
 filter({ok,Data},{Include,Re}) ->
     filter({ok,[Data]},{Include,Re}).
+
+%% @spec token_bucket(R::integer(),Burst::integer(),S0::integer(),T0::tuple(),P1::integer(),
+%%                    Now::tuple(),Sleep::boolean()) -> {S1::integer(),Wait::integer()}
+
+%% @doc Implement a token bucket to rate limit the traffic: If the
+%%      bucket is full, we wait (if asked) until we can fill the
+%%      bucket with the incoming data
+%%      R = limit rate in Bytes/millisec, Burst = max burst size in Bytes
+%%      T0 arrival date of last packet,
+%%      P1 size in bytes of the packet just received
+%%      S1: new size of the bucket
+%%      Wait: Time to wait
+%% @end
+token_bucket(R,Burst,S0,T0,P1,Now,Sleep) ->
+    S1 = lists:min([S0+R*round(ts_utils:elapsed(T0, Now)),Burst]),
+    case P1 < S1 of
+        true -> % no need to wait
+            {S1-P1,0};
+        false -> % the bucket is full, must wait
+            Wait=(P1-S1) div R,
+            case Sleep of
+                true ->
+                    timer:sleep(Wait),
+                    {0,Wait};
+                false->
+                    {0,Wait}
+            end
+    end.

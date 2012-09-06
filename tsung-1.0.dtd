@@ -11,7 +11,7 @@
 
 <!ATTLIST tsung
      dumptraffic (true | false | light | protocol) "false"
-     backend     (text | rrdtool | fullstats) "text"
+     backend     (text | json| rrdtool | fullstats) "text"
      loglevel    (emergency|critical|error|warning|notice|info|debug) "notice"
      version     NMTOKEN #IMPLIED>
 
@@ -20,7 +20,7 @@
 <!ATTLIST server
      host NMTOKEN #REQUIRED
      port NMTOKEN #REQUIRED
-     type (ssl | tcp | udp | erlang | bosh | bosh_ssl | websocket) #REQUIRED>
+     type (ssl | tcp | udp | erlang | ssl6 | tcp6 | udp6 |bosh | bosh_ssl | websocket) #REQUIRED>
 
 <!ELEMENT clients (client+)>
 <!ELEMENT client (ip*) >
@@ -47,11 +47,18 @@
      batch (true | false) "false"
      type (snmp | erlang | munin) "erlang">
 
-<!ELEMENT snmp EMPTY>
+<!ELEMENT snmp (oid)*>
 <!ATTLIST snmp
      version   (v1 | v2) "v1"
      community NMTOKEN "public"
      port      NMTOKEN "161">
+
+<!ELEMENT oid EMPTY>
+<!ATTLIST oid
+     value   NMTOKEN #REQUIRED
+     name    NMTOKEN #REQUIRED
+     type    NMTOKEN "sample"
+     eval    CDATA   #IMPLIED>
 
 <!ELEMENT munin EMPTY>
 <!ATTLIST munin
@@ -95,19 +102,28 @@
     type     (ts_http | ts_jabber | ts_pgsql) #IMPLIED
     value    CDATA #IMPLIED>
 
+<!ELEMENT set_option (user_agent*)>
+<!ATTLIST set_option
+    name     NMTOKEN #REQUIRED
+    id       NMTOKEN #IMPLIED
+    min      NMTOKEN #IMPLIED
+    max      NMTOKEN #IMPLIED
+    type     (ts_http | ts_jabber | ts_pgsql) #IMPLIED
+    value    CDATA #IMPLIED>
+
 <!ELEMENT sessions (session+)>
 <!ELEMENT session ( request | thinktime | transaction | setdynvars | for |
-repeat | if | change_type | foreach)*>
+repeat | if | change_type | foreach | set_option)*>
 <!ATTLIST session
     name         CDATA #REQUIRED
     bidi         CDATA #IMPLIED
     persistent   (true | false) #IMPLIED
     probability   NMTOKEN #REQUIRED
-    type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs |ts_shell) #REQUIRED>
+    type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs |ts_shell|ts_job) #REQUIRED>
 
 <!ELEMENT change_type EMPTY>
 <!ATTLIST change_type
-     new_type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs | ts_shell) #REQUIRED
+     new_type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs | ts_shell|ts_job) #REQUIRED
      host NMTOKEN #REQUIRED
      port NMTOKEN #REQUIRED
      server_type NMTOKEN #REQUIRED
@@ -115,7 +131,8 @@ repeat | if | change_type | foreach)*>
      restore ( true | false ) "false"
     >
 
-<!ELEMENT request ( match*, dyn_variable*, ( http | jabber | raw | pgsql | ldap | mysql |fs | shell ) )>
+<!ELEMENT request ( match*, dyn_variable*, ( http | jabber | raw |
+          pgsql | ldap | mysql |fs | shell | job ) )>
 <!ATTLIST request
     subst (true|false) "false"
     >
@@ -220,9 +237,10 @@ repeat | if | change_type | foreach)*>
     room        CDATA #IMPLIED
     group       CDATA #IMPLIED
     node        CDATA #IMPLIED
-    node_type   CDATA #IMPLIED
     send_version (true | false) "false"
-    regexp        CDATA #IMPLIED >
+    regexp      CDATA #IMPLIED
+    resource    CDATA "tsung"
+    node_type   CDATA #IMPLIED >
 
 <!ELEMENT xmpp_authenticate EMPTY >
 <!ATTLIST xmpp_authenticate
@@ -232,7 +250,7 @@ repeat | if | change_type | foreach)*>
 
 <!ELEMENT fs EMPTY >
 <!ATTLIST fs
-    cmd      (read|write|open|delete|stats|copy|read_chunk|write_chunk|close)  "write"
+    cmd      (read|write|open|delete|stats|copy|read_chunk|write_chunk|close|make_dir|del_dir)  "write"
     path     CDATA   #IMPLIED
     size     CDATA   "1024"
     position CDATA   #IMPLIED
@@ -246,12 +264,38 @@ repeat | if | change_type | foreach)*>
     args     CDATA   ""
 >
 
+<!ELEMENT job EMPTY >
+<!ATTLIST job
+    type     (oar|torque) "oar"
+    req      (submit|delete|stat|suspend|resume|wait_jobs) #REQUIRED
+    script   CDATA     #IMPLIED
+    walltime CDATA     #IMPLIED
+    duration CDATA     #IMPLIED
+    jobid    CDATA     #IMPLIED
+    resources CDATA    #IMPLIED
+    nodes    CDATA   #IMPLIED
+    queue    CDATA   #IMPLIED
+    options  CDATA     #IMPLIED
+    user     CDATA   #IMPLIED
+    name     CDATA   "tsung"
+    notify_port  CDATA   #IMPLIED
+    notify_script  CDATA   #IMPLIED
+>
+
 <!ELEMENT pgsql (#PCDATA) >
 <!ATTLIST pgsql
     password     CDATA   #IMPLIED
     database     CDATA   #IMPLIED
     username     CDATA   #IMPLIED
-    type        (connect | authenticate | sql | close) #REQUIRED >
+    name_portal   CDATA   #IMPLIED
+    name_prepared CDATA   #IMPLIED
+    query         CDATA   #IMPLIED
+    parameters    CDATA   #IMPLIED
+    max_rows      CDATA   "0"
+    formats       CDATA   #IMPLIED
+    formats_results CDATA   #IMPLIED
+    contents_from_file CDATA #IMPLIED
+    type        (connect | authenticate | sql | close | bind | parse | cancel|call| sync | execute | describe | flush | copy | copydone| copyfail) #REQUIRED >
 
 <!ELEMENT mysql (#PCDATA) >
 <!ATTLIST mysql

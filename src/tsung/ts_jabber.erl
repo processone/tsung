@@ -30,15 +30,18 @@
 -module(ts_jabber).
 -author('nniclausse@hyperion').
 
+-behavior(ts_plugin).
+
 -include("ts_profile.hrl").
 -include("ts_jabber.hrl").
 
 -export([init_dynparams/0,
          add_dynparams/4,
-         get_message/1,
+         get_message/2,
          session_defaults/0,
          subst/2,
          parse/2,
+         dump/2,
          parse_bidi/2,
          parse_config/2,
          decode_buffer/2,
@@ -66,16 +69,18 @@ decode_buffer(Buffer,#jabber{}) ->
 %% Returns: record or []
 %%----------------------------------------------------------------------
 new_session() ->
-    #jabber{}.
+    #jabber{}. %FIXME: we should use another record (#jabber_session for ex.)
 %%----------------------------------------------------------------------
 %% Function: get_message/1
 %% Purpose: Build a message/request
 %% Args:    #jabber
 %% Returns: binary
 %%----------------------------------------------------------------------
-get_message(Req=#jabber{}) ->
-    ts_jabber_common:get_message(Req).
+get_message(Req=#jabber{},#state_rcv{session=S}) ->
+    {ts_jabber_common:get_message(Req),S}.
 
+dump(A,B) ->
+    ts_plugin:dump(A,B).
 
 %%----------------------------------------------------------------------
 %% Function: parse/2
@@ -90,7 +95,7 @@ get_message(Req=#jabber{}) ->
 parse(closed, State) ->
     ?LOG("XMPP connection closed by server!",?WARN),
     {State#state_rcv{ack_done = true}, [], true};
-parse(Data, State=#state_rcv{}) ->
+parse(Data, State=#state_rcv{datasize=Size}) ->
     ?DebugF("RECEIVED : ~p~n",[Data]),
     case get(regexp) of
         undefined ->
@@ -100,9 +105,9 @@ parse(Data, State=#state_rcv{}) ->
             case re:run(Data, Regexp) of
                 {match,_} ->
                     ?DebugF("XMPP parsing: Match (regexp was ~p)~n",[Regexp]),
-                    {State#state_rcv{ack_done=true}, [], false};
+                    {State#state_rcv{ack_done=true, datasize=Size+size(Data)}, [], false};
                 nomatch ->
-                    {State#state_rcv{ack_done=false}, [], false}
+                    {State#state_rcv{ack_done=false,datasize=Size+size(Data)}, [], false}
             end
     end.
 
@@ -256,12 +261,12 @@ choose_or_cache_user_id(user_defined,User,Pwd) ->
     put(xmpp_user_id,{User,Pwd}),
     {user_defined, User,Pwd};
 
-choose_or_cache_user_id(Id,User,Pwd) ->
+choose_or_cache_user_id(_OldId,User,Pwd) ->
     case get(xmpp_user_id) of
         undefined ->
             Id = choose_user_id(default),
             put(xmpp_user_id,Id),
-            Id;
+            {Id,User,Pwd};
         {DefinedUser,DefinedPwd} ->
             {user_defined, DefinedUser,DefinedPwd} ;
         Id ->
@@ -279,11 +284,12 @@ subst(Req=#jabber{type = Type}, DynData) when Type == 'muc:chat' ; Type == 'muc:
 subst(Req=#jabber{type = Type}, DynData) when Type == 'pubsub:create' ; Type == 'pubsub:subscribe'; Type == 'pubsub:publish'; Type == 'pubsub:delete' ->
     Req#jabber{node = ts_search:subst(Req#jabber.node, DynData)};
 
-subst(Req=#jabber{id=user_defined, username=Name,passwd=Pwd}, DynData) ->
-    NewUser=ts_search:subst(Name,DynData),
-    NewPwd=ts_search:subst(Pwd,DynData),
+subst(Req=#jabber{id=user_defined, username=Name,passwd=Pwd, data=Data}, DynData) ->
+    NewUser = ts_search:subst(Name,DynData),
+    NewPwd  = ts_search:subst(Pwd,DynData),
+    NewData = ts_search:subst(Data,DynData),
     put(xmpp_user_id,{NewUser,NewPwd}),% we need to keep the substitution for futures requests
-    Req#jabber{username=NewUser,passwd=NewPwd};
+    Req#jabber{username=NewUser,passwd=NewPwd,data=NewData};
 
 subst(Req=#jabber{data=Data}, DynData) ->
     Req#jabber{data=ts_search:subst(Data,DynData)}.

@@ -7,6 +7,12 @@
     <client host="client2"></client>
     <client host="client3"></client>
     <client host="client4"></client>
+    <client host="client5"></client>
+    <client host="client6"></client>
+    <client host="client7"></client>
+    <client host="client8"></client>
+    <client host="client9"></client>
+    <client host="client10"></client>
   </clients>
 
  <servers> <server host="127.0.0.1" port="5222" type="tcp"></server> </servers>
@@ -18,16 +24,21 @@
  </monitoring>
 
   <load>
+    <user session="example" start_time="1" unit="second"/>
+    <user session="example" start_time="2" unit="second"/>
+    <user session="example" start_time="4" unit="second"/>
+    <user session="example" start_time="10" unit="second"/>
    <arrivalphase phase="1" duration="1" unit="minute">
-    <users maxnumber="10" interarrival="1" unit="second"></users>
+    <users maxnumber="5" interarrival="1" unit="second"></users>
    </arrivalphase>
    <arrivalphase phase="2" duration="1" unit="minute">
-    <users interarrival="0.1" unit="second"></users>
+    <users maxnumber="15" interarrival="1" unit="second"></users>
    </arrivalphase>
   </load>
 
   <options>
     <option name="ports_range" value="on" min="10000"></option>
+    <option name="hibernate" value="3"></option>
   </options>
   <sessions>
    <session probability="100" name="example" type="ts_http">

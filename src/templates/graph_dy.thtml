@@ -1,0 +1,245 @@
+[% INCLUDE header.thtml %]
+
+<div id="maincontent">
+ <h2 class="main">tsung - Graphical Reports</h2> 
+
+<div id="response_time">
+<h3>Response Time</h3> 
+<table>
+<tr><th>Transactions</th><th>Requests and connection establishment</th></tr>
+<tr>
+ <td>
+<div id="tr_mean" style="width:500px; height:300px;"></div> 
+  <script type="text/javascript"> 
+  g2 = new Dygraph(
+    document.getElementById("tr_mean"),
+    "csv_data/graphes-Transactions-mean.csv",        {
+      rollPeriod: 7,
+      showRoller: true
+    }
+);
+</script> 
+ </td>
+ <td>
+<div id="perfs_mean" style="width:500px; height:300px;"></div>	
+   <script type="text/javascript"> 
+  g2 = new Dygraph(
+    document.getElementById("perfs_mean"),
+    "csv_data/graphes-Perfs-mean.csv",        {
+      rollPeriod: 7,
+      showRoller: true
+    }
+  );
+</script> 
+ </td>
+ </tr>
+</table>
+</div>
+
+<div id="throughput">
+<h3>Throughput</h3> 
+
+<table>
+<tr><th>Transactions</th><th>Requests</th>
+</tr>
+<tr>
+ <td>
+<div id="tr_rate" style="width:500px; height:300px;"></div> 
+  <script type="text/javascript"> 
+  g2 = new Dygraph(
+    document.getElementById("tr_rate"),
+    "csv_data/graphes-Transactions-rate.csv",        {
+      rollPeriod: 7,
+      showRoller: true
+    }
+  );
+</script> 
+ </td>
+ <td>
+<div id="perfs_rate" style="width:500px; height:300px;"></div> 
+   <script type="text/javascript"> 
+  g2 = new Dygraph(
+    document.getElementById("perfs_rate"),
+    "csv_data/graphes-Perfs-rate.csv",        {
+      rollPeriod: 7,
+      showRoller: true
+    }
+  );
+</script> 
+ </td>
+ </tr>
+[% IF async %]
+ <tr>
+    <th>Noack/Bidi</th>
+</tr>
+<tr>
+ <td>
+<div id="Async_rate" style="width:500px; height:300px;"></div> 
+   <script type="text/javascript"> 
+  g2 = new Dygraph(
+    document.getElementById("Async_rate"),
+    "csv_data/graphes-Async-rate.csv",        {
+      rollPeriod: 7,
+      showRoller: true
+    }
+  );
+</script> 
+ </td>
+ </tr>
+[% END %]
+<tr><th>Network traffic</th><th>New Users</th></tr>
+<tr>
+ <td>
+<div id="size_rate" style="width:500px; height:300px;"></div> 
+  <script type="text/javascript"> 
+  g2 = new Dygraph(
+    document.getElementById("size_rate"),
+    "csv_data/graphes-Size-rate.csv",        {
+      rollPeriod: 7,
+      showRoller: true
+    }
+  );
+</script> 
+ </td>
+ <td>
+<div id="arrival_rate" style="width:500px; height:300px;"></div> 
+   <script type="text/javascript"> 
+  g2 = new Dygraph(
+    document.getElementById("arrival_rate"),
+    "csv_data/graphes-Users_Arrival-rate.csv",        {
+      rollPeriod: 7,
+      showRoller: true
+    }
+  );
+</script> 
+ </td>
+ </tr>
+</table>
+</div>
+
+<div id="users">
+<h3>Simultaneous Users</h3> 
+<table>
+<tr><th>Simultaneous Users</th>
+[% IF match %]
+    <th>Matching responses</th>
+[% END %]
+</tr>
+<tr>
+<div id="user_sim" style="width:500px; height:300px;"></div> 
+  <script type="text/javascript"> 
+  g2 = new Dygraph(
+    document.getElementById("user_sim"),
+    "csv_data/graphes-Users-simultaneous.csv",        {
+      rollPeriod: 7,
+      showRoller: true
+    }
+  );
+</script> 
+ </td>
+[% IF match %]
+<div id="match_rate" style="width:500px; height:300px;"></div> 
+  <script type="text/javascript"> 
+  g2 = new Dygraph(
+    document.getElementById("match_rate"),
+    "csv_data/graphes-Match-rate.csv",        {
+      rollPeriod: 7,
+      showRoller: true
+    }
+  );
+</script> 
+ </td>
+[% END %]
+ </tr>
+</table>
+</div>
+
+[% IF os_mon %]
+<div id="os_mon">
+<h3>Server OS monitoring</h3> 
+<table>
+<tr><th>CPU%</th><th>Free Memory</th></tr>
+<tr>
+ <td>
+<div id="cpu_mean" style="width:500px; height:300px;"></div> 
+  <script type="text/javascript"> 
+  g2 = new Dygraph(
+    document.getElementById("cpu_mean"),
+    "csv_data/graphes-cpu-mean.csv",        {
+      rollPeriod: 7,
+      showRoller: true
+    }
+  );
+</script> 
+ </td>
+ <td>
+<div id="freemem_mean" style="width:500px; height:300px;"></div> 
+   <script type="text/javascript"> 
+  g2 = new Dygraph(
+    document.getElementById("freemem_mean"),
+    "csv_data/graphes-freemem-mean.csv",        {
+      rollPeriod: 7,
+      showRoller: true
+    }
+  );
+</script> 
+ </td>
+ </tr>
+
+<tr><th>CPU Load</th></tr>
+<tr>
+ <td>
+<div id="load_mean" style="width:500px; height:300px;"></div> 
+  <script type="text/javascript"> 
+  g2 = new Dygraph(
+    document.getElementById("load_mean"),
+    "csv_data/graphes-load-mean.csv",        {
+      rollPeriod: 7,
+      showRoller: true
+    }
+  );
+</script> 
+ </td>
+ </tr>
+
+</table>
+</div>
+[% END %]
+
+[% IF http %]
+<div id="http_status">
+<h3>HTTP return code Status (rate)</h3> 
+<div id="http_code_rate" style="width:500px; height:300px;"></div> 
+  <script type="text/javascript"> 
+  g2 = new Dygraph(
+    document.getElementById("http_code_rate"),
+    "csv_data/graphes-HTTP_CODE-rate.csv",        {
+      rollPeriod: 7,
+      showRoller: true
+    }
+  );
+</script> 
+</div>
+[% END %]
+
+[% IF errors %]
+<div id="errors">
+<h3>Errors (rate)</h3> 
+<div id="errors_rate" style="width:500px; height:300px;"></div> 
+  <script type="text/javascript"> 
+  g2 = new Dygraph(
+    document.getElementById("errors_rate"),
+    "csv_data/graphes-Errors-rate.csv",        {
+      rollPeriod: 7,
+      showRoller: true
+    }
+  );
+</script> 
+</div>
+[% END %]
+
+
+
+</div>
+
+[% INCLUDE footer.thtml %]

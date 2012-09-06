@@ -14,6 +14,10 @@
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 %%%
+%%%  In addition, as a special exception, you have the permission to
+%%%  link the code of this program with any library released under
+%%%  the EPL license and distribute linked combinations including
+%%%  the two.
 
 %%% @copyright (C) 2008  Pablo Polvorin <pablo.polvorin@process-one.net>
 %%% @author Pablo Polvorin <pablo.polvorin@process-one.net>
@@ -52,13 +56,19 @@ new(VarNames, Values) when is_list(VarNames),is_list(Values)->
     end.
 
 %% @spec lookup(Key::atom(), Dynvar::dynvars()) -> {ok,Value::term()} | false
-lookup(Key, []) when  is_atom(Key)->
+lookup(Key, []) ->
     false;
 lookup(Key, DynVars) when ?IS_DYNVARS(DynVars), is_atom(Key)->
     case lists:keysearch(Key,1,DynVars) of
         {value,{Key,Value}} -> {ok,Value};
         false -> false
+    end;
+lookup({Key, Index}, DynVars) when ?IS_DYNVARS(DynVars), is_atom(Key), is_integer(Index)->
+    case lists:keysearch(Key,1,DynVars) of
+        {value,{Key,Value}} -> {ok,lists:nth(Index,Value)};
+        false -> false
     end.
+
 
 %% @doc same as lookup/2, only that if the key isn't present, the default
 %%      value is returned instead of returning false.

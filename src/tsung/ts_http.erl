@@ -26,15 +26,18 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
+-behavior(ts_plugin).
+
 -include("ts_profile.hrl").
 -include("ts_http.hrl").
 
 -export([init_dynparams/0,
          add_dynparams/4,
-         get_message/1,
+         get_message/2,
          session_defaults/0,
          dump/2,
          parse/2,
+         parse_bidi/2,
          parse_config/2,
          decode_buffer/2,
          new_session/0]).
@@ -74,6 +77,10 @@ decode_buffer(Buffer,#http{compressed={_,Comp}})->
     ?DebugF("decoded buffer: ~p",[RealBody]),
     <<Headers/binary, "\r\n\r\n", RealBody/binary >>.
 
+%% @spec dump(protocol, {Request::ts_request(),Session::term(), Id::integer(),
+%%             Host::string(),DataSize::integer()}) -> ok
+%% @doc log request and response summary
+%% @end
 dump(protocol,{#ts_request{param=HttpReq},HttpResp,UserId,Server,Size})->
     Status = case element(2,HttpResp#http.status) of
                  none -> "error_no_http_status"; % something is really wrong here ... http 0.9 response ?
@@ -106,9 +113,9 @@ dump(_,_) ->
 %% Args:    #http_request
 %% Returns: binary
 %%----------------------------------------------------------------------
-get_message(Req=#http_request{url=URL}) ->
+get_message(Req=#http_request{url=URL},#state_rcv{session=S}) ->
     put(last_url,URL),
-    get_message2(Req).
+    {get_message2(Req),S}.
 get_message2(Req=#http_request{method=get}) ->
     ts_http_common:http_no_body(?GET, Req);
 
@@ -137,6 +144,9 @@ get_message2(Req=#http_request{method=put}) ->
 parse(Data, State) ->
     ts_http_common:parse(Data, State).
 
+parse_bidi(Data, State) ->
+    ts_plugin:parse_bidi(Data, State).
+
 %%----------------------------------------------------------------------
 %% Function: parse_config/2
 %%----------------------------------------------------------------------
@@ -153,24 +163,24 @@ parse_config(Element, Conf) ->
 %%----------------------------------------------------------------------
 add_dynparams(false, DynData, Param, HostData) ->
     add_dynparams(DynData#dyndata.proto, Param, HostData);
-add_dynparams(true, DynData, OldReq=#http_request{url=OldUrl}, HostData) ->
-    Req = subst(OldReq, DynData#dyndata.dynvars), 
+add_dynparams(true, DynData, OldReq=#http_request{url=OldUrl}, HostData={PrevHost, PrevPort, PrevProto}) ->
+    Req = subst(OldReq, DynData#dyndata.dynvars),
     case Req#http_request.url of
-        OldUrl ->  
+        OldUrl ->
             add_dynparams(DynData#dyndata.proto,Req, HostData);
         "http" ++ Rest -> % URL has changed and is absolute
             URL=ts_config_http:parse_URL(Req#http_request.url),
-            ?LOGF("URL dynamic subst: ~p~n",[URL],?WARN), 
+            ?LOGF("URL dynamic subst: ~p~n",[URL],?WARN),
             NewPort = ts_config_http:set_port(URL),
             NewReq  = add_dynparams(DynData#dyndata.proto,
                                     Req#http_request{host_header=undefined},
-                                    {URL#url.host, NewPort, URL#url.scheme}), % add scheme
+                                    {URL#url.host, NewPort, PrevProto, URL#url.scheme}), % add scheme
             case OldUrl of
                 "http"++_ -> % old url absolute: useproxy must be true
                     NewReq#http_request{url="http"++Rest};
                 _ ->
                     NewUrl=ts_config_http:set_query(URL),
-                    {NewReq#http_request{url=NewUrl}, {URL#url.host, NewPort,ts_config_http:set_scheme(URL#url.scheme)}}
+                    {NewReq#http_request{url=NewUrl}, {URL#url.host, NewPort,ts_config_http:set_scheme({URL#url.scheme,PrevProto})}}
                 end;
         _ -> % Same host:port
             add_dynparams(DynData#dyndata.proto, Req, HostData)
@@ -179,13 +189,13 @@ add_dynparams(true, DynData, OldReq=#http_request{url=OldUrl}, HostData) ->
 %% Function: add_dynparams/3
 add_dynparams(DynData,Param=#http_request{host_header=undefined}, HostData )->
     Header = case HostData of
-                 {Host,80, http}->
+                 {Host,80, _,http}->
                      Host;
-                 {Host,443, https}->
+                 {Host,443,_,https}->
                      Host;
-                 {Host,Port,_} ->
+                 {Host,Port,_,_} ->
                      Host++":"++ integer_to_list(Port);
-                 {Host,Port} ->
+                 {Host,Port,_Proto} ->
                      Host++":"++ integer_to_list(Port)
              end,
     ?DebugF("set host header dynamically: ~s~n",[Header]),
