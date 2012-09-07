@@ -79,15 +79,17 @@ sample_counter_zero_update_test()->
     Val3=ts_stats_mon:update_stats(sample_counter,Val2,0),
     ?assertMatch([50,0,50,50,1,0,0,60],Val3).
 
-procnet_test()->
+netstat_test()->
     myset_env(),
-    ?assertMatch({10106167,2609645},
-                 ts_os_mon_erlang:get_os_data(packets, {unix, linux}, "./src/test/procnetdev_test.txt")).
+    {ok, Lines} = ts_utils:file_to_list("./src/test/netstat_test.txt"),
+    ?assertMatch({7823989,4272908},
+                 ts_os_mon_erlang:get_os_data(packets, {unix, linux},Lines )).
 
-procnet_7chars_test()->
+netstat2_test()->
     myset_env(),
-    ?assertMatch({10106167,2609645},
-                 ts_os_mon_erlang:get_os_data(packets, {unix, linux}, "./src/test/procnetdev_test7chars.txt")).
+    {ok, Lines} = ts_utils:file_to_list("./src/test/netstat_test2.txt"),
+    ?assertMatch({41687492504,56858242340},
+                 ts_os_mon_erlang:get_os_data(packets, {unix, linux}, Lines)).
 
 myset_env()->
     myset_env(0).

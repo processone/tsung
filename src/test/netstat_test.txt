@@ -1,0 +1,5 @@
+Table d'interfaces noyau
+Iface       MTU Met    RX-OK RX-ERR RX-DRP RX-OVR    TX-OK TX-ERR TX-DRP TX-OVR Flg
+wlan0       1500   0        0      0      0      0        0      0      0      0 BMU
+lo        16436   0    13186      0      0      0    13186      0      0      0 LRU
+eth0      1500   0  7823989      0      2      0  4272908      0      0      0 BMRU

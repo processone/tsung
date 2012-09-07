@@ -29,19 +29,11 @@
 
 %% use by the client to create the request
 
--record(shell_dyndata,
-        {
-          fixme
-         }
-       ).
 
--record(shell, {
-          command,
-          args
-              }).
+-record(shell, { command,
+                 args
+               }).
 
--record(shell_sess, {
-          fixme
-         }).
+-record(shell_sess, { fixme }).
 
 

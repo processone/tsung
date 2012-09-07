@@ -36,7 +36,7 @@ parse_dyn_var_jsonpath2_test() ->
     myset_env(),
     Data="\r\n\r\n{\"titi\": [23,45]}",
     JSONPath = "titi[3]",
-    ?assertEqual([{'myvar',undefined}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
+    ?assertEqual([{'myvar',<< >>}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
 
 parse_dyn_var_jsonpath3_test() ->
     myset_env(),
@@ -48,7 +48,7 @@ parse_dyn_var_jsonpath4_test() ->
     myset_env(),
     Data="\r\n\r\n{\"titi\": [{\"val\": 123, \"name\": \"foo\"}, {\"val\": 42, \"name\": \"bar\"}]}",
     JSONPath = "titi[?name=void].val",
-    ?assertEqual([{'myvar',undefined}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
+    ?assertEqual([{'myvar', << >>}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
 
 parse_dyn_var_jsonpath5_test() ->
     myset_env(),
@@ -265,24 +265,24 @@ parse_subst_regexp_sid_test() ->
 
 dynvars_urandom_test() ->
     myset_env(),
-    ?assertMatch([<<"qxvmvtglimieyhemzlxc">>],ts_client:set_dynvars(urandom,{string,20},[toto],[])).
+    ?assertMatch([<<"qxvmvtglimieyhemzlxc">>],ts_client:set_dynvars(urandom,{string,20},[toto],[],{},[])).
 
 dynvars_urandom_neg_test() ->
     myset_env(),
-    ?assertError(function_clause,ts_client:set_dynvars(urandom,{string,-3},[toto],[])).
+    ?assertError(function_clause,ts_client:set_dynvars(urandom,{string,-3},[toto],[],{},[])).
 
 dynvars_urandom2_test() ->
     myset_env(),
-    ?assertMatch([<<"qxvmvtglimieyhemzlxc">>,<<"qxvmvtglimieyhemzlxc">>],ts_client:set_dynvars(urandom,{string,20},[toto,tutu],[])).
+    ?assertMatch([<<"qxvmvtglimieyhemzlxc">>,<<"qxvmvtglimieyhemzlxc">>],ts_client:set_dynvars(urandom,{string,20},[toto,tutu],[],{},[])).
 
 dynvars_random_test() ->
     myset_env(),
-    [String] = ts_client:set_dynvars(random,{string,20},[toto],[]),
+    [String] = ts_client:set_dynvars(random,{string,20},[toto],[],{},[]),
     ?assertMatch(20,length(binary_to_list(String))).
 
 dynvars_random2_test() ->
     myset_env(),
-    [String,String2] = ts_client:set_dynvars(random,{string,20},[toto,titi],[]),
+    [String,String2] = ts_client:set_dynvars(random,{string,20},[toto,titi],[],{},[]),
     ?assertMatch({20,20},{length(binary_to_list(String)),length(binary_to_list(String2))}).
 
 dynvars_jsonpath_test() ->
@@ -290,7 +290,7 @@ dynvars_jsonpath_test() ->
     Data="\r\n\r\n{\"titi\": [{\"val\": 123, \"name\": \"foo\"}, {\"val\": 42, \"name\": \"bar\"}]}",
     JSONPath = "titi[?name=bar].val",
     Dynvars=ts_dynvars:new(data,Data),
-    ?assertEqual(42,ts_client:set_dynvars(jsonpath,{JSONPath,data},[toto],#dyndata{dynvars=Dynvars})).
+    ?assertEqual(42,ts_client:set_dynvars(jsonpath,{JSONPath,data},[toto],Dynvars,{},[])).
 
 
 %%TODO: out of order..

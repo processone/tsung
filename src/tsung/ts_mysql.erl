@@ -33,11 +33,11 @@
 
 -behavior(ts_plugin).
 
+-include("ts_macros.hrl").
 -include("ts_profile.hrl").
 -include("ts_mysql.hrl").
 
--export([init_dynparams/0,
-         add_dynparams/4,
+-export([add_dynparams/4,
          get_message/2,
          session_defaults/0,
          parse/2,
@@ -59,7 +59,7 @@ session_defaults() ->
 %% @doc We need to decode buffer (remove chunks, decompress ...) for
 %%      matching or dyn_variables
 %% @end
-decode_buffer(Buffer,#mysql{}) ->
+decode_buffer(Buffer,#mysql_session{}) ->
     Buffer. % FIXME ?
 
 %%----------------------------------------------------------------------
@@ -68,7 +68,7 @@ decode_buffer(Buffer,#mysql{}) ->
 %% Returns: record or []
 %%----------------------------------------------------------------------
 new_session() ->
-    #mysql{}.
+    #mysql_session{}.
 
 parse_bidi(Data, State) ->
     ts_plugin:parse_bidi(Data,State).
@@ -134,11 +134,11 @@ parse(Data, State)->
             {State#state_rcv{ack_done = false, datasize=size(Data), acc=PacketBody},[],false}
     end.
 
-parse_greeting(Data, State=#state_rcv{acc = [],dyndata=DynData, datasize= 0}) ->
+parse_greeting(Data, State=#state_rcv{acc = [],session=S, datasize= 0}) ->
     ?LOGF("Parsing greeting ~p ~n",[Data], ?DEB),
     Salt= get_salt(Data),
-    NewDynData=DynData#dyndata{proto=#mysql_dyndata{salt=Salt}},
-    {State#state_rcv{ack_done = true, datasize=size(Data), dyndata=NewDynData},[],false}.
+    NewS=S#mysql_session{salt=Salt},
+    {State#state_rcv{ack_done = true, datasize=size(Data), session=NewS},[],false}.
 
 parse_result(Data,State)->
            case Data of
@@ -182,29 +182,21 @@ parse_config(Element, Conf) ->
 %%                                               Host  = String
 %% Returns: #mysql_request
 %%----------------------------------------------------------------------
-add_dynparams(false, DynData, Param, HostData) ->
-    add_dynparams(DynData#dyndata.proto, Param, HostData);
-add_dynparams(true, DynData, Param, HostData) ->
-    NewParam = subst(Param, DynData#dyndata.dynvars),
-    add_dynparams(DynData#dyndata.proto,NewParam, HostData).
+add_dynparams(false, {_DynVars, Session}, Param, HostData) ->
+    add_dynparams(Session, Param, HostData);
+add_dynparams(true, {DynVars, Session}, Param, HostData) ->
+    NewParam = subst(Param, DynVars),
+    add_dynparams(Session,NewParam, HostData).
 add_dynparams(DynMysql, Param, _HostData) ->
-    Param#mysql_request{salt=DynMysql#mysql_dyndata.salt}.
-
-%%----------------------------------------------------------------------
-%% Function: init_dynparams/0
-%% Purpose:  initial dynamic parameters value
-%% Returns:  #dyndata
-%%----------------------------------------------------------------------
-init_dynparams() ->
-    #dyndata{proto=#mysql_dyndata{}}.
+    Param#mysql_request{salt=DynMysql#mysql_session.salt}.
 
 %%----------------------------------------------------------------------
 %% Function: subst/2
 %% Purpose: Replace on the fly dynamic element of the request.
 %% Returns: #mysql_request
 %%----------------------------------------------------------------------
-subst(Req=#mysql_request{sql=SQL}, DynData) ->
-    Req#mysql_request{sql=ts_search:subst(SQL, DynData)}.
+subst(Req=#mysql_request{sql=SQL}, DynVars) ->
+    Req#mysql_request{sql=ts_search:subst(SQL, DynVars)}.
 
 
 %%% -- Internal funs --------------------

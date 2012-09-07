@@ -116,6 +116,31 @@ encode_parse2_test()->
     ?assertEqual( << 80,0,0,0,8,0,0,0,0 >> ,Rep).
 
 
+subst_parameters_test()->
+    myset_env(),
+    Proto=#pgsql_session{},
+    DynVars=ts_dynvars:new(param,"42"),
+    Params=["%%_param%%","1"],
+    Req=ts_pgsql:add_dynparams(true,{DynVars,Proto},
+                               #pgsql_request{type=bind,name_portal="",name_prepared="P0_10", formats=none,formats_results=[text],parameters=Params},
+                               {"pgsql.org",5432,gen_tcp}),
+    Str=[66,0,0,0,30,0,80,48,95,49,48,0,0,0,0,2,0,0,0,2,52,50,0,0,0,1,49,0,1,0,0],
+    {Res,_}=ts_pgsql:get_message(Req,#state_rcv{}),
+   ?assertEqual(Str, binary_to_list(Res)).
+
+subst_parameters2_test()->
+    myset_env(),
+    Proto=#pgsql_session{},
+    Params=[42,1],
+    Req=ts_pgsql:add_dynparams(true,{[], Proto},
+                               #pgsql_request{type=bind,name_portal="",name_prepared="P0_10", formats=none,formats_results=[text],parameters=Params},
+                               {"pgsql.org",5432,gen_tcp}),
+    Str=[66,0,0,0,30,0,80,48,95,49,48,0,0,0,0,2,0,0,0,2,52,50,0,0,0,1,49,0,1,0,0],
+    {Res,_}=ts_pgsql:get_message(Req,#state_rcv{}),
+   ?assertEqual(Str, binary_to_list(Res)).
+
+
+
 myset_env()->
     myset_env(0).
 myset_env(Val)->

@@ -26,8 +26,7 @@
 
 -behavior(ts_plugin).
 
--export([init_dynparams/0,
-         add_dynparams/4,
+-export([add_dynparams/4,
          get_message/2,
          session_defaults/0,
          dump/2,
@@ -38,6 +37,7 @@
          new_session/0
          ]).
 
+-include("ts_macros.hrl").
 -include("ts_profile.hrl").
 -include("ts_ldap.hrl").
 -include("ELDAPv3.hrl").
@@ -101,7 +101,7 @@ parse(<<>>,State) ->
 parse(Data, State=#state_rcv{acc = [], datasize= 0}) ->
     parse(Data, State#state_rcv{datasize= size(Data)});
 
-parse(Data, State=#state_rcv{acc = [], dyndata=_DynData,session=Session,datasize=PrevSize}) ->
+parse(Data, State=#state_rcv{acc = [], session=Session,datasize=PrevSize}) ->
     St = ts_ldap_common:push(Data,Session),
     parse_packets(State#state_rcv{session=St,datasize =PrevSize + size(Data) },St).
 
@@ -197,21 +197,20 @@ parse_ldap_response(Resp,State) ->
     ts_mon:add({ count, ldap_unexpected_msg_resp}),
     {State#state_rcv{ack_done=true},[],false}.
 
-acumulate_result(R,State = #state_rcv{request =
-                                        #ts_request{param=#ldap_request{result_var = ResultVar}},
-                                      dyndata=DynData}) ->
+acumulate_result(R,State = #state_rcv{request = #ts_request{param=#ldap_request{result_var = ResultVar}},
+                                      dynvars = DynVars}) ->
     case ResultVar of
         none -> State;
-        {ok,VarName} -> State#state_rcv{dyndata=accumulate_dyndata(R,VarName,DynData)}
+        {ok,VarName} -> State#state_rcv{dynvars=accumulate_dyndata(R,VarName,DynVars)}
     end.
 
-accumulate_dyndata(R,VarName,DynData = #dyndata{dynvars=DynVars}) when is_list(DynVars)->
+accumulate_dyndata(R,VarName,DynVars) when is_list(DynVars)->
     Prev = proplists:get_value(VarName,DynVars,[]),
     NewDynVars = lists:keystore(VarName,1,DynVars,{VarName,[R|Prev]}),
-    DynData#dyndata{dynvars=NewDynVars};
+    NewDynVars;
 
-accumulate_dyndata(R,VarName,DynData) ->
-    DynData#dyndata{dynvars=[{VarName,[R]}]}.
+accumulate_dyndata(R,VarName,_DynVars) ->
+    [{VarName,[R]}].
 
 
 %%----------------------------------------------------------------------
@@ -226,24 +225,24 @@ add_dynparams(false, _DynData, Param, _HostData) ->
     Param;
 
 %% Bind message. Substitution on user and password.
-add_dynparams(true, DynData, Param = #ldap_request{type=bind,user=User,password=Password}, _HostData)  ->
-    Param#ldap_request{user=ts_search:subst(User,DynData#dyndata.dynvars),password=ts_search:subst(Password,DynData#dyndata.dynvars)};
+add_dynparams(true, {DynVars, _Session}, Param = #ldap_request{type=bind,user=User,password=Password}, _HostData)  ->
+    Param#ldap_request{user=ts_search:subst(User,DynVars),password=ts_search:subst(Password,DynVars)};
 
 %% Search message. Only perfom substitutions on the filter of the search requests.
 %% The filter text was already parsed into a tree-like struct, substitution
 %% is perfomed in the "leaf" of this tree.
-add_dynparams(true, DynData, Param = #ldap_request{type=search, filter = Filter}, _HostData)  ->
-    Param#ldap_request{filter = subs_filter(Filter,DynData#dyndata.dynvars)};
+add_dynparams(true, {DynVars, _Session}, Param = #ldap_request{type=search, filter = Filter}, _HostData)  ->
+    Param#ldap_request{filter = subs_filter(Filter,DynVars)};
 
 
 %% Add message. Substitution on DN and attrs values.
-add_dynparams(true,DynData,Param = #ldap_request{type=add,dn=DN,attrs=Attrs},_HostData) ->
-    Param#ldap_request{dn=ts_search:subst(DN,DynData#dyndata.dynvars), attrs=subs_attrs(Attrs,DynData#dyndata.dynvars)};
+add_dynparams(true,{DynVars, _Session},Param = #ldap_request{type=add,dn=DN,attrs=Attrs},_HostData) ->
+    Param#ldap_request{dn=ts_search:subst(DN,DynVars), attrs=subs_attrs(Attrs,DynVars)};
 
 %% Modification message. Substitution on DN and attrs values.
-add_dynparams(true,DynData,Param = #ldap_request{type=modify,dn=DN,modifications=Modifications},_HostData) ->
-    SubsModifications = [{Operation,AttrType,[ts_search:subst(Value,DynData#dyndata.dynvars) || Value <- Values]} || {Operation,AttrType,Values}<- Modifications ],
-    Param#ldap_request{dn=ts_search:subst(DN,DynData#dyndata.dynvars), attrs=SubsModifications}.
+add_dynparams(true,{DynVars, _Session},Param = #ldap_request{type=modify,dn=DN,modifications=Modifications},_HostData) ->
+    SubsModifications = [{Operation,AttrType,[ts_search:subst(Value,DynVars) || Value <- Values]} || {Operation,AttrType,Values}<- Modifications ],
+    Param#ldap_request{dn=ts_search:subst(DN,DynVars), attrs=SubsModifications}.
 
 subs_filter({Rel,Filters},DynVars) when (Rel == 'and') or (Rel == 'or') ->
     {Rel,lists:map(fun(F)-> subs_filter(F,DynVars) end,Filters)};
@@ -259,15 +258,6 @@ subs_filter({substring,Attr,Substrings},DynVars) ->
 
 subs_attrs(Attrs,DynVars) ->
     [{Attr,[ts_search:subst(Value,DynVars) || Value <- Values]} || {Attr,Values}<-Attrs ].
-
-%%----------------------------------------------------------------------
-%% Function: init_dynparams/0
-%% Purpose:  initial dynamic parameters value
-%% Returns:  #dyndata
-%%----------------------------------------------------------------------
-init_dynparams() ->
-    #dyndata{proto=none}.
-
 
 %%----------------------------------------------------------------
 %%-----Messages

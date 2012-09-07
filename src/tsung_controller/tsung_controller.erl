@@ -29,7 +29,7 @@
 -export([start/2, start_phase/3, stop/1, stop_all/1, status/1]).
 -behaviour(application).
 
--include("ts_profile.hrl").
+-include("ts_macros.hrl").
 -include_lib("kernel/include/file.hrl").
 
 %%----------------------------------------------------------------------
@@ -66,11 +66,11 @@ start_phase(load_config, _StartType, _PhaseArgs) ->
             File ->
                 T = case file:read_file_info(File) of
                         {ok, #file_info{size=Size}} when Size > 10000000 -> % > 10MB
-                            io:format(standard_error,"Can take up to 5mn to read config ~p~n ",[Size]),
-                            300000; % 10mn
+                            io:format(standard_error,"Can take up to 5mn to read config file of size ~p~n ",[Size]),
+                            300000; % 5mn
                         {ok, #file_info{size=Size}} when Size > 1000000 ->  % > 1MB
-                            io:format(standard_error,"Can take up to 3mn to read config ~p~n ",[Size]),
-                            180000; % 5mn
+                            io:format(standard_error,"Can take up to 3mn to read config file of size ~p~n ",[Size]),
+                            180000; % 3mn
                         {ok, #file_info{size=_}} ->
                             120000  % 2mn
                     end,

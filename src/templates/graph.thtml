@@ -6,16 +6,20 @@
 <div id="response_time">
 <h3>Response Time</h3> 
 <table>
-<tr><th>Transactions</th><th>Requests and connection establishment</th></tr>
+<tr><th>Transactions and Pages</th><th>Requests and connection establishment</th></tr>
 <tr>
  <td>
- <a href="images/graphes-Transactions-mean.[% ext %]">
-  <img class="graph" src="images/graphes-Transactions-mean_tn.png" alt="transaction response time"/> 
- </a>
+ <a class="tooltip" href="images/graphes-Transactions-mean.[% ext %]">
+  <img class="graph" src="images/graphes-Transactions-mean_tn.png" alt="transaction response time"/>
+<span class="classic"> Response time for pages and transactions (a page
+is a group of requests not separated by a thinktime).</span>
+</a>
  </td>
  <td>
-  <a href="images/graphes-Perfs-mean.[% ext %]">
+  <a class="tooltip" href="images/graphes-Perfs-mean.[% ext %]">
    <img class="graph" src="images/graphes-Perfs-mean_tn.png" alt="mean request response time"/> 
+<span class="classic"> <em>connect</em> Mean duration of the connection
+establishment only.<em>request</em> Mean duration of requests.</span>
   </a>
  </td>
  </tr>
@@ -85,8 +89,11 @@
 [% END %]
 </tr>
 <tr>
- <td> <a href="images/graphes-Users-simultaneous.[% ext %]">
-  <img class="graph" src="images/graphes-Users-simultaneous_tn.png" alt="Users"/> 
+ <td> <a class="tooltip" href="images/graphes-Users-simultaneous.[% ext %]">
+  <img class="graph" src="images/graphes-Users-simultaneous_tn.png"
+  alt="Users"/> 
+<span class="classic"><em>users</em> Number of simultaneous users (it's session has started, but not yet finished).
+<em>connected</em> number of users with an opened TCP/UDP connection (example: for HTTP, during a think time, the TCP connection can be closed by the server, and it won't be reopened until the thinktime has expired)</span>
  </a>
  </td>
 [% IF match %]
@@ -132,6 +139,11 @@
     [% USE table(os_mon_other, cols=2) %]
      [% FOREACH row = table.rows %]
        <tr>
+       <tr>
+          [% FOREACH key = row %]
+             <th>$key</th>
+           [% END %]
+       </tr>
           [% FOREACH key = row %]
            <td>
               <a href="images/graphes-$key-mean.[% ext %]">

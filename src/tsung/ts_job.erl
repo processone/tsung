@@ -29,12 +29,12 @@
 
 -behaviour(ts_plugin).
 
+-include("ts_macros.hrl").
 -include("ts_profile.hrl").
 -include("ts_job.hrl").
 -include_lib("kernel/include/file.hrl").
 
--export([init_dynparams/0,
-         add_dynparams/4,
+-export([add_dynparams/4,
          get_message/2,
          session_defaults/0,
          dump/2,
@@ -101,24 +101,18 @@ new_session() ->
 decode_buffer(Buffer,#job_session{}) ->
     Buffer.
 
-%% @spec init_dynparams() -> dyndata()
-%% @doc Creates a new record/term for storing dynamic request data.
-%% @end
-init_dynparams() ->
-    #dyndata{proto=#job_dyndata{}}.
-
 %% @spec add_dynparams(Subst, dyndata(), param(), hostdata()) -> {dyndata(), server()} | dyndata()
 %% Subst = term()
 %% @doc Updates the dynamic request data structure created by
 %% {@link ts_protocol:init_dynparams/0. init_dynparams/0}.
 %% @end
-add_dynparams(false, DynData, Param, HostData) ->
-    add_dynparams(DynData#dyndata.proto, Param, HostData);
-add_dynparams(true, DynData, Param, HostData) ->
-    NewParam = subst(Param, DynData#dyndata.dynvars),
-    add_dynparams(DynData#dyndata.proto,NewParam, HostData).
+add_dynparams(false, {_DynVars,Session}, Param, HostData) ->
+    add_dynparams(Session, Param, HostData);
+add_dynparams(true,  {DynVars,Session}, Param, HostData) ->
+    NewParam = subst(Param, DynVars),
+    add_dynparams(Session,NewParam, HostData).
 
-add_dynparams(#job_dyndata{}, Param, _HostData) ->
+add_dynparams(#job_session{}, Param, _HostData) ->
     Param.
 
 %%----------------------------------------------------------------------
@@ -165,7 +159,7 @@ parse({os, cmd, _Args, Res},State=#state_rcv{session=S,dump=Dump}) when is_list(
     case lists:last(Lines) of
         "OAR_JOB_ID="++ID ->
             ?LOGF("OK,job id is ~p",[ID],?INFO),
-            ts_job_notify:monitor({ID,self(),S#job_session.submission_time, now(),Dump}),
+            ts_job_notify:monitor({ID,self(),S#job_session.submission_time, ?NOW,Dump}),
             {State#state_rcv{ack_done=true,datasize=length(Res)}, [], false};
         _ ->
             {State#state_rcv{ack_done=true,datasize=length(Res)}, [], false}
@@ -214,4 +208,4 @@ get_message(#job{type=oar,user=U,req=submit, name=N,script=S, resources=R, queue
         ++"\""++S++" "++D++"\"",
     ?LOGF("Will run ~p",[Cmd],?INFO),
     Message = {os, cmd, [Cmd], length(Cmd) },
-    {Message, Session#job_session{submission_time=now()}}.
+    {Message, Session#job_session{submission_time=?NOW}}.

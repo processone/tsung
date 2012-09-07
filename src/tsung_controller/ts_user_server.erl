@@ -26,7 +26,7 @@
 
 -vc('$Id$ ').
 
--include("ts_profile.hrl").
+-include("ts_macros.hrl").
 
 %%-compile(export_all).
 -export([reset/1,
@@ -108,7 +108,7 @@ get_id()->
     gen_server:call({global, ?MODULE }, get_id).
 
 %% return a unique id. deprecated since tsung_userid dyn var exists
-get_unique_id({_Pid, DynVar})->
+get_unique_id({_, DynVar})->
     case ts_dynvars:lookup(tsung_userid,DynVar) of
         {ok, Val} -> ts_utils:term_to_list(Val);
         false ->
@@ -301,6 +301,7 @@ handle_call({reset, NFin}, _From, _State) ->
 %%% Get a online id different from 'Id'
 handle_call( {get_online, Id}, _From, State=#state{ online     = Online,
                                                     last_online = Prev}) ->
+    ?DebugF("get_online from ~p~n",[Id]),
     case ets_iterator_next(Online, Prev, Id) of
         {error, _Reason} ->
             ?DebugF("No online users (~p,~p), ets table was ~p ~n",[Id, Prev,ets:info(Online)]),
@@ -352,6 +353,7 @@ handle_cast({add_to_connected, Id}, State=#state{connected=Connected, first_clie
     end;
 
 handle_cast({add_to_online, Id}, State=#state{online=Online, connected=Connected}) ->
+    ?DebugF("add_to_online ~p~n",[Id]),
     case ets:member(Connected,Id) of
         true ->
             ets:delete(Connected,Id),
@@ -363,6 +365,7 @@ handle_cast({add_to_online, Id}, State=#state{online=Online, connected=Connected
     end;
 
 handle_cast({remove_from_online, Id}, State=#state{online=Online,connected=Connected}) ->
+    ?DebugF("remove_from_online ~p~n",[Id]),
     {noreply, LastOnline} = ets_delete_online(Online,Id,State),
     ets:insert(Connected, {Id,1}),
     {noreply, State#state{last_online=LastOnline}}.

@@ -35,8 +35,7 @@
 -include("ts_profile.hrl").
 -include("ts_raw.hrl").
 
--export([init_dynparams/0,
-         add_dynparams/4,
+-export([add_dynparams/4,
          get_message/2,
          session_defaults/0,
          subst/2,
@@ -111,17 +110,14 @@ parse_config(Element, Conf) ->
 %%----------------------------------------------------------------------
 add_dynparams(_,[], Param, _Host) ->
     Param;
-add_dynparams(true, DynData, OldReq, _Host) ->
-    subst(OldReq, DynData#dyndata.dynvars);
+add_dynparams(true, {DynVars, _Session}, OldReq, _Host) ->
+    subst(OldReq, DynVars);
 add_dynparams(_Subst, _DynData, Param, _Host) ->
     Param.
-
-init_dynparams() ->  #dyndata{}.
-
 
 %%----------------------------------------------------------------------
 %% Function: subst/1
 %%----------------------------------------------------------------------
-subst(Req=#raw{datasize=Size,data=Data},DynData) ->
-    Req#raw{datasize = ts_search:subst(Size, DynData),
-            data= ts_search:subst(Data, DynData)}.
+subst(Req=#raw{datasize=Size,data=Data},DynVars) ->
+    Req#raw{datasize = ts_search:subst(Size, DynVars),
+            data= ts_search:subst(Data, DynVars)}.

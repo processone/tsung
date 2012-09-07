@@ -56,7 +56,6 @@
 
 -define(DICT, dict).
 
--include("ts_profile.hrl").
 -include("ts_config.hrl").
 -include("xmerl.hrl").
 
@@ -68,7 +67,7 @@
 %%----------------------------------------------------------------------
 %% Func: parse_config/2
 %% Args: Element, Config
-%% Returns: List
+%% Returns: Binary
 %% Purpose: parse a request defined in the XML config file
 %%----------------------------------------------------------------------
 
@@ -217,40 +216,14 @@ open_file({ID, Path}, {reply, Result, State}) ->
             {reply, {error, already_open}, State};
         error ->
             ?LOGF("Opening file ~p~n",[Path], ?INFO),
-            {Status, File} = file:open(Path, [read] ),
-            case Status of
-                error ->
-                    ?LOGF("Error while opening ~p file ~p~n",[File, Path], ?ERR),
-                    {reply, {error, File}, State};
-                _ ->
-                    List_items = read_item(File, []),
-                    file:close(File), % Close the config file
+
+            case file:read_file(Path) of
+                {ok, Bin} ->
+                    List_items = binary:split( Bin , <<"\n">> , [global,trim]),
                     FileDesc = #file{items = list_to_tuple(List_items), size=length(List_items)},
-                    {reply, Result,
-                     State#state{files = ?DICT:store(ID, FileDesc, State#state.files)}}
-            end
-    end.
-
-
-%%----------------------------------------------------------------------
-%% Treate one line of the file
-%% Lines starting by '#' are skipped
-%%----------------------------------------------------------------------
-read_item(File, L)->
-    %% Read one line
-    Line = io:get_line(File, ""),
-    case Line of
-        eof ->
-            lists:reverse(L);
-        _->
-            Tokens = string:tokens(Line, "\n"),
-            case Tokens of
-                [] ->
-                    read_item(File, L);
-                ["#" | _] ->
-                    read_item(File, L);
-                [Value] ->
-                    %% FIXME: maybe we should use an ets table instead ?
-                    read_item(File, [Value|L])
+                    {reply, Result, State#state{files = ?DICT:store(ID, FileDesc, State#state.files)}};
+                {error,Reason} ->
+                    ?LOGF("Error while opening file ~p :~p~n",[ Path, Reason], ?ERR),
+                    {reply, {error, Path}, State}
             end
     end.

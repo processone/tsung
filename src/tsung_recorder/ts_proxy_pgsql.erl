@@ -27,7 +27,7 @@
 -vc('$Id$ ').
 -author('Nicolas.Niclausse@niclux.org').
 
--include("ts_profile.hrl").
+-include("ts_macros.hrl").
 -include("ts_pgsql.hrl").
 -include("ts_recorder.hrl").
 

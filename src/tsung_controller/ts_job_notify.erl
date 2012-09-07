@@ -34,7 +34,7 @@
 
 -behaviour(gen_server).
 
--include("ts_profile.hrl").
+-include("ts_macros.hrl").
 -include("ts_job.hrl").
 
 %% API
@@ -96,12 +96,12 @@ wait_jobs(Pid) ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-    ?LOG("Starting~n",?DEB),
+    ?LOG("Starting~n",?INFO),
     case global:whereis_name(ts_config_server) of
         undefined ->
             {ok, #state{jobs=ets:new(jobs,[{keypos, #job_session.jobid}])}};
         _Pid ->
-            ?LOG("Config server is alive !~n",?DEB),
+            ?LOG("Config server is alive !~n",?INFO),
             case ts_config_server:get_jobs_state() of
                 {Jobs,Port} ->
                     ?LOG("Got backup of node state~n",?DEB),
@@ -166,7 +166,7 @@ handle_cast({wait_jobs, Pid}, State=#state{jobs=Jobs}) ->
     {noreply, State};
 
 handle_cast({listen, undefined}, State) ->
-    ?LOG("No listen port defined, can't open listening socket ~n",?NOTICE),
+    ?LOG("No listen port defined, can't open listening socket ~n",?INFO),
     {noreply, State};
 handle_cast({listen,Port}, State) ->
     Opts = [{reuseaddr, true}, {active, once}],
@@ -214,7 +214,7 @@ handle_info({tcp, Socket, Data}, State=#state{jobs=Jobs}) ->
                 [] ->
                     ?LOGF("Job owner of ~p is unknown",[Id],?NOTICE);
                 [Job] ->
-                    Now=now(),
+                    Now=?NOW,
                     Queued=ts_utils:elapsed(Job#job_session.queue_time,Now),
                     ts_mon:add([{sample,tr_job_wait,Queued},{sum,job_running,1}, {sum,job_queued,-1}]),
                     ets:update_element(Jobs,Id,{#job_session.start_time,Now})
@@ -229,7 +229,7 @@ handle_info({tcp, Socket, Data}, State=#state{jobs=Jobs}) ->
                     ets:delete_object(Jobs,Job),
                     check_jobs(Jobs,Job#job_session.owner);
                 [Job]->
-                    Now=now(),
+                    Now=?NOW,
                     Duration=ts_utils:elapsed(Job#job_session.start_time,Now),
                     ts_mon:add([{sample,tr_job_duration,Duration},{sum,job_running,-1}, {sum,ok_job ,1}]),
                     ts_job:dump(Job#job_session.dump,{none,Job#job_session{end_time=Now,status="ok"},Name,undefined,undefined}),
@@ -246,7 +246,7 @@ handle_info({tcp, Socket, Data}, State=#state{jobs=Jobs}) ->
                     ets:delete_object(Jobs,Job),
                     check_jobs(Jobs,Job#job_session.owner);
                 [Job]->
-                    Now=now(),
+                    Now=?NOW,
                     Duration=ts_utils:elapsed(Job#job_session.start_time,Now),
                     ts_mon:add([{sample,tr_job_duration,Duration},{sum,job_running,-1}, {sum,error_job,1}]),
                     ts_job:dump(Job#job_session.dump,{none,Job#job_session{end_time=Now,status="error"},Name,undefined,undefined}),

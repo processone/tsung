@@ -16,6 +16,18 @@
 
 test()->
     ok.
+
+popularity_test() ->
+    ?assertError({"can't mix probabilites and weights",10,10}, ts_config:get_popularity(10,10,undefined,100)),
+    ?assertError({"can't use probability when using weight"}, ts_config:get_popularity(10,0,true,100)),
+    ?assertError({"can't use weights when using probabilities"}, ts_config:get_popularity(0,10,false,100)),
+    ?assertEqual({10,false,110}, ts_config:get_popularity(10,0,false,100)),
+    ?assertEqual({10,true,110}, ts_config:get_popularity(0,10,true,100)),
+    ?assertEqual({30,false,60}, ts_config:get_popularity(30,0,false,30)),
+    ?assertEqual({0,false,100}, ts_config:get_popularity(0,0,undefined,100)),
+    ?assertEqual({0,true,100}, ts_config:get_popularity(0,0,true,100)),
+    ?assertEqual({0,false,100}, ts_config:get_popularity(0,0,false,100)).
+
 read_config_http_test() ->
     myset_env(),
     ?assertMatch({ok, Config}, ts_config:read("./examples/http_simple.xml",".")).
@@ -58,7 +70,7 @@ read_config_badpop_test() ->
     myset_env(),
     ts_user_server:start([]),
     {ok, Config} = ts_config:read("./src/test/badpop.xml","."),
-    ?assertMatch({error,[{error,{bad_sum,_,_}}]}, ts_config_server:check_config(Config)).
+    ?assertMatch({error,{bad_sum,_,_}}, ts_config_server:check_config(Config)).
 
 
 read_config_thinkfirst_test() ->

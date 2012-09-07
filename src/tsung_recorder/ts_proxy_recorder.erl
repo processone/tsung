@@ -35,7 +35,7 @@
 %%--------------------------------------------------------------------
 %% Include files
 %%--------------------------------------------------------------------
--include("ts_profile.hrl").
+-include("ts_macros.hrl").
 -include("ts_http.hrl").
 -include("ts_recorder.hrl").
 

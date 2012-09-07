@@ -24,7 +24,12 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
--record(jabber_dyndata, {id, regexp}).
+-record(jabber_session, {id,
+                         regexp,
+                         user_server,
+                         username,
+                         passwd,
+                         domain}).
 
 -record(jabber, {dest,
                  size,
@@ -48,9 +53,11 @@
                  pubsub_service, %%ej: pubsub.localhost
                  group,          %% roster group
                  node,           %% pubsub node
+                 resource,
                  node_type,
-                 send_version,   %% if true, send version='1.0' on stream headers
-                 resource
+                 subid,
+                 version ="1.0", %% 1.0 or "legacy", used by type=connect
+                 prefix   %% username prefix
                 }).
 
 -define(setroster_intensity, 1/(ts_utils:get_val(setroster)*1000)).

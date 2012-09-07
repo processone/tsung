@@ -283,7 +283,7 @@ MacOS-X).
 
 \subsection{Dependencies}
 \begin{itemize}
-\item Erlang/OTP R12B-5 and up
+\item Erlang/OTP R13B and up
   (\url{http://www.erlang.org/download.html}). Erlang is now
   part of fedora and debian/ubuntu repositories.
   \item pgsql module made by Christian Sunesson (for the PostgreSQL plugin):
@@ -1183,11 +1183,17 @@ value (the sum of all probabilities must be equal to 100)
 Sessions define the content of the scenario itself. They describe
 the requests to execute.
 
-
 Each session has a given probability. This is used to decide which
 session a new user will execute. The sum of all session\verb|'|s
 probabilities must be 100.
 
+\strong{Since Tsung 1.4.3}, you can use weights instead of
+probabilities. In the following example, there will be twice as many
+sessions of type s1 than s2.
+\begin{Verbatim}
+  <session name="s1" weight="2" type="ts_http">
+  <session name="s2" weight="1" type="ts_http">
+\end{Verbatim}
 
 
 A transaction is just a way to have customized statistics. Say if you
@@ -2255,7 +2261,7 @@ You can set dynamic variables not only while parsing server data, but
 you can build them using external files or generate them with a function
 or generate random numbers/strings:
 
-Six types of dynamic variables are currently implemented (\varname{sourcetype} tag):
+Several types of dynamic variables are implemented (\varname{sourcetype} tag):
 \begin{enumerate}
 \item Dynamic variables defined by calling an erlang function:
 \begin{Verbatim}
@@ -2309,6 +2315,14 @@ section \ref{Dynamic variables}.
   <setdynvars sourcetype="jsonpath" from='notification' jsonpath="result[?state=OK].node">
       <var name="deployed" />
   </setdynvars>
+\end{Verbatim}
+\item You can create dynamic variables to get the hostname and port of
+  the current server
+\begin{Verbatim}
+    <setdynvars sourcetype="server">
+      <var name="host" />
+      <var name="port" />
+    </setdynvars>
 \end{Verbatim}
 
 \end{enumerate}
@@ -2571,12 +2585,14 @@ Example output file with JSON:
 \item  \varname{page} Response time for each set of requests (a page is a group
   of request not separated by a thinktime).
 \item  \varname{connect} Duration of the connection establishment.
-\item  \varname{reconnect} number of reconnection.
+\item  \varname{reconnect} Number of reconnection.
 \item  \varname{size\_rcv} Size of responses in bytes.
 \item  \varname{size\_sent} Size of requests in bytes.
 \item  \varname{session} Duration of a user's session.
-\item  \varname{users} Number of simultaneous users.
-\item  \varname{connected} Number of simultaneous connected users. \strong{new
+\item  \varname{users} Number of simultaneous users (it's session has started, but not yet finished).
+\item  \varname{connected} number of users with an opened TCP/UDP connection (example: for
+HTTP, during a think time, the TCP connection can be closed by the server,
+and it won't be reopened until the thinktime has expired). \strong{new
   in 1.2.2}.
 \item  custom transactions
 \end{itemize}
@@ -2603,6 +2619,16 @@ Jabber specific stats:
   session. Count the number of messages sent to the server in response
   of a message received from the server. \strong{new in 1.2.2}.
 \end{itemize}
+
+OS monitoring stats:
+\begin{itemize}
+\item \varname{\{load,<host>\}} System load average during the last minute
+\item \varname{\{cpu,<host\}} CPU percentage (Maximum is 100\%, ex: on dual core
+  system, 100\% means: both cores are 100\% used)
+\item \varname{\{freemem,<host>\}} Free Memory
+\end{itemize}
+
+
 
 \subsection{Design}
 

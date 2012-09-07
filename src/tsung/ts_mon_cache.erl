@@ -54,7 +54,7 @@
 
 -define(DUMP_STATS_INTERVAL, 500). % in milliseconds
 
--include("ts_profile.hrl").
+-include("ts_macros.hrl").
 
 %%====================================================================
 %% External functions
@@ -76,9 +76,9 @@ add(Data) ->
     gen_server:cast(?MODULE, {add, Data}).
 
 %% @spec add_match(Data::list(),{UserId::integer(),SessionId::integer(),RequestId::integer(),
-%%                  TimeStamp::tuple()}) -> ok
-add_match(Data,{UserId,SessionId,RequestId,TimeStamp,Bin}) ->
-    gen_server:cast(?MODULE, {add_match, Data, {UserId,SessionId,RequestId,TimeStamp,Bin}}).
+%%                  TimeStamp::tuple(), Transactions::list()}) -> ok
+add_match(Data,{UserId,SessionId,RequestId,TimeStamp,Bin,Tr}) ->
+    gen_server:cast(?MODULE, {add_match, Data, {UserId,SessionId,RequestId,TimeStamp,Bin,Tr}}).
 
 %%====================================================================
 %% Server functions
@@ -124,9 +124,9 @@ handle_cast({add, Data}, State) when is_list(Data) ->
     {noreply, LastState };
 handle_cast({add, Data}, State) when is_tuple(Data) ->
     {noreply,update_stats(Data, State)};
-handle_cast({add_match, Data=[First|_Tail],{UserId,SessionId,RequestId,TimeStamp,Bin}},
+handle_cast({add_match, Data=[First|_Tail],{UserId,SessionId,RequestId,TimeStamp,Bin,Tr}},
             State=#state{stats=List, match=MatchList})->
-    NewMatchList=lists:append([{UserId,SessionId,RequestId,TimeStamp,First, Bin}], MatchList),
+    NewMatchList=lists:append([{UserId,SessionId,RequestId,TimeStamp,First, Bin, Tr}], MatchList),
     {noreply, State#state{stats = lists:append(Data, List), match = NewMatchList}};
 
 handle_cast(_Msg, State) ->

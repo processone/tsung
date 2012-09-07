@@ -52,14 +52,7 @@
           realm,
           soap_action % for SOAP support
          }).
-
--record(http_dyndata,
-        {
-          user_agent,
-          cookies = [] % HTTP Cookies
-         }
-       ).
-
+ 
 -record(url,
         {scheme,          %% http, https, ...
          host,
@@ -68,7 +61,7 @@
          querypart = []}).
 
 %% use by the client process to store information about the current request during
-%% the parsing of the response
+%% the parsing of the response, and for the whole session (user_agent and cookies)
 -record(http, {content_length= 0,  % HTTP header: content length
                body_size     = 0,  % current size of body,
                chunk_toread  = -1, % chunk data to be read (-1 = not chunked, -2 = not chunked, but last response was)
@@ -78,7 +71,9 @@
                                      % has been received
                partial=false,    % true if headers are partially received
                compressed={false,false},    % type of compression if body is compressed
-               cookie=[]
+               cookie=[],         %cookies of the current request
+               user_agent,
+               session_cookies = []      % Cookies of the session
               }).
 
 

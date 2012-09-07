@@ -26,7 +26,7 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
--include("ts_profile.hrl").
+-include("ts_macros.hrl").
 
 %% to get file_info record definition
 -include_lib("kernel/include/file.hrl").
@@ -120,7 +120,11 @@ debug(From, Message, Args, Level) ->
 elapsed({Before1, Before2, Before3}, {After1, After2, After3}) ->
     After  = After1  * 1000000000  + After2  * 1000 + After3/1000,
     Before = Before1 * 1000000000  + Before2 * 1000 + Before3/1000,
-    After - Before.
+    case After - Before of
+        Neg when Neg < 0 -> % time duration must not be negative
+             0;
+        Val -> Val
+    end.
 
 %%----------------------------------------------------------------------
 %% Func: chop/1
@@ -446,8 +450,8 @@ to_https({url, "http://-"++Rest})-> "https://" ++ Rest;
 to_https({url, URL})-> URL;
 to_https({request, {body,Data}}) when is_list(Data) ->
     %% body request, no headers
-    re:replace(Data,"http://-","https://",[global]);
-to_https({request, S="CONNECT"++Rest}) -> {ok,S};
+    {ok, re:replace(Data,"http://-","https://",[global])};
+to_https({request, S="CONNECT"++_Rest}) -> {ok,S};
 to_https({request, []}) -> {ok, []};
 to_https({request, String}) when is_list(String) ->
     EndOfHeader = string:str(String, "\r\n\r\n"),
@@ -491,8 +495,12 @@ join(Sep, List) when is_list(List)->
     string:join(lists:map(ToStr,List), Sep).
 
 %% split a string given a string (at first occurence of char)
-split(String,Chr) ->
-    re:split(String,Chr,[{return,list}]).
+split(String,Chr) when is_list(String), is_list(Chr) ->
+    re:split(String,Chr,[{return,list}]);
+
+split(String,Chr) when is_binary(String), is_binary(Chr) ->
+    binary:split(String,[Chr],[global]).
+
 
 %% split a string given a char (faster)
 splitchar(String,Chr) ->
@@ -686,7 +694,7 @@ urandomstr_noflat(Size)  when is_integer(Size), Size >= 0 ->
 urandombinstr(Size) when is_integer(Size) , Size >= ?DUPBINSTR_SIZE ->
     Loop = Size div ?DUPBINSTR_SIZE,
     Rest = Size rem ?DUPBINSTR_SIZE,
-    Res=lists:foldl(fun(X,Acc)-> <<Acc/binary, ?DUPBINSTR/binary>> end, << >>,lists:seq(1,Loop)),
+    Res=lists:foldl(fun(_X,Acc)-> <<Acc/binary, ?DUPBINSTR/binary>> end, << >>,lists:seq(1,Loop)),
     << Res/binary, ?DUPBINSTR:Rest/binary>>;
 urandombinstr(Size) when is_integer(Size), Size >= 0 ->
     <<?DUPBINSTR:Size/binary>> .
@@ -797,7 +805,7 @@ jsonpath(JSONPath,JSON) ->
     json_get_bin(Keys,JSON).
 json_get_bin([],Val) ->
     Val;
-json_get_bin([Key|Keys],undefined) ->
+json_get_bin([_Key|_Keys],undefined) ->
     undefined;
 json_get_bin([N|Keys],L) when is_integer(N), N =< length(L) ->
     Val =  lists:nth(N,L),

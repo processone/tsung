@@ -10,7 +10,7 @@
 -compile(export_all).
 
 -include("ts_http.hrl").
--include("ts_profile.hrl").
+-include("ts_macros.hrl").
 -include_lib("eunit/include/eunit.hrl").
 -import(ts_http_common,[parse_req/1, parse_req/2]).
 
@@ -59,7 +59,7 @@ decode_base64_test()->
 %%TODO: should be in ts_test_http
 encode_base64_test()->
     Base="QWxhZGRpbjpvcGVuIHNlc2FtZQ==",
-    ?assertEqual(["Authorization: Basic ",Base,?CRLF], ts_http_common:authenticate("Aladdin","open sesame")).
+    ?assertEqual(["Authorization: Basic ",Base,?CRLF], ts_http_common:authenticate(#http_request{userid="Aladdin", auth_type="basic",passwd="open sesame"})).
 
 rewrite_http_secure_cookie_test()->
     Data="HTTP/1.1 200 OK\r\nSet-Cookie: JSESSIONID=F949C9182402EB74258F43FDC3F3C63F; Path=/; Secure\r\nLocation: https://foo.bar/\r\nContent-Length: 0\r\n\r\n",

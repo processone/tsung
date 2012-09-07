@@ -35,7 +35,6 @@
 
 -behaviour(gen_server).
 
--include("ts_profile.hrl").
 -include("ts_config.hrl").
 
 %% External exports, API
@@ -70,11 +69,11 @@
 %% @doc Start the monitoring process
 %%----------------------------------------------------------------------
 start(Id) ->
-    ?LOGF("starting ~p stats server, global ~n",[Id],?NOTICE),
+    ?LOGF("starting ~p stats server, global ~n",[Id],?INFO),
     gen_server:start_link({global, Id}, ?MODULE, [Id], []).
 
 start() ->
-    ?LOG("starting stats server, global ~n",?NOTICE),
+    ?LOG("starting stats server, global ~n",?INFO),
     gen_server:start_link({global, ?MODULE}, ?MODULE, [?MODULE], []).
 
 stop(Id) ->
@@ -120,7 +119,7 @@ set_output(BackEnd,Stream,Id) ->
 %%----------------------------------------------------------------------
 %% single type of data: don't need a dict, a simple list can store the data
 init([Type]) when Type == 'connect'; Type == 'page'; Type == 'request' ->
-    ?LOGF("starting dedicated stats server for ~p ~n",[Type],?NOTICE),
+    ?LOGF("starting dedicated stats server for ~p ~n",[Type],?INFO),
     Stats = [0,0,0,0,0,0,0,0],
     {ok, #state{ dump_interval = ?config(dumpstats_interval),
                  stats     = Stats,
@@ -129,7 +128,7 @@ init([Type]) when Type == 'connect'; Type == 'page'; Type == 'request' ->
                 }};
 %% id = transaction or ?MODULE: it can handle several types of stats, must use a dict.
 init([Id]) ->
-    ?LOGF("starting ~p stats server~n",[Id],?NOTICE),
+    ?LOGF("starting ~p stats server~n",[Id],?INFO),
     Tab = dict:new(),
     {ok, #state{ dump_interval = ?config(dumpstats_interval),
                  stats   = Tab,
@@ -223,7 +222,7 @@ handle_info(_Info, State) ->
 %% Returns: any (ignored by gen_server)
 %%----------------------------------------------------------------------
 terminate(Reason, State) ->
-    ?LOGF("stoping stats monitor (~p)~n",[Reason],?NOTICE),
+    ?LOGF("stopping stats monitor (~p)~n",[Reason],?INFO),
     export_stats(State),
     ok.
 

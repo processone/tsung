@@ -34,8 +34,8 @@
 %%% to the client at anytime (full bidirectional protocol, as jabber
 %%% for ex)
 
--include("ts_profile.hrl").
 -include("ts_config.hrl").
+-include("ts_profile.hrl").
 
 -define(MAX_RETRIES,3). % max number of connection retries
 -define(RETRY_TIMEOUT,10000). % waiting time between retries (msec)
@@ -101,11 +101,8 @@ init(#session{ id           = SessionId,
     end,
 
     ?DebugF("Get dynparams for ~p~n",[CType]),
-    DynData = CType:init_dynparams(),
-    NewDynVars = ts_dynvars:set(tsung_userid,Id,
-                                DynData#dyndata.dynvars),
-    NewDynData = DynData#dyndata{dynvars=NewDynVars},
-    StartTime= now(),
+    DynVars = ts_dynvars:new(tsung_userid,Id),
+    StartTime= ?NOW,
     set_thinktime(?short_timeout),
     ?DebugF("IP param: ~p~n",[IP]),
     NewIP = case IP of
@@ -149,7 +146,7 @@ init(#session{ id           = SessionId,
                             hibernate  = Hibernate,
                             maxcount   = Count,
                             rate_limit = RateConf,
-                            dyndata    = NewDynData
+                            dynvars    = DynVars
                            }}.
 
 %%--------------------------------------------------------------------
@@ -229,8 +226,8 @@ handle_info2({gen_ts_transport, _Socket, Data}, wait_ack, State=#state_rcv{rate_
                         undefined ->
                             undefined;
                         #token_bucket{rate=R,burst=Burst,current_size=S0, last_packet_date=T0} ->
-                            {S1,_Wait}=token_bucket(R,Burst,S0,T0,size(Data),now(),true),
-                            TokenParam#token_bucket{current_size=S1, last_packet_date=now()}
+                            {S1,_Wait}=token_bucket(R,Burst,S0,T0,size(Data),?NOW,true),
+                            TokenParam#token_bucket{current_size=S1, last_packet_date=?NOW}
                     end,
     {NewState, Opts} = handle_data_msg(Data, State),
     NewSocket = ts_utils:inet_setopts(NewState#state_rcv.protocol,
@@ -381,7 +378,7 @@ handle_next_action(State) ->
         {thinktime, TmpThink} ->
             Think = case TmpThink of
                         "%%"++_Tail ->
-                            Raw=ts_search:subst(TmpThink,(State#state_rcv.dyndata)#dyndata.dynvars),
+                            Raw=ts_search:subst(TmpThink,State#state_rcv.dynvars),
                             ts_utils:list_to_number(Raw)*1000;
                         Val ->
                             Val
@@ -394,14 +391,14 @@ handle_next_action(State) ->
                     {next_state, think, State#state_rcv{count=Count}}
             end;
         {transaction, start, Tname} ->
-            Now = now(),
+            Now = ?NOW,
             ?LOGF("Starting new transaction ~p (now~p)~n", [Tname,Now], ?INFO),
             TrList = State#state_rcv.transactions,
             NewState = State#state_rcv{transactions=[{Tname,Now}|TrList],
                                    count=Count},
             handle_next_action(NewState);
         {transaction, stop, Tname} ->
-            Now = now(),
+            Now = ?NOW,
             ?LOGF("Stopping transaction ~p (~p)~n", [Tname, Now], ?INFO),
             TrList = State#state_rcv.transactions,
             {value, {_, Tr}} = lists:keysearch(Tname, 1, TrList),
@@ -411,38 +408,35 @@ handle_next_action(State) ->
                                    count=Count},
             handle_next_action(NewState);
         {setdynvars,SourceType,Args,VarNames} ->
-            DynData=State#state_rcv.dyndata,
-            Result = set_dynvars(SourceType,Args,VarNames,DynData),
-            NewDynVars = ts_dynvars:set(VarNames,Result,DynData#dyndata.dynvars),
-            NewDynData = DynData#dyndata{dynvars=NewDynVars},
-            ?DebugF("set dynvars: ~p ~p~n",[NewDynVars, NewDynData]),
-            handle_next_action(State#state_rcv{dyndata = NewDynData, count=Count});
+            DynVars=State#state_rcv.dynvars,
+            Result = set_dynvars(SourceType,Args,VarNames,DynVars,{State#state_rcv.host,State#state_rcv.port},State#state_rcv.session),
+            NewDynVars = ts_dynvars:set(VarNames,Result,DynVars),
+            ?DebugF("set dynvars: ~p ~n",[NewDynVars]),
+            handle_next_action(State#state_rcv{dynvars = NewDynVars, count=Count});
         {ctrl_struct,CtrlData} ->
             ctrl_struct(CtrlData,State,Count);
         Request=#ts_request{} ->
             handle_next_request(Request, State);
         {change_type, NewCType, Server, Port, PType, Store, Restore} ->
             ?DebugF("Change client type, use: ~p ~p~n",[NewCType, [Server , Port, PType, Store, Restore]]),
-            DynData=State#state_rcv.dyndata,
             case Store of
                 true -> % keep state
-                    put({state, State#state_rcv.clienttype} , {State#state_rcv.socket,State#state_rcv.session,DynData#dyndata.proto});
+                    put({state, State#state_rcv.clienttype} , {State#state_rcv.socket,State#state_rcv.session});
                 false -> % don't keep state of old type, close connection
                     (State#state_rcv.protocol):close(State#state_rcv.socket),
                     set_connected_status(false)
             end,
-            {Socket,Session,ProtoDynData} = case {Restore, get({state,NewCType})} of
-                     {true,{OldSocket, OldSession,OldProtoDynData}} -> % restore is true and we have something stored
-                         {OldSocket, OldSession,OldProtoDynData};
+            {Socket,Session} = case {Restore, get({state,NewCType})} of
+                     {true,{OldSocket, OldSession}} -> % restore is true and we have something stored
+                         {OldSocket, OldSession};
                      {_,_} -> % nothing to restore, or no restore asked, set new session
-                         DD=NewCType:init_dynparams(),
-                         {none,NewCType:new_session(),DD#dyndata.proto}
+                         {none,NewCType:new_session()}
                  end,
-            NewDynData=DynData#dyndata{proto=ProtoDynData}, NewState=State#state_rcv{session=Session,socket=Socket,count=Count,clienttype=NewCType,protocol=PType,port=Port,host=Server,dyndata=NewDynData},
+            NewState=State#state_rcv{session=Session,socket=Socket,count=Count,clienttype=NewCType,protocol=PType,port=Port,host=Server},
             handle_next_action(NewState);
         {set_option, undefined, rate_limit, {Rate, Burst}} ->
             ?LOGF("Set rate limits for client: rate=~p, burst=~p~n",[Rate,Burst],?DEB),
-            RateConf=#token_bucket{rate=Rate,burst=Burst,last_packet_date=now()},
+            RateConf=#token_bucket{rate=Rate,burst=Burst,last_packet_date=?NOW},
             Thresh=lists:min([Burst,State#state_rcv.size_mon_thresh]),
             handle_next_action(State#state_rcv{size_mon=Thresh,size_mon_thresh=Thresh,rate_limit=RateConf,count=Count});
         {set_option, Type, Name, Args} ->
@@ -456,33 +450,40 @@ handle_next_action(State) ->
 
 %%----------------------------------------------------------------------
 %% @spec set_dynvars (Type::erlang|random|urandom|file, Args::tuple(),
-%%                    Variables::list(), DynData::#dyndata{}) -> integer()|binary()|list()
+%%                    Variables::list(), DynVars::#dynvars{},
+%%                    {Server::string(),Port::integer()}, Session::record()) -> integer()|binary()|list()
 %% @doc setting the value of several dynamic variables at once.
 %% @end
 %%----------------------------------------------------------------------
-set_dynvars(erlang,{Module,Callback},_Vars,DynData) ->
-    Module:Callback({self(),DynData#dyndata.dynvars});
-set_dynvars(code,Fun,_Vars,DynData) ->
-    Fun({self(),DynData#dyndata.dynvars});
-set_dynvars(random,{number,Start,End},Vars,_DynData) ->
+set_dynvars(erlang,{Module,Callback},_Vars,DynVars,_,Session) ->
+    Module:Callback({Session,DynVars});
+set_dynvars(code,Fun,_Vars,DynVars,_,Session) ->
+    Fun({Session,DynVars});
+set_dynvars(random,{number,Start,End},Vars,_DynVars,_,_) ->
     lists:map(fun(_) -> ts_stats:uniform(Start,End) end,Vars);
-set_dynvars(random,{string,Length},Vars,_DynData) ->
+set_dynvars(random,{string,Length},Vars,_DynVars,_,_) ->
     R = fun(_) -> ts_utils:randombinstr(Length) end,
     lists:map(R,Vars);
-set_dynvars(urandom,{string,Length},Vars,_DynData) ->
+set_dynvars(urandom,{string,Length},Vars,_DynVars,_,_) ->
     %% not random, but much faster
     R = fun(_) -> ts_utils:urandombinstr(Length) end,
     lists:map(R,Vars);
-set_dynvars(file,{random,FileId,Delimiter},_Vars,_DynData) ->
+set_dynvars(file,{random,FileId,Delimiter},_Vars,_DynVars,_,_) ->
     {ok,Line} = ts_file_server:get_random_line(FileId),
     ts_utils:split(Line,Delimiter);
-set_dynvars(file,{iter,FileId,Delimiter},_Vars,_DynData) ->
+set_dynvars(file,{iter,FileId,Delimiter},_Vars,_DynVars,_,_) ->
     {ok,Line} = ts_file_server:get_next_line(FileId),
     ts_utils:split(Line,Delimiter);
-set_dynvars(jsonpath,{JSONPath, From},_Vars,DynData) ->
-    {ok, Val} = ts_dynvars:lookup(From,DynData#dyndata.dynvars),
+set_dynvars(jsonpath,{JSONPath, From},_Vars,DynVars,_,_) ->
+    {ok, Val} = ts_dynvars:lookup(From,DynVars),
     JSON=mochijson2:decode(Val),
-    ts_utils:jsonpath(JSONPath, JSON).
+    case ts_utils:jsonpath(JSONPath, JSON) of
+        undefined -> << >>;
+        V         -> V
+    end;
+set_dynvars(server,_,_,_,{Host,Port},_) ->
+    [Host,Port].
+
 
 %% @spec ctrl_struct(CtrlData::term(),State::#state_rcv{},Count::integer) ->
 %%          {next_state, NextStateName::atom(), NextState::#state_rcv{}} |
@@ -494,10 +495,10 @@ set_dynvars(jsonpath,{JSONPath, From},_Vars,DynData) ->
 %%      in a jump to another place
 %% @end
 ctrl_struct(CtrlData,State,Count) ->
-    case ctrl_struct_impl(CtrlData,State#state_rcv.dyndata) of
-        {next,NewDynData} ->
-            handle_next_action(State#state_rcv{dyndata=NewDynData,count=Count});
-        {jump,Target,NewDynData} ->
+    case ctrl_struct_impl(CtrlData,State#state_rcv.dynvars) of
+        {next,NewDynVars} ->
+            handle_next_action(State#state_rcv{dynvars=NewDynVars,count=Count});
+        {jump,Target,NewDynVars} ->
             %%UGLY HACK:
             %% because set_profile/3 works by counting down starting at maxcount,
             %% we need to calculate the correct value to actually make a jump to
@@ -505,59 +506,58 @@ ctrl_struct(CtrlData,State,Count) ->
             %% In set_profile/3, actionId = MaxCount-Count+1 =>
             %% Count = MaxCount-Target +1
             Next = State#state_rcv.maxcount - Target + 1,
-            handle_next_action(State#state_rcv{dyndata=NewDynData,count=Next})
+            handle_next_action(State#state_rcv{dynvars=NewDynVars,count=Next})
     end.
 
 
 %%----------------------------------------------------------------------
-%% @spec ctrl_struct_impl(ControlStruct::term(),DynData::#dyndata{}) ->
-%%        {next,NewDynData::#dyndata{}} |
-%%        {jump, Target::integer(), NewDynData::#dyndata{}}
-%% @doc return {next,NewDynData} to continue with the sequential flow,
-%%             {jump,Target,NewDynData} to jump to action number 'Target'
+%% @spec ctrl_struct_impl(ControlStruct::term(),DynVars::#dynvars{}) ->
+%%        {next,NewDynVars::#dynvars{}} |
+%%        {jump, Target::integer(), NewDynVars::#dynvars{}}
+%% @doc return {next,NewDynVars} to continue with the sequential flow,
+%%             {jump,Target,NewDynVars} to jump to action number 'Target'
 %% @end
 %%----------------------------------------------------------------------
-ctrl_struct_impl({for_start,Init="%%_"++_,VarName},DynData=#dyndata{dynvars=DynVars}) ->
+ctrl_struct_impl({for_start,Init="%%_"++_,VarName},DynVars) ->
     InitialValue = list_to_integer(ts_search:subst(Init, DynVars)),
     ?LOGF("Initial value of FOR loop is dynamic: ~p",[InitialValue],?DEB),
-    ctrl_struct_impl({for_start,InitialValue,VarName},DynData);
-ctrl_struct_impl({for_start,InitialValue,VarName},DynData=#dyndata{dynvars=DynVars}) ->
+    ctrl_struct_impl({for_start,InitialValue,VarName},DynVars);
+ctrl_struct_impl({for_start,InitialValue,VarName},DynVars) ->
     NewDynVars = ts_dynvars:set(VarName,InitialValue,DynVars),
-    {next,DynData#dyndata{dynvars=NewDynVars}};
-ctrl_struct_impl({for_end,VarName,End="%%_"++_,Increment,Target},DynData=#dyndata{dynvars=DynVars}) ->
+    {next,NewDynVars};
+ctrl_struct_impl({for_end,VarName,End="%%_"++_,Increment,Target},DynVars) ->
     %% end value is a dynamic variable
     EndValue = list_to_integer(ts_search:subst(End, DynVars)),
     ?LOGF("End value of FOR loop is dynamic: ~p",[EndValue],?DEB),
-    ctrl_struct_impl({for_end,VarName,EndValue,Increment,Target},DynData);
-ctrl_struct_impl({for_end,VarName,EndValue,Increment,Target},DynData=#dyndata{dynvars=DynVars}) ->
+    ctrl_struct_impl({for_end,VarName,EndValue,Increment,Target},DynVars);
+ctrl_struct_impl({for_end,VarName,EndValue,Increment,Target},DynVars) ->
     case ts_dynvars:lookup(VarName,DynVars) of
         {ok,Value}  when Value >= EndValue -> % Reach final value, end loop
-            {next,DynData};
+            {next,DynVars};
         {ok,Value} ->  % New iteration
             NewValue = Value + Increment,
             NewDynVars = ts_dynvars:set(VarName,NewValue,DynVars),
-            {jump,Target,DynData#dyndata{dynvars=NewDynVars}}
+            {jump,Target,NewDynVars}
     end;
 
 
-ctrl_struct_impl({if_start,Rel, VarName, Value, Target},DynData=#dyndata{dynvars=DynVars}) ->
+ctrl_struct_impl({if_start,Rel, VarName, Value, Target},DynVars) ->
     case ts_dynvars:lookup(VarName,DynVars) of
         {ok,VarValue} ->
             ?DebugF("If found ~p; value is ~p~n",[VarName,VarValue]),
             ?DebugF("Calling need_jump with args ~p ~p ~p~n",[Rel,Value,VarValue]),
             Jump = need_jump('if',rel(Rel,Value,VarValue)),
-            jump_if(Jump,Target,DynData#dyndata{dynvars=DynVars});
+            jump_if(Jump,Target,DynVars);
         false ->
             ts_mon:add({ count, 'error_if_undef'}),
-            {next,DynData}
+            {next,DynVars}
     end;
 
-ctrl_struct_impl({repeat,RepeatName, _,_,_,_,_,_},DynData=#dyndata{dynvars=[]}) ->
+ctrl_struct_impl({repeat,RepeatName, _,_,_,_,_,_},[]) ->
     Msg= list_to_atom("error_repeat_"++atom_to_list(RepeatName)++"_undef"),
     ts_mon:add({ count, Msg}),
-    {next,DynData};
-ctrl_struct_impl({repeat,RepeatName, While,Rel,VarName,Value,Target,Max},
-                 DynData=#dyndata{dynvars=DynVars}) ->
+    {next,[]};
+ctrl_struct_impl({repeat,RepeatName, While,Rel,VarName,Value,Target,Max},DynVars) ->
     Iteration = case ts_dynvars:lookup(RepeatName,DynVars) of
                     {ok,Val} -> Val;
                     false ->  1
@@ -567,7 +567,7 @@ ctrl_struct_impl({repeat,RepeatName, While,Rel,VarName,Value,Target,Max},
         true ->
             ?LOGF("Max repeat (name=~p) reached ~p~n",[VarName,Iteration],?NOTICE),
             ts_mon:add({ count, max_repeat}),
-            {next,DynData};
+            {next,DynVars};
         false ->
             case ts_dynvars:lookup(VarName,DynVars) of
                 {ok,VarValue} ->
@@ -576,35 +576,35 @@ ctrl_struct_impl({repeat,RepeatName, While,Rel,VarName,Value,Target,Max},
                     Jump = need_jump(While,rel(Rel,Value,VarValue)),
                     NewValue = 1 + Iteration,
                     NewDynVars = ts_dynvars:set(RepeatName,NewValue,DynVars),
-                    jump_if(Jump,Target,DynData#dyndata{dynvars=NewDynVars});
+                    jump_if(Jump,Target,NewDynVars);
                 false ->
                     Msg= list_to_atom("error_repeat_"++atom_to_list(RepeatName)++"undef"),
                     ts_mon:add({ count, Msg}),
-                    {next,DynData}
+                    {next,DynVars}
             end
     end;
 
-ctrl_struct_impl({foreach_start,ForEachName,VarName,Filter}, DynData=#dyndata{dynvars=DynVars}) ->
+ctrl_struct_impl({foreach_start,ForEachName,VarName,Filter}, DynVars) ->
     case filter(ts_dynvars:lookup(VarName,DynVars),Filter) of
         false ->
             Msg= list_to_atom("error_foreach_"++atom_to_list(VarName)++"undef"),
             ts_mon:add({ count, Msg}),
-            {next,DynData};
+            {next,DynVars};
         [First|_Tail] ->
             TmpDynVars = ts_dynvars:set(ForEachName,First,DynVars),
             NewDynVars = ts_dynvars:set(ts_utils:concat_atoms([ForEachName,'_iter']),2,TmpDynVars),
-            {next,DynData#dyndata{dynvars=NewDynVars}};
+            {next,NewDynVars};
         [] ->
             ?LOGF("empty list for ~p (filter is ~p)",[VarName, Filter],?WARN),
             NewDynVars = ts_dynvars:set(ts_utils:concat_atoms([ForEachName,'_iter']),1,DynVars),
-            {next,DynData#dyndata{dynvars=NewDynVars}};
+            {next,NewDynVars};
         VarValue ->
             ?LOGF("foreach warn:~p is not a list (~p), can't iterate",[VarName, VarValue],?WARN),
             NewDynVars = ts_dynvars:set(ForEachName,VarValue,DynVars),
-            {next,DynData#dyndata{dynvars=NewDynVars}}
+            {next,NewDynVars}
     end;
 
-ctrl_struct_impl({foreach_end,ForEachName,VarName,Filter,Target}, DynData=#dyndata{dynvars=DynVars}) ->
+ctrl_struct_impl({foreach_end,ForEachName,VarName,Filter,Target}, DynVars) ->
     IterName=ts_utils:concat_atoms([ForEachName,'_iter']),
     {ok,Iteration} = ts_dynvars:lookup(IterName,DynVars),
     ?DebugF("Foreach (var=~p) iteration: ~p~n",[VarName,Iteration]),
@@ -612,20 +612,20 @@ ctrl_struct_impl({foreach_end,ForEachName,VarName,Filter,Target}, DynData=#dynda
         false ->
             Msg= list_to_atom("error_foreach_"++atom_to_list(VarName)++"undef"),
             ts_mon:add({ count, Msg}),
-            {next,DynData};
+            {next,DynVars};
         VarValue when is_list(VarValue)->
             ?DebugF("Foreach list found; value is ~p~n",[VarValue]),
             case catch lists:nth(Iteration,VarValue) of
                 {'EXIT',_} -> % out of bounds, exit foreach loop
                     ?LOGF("foreach ~p: last iteration done",[ForEachName],?DEB),
-                    {next,DynData};
+                    {next,DynVars};
                 Val ->
                     TmpDynVars = ts_dynvars:set(ForEachName,Val,DynVars),
                     NewDynVars = ts_dynvars:set(IterName,Iteration+1,TmpDynVars),
-                    {jump, Target ,DynData#dyndata{dynvars=NewDynVars}}
+                    {jump, Target ,NewDynVars}
             end;
         _ ->% not a list, don't loop
-            {next,DynData}
+            {next,DynVars}
     end.
 
 
@@ -634,6 +634,10 @@ rel(R,A,B) when is_integer(B) and not is_integer(A)->
     rel(R,A,list_to_binary(integer_to_list(B)));
 rel(R,A,B) when is_integer(A) and not is_integer(B)->
     rel(R,B,list_to_binary(integer_to_list(A)));
+rel(R,A,B) when is_list(B) ->
+    rel(R,A,list_to_binary(B));
+rel(R,A,B) when is_list(A) ->
+    rel(R,list_to_binary(A),B);
 rel('eq',A,B)  ->
     A == B;
 rel('neq',A,B) -> A /= B.
@@ -642,8 +646,8 @@ need_jump('while',F) -> F;
 need_jump('until',F) -> not F;
 need_jump('if',F) -> not F.
 
-jump_if(true,Target,DynData)   -> {jump,Target,DynData};
-jump_if(false,_Target,DynData) -> {next,DynData}.
+jump_if(true,Target,DynVars)   -> {jump,Target,DynVars};
+jump_if(false,_Target,DynVars) -> {next,DynVars}.
 
 
 %%----------------------------------------------------------------------
@@ -663,7 +667,7 @@ handle_next_request(Request, State) ->
 
     {Param, {Host,Port,Protocol}} =
         case Type:add_dynparams(Request#ts_request.subst,
-                                State#state_rcv.dyndata,
+                                {State#state_rcv.dynvars, State#state_rcv.session},
                                 Request#ts_request.param,
                                 {PrevHost, PrevPort, PrevProto}) of
             {Par, NewServer} -> % substitution has changed server setup
@@ -688,7 +692,7 @@ handle_next_request(Request, State) ->
              end,
 
     {Message, NewSession} = Type:get_message(Param,State),
-    Now = now(),
+    Now = ?NOW,
 
     %% reconnect if needed
     Proto = {Protocol,State#state_rcv.proto_opts},
@@ -772,7 +776,7 @@ size_msg({_Mod,_Fun,_Args,Size}) -> Size.
 %% Args: State
 %%----------------------------------------------------------------------
 finish_session(State) ->
-    Now = now(),
+    Now = ?NOW,
     set_connected_status(false),
     Elapsed = ts_utils:elapsed(State#state_rcv.starttime, Now),
     case State#state_rcv.transactions of
@@ -843,10 +847,10 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort, Try}) when 
     ?DebugF("Try to (re)connect to: ~p:~p from ~p using protocol ~p~n",
             [ServerName,Port,IP,Protocol]),
     Opts = protocol_options(Protocol, Proto_opts)  ++ socket_opts(IP, CPort, Protocol),
-    Before= now(),
+    Before= ?NOW,
     case connect(Protocol,ServerName, Port, Opts) of
         {ok, Socket} ->
-            Elapsed = ts_utils:elapsed(Before, now()),
+            Elapsed = ts_utils:elapsed(Before, ?NOW),
             ts_mon:add({ sample, connect, Elapsed }),
             set_connected_status(true),
             ?Debug("(Re)connected~n"),
@@ -962,23 +966,22 @@ handle_data_msg(Data, State=#state_rcv{request=Req}) when Req#ts_request.ack==no
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     {State, []};
 
-handle_data_msg(Data,State=#state_rcv{dump=Dump,request=Req,id=Id,clienttype=Type,maxcount=MaxCount})
+handle_data_msg(Data,State=#state_rcv{dump=Dump,request=Req,id=Id,clienttype=Type,maxcount=MaxCount,transactions=Transactions})
   when Req#ts_request.ack==parse->
     ts_mon:rcvmes({Dump, self(), Data}),
 
     {NewState, Opts, Close} = Type:parse(Data, State),
     NewBuffer=set_new_buffer(NewState, Data),
 
-    ?DebugF("Dyndata is now ~p~n",[NewState#state_rcv.dyndata]),
+    ?DebugF("Session and dynvars are now ~p ~p~n",[NewState#state_rcv.session, NewState#state_rcv.dynvars]),
     case NewState#state_rcv.ack_done of
         true ->
             ?DebugF("Response done:~p~n", [NewState#state_rcv.datasize]),
             {PageTimeStamp, DynVars} = update_stats(NewState#state_rcv{buffer=NewBuffer}),
             MatchArgs={NewState#state_rcv.count, MaxCount,
                        NewState#state_rcv.session_id, Id},
-            NewDynVars=ts_dynvars:merge(DynVars,(NewState#state_rcv.dyndata)#dyndata.dynvars),
-            NewCount  =ts_search:match(Req#ts_request.match,NewBuffer,MatchArgs,NewDynVars),
-            NewDynData=(NewState#state_rcv.dyndata)#dyndata{dynvars=NewDynVars},
+            NewDynVars=ts_dynvars:merge(DynVars,NewState#state_rcv.dynvars),
+            NewCount  =ts_search:match(Req#ts_request.match,NewBuffer,MatchArgs,NewDynVars,Transactions),
             Type:dump(Dump,{Req,NewState#state_rcv.session,Id,
                             NewState#state_rcv.host,NewState#state_rcv.datasize}),
             case Close of
@@ -991,14 +994,14 @@ handle_data_msg(Data,State=#state_rcv{dump=Dump,request=Req,id=Id,clienttype=Typ
                                          datasize = 0,
                                          size_mon = State#state_rcv.size_mon_thresh,
                                          count = NewCount,
-                                         dyndata = NewDynData,
+                                         dynvars = NewDynVars,
                                          buffer = <<>>}, Opts};
                 false ->
                     {NewState#state_rcv{ page_timestamp = PageTimeStamp,
                                          count = NewCount,
                                          size_mon = State#state_rcv.size_mon_thresh,
                                          datasize = 0,
-                                         dyndata = NewDynData,
+                                         dynvars = NewDynVars,
                                          buffer = <<>>}, Opts}
             end;
         _ ->
@@ -1038,7 +1041,7 @@ handle_data_msg(Data,State=#state_rcv{request=Req,datasize=OldSize})
 handle_data_msg(<<32>>, State=#state_rcv{clienttype=ts_jabber}) ->
     {State#state_rcv{ack_done = false},[]};
 %% local ack, set ack_done to true
-handle_data_msg(Data, State=#state_rcv{request=Req, maxcount=MaxCount}) ->
+handle_data_msg(Data, State=#state_rcv{request=Req, maxcount=MaxCount, transactions=Transactions}) ->
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     NewBuffer= set_new_buffer(State, Data),
     DataSize = size(Data),
@@ -1046,10 +1049,9 @@ handle_data_msg(Data, State=#state_rcv{request=Req, maxcount=MaxCount}) ->
                                                             buffer=NewBuffer}),
     MatchArgs={State#state_rcv.count,MaxCount,State#state_rcv.session_id,
                State#state_rcv.id},
-    NewDynVars=ts_dynvars:merge(DynVars,(State#state_rcv.dyndata)#dyndata.dynvars),
-    NewCount  =ts_search:match(Req#ts_request.match, NewBuffer, MatchArgs,NewDynVars),
-    NewDynData=(State#state_rcv.dyndata)#dyndata{dynvars=NewDynVars},
-    {State#state_rcv{ack_done = true, buffer= NewBuffer, dyndata = NewDynData,
+    NewDynVars=ts_dynvars:merge(DynVars,State#state_rcv.dynvars),
+    NewCount  =ts_search:match(Req#ts_request.match, NewBuffer, MatchArgs, NewDynVars, Transactions),
+    {State#state_rcv{ack_done = true, buffer= NewBuffer, dynvars = NewDynVars,
                      page_timestamp= PageTimeStamp, count=NewCount},[]}.
 
 
@@ -1100,7 +1102,7 @@ set_connected_status(false, Old) when Old==undefined; Old==false ->
 %% Purpose: update the statistics for no_ack requests
 %%----------------------------------------------------------------------
 update_stats_noack(#state_rcv{page_timestamp=PageTime,request=Request}) ->
-    Now = now(),
+    Now = ?NOW,
     Stats= [{ count, request_noack}], % count and not sample because response time is not defined in this case
     case Request#ts_request.endpage of
         true -> % end of a page, compute page reponse time
@@ -1119,7 +1121,7 @@ update_stats_noack(#state_rcv{page_timestamp=PageTime,request=Request}) ->
 %% Purpose: update the statistics
 %%----------------------------------------------------------------------
 update_stats(State=#state_rcv{size_mon_thresh=T,page_timestamp=PageTime,send_timestamp=SendTime}) ->
-    Now = now(),
+    Now = ?NOW,
     Elapsed = ts_utils:elapsed(SendTime, Now),
     Stats = case   State#state_rcv.size_mon > T of
                 true ->

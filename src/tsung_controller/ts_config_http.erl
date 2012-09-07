@@ -272,7 +272,7 @@ set_msg(HTTP=#http_request{url="%%" ++ _TailURL},  {true, MatchRegExp, _Proxy, _
              #ts_request{ack = parse, subst = true, match = MatchRegExp });
 %% relative URL, no proxy, a single server => we can preset host header at configuration time
 set_msg(HTTPRequest, Args={_SubstFlag, _MatchRegExp, false, [Server], [],_Tab,_Id}) ->
-    ?LOG("Relative URL, single server ",?NOTICE),
+    ?LOG("Relative URL, single server ",?INFO),
     URL = server_to_url(Server) ++ HTTPRequest#http_request.url,
     set_msg(HTTPRequest#http_request{url=URL}, Args);
 %% relative URL, no proxy, several servers: don't set host header

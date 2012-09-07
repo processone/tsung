@@ -105,6 +105,14 @@ Content-Length: 30
     {ok, Res} = ts_utils:from_https(Data),
     ?assertEqual(list_to_binary(NewData), iolist_to_binary(Res)).
 
+
+rewrite_http_body_test()->
+    myset_env(),
+    Data="sqdfqsdflqkfnmqlskfqd http://-foobar.foo42.fr\r\n",
+    NewData="sqdfqsdflqkfnmqlskfqd https://foobar.foo42.fr\r\n",
+    {ok, Res} = ts_utils:to_https({request,{body,Data}}),
+     ?assertEqual(list_to_binary(NewData), iolist_to_binary(Res)).
+
 rewrite_http_encode_test()->
      myset_env(),
     Data="GET http://-foobar.foo42.fr/ HTTP/1.1\r\nHost: -foobar.foo42.fr\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-15,utf-8;q=0.7,*;q=0.7\r\n\r\n",

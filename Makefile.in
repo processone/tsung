@@ -100,9 +100,10 @@ TEMPLATES = $(wildcard $(ESRC)/templates/*.thtml)
 TEMPLATES += $(wildcard $(ESRC)/templates/*.js)
 TMP       = $(wildcard *~) $(wildcard src/*~) $(wildcard inc/*~)
 INC_FILES = $(wildcard $(INC)/*.hrl)
-LIBSRC    = $(wildcard $(ESRC)/lib/[^mochi]*.erl)
+MOCHI    = $(wildcard $(ESRC)/lib/mochi*.erl)
+LIBSRC    =  $(filter-out $(MOCHI), $(wildcard $(ESRC)/lib/*.erl))
 ifeq ($(USEMOCHIWEBLIBS),yes)
-LIBSRC    += $(wildcard $(ESRC)/lib/mochi*.erl)
+LIBSRC  += $(MOCHI)
 endif
 TESTSRC    = $(wildcard $(ESRC)/test/*.erl)
 SRC       = $(wildcard $(ESRC)/$(APPLICATION)/*.erl)
@@ -209,6 +210,9 @@ deb:
 	fakeroot debian/rules clean
 	debian/rules build
 	fakeroot debian/rules binary
+
+show:
+	@echo $(LIBSRC)
 
 clean:
 	-cd priv && rm -f $(shell ls priv | grep -v builder\.erl| grep -v CVS) && cd ..

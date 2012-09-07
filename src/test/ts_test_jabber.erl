@@ -73,60 +73,59 @@ auth_sasl_test()->
     Res = << "<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='PLAIN' >AGp1bGlldAByMG0zMG15cjBtMzA=</auth>" >>,
     ?assertMatch(Res, ts_jabber_common:auth_sasl("juliet","r0m30myr0m30","PLAIN")).
 
-choose_id_user_test()->
-    ?assertEqual({user_defined,"user","pwd"}, ts_jabber:choose_or_cache_user_id(user_defined,"user","pwd")).
-choose_id_user1_test()->
-    ts_jabber:choose_or_cache_user_id(user_defined,"user","pwd"),
-    ?assertEqual({user_defined,"user","pwd"}, ts_jabber:choose_or_cache_user_id(0,"user","pwd")).
-choose_id2_test()->
-    erase(xmpp_user_id),
+add_dynparams_test()->
     ts_user_server:start(),
     ts_user_server:reset(100),
-    ?assertEqual({1,"user","pwd"}, ts_jabber:choose_or_cache_user_id(0,"user","pwd")).
-choose_id3_test()->
-    erase(xmpp_user_id),
-    ts_jabber:choose_or_cache_user_id(0,"user","pwd"),
-    ?assertEqual({2,"user","pwd"}, ts_jabber:choose_or_cache_user_id(0,"user","pwd")).
-
-add_dynparams_test()->
-    erase(xmpp_user_id),
-    Session = #jabber{id=0,username="foo",passwd="bar",domain={domain,"localdomain"}},
-    ?assertEqual(Session#jabber{id=3,user_server=default,domain="localdomain"}, ts_jabber:add_dynparams(true,[],Session,"localhost")).
+    ts_msg_server:start(),
+    Req = #jabber{id=0,prefix="foo",username="foo",passwd="bar",type='connect',domain={domain,"localdomain"}},
+    {_,Session} = ts_jabber:get_message(Req,#state_rcv{session=#jabber_session{}}),
+    ?assertEqual(Req#jabber{id=1,username="foo1",passwd="bar1",user_server=default,domain="localdomain"}, ts_jabber:add_dynparams(true,{[],Session},Req,"localhost")).
 
 add_dynparams2_test()->
-    Session = #jabber{id=0,username="foo",passwd="bar",domain={domain,"localdomain"}},
-    ?assertEqual(Session#jabber{id=3,user_server=default,domain="localdomain"}, ts_jabber:add_dynparams(true,[],Session,"localhost")).
+    Req = #jabber{id=0,prefix="foo",username="foo",passwd="bar",type='connect', domain={domain,"localdomain"}},
+    {_,Session} = ts_jabber:get_message(Req,#state_rcv{session=#jabber_session{}}),
+    ?assertEqual(Req#jabber{id=2,username="foo2",passwd="bar2",user_server=default,domain="localdomain"}, ts_jabber:add_dynparams(true,{[],Session},Req,"localhost")).
 
 get_message_test()->
-    erase(xmpp_user_id),
-    ts_msg_server:start(),
-    Session = #jabber{id=0,username="foo",type='auth_set_plain',passwd="bar",domain={domain,"localdomain"},resource="tsung"},
-    Req=ts_jabber:add_dynparams(false,[],Session,"localhost"),
-    RepOK={<<"<iq id='1' type='set' ><query xmlns='jabber:iq:auth'><username>foo4</username><resource>tsung</resource><password>bar4</password></query></iq>" >>,undefined},
-    Rep=ts_jabber:get_message(Req,#state_rcv{}),
+    Req = #jabber{id=0,prefix="foo",username="foo",type='auth_set_plain',passwd="bar",domain={domain,"localdomain"},resource="tsung"},
+    RepOK = <<"<iq id='3' type='set' ><query xmlns='jabber:iq:auth'><username>foo3</username><resource>tsung</resource><password>bar3</password></query></iq>" >>,
+    {Rep,_}=ts_jabber:get_message(Req,#state_rcv{session=#jabber_session{}}),
     ?assertEqual(RepOK,Rep ).
 
 get_message2_test()->
-    erase(xmpp_user_id),
-    Session = #jabber{id=user_defined,username="foo",type='auth_set_plain',passwd="bar",domain={domain,"localdomain"},resource="tsung"},
-    Req=ts_jabber:add_dynparams(false,[],Session,"localhost"),
-    RepOK={<<"<iq id='2' type='set' ><query xmlns='jabber:iq:auth'><username>foo</username><resource>tsung</resource><password>bar</password></query></iq>" >>,undefined},
-    Rep=ts_jabber:get_message(Req,#state_rcv{}),
+    Req = #jabber{id=user_defined,username="foo",type='auth_set_plain',passwd="bar",domain={domain,"localdomain"},resource="tsung"},
+    RepOK = <<"<iq id='4' type='set' ><query xmlns='jabber:iq:auth'><username>foo</username><resource>tsung</resource><password>bar</password></query></iq>" >>,
+    {Rep,_} = ts_jabber:get_message(Req,#state_rcv{session=#jabber_session{}}),
+    ?assertEqual(RepOK,Rep).
+
+pubsub_unsubscribe_test()->
+    ts_user_server:reset(1),
+    Req = #jabber{id=0,prefix="foo",username="foo",type='pubsub:unsubscribe',passwd="bar",domain={domain,"localdomain"},dest=random, node="node", pubsub_service="mypubsub", subid="myid",resource="tsung"},
+    RepOK= << "<iq to='mypubsub' type='set' id='5'><pubsub xmlns='http://jabber.org/protocol/pubsub'><unsubscribe node='/home/localdomain/foo2/node' jid='foo1@localdomain' subid='myid'/></pubsub></iq>" >>,
+    {Rep,_}=ts_jabber:get_message(Req,#state_rcv{session=#jabber_session{}}),
     ?assertEqual(RepOK,Rep ).
 
+connect_legacy_test()->
+    ts_user_server:reset(1),
+    Req = #jabber{id=0,prefix="foo",username="foo",type='connect',passwd="bar",domain={domain,"localdomain"},resource="tsung", version="legacy"},
+    RepOK= <<"<?xml version='1.0'?><stream:stream  id='6' to='localdomain' xmlns='jabber:client' xmlns:stream='http://etherx.jabber.org/streams'>" >>,
+    {Rep,_} = ts_jabber:get_message(Req,#state_rcv{session=#jabber_session{}}),
+    ?assertEqual(RepOK,Rep).
 
-choose_id_limit_test()->
-    ts_user_server:reset(3),
-    erase(xmpp_user_id),
-    ts_jabber:choose_or_cache_user_id(0,"user","pwd"),
-    erase(xmpp_user_id),
-    ts_jabber:choose_or_cache_user_id(0,"user","pwd"),
-    erase(xmpp_user_id),
-    ts_jabber:choose_or_cache_user_id(0,"user","pwd"),
-    erase(xmpp_user_id),
-    ?assertExit(no_free_userid, ts_jabber:choose_or_cache_user_id(0,"user","pwd")).
+connect_xmpp_test()->
+    ts_user_server:reset(1),
+    Req = #jabber{id=0,prefix="foo",username="foo",type='connect',passwd="bar",domain={domain,"localdomain"},resource="tsung", version="1.0"},
+    RepOK= <<"<?xml version='1.0'?><stream:stream  id='7' to='localdomain' xmlns='jabber:client' version='1.0' xmlns:stream='http://etherx.jabber.org/streams'>" >>,
+    {Rep,_} = ts_jabber:get_message(Req,#state_rcv{session=#jabber_session{}}),
+    ?assertEqual(RepOK,Rep).
 
 
+pubsub_subscribe_test()->
+    ts_user_server:reset(1),
+    Req = #jabber{id=0,prefix="foo",dest="foo2",username="foo",type='pubsub:subscribe',passwd="bar",domain={domain,"localdomain"},node="node", pubsub_service="mypubsub", resource="tsung"},
+    RepOK= << "<iq to='mypubsub' type='set' id='8'><pubsub xmlns='http://jabber.org/protocol/pubsub'><subscribe node='/home/localdomain/foo2/node' jid='foo1@localdomain'/></pubsub></iq>" >>,
+    {Rep,_}=ts_jabber:get_message(Req,#state_rcv{session=#jabber_session{}}),
+    ?assertEqual(RepOK,Rep ).
 
 myset_env()->
     myset_env(0).

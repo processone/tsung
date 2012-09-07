@@ -60,10 +60,10 @@ parse_config(Element = #xmlElement{name=jabber},
     Status= ts_config:getAttr(string,Element#xmlElement.attributes, status, "Available"),
     Resource= ts_config:getAttr(string,Element#xmlElement.attributes, resource, "tsung"),
     Type= list_to_atom(TypeStr),
+    Version = ts_config:getAttr(string,Element#xmlElement.attributes, version, "1.0"),
     Room = ts_config:getAttr(string,Element#xmlElement.attributes, room, undefined),
     Nick = ts_config:getAttr(string,Element#xmlElement.attributes, nick, undefined),
     Group = ts_config:getAttr(string,Element#xmlElement.attributes, group, "Tsung Group"),
-    SendVersion = ts_config:getAttr(atom,Element#xmlElement.attributes, send_version, false),
     RE = ts_config:getAttr(string,Element#xmlElement.attributes, regexp, undefined),
     Node = case ts_config:getAttr(string, Element#xmlElement.attributes, 'node', undefined) of
                     "" -> user_root;
@@ -91,11 +91,15 @@ parse_config(Element = #xmlElement{name=jabber},
     %%            offline_user()
     %%        Otherwise:    (any other string)
     %%          The specified string
+    SubId = ts_config:getAttr(string, Element#xmlElement.attributes, 'subid', undefined),
 
     Domain  =ts_config:get_default(Tab, jabber_domain_name, jabber_domain),
+    ?LOGF("XMPP domain is ~p~n",[Domain],?DEB),
+
     MUC_service = ts_config:get_default(Tab, muc_service, muc_service),
     PubSub_service =ts_config:get_default(Tab, pubsub_service, pubsub_service),
 
+    UserPrefix=ts_config:get_default(Tab, jabber_username, jabber_username),
 
     %% Authentication
     {XMPPId, UserName, Passwd} = case lists:keysearch(xmpp_authenticate, #xmlElement.name,
@@ -107,9 +111,8 @@ parse_config(Element = #xmlElement{name=jabber},
                                                         passwd, undefined),
                               {user_defined,User,PWD};
                           _ ->
-                              GUserName=ts_config:get_default(Tab, jabber_username, jabber_username),
                               GPasswd  =ts_config:get_default(Tab, jabber_passwd, jabber_passwd),
-                              {0,GUserName,GPasswd}
+                              {0,UserPrefix,GPasswd}
                       end,
 
 
@@ -138,7 +141,9 @@ parse_config(Element = #xmlElement{name=jabber},
                                     pubsub_service = PubSub_service,
                                     node = Node,
                                     node_type = NodeType,
-                                    send_version = SendVersion
+                                    subid = SubId,
+                                    version = Version,
+                                    prefix = UserPrefix
                                    }
                    },
     ts_config:mark_prev_req(Id-1, Tab, CurS),

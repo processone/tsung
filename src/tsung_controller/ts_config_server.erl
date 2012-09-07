@@ -54,7 +54,7 @@
          get_client_config/2, get_user_param/1, get_user_port/1, get_jobs_state/0 ]).
 
 %%debug
--export([choose_client_ip/1, choose_session/1]).
+-export([choose_client_ip/1, choose_session/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
@@ -263,7 +263,7 @@ handle_call({get_user_param, HostName}, _From, State=#state{users=UserId}) ->
     Config = State#state.config,
     {value, Client} = lists:keysearch(HostName, #client.host, Config#config.clients),
     {IPParam, Server} = get_user_param(Client,Config),
-    ts_mon:newclient({static,now()}),
+    ts_mon:newclient({static,?NOW}),
     {reply, {ok, { IPParam, Server, UserId,Config#config.dump,Config#config.seed}}, State#state{users=UserId+1}};
 
 %% get  user port. This is needed by bosh, as there are more than one socket per bosh connection.
@@ -277,10 +277,10 @@ handle_call({get_next_session, HostName}, _From, State=#state{users=Users}) ->
     Config = State#state.config,
     {value, Client} = lists:keysearch(HostName, #client.host, Config#config.clients),
     ?DebugF("get new session for ~p~n",[_From]),
-    case choose_session(Config#config.sessions) of
+    case choose_session(Config#config.sessions, Config#config.total_popularity) of
         {ok, Session=#session{id=Id}} ->
             ?LOGF("Session ~p choosen~n",[Id],?INFO),
-            ts_mon:newclient({Id,now()}),
+            ts_mon:newclient({Id,?NOW}),
             {IPParam, Server} = get_user_param(Client,Config),
             {reply, {ok, Session#session{client_ip= IPParam, server=Server,userid=Users,
                                          dump=Config#config.dump, seed=Config#config.seed}},
@@ -336,7 +336,7 @@ handle_call({status}, _From, State) ->
 
 handle_call({get_jobs_state}, _From, State) when State#state.config == undefined ->
     {reply, not_configured, State};
-handle_call({get_jobs_state}, {Pid,Tag}, State) ->
+handle_call({get_jobs_state}, {Pid,_Tag}, State) ->
     Config = State#state.config,
     Reply = case Config#config.job_notify_port of
                 {Ets,Port} ->
@@ -374,7 +374,7 @@ handle_cast({newbeams, HostList}, State=#state{logdir   = LogDir,
             {BeamsIds, LastId} = lists:mapfoldl(fun(A,Acc) -> {{A, Acc}, Acc+1} end, Id0, RemoteBeams),
             Fun = fun({Host,Id}) -> remote_launcher(Host, Id, Args) end,
             RemoteNodes = ts_utils:pmap(Fun, BeamsIds),
-            ?LOG("All remote beams started, sync ~n",?NOTICE),
+            ?LOG("All remote beams started, syncing ~n",?NOTICE),
             global:sync(),
             StartLaunchers = fun(Node) ->
                                      ts_launcher_static:launch({Node,[]}),
@@ -474,7 +474,7 @@ is_vm_local('localhost',_,true) -> true;
 is_vm_local(_,_,_)              -> false.
 
 set_start_date(undefined)->
-     ts_utils:add_time(now(), ?config(warm_time));
+     ts_utils:add_time(?NOW, ?config(warm_time));
 set_start_date(Date) -> Date.
 
 get_user_param(Client,Config)->
@@ -523,15 +523,15 @@ choose_rr(List, Key, _) ->
     {ok, lists:nth(I, List)}.
 
 %%----------------------------------------------------------------------
-%% Func: choose_session/1
+%% Func: choose_session/2
 %% Args: List of #session
 %% Purpose: choose an session randomly
 %% Returns: #session
 %%----------------------------------------------------------------------
-choose_session([Session]) -> %% only one Session
+choose_session([Session], _Total) -> %% only one Session
     {ok, Session};
-choose_session(Sessions) ->
-    choose_session(Sessions, random:uniform() * 100,0).
+choose_session(Sessions,Total) ->
+    choose_session(Sessions, random:uniform() * Total, 0).
 
 choose_session([S=#session{popularity=P} | _],Rand,Cur) when Rand =< P+Cur->
     {ok, S};
@@ -600,10 +600,10 @@ print_info() ->
              {value, {_,_ ,V}} -> V;
               _ -> "unknown"
           end,
-    ?LOGF("SYSINFO:Tsung version: ~s~n",[VSN],?NOTICE),
-    ?LOGF("SYSINFO:Erlang version: ~s~n",[erlang:system_info(system_version)],?NOTICE),
-    ?LOGF("SYSINFO:System architecture ~s~n",[erlang:system_info(system_architecture)],?NOTICE),
-    ?LOGF("SYSINFO:Current path: ~s~n",[code:which(tsung)],?NOTICE).
+    ?LOGF("SYSINFO:Tsung version: ~s~n",[VSN],?WARN),
+    ?LOGF("SYSINFO:Erlang version: ~s~n",[erlang:system_info(system_version)],?WARN),
+    ?LOGF("SYSINFO:System architecture ~s~n",[erlang:system_info(system_architecture)],?WARN),
+    ?LOGF("SYSINFO:Current path: ~s~n",[code:which(tsung)],?WARN).
 
 %%----------------------------------------------------------------------
 %% Func: start_file_server/1
@@ -644,15 +644,16 @@ setup_user_servers(FileId,Val) when is_atom(FileId), is_integer(Val) ->
 %% Func: check_config/1
 %% Returns: ok | {error, ErrorList}
 %%----------------------------------------------------------------------
-check_config(Config)->
-    Pop= ts_utils:check_sum(Config#config.sessions, #session.popularity, ?SESSION_POP_ERROR_MSG),
+check_config(Config=#config{use_weights=true})->
     %% FIXME: we should not depend on a protocol specific feature here
-    Agents = ts_config_http:check_user_agent_sum(Config#config.session_tab),
-    case lists:filter(fun(X)-> X /= ok  end, [Pop, Agents]) of
-        []        -> ok;
-        ErrorList -> {error, ErrorList}
+    ts_config_http:check_user_agent_sum(Config#config.session_tab);
+check_config(Config)->
+    case abs(100-Config#config.total_popularity) < 0.05 of
+        false ->
+            {error, {bad_sum, Config#config.total_popularity ,?SESSION_POP_ERROR_MSG}};
+        true  ->
+            ts_config_http:check_user_agent_sum(Config#config.session_tab)
     end.
-
 
 load_app(Name) when is_atom(Name) ->
     FName = atom_to_list(Name) ++ ".app",
@@ -703,9 +704,9 @@ sort_static(Config=#config{static_users=S})->
 start_slave(Host, Name, Args) when is_atom(Host), is_atom(Name)->
     case slave:start(Host, Name, Args) of
         {ok, Node} ->
-            ?LOGF("started newbeam on node ~p ~n", [Node], ?NOTICE),
+            ?LOGF("Remote beam started on node ~p ~n", [Node], ?NOTICE),
             Res = net_adm:ping(Node),
-            ?LOGF("ping ~p ~p~n", [Node,Res], ?NOTICE),
+            ?LOGF("ping ~p ~p~n", [Node,Res], ?INFO),
             Node;
         {error, Reason} ->
             ?LOGF("Can't start newbeam on host ~p (reason: ~p) ! Aborting!~n",[Host, Reason],?EMERG),
@@ -848,3 +849,5 @@ get_one_node_per_host([Node | Nodes], Dict) ->
             NewDict = dict:store(Host, Node, Dict),
             get_one_node_per_host(Nodes,NewDict)
     end.
+
+

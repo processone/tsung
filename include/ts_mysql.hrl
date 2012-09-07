@@ -35,16 +35,9 @@
          }).
 
 %%
--record(mysql_dyndata,
+-record(mysql_session,
         {
           salt
-         }
-       ).
-
-%% unused
--record(mysql,
-        {
-          fixme
          }
        ).
 

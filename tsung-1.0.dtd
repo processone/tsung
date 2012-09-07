@@ -118,7 +118,8 @@ repeat | if | change_type | foreach | set_option)*>
     name         CDATA #REQUIRED
     bidi         CDATA #IMPLIED
     persistent   (true | false) #IMPLIED
-    probability   NMTOKEN #REQUIRED
+    probability   NMTOKEN #IMPLIED
+    weight        NMTOKEN #IMPLIED
     type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs |ts_shell|ts_job) #REQUIRED>
 
 <!ELEMENT change_type EMPTY>
@@ -240,7 +241,9 @@ repeat | if | change_type | foreach | set_option)*>
     send_version (true | false) "false"
     regexp      CDATA #IMPLIED
     resource    CDATA "tsung"
-    node_type   CDATA #IMPLIED >
+    node_type   CDATA #IMPLIED
+    version     CDATA #IMPLIED
+    subid       CDATA #IMPLIED >
 
 <!ELEMENT xmpp_authenticate EMPTY >
 <!ATTLIST xmpp_authenticate
@@ -340,7 +343,7 @@ repeat | if | change_type | foreach | set_option)*>
 <!ELEMENT setdynvars (var*) >
 <!ATTLIST setdynvars
     sourcetype   (random_string | urandom_string | random_number |
-          file | erlang | eval| jsonpath)  #REQUIRED
+          file | erlang | eval| jsonpath |server)  #REQUIRED
     callback     CDATA   #IMPLIED
     code         CDATA   #IMPLIED
     fileid       CDATA   #IMPLIED

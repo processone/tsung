@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<!DOCTYPE tsung SYSTEM "/usr/share/tsung/tsung-1.0.dtd">
+<tsung loglevel="debug" version="1.0">
+
+  <!-- Client side setup -->
+  <clients>
+    <client host="localhost" use_controller_vm="true"></client>
+  </clients>
+
+  <!-- Server side setup -->
+ <servers>
+  <server host="localhost" port="5222" type="tcp"></server>
+ </servers>
+
+ <!-- Define the traffic pattern of the users coming in -->
+  <load>
+    <user session="create_node" start_time="0" unit="minute"></user>
+    <arrivalphase phase="2" duration="1" unit="minute">
+      <users interarrival="2" unit="second"></users>
+    </arrivalphase>
+  </load>
+
+  <!-- JABBER parameters -->
+  <!-- to synchronise users,  use a global acknoledgement -->
+ <options>
+   <option type="ts_jabber" name="pubsub_service" value="pubsub.localhost"/>
+   <option type="ts_jabber" name="global_number" value="100"></option>
+   <option type="ts_jabber" name="userid_max" value="1"></option>
+   <option type="ts_jabber" name="domain" value="localhost"></option>
+   <option type="ts_jabber" name="username" value="user"></option>
+   <option type="ts_jabber" name="passwd" value="pass"></option>
+ </options>
+
+ <sessions>
+   <!-- Create nodes -->
+   <session probability='0' name="create_node" type="ts_jabber">
+     <request> <jabber type="connect" ack="local"/> </request>
+     <thinktime value="2" random="true"/>
+     <request> <jabber type="auth_sasl" ack="local"/> </request>
+     <thinktime value="2" random="true"/>
+     <request> <jabber type="connect" ack="local"></jabber> </request>
+     <thinktime value="2" random="true"/>
+     <request> <jabber type="auth_sasl_bind" ack="local" ></jabber></request>
+     <thinktime value="2" random="true"/>
+     <request> <jabber type="auth_sasl_session" ack="local" ></jabber></request>
+     <thinktime value="5" random="true"/>
+
+     <!-- Create the node -->
+     <request subst="true">
+       <jabber type='pubsub:create' ack="local" node="/test" node_type="flat"
+         data="[{'pubsub#access_model','open'},
+                {'pubsub#deliver_payloads','1'},
+                {'pubsub#notify_retract', '0'},
+                {'pubsub#persist_items', '0'},
+                {'pubsub#max_items', '0'},
+                {'pubsub#send_last_published_item', 'never'},
+                {'pubsub#publish_model', 'open'}]."/>
+     </request>
+
+     <request> <jabber type="close" ack="local"></jabber> </request>
+   </session>
+
+   <session bidi="true" probability="100" name="sasl" type="ts_jabber">
+     <thinktime value="15"/>
+     <request> <jabber type="connect" ack="local"/> </request>
+     <thinktime value="2" random="true"/>
+     <request> <jabber type="auth_sasl" ack="local"/> </request>
+     <thinktime value="2" random="true"/>
+     <request> <jabber type="connect" ack="local"></jabber> </request>
+     <thinktime value="2" random="true"/>
+     <request> <jabber type="auth_sasl_bind" ack="local" ></jabber></request>
+     <thinktime value="2" random="true"/>
+     <request> <jabber type="auth_sasl_session" ack="local" ></jabber></request>
+     <thinktime value="5" random="true"/>
+
+     <request>
+       <jabber type='pubsub:subscribe' ack="local" node="/test"/>
+     </request>
+
+     <for from="1" to="10" var="i">
+       <thinktime value="5" random="true"/>
+       <request>
+         <jabber type='pubsub:publish' size='9' ack="local" node="/test"/>
+       </request>
+     </for>
+
+     <request> <jabber type="close" ack="local"></jabber> </request>
+   </session>
+ </sessions>
+</tsung>

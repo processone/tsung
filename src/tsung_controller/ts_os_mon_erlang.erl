@@ -28,7 +28,7 @@
 -author('nicolas.niclausse@niclux.org').
 
 
--include("ts_profile.hrl").
+-include("ts_macros.hrl").
 -include("ts_os_mon.hrl").
 
 -export([start/1, updatestats/2, client_start/0]).
@@ -50,7 +50,6 @@
          }).
 
 start(Args) ->
-    ?LOGF("starting os_mon_erlang with args ~p",[Args],?NOTICE),
     gen_server:start_link(?MODULE, Args, []).
 
 %%--------------------------------------------------------------------
@@ -181,7 +180,7 @@ client_start() ->
 %% Purpose: Load ts_os_mon code on all Erlang nodes
 %%--------------------------------------------------------------------
 load_code(Nodes) ->
-    ?LOGF("loading tsung monitor on nodes ~p~n", [Nodes], ?NOTICE),
+    ?LOGF("Loading tsung monitor on nodes ~p~n", [Nodes], ?NOTICE),
     LoadCode = fun(Mod)->
                        {_, Binary, _} = code:get_object_code(Mod),
                        rpc:multicall(Nodes, code, load_binary, [Mod, Mod, Binary], infinity)
@@ -233,31 +232,23 @@ get_os_data(freemem, _OS) ->
     FreeMem/1048576;
 
 %% Return packets sent/received on network interface
-get_os_data(packets, {unix, linux}) ->
-    get_os_data(packets, {unix, linux},?PROCNET);
-
-%% solaris, contributed by Jason Tucker
-get_os_data(packets, {unix, sunos}) ->
-    Result = os:cmd("netstat -in 1 1 | tail -1"),
-    [_, _, _, _, _, RecvPackets, _, SentPackets | _] = string:tokens(Result, " "),
-    {list_to_integer(RecvPackets), list_to_integer(SentPackets)};
+get_os_data(packets, {unix, Val}) ->
+    Data=os:cmd("netstat -in"),
+    get_os_data(packets, {unix, Val},string:tokens(Data, "\n"));
 
 get_os_data(packets, _OS) ->
     {0, 0 }. % FIXME: not implemented for other arch.
 
-%% packets Linux, special case with File as a variable to easy testing
-get_os_data(packets, {unix, linux},File) ->
-    {ok, Lines} = ts_utils:file_to_list(File),
-    %% get the cumulative traffic of all ethX interfaces
-    Eth=[io_lib:fread("~d~d~d~d~d~d~d~d~d~d", X) ||
-        {E,X}<-lists:map(fun(Y)->ts_utils:split2(Y,$:,strip) end ,Lines),
+%% %% packets , special case with File as a variable for easy testing
+get_os_data(packets, {unix, _}, Data) ->
+    Eth=[io_lib:fread("~d~d~d~d~d~d~d~d~d", X) ||
+        {E,X}<-lists:map(fun(Y)->ts_utils:split2(Y,32,strip) end ,Data),
         string:str(E,"eth") /= 0],
     Fun = fun (A, {Rcv, Sent}) ->
-                  {ok,[_RcvBytes,RcvPkt,_,_,_,_,_,_,_SentBytes,SentPkt],_}=A,
-                  {Rcv+RcvPkt,Sent+SentPkt}
+                  {ok,[_,_,RcvBytes,_,_,_,SentBytes,_,_],_}=A,
+                  {Rcv+RcvBytes,Sent+SentBytes}
           end,
     lists:foldl(Fun, {0,0}, Eth).
-
 
 %%--------------------------------------------------------------------
 %% Function: start_beam/1
@@ -265,6 +256,6 @@ get_os_data(packets, {unix, linux},File) ->
 %%--------------------------------------------------------------------
 start_beam(Host) ->
     Args = ts_utils:erl_system_args(),
-    ?LOGF("starting os_mon beam (~p) on host ~p with Args ~p~n",
-          [?NODE,Host, Args], ?INFO),
+    ?LOGF("Starting os_mon beam on host ~p ~n", [Host], ?NOTICE),
+    ?LOGF("~p Args: ~p~n", [Host, Args], ?DEB),
     slave:start(list_to_atom(Host), ?NODE, Args).

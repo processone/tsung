@@ -35,7 +35,7 @@
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
--include("ts_profile.hrl").
+-include("ts_macros.hrl").
 -include("ts_os_mon.hrl").
 
 -define(READ_TIMEOUT,2500). % 2.5 sec

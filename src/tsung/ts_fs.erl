@@ -29,12 +29,12 @@
 
 -behavior(ts_plugin).
 
+-include("ts_macros.hrl").
 -include("ts_profile.hrl").
 -include("ts_fs.hrl").
 -include_lib("kernel/include/file.hrl").
 
--export([init_dynparams/0,
-         add_dynparams/4,
+-export([add_dynparams/4,
          get_message/2,
          session_defaults/0,
          dump/2,
@@ -102,26 +102,21 @@ new_session() ->
 decode_buffer(Buffer,#fs{}) ->
     Buffer.
 
-%% @spec init_dynparams() -> dyndata()
-%% @doc Creates a new record/term for storing dynamic request data.
-%% @end
-init_dynparams() ->
-    #dyndata{proto=#fs_dyndata{}}.
 
 %% @spec add_dynparams(Subst, dyndata(), param(), hostdata()) -> {dyndata(), server()} | dyndata()
 %% Subst = term()
 %% @doc Updates the dynamic request data structure created by
 %% {@link ts_protocol:init_dynparams/0. init_dynparams/0}.
 %% @end
-add_dynparams(false, DynData, Param, HostData) ->
-    add_dynparams(DynData#dyndata.proto, Param, HostData);
-add_dynparams(true, DynData, Param, HostData) ->
-    NewParam = subst(Param, DynData#dyndata.dynvars),
-    add_dynparams(DynData#dyndata.proto,NewParam, HostData).
+add_dynparams(false, {_,Session}, Param, HostData) ->
+    add_dynparams(Session, Param, HostData);
+add_dynparams(true, {DynVars,Session}, Param, HostData) ->
+    NewParam = subst(Param, DynVars),
+    add_dynparams(Session,NewParam, HostData).
 
-add_dynparams(#fs_dyndata{position=Pos,iodev=IODevice}, Req=#fs{}, _HostData) when is_integer(Pos)->
+add_dynparams(#fs_session{position=Pos,iodev=IODevice}, Req=#fs{}, _HostData) when is_integer(Pos)->
     Req#fs{position=Pos,iodev=IODevice};
-add_dynparams(#fs_dyndata{}, Param, _HostData) ->
+add_dynparams(#fs_session{}, Param, _HostData) ->
     Param.
 
 %%----------------------------------------------------------------------
@@ -143,27 +138,27 @@ subst(Req=#fs{path=Path,size=Size}, DynVars) ->
 %% Setting Close to true will cause tsung to close the connection to
 %% the server.
 %% @end
-parse({file, open, _Args, {ok,IODevice}},State=#state_rcv{dyndata=DynData}) ->
-    NewDyn=(DynData#dyndata.proto)#fs_dyndata{iodev=IODevice,position=0},
-    {State#state_rcv{ack_done=true,datasize=0,dyndata=DynData#dyndata{proto=NewDyn}}, [], false};
+parse({file, open, _Args, {ok,IODevice}},State=#state_rcv{session=S}) ->
+    NewDyn=S#fs_session{iodev=IODevice,position=0},
+    {State#state_rcv{ack_done=true,datasize=0,session=NewDyn}, [], false};
 parse({file, open, [Path,_], {error,Reason}},State) ->
     ?LOGF("error while opening file: ~p(~p)~n",[Path, Reason],?ERR),
     ts_mon:add({count,error_fs_open}),
     {State#state_rcv{ack_done=true,datasize=0}, [], false};
-parse({file, close, [_IODevice], ok},State=#state_rcv{dyndata=DynData}) ->
-    NewDyn=(DynData#dyndata.proto)#fs_dyndata{iodev=undefined,position=0},
-    {State#state_rcv{ack_done=true,datasize=0,dyndata=DynData#dyndata{proto=NewDyn}}, [], false};
+parse({file, close, [_IODevice], ok},State=#state_rcv{session=S}) ->
+    NewDyn=S#fs_session{iodev=undefined,position=0},
+    {State#state_rcv{ack_done=true,datasize=0,session=NewDyn}, [], false};
 parse({file, close, [_IODevice], {error,Reason}}, State) ->
     ?LOGF("error while closing file: ~p~n",[Reason],?ERR),
     ts_mon:add({count,error_fs_close}),
     {State#state_rcv{ack_done=true,datasize=0}, [], false};
 
-parse({file, pread, [_IODev,Pos,Size], {ok,_Data}},State=#state_rcv{dyndata=DynData,datasize=DataSize}) ->
-    NewDyn=(DynData#dyndata.proto)#fs_dyndata{position=Pos+Size},
-    {State#state_rcv{ack_done=true,datasize=DataSize+Size,dyndata=DynData#dyndata{proto=NewDyn}}, [], false};
-parse({file, pread, [_IODev,_Pos,Size], eof},State=#state_rcv{dyndata=DynData,datasize=DataSize}) ->
-    NewDyn=(DynData#dyndata.proto)#fs_dyndata{position=0},
-    {State#state_rcv{ack_done=true,datasize=DataSize+Size,dyndata=DynData#dyndata{proto=NewDyn}}, [], false};
+parse({file, pread, [_IODev,Pos,Size], {ok,_Data}},State=#state_rcv{session=S,datasize=DataSize}) ->
+    NewDyn=S#fs_session{position=Pos+Size},
+    {State#state_rcv{ack_done=true,datasize=DataSize+Size,session=NewDyn}, [], false};
+parse({file, pread, [_IODev,_Pos,Size], eof},State=#state_rcv{session=S,datasize=DataSize}) ->
+    NewDyn=S#fs_session{position=0},
+    {State#state_rcv{ack_done=true,datasize=DataSize+Size,session=NewDyn}, [], false};
 parse({file, pread, [_IODev,_Pos,_Size], {error,Reason}},State) ->
     ?LOGF("error while reading file: ~p~n",[Reason],?ERR),
     ts_mon:add({count,error_fs_pread}),
@@ -175,9 +170,9 @@ parse({file, write_file, [Path,_], {error,Reason}},State) ->
     ?LOGF("error while writing file: ~p (~p)~n",[Path, Reason],?ERR),
     ts_mon:add({count,error_fs_write}),
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
-parse({file, pwrite, [_IODev,Pos,Data], ok},State=#state_rcv{dyndata=DynData}) ->
-    NewDyn=(DynData#dyndata.proto)#fs_dyndata{position=Pos+length(Data)},
-    {State#state_rcv{ack_done=true,datasize=0,dyndata=DynData#dyndata{proto=NewDyn}}, [], false};
+parse({file, pwrite, [_IODev,Pos,Data], ok},State=#state_rcv{session=S}) ->
+    NewDyn=S#fs_session{position=Pos+length(Data)},
+    {State#state_rcv{ack_done=true,datasize=0,session=NewDyn}, [], false};
 
 parse({file, del_dir, [_Path], ok},State) ->
     {State#state_rcv{ack_done=true, datasize=0}, [], false};

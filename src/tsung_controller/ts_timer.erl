@@ -26,7 +26,7 @@
 -author('jflecomte@IDEALX.com').
 -modifiedby('nicolas@niclux.org').
 
--include("ts_profile.hrl").
+-include("ts_macros.hrl").
 
 -behaviour(gen_fsm).
 

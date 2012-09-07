@@ -24,11 +24,6 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
--record(dyndata,
-        {dynvars = [], % dynamic variables
-         proto         % dynamic data specific to protocol (#http_dyndata for HTTP)
-       }).
-
 -record(match,
         { regexp,
           subst = false,
@@ -72,8 +67,8 @@
          last_packet_date = 0,
          current_size     = 0
          }).
-
 -define(size_mon_thresh, 524288).   % 512KB
+-define(short_timeout, 1).
 
 % state of ts_client gen_server
 -record(state_rcv,
@@ -102,26 +97,18 @@
                      % (Waiting for more data)
          buffer = <<>>, % buffer when we have to keep the response (we need
                      % all the response to do pattern matching)
-         session,    % record of session status; depends on 'clienttype'
+         session,    % record of session status; depends on 'clienttype' (cas be used to store data dynamically generated during the
+                     % session (Cookies for examples))
          datasize=0,
          id,         % user id
          size_mon_thresh=?size_mon_thresh, % if rcv data is > to this, update stats
          size_mon=0, % current size (used for threshold computation)
-         dyndata=[], % persistent data dynamically added during the
-                     % session (Cookies for examples)
+         dynvars=[], %
          clienttype, % module name (ts_jabber, etc.)
          transactions=[], % current transactions
          rate_limit, % rate limiting parameters
          dump        % type of dump (full, light, none)
         }).
-
-
--define(restart_sleep, 2000).
--define(infinity_timeout, 15000).
--define(short_timeout, 1).
--define(config_timeout, 60000).
--define(check_noclient_timeout, 60000).
--define(retries, 4).
 
 
 -record(launcher,
@@ -141,46 +128,4 @@
         }).
 
 
--define(TIMEOUT_PARALLEL_SPAWN, 60000).
--define(MAX_PHASE_EXCEED_PERCENT, 20).
--define(MAX_PHASE_EXCEED_NUSERS, 10).
 
--define(CRLF, "\r\n").
--define(CR,13).
--define(LF,10).
-
-%% retry sending message after this timeout (in microsec.)
--define(config(Var), ts_utils:get_val(Var)).
-
--define(messages_intensity, 1/(ts_utils:get_val(messages_interarrival)*1000)).
--define(clients_intensity, 1/(ts_utils:get_val(interarrival)*1000)).
-
-
-%% errors messages
-
--define(LOGF(Msg, Args, Level),
-        ts_utils:debug(?MODULE, Msg, Args, Level)).
--define(LOG(Msg, Level),
-        ts_utils:debug(?MODULE, Msg, Level)).
-
-%% Debug messages can be completely disabled if DEBUG is not defined
--ifdef(DEBUG).
-    -define(TRACE, [{debug, [trace]}]).
-    -define(DebugF(Msg, Args),
-            ts_utils:debug(?MODULE, Msg, Args, ?DEB)).
-    -define(Debug(Msg),
-            ts_utils:debug(?MODULE, Msg, ?DEB)).
--else.
-    -define(TRACE, []).
-    -define(DebugF(Msg, Args), ok).
-    -define(Debug(Msg), ok).
--endif.
-
--define(EMERG, 0). % The system is unusable.
--define(ALERT, 1). % Action should be taken immediately to address the problem.
--define(CRIT, 2).  % A critical condition has occurred.
--define(ERR, 3).   % An error has occurred.
--define(WARN, 4).  % A significant event that may require attention has occurred.
--define(NOTICE, 5).% An event that does not affect system operation has occurred.
--define(INFO, 6).  % An normal operation has occurred.
--define(DEB, 7).   % Debugging info

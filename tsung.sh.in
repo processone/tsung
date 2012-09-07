@@ -134,7 +134,7 @@ usage() {
     echo "Options:"
     echo "    -f <file>     set configuration file (default is ~/.tsung/tsung.xml)"
     echo "                   (use - for standard input)"
-    echo "    -l <logdir>   set log directory (default is ~/.tsung/log/YYYYMMDD-HHMM/)"
+    echo "    -l <logdir>   set log directory where YYYYMMDD-HHMM dirs are created (default is ~/.tsung/log/) "
     echo "    -i <id>       set controller id (default is empty)"
     echo "    -r <command>  set remote connector (default is ssh)"
     echo "    -s            enable erlang smp on client nodes"
