@@ -43,7 +43,7 @@ send(Socket, Data, _Opts)  ->
     gen_tcp:send(Socket, Data).
 
 close(Socket) ->
-    gen_tcp:close(Socket).
+    ts_tcp:close(Socket).
 
 % set_opts/2 -> socket()
 set_opts(Socket, Opts) ->

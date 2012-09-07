@@ -24,9 +24,10 @@ connect(Socket, Opts)->
 opts_to_tcp_opts(Opts) -> Opts.
 
 %% send/3 -> ok | {error, Reason}
-send(Socket, Data, _Opts)  ->   
+send(Socket, Data, _Opts)  ->
     ssl:send(Socket, Data).
 
+close(none)   -> ok;
 close(Socket) ->
     ssl:close(Socket).
 
@@ -34,7 +35,6 @@ close(Socket) ->
 set_opts(Socket, Opts) ->
     ssl:setopts(Socket, Opts),
     Socket.
-   
 
 normalize_incomming_data(Socket, {ssl, Socket, Data}) ->
     {gen_ts_transport, Socket, Data};

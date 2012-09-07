@@ -47,6 +47,7 @@ connect(Socket, Opts)->
 send(Socket, Data, _Opts)  ->
     ssl:send(Socket, Data).
 
+close(none)   -> ok;
 close(Socket) ->
     ssl:close(Socket).
 

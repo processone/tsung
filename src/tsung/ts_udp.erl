@@ -47,6 +47,7 @@ connect(_Host, _Port, Opts) ->
 send(Socket, Data, [{host, Host}, {port, Port}])  ->
     gen_udp:send(Socket, Host,Port, Data).
 
+close(none)   -> ok;
 close(Socket) ->
     gen_udp:close(Socket).
 

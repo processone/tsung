@@ -44,7 +44,7 @@ send(Socket, Data, Opts)  ->
     ts_udp:send(Socket, Data, Opts).
 
 close(Socket) ->
-    gen_udp:close(Socket).
+    ts_udp:close(Socket).
 
 % set_opts/2 -> socket()
 set_opts(Socket, Opts) ->
@@ -52,6 +52,6 @@ set_opts(Socket, Opts) ->
     Socket.
 
 normalize_incomming_data(Socket, Data) ->
-    gen_udp:normalize_incomming_data(Socket,Data).
+    ts_udp:normalize_incomming_data(Socket,Data).
 
 

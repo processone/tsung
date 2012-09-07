@@ -45,9 +45,10 @@ connect(Host, Port, Opts) ->
 opts_to_tcp_opts(Opts) -> Opts.
 
 %% send/3 -> ok | {error, Reason}
-send(Socket, Data, _Opts)  ->   
+send(Socket, Data, _Opts)  ->
     gen_tcp:send(Socket, Data).
 
+close(none)   -> ok;
 close(Socket) ->
     gen_tcp:close(Socket).
 
@@ -55,7 +56,7 @@ close(Socket) ->
 set_opts(Socket, Opts) ->
     inet:setopts(Socket, Opts),
     Socket.
-   
+
 
 normalize_incomming_data(Socket, {tcp, Socket, Data}) ->
     {gen_ts_transport, Socket, Data};
