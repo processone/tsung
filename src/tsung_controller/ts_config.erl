@@ -519,16 +519,16 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
                           DefaultRegExp = ?DEF_RE_DYNVAR_BEGIN ++ StrName
                               ++?DEF_RE_DYNVAR_END,
                           {re,DefaultRegExp};
-                      {none,none,none,XPath,none} ->
-                          {xpath,XPath};
-                      {none,none,none,none,JSONPath} ->
-                          {jsonpath,JSONPath};
+                      {RE,none,none,none, none} ->
+                          {re,RE};
                       {none,PG,none,none, none} ->
                           {pgsql_expr,PG};
+                      {none,none,XPath,none,none} ->
+                          {xpath,XPath};
                       {none,none,none,AuthHeader,none} ->
                           {header, AuthHeader};
-                      {RE,none,none,none, none} ->
-                          {re,RE}
+                      {none,none,none,none,JSONPath} ->
+                          {jsonpath,JSONPath}
                   end,
     FlattenExpr =lists:flatten(Expr),
     %% precompilation of the exp
