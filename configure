@@ -590,6 +590,7 @@ ERLANG_LIB_VER_xmerl
 ERLANG_LIB_DIR_xmerl
 ERLANG_ROOT_DIR
 ac_prefix_program
+DIALYZER
 ERL
 ERLCFLAGS
 ERLC
@@ -2029,6 +2030,49 @@ else
   ERL="$ac_cv_path_ERL"
 fi
 fi
+
+
+# Extract the first word of "dialyzer", so it can be a program name with args.
+set dummy dialyzer; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_DIALYZER+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $DIALYZER in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_DIALYZER="$DIALYZER" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+as_dummy="$with_erlang:$with_erlang/bin:$PATH"
+for as_dir in $as_dummy
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_DIALYZER="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_path_DIALYZER" && ac_cv_path_DIALYZER="/usr/bin/dializer"
+  ;;
+esac
+fi
+DIALYZER=$ac_cv_path_DIALYZER
+if test -n "$DIALYZER"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $DIALYZER" >&5
+$as_echo "$DIALYZER" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
 
 
 if test "x$prefix" = xNONE; then

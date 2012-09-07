@@ -8,7 +8,7 @@ ERLC=@ERLC@
 SED=@SED@
 ERL_OPTS=@ERL_OPTS@
 # FIXME
-DIALYZER=dialyzer
+DIALYZER=@DIALYZER@
 
 ERLDIR=@ERLANG_ROOT_DIR@
 export ERLDIR
@@ -189,8 +189,10 @@ edoc:
 	$(ERL) -noshell -eval "edoc:application($(RECORDER_APPLICATION),  \
           \"./$(ESRC)/$(RECORDER_APPLICATION)\", [$(DOC_OPTS)])" -s init stop
 
+# TODO: remove -Wno_behaviours, but only if R15B became a requirement.
+# see http://erlang.org/pipermail/erlang-questions/2012-January/063608.html
 dialyzer:
-	$(DIALYZER) -r ebin  -I ./include/
+	$(DIALYZER) -r ebin  -I ./include/ -Wno_undefined_callbacks
 
 all: clean tsung
 

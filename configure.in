@@ -18,6 +18,8 @@ AC_ARG_WITH(erlang, [  --with-erlang=PREFIX    path to erlc and erl ])
 AC_ERLANG_PATH_ERLC(erlc, $with_erlang:$with_erlang/bin:$PATH)
 AC_ERLANG_PATH_ERL(erl, $with_erlang:$with_erlang/bin:$PATH)
 
+AC_PATH_PROG(DIALYZER,dialyzer, /usr/bin/dializer, $with_erlang:$with_erlang/bin:$PATH)
+
 AC_PREFIX_PROGRAM(erl)
 AC_ERLANG_SUBST_ROOT_DIR()
 
