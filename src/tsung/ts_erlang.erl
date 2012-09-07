@@ -27,11 +27,14 @@
 -vc('$Id: ts_erlang.erl,v 0.0 2009/08/20 16:31:58 nniclaus Exp $ ').
 -author('nniclaus@sophia.inria.fr').
 
+-behaviour(gen_ts_transport).
+
 -define(TIMEOUT,36000000). % 1 hour
 
 -include("ts_profile.hrl").
 
--export([client/4]).
+-export([ connect/3, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2,
+          client/4]).
 
 client(MasterPid,Server,Port,Opts)->
     receive
@@ -42,5 +45,27 @@ client(MasterPid,Server,Port,Opts)->
     after ?TIMEOUT ->
             MasterPid ! timeout
     end.
+
+
+protocol_options(_Opts) ->
+   [].
+
+%% -> {ok, Socket}
+connect(Host, Port, Opts) ->
+    Pid=spawn_link(ts_erlang,client,[self(),Host,Port,Opts]),
+    {ok, Pid}.
+
+%% send/3 -> ok | {error, Reason}
+send(Pid, Data, _Opts)  ->
+    Pid ! Data,
+    ok.
+
+close(_Socket) -> ok.
+
+set_opts(Socket, _Opts) ->
+    Socket.
+
+normalize_incomming_data(Socket, Data) ->
+    {gen_ts_transport, Socket, Data}.
 
 

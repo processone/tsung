@@ -908,21 +908,9 @@ socket_opts(IP, CPort, _)->
 %% Purpose: wrapper function for send
 %% Return: ok | {error, Reason}
 %%----------------------------------------------------------------------
-send(erlang,Pid,Message,_,_) ->
-    Pid ! Message,
-    ok;
 send(Proto, Socket, Message, Host, Port)  ->
     Proto:send(Socket, Message, [{host, Host}, {port, Port}]).
 
-%connect(gen_tcp,Server, Port, Opts)  -> gen_tcp:connect(Server, Port, Opts);
-%connect(ssl,Server, Port,Opts)       -> ssl:connect(Server, Port, Opts);
-%connect(gen_udp,_Server, _Port, Opts)-> gen_udp:open(0,Opts);
-%connect(erlang,Server,Port,Opts)     ->
-%    Pid=spawn_link(ts_erlang,client,[self(),Server,Port,Opts]),
-%    {ok, Pid}.
-connect(erlang,Server,Port,Opts)      ->
-    Pid=spawn_link(ts_erlang,client,[self(),Server,Port,Opts]),
-    {ok, Pid};
 connect(Proto, Server, Port, Opts) ->
     Proto:connect(Server, Port, Opts).
 
@@ -930,7 +918,6 @@ connect(Proto, Server, Port, Opts) ->
 %% Func: protocol_options/1
 %% Purpose: set connection's options for the given protocol
 %%----------------------------------------------------------------------
-protocol_options(erlang,_) -> [];
 protocol_options(Proto, #proto_opts{} = ProtoOpts) ->
     Proto:protocol_options(ProtoOpts).
 
