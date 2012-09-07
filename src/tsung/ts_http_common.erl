@@ -132,22 +132,44 @@ authenticate(#http_request{passwd=Passwd, auth_type="basic",userid=UserId})->
 
 authenticate(#http_request{method=Method, passwd=Passwd,userid=UserId,
                            auth_type="digest", realm=Realm,
-                           digest_cnonce=CNonce, digest_nc=NC,
-                           digest_nonce=Nonce, digest_opaque=_Opaque,
+                           digest_cnonce=CNonce, digest_nc=NC, digest_qop=QOP,
+                           digest_nonce=Nonce, digest_opaque=Opaque,
                            url=URL
                             }) ->
     HA1 = md5_hex(string:join([UserId, Realm, Passwd], ":")),
     HA2 = md5_hex(string:join([string:to_upper(atom_to_list(Method)), URL], ":")),
-    Response = md5_hex(string:join([HA1, Nonce,NC, CNonce,"auth",HA2], ":")),
-    ["Authorization: Digest "
-                            "username=\"",UserId,"\", ",
-                            "realm=\"", Realm, "\", ",
-                            "nonce=\"", Nonce, "\", ",
-                            "uri=\"", URL, "\", ",
-                            "nc=", NC, ", ",
-                            "cnonce=\"", CNonce, "\", ",
-                            "qop=auth,",
-                            "response=\"", Response, "\"", ?CRLF].
+    Response = digest_response({HA1, Nonce,NC, CNonce,QOP,HA2}),
+    digest_header(UserId,Realm,Nonce,URL,QOP,NC,CNonce,Response,Opaque).
+
+digest_header(User,Realm,Nonce,URI, QOP,NC,CNonce, Response,Opaque) ->
+    Acc= ["Authorization: Digest "
+          "username=\"",User,"\", ",
+          "realm=\"", Realm, "\", ",
+          "nonce=\"", Nonce, "\", ",
+          "uri=\"", URI, "\", ",
+          "response=\"", Response, "\""],
+    digest_header_opt(Acc, QOP, NC, CNonce, Opaque).
+
+%% qop and opaque are undefined
+digest_header_opt(Acc, undefined, _NC, _CNonce, undefined) ->
+    [Acc, ?CRLF];
+
+digest_header_opt(Acc, QOP, NC, CNonce, Opaque) when is_list(Opaque)->
+     NewAcc=[Acc,", opaque=\"",Opaque,"\""],
+    digest_header_opt(NewAcc,QOP,NC,CNonce,undefined);
+
+digest_header_opt(Acc, QOP, NC, CNonce,undefined) ->
+    NewAcc=[Acc,", qop=\"",QOP,"\"",
+                ", nc=", NC,
+                ", cnonce=\"", CNonce, "\""
+           ],
+    digest_header_opt(NewAcc,undefined,"","",undefined).
+
+digest_response({HA1,Nonce, _NC, _CNonce, undefined, HA2})-> %qop undefined
+    md5_hex(string:join([HA1, Nonce, HA2], ":"));
+digest_response({HA1,Nonce, NC, CNonce, QOP, HA2})->
+    md5_hex(string:join([HA1,Nonce,NC,CNonce,QOP,HA2], ":")).
+
 md5_hex(String)->
     lists:flatten([io_lib:format("~2.16.0b",[N])||N<-binary_to_list(erlang:md5(String))]).
 

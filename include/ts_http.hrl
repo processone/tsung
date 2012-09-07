@@ -49,10 +49,11 @@
           digest_opaque,
           digest_cnonce,
           digest_nc,
+          digest_qop,
           realm,
           soap_action % for SOAP support
          }).
- 
+
 -record(url,
         {scheme,          %% http, https, ...
          host,

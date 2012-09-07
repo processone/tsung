@@ -229,8 +229,8 @@ add_dynparams(#http{session_cookies=DynCookie,user_agent=UA}, Req, _) ->
 %% @end
 %%----------------------------------------------------------------------
 subst(Req=#http_request{url=URL, body=Body, headers = Headers, oauth_url=OUrl,
-                        oauth_access_token=AToken, oauth_access_secret=ASecret,
-                        digest_cnonce=CNonce, digest_nc=Nc,digest_nonce=Nonce,
+                        oauth_access_token=AToken, oauth_access_secret=ASecret,digest_qop = QOP,
+                        digest_cnonce=CNonce, digest_nc=Nc,digest_nonce=Nonce, digest_opaque=Opaque,
                         realm=Realm, userid=UserId, passwd=Passwd, cookie = Cookies}, DynVars) ->
     Req#http_request{url =  escape_url(ts_search:subst(URL, DynVars)),
              body   = ts_search:subst(Body, DynVars),
@@ -238,10 +238,12 @@ subst(Req=#http_request{url=URL, body=Body, headers = Headers, oauth_url=OUrl,
                                            [{Name, ts_search:subst(Value, DynVars)} | Result]
                                    end, [], Headers),
              oauth_access_token = ts_search:subst(AToken, DynVars),
-             digest_nonce = ts_search:subst(Nonce, DynVars),
+             digest_nonce  = ts_search:subst(Nonce, DynVars),
              digest_cnonce = ts_search:subst(CNonce, DynVars),
-             digest_nc = ts_search:subst(Nc, DynVars),
-             realm = ts_search:subst(Realm, DynVars),
+             digest_nc     = ts_search:subst(Nc, DynVars),
+             digest_opaque = ts_search:subst(Opaque, DynVars),
+             digest_qop    = ts_search:subst(QOP, DynVars),
+             realm         = ts_search:subst(Realm, DynVars),
              oauth_access_secret = ts_search:subst(ASecret, DynVars),
              oauth_url = ts_search:subst(OUrl, DynVars),
              cookie = lists:foldl(

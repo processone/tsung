@@ -56,10 +56,6 @@ decode_base64_test()->
     Base="QWxhZGRpbjpvcGVuIHNlc2FtZQ==",
     ?assertEqual({"Aladdin","open sesame"}, ts_proxy_http:decode_basic_auth(Base)).
 
-%%TODO: should be in ts_test_http
-encode_base64_test()->
-    Base="QWxhZGRpbjpvcGVuIHNlc2FtZQ==",
-    ?assertEqual(["Authorization: Basic ",Base,?CRLF], ts_http_common:authenticate(#http_request{userid="Aladdin", auth_type="basic",passwd="open sesame"})).
 
 rewrite_http_secure_cookie_test()->
     Data="HTTP/1.1 200 OK\r\nSet-Cookie: JSESSIONID=F949C9182402EB74258F43FDC3F3C63F; Path=/; Secure\r\nLocation: https://foo.bar/\r\nContent-Length: 0\r\n\r\n",
