@@ -188,8 +188,8 @@ repeat | if | change_type | foreach | set_option)*>
     re    CDATA #IMPLIED
     jsonpath CDATA #IMPLIED
     pgsql_expr CDATA #IMPLIED
-    regexp   CDATA #IMPLIED 
-		header   CDATA #IMPLIED >
+    regexp   CDATA #IMPLIED
+    header   CDATA #IMPLIED >
 
 <!ELEMENT http_header EMPTY >
 <!ATTLIST http_header
@@ -208,21 +208,20 @@ repeat | if | change_type | foreach | set_option)*>
 <!ATTLIST www_authenticate
     passwd CDATA #REQUIRED
     userid CDATA #REQUIRED
-		nonce  CDATA #IMPLIED
-		opaque CDATA #IMPLIED
-		cnonce  CDATA #IMPLIED
-		nc CDATA #IMPLIED
-		realm CDATA #IMPLIED
-		type (basic | digest) "basic" >
-		
+    nonce  CDATA #IMPLIED
+    opaque CDATA #IMPLIED
+    cnonce  CDATA #IMPLIED
+    nc CDATA #IMPLIED
+    realm CDATA #IMPLIED
+    type (basic | digest) "basic" >
+
 <!ELEMENT oauth EMPTY >
 <!ATTLIST oauth
     consumer_key CDATA #REQUIRED
     consumer_secret CDATA #REQUIRED
- 		access_token CDATA #IMPLIED
-		access_token_secret CDATA #IMPLIED
-		method  (HMAC-SHA1 | PLAINTEXT | RSA-SHA1) "HMAC-SHA1"
-		>
+    access_token CDATA #IMPLIED
+    access_token_secret CDATA #IMPLIED
+    method  (HMAC-SHA1 | PLAINTEXT | RSA-SHA1) "HMAC-SHA1">
 
 <!ELEMENT jabber (xmpp_authenticate?) >
 <!ATTLIST jabber
