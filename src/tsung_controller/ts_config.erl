@@ -533,8 +533,6 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
     FlattenExpr =lists:flatten(Expr),
     %% precompilation of the exp
     DynVar = case Type of
-                 regexp ->
-                     exit({error, regexp_obsolete_use_re});
                  re ->
                      ?LOGF("Add new re: ~s ~n", [Expr],?INFO),
                      {ok, CompiledRegExp} = re:compile(FlattenExpr),
