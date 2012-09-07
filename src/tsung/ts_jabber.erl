@@ -163,13 +163,12 @@ parse(Data, State=#state_rcv{datasize=Size}) ->
 %%----------------------------------------------------------------------
 parse_bidi(Data,  State) ->
     RcvdXml = binary_to_list(Data),
-    ?LOGF("RECEIVED : ~p~n",[RcvdXml],?DEB),
     BidiElements =
         [{"<presence[^>]*subscribe[\"\']", presence_bidi},
          {"<proceed", starttls_bidi}],
     lists:foldl(fun({Regex, Handler}, Acc)->
        case re:run(RcvdXml,Regex) of
-        {match,_,_} ->
+        {match,_} ->
             ?LOGF("RECEIVED : ~p~n",[RcvdXml],?DEB),
             ?MODULE:Handler(RcvdXml, State);
         _Else ->
@@ -178,7 +177,7 @@ parse_bidi(Data,  State) ->
     end, {nodata, State}, BidiElements).
 
 presence_bidi(RcvdXml, State)->
-    {match,SubMatches} = regexp:matches(RcvdXml,"<presence[^>]*subscribe[\"\'][^>]*>"),
+    {match,SubMatches} = re:run(RcvdXml,"<presence[^>]*subscribe[\"\'][^>]*>",[global]),
     bidi_resp(subscribed,RcvdXml,SubMatches,State).
 
 starttls_bidi(_RcvdXml, #state_rcv{socket= Socket}=State)->
