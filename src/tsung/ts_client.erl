@@ -895,7 +895,7 @@ reconnect(Socket, _Server, _Port, _Protocol, _IP) ->
 
 
 %% set options for local socket ip/ports
-socket_opts({0,0,0,0}, CPort, Proto) when Proto==gen_tcp6 orelse Proto==ssl6 orelse Proto==gen_udp6 ->
+socket_opts({0,0,0,0}, CPort, Proto) when Proto==ts_tcp6 orelse Proto==ts_ssl6 orelse Proto==ts_udp6 ->
     %% the config server was not aware if we are using ipv6 or ipv4,
     %% and it set the local IP to be default one; we need to change it
     %% for ipv6

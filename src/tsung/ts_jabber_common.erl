@@ -51,7 +51,7 @@ get_message(Jabber=#jabber{id=user_defined, username=User,passwd=Pwd,type = 'con
     connect(Jabber);
 get_message(Jabber=#jabber{type = 'connect'}) ->
     connect(Jabber);
-get_message(Jabber=#jabber{type = 'starttls'}) ->
+get_message(#jabber{type = 'starttls'}) ->
     starttls();
 get_message(#jabber{type = 'close', id=Id,username=User,passwd=Pwd,user_server=UserServer}) ->
     ts_user_server:remove_connected(UserServer,set_id(Id,User,Pwd)),

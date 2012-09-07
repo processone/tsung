@@ -82,7 +82,7 @@ MAN_DIR   = $(datadir)/man/man1/
 DOC_DIR   = $(docdir)
 
 # custom behaviours
-BEHAVIORS  = ebin/ts_plugin.beam
+BEHAVIORS  = ebin/ts_plugin.beam ebin/gen_ts_transport.beam
 
 BUILDER_LOG   = /tmp/builder-tsung.log
 
@@ -433,6 +433,11 @@ ebin/%.beam: src/lib/%.erl $(INC_FILES)
 
 # to avoid circular dependency
 ebin/ts_plugin.beam: src/$(APPLICATION)/ts_plugin.erl $(INC_FILES)
+	@echo  "Compiling  $< ... "
+	@$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -pa ebin -o ebin $<
+
+# to avoid circular dependency
+ebin/gen_ts_transport.beam: src/$(APPLICATION)/gen_ts_transport.erl $(INC_FILES)
 	@echo  "Compiling  $< ... "
 	@$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -pa ebin -o ebin $<
 

@@ -129,11 +129,11 @@ authenticate(#http_request{passwd=undefined})-> [];
 authenticate(#http_request{passwd=Passwd, auth_type="basic",userid=UserId})->
     AuthStr = ts_utils:encode_base64(lists:append([UserId,":",Passwd])),
     ["Authorization: Basic ",AuthStr,?CRLF];
-    
-authenticate(#http_request{method=Method, passwd=Passwd,userid=UserId, 
-                           auth_type="digest", realm=Realm, 
+
+authenticate(#http_request{method=Method, passwd=Passwd,userid=UserId,
+                           auth_type="digest", realm=Realm,
                            digest_cnonce=CNonce, digest_nc=NC,
-                           digest_nonce=Nonce, digest_opaque=Opaque,
+                           digest_nonce=Nonce, digest_opaque=_Opaque,
                            url=URL
                             }) ->
     HA1 = md5_hex(string:join([UserId, Realm, Passwd], ":")),
@@ -151,7 +151,7 @@ authenticate(#http_request{method=Method, passwd=Passwd,userid=UserId,
 md5_hex(String)->
     lists:flatten([io_lib:format("~2.16.0b",[N])||N<-binary_to_list(erlang:md5(String))]).
 
-   
+
 oauth_sign(_, #http_request{oauth_consumer = undefined})->[];
 oauth_sign(Method, #http_request{url=URL,
                          oauth_consumer=Consumer,
@@ -161,7 +161,7 @@ oauth_sign(Method, #http_request{url=URL,
     UrlParams = oauth_uri:params_from_string(URL),
     Params = oauth:signed_params(Method, ServerURL, UrlParams, Consumer, AccessToken, AccessSecret),
     ["Authorization: OAuth ", oauth_uri:params_to_header_string(Params),?CRLF].
-    
+
 %%----------------------------------------------------------------------
 %% @spec set_header(Name::string, Val::string | undefined, Headers::List,
 %%                  Default::string) -> list()

@@ -1,3 +1,27 @@
+%%%
+%%%  Copyright 2010 © ProcessOne
+%%%
+%%%  Author : Eric Cestari <ecestari@mac.com>
+%%%
+%%%  This program is free software; you can redistribute it and/or modify
+%%%  it under the terms of the GNU General Public License as published by
+%%%  the Free Software Foundation; either version 2 of the License, or
+%%%  (at your option) any later version.
+%%%
+%%%  This program is distributed in the hope that it will be useful,
+%%%  but WITHOUT ANY WARRANTY; without even the implied warranty of
+%%%  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%%%  GNU General Public License for more details.
+%%%
+%%%  You should have received a copy of the GNU General Public License
+%%%  along with this program; if not, write to the Free Software
+%%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
+%%%
+%%%  In addition, as a special exception, you have the permission to
+%%%  link the code of this program with any library released under
+%%%  the EPL license and distribute linked combinations including
+%%%  the two.
+
 -module(ts_bosh).
 
 -export([ connect/3, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2 ]).
@@ -17,32 +41,32 @@
 
 -define(CONNECT_TIMEOUT, 20 * 1000).
 -define(MAX_QUEUE_SIZE, 5). %% at most 5 messages queued, after that close the connection.
-			    %% In practice we never had more than 1 pending packet, as we are blocking
-			    %% the client process until we sent the packet.  But I keep this functionality in place,
-			    %% in case we decide to do the sending() of data asynchronous.
+                            %% In practice we never had more than 1 pending packet, as we are blocking
+                            %% the client process until we sent the packet.  But I keep this functionality in place,
+                            %% in case we decide to do the sending() of data asynchronous.
 
 -record(state, {
-            host,
-	    path,
-	    port,
-           % {Host::string(), Port:integer(), Path::string(), Ssl::bool()}
-            domain = undefined,
-            sid,
-            rid,
-            parent_pid,
-            max_requests, %TODO: use this, now fixed on 2
-            queue = [], %% stanzas that have been queued because we reach the limit of requets
-            open = [],
-            free = [],
-            local_ip,
-            local_port,
-            session_state = fresh, %% fresh | normal | closing
-	    pending_ref,
-            type  %% 'tcp' | 'ssl'
-            }).
+          host,
+          path,
+          port,
+          % {Host::string(), Port:integer(), Path::string(), Ssl::bool()}
+          domain = undefined,
+          sid,
+          rid,
+          parent_pid,
+          max_requests, %TODO: use this, now fixed on 2
+          queue = [], %% stanzas that have been queued because we reach the limit of requets
+          open = [],
+          free = [],
+          local_ip,
+          local_port,
+          session_state = fresh, %% fresh | normal | closing
+          pending_ref,
+          type  %% 'tcp' | 'ssl'
+         }).
 
-normalize_incomming_data(_Socket, X) -> 
-    X. %% nothing to do here, ts_bosh uses a special process to handle http requests, 
+normalize_incomming_data(_Socket, X) ->
+    X. %% nothing to do here, ts_bosh uses a special process to handle http requests,
        %% the incoming data is already delivered to ts_client as {gen_ts_transport, ..} instead of gen_tcp | ssl
 
 connect(Host, Port, Opts) ->
@@ -55,31 +79,31 @@ connect(Host, Port, Opts, Type) when Type =:= 'tcp' ; Type =:= 'ssl' ->
     {ok, Pid}.
 
 extract_domain("to='" ++ Rest) ->
-	lists:takewhile(fun(C) -> C =/= $' end, Rest);
+    lists:takewhile(fun(C) -> C =/= $' end, Rest);
 extract_domain([_|Rest]) -> extract_domain(Rest).
-	
+
 send(Pid, Data, _Opts) ->
     Ref = make_ref(),
     Msg = case Data of
-        <<"<?xml", Rest/binary>> ->  %%HACK: use this to detect stream start (or restarts)
-            Domain =  extract_domain(binary_to_list(Rest)), 
-            {stream, Domain, Ref};
-	<<"</stream:stream>", _/binary>> -> %%Use this to detect stream end
-	    {stream, terminate, Ref};
-        _ ->
-            {send, Data, Ref}
-    end,
+              <<"<?xml", Rest/binary>> ->  %%HACK: use this to detect stream start (or restarts)
+                  Domain =  extract_domain(binary_to_list(Rest)),
+                  {stream, Domain, Ref};
+              <<"</stream:stream>", _/binary>> -> %%Use this to detect stream end
+                  {stream, terminate, Ref};
+              _ ->
+                  {send, Data, Ref}
+          end,
     Pid ! Msg,
     MonitorRef = erlang:monitor(process,Pid),
     receive
-	    {'DOWN', MonitorRef, _Type, _Object, _Info} ->
-		    {error, no_bosh_connection};
-        {ok, Ref} -> 
-		    erlang:demonitor(MonitorRef, [flush]),
-		    ok
+        {'DOWN', MonitorRef, _Type, _Object, _Info} ->
+            {error, no_bosh_connection};
+        {ok, Ref} ->
+            erlang:demonitor(MonitorRef, [flush]),
+            ok
     after
         30000 ->
-	        erlang:demonitor(MonitorRef, [flush]),
+            erlang:demonitor(MonitorRef, [flush]),
             {error, timeout}
     end.
 
@@ -96,149 +120,149 @@ loop(Host, Port, Path, Opts, Type, Parent) ->
    {A,B,C} = now(),
    random:seed(A,B,C),
    _MonitorRef = erlang:monitor(process,Parent),
-   loop(#state{session_state = fresh, 
-   		port = Port,
-		path = Path, 
-		parent_pid = Parent,
-		host = Host, 
-		local_ip = proplists:get_value(ip, Opts, undefined),
-		local_port = proplists:get_value(port, Opts, undefined),
-        type = Type
-		}).
+   loop(#state{session_state = fresh,
+               port = Port,
+               path = Path,
+               parent_pid = Parent,
+               host = Host,
+               local_ip = proplists:get_value(ip, Opts, undefined),
+               local_port = proplists:get_value(port, Opts, undefined),
+               type = Type
+              }).
 
 loop(#state{parent_pid = ParentPid} = State) ->
     receive
-	{'DOWN', _MonitorRef, _Type, _Object, _Info} ->  %%parent terminates
-        ok;
-	{'EXIT', ParentPid, _Reason} -> %%even 'normal' terminates this
-  	    ok; 
+        {'DOWN', _MonitorRef, _Type, _Object, _Info} ->  %%parent terminates
+            ok;
+        {'EXIT', ParentPid, _Reason} -> %%even 'normal' terminates this
+            ok;
         close ->
-	    ok;
-       {send, Data, Ref}  ->
+            ok;
+        {send, Data, Ref}  ->
             case  do_send(State, Data) of
-		{sent, NewState} ->
-	            ParentPid ! {ok, Ref},
-		    loop(NewState);
-		{queued, #state{queue =Q} = NewState} when length(Q) < ?MAX_QUEUE_SIZE ->  %%do not return yet..
-		     loop(NewState#state{pending_ref = Ref});
-		{queued, NewState} -> %% we reach the max allowed queued messages.. close the connection.
-		     ?LOGF("Client reached max bosh requests queue size: ~p. Closing session", 
-			[length(NewState#state.queue)], ?ERR),
-		     ts_mon:add({count, error_bosh_maxqueued}),
-	             ParentPid ! {ok, Ref},
-		     ParentPid ! {gen_ts_transport, self(), closed}
-	    end;
-       {stream, terminate, Ref} ->
-	    #state{host = Host,
-		   path = Path,
-		   sid = Sid,
-		   rid = Rid,
-           type = Type} = State,
+                {sent, NewState} ->
+                    ParentPid ! {ok, Ref},
+                    loop(NewState);
+                {queued, #state{queue =Q} = NewState} when length(Q) < ?MAX_QUEUE_SIZE ->  %%do not return yet..
+                    loop(NewState#state{pending_ref = Ref});
+                {queued, NewState} -> %% we reach the max allowed queued messages.. close the connection.
+                    ?LOGF("Client reached max bosh requests queue size: ~p. Closing session",
+                          [length(NewState#state.queue)], ?ERR),
+                    ts_mon:add({count, error_bosh_maxqueued}),
+                    ParentPid ! {ok, Ref},
+                    ParentPid ! {gen_ts_transport, self(), closed}
+            end;
+        {stream, terminate, Ref} ->
+            #state{host = Host,
+                   path = Path,
+                   sid = Sid,
+                   rid = Rid,
+                   type = Type} = State,
             {NewState, Socket} = new_socket(State, once),
             ok = make_raw_request(Type, Socket, Host, Path, close_stream_msg(Sid, Rid)),
             ParentPid ! {ok, Ref},
-	        loop(NewState#state{session_state = closing, open = [{Socket, Rid+1}|NewState#state.open]});
-       {stream, Domain, Ref} when State#state.domain == undefined ->
-	    NewState = do_connect(State, Domain),
+            loop(NewState#state{session_state = closing, open = [{Socket, Rid+1}|NewState#state.open]});
+        {stream, Domain, Ref} when State#state.domain == undefined ->
+            NewState = do_connect(State, Domain),
             ParentPid ! {ok, Ref},
-	    loop(NewState);
-       {stream, _Domain, Ref} -> %%here we must do a reset
-	    NewState = do_reset(State),
+            loop(NewState);
+        {stream, _Domain, Ref} -> %%here we must do a reset
+            NewState = do_reset(State),
             ParentPid ! {ok, Ref},
-	    loop(NewState);
-       {Tag, Socket, {http_response, Vsn, 200, "OK"}} when Tag == 'http' ; Tag == 'ssl'->
-       		case do_receive_http_response(State, Socket, Vsn) of
-			{ok, NewState} ->
-				loop(NewState);
-			terminate ->
-                if 
-                    State#state.session_state  /= 'closing' ->
-			            ts_mon:add({count, error_bosh_terminated}),
-				        ?LOG("Session terminated by server", ?INFO);
-                    true ->
-                        ok
-                end,
-                State#state.parent_pid ! {gen_ts_transport, self(), closed}
-		end;
-	{Close, Socket} when Close == tcp_closed ; Close == 'ssl_closed' ->
-		case lists:keymember(Socket, 1, State#state.open) of
-			true ->
-				%%ERROR, a current request is closed
-				?LOG("Open request closed by server", ?ERR),
-				ts_mon:add({count, error_bosh_socket_closed}),
-            			State#state.parent_pid ! {gen_ts_transport, self(), closed};
-			false ->
-				%% A HTTP persistent connection, currently not in use, is closed by the server.
-				%% We can continue without trouble, just remove it, it will be reopened when needed.
-				loop(State#state{free = lists:delete(Socket, State#state.free)})
-		end;
-       {Tag, _Socket, {http_response, _Vsn, ResponseCode, _StatusLine}} when Tag == 'http' ; Tag == 'ssl' ->
-		State#state.parent_pid ! {gen_ts_transport, self(), error, list_to_atom(integer_to_list(ResponseCode))};
+            loop(NewState);
+        {Tag, Socket, {http_response, Vsn, 200, "OK"}} when Tag == 'http' ; Tag == 'ssl'->
+            case do_receive_http_response(State, Socket, Vsn) of
+                {ok, NewState} ->
+                    loop(NewState);
+                terminate ->
+                    if
+                        State#state.session_state  /= 'closing' ->
+                            ts_mon:add({count, error_bosh_terminated}),
+                            ?LOG("Session terminated by server", ?INFO);
+                        true ->
+                            ok
+                    end,
+                    State#state.parent_pid ! {gen_ts_transport, self(), closed}
+            end;
+        {Close, Socket} when Close == tcp_closed ; Close == 'ssl_closed' ->
+            case lists:keymember(Socket, 1, State#state.open) of
+                true ->
+                    %%ERROR, a current request is closed
+                    ?LOG("Open request closed by server", ?ERR),
+                    ts_mon:add({count, error_bosh_socket_closed}),
+                    State#state.parent_pid ! {gen_ts_transport, self(), closed};
+                false ->
+                    %% A HTTP persistent connection, currently not in use, is closed by the server.
+                    %% We can continue without trouble, just remove it, it will be reopened when needed.
+                    loop(State#state{free = lists:delete(Socket, State#state.free)})
+            end;
+        {Tag, _Socket, {http_response, _Vsn, ResponseCode, _StatusLine}} when Tag == 'http' ; Tag == 'ssl' ->
+            State#state.parent_pid ! {gen_ts_transport, self(), error, list_to_atom(integer_to_list(ResponseCode))};
         Unexpected ->
-		?LOGF("Bosh process received unexpected message: ~p", [Unexpected], ?ERR),
-		State#state.parent_pid ! {gen_ts_transport, self(), error, unexpected_data}
-   end.
-    
-do_receive_http_response(State, Socket, Vsn) ->
-	#state{open = Open,
-		sid = Sid,
-		rid = Rid,
-		queue = Queue,
-		host = Host,
-		path = Path,
-        type = Type,
-		parent_pid = ParentPid} = State,
-	{ok, {{200, "OK"}, Hdrs, Resp}} = read_response(Type, Socket, Vsn, {200, "OK"}, [], <<>>, httph),
-    ts_mon:add({ sum, size_rcv, iolist_size([ [if is_atom(H) -> atom_to_list(H); true -> H end, V] || 
-                    {H,V} <- Hdrs])}), %% count header size
+            ?LOGF("Bosh process received unexpected message: ~p", [Unexpected], ?ERR),
+            State#state.parent_pid ! {gen_ts_transport, self(), error, unexpected_data}
+    end.
 
-	{_El = #xmlElement{name = body, 
-		attributes = Attrs,
-		content = Content}, []}= xmerl_scan:string(binary_to_list(Resp)),
-	case get_attr(Attrs, type) of
-		"terminate" ->
-			terminate;
-		_R ->
-		NewOpen = lists:keydelete(Socket, 1, Open),
-		NewState2  = if
-			     NewOpen == [] andalso State#state.session_state =:= 'normal' ->
-				socket_setopts(Type, Socket, [{packet, http}, {active, once}]),
-				ok = make_empty_request(Type, Socket,Sid, Rid, Queue, Host, Path),
-				case length(Queue) of
-					0 -> ok;
-					_ -> 
-					ParentPid ! {ok, State#state.pending_ref}
-					   %% we just sent the pending packet, wakeup the client
-				end,
-				State#state{open = [{Socket, Rid}], rid = Rid +1, queue = []};
-			     length(NewOpen) == 1 andalso length(State#state.queue) > 0 ->
-				%%there are pending packet, sent it if the RID is ok, otherwise wait
-				case NewOpen of
-					[{_, R}] when (Rid - R) =< 1 ->
-						socket_setopts(Type, Socket, [{packet, http}, {active, once}]),
-						ok = make_empty_request(Type, Socket,Sid, Rid, Queue, Host, Path),
-						ParentPid ! {ok, State#state.pending_ref},
-						%% we just sent the pending packet, wakeup the client
-						State#state{open = [{Socket, Rid}], rid = Rid +1, queue = []};
-					_ ->
-						NewState = return_socket(State, Socket),
-						NewState#state{open = NewOpen}
-				end;
-			     true ->
-				NewState = return_socket(State, Socket),
-				NewState#state{open = NewOpen}
-		end,
-		case Content of
-			[] -> 
-				%%empty response, do not bother the ts_client process with this
-				%% (so Noack/Bidi won't count this bosh specific thing, only async stanzas)
-				%% since ts_client don't see this, we need to count the size received
-				ts_mon:add({ sum, size_rcv, iolist_size(Resp)});
-			_ ->	
-			ParentPid ! {gen_ts_transport, self(), Resp}
-		end,
-		{ok, NewState2}
-	end.
+do_receive_http_response(State, Socket, Vsn) ->
+    #state{open = Open,
+           sid = Sid,
+           rid = Rid,
+           queue = Queue,
+           host = Host,
+           path = Path,
+           type = Type,
+           parent_pid = ParentPid} = State,
+    {ok, {{200, "OK"}, Hdrs, Resp}} = read_response(Type, Socket, Vsn, {200, "OK"}, [], <<>>, httph),
+    ts_mon:add({ sum, size_rcv, iolist_size([ [if is_atom(H) -> atom_to_list(H); true -> H end, V] ||
+                                                {H,V} <- Hdrs])}), %% count header size
+
+    {_El = #xmlElement{name = body,
+                       attributes = Attrs,
+                       content = Content}, []}= xmerl_scan:string(binary_to_list(Resp)),
+    case get_attr(Attrs, type) of
+        "terminate" ->
+            terminate;
+        _R ->
+            NewOpen = lists:keydelete(Socket, 1, Open),
+            NewState2  = if
+                             NewOpen == [] andalso State#state.session_state =:= 'normal' ->
+                                 socket_setopts(Type, Socket, [{packet, http}, {active, once}]),
+                                 ok = make_empty_request(Type, Socket,Sid, Rid, Queue, Host, Path),
+                                 case length(Queue) of
+                                     0 -> ok;
+                                     _ ->
+                                         ParentPid ! {ok, State#state.pending_ref}
+                                         %% we just sent the pending packet, wakeup the client
+                                 end,
+                                 State#state{open = [{Socket, Rid}], rid = Rid +1, queue = []};
+                             length(NewOpen) == 1 andalso length(State#state.queue) > 0 ->
+                                 %%there are pending packet, sent it if the RID is ok, otherwise wait
+                                 case NewOpen of
+                                     [{_, R}] when (Rid - R) =< 1 ->
+                                         socket_setopts(Type, Socket, [{packet, http}, {active, once}]),
+                                         ok = make_empty_request(Type, Socket,Sid, Rid, Queue, Host, Path),
+                                         ParentPid ! {ok, State#state.pending_ref},
+                                         %% we just sent the pending packet, wakeup the client
+                                         State#state{open = [{Socket, Rid}], rid = Rid +1, queue = []};
+                                     _ ->
+                                         NewState = return_socket(State, Socket),
+                                         NewState#state{open = NewOpen}
+                                 end;
+                             true ->
+                                 NewState = return_socket(State, Socket),
+                                 NewState#state{open = NewOpen}
+                         end,
+            case Content of
+                [] ->
+                    %%empty response, do not bother the ts_client process with this
+                    %% (so Noack/Bidi won't count this bosh specific thing, only async stanzas)
+                    %% since ts_client don't see this, we need to count the size received
+                    ts_mon:add({ sum, size_rcv, iolist_size(Resp)});
+                _ ->
+                    ParentPid ! {gen_ts_transport, self(), Resp}
+            end,
+            {ok, NewState2}
+    end.
 
 do_connect(#state{type = Type, host = Host, path = Path, parent_pid = ParentPid} = State, Domain) ->
     Rid = 1000 + random:uniform(100000),
@@ -253,19 +277,19 @@ do_connect(#state{type = Type, host = Host, path = Path, parent_pid = ParentPid}
     {NewState2, Socket} = new_socket(NewState, false),
     ok = make_raw_request(Type, Socket, Host, Path, create_session_msg(Rid, Domain, ?WAIT, ?HOLD)),
     {ok, {{200, "OK"}, Hdrs, Resp}} = read_response(Type, Socket, nil, nil, [], <<>>, http),
-    ts_mon:add({ sum, size_rcv, iolist_size([ [if is_atom(H) -> atom_to_list(H); true -> H end, V] || 
+    ts_mon:add({ sum, size_rcv, iolist_size([ [if is_atom(H) -> atom_to_list(H); true -> H end, V] ||
                     {H,V} <- Hdrs])}), %% count header size
 
     NewState3 = return_socket(NewState2, Socket),
     {_El = #xmlElement{name = body,
-	attributes = Attrs,
-	content = _Content}, []} = xmerl_scan:string(binary_to_list(Resp)),
+                       attributes = Attrs,
+                       content = _Content}, []} = xmerl_scan:string(binary_to_list(Resp)),
     ParentPid ! {gen_ts_transport, self(), Resp},
     NewState3#state{rid = Rid +1,
-	    open = [],
-            sid = get_attr(Attrs, sid),
-            max_requests = 2
-            }.
+                    open = [],
+                    sid = get_attr(Attrs, sid),
+                    max_requests = 2
+                   }.
 
 do_reset(State) ->
     #state{sid = Sid,
@@ -288,7 +312,7 @@ do_send(State, Data) ->
           sid = Sid,
           host = Host,
           type = Type,
-	  path = Path,
+          path = Path,
           queue = Queue} = State,
     Result = if
                 Open == []  -> send;
@@ -323,7 +347,7 @@ make_raw_request(Type, Socket, Host, Path, Body) ->
 make_request(Type, Socket, Sid, Rid, Queue, Host, Path, Packet) ->
     StanzasText = lists:reverse([Packet|Queue]),
     Body = stanzas_msg(Sid, Rid, StanzasText),
-    make_request(Type, Socket, Host, Path, Body, iolist_size(StanzasText)).                                                       
+    make_request(Type, Socket, Host, Path, Body, iolist_size(StanzasText)).
 make_request(Type, Socket,Host, Path, Body, OriginalSize) ->
      ts_mon:add({count, bosh_http_req}),
      Hdrs = [{"Content-Type", ?CONTENT_TYPE}, {"keep-alive", "true"}],
@@ -338,22 +362,22 @@ new_socket(State = #state{free = [Socket | Rest], type = Type}, Active) ->
         {State#state{free = Rest}, Socket};
 new_socket(State = #state{type = Type, host = Host, port = Port, local_ip = LocalIp, local_port = LocalPort}, Active) ->
     Options = case LocalIp of
-                        undefined -> [{active, Active}, {packet, http}];
-                        _ ->  case LocalPort of
-                                undefined -> [{active, Active}, {packet, http},{ip, LocalIp}];
-                                _ -> 
-				{ok, LPort} = ts_config_server:get_user_port(LocalIp),
-				[{active, Active}, {packet, http},{ip, LocalIp}, {port, LPort}]
-                              end
+                  undefined -> [{active, Active}, {packet, http}];
+                  _ ->  case LocalPort of
+                            undefined -> [{active, Active}, {packet, http},{ip, LocalIp}];
+                            _ ->
+                                {ok, LPort} = ts_config_server:get_user_port(LocalIp),
+                                [{active, Active}, {packet, http},{ip, LocalIp}, {port, LPort}]
+                        end
     end,
     {ok, Socket} = socket_connect(Type, Host, Port,  Options, ?CONNECT_TIMEOUT),
     ts_mon:add({count, bosh_http_conn}),
     {State, Socket}.
 
 return_socket(State, Socket) ->
-        socket_setopts(State#state.type, Socket, [{active, once}]), 
-	%receive data from it, we want to know if something happens
-        State#state{free = [Socket | State#state.free]}.
+    socket_setopts(State#state.type, Socket, [{active, once}]),
+    %%receive data from it, we want to know if something happens
+    State#state{free = [Socket | State#state.free]}.
 
 create_session_msg(Rid, To, Wait, Hold) ->
     [ "<body xmlns='http://jabber.org/protocol/httpbind'"
@@ -500,10 +524,10 @@ socket_connect(ssl, Host, Port, Options, Timeout) ->
     %% First connect using tcp, and then upgrades.  The local ip and port directives seems to not work if
     %% the socket is opened directly as ssl.
 %    {ForConnection, ForSSL} = lists:partition(fun({ip, _}) -> true; ({port, _}) -> true; (_) -> false end, Options),
-%    {ok, S} = gen_tcp:connect(Host, Port, [{active, false}|ForConnection], Timeout),  
-%    ssl:connect(S, ForSSL, Timeout).  
+%    {ok, S} = gen_tcp:connect(Host, Port, [{active, false}|ForConnection], Timeout),
+%    ssl:connect(S, ForSSL, Timeout).
 %   ?LOGF("Connect ~p", [ForSSL], ?ERR),
-     ssl:connect(Host, Port, [{ssl_imp, new}|Options], Timeout).  
+     ssl:connect(Host, Port, [{ssl_imp, new}|Options], Timeout).
 
 
 socket_send(tcp, Socket, Data) ->
