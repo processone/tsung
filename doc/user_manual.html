@@ -95,8 +95,8 @@ a:hover     {background:#ffffaa;}
 <!--ENDHTML-->
 <!--CUT DEF section 1 --><H1 ALIGN=center>Tsung User’s manual</H1><DIV CLASS="center">
 
-<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>1.4.2</TD></TR>
-<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>August 30, 2012</TD></TR>
+<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>1.5.0</TD></TR>
+<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>September 10, 2012</TD></TR>
 </TABLE>
 </DIV><!--TOC section Contents-->
 <H2 CLASS="section"><!--SEC ANCHOR -->Contents</H2><!--SEC END --><UL CLASS="toc"><LI CLASS="li-toc">
@@ -1452,7 +1452,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 <A NAME="sec:sessions"></A></P><P>Sessions define the content of the scenario itself. They describe
 the requests to execute.</P><P>Each session has a given probability. This is used to decide which
 session a new user will execute. The sum of all session<CODE>'</CODE>s
-probabilities must be 100.</P><P><B>Since Tsung 1.4.3</B>, you can use weights instead of
+probabilities must be 100.</P><P><B>Since Tsung 1.5.0</B>, you can use weights instead of
 probabilities. In the following example, there will be twice as many
 sessions of type s1 than s2.
 </P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -1640,6 +1640,83 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
     &lt;add_cookie key="foo" value="bar"/&gt;
     &lt;add_cookie key="id"  value="123"/&gt;
   &lt;/http&gt;
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><!--TOC paragraph Authentication-->
+<H5 CLASS="paragraph"><!--SEC ANCHOR -->Authentication</H5><!--SEC END --><P>Until Tsung 1.5.0, only Basic authentication was implemented. You can
+now use Digest Authentication and OAuth 1.0.</P><P>To use Digest authentication:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim"> &lt;!-- 1. First request return 401. We use dynvars to fetch nonce and realm --&gt;
+ &lt;request&gt;
+   &lt;dyn_variable name="nonce" header="www-authenticate/nonce"/&gt;
+   &lt;dyn_variable name="realm" header="www-authenticate/realm"/&gt;
+   &lt;http url="/digest" method="GET" version="1.1"/&gt;
+ &lt;/request&gt;
+
+  &lt;!--
+  2. This request will be authenticated. Type="digest" is important.
+  We use the nonce and realm values returned from the previous
+  If the webserver returns the nextnonce we set it to the nonce dynvar
+  for use with the next request.
+  Else it stays set to the old value
+  --&gt;
+  &lt;request subst="true"&gt;
+    &lt;dyn_variable name="nonce" header="authentication-info/nextnonce"/&gt;
+    &lt;http url="/digest" method="GET" version="1.1"&gt;
+      &lt;www_authenticate userid="user" passwd="passwd" type="digest" realm="%%_realm%%" nonce="%%_nonce%%"/&gt;
+    &lt;/http&gt;
+  &lt;/request&gt;
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><P>To use OAuth authentication:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">     &lt;!-- Getting a Request Token --&gt;
+
+      &lt;request&gt;
+        &lt;dyn_variable name="access_token" re="oauth_token=([^&amp;amp;]*)"/&gt;
+        &lt;dyn_variable name="access_token_secret" re="oauth_token_secret=([^&amp;amp;]*)" /&gt;
+        &lt;http url="/oauth/example/request_token.php" method="POST" version="1.1" contents="empty"&gt;
+          &lt;oauth consumer_key="key" consumer_secret="secret"  method="HMAC-SHA1"/&gt;
+        &lt;/http&gt;
+      &lt;/request&gt;
+
+      &lt;!-- Getting an Access Token --&gt;
+
+      &lt;request subst='true'&gt;
+        &lt;dyn_variable name="access_token" re="oauth_token=([^&amp;amp;]*)"/&gt;
+        &lt;dyn_variable name="access_token_secret" re="oauth_token_secret=([^&amp;amp;]*)"/&gt;
+          &lt;http url="/oauth/example/access_token.php" method="POST" version="1.1" contents="empty"&gt;
+          &lt;oauth consumer_key="key" consumer_secret="secret"  method="HMAC-SHA1" access_token="%%_access_token%%" access_token_secret="%%_access_token_secret%%"/&gt;
+        &lt;/http&gt;
+      &lt;/request&gt;
+
+      &lt;!-- Making Authenticated Calls --&gt;
+
+      &lt;request subst="true"&gt;
+        &lt;http url="/oauth/example/echo_api.php" method="GET" version="1.1"&gt;
+         &lt;oauth consumer_key="key" consumer_secret="secret" access_token="%%_access_token%%" access_token_secret="%%_access_token_secret%%"/&gt;
+        &lt;/http&gt;
+      &lt;/request&gt;
 </PRE></TD></TR>
 </TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
@@ -2035,7 +2112,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE><P>Beware: you must encode XML characters like <FONT COLOR=purple>&lt;</FONT>
 ,<FONT COLOR=purple>&gt;</FONT>, <FONT COLOR=purple>&amp;</FONT>, etc.</P><!--TOC paragraph resource-->
 <H5 CLASS="paragraph"><!--SEC ANCHOR -->resource</H5><!--SEC END --><P>By default, the XMPP resource is set to <FONT COLOR=purple>tsung</FONT>. Since
-version 1.4.3, you can override this (in all <TT>auth_*</TT> and
+version 1.5.0, you can override this (in all <TT>auth_*</TT> and
 <TT>register</TT> requests) using the <TT>resource</TT> attribute.</P><!--TOC subsubsection PostgreSQL-->
 <H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc59">6.6.4</A>  PostgreSQL</H4><!--SEC END --><P>For PostgreSQL, 4 types of requests are available:
 </P><OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
