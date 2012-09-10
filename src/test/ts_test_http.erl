@@ -257,6 +257,15 @@ authentication_digest1_test()->
                       digest_opaque = "5ccc069c403ebaf9f0171e9517f40e41"},
     ?assertEqual(OK, lists:flatten(ts_http_common:authenticate(Req))).
 
+
+oauth_test()->
+    myset_env(),
+    Data = <<"HTTP/1.1 200 OK\r\nDate: Mon, 10 Sep 2012 12:26:35 GMT\r\nServer: Apache/2.2.17 (Debian)\r\nX-Powered-By: PHP/5.3.3-7\r\nContent-Length: 55\r\nContent-Type: text/html\r\n\r\noauth_token=requestkey&oauth_token_secret=requestsecret">>,
+
+    ?assertMatch([{'token',<< "requestsecret" >>}], ts_search:parse_dynvar([{re,'token', "oauth_token_secret=([^&]*)"} ],Data)),
+    ?assertMatch([{'token',<< "requestkey" >>}], ts_search:parse_dynvar([{re,'token', "oauth_token=([^&]*)"} ],Data)).
+
+
  myset_env()->
     myset_env(0).
  myset_env(N)->
