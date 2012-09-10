@@ -49,14 +49,17 @@ connect(Host, Port, Opts) ->
 
 loop(#state{socket=none, state=not_connected, host=Host, port=Port, opts=Opts} = State)->
   {ok, Socket} = gen_tcp:connect(Host, Port, opts_to_tcp_opts(Opts)),
-  Handshake = list_to_binary(["GET /xmpp HTTP/1.1\r\n",
+  Handshake = list_to_binary(["GET /chat HTTP/1.1\r\n",
               "Host: ",Host,"\r\n",
               "Connection: Upgrade\r\n",
-              "Sec-WebSocket-Key2: 12998 5 Y3 1  .P00\r\n",
-              "Upgrade: WebSocket\r\n",
-              "Sec-WebSocket-Key1: 4 @1  46546xW%0l 1 5\r\n",
-              "Origin: http://",Host,"\r\n\r\n",
-              "^n:ds[4U"]),
+              "Origin: http://",Host,"\r\n",
+              "Sec-WebSocket-Version: 13\r\n",
+              "Sec-WebSocket-Protocol: xmpp\r\n",
+              "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n",
+              "Pragma: no-cache:\r\n",
+              "Cache-control: no-cache:\r\n",
+              "Upgrade: WebSocket\r\n\r\n"
+              ]),
   gen_tcp:send(Socket,Handshake),
   loop(State#state{socket=Socket, state=waiting_handshake});
 
@@ -88,14 +91,14 @@ loop(#state{parent=Parent, state=connected, socket=Socket}=State)->
       Parent ! {gen_ts_transport, self(), closed};
     {tcp_error, Socket, Error}->
       Parent ! {gen_ts_transport, self(), error, Error};
-    E -> erlang:display({ "Message:", E})
+    E -> ?LOGF("Message:~p~n", [E], ?WARN)
   end.
 
 opts_to_tcp_opts(Opts) -> Opts.
 
 %% send/3 -> ok | {error, Reason}
 send(Socket, Data, _Opts)  ->
-  %erlang:display({ "sending to server:", binary_to_list(Data)}),
+  ?DebugF("sending to server: ~p~n",[Data]),
   Ref = make_ref(),
   Socket ! {send, Data, Ref},
   MonitorRef = erlang:monitor(process,Socket),
@@ -132,7 +135,7 @@ handle_data(<<>>, #state{buffer=none}=State) ->
   loop(State#state{buffer=none});
 
 handle_data(<<255,T/binary>>, #state{parent = Parent, buffer=L}=State) ->
-  erlang:display({ "sending to client:", binary_to_list(iolist_to_binary(L))}),
+    ?LOGF("sending to client:~p~n", [L], ?DEB),
     Parent ! {gen_ts_transport, self(), iolist_to_binary(L)},
     handle_data(T,  State#state{buffer=none});
 
