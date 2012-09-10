@@ -120,7 +120,8 @@ handle_call({accepted, _Tag, ClientSock}, _From, State) ->
     case ts_client_proxy_sup:start_child(ClientSock) of
         {ok, Pid} ->
             ?LOGF("New connection from~p~n", [inet:peername(ClientSock)],?INFO),
-            ok = gen_tcp:controlling_process(ClientSock, Pid);
+            ok = gen_tcp:controlling_process(ClientSock, Pid),
+            ts_client_proxy:set_active(Pid);
         Error ->
             ?LOGF("Failed to launch new client ~p~n",[Error],?ERR),
             gen_tcp:close(ClientSock)
@@ -199,7 +200,7 @@ activate(State=#state{plugin=Plugin})->
         undefined ->
             Portno=?config(proxy_listen_port),
             Opts = lists:append(Plugin:socket_opts(),
-                                [{reuseaddr, true}, {active, once}]),
+                                [{reuseaddr, true}, {active, false}]),
             case gen_tcp:listen(Portno, Opts) of
                 {ok, ServerSock} ->
                     {ok, State#state
