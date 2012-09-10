@@ -171,7 +171,7 @@ add_dynparams(true,  {DynVars, Session}, OldReq=#http_request{url=OldUrl}, HostD
             add_dynparams(Session,Req, HostData);
         "http" ++ Rest -> % URL has changed and is absolute
             URL=ts_config_http:parse_URL(Req#http_request.url),
-            ?LOGF("URL dynamic subst: ~p~n",[URL],?WARN),
+            ?LOGF("URL dynamic subst: ~p~n",[URL],?INFO),
             NewPort = ts_config_http:set_port(URL),
             NewReq  = add_dynparams(Session,
                                     Req#http_request{host_header=undefined},
