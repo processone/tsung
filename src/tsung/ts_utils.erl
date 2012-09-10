@@ -450,8 +450,8 @@ to_https({request, String}) when is_list(String) ->
     Body = string:substr(String, EndOfHeader + 4),
     ReOpts=[global,{return,list}],
     TmpHeader = re:replace(Header,"http://-","https://",ReOpts),
-    TmpHeader2 = re:replace(TmpHeader,"Accept-Encoding: [0-9,a-zA-Z_ ]+\r\n","",ReOpts),
-    RealHeader = re:replace(TmpHeader2,"Host: -","Host: ",ReOpts),
+    TmpHeader2 = re:replace(TmpHeader,"Accept-Encoding: [0-9,a-z_ ]+\r\n","",ReOpts++[caseless]),
+    RealHeader = re:replace(TmpHeader2,"Host: -","Host: ",ReOpts++[caseless]),
     RealBody = re:replace(Body,"http://-","https://",ReOpts),
     RealString = RealHeader++  "\r\n" ++ RealBody,
     {ok, RealString}.
