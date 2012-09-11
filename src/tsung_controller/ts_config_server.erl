@@ -51,7 +51,7 @@
          get_client_config/1, newbeams/1, newbeam/2,
          get_monitor_hosts/0, encode_filename/1, decode_filename/1,
          endlaunching/1, status/0, start_file_server/1, get_user_agents/0,
-         get_client_config/2, get_user_param/1, get_jobs_state/0 ]).
+         get_client_config/2, get_user_param/1, get_user_port/1, get_jobs_state/0 ]).
 
 %%debug
 -export([choose_client_ip/1, choose_session/2]).
@@ -158,6 +158,9 @@ get_next_session(Host)->
 get_user_param(Host)->
     gen_server:call({global, ?MODULE},{get_user_param, Host}).
 
+get_user_port(Ip) ->
+    gen_server:call({global, ?MODULE},{get_user_port, Ip}).
+
 endlaunching(Node) ->
     gen_server:cast({global, ?MODULE},{end_launching, Node}).
 
@@ -262,6 +265,12 @@ handle_call({get_user_param, HostName}, _From, State=#state{users=UserId}) ->
     {IPParam, Server} = get_user_param(Client,Config),
     ts_mon:newclient({static,?NOW}),
     {reply, {ok, { IPParam, Server, UserId,Config#config.dump,Config#config.seed}}, State#state{users=UserId+1}};
+
+%% get  user port. This is needed by bosh, as there are more than one socket per bosh connection.
+handle_call({get_user_port, IP}, _From, State=#state{ports=Ports}) ->
+    Config = State#state.config,
+    {NewPorts,CPort}   = choose_port(IP, Ports,Config#config.ports_range),
+    {reply, {ok, CPort}, State#state{ports = NewPorts}};
 
 %% get a new session id and user parameters for the given node
 handle_call({get_next_session, HostName}, _From, State=#state{users=Users}) ->
@@ -702,6 +711,19 @@ start_slave(Host, Name, Args) when is_atom(Host), is_atom(Name)->
         {error, Reason} ->
             ?LOGF("Can't start newbeam on host ~p (reason: ~p) ! Aborting!~n",[Host, Reason],?EMERG),
             exit({slave_failure, Reason})
+    end.
+choose_port(_,_, undefined) ->
+    {[],0};
+choose_port(Client,undefined, Range) ->
+    choose_port(Client,dict:new(), Range);
+choose_port(ClientIp,Ports, {Min, Max}) ->
+    case dict:find(ClientIp,Ports) of
+        {ok, Val} when Val =< Max ->
+            NewPorts=dict:update_counter(ClientIp,1,Ports),
+            {NewPorts,Val};
+        _ -> % Max Reached or new entry
+            NewPorts=dict:store(ClientIp,Min+1,Ports),
+            {NewPorts,Min}
     end.
 
 choose_port(_,undefined) -> 0;

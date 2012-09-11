@@ -59,12 +59,13 @@ http_get(Args) ->
 http_no_body(Method,#http_request{url=URL, version=Version, cookie=Cookie,
                               headers=Headers, user_agent=UA,
                               get_ims_date=undefined, soap_action=SOAPAction,
-                              host_header=Host, userid=UserId, passwd=Passwd})->
+                              host_header=Host}=Req)->
     ?DebugF("~p ~p~n",[Method,URL]),
     R = list_to_binary([Method, " ", URL," ", "HTTP/", Version, ?CRLF,
                     set_header("Host",Host,Headers, ""),
                     set_header("User-Agent",UA,Headers, ?USER_AGENT),
-                    authenticate(UserId,Passwd),
+                    authenticate(Req),
+                    oauth_sign(Method,Req),
                     soap_action(SOAPAction),
                     set_cookie_header({Cookie, Host, URL}),
                     headers(Headers),
@@ -75,14 +76,15 @@ http_no_body(Method,#http_request{url=URL, version=Version, cookie=Cookie,
 http_no_body(Method,#http_request{url=URL, version=Version, cookie=Cookie,
                              headers=Headers, user_agent=UA,
                              get_ims_date=Date, soap_action=SOAPAction,
-                             host_header=Host, userid=UserId, passwd=Passwd}) ->
+                             host_header=Host}=Req) ->
     ?DebugF("~p ~p~n",[Method, URL]),
     list_to_binary([Method, " ", URL," ", "HTTP/", Version, ?CRLF,
                     ["If-Modified-Since: ", Date, ?CRLF],
                     set_header("Host",Host,Headers, ""),
                     set_header("User-Agent",UA,Headers, ?USER_AGENT),
                     soap_action(SOAPAction),
-                    authenticate(UserId,Passwd),
+                    authenticate(Req),
+                    oauth_sign(Method,Req),
                     set_cookie_header({Cookie, Host, URL}),
                     headers(Headers),
                     ?CRLF]).
@@ -101,15 +103,15 @@ http_body(Method,#http_request{url=URL, version=Version,
                                cookie=Cookie, headers=Headers,
                                user_agent=UA, soap_action=SOAPAction,
                                content_type=ContentType,
-                               body=Content, host_header=Host,
-                               userid=UserId, passwd=Passwd}) ->
+                               body=Content, host_header=Host}=Req) ->
     ContentLength=integer_to_list(size(Content)),
     ?DebugF("Content Length of POST: ~p~n.", [ContentLength]),
     H = [Method, " ", URL," ", "HTTP/", Version, ?CRLF,
                set_header("Host",Host,Headers, ""),
                set_header("User-Agent",UA,Headers, ?USER_AGENT),
-               authenticate(UserId,Passwd),
+               authenticate(Req),
                soap_action(SOAPAction),
+               oauth_sign(Method, Req),
                set_cookie_header({Cookie, Host, URL}),
                headers(Headers),
                "Content-Type: ", ContentType, ?CRLF,
@@ -122,11 +124,65 @@ http_body(Method,#http_request{url=URL, version=Version,
 %%----------------------------------------------------------------------
 %% some HTTP headers functions
 %%----------------------------------------------------------------------
-authenticate(undefined,_)-> [];
-authenticate(_,undefined)-> [];
-authenticate(UserId,Passwd)->
+authenticate(#http_request{userid=undefined})-> [];
+authenticate(#http_request{passwd=undefined})-> [];
+authenticate(#http_request{passwd=Passwd, auth_type="basic",userid=UserId})->
     AuthStr = ts_utils:encode_base64(lists:append([UserId,":",Passwd])),
-    ["Authorization: Basic ",AuthStr,?CRLF].
+    ["Authorization: Basic ",AuthStr,?CRLF];
+
+authenticate(#http_request{method=Method, passwd=Passwd,userid=UserId,
+                           auth_type="digest", realm=Realm,
+                           digest_cnonce=CNonce, digest_nc=NC, digest_qop=QOP,
+                           digest_nonce=Nonce, digest_opaque=Opaque,
+                           url=URL
+                            }) ->
+    HA1 = md5_hex(string:join([UserId, Realm, Passwd], ":")),
+    HA2 = md5_hex(string:join([string:to_upper(atom_to_list(Method)), URL], ":")),
+    Response = digest_response({HA1, Nonce,NC, CNonce,QOP,HA2}),
+    digest_header(UserId,Realm,Nonce,URL,QOP,NC,CNonce,Response,Opaque).
+
+digest_header(User,Realm,Nonce,URI, QOP,NC,CNonce, Response,Opaque) ->
+    Acc= ["Authorization: Digest "
+          "username=\"",User,"\", ",
+          "realm=\"", Realm, "\", ",
+          "nonce=\"", Nonce, "\", ",
+          "uri=\"", URI, "\", ",
+          "response=\"", Response, "\""],
+    digest_header_opt(Acc, QOP, NC, CNonce, Opaque).
+
+%% qop and opaque are undefined
+digest_header_opt(Acc, undefined, _NC, _CNonce, undefined) ->
+    [Acc, ?CRLF];
+
+digest_header_opt(Acc, QOP, NC, CNonce, Opaque) when is_list(Opaque)->
+     NewAcc=[Acc,", opaque=\"",Opaque,"\""],
+    digest_header_opt(NewAcc,QOP,NC,CNonce,undefined);
+
+digest_header_opt(Acc, QOP, NC, CNonce,undefined) ->
+    NewAcc=[Acc,", qop=\"",QOP,"\"",
+                ", nc=", NC,
+                ", cnonce=\"", CNonce, "\""
+           ],
+    digest_header_opt(NewAcc,undefined,"","",undefined).
+
+digest_response({HA1,Nonce, _NC, _CNonce, undefined, HA2})-> %qop undefined
+    md5_hex(string:join([HA1, Nonce, HA2], ":"));
+digest_response({HA1,Nonce, NC, CNonce, QOP, HA2})->
+    md5_hex(string:join([HA1,Nonce,NC,CNonce,QOP,HA2], ":")).
+
+md5_hex(String)->
+    lists:flatten([io_lib:format("~2.16.0b",[N])||N<-binary_to_list(erlang:md5(String))]).
+
+
+oauth_sign(_, #http_request{oauth_consumer = undefined})->[];
+oauth_sign(Method, #http_request{url=URL,
+                         oauth_consumer=Consumer,
+                         oauth_access_token=AccessToken,
+                         oauth_access_secret=AccessSecret,
+                         oauth_url=ServerURL})->
+    UrlParams = oauth_uri:params_from_string(URL),
+    Params = oauth:signed_params(Method, ServerURL, UrlParams, Consumer, AccessToken, AccessSecret),
+    ["Authorization: OAuth ", oauth_uri:params_to_header_string(Params),?CRLF].
 
 %%----------------------------------------------------------------------
 %% @spec set_header(Name::string, Val::string | undefined, Headers::List,

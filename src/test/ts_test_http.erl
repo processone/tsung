@@ -81,7 +81,7 @@ subst_redirect_proto_test()->
     Rep=ts_http:add_dynparams(true,{DynVars, Proto},
                                   #http_request{url=URL},
                                   {"erlang.org",80,gen_tcp6}),
-    ?assertMatch({_,{"erlang.org",80,gen_tcp6}}, Rep).
+    ?assertMatch({_,{"erlang.org",80,ts_tcp6}}, Rep).
 
 subst_cookie_test()->
     myset_env(),
@@ -240,6 +240,31 @@ compress_chunk_test()->
     Data3= <<"0\r\n\r\n" >>,
     Data= <<Data1/binary, A/binary, Data2/binary, B/binary, Data3/binary>>,
     ?assertEqual(<< "HTTP header\r\nHeader: value\r\nTransfer-Encoding: chunked\r\n\r\nsesame ouvre toi" >>, ts_http:decode_buffer(Data, #http{chunk_toread=-2, compressed={false,gzip}})).
+
+authentication_basic_test()->
+    Base="QWxhZGRpbjpvcGVuIHNlc2FtZQ==",
+    ?assertEqual(["Authorization: Basic ",Base,?CRLF], ts_http_common:authenticate(#http_request{userid="Aladdin", auth_type="basic",passwd="open sesame"})).
+
+authentication_digest1_test()->
+    OK="Authorization: Digest username=\"Mufasa\", realm=\"testrealm@host.com\", nonce=\"dcd98b7102dd2f0e8b11d0f600bfb0c093\", uri=\"/dir/index.html\", response=\"6629fae49393a05397450978507c4ef1\", opaque=\"5ccc069c403ebaf9f0171e9517f40e41\", qop=\"auth\", nc=00000001, cnonce=\"0a4f113b\"\r\n",
+
+    Req=#http_request{userid="Mufasa", auth_type="digest",passwd="Circle Of Life",
+                      realm ="testrealm@host.com", url="/dir/index.html",
+                      digest_qop    = "auth",
+                      digest_nonce  = "dcd98b7102dd2f0e8b11d0f600bfb0c093",
+                      digest_nc = "00000001",
+                      digest_cnonce = "0a4f113b",
+                      digest_opaque = "5ccc069c403ebaf9f0171e9517f40e41"},
+    ?assertEqual(OK, lists:flatten(ts_http_common:authenticate(Req))).
+
+
+oauth_test()->
+    myset_env(),
+    Data = <<"HTTP/1.1 200 OK\r\nDate: Mon, 10 Sep 2012 12:26:35 GMT\r\nServer: Apache/2.2.17 (Debian)\r\nX-Powered-By: PHP/5.3.3-7\r\nContent-Length: 55\r\nContent-Type: text/html\r\n\r\noauth_token=requestkey&oauth_token_secret=requestsecret">>,
+
+    ?assertMatch([{'token',<< "requestsecret" >>}], ts_search:parse_dynvar([{re,'token', "oauth_token_secret=([^&]*)"} ],Data)),
+    ?assertMatch([{'token',<< "requestkey" >>}], ts_search:parse_dynvar([{re,'token', "oauth_token=([^&]*)"} ],Data)).
+
 
  myset_env()->
     myset_env(0).

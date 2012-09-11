@@ -102,7 +102,7 @@ parse(Element = #xmlElement{parents = [], attributes=Attrs}, Conf=#config{}) ->
 parse(Element = #xmlElement{name=server, attributes=Attrs}, Conf=#config{servers=ServerList}) ->
     Server = getAttr(Attrs, host),
     Port   = getAttr(integer, Attrs, port),
-    Type = set_net_type(getAttr(Attrs, type)),
+    Type   = set_net_type(getAttr(Attrs, type)),
 
     lists:foldl(fun parse/2,
         Conf#config{servers = [#server{host=Server,
@@ -510,31 +510,29 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
       Conf=#config{sessions=[CurS|_],dynvar=DynVars}) ->
     StrName  = ts_utils:clean_str(getAttr(Attrs, name)),
     {ok, [{atom,1,Name}],1} = erl_scan:string("'"++StrName++"'"),
-    {Type,Expr} = case {getAttr(string,Attrs,regexp,none),
-                        getAttr(string,Attrs,re,none),
+    {Type,Expr} = case {getAttr(string,Attrs,re,none),
                         getAttr(string,Attrs,pgsql_expr,none),
                         getAttr(string,Attrs,xpath,none),
+                        getAttr(string,Attrs,header,none),
                        getAttr(string,Attrs,jsonpath,none)} of
                       {none,none,none,none,none} ->
                           DefaultRegExp = ?DEF_RE_DYNVAR_BEGIN ++ StrName
                               ++?DEF_RE_DYNVAR_END,
                           {re,DefaultRegExp};
-                      {none,none,none,XPath,none} ->
-                          {xpath,XPath};
-                      {none,none,none,none,JSONPath} ->
-                          {jsonpath,JSONPath};
-                      {none,none,PG,none,none} ->
-                          {pgsql_expr,PG};
-                      {none,RE,none,none,none} ->
+                      {RE,none,none,none, none} ->
                           {re,RE};
-                      {RegExp,_,_,_,_} ->
-                          {regexp,RegExp}
+                      {none,PG,none,none, none} ->
+                          {pgsql_expr,PG};
+                      {none,none,XPath,none,none} ->
+                          {xpath,XPath};
+                      {none,none,none,AuthHeader,none} ->
+                          {header, AuthHeader};
+                      {none,none,none,none,JSONPath} ->
+                          {jsonpath,JSONPath}
                   end,
     FlattenExpr =lists:flatten(Expr),
     %% precompilation of the exp
     DynVar = case Type of
-                 regexp ->
-                     exit({error, regexp_obsolete_use_re});
                  re ->
                      ?LOGF("Add new re: ~s ~n", [Expr],?INFO),
                      {ok, CompiledRegExp} = re:compile(FlattenExpr),
@@ -1017,13 +1015,16 @@ read_stdio(eof, Data)->
 read_stdio(Data,Acc) ->
     read_stdio(io:get_line(""),[Acc,Data]).
 
-set_net_type("tcp")   -> gen_tcp;
-set_net_type("tcp6")  -> gen_tcp6;
-set_net_type("udp")   -> gen_udp;
-set_net_type("udp6")  -> gen_udp6;
-set_net_type("ssl")   -> ssl;
-set_net_type("ssl6")  -> ssl6;
-set_net_type("erlang")-> erlang.
+set_net_type("tcp")   -> ts_tcp;
+set_net_type("tcp6")  -> ts_tcp6;
+set_net_type("udp")   -> ts_udp;
+set_net_type("udp6")  -> ts_udp6;
+set_net_type("ssl")   -> ts_ssl;
+set_net_type("ssl6")  -> ts_ssl6;
+set_net_type("websocket")  -> ts_websocket;
+set_net_type("bosh")  -> ts_bosh;
+set_net_type("bosh_ssl") -> ts_bosh_ssl;
+set_net_type("erlang") -> erlang.
 
 get_dynvar_name(VarNameStr) ->
     %% check if the var name is for an array (myvar[N])

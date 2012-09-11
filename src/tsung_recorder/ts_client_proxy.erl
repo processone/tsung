@@ -45,7 +45,7 @@
 
 %%--------------------------------------------------------------------
 %% External exports
--export([start/1]).
+-export([start/1, set_active/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
@@ -60,6 +60,10 @@
 %%--------------------------------------------------------------------
 start(Socket) ->
     gen_server:start_link(?MODULE, [Socket], []).
+
+%% tells the client to activate socket
+set_active(Pid) ->
+    gen_server:cast(Pid, {set_active}).
 
 %%====================================================================
 %% Server functions
@@ -99,6 +103,10 @@ handle_call(_Request, _From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
+handle_cast({set_active}, State=#proxy{clientsock=Socket}) ->
+    ts_utils:inet_setopts(tcp, Socket,[{active, once}]),
+    {noreply, State};
+
 handle_cast(_Msg, State) ->
     {noreply, State}.
 

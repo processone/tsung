@@ -1,8 +1,8 @@
 %%%
-%%%  Copyright 2009 © INRIA
+%%%  Copyright 2012 Â© Nicolas Niclausse
 %%%
-%%%  Author : Nicolas Niclausse <nniclaus@sophia.inria.fr>
-%%%  Created: 20 août 2009 by Nicolas Niclausse <nniclaus@sophia.inria.fr>
+%%%  Author : Nicolas Niclausse <nicolas.nniclausse@niclux.org>
+%%%  Created: 7 sep 2012 by Nicolas Niclausse <nicolas.nniclausse@niclux.org>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
 %%%  it under the terms of the GNU General Public License as published by
@@ -23,49 +23,35 @@
 %%%  the EPL license and distribute linked combinations including
 %%%  the two.
 
--module(ts_erlang).
--vc('$Id: ts_erlang.erl,v 0.0 2009/08/20 16:31:58 nniclaus Exp $ ').
--author('nniclaus@sophia.inria.fr').
+-module(ts_udp6).
+
+-export([ connect/3, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2 ]).
 
 -behaviour(gen_ts_transport).
 
--define(TIMEOUT,36000000). % 1 hour
-
 -include("ts_profile.hrl").
+-include("ts_config.hrl").
 
--export([ connect/3, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2,
-          client/4]).
-
-client(MasterPid,Server,Port,Opts)->
-    receive
-        {Module, Fun, Args, _Size} ->
-            Res=apply(Module,Fun,Args),
-            MasterPid ! {erlang,self(),{Module,Fun,Args,Res}},
-            client(MasterPid,Server,Port,Opts)
-    after ?TIMEOUT ->
-            MasterPid ! timeout
-    end.
-
-
-protocol_options(_Opts) ->
-   [].
+protocol_options(Opts) ->
+    [inet6] ++ ts_udp:protocol_options(Opts).
 
 %% -> {ok, Socket}
-connect(Host, Port, Opts) ->
-    Pid=spawn_link(ts_erlang,client,[self(),Host,Port,Opts]),
-    {ok, Pid}.
+connect(_Host, _Port, Opts) ->
+    gen_udp:open(0, Opts).
 
 %% send/3 -> ok | {error, Reason}
-send(Pid, Data, _Opts)  ->
-    Pid ! Data,
-    ok.
+send(Socket, Data, Opts)  ->
+    ts_udp:send(Socket, Data, Opts).
 
-close(_Socket) -> ok.
+close(Socket) ->
+    ts_udp:close(Socket).
 
-set_opts(Socket, _Opts) ->
+% set_opts/2 -> socket()
+set_opts(Socket, Opts) ->
+    inet:setopts(Socket, Opts),
     Socket.
 
 normalize_incomming_data(Socket, Data) ->
-    {gen_ts_transport, Socket, Data}.
+    ts_udp:normalize_incomming_data(Socket,Data).
 
 

@@ -201,10 +201,27 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %%          {next_state, StateName, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-%% inet data
-handle_info({NetEvent, _Socket, Data}, wait_ack, State=#state_rcv{rate_limit=TokenParam})
-  when NetEvent==tcp; NetEvent==ssl ->
-    ?DebugF("TCP data received: size=~p ~n",[size(Data)]),
+%% received data
+handle_info({erlang, _Socket, Data}, wait_ack, State) ->
+    ?DebugF("erlang function result received: size=~p ~n",[size(term_to_binary(Data))]),
+    case handle_data_msg(Data, State) of
+        {NewState=#state_rcv{ack_done=true}, _Opts} ->
+            handle_next_action(NewState#state_rcv{ack_done=false});
+        {NewState, _Opts} ->
+            TimeOut = case (NewState#state_rcv.request)#ts_request.ack of
+                global ->
+                    (NewState#state_rcv.proto_opts)#proto_opts.global_ack_timeout;
+                _ ->
+                    (NewState#state_rcv.proto_opts)#proto_opts.idle_timeout
+            end,
+            {next_state, wait_ack, NewState, TimeOut}
+    end;
+
+handle_info(Info, StateName, State = #state_rcv{protocol = Transport, socket = Socket}) ->
+    handle_info2(Transport:normalize_incomming_data(Socket, Info), StateName, State).
+
+handle_info2({gen_ts_transport, _Socket, Data}, wait_ack, State=#state_rcv{rate_limit=TokenParam}) when is_binary(Data)->
+    ?DebugF("data received: size=~p ~n",[size(Data)]),
     NewTokenParam = case TokenParam of
                         undefined ->
                             undefined;
@@ -229,28 +246,10 @@ handle_info({NetEvent, _Socket, Data}, wait_ack, State=#state_rcv{rate_limit=Tok
             end,
             {next_state, wait_ack, NewState#state_rcv{socket=NewSocket,rate_limit=NewTokenParam}, TimeOut}
     end;
-handle_info({erlang, _Socket, Data}, wait_ack, State) ->
-    ?DebugF("erlang function result received: size=~p ~n",[size(term_to_binary(Data))]),
-    case handle_data_msg(Data, State) of
-        {NewState=#state_rcv{ack_done=true}, _Opts} ->
-            handle_next_action(NewState#state_rcv{ack_done=false});
-        {NewState, _Opts} ->
-            TimeOut = case (NewState#state_rcv.request)#ts_request.ack of
-                global ->
-                    (NewState#state_rcv.proto_opts)#proto_opts.global_ack_timeout;
-                _ ->
-                    (NewState#state_rcv.proto_opts)#proto_opts.idle_timeout
-            end,
-            {next_state, wait_ack, NewState, TimeOut}
-    end;
-handle_info({udp, Socket,_IP,_InPortNo, Data}, StateName, State) ->
-    ?DebugF("UDP packet received: size=~p ~n",[size(Data)]),
-    %% we don't care about IP,InPortNo, do the same as for a tcp connection:
-    handle_info({tcp, Socket, Data}, StateName, State);
+
 %% inet close messages; persistent session, waiting for ack
-handle_info({NetEvent, _Socket}, wait_ack,
-            State = #state_rcv{persistent=true}) when NetEvent==tcp_closed;
-                                                      NetEvent==ssl_closed ->
+handle_info2({gen_ts_transport, _Socket, closed}, wait_ack,
+            State = #state_rcv{persistent=true})  ->
     ?LOG("connection closed while waiting for ack",?INFO),
     set_connected_status(false),
     {NewState, _Opts} = handle_data_msg(closed, State),
@@ -258,49 +257,46 @@ handle_info({NetEvent, _Socket}, wait_ack,
     handle_next_action(NewState#state_rcv{socket=none});
 
 %% inet close messages; persistent session
-handle_info({NetEvent, Socket}, think,
-            State = #state_rcv{persistent=true}) when NetEvent==tcp_closed;
-                                                      NetEvent==ssl_closed ->
+handle_info2({gen_ts_transport, _Socket, closed}, think,
+            State = #state_rcv{persistent=true})  ->
     ?LOG("connection closed, stay alive (persistent)",?INFO),
     set_connected_status(false),
-    catch ts_utils:close_socket(State#state_rcv.protocol, Socket), % mandatory for ssl
+    catch (State#state_rcv.protocol):close(State#state_rcv.socket), % mandatory for ssl
     {next_state, think, State#state_rcv{socket = none}};
 
 %% inet close messages
-handle_info({NetEvent, Socket}, _StateName, State) when NetEvent==tcp_closed;
-                                                       NetEvent==ssl_closed ->
+handle_info2({gen_ts_transport, _Socket, closed}, _StateName, State) ->
     ?LOG("connection closed, abort", ?WARN),
     %% the connexion was closed after the last msg was sent, stop quietly
     ts_mon:add({ count, error_closed }),
     set_connected_status(false),
-    ts_utils:close_socket(State#state_rcv.protocol, Socket), % mandatory for ssl
+    catch (State#state_rcv.protocol):close(State#state_rcv.socket), % mandatory for ssl
     {stop, normal, State#state_rcv{socket = none}};
 
 %% inet errors
-handle_info({NetError, _Socket, Reason}, wait_ack, State)  when NetError==tcp_error;
-                                                               NetError==ssl_error ->
-    ?LOGF("Net error (~p): ~p~n",[NetError, Reason], ?WARN),
+handle_info2({gen_ts_transport, _Socket, error, Reason}, _StateName, State)  ->
+    ?LOGF("Net error: ~p~n",[Reason], ?WARN),
     CountName="error_inet_"++atom_to_list(Reason),
     ts_mon:add({ count, list_to_atom(CountName) }),
     set_connected_status(false),
     {stop, normal, State};
 
 %% timer expires, no more messages to send
-handle_info({timeout, _Ref, end_thinktime}, think, State= #state_rcv{ count=0 })  ->
+handle_info2({timeout, _Ref, end_thinktime}, think, State= #state_rcv{ count=0 })  ->
     ?LOG("Session ending ~n", ?INFO),
     {stop, normal, State};
 
 %% the timer expires
-handle_info({timeout, _Ref, end_thinktime}, think, State ) ->
+handle_info2({timeout, _Ref, end_thinktime}, think, State ) ->
     handle_next_action(State);
 
-handle_info(timeout, StateName, State ) ->
+handle_info2(timeout, StateName, State ) ->
     ?LOGF("Error: timeout receive in state ~p~n",[StateName], ?ERR),
     ts_mon:add({ count, timeout }),
     {stop, normal, State};
 % bidirectional protocol
-handle_info({NetEvent, Socket, Data}, think,State=#state_rcv{
-  clienttype=Type, bidi=true,host=Host,port=Port})  when ((NetEvent == tcp) or (NetEvent==ssl)) ->
+handle_info2({gen_ts_transport, Socket, Data}, think,State=#state_rcv{
+  clienttype=Type, bidi=true,host=Host,port=Port})  ->
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     ts_mon:add({ sum, size_rcv, size(Data)}),
     Proto = State#state_rcv.protocol,
@@ -317,31 +313,29 @@ handle_info({NetEvent, Socket, Data}, think,State=#state_rcv{
                        send(Proto,Socket,Data2,Host,Port), %FIXME: handle errors ?
                        State2
                end,
-    NewSocket = ts_utils:inet_setopts(Proto, State#state_rcv.socket,
-                                      [{active, once}]),
+    NewSocket = (NewState#state_rcv.protocol):set_opts(NewState#state_rcv.socket, [{active, once}]),
     {next_state, think, NewState#state_rcv{socket=NewSocket}};
 % bidi is false, but parse is also false: continue even if we get data
-handle_info({NetEvent, _Socket, Data}, think, State = #state_rcv{request=Req} )
-  when (Req#ts_request.ack /= parse) and ((NetEvent == tcp) or (NetEvent==ssl)) ->
+handle_info2({gen_ts_transport, Socket, Data}, think, State = #state_rcv{request=Req} )
+  when (Req#ts_request.ack /= parse) ->
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     ts_mon:add({ sum, size_rcv, size(Data)}),
     ?LOGF("Data receive from socket in state think, ack=~p, skip~n",
           [Req#ts_request.ack],?NOTICE),
     ?DebugF("Data was ~p~n",[Data]),
-    NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol, State#state_rcv.socket,
-                                      [{active, once}]),
+    NewSocket = (State#state_rcv.protocol):set_opts(Socket, [{active, once}]),
     {next_state, think, State#state_rcv{socket=NewSocket}};
-handle_info({NetEvent, _Socket, Data}, think, State)
-  when (NetEvent == tcp) or (NetEvent==ssl) ->
+handle_info2({gen_ts_transport, _Socket, Data}, think, State) ->
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     ts_mon:add({ count, error_unknown_data }),
     ?LOG("Data receive from socket in state think, stop~n", ?ERR),
     ?DebugF("Data was ~p~n",[Data]),
     {stop, normal, State};
-handle_info({inet_reply, _Socket,ok}, StateName, State ) ->
+%% pablo TODO:  when this could happen??
+handle_info2({inet_reply, _Socket,ok}, StateName, State ) ->
     ?LOGF("inet_reply ok received in state ~p~n",[StateName],?NOTICE),
     {next_state, StateName, State};
-handle_info(Msg, StateName, State ) ->
+handle_info2(Msg, StateName, State ) ->
     ?LOGF("Error: Unknown msg ~p receive in state ~p, stop~n", [Msg,StateName], ?ERR),
     ts_mon:add({ count, error_unknown_msg }),
     {stop, normal, State}.
@@ -429,7 +423,7 @@ handle_next_action(State) ->
                 true -> % keep state
                     put({state, State#state_rcv.clienttype} , {State#state_rcv.socket,State#state_rcv.session});
                 false -> % don't keep state of old type, close connection
-                    ts_utils:close_socket(State#state_rcv.protocol, State#state_rcv.socket),
+                    (State#state_rcv.protocol):close(State#state_rcv.socket),
                     set_connected_status(false)
             end,
             {Socket,Session} = case {Restore, get({state,NewCType})} of
@@ -669,7 +663,6 @@ jump_if(false,_Target,DynVars) -> {next,DynVars}.
 handle_next_request(Request, State) ->
     Count = State#state_rcv.count-1,
     Type  = State#state_rcv.clienttype,
-
     {PrevHost, PrevPort, PrevProto} = case Request of
         #ts_request{host=undefined, port=undefined, scheme=undefined} ->
             %% host/port/scheme not defined in request, use the current ones.
@@ -689,15 +682,17 @@ handle_next_request(Request, State) ->
             P ->
                 {P, {PrevHost, PrevPort, PrevProto}}
         end,
-
     %% need to reconnect if the server/port/scheme has changed
-    Socket = case {State#state_rcv.host,State#state_rcv.port,State#state_rcv.protocol} of
-                 {Host, Port, Protocol} -> % server setup unchanged
+    Socket = case {State#state_rcv.host,State#state_rcv.port,State#state_rcv.protocol, State#state_rcv.socket} of
+                 {Host, Port, Protocol, _} -> % server setup unchanged
                      State#state_rcv.socket;
+                 {_,_,_, none} ->
+                     ?Debug("Change server configuration inside a session. Socket not opened~n"),
+                     set_connected_status(false),
+                     none;
                  _ ->
                      ?Debug("Change server configuration inside a session ~n"),
-                     ts_utils:close_socket(State#state_rcv.protocol,
-                                           State#state_rcv.socket),
+                     (State#state_rcv.protocol):close(State#state_rcv.socket),
                      set_connected_status(false),
                      none
              end,
@@ -812,7 +807,7 @@ finish_session(State) ->
 handle_close_while_sending(State=#state_rcv{persistent = true,
                                             protocol   = Proto,
                                             proto_opts = PO})->
-    ts_utils:close_socket(Proto, State#state_rcv.socket),
+    Proto:close(State#state_rcv.socket),
     set_connected_status(false),
     Think = PO#proto_opts.retry_timeout,
     %%FIXME: report the error to ts_mon ?
@@ -906,7 +901,7 @@ reconnect(Socket, _Server, _Port, _Protocol, _IP) ->
 
 
 %% set options for local socket ip/ports
-socket_opts({0,0,0,0}, CPort, Proto) when Proto==gen_tcp6 orelse Proto==ssl6 orelse Proto==gen_udp6 ->
+socket_opts({0,0,0,0}, CPort, Proto) when Proto==ts_tcp6 orelse Proto==ts_ssl6 orelse Proto==ts_udp6 ->
     %% the config server was not aware if we are using ipv6 or ipv4,
     %% and it set the local IP to be default one; we need to change it
     %% for ipv6
@@ -919,64 +914,18 @@ socket_opts(IP, CPort, _)->
 %% Purpose: wrapper function for send
 %% Return: ok | {error, Reason}
 %%----------------------------------------------------------------------
-send(gen_tcp,Socket,Message,_,_)        -> gen_tcp:send(Socket,Message);
-send(ssl,Socket,Message,_,_)            -> ssl:send(Socket,Message);
-send(gen_udp,Socket,Message,Host,Port)  ->gen_udp:send(Socket,Host,Port,Message);
-% ipv6
-send(gen_tcp6,Socket,Message,_,_)       -> gen_tcp:send(Socket,Message);
-send(ssl6,Socket,Message,_,_)           -> ssl:send(Socket,Message);
-send(gen_udp6,Socket,Message,Host,Port) ->gen_udp:send(Socket,Host,Port,Message);
-send(erlang,Pid,Message,_,_) ->
-    Pid ! Message,
-    ok.
+send(Proto, Socket, Message, Host, Port)  ->
+    Proto:send(Socket, Message, [{host, Host}, {port, Port}]).
 
-%%----------------------------------------------------------------------
-%% Func: connect/4
-%% Return: {ok, Socket} | {error, Reason}
-%%----------------------------------------------------------------------
-connect(gen_tcp,Server, Port, Opts)   -> gen_tcp:connect(Server, Port, Opts);
-connect(ssl,Server, Port,Opts)        -> ssl:connect(Server, Port, Opts);
-connect(gen_udp,_Server, _Port, Opts) -> gen_udp:open(0,Opts);
-connect(gen_tcp6,Server, Port, Opts)  -> gen_tcp:connect(Server, Port, Opts);
-connect(ssl6,Server, Port,Opts)       -> ssl:connect(Server, Port, Opts);
-connect(gen_udp6,_Server, _Port, Opts)-> gen_udp:open(0,Opts);
-connect(erlang,Server,Port,Opts)      ->
-    Pid=spawn_link(ts_erlang,client,[self(),Server,Port,Opts]),
-    {ok, Pid}.
-
+connect(Proto, Server, Port, Opts) ->
+    Proto:connect(Server, Port, Opts).
 
 %%----------------------------------------------------------------------
 %% Func: protocol_options/1
 %% Purpose: set connection's options for the given protocol
 %%----------------------------------------------------------------------
-protocol_options(ssl6,Val) ->
-    [inet6]++protocol_options(ssl,Val);
-protocol_options(ssl,#proto_opts{ssl_ciphers=negociate}) ->
-    [binary, {active, once} ];
-protocol_options(ssl,#proto_opts{ssl_ciphers=Ciphers}) ->
-    ?DebugF("cipher is ~p~n",[Ciphers]),
-    [binary, {active, once}, {ciphers, Ciphers} ];
-
-protocol_options(gen_tcp6,Val) ->
-    [inet6]++protocol_options(gen_tcp,Val);
-protocol_options(gen_tcp,#proto_opts{tcp_rcv_size=Rcv, tcp_snd_size=Snd}) ->
-    [binary,
-     {active, once},
-     {recbuf, Rcv},
-     {sndbuf, Snd},
-     {keepalive, true} %% FIXME: should be an option
-    ];
-protocol_options(gen_udp6,Val) ->
-    [inet6]++protocol_options(gen_udp,Val);
-protocol_options(gen_udp,#proto_opts{udp_rcv_size=Rcv, udp_snd_size=Snd}) ->
-    [binary,
-     {active, once},
-     {recbuf, Rcv},
-     {sndbuf, Snd}
-    ];
-protocol_options(erlang,_) -> [].
-
-
+protocol_options(Proto, #proto_opts{} = ProtoOpts) ->
+    Proto:protocol_options(ProtoOpts).
 
 %%----------------------------------------------------------------------
 %% Func: set_thinktime/1
@@ -1031,7 +980,7 @@ handle_data_msg(Data,State=#state_rcv{dump=Dump,request=Req,id=Id,clienttype=Typ
             case Close of
                 true ->
                     ?Debug("Close connection required by protocol~n"),
-                    ts_utils:close_socket(State#state_rcv.protocol,State#state_rcv.socket),
+                    (State#state_rcv.protocol):close(State#state_rcv.socket),
                     set_connected_status(false),
                     {NewState#state_rcv{ page_timestamp = PageTimeStamp,
                                          socket = none,

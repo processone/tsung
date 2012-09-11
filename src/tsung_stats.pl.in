@@ -98,6 +98,7 @@ my $imgdir  = "images"; # all data files are created in this subdirectory
 my $gplotdir = "gnuplot_scripts"; # all data files are created in this subdirectory
 my $csvdir  = "csv_data"; # all data files are created in this subdirectory
 my $http; # true if http. add status code graphs in the HTML output
+my $bosh; # true if bosh. add bosh specific graphs in the HTML output
 
 my @dydirs = ($csvdir);
 my @gnuplotdirs=($gplotdir, $imgdir);
@@ -443,6 +444,7 @@ sub parse_stats_file {
     my @time;
     my @errors;
     my @tps;
+    my @bosh_tps;
     my @code;
     my %extra_info = ();
     my @session;
@@ -498,6 +500,9 @@ sub parse_stats_file {
             push @async, "$key.txt";
         } elsif ($key =~ /request$/ or $key eq "connect" or $key eq "async_rcv") {
             push @tps, "$key.txt";
+        } elsif ($key eq "bosh_http_conn" or $key eq "bosh_http_req") {
+	    $bosh = 1;
+            push @bosh_tps, "$key.txt";
         } elsif ($key =~ /^tr_/ or $key eq "page") {
             push @transactions, "$key.txt";
         } elsif ($key =~ /^\d+$/) {
@@ -514,6 +519,7 @@ sub parse_stats_file {
   if (not $dygraph) {
     plot_stats(\@col,\@col,"Session",undef,\@session,["sessions/sec"],$logy) unless $noplot;
     plot_stats(\@colcount,["HTTP Code Response rate","total"], "HTTP_CODE",undef,\@code,["number/sec","total"],$logy) if not $noplot and @code;
+    plot_stats(\@colcount,\@colcount,"Bosh",undef,\@bosh_tps,["rate"],$logy) unless $noplot;
     plot_stats(\@col,["Request and tcp/udp connection rate","Mean request (and connection) duration","stddev","max_sample","min_sample"],"Perfs",undef,\@tps,["Requests rate (r/sec)","Requests duration (msec)"],$logy) unless $noplot;
     plot_stats(\@col,["Transaction and page rate", "Mean transaction and page duration","stddev","max_sample","min_sample"],"Transactions",undef,\@transactions,["transactions/sec","Transaction duration (msec)"],$logy) unless $noplot;
     plot_stats(\@colcount,\@colcount,"Match",undef,\@match,["rate","rate"],$logy) unless $noplot;
@@ -526,6 +532,7 @@ sub parse_stats_file {
   } else {
     plot_stats_dygraph(\@col,"Session",undef,\@session,["sessions/sec"],$logy) unless $noplot;
     plot_stats_dygraph(\@colcount,"HTTP_CODE",undef,\@code,["number/sec","total"],$logy) if not $noplot and @code;
+    plot_stats_dygraph(\@colcount,"Bosh",undef,\@bosh_tps,["rate"],$logy) if not $noplot and @bosh_tps;
     plot_stats_dygraph(\@col,"Perfs",undef,\@tps,["rate","msec"],$logy) unless $noplot;
     plot_stats_dygraph(\@col,"Transactions",undef,\@transactions,["transactions/sec","msec"],$logy) unless $noplot;
     plot_stats_dygraph(\@colcount,"Match",undef,\@match,["rate","rate"],$logy) unless $noplot;
@@ -615,6 +622,7 @@ sub html_report {
          http        => $http,
          match       => $match,
          async       => $async,
+         bosh       => $bosh,
          title       => $titre,
          subtitle    => "Graphs Report",
          stats_subtitle => "Stats Report ",

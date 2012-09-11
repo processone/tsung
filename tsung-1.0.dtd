@@ -20,7 +20,7 @@
 <!ATTLIST server
      host NMTOKEN #REQUIRED
      port NMTOKEN #REQUIRED
-     type (ssl | tcp | udp | erlang | ssl6 | tcp6 | udp6) #REQUIRED>
+     type (ssl | tcp | udp | erlang | ssl6 | tcp6 | udp6 |bosh | bosh_ssl | websocket) #REQUIRED>
 
 <!ELEMENT clients (client+)>
 <!ELEMENT client (ip*) >
@@ -173,7 +173,7 @@ repeat | if | change_type | foreach | set_option | interaction )*>
           | if | foreach | interaction )+>
 <!ATTLIST transaction name NMTOKEN #REQUIRED>
 
-<!ELEMENT http ( www_authenticate?, soap?, http_header*, add_cookie*)>
+<!ELEMENT http (oauth?, www_authenticate?, soap?, http_header*, add_cookie*)>
 <!ATTLIST http
     contents           CDATA #IMPLIED
     contents_from_file CDATA #IMPLIED
@@ -193,7 +193,8 @@ repeat | if | change_type | foreach | set_option | interaction )*>
     re         CDATA #IMPLIED
     jsonpath   CDATA #IMPLIED
     pgsql_expr CDATA #IMPLIED
-    regexp     CDATA #IMPLIED >
+    regexp     CDATA #IMPLIED
+    header     CDATA #IMPLIED >
 
 <!ELEMENT http_header EMPTY >
 <!ATTLIST http_header
@@ -211,7 +212,21 @@ repeat | if | change_type | foreach | set_option | interaction )*>
 <!ELEMENT www_authenticate EMPTY >
 <!ATTLIST www_authenticate
     passwd CDATA #REQUIRED
-    userid CDATA #REQUIRED >
+    userid CDATA #REQUIRED
+    nonce  CDATA #IMPLIED
+    opaque CDATA #IMPLIED
+    cnonce  CDATA #IMPLIED
+    nc CDATA #IMPLIED
+    realm CDATA #IMPLIED
+    type (basic | digest) "basic" >
+
+<!ELEMENT oauth EMPTY >
+<!ATTLIST oauth
+    consumer_key CDATA #REQUIRED
+    consumer_secret CDATA #REQUIRED
+    access_token CDATA #IMPLIED
+    access_token_secret CDATA #IMPLIED
+    method  (HMAC-SHA1 | PLAINTEXT | RSA-SHA1) "HMAC-SHA1">
 
 <!ELEMENT jabber (xmpp_authenticate?) >
 <!ATTLIST jabber
@@ -227,6 +242,7 @@ repeat | if | change_type | foreach | set_option | interaction )*>
     room        CDATA #IMPLIED
     group       CDATA #IMPLIED
     node        CDATA #IMPLIED
+    send_version (true | false) "false"
     regexp      CDATA #IMPLIED
     resource    CDATA "tsung"
     node_type   CDATA #IMPLIED

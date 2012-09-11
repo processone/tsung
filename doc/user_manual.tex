@@ -14,7 +14,7 @@
 %\addauthor{Nicolas}{Niclausse}{nicolas.niclausse@niclux.org}
 
 \doccopyright{Nicolas Niclausse.}
-\docversion{1.4.2}
+\docversion{1.5.0}
 \docreldate{\date{}}
 \docref{tsung-user-manual}
 
@@ -171,7 +171,7 @@ distribution (currently exponential)
 \item Cookies: Automatic cookies management( but you can also manually
   add more cookies)
 \item \verb|'|GET If-modified since\verb|'| type of request
-\item WWW-authentication Basic
+\item WWW-authentication Basic and Digest. OAuth 1.0
 \item User Agent support
 \item Any HTTP Headers can be added
 \item Proxy mode to record sessions using a Web browser
@@ -196,12 +196,13 @@ are also supported):
 \subsection{Jabber/XMPP related features}
 
 \begin{itemize}
-\item Authentication (plain-text, digest and sip-digest)
+\item Authentication (plain-text, digest and sip-digest). STARTTLS
 \item presence and register messages
 \item Chat messages to online or offline users
 \item MUC: join room, send message in room, change nickname
 \item Roster set and get requests
 \item Global users\verb|'| synchronization can be set on specific actions
+\item BOSH \& XMPP over Websocket
 \item raw XML messages
 \item PubSub
 \item Multiple vhost instances supported
@@ -1187,7 +1188,7 @@ Each session has a given probability. This is used to decide which
 session a new user will execute. The sum of all session\verb|'|s
 probabilities must be 100.
 
-\strong{Since Tsung 1.4.3}, you can use weights instead of
+\strong{Since Tsung 1.5.0}, you can use weights instead of
 probabilities. In the following example, there will be twice as many
 sessions of type s1 than s2.
 \begin{Verbatim}
@@ -1312,6 +1313,68 @@ cookie is not persistent: you must add it in every \varname{<requests>}:
     <add_cookie key="foo" value="bar"/>
     <add_cookie key="id"  value="123"/>
   </http>
+\end{Verbatim}
+
+\paragraph{Authentication}
+
+Until Tsung 1.5.0, only Basic authentication was implemented. You can
+now use Digest Authentication and OAuth 1.0.
+
+To use Digest authentication:
+
+\begin{Verbatim}
+ <!-- 1. First request return 401. We use dynvars to fetch nonce and realm -->
+ <request>
+   <dyn_variable name="nonce" header="www-authenticate/nonce"/>
+   <dyn_variable name="realm" header="www-authenticate/realm"/>
+   <http url="/digest" method="GET" version="1.1"/>
+ </request>
+
+  <!--
+  2. This request will be authenticated. Type="digest" is important.
+  We use the nonce and realm values returned from the previous
+  If the webserver returns the nextnonce we set it to the nonce dynvar
+  for use with the next request.
+  Else it stays set to the old value
+  -->
+  <request subst="true">
+    <dyn_variable name="nonce" header="authentication-info/nextnonce"/>
+    <http url="/digest" method="GET" version="1.1">
+      <www_authenticate userid="user" passwd="passwd" type="digest" realm="%%_realm%%" nonce="%%_nonce%%"/>
+    </http>
+  </request>
+\end{Verbatim}
+
+To use OAuth authentication:
+
+\begin{Verbatim}
+     <!-- Getting a Request Token -->
+
+      <request>
+        <dyn_variable name="access_token" re="oauth_token=([^&amp;]*)"/>
+        <dyn_variable name="access_token_secret" re="oauth_token_secret=([^&amp;]*)" />
+        <http url="/oauth/example/request_token.php" method="POST" version="1.1" contents="empty">
+          <oauth consumer_key="key" consumer_secret="secret"  method="HMAC-SHA1"/>
+        </http>
+      </request>
+
+      <!-- Getting an Access Token -->
+
+      <request subst='true'>
+        <dyn_variable name="access_token" re="oauth_token=([^&amp;]*)"/>
+        <dyn_variable name="access_token_secret" re="oauth_token_secret=([^&amp;]*)"/>
+          <http url="/oauth/example/access_token.php" method="POST" version="1.1" contents="empty">
+          <oauth consumer_key="key" consumer_secret="secret"  method="HMAC-SHA1" access_token="%%_access_token%%" access_token_secret="%%_access_token_secret%%"/>
+        </http>
+      </request>
+
+      <!-- Making Authenticated Calls -->
+
+      <request subst="true">
+        <http url="/oauth/example/echo_api.php" method="GET" version="1.1">
+         <oauth consumer_key="key" consumer_secret="secret" access_token="%%_access_token%%" access_token_secret="%%_access_token_secret%%"/>
+        </http>
+      </request>
 \end{Verbatim}
 
 \subsubsection{Jabber/XMPP}
@@ -1639,7 +1702,7 @@ Beware: you must encode XML characters like \userinput{<}
 \paragraph{resource}
 
 By default, the XMPP resource is set to \userinput{tsung}. Since
-version 1.4.3, you can override this (in all \varname{auth\_*} and
+version 1.5.0, you can override this (in all \varname{auth\_*} and
 \varname{register} requests) using the \varname{resource} attribute.
 
 \subsubsection{PostgreSQL}

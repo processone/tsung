@@ -34,7 +34,7 @@
 %% user interface
 -export([debug/3, debug/4, get_val/1, init_seed/0, chop/1, elapsed/2,
          now_sec/0, node_to_hostname/1, add_time/2, keyumerge/3, key1search/2,
-         level2int/1, mkey1search/2, close_socket/2, datestr/0, datestr/1,
+         level2int/1, mkey1search/2, datestr/0, datestr/1,
          erl_system_args/0, erl_system_args/1, setsubdir/1, export_text/1,
          foreach_parallel/2, spawn_par/3, inet_setopts/3, resolve/2,
          stop_all/2, stop_all/3, stop_all/4, join/2, split/2, split2/2, split2/3,
@@ -253,15 +253,6 @@ mkey1search(List, Key) ->
         Results -> lists:reverse(Results)
     end.
 
-%% close socket if it exists
-close_socket(_Protocol, none) -> ok;
-close_socket(gen_tcp, Socket) -> gen_tcp:close(Socket);
-close_socket(gen_tcp6, Socket)-> gen_tcp:close(Socket);
-close_socket(ssl, Socket)     -> ssl:close(Socket);
-close_socket(ssl6, Socket)    -> ssl:close(Socket);
-close_socket(gen_udp, Socket) -> gen_udp:close(Socket);
-close_socket(gen_udp6, Socket)-> gen_udp:close(Socket).
-
 %%----------------------------------------------------------------------
 %% datestr/0
 %% Purpose: print date as a string 'YYYYMMDD-HHMM'
@@ -459,8 +450,8 @@ to_https({request, String}) when is_list(String) ->
     Body = string:substr(String, EndOfHeader + 4),
     ReOpts=[global,{return,list}],
     TmpHeader = re:replace(Header,"http://-","https://",ReOpts),
-    TmpHeader2 = re:replace(TmpHeader,"Accept-Encoding: [0-9,a-zA-Z_ ]+\r\n","",ReOpts),
-    RealHeader = re:replace(TmpHeader2,"Host: -","Host: ",ReOpts),
+    TmpHeader2 = re:replace(TmpHeader,"Accept-Encoding: [0-9,a-z_ ]+\r\n","",ReOpts++[caseless]),
+    RealHeader = re:replace(TmpHeader2,"Host: -","Host: ",ReOpts++[caseless]),
     RealBody = re:replace(Body,"http://-","https://",ReOpts),
     RealString = RealHeader++  "\r\n" ++ RealBody,
     {ok, RealString}.

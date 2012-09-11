@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<!DOCTYPE tsung SYSTEM "@prefix@/share/@PACKAGE_NAME@/@DTD@">
+<tsung loglevel="debug" dumptraffic="true" version="1.0">
+
+  <clients>
+    <client host="localhost" weight="1" maxusers="1000" use_controller_vm="true"/>
+  </clients>
+
+  <servers>
+    <server host="localhost" port="443" type="ssl"></server>
+  </servers>
+
+	<load>
+   <arrivalphase phase="1" duration="1" unit="second">
+    <users interarrival="1" unit="second"></users>
+   </arrivalphase>
+  </load>
+
+  <sessions>
+    <session name="http_test_1" probability="100" type="ts_http">
+      <!--
+          1. First request return 401. We use dynvars to fetch nonce and realm
+      -->
+      <request>
+        <dyn_variable name="nonce" header="www-authenticate/nonce"/>
+        <dyn_variable name="realm" header="www-authenticate/realm"/>
+        <http url="/digest" method="GET" version="1.1">
+        </http>
+      </request>
+      <!--
+          2. This request will be authenticated. Type="digest" is important.
+          We use the nonce and realm values returned from the previous
+          If the webserver returns the nextnonce we set it to the nonce dynvar
+          for use with the next request.
+          Else it stays set to the old value
+      -->
+      <request subst="true">
+        <dyn_variable name="nonce" header="authentication-info/nextnonce"/>
+        <http url="/digest" method="GET" version="1.1">
+          <www_authenticate userid="user" passwd="passwd" type="digest" realm="%%_realm%%" nonce="%%_nonce%%"/>
+          <!--<www_authenticate userid="user" passwd="passwd" type="digest" realm="%%_realm%%" nonce="%%_nonce%%" nc="00000001" cnonce="%%ts_user_server:get_really_unique_id%%"/>-->
+        </http>
+      </request>
+
+      <!--
+          2. This request will still be authenticated
+      -->
+      <request subst="true">
+        <dyn_variable name="nonce" header="authentication-info/nextnonce"/>
+        <http url="/digest" method="GET" version="1.1">
+          <www_authenticate userid="user" passwd="passwd" type="digest" realm="%%_realm%%" nonce="%%_nonce%%"/>
+        </http>
+      </request>
+    </session>
+</sessions>
+
+</tsung>

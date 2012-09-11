@@ -38,11 +38,22 @@
           body = [],
           id = 0,
           user_agent,
+          oauth_consumer,
+          oauth_access_token,
+          oauth_access_secret,
+          oauth_url,
           userid, % for www_authentication
           passwd, % for www_authentication
+          auth_type,
+          digest_nonce,
+          digest_opaque,
+          digest_cnonce,
+          digest_nc,
+          digest_qop,
+          realm,
           soap_action % for SOAP support
          }).
- 
+
 -record(url,
         {scheme,          %% http, https, ...
          host,
