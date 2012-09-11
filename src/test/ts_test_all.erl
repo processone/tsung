@@ -26,4 +26,6 @@ all_test_() -> [ts_test_recorder,
                 ts_test_mon,
                 ts_test_user_server,
                 ts_test_search,
-                ts_test_stats].
+                ts_test_stats,
+                ts_test_interaction
+               ].

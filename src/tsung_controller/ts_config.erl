@@ -358,8 +358,8 @@ parse(Element = #xmlElement{name=session, attributes=Attrs},
     Name        = getAttr(Attrs, name),
     ?LOGF("Session name for id ~p is ~p~n",[Id+1, Name],?NOTICE),
     ?LOGF("Session type: persistent=~p, bidi=~p~n",[Persistent,Bidi],?INFO),
-    Probability = getAttr(float_or_integer, Attrs, probability, 0),
-    Weight      = getAttr(float_or_integer, Attrs, weight, 0),
+    Probability = getAttr(float_or_integer, Attrs, probability, -1),
+    Weight      = getAttr(float_or_integer, Attrs, weight, -1),
     {Popularity, NewUseWeights, NewTotal} = get_popularity(Probability, Weight, Conf#config.use_weights,Conf#config.total_popularity),
     NewSList = case SList of
                    [] -> []; % first session
@@ -570,6 +570,17 @@ parse( #xmlElement{name=change_type, attributes=Attrs},
     Conf#config{main_sess_type=SessType, curid=Id+1,
                 sessions=[CurS#session{type=CType}|Other] };
 
+
+parse( #xmlElement{name=interaction, attributes=Attrs},
+      Conf = #config{sessions=[CurS|_Other], curid=Id,session_tab = Tab}) ->
+
+    Action   = list_to_atom(getAttr(string, Attrs, action, "send")),
+    RawId = getAttr(Attrs, id),
+    {ok, [{atom,1,IdInteraction}],1} = erl_scan:string("tr_"++RawId),
+
+    ets:insert(Tab,{{CurS#session.id, Id+1}, {interaction, Action, IdInteraction}}),
+    ?LOGF("Parse  interaction  ~p:~p ~n",[Action,Id],?NOTICE),
+    Conf#config{curid=Id+1 };
 
 parse( Element = #xmlElement{name=set_option, attributes=Attrs},
       Conf = #config{sessions=[CurS|_Other], curid=Id,session_tab = Tab}) ->
@@ -1025,13 +1036,15 @@ get_dynvar_name(VarNameStr) ->
 %% @spec get_popularity(Proba::number(),Weight::number(),UseWeight:true|false|undefined, Total::number()) ->
 %%   {Value::number(), UseWeight:boolean(),  Total:: number()}
 %% check if we are using popularity or weights; keep the total up to date.
-get_popularity(Proba,Weight,_,_) when is_number(Proba), Proba > 0, is_number(Weight), Weight > 0 ->
+get_popularity(-1, -1, _, _)->
+    erlang:error({"must set weight or probability in session"});
+get_popularity(Proba,Weight,_,_) when is_number(Proba), Proba >= 0, is_number(Weight), Weight >= 0 ->
     erlang:error({"can't mix probabilites and weights", Proba, Weight} );
-get_popularity(Proba, _Weight, true,_)     when is_number(Proba), Proba > 0->
+get_popularity(Proba, _Weight, true,_)     when is_number(Proba), Proba >= 0->
     erlang:error({"can't use probability when using weight"});
-get_popularity(_, Weight, false,_)        when is_number(Weight), Weight > 0->
+get_popularity(_, Weight, false,_)        when is_number(Weight), Weight >= 0->
     erlang:error({"can't use weights when using probabilities"});
-get_popularity(_, Weight, undefined,_)    when is_number(Weight), Weight > 0 ->
+get_popularity(_, Weight, undefined,_)    when is_number(Weight), Weight >= 0 ->
     {Weight, true, Weight};
 get_popularity(Proba, _, undefined,Total) when is_number(Proba) ->
     {Proba, false, Proba+Total};

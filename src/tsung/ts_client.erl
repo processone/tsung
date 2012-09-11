@@ -448,6 +448,12 @@ handle_next_action(State) ->
         {set_option, Type, Name, Args} ->
             NewState=Type:set_option(Name,Args,State),
             handle_next_action(NewState);
+        {interaction, send, Id} ->
+            ts_interaction_server:send({ts_search:subst(Id, State#state_rcv.dynvars),?NOW}),
+            handle_next_action(State#state_rcv{count=Count});
+        {interaction, 'receive', Id} ->
+            ts_interaction_server:rcv({ts_search:subst(Id, State#state_rcv.dynvars),?NOW}),
+            handle_next_action(State#state_rcv{count=Count});
         Other ->
             ?LOGF("Error: set profile return value is ~p (count=~p)~n",[Other,Count],?ERR),
             {stop, set_profile_error, State}

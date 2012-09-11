@@ -19,14 +19,16 @@ test()->
 
 popularity_test() ->
     ?assertError({"can't mix probabilites and weights",10,10}, ts_config:get_popularity(10,10,undefined,100)),
-    ?assertError({"can't use probability when using weight"}, ts_config:get_popularity(10,0,true,100)),
-    ?assertError({"can't use weights when using probabilities"}, ts_config:get_popularity(0,10,false,100)),
-    ?assertEqual({10,false,110}, ts_config:get_popularity(10,0,false,100)),
-    ?assertEqual({10,true,110}, ts_config:get_popularity(0,10,true,100)),
-    ?assertEqual({30,false,60}, ts_config:get_popularity(30,0,false,30)),
-    ?assertEqual({0,false,100}, ts_config:get_popularity(0,0,undefined,100)),
-    ?assertEqual({0,true,100}, ts_config:get_popularity(0,0,true,100)),
-    ?assertEqual({0,false,100}, ts_config:get_popularity(0,0,false,100)).
+    ?assertError({"can't use probability when using weight"}, ts_config:get_popularity(10,-1,true,100)),
+    ?assertError({"can't use weights when using probabilities"}, ts_config:get_popularity(-1,10,false,100)),
+    ?assertEqual({10,false,110}, ts_config:get_popularity(10,-1,false,100)),
+    ?assertEqual({10,true,110}, ts_config:get_popularity(-1,10,true,100)),
+    ?assertEqual({30,false,60}, ts_config:get_popularity(30,-1,false,30)),
+    ?assertError({"must set weight or probability in session"} , ts_config:get_popularity(-1,-1,undefined,100)),
+    ?assertError({"can't mix probabilites and weights",0,0}, ts_config:get_popularity(0,0,true,100)),
+    ?assertError({"can't mix probabilites and weights",0,0}, ts_config:get_popularity(0,0,false,100)),
+    ?assertEqual({0,true,100}, ts_config:get_popularity(-1,0,true,100)),
+    ?assertEqual({0,false,100}, ts_config:get_popularity(0,-1,false,100)).
 
 read_config_http_test() ->
     myset_env(),

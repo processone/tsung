@@ -85,9 +85,11 @@ init([LogDir]) ->
                  supervisor,[ts_user_server_sup]},
     Notify = {ts_job_notify, {ts_job_notify, start_link, []}, transient, 2000,
                worker, [ts_job_notify]},
+    Interaction = {ts_interaction_server, {ts_interaction_server, start, []}, transient, 2000,
+                   worker, [ts_interaction_server]},
     {ok,{{one_for_one,?retries,10},
          [Config, Mon, Stats_Mon, Request_Mon, Page_Mon, Connect_Mon, Transaction_Mon,
-          Match_Log, Timer, Msg, Notify,UserSup, ErlangSup, MuninSup,SNMPSup]}}.
+          Match_Log, Timer, Msg, Notify, Interaction, UserSup, ErlangSup, MuninSup,SNMPSup]}}.
 
 %%%----------------------------------------------------------------------
 %%% Internal functions
