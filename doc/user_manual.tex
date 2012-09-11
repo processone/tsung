@@ -2551,26 +2551,26 @@ Example output file with JSON:
  {"timestamp": 1317413861,  "samples": [
    {"name": "users", "value": 0, "max": 1},
    {"name": "load", "hostname": "requiem", "value": 1, "mean":
-     0.0,"stdvar": 0,"max": 0.0,"min": 0.0 ,"global_mean": 0
+     0.0,"stddev": 0,"max": 0.0,"min": 0.0 ,"global_mean": 0
      ,"global_count": 0},
    {"name": "freemem", "hostname": "requiem", "value": 1, "mean":
-     2249.32421875,"stdvar": 0,"max": 2249.32421875,"min":
+     2249.32421875,"stddev": 0,"max": 2249.32421875,"min":
      2249.32421875 ,"global_mean": 0 ,"global_count": 0},
    {"name": "cpu", "hostname": "requiem", "value": 1, "mean":
-     4.790419161676647,"stdvar": 0,"max": 4.790419161676647,"min":
+     4.790419161676647,"stddev": 0,"max": 4.790419161676647,"min":
      4.790419161676647 ,"global_mean": 0 ,"global_count": 0},
-   {"name": "session", "value": 1, "mean": 387.864990234375,"stdvar":
+   {"name": "session", "value": 1, "mean": 387.864990234375,"stddev":
      0,"max":  387.864990234375,"min": 387.864990234375
      ,"global_mean": 0 ,"global_count": 0},
    {"name": "users_count", "value": 1, "total": 1},
    {"name": "finish_users_count", "value": 1, "total": 1},
-   {"name": "request", "value": 5, "mean": 75.331787109375,"stdvar":
+   {"name": "request", "value": 5, "mean": 75.331787109375,"stddev":
      46.689242405019954,"max":  168.708984375,"min": 51.744873046875
      ,"global_mean": 0 ,"global_count": 0},
-   {"name": "page", "value": 1, "mean": 380.7548828125,"stdvar":
+   {"name": "page", "value": 1, "mean": 380.7548828125,"stddev":
      0.0,"max":  380.7548828125,"min": 380.7548828125 ,"global_mean":
      0 ,"global_count": 0},
-   {"name": "connect", "value": 1, "mean": 116.70703125,"stdvar":
+   {"name": "connect", "value": 1, "mean": 116.70703125,"stddev":
      0.0,"max":  116.70703125,"min": 116.70703125 ,"global_mean": 0
      ,"global_count": 0},
    {"name": "size_rcv", "value": 703, "total": 703},
@@ -2970,7 +2970,7 @@ stats: size_sent 150660 498530
  the format is, for \varname{request}, \varname{page},
  \varname{session} and transactions (\varname{tr\_XXX}:
 
- \texttt{ \# stats:'name' 10sec\_count, 10sec\_mean, 10sec\_stdvar,
+ \texttt{ \# stats:'name' 10sec\_count, 10sec\_mean, 10sec\_stddev,
    max, min, mean, count}
 
  or for HTTP returns code, size ...

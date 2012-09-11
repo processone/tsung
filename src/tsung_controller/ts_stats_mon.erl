@@ -280,10 +280,10 @@ print_stats({_,_,_}, 0, {Backend,0, Logfile})-> % no data yet
 print_stats({{Name,Node},Type},Value,{json,Res,Log}) when (Type =:= sample) orelse (Type =:= sample_counter) ->
     [_,Host] = string:tokens(Node,"@"),
     print_stats_txt({Name,Type,", {\"name\": \"~p\", \"hostname\": \"" ++ Host
-                     ++"\", \"value\": ~p, \"mean\": ~p,\"stdvar\": ~p,\"max\": ~p,\"min\": ~p ,\"global_mean\": ~p ,\"global_count\": ~p}"},Value,{json,Res,Log});
+                     ++"\", \"value\": ~p, \"mean\": ~p,\"stddev\": ~p,\"max\": ~p,\"min\": ~p ,\"global_mean\": ~p ,\"global_count\": ~p}"},Value,{json,Res,Log});
 
 print_stats({Name,Type},Value,{json,Res,Log}) when (Type =:= sample) orelse (Type =:= sample_counter) ->
-    print_stats_txt({Name,Type,", {\"name\": \"~p\", \"value\": ~p, \"mean\": ~p,\"stdvar\": ~p,\"max\":  ~p,\"min\": ~p ,\"global_mean\": ~p ,\"global_count\": ~p}"},Value,{json,Res,Log});
+    print_stats_txt({Name,Type,", {\"name\": \"~p\", \"value\": ~p, \"mean\": ~p,\"stddev\": ~p,\"max\":  ~p,\"min\": ~p ,\"global_mean\": ~p ,\"global_count\": ~p}"},Value,{json,Res,Log});
 
 print_stats({Name,Type},Value,Other) when Type =:= sample orelse Type =:= sample_counter ->
     print_stats_txt({Name,Type,"stats: ~p ~p ~p ~p ~p ~p ~p ~p~n"},Value,Other);
@@ -306,9 +306,9 @@ print_stats_txt({Name,_,Format}, [Mean,0,Max,Min,Count,MeanFB,CountFB|_], {Backe
               [Name, Count, Mean, 0, Max, Min,MeanFB,CountFB ]),
     {Backend,LastRes, Logfile};
 print_stats_txt({Name,_,Format},[Mean,Var,Max,Min,Count,MeanFB,CountFB|_],{Backend,LastRes,Logfile})->
-    StdVar = math:sqrt(Var/Count),
+    StdDev = math:sqrt(Var/Count),
     io:format(Logfile, Format,
-              [Name, Count, Mean, StdVar, Max, Min, MeanFB,CountFB]),
+              [Name, Count, Mean, StdDev, Max, Min, MeanFB,CountFB]),
     {Backend,LastRes, Logfile};
 print_stats_txt({Name, _,Format}, [Value,Last], {Backend,LastRes, Logfile}) ->
     io:format(Logfile, Format, [Name, Value, Last ]),

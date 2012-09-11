@@ -371,7 +371,7 @@ sub parse_stats_file {
             } else {
                 $type =~ s/\{(\S+)\,\"(\S+)\"\}/$1:os_mon\@$2/g;
             }
-            my ($rate,$mean,$stdvar,$max,$min,$meanfb,$countfb) = split(/\s+/,$values);
+            my ($rate,$mean,$stddev,$max,$min,$meanfb,$countfb) = split(/\s+/,$values);
             if ($type =~ /^cpu:/ ) {
                 next if $values =~ /^0/; # skip when no data is available
                 next if $mean > $CPU_MAX; # skip bad value
@@ -458,7 +458,7 @@ sub parse_stats_file {
         print "warn, last interval ($interval) not equal to the first, use the first one ($first_interval)\n";
         $interval=$first_interval;
     }
-  my @col = ("rate","mean","stdvar","max_sample","min_sample"); #session, perfs et transaction
+  my @col = ("rate","mean","stddev","max_sample","min_sample"); #session, perfs et transaction
   my @colcount = ("rate","total"); #http_code match, event, errirn users_arrivaln size
   my @colusers = ("simultaneous","maximum_simultaneous"); #users
   my @colasync = ("rate","total");			  #async
@@ -514,8 +514,8 @@ sub parse_stats_file {
   if (not $dygraph) {
     plot_stats(\@col,\@col,"Session",undef,\@session,["sessions/sec"],$logy) unless $noplot;
     plot_stats(\@colcount,["HTTP Code Response rate","total"], "HTTP_CODE",undef,\@code,["number/sec","total"],$logy) if not $noplot and @code;
-    plot_stats(\@col,["Request and tcp/udp connection rate","Mean request (and connection) duration","stdvar","max_sample","min_sample"],"Perfs",undef,\@tps,["Requests rate (r/sec)","Requests duration (msec)"],$logy) unless $noplot;
-    plot_stats(\@col,["Transaction and page rate", "Mean transaction and page duration","stdvar","max_sample","min_sample"],"Transactions",undef,\@transactions,["transactions/sec","Transaction duration (msec)"],$logy) unless $noplot;
+    plot_stats(\@col,["Request and tcp/udp connection rate","Mean request (and connection) duration","stddev","max_sample","min_sample"],"Perfs",undef,\@tps,["Requests rate (r/sec)","Requests duration (msec)"],$logy) unless $noplot;
+    plot_stats(\@col,["Transaction and page rate", "Mean transaction and page duration","stddev","max_sample","min_sample"],"Transactions",undef,\@transactions,["transactions/sec","Transaction duration (msec)"],$logy) unless $noplot;
     plot_stats(\@colcount,\@colcount,"Match",undef,\@match,["rate","rate"],$logy) unless $noplot;
     plot_stats(\@colcount,\@colcount,"Event",undef,\@time,["rate","msec"],$logy) unless $noplot;
     plot_stats(\@colasync,\@colasync,"Async",undef,\@async,["rate","rate"],$logy) unless $noplot;

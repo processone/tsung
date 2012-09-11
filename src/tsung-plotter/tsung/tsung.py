@@ -79,7 +79,7 @@ class sample(data):
 
         self.count  = float(values[0])
         self.mean   = float(values[1])
-        self.stdvar = float(values[2])
+        self.stddev = float(values[2])
         self.min    = float(values[3])
         self.max    = float(values[4])
         self.gmean  = float(values[5])
@@ -87,7 +87,7 @@ class sample(data):
     def __repr__(self):
         """ human readable output """
         return "sample: %s %s %s %s %s" % (self.value, self.mean,
-                                           self.stdvar, self.min, self.max, self.gmean)
+                                           self.stddev, self.min, self.max, self.gmean)
 
 class counter(data):
     """ tsung counter stats """
