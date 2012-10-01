@@ -230,9 +230,8 @@ handle_info2({gen_ts_transport, _Socket, Data}, wait_ack, State=#state_rcv{rate_
                             TokenParam#token_bucket{current_size=S1, last_packet_date=?NOW}
                     end,
     {NewState, Opts} = handle_data_msg(Data, State),
-    NewSocket = ts_utils:inet_setopts(NewState#state_rcv.protocol,
-                                      NewState#state_rcv.socket,
-                                      [{active, once} | Opts]),
+    NewSocket = (NewState#state_rcv.protocol):set_opts(NewState#state_rcv.socket,
+                                                       [{active, once} | Opts]),
     case NewState#state_rcv.ack_done of
         true ->
             handle_next_action(NewState#state_rcv{socket=NewSocket,rate_limit=NewTokenParam,

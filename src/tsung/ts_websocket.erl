@@ -1,7 +1,6 @@
-%%%
-%%%  Copyright 2010 © ProcessOne
-%%%
-%%%  Author : Eric Cestari <ecestari@mac.com>
+%%%  This code was developped by IDEALX (http://IDEALX.org/) and
+%%%  contributors (their names can be found in the CONTRIBUTORS file).
+%%%  Copyright (C) 2000-2001 IDEALX
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
 %%%  it under the terms of the GNU General Public License as published by
@@ -22,125 +21,145 @@
 %%%  the EPL license and distribute linked combinations including
 %%%  the two.
 
+-module(ts_websocket).
 
--module (ts_websocket).
+-vc('$Id$ ').
+-author('jzhihui521@gmail.com').
 
--export([ connect/3, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2 ]).
-
--behaviour(gen_ts_transport).
+-behavior(ts_plugin).
 
 -include("ts_profile.hrl").
 -include("ts_config.hrl").
+-include("ts_websocket.hrl").
 
--record (state, {parent, host, port, opts, socket=none, buffer = none, state=not_connected}).
-
-protocol_options(#proto_opts{tcp_rcv_size=Rcv, tcp_snd_size=Snd}) ->
-    [binary,
-     {active, once},
-     {recbuf, Rcv},
-     {sndbuf, Snd},
-     {keepalive, true} %% FIXME: should be an option
-    ].
-
-connect(Host, Port, Opts) ->
-    Parent = self(),
-    Pid = spawn_link(fun()-> loop(#state{parent = Parent, host=Host,port = Port, opts = Opts}) end),
-    {ok, Pid}.
-
-loop(#state{socket=none, state=not_connected, host=Host, port=Port, opts=Opts} = State)->
-  {ok, Socket} = gen_tcp:connect(Host, Port, opts_to_tcp_opts(Opts)),
-  Handshake = list_to_binary(["GET /chat HTTP/1.1\r\n",
-              "Host: ",Host,"\r\n",
-              "Connection: Upgrade\r\n",
-              "Origin: http://",Host,"\r\n",
-              "Sec-WebSocket-Version: 13\r\n",
-              "Sec-WebSocket-Protocol: xmpp\r\n",
-              "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n",
-              "Pragma: no-cache:\r\n",
-              "Cache-control: no-cache:\r\n",
-              "Upgrade: WebSocket\r\n\r\n"
-              ]),
-  gen_tcp:send(Socket,Handshake),
-  loop(State#state{socket=Socket, state=waiting_handshake});
-
-loop(#state{parent = Parent, state=waiting_handshake, socket = Socket}=State)->
-  receive
-    {tcp, Socket, _Data}->
-      inet:setopts(Socket, [{active, once}]),
-      loop(State#state{state=connected});
-    {tcp_closed, Socket}->
-      Parent ! {gen_ts_transport, self(), closed};
-    {tcp_error, Socket, Error}->
-      Parent ! {gen_ts_transport, self(), error, Error}
-  end;
-
-loop(#state{parent=Parent, state=connected, socket=Socket}=State)->
-  receive
-    {send, Data, Ref} ->
-      gen_tcp:send(Socket, iolist_to_binary([0,Data,255])),
-      Parent ! {ok, Ref},
-      loop(State);
-    close ->
-      gen_tcp:close(Socket);
-    {set_opts, Opts} ->
-      inet:setopts(Socket, Opts),
-      loop(State);
-    {tcp, Socket, Data}->
-      handle_data(Data, State);
-    {tcp_closed, Socket}->
-      Parent ! {gen_ts_transport, self(), closed};
-    {tcp_error, Socket, Error}->
-      Parent ! {gen_ts_transport, self(), error, Error};
-    E -> ?LOGF("Message:~p~n", [E], ?WARN)
-  end.
-
-opts_to_tcp_opts(Opts) -> Opts.
-
-%% send/3 -> ok | {error, Reason}
-send(Socket, Data, _Opts)  ->
-  ?DebugF("sending to server: ~p~n",[Data]),
-  Ref = make_ref(),
-  Socket ! {send, Data, Ref},
-  MonitorRef = erlang:monitor(process,Socket),
-  receive
-    {'DOWN', MonitorRef, _Type, _Object, _Info} ->
-      {error, no_ws_connection};
-    {ok, Ref} ->
-      erlang:demonitor(MonitorRef),
-      ok
-  after
-    30000 ->
-      erlang:demonitor(MonitorRef),
-      {error, timeout}
-  end.
-
-close(Socket) ->
-    Socket ! close.
-
-% set_opts/2 -> socket()
-set_opts(Socket, Opts) ->
-    Socket ! {set_opts, Opts},
-    Socket.
+-export([add_dynparams/4,
+         get_message/2,
+         session_defaults/0,
+         parse/2,
+         dump/2,
+         parse_bidi/2,
+         parse_config/2,
+         decode_buffer/2,
+         new_session/0]).
 
 
-normalize_incomming_data(_Socket, X) ->
-  X. %% nothing to do here, ts_websocket uses a special process to handle http requests,
-     %% the incoming data is already delivered to ts_client as {gen_ts_transport, ..} instead of gen_tcp | ssl
+%%----------------------------------------------------------------------
+%% Function: session_default/0
+%% Purpose: default parameters for session
+%% Returns: {ok, ack_type = parse|no_ack|local, persistent = true|false} 
+%%----------------------------------------------------------------------
+session_defaults() ->
+    {ok, true}.
 
-% Buffering and data handling
-handle_data(<<0,T/binary>>, #state{buffer=none}=State) ->
-    handle_data(T, State#state{buffer= <<>>});
+%% @spec decode_buffer(Buffer::binary(),Session::record(jabber)) -> 
+%%      NewBuffer::binary()
+%% @doc We need to decode buffer (remove chunks, decompress ...) for
+%%      matching or dyn_variables
+%% @end
+decode_buffer(Buffer,#websocket_session{}) ->
+    Buffer. % nothing to do for websocket
 
-handle_data(<<>>, #state{buffer=none}=State) ->
-  loop(State#state{buffer=none});
+%%----------------------------------------------------------------------
+%% Function: new_session/0
+%% Purpose: initialize session information
+%% Returns: record or []
+%%----------------------------------------------------------------------
+new_session() ->
+    #websocket_session{}.
 
-handle_data(<<255,T/binary>>, #state{parent = Parent, buffer=L}=State) ->
-    ?LOGF("sending to client:~p~n", [L], ?DEB),
-    Parent ! {gen_ts_transport, self(), iolist_to_binary(L)},
-    handle_data(T,  State#state{buffer=none});
+dump(A,B) ->
+    ts_plugin:dump(A,B).
+%%----------------------------------------------------------------------
+%% Function: get_message/1
+%% Purpose: Build a message/request ,
+%% Args:	record
+%% Returns: binary
+%%----------------------------------------------------------------------
+get_message(#websocket_request{type = connect, path = Path,
+                               subprotos = SubProtocol, version = Version},
+            State=#state_rcv{session = WebsocketSession}) ->
+    {Request, Accept} = websocket:handshake_request(State#state_rcv.host, Path,
+                                                    SubProtocol, Version),
+    {Request, WebsocketSession#websocket_session{status = waiting_handshake,
+                                                 accept = Accept}};
+get_message(#websocket_request{type = message, data = Data},
+            #state_rcv{session = WebsocketSession})
+  when WebsocketSession#websocket_session.status == connected ->
+    {websocket:encode_binary(list_to_binary(Data)), WebsocketSession};
+get_message(#websocket_request{type = close},
+            #state_rcv{session = WebsocketSession})
+  when WebsocketSession#websocket_session.status == connected ->
+    {websocket:encode_close(<<"close">>), WebsocketSession}.
 
-handle_data(<<H/utf8,T/binary>>, #state{ buffer=L}=State)->
-    handle_data(T, State#state{ buffer=iolist_to_binary([L, H])});
+%%----------------------------------------------------------------------
+%% Function: parse/2
+%% Purpose: parse the response from the server and keep information
+%%          about the response in State#state_rcv.session
+%% Args:	Data (binary), State (#state_rcv)
+%% Returns: {NewState, Options for socket (list), Close = true|false}
+%%----------------------------------------------------------------------
+parse(closed, State) ->
+    {State#state_rcv{ack_done = true, datasize=0}, [], true};
+%% new response, compute data size (for stats)
+parse(Data, State=#state_rcv{acc = [], datasize= 0}) ->
+    parse(Data, State#state_rcv{datasize= size(Data)});
 
-handle_data(<<>>, State) ->
-  loop(State).
+%% handshake stage, parse response, and validate
+parse(Data, State=#state_rcv{acc = [],
+                             session = WebsocketSession}) 
+  when WebsocketSession#websocket_session.status == waiting_handshake ->
+    Acc = list_to_binary(State#state_rcv.acc),
+    Header = <<Acc/binary, Data/binary>>,
+    Accept = WebsocketSession#websocket_session.accept,
+
+    case websocket:check_handshake(Header, Accept) of
+        ok ->
+            ?Debug("handshake success: ~n"),
+            ts_mon:add({count, websocket_succ}), 
+            {State#state_rcv{ack_done = true, 
+                             session = WebsocketSession#websocket_session{
+                                         status = connected}}, [], false};
+        {error, Reason} ->
+            ?DebugF("handshake fail: ~n", [Reason]),
+            ts_mon:add({count, websocket_fail}),
+            {State#state_rcv{ack_done = true}, [], true}
+    end;
+
+%% normal websocket message
+parse(Data, State=#state_rcv{acc = [], session = WebsocketSession})
+  when WebsocketSession#websocket_session.status == connected ->
+    case websocket:decode(Data) of
+        {close, Reason} ->
+            ?DebugF("receive close from server: ~p~n", [Reason]),
+            {State#state_rcv{ack_done = true}, [], true};
+        {Data1, none} ->
+            ?DebugF("receive from server: ~p~n", [Data1]),
+            {State#state_rcv{ack_done = true, acc = []}, [], false};
+        {Data1, Left} ->
+            ?DebugF("receive from server: ~p~n", [Data1]),
+            {State#state_rcv{ack_done = true, acc = Left}, [], false}
+    end;
+%% more data, add this to accumulator and parse, update datasize
+parse(Data, State=#state_rcv{acc = Acc, datasize = DataSize}) ->
+    NewSize= DataSize + size(Data),
+    parse(<< Acc/binary, Data/binary >>,
+          State#state_rcv{acc = [], datasize = NewSize}).
+
+parse_bidi(Data, State) ->
+    ts_plugin:parse_bidi(Data, State).
+
+%%----------------------------------------------------------------------
+%% Function: parse_config/2
+%% Purpose:  parse tags in the XML config file related to the protocol
+%% Returns:  List
+%%----------------------------------------------------------------------
+parse_config(Element, Conf) ->
+	ts_config_websocket:parse_config(Element, Conf).
+
+%%----------------------------------------------------------------------
+%% Function: add_dynparams/4
+%% Purpose: we dont actually do anything
+%% Returns: #websocket_request
+%%----------------------------------------------------------------------
+add_dynparams(_Bool, _DynData, Param, _HostData) ->
+    Param#websocket_request{}.

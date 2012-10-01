@@ -40,8 +40,9 @@
                      {jabber_users, 2000000},
                      {jabber_username, "c"},
                      {jabber_password, "pas"},
-                     {jabber_domain, "mydomain.com"}
-
+                     {jabber_domain, "mydomain.com"},
+%%% -------- WEBSOCKET OPTIONS
+                     {websocket_path, "/chat"}
                     ]},
        {applications, [ @ERLANG_APPLICATIONS@]},
        {mod,          {tsung, []}}
