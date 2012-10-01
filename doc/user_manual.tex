@@ -225,6 +225,12 @@ This plugin is experimental. It works only with MySQL version 4.1 and higher.
 \item Basic Queries
 \end{itemize}
 
+\subsection{Websocket related features}
+This plugin is experimental. It only support rfc6455 currently.
+\begin{itemize}
+\item Both as a server type and session type
+\end{itemize}
+
 \subsection{LDAP related features}
 
 \begin{itemize}
@@ -1131,6 +1137,13 @@ different for every test).
   <option name="seed" value="42"/>
 \end{Verbatim}
 
+\paragraph{Path for Websocket}
+
+When you use Websocket as a server type, you can set the connect path
+for Websocket as following:
+\begin{Verbatim}
+  <option name="websocket_path" value="/chat"/>
+\end{Verbatim}
 
 \subsubsection{XMPP/Jabber options}
 \label{sec:jabber-options}
@@ -1823,6 +1836,31 @@ This example shows most of the features of a MySQL session:
  <request>
   <mysql type="close" />
  </request>
+</session>
+\end{Verbatim}
+
+\subsubsection{Websocket}
+\label{sec:session:websocket}
+For Websocket, 3 types of requests are available:
+\begin{enumerate}
+\item connect (to a given path)
+\item message (send message to server)
+\item close
+\end{enumerate}
+
+Example with Websocket as a session type:
+
+\begin{Verbatim}
+<session probability="100" name="mysql-example" type="ts_websocket">
+ <request>
+  <websocket type="connect" path="/path/to/ws"></websocket>
+ </request>
+ <request>
+  <websocket type="message">Hello world!</websocket>
+ </request>
+ <request>
+  <websocket type="close"></websocket>
+ </request> 
 </session>
 \end{Verbatim}
 
