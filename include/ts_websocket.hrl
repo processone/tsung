@@ -44,7 +44,7 @@
           accept  % Sec-Websocket-Accept header value
          }).
 
--record(http, {
+-record(ws_http, {
           status,
           accept,
           headers=[],

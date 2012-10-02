@@ -50,7 +50,7 @@ handshake_request(Host, Path, SubProtocol, Version) ->
                     "Sec-WebSocket-Protocol: " ++ SubProtocol ++ "\r\n"
             end,
     Handshake = list_to_binary([
-                                Req, Value,          
+                                Req, Value,
                                 "Sec-WebSocket-Key: ", Key, "\r\n",
                                 "Pragma: no-cache:\r\n",
                                 "Cache-control: no-cache:\r\n",
@@ -59,25 +59,27 @@ handshake_request(Host, Path, SubProtocol, Version) ->
     {Handshake, Accept}.
 
 check_handshake(Response, Accept) ->
+    ?DebugF("Check handshake, response is : ~p~n",[Response]),
     RespString = binary_to_list(Response),
-    case http_utils:parse_headers(#http{}, RespString) of
-        {ok, Result=#http{status = 101}} ->
+    case http_utils:parse_headers(#ws_http{}, RespString) of
+        {ok, Result=#ws_http{status = 101}} ->
             RequiredHeaders = [
                                {'Upgrade', "websocket"},
-                               {'Connection', "Upgrade"},
-                               {'Sec-Websocket-Accept', ignore}
+                               {'Connection', "upgrade"},
+                               {'Sec-WebSocket-Accept', ignore}
                               ],
-            case http_utils:check_headers(Result#http.headers,
+            case http_utils:check_headers(Result#ws_http.headers,
                                           RequiredHeaders) of
                 true ->
-                    RecvAcc = Result#http.accept,
-                    case RecvAcc of 
+                    RecvAcc = Result#ws_http.accept,
+                    case RecvAcc of
                         Accept ->
                             ok;
                         _ ->
                             {error, mismatch_accept}
                     end;
-                _ ->
+                Miss ->
+                    ?LOGF("Websocket handshake: Missing header ~p~n",[Miss],?DEB),
                     {error, miss_headers}
             end;
         _ ->

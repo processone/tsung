@@ -9,7 +9,7 @@
 %%--------------------------------------------------------------------
 %% Func: parse_headers/3
 %% Purpose: Parse HTTP headers line by line
-%% Returns: {ok, #http, Body}
+%% Returns: {ok, #ws_http, Body}
 %%--------------------------------------------------------------------
 parse_headers(Http, Tail) ->
     case get_line(Tail) of
@@ -21,14 +21,10 @@ parse_headers(Http, Tail) ->
 
 check_headers(Headers, RequiredHeaders) ->
     F = fun({Tag, Val}) ->
-                Term = if
-                           is_atom (Tag) -> Tag;
-                           true -> string:to_lower(Tag)
-                       end,
                 %% see if the required Tag is in the Headers
-                case proplists:get_value(Term, Headers) of
+                case proplists:get_value(Tag, Headers) of
                     %% header not found, keep in list
-                    false -> true;
+                    undefined -> true;
                     HVal ->
                         case Val of
                             %% ignore value -> ok, remove from list
@@ -36,8 +32,14 @@ check_headers(Headers, RequiredHeaders) ->
                             %% expected val -> ok, remove from list
                             HVal -> false;
                             %% val is different, keep in list
-                            _ -> true
-                        end		
+                            H ->
+                                case string:to_lower(HVal) of
+                                    Val -> false;
+                                    _ ->
+                                        ?LOGF("wrong val ~p ~p~n",[HVal,Val],?DEB),
+                                        true
+                                end
+                        end
                 end
         end,
 
@@ -49,32 +51,32 @@ check_headers(Headers, RequiredHeaders) ->
 %%--------------------------------------------------------------------
 %% Func: parse_status/2
 %% Purpose: Parse HTTP status
-%% Returns: #http
+%% Returns: #ws_http
 %%--------------------------------------------------------------------
 parse_status([A,B,C|_], Http) ->
     Status=list_to_integer([A,B,C]),
-    Http#http{status = Status}.
+    Http#ws_http{status = Status}.
 
 %%--------------------------------------------------------------------
 %% Func: parse_line/3
 %% Purpose: Parse a HTTP header
-%% Returns: #http
+%% Returns: #ws_http
 %%--------------------------------------------------------------------
 parse_line("http/1.1 " ++ TailLine, Http)->
     parse_status(TailLine, Http);
 parse_line("http/1.0 " ++ TailLine, Http)->
-    parse_status(TailLine, Http#http{close=true});
+    parse_status(TailLine, Http#ws_http{close=true});
 
 parse_line("upgrade: " ++ TailLine, Http) ->
-    Headers = [{'Upgrade', TailLine} | Http#http.headers],  
-    Http#http{headers=Headers};
+    Headers = [{'Upgrade', TailLine} | Http#ws_http.headers],
+    Http#ws_http{headers=Headers};
 parse_line("connection: " ++ TailLine, Http) ->
-    Headers = [{'Connection', TailLine} | Http#http.headers],
-    Http#http{headers=Headers};
+    Headers = [{'Connection', TailLine} | Http#ws_http.headers],
+    Http#ws_http{headers=Headers};
 parse_line("sec-websocket-accept: " ++ TailLine, Http) ->
-    Headers = [{'Sec-WebSocket-Accept', TailLine} | 
-               Http#http.headers],
-    Http#http{headers=Headers, accept=TailLine};
+    Headers = [{'Sec-WebSocket-Accept', TailLine} |
+               Http#ws_http.headers],
+    Http#ws_http{headers=Headers, accept=TailLine};
 parse_line(_Line, Http) ->
     Http.
 

@@ -106,7 +106,7 @@ parse(Data, State=#state_rcv{acc = [], datasize= 0}) ->
 
 %% handshake stage, parse response, and validate
 parse(Data, State=#state_rcv{acc = [],
-                             session = WebsocketSession}) 
+                             session = WebsocketSession})
   when WebsocketSession#websocket_session.status == waiting_handshake ->
     Acc = list_to_binary(State#state_rcv.acc),
     Header = <<Acc/binary, Data/binary>>,
@@ -114,13 +114,13 @@ parse(Data, State=#state_rcv{acc = [],
 
     case websocket:check_handshake(Header, Accept) of
         ok ->
-            ?Debug("handshake success: ~n"),
-            ts_mon:add({count, websocket_succ}), 
-            {State#state_rcv{ack_done = true, 
+            ?Debug("handshake success:~n"),
+            ts_mon:add({count, websocket_succ}),
+            {State#state_rcv{ack_done = true,
                              session = WebsocketSession#websocket_session{
                                          status = connected}}, [], false};
         {error, Reason} ->
-            ?DebugF("handshake fail: ~n", [Reason]),
+            ?DebugF("handshake fail: ~p~n", [Reason]),
             ts_mon:add({count, websocket_fail}),
             {State#state_rcv{ack_done = true}, [], true}
     end;
