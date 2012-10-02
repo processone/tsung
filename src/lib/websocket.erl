@@ -216,9 +216,9 @@ handle_data(<<_Fin:1, 0:3, _Opcode:4, 1:1, _PayloadLen:7,
 
 
 %%--------------------------------------------------------------------
-%% Func: parse_headers/3
-%% Purpose: Parse HTTP headers line by line
-%% Returns: {ok, #ws_http, Body}
+%% @spec parse_headers(record(#ws_http), Header::string()) -> {ok, record(ws_http)}
+%% @doc Parse HTTP headers line by line
+%% @end
 %%--------------------------------------------------------------------
 parse_headers(Http, Tail) ->
     case ts_http_common:get_line(Tail) of
@@ -258,9 +258,9 @@ check_headers(Headers, RequiredHeaders) ->
     end.
 
 %%--------------------------------------------------------------------
-%% Func: parse_status/2
-%% Purpose: Parse HTTP status
-%% Returns: #ws_http
+%% @spec parse_status(Status::string(), record(#ws_http)) -> record(ws_http)
+%% @doc Parse HTTP status
+%% @end
 %%--------------------------------------------------------------------
 parse_status([A,B,C|_], Http) ->
     Status=list_to_integer([A,B,C]),
@@ -268,9 +268,9 @@ parse_status([A,B,C|_], Http) ->
     Http#ws_http{status = Status}.
 
 %%--------------------------------------------------------------------
-%% Func: parse_line/3
-%% Purpose: Parse a HTTP header
-%% Returns: #ws_http
+%% @spec parse_line(Header::string(), record(#ws_http)) ->record(ws_http)
+%% @doc Parse a HTTP header and look for Websocket headers
+%% @end
 %%--------------------------------------------------------------------
 parse_line("http/1.1 " ++ TailLine, Http)->
     parse_status(TailLine, Http);
