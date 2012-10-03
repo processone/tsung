@@ -80,8 +80,9 @@ start() {
 }
 
 debug() {
-    $ERL $ERL_OPTS $ERL_RSH $NAMETYPE $PROTO_DIST $CONTROLLER -setcookie $COOKIE  $BOOT_OPT \
+    $ERL $ERL_OPTS $ERL_RSH $NAMETYPE $CONTROLLER $PROTO_DIST -setcookie $COOKIE $BOOT_OPT \
      -pa $TSUNGPATH -pa $CONTROLLERPATH \
+     -tsung_controller warm_time $WARM_TIME \
      -tsung_controller config_file \"$CONF_OPT_FILE\" \
      -tsung_controller $LOG_OPT -tsung_controller $MON_FILE
 }
