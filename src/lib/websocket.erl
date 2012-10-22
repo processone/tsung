@@ -166,6 +166,8 @@ mask(Key, LongKey, Data, Accu) ->
 %%Last frame of a segment
 handle_frame(1, ?OP_CONT, _Len,_Data) ->
     {close, seg_not_support};
+handle_frame(_,_,Len,Data) when Len > size(Data) ->
+	{incomplete, Data};
 %%Frame w/o segment
 handle_frame(1, Opcode, Len, Data) ->
     <<Data1:Len/binary, Rest/binary>> = Data,
@@ -183,8 +185,8 @@ handle_frame(1, Opcode, Len, Data) ->
     case Rest of 
         <<>> ->
             {Result, none};
-        _Left ->
-            {Result, _Left}
+        Left ->
+            {Result, Left}
     end;
 %%Cont. frame of a segment
 handle_frame(0, ?OP_CONT, _Len, _Data) ->

@@ -56,17 +56,24 @@ connect(Host, Port, Opts) ->
     Path = WSConfig#ws_config.path,
     Version = WSConfig#ws_config.version,
 
-    Pid = spawn_link(
-            fun() ->
-                    loop(#state{parent = Parent, host = Host, port = Port,
-                                opts = TcpOpts, path = Path, version = Version})
-            end),
-    {ok, Pid}.
+	case gen_tcp:connect(Host, Port, opts_to_tcp_opts(TcpOpts)) of
+		{ok, Socket} ->
+			Pid = spawn_link(
+					fun() ->
+							loop(#state{parent = Parent, host = Host, port = Port,
+                                opts = TcpOpts, path = Path, version = Version,
+								socket = Socket})
+					end),
+			gen_tcp:controlling_process(Socket, Pid),
+			inet:setopts(Socket, [{active, once}]),
+			{ok, Pid};
+		Ret ->
+			Ret
+	end.
 
-loop(#state{socket = none, host = Host, path = Path, port = Port, opts = Opts,
+loop(#state{socket = Socket, host = Host, path = Path, port = Port, opts = Opts,
             version = Version, subprotos = SubProtocol,
             state = not_connected} = State)->
-    {ok, Socket} = gen_tcp:connect(Host, Port, opts_to_tcp_opts(Opts)),
     {Handshake, Accept} = websocket:handshake_request(Host, Path, 
                                                       SubProtocol, Version),
     gen_tcp:send(Socket, Handshake),
@@ -95,7 +102,7 @@ loop(#state{parent = Parent, socket = Socket, accept = Accept,
             Parent ! {gen_ts_transport, self(), error, Error}
     end;
 
-loop(#state{parent = Parent, socket = Socket, state = connected} = State)->
+loop(#state{parent = Parent, socket = Socket, state = connected, buffer = Buffer} = State)->
     receive
         {send, Data, Ref} ->
             EncodedData = websocket:encode_binary(Data),
@@ -110,8 +117,11 @@ loop(#state{parent = Parent, socket = Socket, state = connected} = State)->
             inet:setopts(Socket, Opts),
             loop(State);
         {tcp, Socket, Data}->
-            DecodeResult = websocket:decode(Data),
+            DecodeResult = websocket:decode(<<Buffer/binary, Data/binary>>),
             case DecodeResult of
+				{incomplete, Left} ->
+					?DebugF("receive incomplete from server: ~p~n", [Left]),
+					loop(State#state{buffer = <<Buffer/binary, Left/binary>>});
                 {close, Reason} ->
                     ?DebugF("receive close from server: ~p~n", [Reason]),
                     Parent ! {gen_ts_transport, self(), closed};
