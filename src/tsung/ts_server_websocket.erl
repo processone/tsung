@@ -95,7 +95,7 @@ loop(#state{parent = Parent, socket = Socket, accept = Accept,
             Parent ! {gen_ts_transport, self(), error, Error}
     end;
 
-loop(#state{parent = Parent, socket = Socket, state = connected} = State)->
+loop(#state{parent = Parent, socket = Socket, state = connected, buffer = Buffer} = State)->
     receive
         {send, Data, Ref} ->
             EncodedData = websocket:encode_binary(Data),
@@ -110,8 +110,11 @@ loop(#state{parent = Parent, socket = Socket, state = connected} = State)->
             inet:setopts(Socket, Opts),
             loop(State);
         {tcp, Socket, Data}->
-            DecodeResult = websocket:decode(Data),
+            DecodeResult = websocket:decode(<<Buffer/binary, Data/binary>>),
             case DecodeResult of
+				{incomplete, Left} ->
+					?DebugF("receive incomplete from server: ~p~n", [Left]),
+					loop(State#state{buffer = <<Buffer/binary, Left/binary>>});
                 {close, Reason} ->
                     ?DebugF("receive close from server: ~p~n", [Reason]),
                     Parent ! {gen_ts_transport, self(), closed};
