@@ -56,25 +56,25 @@ connect(Host, Port, Opts) ->
     Path = WSConfig#ws_config.path,
     Version = WSConfig#ws_config.version,
 
-	case gen_tcp:connect(Host, Port, opts_to_tcp_opts(TcpOpts)) of
-		{ok, Socket} ->
-			Pid = spawn_link(
-					fun() ->
-							loop(#state{parent = Parent, host = Host, port = Port,
-                                opts = TcpOpts, path = Path, version = Version,
-								socket = Socket})
-					end),
-			gen_tcp:controlling_process(Socket, Pid),
-			inet:setopts(Socket, [{active, once}]),
-			{ok, Pid};
-		Ret ->
-			Ret
-	end.
+    case gen_tcp:connect(Host, Port, opts_to_tcp_opts(TcpOpts)) of
+        {ok, Socket} ->
+            Pid = spawn_link(
+                    fun() ->
+                            loop(#state{parent = Parent, host = Host, port = Port,
+                                        opts = TcpOpts, path = Path, version = Version,
+                                        socket = Socket})
+                    end),
+            gen_tcp:controlling_process(Socket, Pid),
+            inet:setopts(Socket, [{active, once}]),
+            {ok, Pid};
+        Ret ->
+            Ret
+    end.
 
 loop(#state{socket = Socket, host = Host, path = Path, port = Port, opts = Opts,
             version = Version, subprotos = SubProtocol,
             state = not_connected} = State)->
-    {Handshake, Accept} = websocket:handshake_request(Host, Path, 
+    {Handshake, Accept} = websocket:handshake_request(Host, Path,
                                                       SubProtocol, Version),
     gen_tcp:send(Socket, Handshake),
     loop(State#state{socket = Socket, accept = Accept,
@@ -119,9 +119,9 @@ loop(#state{parent = Parent, socket = Socket, state = connected, buffer = Buffer
         {tcp, Socket, Data}->
             DecodeResult = websocket:decode(<<Buffer/binary, Data/binary>>),
             case DecodeResult of
-				{incomplete, Left} ->
-					?DebugF("receive incomplete from server: ~p~n", [Left]),
-					loop(State#state{buffer = <<Buffer/binary, Left/binary>>});
+                {incomplete, Left} ->
+                    ?DebugF("receive incomplete from server: ~p~n", [Left]),
+                    loop(State#state{buffer = <<Buffer/binary, Left/binary>>});
                 {close, Reason} ->
                     ?DebugF("receive close from server: ~p~n", [Reason]),
                     Parent ! {gen_ts_transport, self(), closed};
@@ -170,7 +170,7 @@ set_opts(Socket, Opts) ->
     Socket.
 
 normalize_incomming_data(_Socket, X) ->
-    %% nothing to do here, ts_websocket uses a special process to handle 
-    %%http requests,the incoming data is already delivered to 
+    %% nothing to do here, ts_websocket uses a special process to handle
+    %%http requests,the incoming data is already delivered to
     %%ts_client as {gen_ts_transport, ..} instead of gen_tcp | ssl
     X.

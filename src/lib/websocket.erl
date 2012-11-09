@@ -102,13 +102,13 @@ encode(Data, Opcode) ->
         Len < 126 ->
             list_to_binary([<<1:1, 0:3, Opcode:4, 1:1, Len:7>>, Key,
                             mask(Key, Data)]);
-		Len < 65536 ->
+        Len < 65536 ->
             list_to_binary([<<1:1, 0:3, Opcode:4, 1:1, 126:7, Len:16>>, Key,
                             mask(Key, Data)]);
-		true ->
+        true ->
             list_to_binary([<<1:1, 0:3, Opcode:4, 1:1, 127:7, Len:64>>, Key,
                             mask(Key, Data)])
-	end.
+    end.
 
 decode(Data) ->
     handle_data(Data).
@@ -128,7 +128,7 @@ encode_key(Key) ->
     A = binary:encode_unsigned(Key),
     case size(A) of
         4 -> A;
-        _Other -> 
+        _Other ->
             Bits = (4 - _Other) * 8,
             <<0:Bits, A/binary>>
     end.
@@ -167,7 +167,7 @@ mask(Key, LongKey, Data, Accu) ->
 handle_frame(1, ?OP_CONT, _Len,_Data) ->
     {close, seg_not_support};
 handle_frame(_,_,Len,Data) when Len > size(Data) ->
-	{incomplete, Data};
+    {incomplete, Data};
 %%Frame w/o segment
 handle_frame(1, Opcode, Len, Data) ->
     <<Data1:Len/binary, Rest/binary>> = Data,
@@ -182,7 +182,7 @@ handle_frame(1, Opcode, Len, Data) ->
                      {close, error}
              end,
 
-    case Rest of 
+    case Rest of
         <<>> ->
             {Result, none};
         Left ->
@@ -213,7 +213,7 @@ handle_data(<<_Fin:1, 0:3, _Opcode:4,_:1, 127:7, 1:1, _PayloadLen:63,
     {close, error};
 handle_data(<<_Fin:1, 0:3, _Opcode:4, 1:1, _PayloadLen:7,
               _PayloadData/binary>>) ->
-    %% Error, Server to client message can't be masked 
+    %% Error, Server to client message can't be masked
     {close, masked}.
 
 
