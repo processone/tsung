@@ -218,6 +218,7 @@ repeat | if | change_type | foreach | set_option | interaction )*>
     cnonce  CDATA #IMPLIED
     nc CDATA #IMPLIED
     realm CDATA #IMPLIED
+    qop CDATA #IMPLIED
     type (basic | digest) "basic" >
 
 <!ELEMENT oauth EMPTY >
@@ -408,4 +409,3 @@ repeat | if | change_type | foreach | set_option | interaction )*>
     var  CDATA #REQUIRED
     eq   CDATA #IMPLIED
     neq  CDATA #IMPLIED >
-
