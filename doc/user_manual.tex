@@ -834,6 +834,10 @@ Several virtual IP can be used to simulate more machines. This is
  performance penalty (but don't forget to raise the limit of the OS with
  \command{ulimit -n}, see also FAQ \ref{sec:faq:emfile}).
 
+ \strong{Note:} If you are using a tsung master with slaves, the master 
+ distributes sessions to slaves. If a session contains multiples requests, 
+ a slave will execute each of these requests in order.
+
 \subsubsection{Running Tsung with a job scheduler}
 
 Tsung is able to get its client node list from a batch/job
@@ -2187,6 +2191,22 @@ file. Using the previous example, the request is now:
 
 Much simpler than the old method !
 
+In case you have several arrival phases programmed and if you use file with 
+order="iter" the position in the file will not be reset between different 
+arrival phase. You will not be returned to the first line when changing phase.
+
+\begin{Verbatim}
+  <arrivalphase phase="1" duration="10" unit="minute">
+   <users maxnumber="10" arrivalrate="100" unit="second"></users>
+  </arrivalphase>
+  <arrivalphase phase="2" duration="10" unit="minute">
+   <users maxnumber="20" arrivalrate="100" unit="second"></users>
+  </arrivalphase>
+\end{Verbatim}
+
+In this example phase 1 will read about 10 lines and phase 2 will read the next
+20 lines.
+
 \subsubsection{Dynamic variables}\label{Dynamic variables}
 
 In some cases, you may want to use a value given by the server in a
@@ -2986,6 +3006,21 @@ You can either raise the limit of your operating system ( see
 \file{/etc/security/limits.conf} for Linux ) or decrease \varname{maxusers}
 (Tsung will have to start several virtual machine on the same host to
 bypass the maxusers limit).
+
+It could be good if you want to test a large number of users to make some
+modifications to your system before lanuching tsung :
+\begin{itemize}
+\item Put the domain name into \file{etc/hosts} if you don't want the DNS
+overhead and you only want to test the target server
+\item Increase the maximum number of open files and customize tcp settings in
+\file{/etc/sysctl.conf}. For example
+\end{itemize}
+\begin{Verbatim}
+  net.ipv4.tcp_tw_reuse = 1
+  net.ipv4.tcp_tw_recycle = 1
+  net.ipv4.ip_local_port_range = 1024 65000
+  fs.file-max = 65000
+\end{Verbatim}
 
 \subsection{Tsung still crashes/fails  when I start it !}
 First look at the log file
