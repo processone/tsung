@@ -962,7 +962,10 @@ machine will be started to handle new users. The default value of
 <TT>maxusers</TT> is 800 . Nowadays, with kernel polling enable, you
 can and should use a very large value for <TT>maxusers</TT> (30000 for example) without
 performance penalty (but don’t forget to raise the limit of the OS with
-<TT>ulimit -n</TT>, see also FAQ <A HREF="#sec:faq:emfile">A.3</A>).</P><!--TOC subsubsection Running Tsung with a job scheduler-->
+<TT>ulimit -n</TT>, see also FAQ <A HREF="#sec:faq:emfile">A.3</A>).</P>
+<P><B>Note:</B> If you are using a tsung master with slaves, the master
+distributes sessions to slaves. If a session contains multiples requests,
+a slave will execute each of these requests in order.file</P><!--TOC subsubsection Running Tsung with a job scheduler-->
 <H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc44">6.2.3</A>  Running Tsung with a job scheduler</H4><!--SEC END --><P>Tsung is able to get its client node list from a batch/job
 scheduler. It currently handle PBS/torque, LSF and OAR. To do this,
 set the <TT>type</TT> attribute to <FONT COLOR=purple>batch</FONT>, e.g.:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
@@ -2745,7 +2748,33 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE><P>Much simpler than the old method !</P><!--TOC subsubsection Dynamic variables-->
+</TABLE><P>Much simpler than the old method !</P>
+<P>In case you have several arrival phases programmed and if you use file with 
+order="iter" the position in the file will not be reset between different 
+arrival phase. You will not be returned to the first line when changing phase.</P>
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">  &lt;request subst="true"&gt;
+  &lt;arrivalphase phase="1" duration="10" unit="minute"&gt;
+   &lt;users maxnumber="10" arrivalrate="100" unit="second"&gt;&lt;/users&gt;
+  &lt;/arrivalphase>
+  &lt;arrivalphase phase="2" duration="10" unit="minute"&gt;
+   &lt;users maxnumber="20" arrivalrate="100" unit="second"&gt;&lt;/users&gt;
+  &lt;/arrivalphase&gt;
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+<P>In this example phase 1 will read about 10 lines and phase 2 will read the next 20 lines.<P><!--TOC subsubsection Dynamic variables-->
 <H4 CLASS="subsubsection"><!--SEC ANCHOR --><A NAME="htoc68">6.7.3</A>  Dynamic variables</H4><!--SEC END --><P><A NAME="Dynamic variables"></A></P><P>In some cases, you may want to use a value given by the server in a
 response later in the session, and this value is <B>dynamically
 generated</B> by the server for each user. For this, you can use
@@ -3852,7 +3881,30 @@ must check that <TT>maxusers</TT> is less than the maximum number of
 file descriptors per process in your system (see <TT>ulimit -n</TT>)</P><P>You can either raise the limit of your operating system ( see
 <TT>/etc/security/limits.conf</TT> for Linux ) or decrease <TT>maxusers</TT>
 (Tsung will have to start several virtual machine on the same host to
-bypass the maxusers limit).</P><!--TOC subsection Tsung still crashes/fails when I start it !-->
+bypass the maxusers limit).</P>
+<P>It could be good if you want to test a large number of users to make some modifications to your system before lanuching tsung :</P>
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+<P>Put the domain name into <TT>/etc/hosts</TT> if you don't want the DNS overhead and you only want to test the target server</P>
+</LI><LI CLASS="li-itemize"><P>Increase the maximum number of open files and customize tcp settings in <TT>/etc/sysctl.conf</TT>. For example:</P></LI></UL>
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">  net.ipv4.tcp_tw_reuse = 1
+  net.ipv4.tcp_tw_recycle = 1
+  net.ipv4.ip_local_port_range = 1024 65000
+  fs.file-max = 65000
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><!--TOC subsection Tsung still crashes/fails when I start it !-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc87">A.4</A>  Tsung still crashes/fails when I start it !</H3><!--SEC END --><P>
 First look at the log file
 <TT>~/.tsung/log/XXX/tsung_controller@yourhostname'</TT> to see
