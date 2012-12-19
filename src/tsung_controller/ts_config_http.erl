@@ -36,7 +36,7 @@
 -include("ts_profile.hrl").
 -include("ts_http.hrl").
 -include("ts_config.hrl").
- 
+
 -include("xmerl.hrl").
 
 %%----------------------------------------------------------------------
@@ -115,11 +115,14 @@ parse_config(Element = #xmlElement{name=http},
                                               passwd, undefined),
                   Realm = ts_config:getAttr(string,AuthEl#xmlElement.attributes,
                                               realm, undefined),
+                  QOP = ts_config:getAttr(string,AuthEl#xmlElement.attributes,
+                                              qop, undefined),
                   ?LOGF("DIGEST ? : ~p ~p ~p", [Type, Nonce, Realm], ?WARN),
-                  Request3#http_request{userid=UserId, passwd=Passwd, 
+                  Request3#http_request{userid=UserId, passwd=Passwd,
                                         auth_type=Type, digest_nonce=Nonce,
-                                        digest_cnonce=Cnonce, digest_nc=Nc, 
-                                        digest_opaque=Opaque, realm=Realm};
+                                        digest_cnonce=Cnonce, digest_nc=Nc,
+                                        digest_opaque=Opaque, realm=Realm,
+                                        digest_qop=QOP};
               _ ->
                   Request3
           end,
@@ -150,7 +153,7 @@ parse_config(Element = #xmlElement{name=http},
                       hmac_sha1;
                     "RSA-SHA1" ->
                       rsa_sha1
-                  end, 
+                  end,
                 NewReq=Request4#http_request{oauth_access_token=AccessToken,
                                              oauth_url=AbsoluteURL,
                                              oauth_access_secret=AccessTokenSecret,
