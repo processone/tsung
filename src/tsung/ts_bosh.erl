@@ -288,6 +288,7 @@ do_connect(#state{type = Type, host = Host, path = Path, parent_pid = ParentPid}
     NewState3#state{rid = Rid +1,
                     open = [],
                     sid = get_attr(Attrs, sid),
+                    session_state = normal,
                     max_requests = 2
                    }.
 
