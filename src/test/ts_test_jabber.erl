@@ -102,7 +102,7 @@ get_message2_test()->
 pubsub_unsubscribe_test()->
     ts_user_server:reset(1),
     Req = #jabber{id=0,prefix="foo",username="foo",type='pubsub:unsubscribe',passwd="bar",domain={domain,"localdomain"},dest=random, node="node", pubsub_service="mypubsub", subid="myid",resource="tsung"},
-    RepOK= << "<iq to='mypubsub' type='set' id='5'><pubsub xmlns='http://jabber.org/protocol/pubsub'><unsubscribe node='/home/localdomain/foo2/node' jid='foo1@localdomain' subid='myid'/></pubsub></iq>" >>,
+    RepOK= << "<iq to='mypubsub' type='set' id='5'><pubsub xmlns='http://jabber.org/protocol/pubsub'><unsubscribe node='/home/localdomain/foo1/node' jid='foo1@localdomain' subid='myid'/></pubsub></iq>" >>,
     {Rep,_}=ts_jabber:get_message(Req,#state_rcv{session=#jabber_session{}}),
     ?assertEqual(RepOK,Rep ).
 
@@ -139,7 +139,7 @@ get_online_test()->
     ?assertEqual({1,3,2},{Id,Offline,Online} ).
 
 get_online_user_defined_test()->
-    ts_user_server:reset(100),
+    ts_user_server:reset(0),
     ts_msg_server:stop(),
     ts_msg_server:start(),
     User1 =  "tsung1",
@@ -156,10 +156,55 @@ get_online_user_defined_test()->
     ts_user_server:add_to_online(default, ts_jabber_common:set_id(user_defined,User3, Pwd) ),
     ts_user_server:remove_connected(default, ts_jabber_common:set_id(user_defined,User3, Pwd) ),
 
+    {ok,Offline}=ts_user_server:get_offline(),
+
     Msg = ts_jabber_common:get_message(#jabber{type = 'presence:directed', id=user_defined,username=User1,passwd=Pwd,prefix="prefix",
                                                show = "foo", status="mystatus",user_server=default, domain="domain.org"}),
     Res = "<presence id='1' to='tsung2@domain.org'><show>foo</show><status>mystatus</status></presence>",
     ?assertEqual(Res, binary_to_list(Msg) ).
+
+get_offline_user_defined_test()->
+    ts_user_server:reset(0),
+    User1 =  "tsung1",
+    User3 =  "tsung3",
+    Pwd   =  "sesame",
+    ts_user_server:add_to_connected({User1,Pwd}),
+    ts_user_server:add_to_online(default, ts_jabber_common:set_id(user_defined,User1, Pwd) ),
+
+    ts_user_server:add_to_connected({User3,Pwd}),
+    ts_user_server:add_to_online(default, ts_jabber_common:set_id(user_defined,User3, Pwd) ),
+    ts_user_server:remove_connected(default, ts_jabber_common:set_id(user_defined,User3, Pwd) ),
+
+    Msg = ts_jabber_common:get_message(#jabber{type = 'chat', prefix="prefix", data="hello", dest = offline, user_server=default, domain="domain.org"}),
+    Res = "<message id='2' to='tsung3@domain.org' type='chat'><body>hello</body></message>",
+    ?assertEqual(Res, binary_to_list(Msg) ).
+
+get_unique_user_defined_test()-> % this test must be runned just after get_offline_user_defined_test
+    Msg = ts_jabber_common:get_message(#jabber{type = 'chat', prefix="prefix", data="hello", dest = unique, user_server=default, domain="domain.org"}),
+    Res = "<message id='3' to='tsung1@domain.org' type='chat'><body>hello</body></message>",
+    ?assertEqual(Res, binary_to_list(Msg) ).
+
+get_unique_test()->
+    ts_user_server:reset(2),
+    Id=ts_user_server:get_idle(),
+    Msg = ts_jabber_common:get_message(#jabber{type = 'chat', prefix="prefix", data="hello", dest = unique, user_server=default, domain="domain.org"}),
+    Res = "<message id='4' to='prefix1@domain.org' type='chat'><body>hello</body></message>",
+    ?assertEqual(Res, binary_to_list(Msg) ).
+
+get_random_test()->
+    ts_user_server:reset(1),
+    Msg = ts_jabber_common:get_message(#jabber{type = 'chat', prefix="prefix", data="hello", dest = random, user_server=default, domain="domain.org"}),
+    Res = "<message id='5' to='prefix1@domain.org' type='chat'><body>hello</body></message>",
+    ?assertEqual(Res, binary_to_list(Msg) ).
+
+%% get_random_user_defined_test()->
+%%     ts_user_server:reset(0),
+%%     Msg = ts_jabber_common:get_message(#jabber{type = 'chat', prefix="prefix", data="hello", dest = random, user_server=default, domain="domain.org"}),
+%%     Res = "<message id='6' to='foo@domain.org' type='chat'><body>hello</body></message>",
+%%     ?assertEqual(Res, binary_to_list(Msg) ).
+
+
+
 
 
 myset_env()->

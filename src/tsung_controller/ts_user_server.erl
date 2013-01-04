@@ -239,8 +239,11 @@ init(_Args) ->
 %%----------------------------------------------------------------------
 
 %%Get one id in the full list of potential users
+handle_call(get_id, _From, State=#state{userid_max = 0}) ->
+    % no user defined in the pool, probably we are using usernames from external file (CSV)
+    {reply, {error, userid_max_zero }, State};
 handle_call(get_id, _From, State) ->
-    Key = random:uniform( State#state.userid_max ) +1,
+    Key = random:uniform( State#state.userid_max ),
     {reply, Key, State};
 
 %%Get one id in the users whos have to be connected
@@ -289,7 +292,10 @@ handle_call({reset, NFin}, _From, _State) ->
 
     ?LOGF("Reset offline and online lists (maxid=~p)~n",[NFin],?NOTICE),
     fill_offline(NFin, Offline),
-    First = ets:first(Offline),
+    First = case ets:first(Offline) of
+                '$end_of_table' -> undefined; % empty offline; can happen if we only use usernames from external file
+                Val  -> Val
+            end,
     State2 = #state{offline=Offline, first_client = undefined,
                     last_offline=First,
                     connected   = Connected,

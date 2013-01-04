@@ -116,11 +116,21 @@ get_message(Jabber=#jabber{type = 'chat',domain=Domain,prefix=Prefix,dest=offlin
             << >>
     end;
 get_message(Jabber=#jabber{type = 'chat', dest=random, prefix=Prefix, domain=Domain,user_server=UserServer}) ->
-    Dest = ts_user_server:get_id(UserServer),
-    message(ts_jabber:username(Prefix,Dest), Jabber, Domain); % FIXME: handle user_defined ?
+    case ts_user_server:get_id(UserServer) of
+        {error,_} ->
+            ?LOG("Can't find a random user (not implemented for CSV only users ~n", ?ERR),
+            << >>;
+        DestId    ->
+            message(ts_jabber:username(Prefix,DestId), Jabber, Domain)
+    end;
+
 get_message(Jabber=#jabber{type = 'chat', dest=unique, prefix=Prefix, domain=Domain,user_server=UserServer})->
-    {Dest, _} = ts_user_server:get_first(UserServer),
-    message(ts_jabber:username(Prefix,Dest), Jabber, Domain); % FIXME: handle user_defined ?
+    case ts_user_server:get_first(UserServer) of
+        {Dest, _}  ->
+            message(Dest, Jabber, Domain);
+        IdDest ->
+            message(ts_jabber:username(Prefix,IdDest), Jabber, Domain)
+    end;
 get_message(_Jabber=#jabber{type = 'chat', id=_Id, dest = undefined, domain=_Domain}) ->
     %% this can happen if previous is set but undefined, skip
     ts_mon:add({ count, error_no_previous }),
