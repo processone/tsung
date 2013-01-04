@@ -607,15 +607,13 @@ parse_line("connection: close"++_Tail, Http, _Host)->
 parse_line("content-encoding: "++Tail, Http=#http{compressed={Prev,_}}, _Host)->
     ?DebugF("content encoding:~p ~n",[Tail]),
     Http#http{compressed={list_to_atom(Tail),Prev}};
-parse_line("transfer-encoding:"++[H|Tail], Http, _Host)->
-    ?DebugF("~p transfer encoding~n",[[H]++Tail]),
-    case Tail of
+parse_line("transfer-encoding:"++Tail, Http, _Host)->
+    ?DebugF("~p transfer encoding~n",[Tail]),
+    case string:strip(Tail) of
         [C|"hunked"++_] when C == $C; C == $c ->
             Http#http{chunk_toread=0};
-        "hunked"++_  when H == $C; H == $c->
-            Http#http{chunk_toread=0};
         _ ->
-            ?LOGF("Unknown transfer encoding ~p~n",[[H]++Tail],?NOTICE),
+            ?LOGF("Unknown transfer encoding ~p~n",[Tail],?NOTICE),
             Http
     end;
 parse_line("set-cookie: "++Tail, Http=#http{cookie=PrevCookies}, Host)->
