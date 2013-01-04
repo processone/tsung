@@ -25,6 +25,7 @@
 
 -compile(export_all).
 
+-include("ts_macros.hrl").
 -include("ts_profile.hrl").
 -include("ts_jabber.hrl").
 -include_lib("eunit/include/eunit.hrl").
@@ -126,6 +127,40 @@ pubsub_subscribe_test()->
     RepOK= << "<iq to='mypubsub' type='set' id='8'><pubsub xmlns='http://jabber.org/protocol/pubsub'><subscribe node='/home/localdomain/foo2/node' jid='foo1@localdomain'/></pubsub></iq>" >>,
     {Rep,_}=ts_jabber:get_message(Req,#state_rcv{session=#jabber_session{}}),
     ?assertEqual(RepOK,Rep ).
+
+get_online_test()->
+    ts_user_server:reset(100),
+    Id=ts_user_server:get_idle(),
+    IdOther = ts_user_server:get_idle(),
+    RealId  = ts_jabber_common:set_id(IdOther,"tsung","tsung"),
+    ts_user_server:add_to_online(default,RealId),
+    {ok,Offline} = ts_user_server:get_offline(),
+    {ok,Online}  = ts_user_server:get_online(Id),
+    ?assertEqual({1,3,2},{Id,Offline,Online} ).
+
+get_online_user_defined_test()->
+    ts_user_server:reset(100),
+    ts_msg_server:stop(),
+    ts_msg_server:start(),
+    User1 =  "tsung1",
+    User2 =  "tsung2",
+    User3 =  "tsung3",
+    Pwd   =  "sesame",
+    ts_user_server:add_to_connected({User1,Pwd}),
+    ts_user_server:add_to_online(default, ts_jabber_common:set_id(user_defined,User1, Pwd) ),
+
+    ts_user_server:add_to_connected({User2,Pwd}),
+    ts_user_server:add_to_online(default, ts_jabber_common:set_id(user_defined,User2, Pwd) ),
+
+    ts_user_server:add_to_connected({User3,Pwd}),
+    ts_user_server:add_to_online(default, ts_jabber_common:set_id(user_defined,User3, Pwd) ),
+    ts_user_server:remove_connected(default, ts_jabber_common:set_id(user_defined,User3, Pwd) ),
+
+    Msg = ts_jabber_common:get_message(#jabber{type = 'presence:directed', id=user_defined,username=User1,passwd=Pwd,prefix="prefix",
+                                               show = "foo", status="mystatus",user_server=default, domain="domain.org"}),
+    Res = "<presence id='1' to='tsung2@domain.org'><show>foo</show><status>mystatus</status></presence>",
+    ?assertEqual(Res, binary_to_list(Msg) ).
+
 
 myset_env()->
     myset_env(0).
