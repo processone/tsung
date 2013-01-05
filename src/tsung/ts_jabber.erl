@@ -314,6 +314,8 @@ updatejab([_|Rest], Param)->
 %%% Func: username/2
 %%% Generate the username given a prefix and id
 %%%----------------------------------------------------------------------
+username({_,_}, DestId) ->
+    DestId;
 username(Prefix, DestId) when is_integer(DestId)->
     Prefix ++ integer_to_list(DestId);
 username(Prefix, DestId) ->
