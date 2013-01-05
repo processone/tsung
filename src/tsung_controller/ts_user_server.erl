@@ -314,7 +314,7 @@ handle_call( {get_online, Id}, _From, State=#state{ online     = Online,
             {reply, {error, no_online}, State};
         {ok, {User,Pwd}} ->
             ?DebugF("Choose user defined online user ~p for ~p ~n",[User, Id]),
-            {reply, {ok, User}, State#state{last_online={User,Pwd}}};
+            {reply, {ok, {User,Pwd}}, State#state{last_online={User,Pwd}}};
         {ok, Next} ->
             ?DebugF("Choose online user ~p for ~p ~n",[Next, Id]),
             {reply, {ok, Next}, State#state{last_online=Next}}
