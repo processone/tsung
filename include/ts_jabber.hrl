@@ -61,3 +61,9 @@
                 }).
 
 -define(setroster_intensity, 1/(ts_utils:get_val(setroster)*1000)).
+
+-define(xmpp_username,     "tsunguser" ).
+-define(xmpp_passwd,     "sesame").
+-define(xmpp_domain,       "erlang-projects.org").
+-define(xmpp_userid_max,   10000 ).
+-define(xmpp_global_number,100).
