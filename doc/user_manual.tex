@@ -1707,6 +1707,21 @@ and the first jabber request (\userinput{connect}) must include a
 </session>
 \end{Verbatim}
 
+Moreover (since \strong{1.5.0}), when using chat messages to random or offline users, you
+should disable the default users (not from CSV) by setting
+\varname{userid\_max} to \userinput{0} and by setting the fileid for
+random users (also used for pubsub) server:
+\begin{Verbatim}
+ <options>
+  <option type="ts_jabber" name="userid_max" value="0" />
+  <option type="ts_jabber" name="random_from_fileid" value='userdb'/>
+  <option type="ts_jabber" name="delimiter" value=";"/>
+ </options>
+\end{Verbatim}
+
+The username should be the first entry in the each CSV line (the
+delimiter is by default \userinput{";"} and can be overriden).
+
 \paragraph{raw XML}
 You can send raw XML data to the server using the \varname{raw} type:
 \begin{Verbatim}

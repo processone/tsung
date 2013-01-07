@@ -117,9 +117,11 @@ get_message(Jabber=#jabber{type = 'chat',domain=Domain,prefix=Prefix,dest=offlin
     end;
 get_message(Jabber=#jabber{type = 'chat', dest=random, prefix=Prefix, domain=Domain,user_server=UserServer}) ->
     case ts_user_server:get_id(UserServer) of
-        {error,_} ->
-            ?LOG("Can't find a random user (not implemented for CSV only users ~n", ?ERR),
+        {error, Msg} ->
+            ?LOGF("Can't find a random user (~p)~n", [Msg],?ERR),
             << >>;
+        {Dest,_} ->
+            message(Dest, Jabber, Domain);
         DestId    ->
             message(ts_jabber:username(Prefix,DestId), Jabber, Domain)
     end;

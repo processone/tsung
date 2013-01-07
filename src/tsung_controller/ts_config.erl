@@ -46,6 +46,7 @@
          getAttr/4,
          getText/1,
          parse/2,
+         get_default/2,
          get_default/3,
          mark_prev_req/3,
          get_batch_nodes/1
@@ -941,6 +942,9 @@ get_default(Tab, Key,ConfigName) ->
         [{_, SName}] ->
             SName
     end.
+
+get_default(Tab, Key) when is_atom(Key) ->
+    get_default(Tab, Key, Key).
 
 %%%----------------------------------------------------------------------
 %%% Function: mark_prev_req/3

@@ -197,11 +197,17 @@ get_random_test()->
     Res = "<message id='5' to='prefix1@domain.org' type='chat'><body>hello</body></message>",
     ?assertEqual(Res, binary_to_list(Msg) ).
 
-%% get_random_user_defined_test()->
-%%     ts_user_server:reset(0),
-%%     Msg = ts_jabber_common:get_message(#jabber{type = 'chat', prefix="prefix", data="hello", dest = random, user_server=default, domain="domain.org"}),
-%%     Res = "<message id='6' to='foo@domain.org' type='chat'><body>hello</body></message>",
-%%     ?assertEqual(Res, binary_to_list(Msg) ).
+get_random_user_defined_test()->
+    ts_user_server:reset(0),
+    Id = xmpp,
+    ts_user_server:set_random_fileid(Id),
+    ts_file_server:start(),
+    ts_file_server:read([{default,"./src/test/test_file_server.csv"},
+                         {Id,"./src/test/test_file_server2.csv"} ]),
+
+    Msg = ts_jabber_common:get_message(#jabber{type = 'chat', prefix="prefix", data="hello", dest = random, user_server=default, domain="domain.org"}),
+    Res = "<message id='6' to='user1@domain.org' type='chat'><body>hello</body></message>",
+    ?assertEqual(Res, binary_to_list(Msg) ).
 
 
 

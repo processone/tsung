@@ -41,6 +41,8 @@
          remove_from_online/1,
          remove_connected/1,
          add_to_connected/1,
+         set_random_fileid/1,
+         set_fileid_delimiter/1,
          get_first/0]).
 
 %% for multiple user_server process, one per virtual host
@@ -72,6 +74,8 @@
           online,         %ets table
           last_online,
           first_client,   % id (integer)
+          random_server_id, % file_server id for random users
+          delimiter = << ";" >>,   % delimiter for file_server id username
           userid_max      % max number of ids (starts at 1)
          }).
 
@@ -201,6 +205,18 @@ remove_from_online(Id) when  is_list(Id) ->
 remove_from_online(Id)  ->
     gen_server:cast({global, ?MODULE}, {remove_from_online, Id}).
 
+%% @spec set_random_fileid(Id::atom()) -> ok
+%% @doc Set file_server id for random users
+%%      This is useful and usernames and password are set from a CSV file.
+%% @end
+set_random_fileid(Id) ->
+    gen_server:cast({global, ?MODULE}, {set_random_fileid, Id}).
+
+%% @spec set_fileid_delimiter(D::string()) -> ok
+%% @doc Set file_server delimiter for random users @end
+set_fileid_delimiter(D) ->
+    gen_server:cast({global, ?MODULE}, {set_fileid_delimiter, D}).
+
 stop()->
     lists:foreach(fun(Pid) ->
                     gen_server:call(Pid, stop)
@@ -239,6 +255,14 @@ init(_Args) ->
 %%----------------------------------------------------------------------
 
 %%Get one id in the full list of potential users
+handle_call(get_id, _From, State=#state{random_server_id = Id, delimiter=D}) when Id /= undefined->
+    case ts_file_server:get_random_line(Id) of
+        {ok, Line} ->
+            [Val|_] = ts_utils:split(Line,D),
+            {reply, {binary_to_list(Val), unused}, State}; %% FIXME: use binaries in jabber_common everywhere and remove the binary_to_list call here.
+        Else ->
+            {reply, {error, userid_max_zero }, State}
+    end;
 handle_call(get_id, _From, State=#state{userid_max = 0}) ->
     % no user defined in the pool, probably we are using usernames from external file (CSV)
     {reply, {error, userid_max_zero }, State};
@@ -285,7 +309,7 @@ handle_call(get_offline, _From, State=#state{offline=Offline,last_offline=Prev})
 handle_call(get_first, _From, State) ->
     {reply, State#state.first_client, State};
 
-handle_call({reset, NFin}, _From, _State) ->
+handle_call({reset, NFin}, _From, State) ->
     Offline = ets:new(offline,[ordered_set, private]),
     Online  = ets:new(online, [set, private]),
     Connected  = ets:new(connected, [set, private]),
@@ -296,12 +320,13 @@ handle_call({reset, NFin}, _From, _State) ->
                 '$end_of_table' -> undefined; % empty offline; can happen if we only use usernames from external file
                 Val  -> Val
             end,
-    State2 = #state{offline=Offline, first_client = undefined,
-                    last_offline=First,
-                    connected   = Connected,
-                    last_connected = undefined,
-                    last_online    = undefined,
-                    online =Online, userid_max=NFin},
+    State2 = State#state{offline        = Offline,
+                         first_client   = undefined,
+                         last_offline   = First,
+                         connected      = Connected,
+                         last_connected = undefined,
+                         last_online    = undefined,
+                         online =Online, userid_max=NFin},
     {reply, ok, State2};
 
 %%% Get a online id different from 'Id'
@@ -374,7 +399,15 @@ handle_cast({remove_from_online, Id}, State=#state{online=Online,connected=Conne
     ?DebugF("remove_from_online ~p~n",[Id]),
     {noreply, LastOnline} = ets_delete_online(Online,Id,State),
     ets:insert(Connected, {Id,1}),
-    {noreply, State#state{last_online=LastOnline}}.
+    {noreply, State#state{last_online=LastOnline}};
+
+handle_cast({set_random_fileid, Id}, State) ->
+    ?LOGF("Set file_server id for random users to ~p~n",[Id],?INFO),
+    {noreply, State#state{random_server_id=Id}};
+
+handle_cast({set_fileid_delimiter, D}, State) ->
+    ?LOGF("Set file_server delimiter ~p~n",[D],?DEB),
+    {noreply, State#state{delimiter=D}}.
 
 
 %%----------------------------------------------------------------------

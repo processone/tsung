@@ -2119,7 +2119,31 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE><!--TOC paragraph raw XML-->
+</TABLE><P>Moreover (since <B>1.5.0</B>), when using chat messages to random or offline users, you
+should disable the default users (not from CSV) by setting
+<TT>userid_max</TT> to <FONT COLOR=purple>0</FONT> and by setting the fileid for
+random users (also used for pubsub) server:
+</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim"> &lt;options&gt;
+  &lt;option type="ts_jabber" name="userid_max" value="0" /&gt;
+  &lt;option type="ts_jabber" name="random_from_fileid" value='userdb'/&gt;
+  &lt;option type="ts_jabber" name="delimiter" value=";"/&gt;
+ &lt;/options&gt;
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE><P>The username should be the first entry in the each CSV line (the
+delimiter is by default <FONT COLOR=purple>";"</FONT> and can be overriden).</P><!--TOC paragraph raw XML-->
 <H5 CLASS="paragraph"><!--SEC ANCHOR -->raw XML</H5><!--SEC END --><P>
 You can send raw XML data to the server using the <TT>raw</TT> type:
 </P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0

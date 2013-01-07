@@ -99,11 +99,11 @@ parse_config(Element = #xmlElement{name=jabber},
     Domain  =ts_config:get_default(Tab, jabber_domain_name, jabber_domain),
     ?LOGF("XMPP domain is ~p~n",[Domain],?DEB),
 
-    MUC_service = ts_config:get_default(Tab, muc_service, muc_service),
-    PubSub_service =ts_config:get_default(Tab, pubsub_service, pubsub_service),
+    MUC_service = ts_config:get_default(Tab, muc_service),
+    PubSub_service =ts_config:get_default(Tab, pubsub_service),
 
-    UserPrefix=ts_config:get_default(Tab, jabber_username, jabber_username),
-    UserIdMax = ts_config:get_default(Tab, jabber_userid_max, jabber_userid_max),
+    UserPrefix=ts_config:get_default(Tab, jabber_username),
+    UserIdMax = ts_config:get_default(Tab, jabber_userid_max),
 
     %% Authentication
     {XMPPId, UserName, Passwd} = case lists:keysearch(xmpp_authenticate, #xmlElement.name,
@@ -115,7 +115,7 @@ parse_config(Element = #xmlElement{name=jabber},
                                                         passwd, undefined),
                               {user_defined,User,PWD};
                           _ ->
-                              GPasswd  =ts_config:get_default(Tab, jabber_passwd, jabber_passwd),
+                              GPasswd  =ts_config:get_default(Tab, jabber_passwd),
                               {0,UserPrefix,GPasswd}
                       end,
 
@@ -192,6 +192,16 @@ parse_config(Element = #xmlElement{name=option}, Conf = #config{session_tab = Ta
         "pubsub_service" ->
             N = ts_config:getAttr(string,Element#xmlElement.attributes, value, "pubsub.localhost"),
             ets:insert(Tab,{{pubsub_service,value}, N}),
+            Conf;
+        "random_from_fileid" ->
+            FileId = ts_config:getAttr(atom,Element#xmlElement.attributes, value, none),
+            ?LOGF("set random fileid to  ~p~n",[FileId],?WARN),
+
+            ts_user_server:set_random_fileid(FileId),
+            Conf;
+        "fileid_delimiter" ->
+            D = ts_config:getAttr(string,Element#xmlElement.attributes, value, ";"),
+            ts_user_server:set_fileid_delimiter(D),
             Conf
     end,
     lists:foldl( fun(A,B) -> ts_config:parse(A,B) end, NewConf, Element#xmlElement.content);
@@ -203,15 +213,16 @@ parse_config(_, Conf = #config{}) ->
     Conf.
 
 initialize_options(Tab) ->
-    case ts_config:get_default(Tab, jabber_username, jabber_username) of
+    case ts_config:get_default(Tab, jabber_initialized) of
         {undef_var,_} ->
-            ts_user_server:reset(?xmpp_userid_max),
-            ts_timer:config(?xmpp_global_number),
-            ets:insert(Tab,{{jabber_userid_max,value},    ?xmpp_userid_max}),
-            ets:insert(Tab,{{jabber_global_number,value}, ?xmpp_global_number}),
-            ets:insert(Tab,{{jabber_username,value},      ?xmpp_username}),
-            ets:insert(Tab,{{jabber_passwd,value},        ?xmpp_passwd}),
-            ets:insert(Tab,{{jabber_domain_name,value},   {domain,?xmpp_domain}});
+            ets:insert_new(Tab,{{jabber_userid_max,value},    ?xmpp_userid_max}),
+            ets:insert_new(Tab,{{jabber_global_number,value}, ?xmpp_global_number}),
+            ets:insert_new(Tab,{{jabber_username,value},      ?xmpp_username}),
+            ets:insert_new(Tab,{{jabber_passwd,value},        ?xmpp_passwd}),
+            ets:insert_new(Tab,{{jabber_domain_name,value},   {domain,?xmpp_domain}}),
+            ets:insert_new(Tab,{{jabber_initialized,value},   true}),
+            ts_user_server:reset(ts_config:get_default(Tab, jabber_userid_max)),
+            ts_timer:config(ts_config:get_default(Tab, jabber_global_number));
         _Else ->
             ok
     end.
