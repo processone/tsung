@@ -615,6 +615,8 @@ parse(Element=#xmlElement{name=match,attributes=Attrs},
       Conf=#config{match=Match})->
     Do         = getAttr(atom, Attrs, do, continue),
     When       = getAttr(atom, Attrs, 'when', match),
+	%%%Sep-17 TS: Add name attribute for match.log
+	Name       = getAttr(string, Attrs, name, "-"),
     Subst      = getAttr(atom, Attrs, subst, false),
     MaxLoop    = getAttr(integer, Attrs, max_loop, 20),
     LoopBack   = getAttr(integer, Attrs, loop_back, 0),
@@ -629,7 +631,7 @@ parse(Element=#xmlElement{name=match,attributes=Attrs},
                       {Mod, Fun} = ts_utils:split2(Data,$:),
                       {list_to_atom(Mod), list_to_atom(Fun)}
               end,
-    NewMatch   = #match{regexp=RegExp,subst=Subst, do=Do,'when'=When,
+    NewMatch   = #match{regexp=RegExp,subst=Subst, do=Do,'when'=When, name=Name,
                         sleep_loop=SleepLoop * 1000, skip_headers=SkipHeaders,
                         loop_back=LoopBack, max_restart=MaxRestart, max_loop=MaxLoop, apply_to_content=ApplyTo},
 

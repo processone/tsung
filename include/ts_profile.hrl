@@ -28,6 +28,7 @@
         { regexp,
           subst = false,
          'when' = false,
+		  name, 
           do    = continue, %(continue | loop | abort | log )
           sleep_loop,       % in seconds
           apply_to_content,
