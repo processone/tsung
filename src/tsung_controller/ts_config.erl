@@ -615,8 +615,7 @@ parse(Element=#xmlElement{name=match,attributes=Attrs},
       Conf=#config{match=Match})->
     Do         = getAttr(atom, Attrs, do, continue),
     When       = getAttr(atom, Attrs, 'when', match),
-	%%%Sep-17 TS: Add name attribute for match.log
-	Name       = getAttr(string, Attrs, name, "-"),
+    Name       = getAttr(string, Attrs, name, "-"),
     Subst      = getAttr(atom, Attrs, subst, false),
     MaxLoop    = getAttr(integer, Attrs, max_loop, 20),
     LoopBack   = getAttr(integer, Attrs, loop_back, 0),
