@@ -2478,7 +2478,7 @@ You can use a regexp instead of a simple string.
 The list of available actions to do is:
 \begin{itemize}
 \item continue: do nothing, continue (only update match or nomatch counters)
-\item log: log the request id, userid, sessionid in a file (in \file{match.log})
+\item log: log the request id, userid, sessionid, name in a file (in \file{match.log})
 \item abort : abort the session
 \item restart: restart the session. The maximum number of
   restarts is 3 by default.
@@ -2515,6 +2515,12 @@ You can also use dynamic variables, using the \varname{subst} attribute:
 \begin{Verbatim}
 <match do='log' when='nomatch' subst='true' >%%_myvar%%</match>
 <http url="/" method="GET"/>
+\end{Verbatim}
+
+\strong{Since 1.5.0}, it's now possible to add 'name' attribute in 'match' tag to name a record printed in match.log as follow:
+\begin{Verbatim}
+<match do='log' when='match' name='http_match_200ok'>200OK</match>
+<http url="/" method="GET" version="1.1"/>
 \end{Verbatim}
 
 \subsubsection{Loops, If, Foreach}
