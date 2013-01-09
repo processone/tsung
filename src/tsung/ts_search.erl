@@ -194,15 +194,15 @@ match([Match=#match{regexp=RawRegExp,subst=Subst, do=Action, 'when'=When}
 setcount(#match{do=continue}, {Count, _MaxC, _SessionId, _UserId}, Stats,_,_)->
     ts_mon:add(Stats),
     Count;
-setcount(#match{do=log}, {Count, MaxC, SessionId, UserId}, Stats,_,Tr)->
-    ts_mon:add_match(Stats,{UserId,SessionId,MaxC-Count,Tr}),
+setcount(#match{do=log, name=Name}, {Count, MaxC, SessionId, UserId}, Stats,_,Tr)->
+    ts_mon:add_match(Stats,{UserId,SessionId,MaxC-Count,Tr, Name}),
     Count;
-setcount(#match{do=dump}, {Count, MaxC, SessionId, UserId}, Stats, Data, Tr)->
-    ts_mon:add_match(Stats,{UserId,SessionId,MaxC-Count, Data, Tr}),
+setcount(#match{do=dump, name=Name}, {Count, MaxC, SessionId, UserId}, Stats, Data, Tr)->
+    ts_mon:add_match(Stats,{UserId,SessionId,MaxC-Count, Data, Tr, Name}),
     Count;
-setcount(#match{do=restart, max_restart=MaxRestart}, {Count, MaxC,SessionId,UserId}, Stats,_, Tr)->
+setcount(#match{do=restart, max_restart=MaxRestart, name=Name}, {Count, MaxC,SessionId,UserId}, Stats,_, Tr)->
     CurRestart = get(restart_count),
-    Ids={UserId,SessionId,MaxC-Count,Tr},
+    Ids={UserId,SessionId,MaxC-Count,Tr,Name},
     ?LOGF("Restart on (no)match ~p~n",[CurRestart], ?INFO),
     case CurRestart of
         undefined ->
@@ -236,8 +236,8 @@ setcount(#match{do=loop,loop_back=Back,max_loop=MaxLoop,sleep_loop=Sleep},{Count
             timer:sleep(Sleep),
             Count + 1 + Back
     end;
-setcount(#match{do=abort}, {Count,MaxC,SessionId,UserId}, Stats,_, Tr) ->
-    ts_mon:add_match([{count, match_stop} | Stats],{UserId,SessionId,MaxC-Count,Tr}),
+setcount(#match{do=abort,name=Name}, {Count,MaxC,SessionId,UserId}, Stats,_, Tr) ->
+    ts_mon:add_match([{count, match_stop} | Stats],{UserId,SessionId,MaxC-Count,Tr, Name}),
     0.
 
 %%----------------------------------------------------------------------
