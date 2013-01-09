@@ -236,8 +236,8 @@ setcount(#match{do=loop,loop_back=Back,max_loop=MaxLoop,sleep_loop=Sleep},{Count
             timer:sleep(Sleep),
             Count + 1 + Back
     end;
-setcount(#match{do=abort}, {Count,MaxC,SessionId,UserId}, Stats,_, Tr) ->
-    ts_mon:add_match([{count, match_stop} | Stats],{UserId,SessionId,MaxC-Count,Tr}),
+setcount(#match{do=abort,name=Name}, {Count,MaxC,SessionId,UserId}, Stats,_, Tr) ->
+    ts_mon:add_match([{count, match_stop} | Stats],{UserId,SessionId,MaxC-Count,Tr, Name}),
     0.
 
 %%----------------------------------------------------------------------
