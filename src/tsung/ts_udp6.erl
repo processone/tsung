@@ -47,6 +47,7 @@ close(Socket) ->
     ts_udp:close(Socket).
 
 % set_opts/2 -> socket()
+set_opts(none,  _Opts) -> none;
 set_opts(Socket, Opts) ->
     inet:setopts(Socket, Opts),
     Socket.
