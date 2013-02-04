@@ -149,6 +149,7 @@ repeat | if | change_type | foreach | set_option | interaction )*>
     when (match|nomatch) "match"
     subst (true|false) "false"
     loop_back   NMTOKEN "0"
+    name NMTOKEN "-"
     max_loop    NMTOKEN "20"
     max_restart NMTOKEN "3"
     sleep_loop  NMTOKEN "5"

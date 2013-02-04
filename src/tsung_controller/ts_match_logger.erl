@@ -96,7 +96,7 @@ init([LogDir]) ->
     case file:open(Filename,[write, {delayed_write, ?DELAYED_WRITE_SIZE, ?DELAYED_WRITE_DELAY}]) of
         {ok, Fd} ->
             ?LOG("starting match logger~n",?INFO),
-            io:format(Fd,"# timestamp userid sessionid requestid event transaction~n",[]),
+            io:format(Fd,"# timestamp userid sessionid requestid event transaction name~n",[]),
             {ok, #state{ fd       = Fd,
                          filename = Filename,
                          logdir   = LogDir
@@ -172,12 +172,12 @@ code_change(_OldVsn, StateData, _Extra) ->
 %%% Internal functions
 %%%----------------------------------------------------------------------
 
-log({UserId,SessionId,RequestId,TimeStamp,{count, Val},[], Tr},State=#state{fd=File}) ->
+log({UserId,SessionId,RequestId,TimeStamp,{count, Val},[], Tr,Name},State=#state{fd=File}) ->
     TS=ts_utils:time2sec_hires(TimeStamp),
-    io:format(File,"~f ~B ~B ~B ~p ~s~n",[TS,UserId,SessionId,RequestId,Val,log_transaction(Tr)]),
+    io:format(File,"~f ~B ~B ~B ~p ~s ~s~n",[TS,UserId,SessionId,RequestId,Val,log_transaction(Tr),Name]),
     State;
-log({UserId,SessionId,RequestId,TimeStamp,{count, Val},Bin, Tr}, State=#state{logdir=LogDir, dumpid=Id}) ->
-    log({UserId,SessionId,RequestId,TimeStamp,{count, Val},[],Tr}, State),
+log({UserId,SessionId,RequestId,TimeStamp,{count, Val},Bin, Tr,MatchName}, State=#state{logdir=LogDir, dumpid=Id}) ->
+    log({UserId,SessionId,RequestId,TimeStamp,{count, Val},[],Tr, MatchName}, State),
     Name=ts_utils:join("-",lists:map(fun integer_to_list/1,[UserId,SessionId,RequestId,Id])),
     Filename=filename:join(LogDir, "match-"++ Name ++".dump"),
     file:write_file(Filename,Bin),
