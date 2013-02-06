@@ -1,5 +1,5 @@
 %%%
-%%%  Copyright 2010 © ProcessOne
+%%%  Copyright 2010 Â© ProcessOne
 %%%
 %%%  Author : Eric Cestari <ecestari@mac.com>
 %%%
@@ -159,7 +159,7 @@ loop(#state{parent_pid = ParentPid} = State) ->
                    rid = Rid,
                    type = Type} = State,
             {NewState, Socket} = new_socket(State, once),
-            ok = make_raw_request(Type, Socket, Host, Path, close_stream_msg(Sid, Rid)),
+            ok = make_raw_request(Type, Socket, Host, Path, close_stream_msg(Sid, Rid, Host)),
             ParentPid ! {ok, Ref},
             loop(NewState#state{session_state = closing, open = [{Socket, Rid+1}|NewState#state.open]});
         {stream, Domain, Ref} when State#state.domain == undefined ->
@@ -275,7 +275,7 @@ do_connect(#state{type = Type, host = Host, path = Path, parent_pid = ParentPid}
             free = []
             },
     {NewState2, Socket} = new_socket(NewState, false),
-    ok = make_raw_request(Type, Socket, Host, Path, create_session_msg(Rid, Domain, ?WAIT, ?HOLD)),
+    ok = make_raw_request(Type, Socket, Host, Path, create_session_msg(Rid, Domain, ?WAIT, ?HOLD, Host)),
     {ok, {{200, "OK"}, Hdrs, Resp}} = read_response(Type, Socket, nil, nil, [], <<>>, http),
     ts_mon:add({ sum, size_rcv, iolist_size([ [if is_atom(H) -> atom_to_list(H); true -> H end, V] ||
                     {H,V} <- Hdrs])}), %% count header size
@@ -300,7 +300,7 @@ do_reset(State) ->
            domain = Domain,
            type = Type} =  State,
     {NewState, Socket} = new_socket(State, once),
-    ok = make_raw_request(Type, Socket, Host, Path, restart_stream_msg(Sid, Rid, Domain)),
+    ok = make_raw_request(Type, Socket, Host, Path, restart_stream_msg(Sid, Rid, Domain, Host)),
     NewState#state{session_state = normal, rid = Rid +1, open = [{Socket, Rid}|State#state.open]}.
 
 get_attr([], _Name) -> undefined;
@@ -339,7 +339,7 @@ do_send(State, Data) ->
 
 make_empty_request(Type, Socket, Sid, Rid, Queue, Host, Path) ->
     StanzasText = lists:reverse(Queue),
-    Body = stanzas_msg(Sid, Rid, StanzasText),
+    Body = stanzas_msg(Sid, Rid, StanzasText, Host),
     make_request(Type, Socket, Host, Path, Body, iolist_size(StanzasText)).
 
 make_raw_request(Type, Socket, Host, Path, Body) ->
@@ -347,7 +347,7 @@ make_raw_request(Type, Socket, Host, Path, Body) ->
 
 make_request(Type, Socket, Sid, Rid, Queue, Host, Path, Packet) ->
     StanzasText = lists:reverse([Packet|Queue]),
-    Body = stanzas_msg(Sid, Rid, StanzasText),
+    Body = stanzas_msg(Sid, Rid, StanzasText, Host),
     make_request(Type, Socket, Host, Path, Body, iolist_size(StanzasText)).
 make_request(Type, Socket,Host, Path, Body, OriginalSize) ->
      ts_mon:add({count, bosh_http_req}),
@@ -380,8 +380,8 @@ return_socket(State, Socket) ->
     %%receive data from it, we want to know if something happens
     State#state{free = [Socket | State#state.free]}.
 
-create_session_msg(Rid, To, Wait, Hold) ->
-    [ "<body xmlns='http://jabber.org/protocol/httpbind'"
+create_session_msg(Rid, To, Wait, Hold, []) ->
+                                [ "<body xmlns='http://jabber.org/protocol/httpbind'"
        " content='text/xml; charset=utf-8'",
        " ver='1.8'"
        " to='", To, "'",
@@ -389,28 +389,61 @@ create_session_msg(Rid, To, Wait, Hold) ->
        " xmlns:xmpp='urn:xmpp:xbosh'",
        " xmpp:version='1.0'",
        " wait='", integer_to_list(Wait), "'"
+       " hold='", integer_to_list(Hold), "'/>"];
+create_session_msg(Rid, To, Wait, Hold, Route) ->
+    [ "<body xmlns='http://jabber.org/protocol/httpbind'"
+       " content='text/xml; charset=utf-8'",
+       " ver='1.8'"
+       " to='", To, "'",
+       " rid='", integer_to_list(Rid), "'"
+	   " xmlns:xmpp='urn:xmpp:xbosh'",
+       " xmpp:version='1.0'",
+	   " route='xmpp:",Route,":5222'",	   
+       " wait='", integer_to_list(Wait), "'"
        " hold='", integer_to_list(Hold), "'/>"].
 
-stanzas_msg(Sid, Rid, Text) ->
+stanzas_msg(Sid, Rid, Text, []) ->
     [ "<body xmlns='http://jabber.org/protocol/httpbind' "
        " rid='", integer_to_list(Rid), "'"
+       " sid='", Sid, "'>", Text, "</body>"];
+stanzas_msg(Sid, Rid, Text, Route) ->
+    [ "<body xmlns='http://jabber.org/protocol/httpbind' "
+       " rid='", integer_to_list(Rid), "'"
+	   " route='xmpp:",Route,":5222'",
        " sid='", Sid, "'>", Text, "</body>"].
 
-restart_stream_msg(Sid, Rid, Domain) ->
+restart_stream_msg(Sid, Rid, Domain, []) ->
     [ "<body xmlns='http://jabber.org/protocol/httpbind' "
        " rid='", integer_to_list(Rid), "'",
        " sid='", Sid, "'",
        " xmpp:restart='true'",
        " xmlns:xmpp='urn:xmpp:xbosh'",
        " to='", Domain, "'",
+       "/>"];
+restart_stream_msg(Sid, Rid, Domain, Route) ->
+    [ "<body xmlns='http://jabber.org/protocol/httpbind' "
+       " rid='", integer_to_list(Rid), "'",
+       " sid='", Sid, "'",
+       " xmpp:restart='true'",
+       " xmlns:xmpp='urn:xmpp:xbosh'",  
+       " to='", Domain, "'",
+	   " route='xmpp:",Route,":5222'",	   	   
        "/>"].
 
-close_stream_msg(Sid, Rid) ->
+close_stream_msg(Sid, Rid, []) ->
     [ "<body xmlns='http://jabber.org/protocol/httpbind' "
        " rid='", integer_to_list(Rid), "'",
        " sid='", Sid, "'",
        " type='terminate'",
        " xmlns:xmpp='urn:xmpp:xbosh'",
+       "/>"];
+close_stream_msg(Sid, Rid, Route) ->
+    [ "<body xmlns='http://jabber.org/protocol/httpbind' "
+       " rid='", integer_to_list(Rid), "'",
+       " sid='", Sid, "'",
+       " type='terminate'",
+       " xmlns:xmpp='urn:xmpp:xbosh'",
+	   " route='xmpp:",Route,":5222'",	   
        "/>"].
 
 read_response(Type, Socket, Vsn, Status, Hdrs, Body, PacketType)  when PacketType == http ; PacketType == httph->
