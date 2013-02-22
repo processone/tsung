@@ -74,6 +74,7 @@
           rate_limit,
           total_popularity = 0, % should be 100 if we use probabilites; sum of all weights if we use weights
           use_weights      , % true if we use weights instead of probabilities
+          total_server_weights=0,
           job_notify_port
          }).
 
@@ -88,7 +89,8 @@
 -record(server,
         {host,
          port,
-         type
+         type,
+         weight
         }).
 -record(session,
         { id,

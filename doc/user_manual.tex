@@ -759,9 +759,22 @@ For non distributed load, you can use a basic setup like:
 This will start the load on the same host and on the same Erlang
 virtual machine as the controller.
 
-The server is the entry point into the cluster (\strong{New in 1.2.0:}
-if several servers are defined, a round robin algorithm is used to
-choose the server).
+The server is the entry point into the cluster. You can add several
+servers, by default each server will have a weight of 1, and each
+session will choose a server randomly according to the weight. You can
+set a weight for each server like this (weight can be an integer or
+a float):
+
+\begin{Verbatim}
+ <servers>
+    <server host="server1" port="80" type="tcp" weight="4"></server>
+    <server host="server2" port="80" type="tcp" weight="1"></server>
+ </servers>
+\end{Verbatim}
+
+(in version older than \strong{1.5.0}, the \varname{weight} option was
+not implemented and a round robin algorithm was used to choose the
+server).
 
 \varname{Type} can be \userinput{tcp}, \userinput{ssl} or
 \userinput{udp} (for IPv6, use \userinput{tcp6}, \userinput{ssl6} or

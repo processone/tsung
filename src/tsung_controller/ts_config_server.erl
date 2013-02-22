@@ -479,7 +479,7 @@ set_start_date(Date) -> Date.
 
 get_user_param(Client,Config)->
     {ok,IP} = choose_client_ip(Client),
-    {ok, Server} = choose_server(Config#config.servers),
+    {ok, Server} = choose_server(Config#config.servers, Config#config.total_server_weights),
     CPort = choose_port(IP, Config#config.ports_range),
     { {IP, CPort}, Server}.
 
@@ -498,8 +498,15 @@ choose_client_ip(#client{ip = IPList, host=Host}) ->
 %% Purpose: choose a server for a new client
 %% Returns: {ok, #server}
 %%----------------------------------------------------------------------
-choose_server(ServerList) ->
-    choose_rr(ServerList, server, #server{}).
+choose_server([Server], _TotalWeight) ->
+    {ok, Server};
+choose_server(Servers, Total) ->
+    choose_server(Servers, random:uniform() * Total, 0).
+
+choose_server([S=#server{weight=P} | _],Rand,Cur) when Rand =< P+Cur->
+    {ok, S};
+choose_server([#server{weight=P} | SList], Rand, Cur) ->
+    choose_server(SList, Rand, Cur+P).
 
 %%----------------------------------------------------------------------
 %% Func: choose_rr/3

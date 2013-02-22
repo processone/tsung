@@ -100,16 +100,18 @@ parse(Element = #xmlElement{parents = [], attributes=Attrs}, Conf=#config{}) ->
 
 
 %% parsing the Server elements
-parse(Element = #xmlElement{name=server, attributes=Attrs}, Conf=#config{servers=ServerList}) ->
+parse(Element = #xmlElement{name=server, attributes=Attrs}, Conf=#config{servers=ServerList, total_server_weights=OldTotal}) ->
     Server = getAttr(Attrs, host),
     Port   = getAttr(integer, Attrs, port),
+    Weight = getAttr(float_or_integer, Attrs, weight,1),
     Type   = set_net_type(getAttr(Attrs, type)),
-
+    Total  = OldTotal + Weight,
     lists:foldl(fun parse/2,
-        Conf#config{servers = [#server{host=Server,
-                                       port=Port,
-                                       type=Type
-                                     }|ServerList]},
+        Conf#config{servers = [#server{host  = Server,
+                                       port  = Port,
+                                       weight= Weight,
+                                       type  = Type
+                                     }|ServerList], total_server_weights = Total},
         Element#xmlElement.content);
 
 

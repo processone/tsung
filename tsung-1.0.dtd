@@ -18,8 +18,9 @@
 <!ELEMENT servers (server+)>
 <!ELEMENT server EMPTY>
 <!ATTLIST server
-     host NMTOKEN #REQUIRED
-     port NMTOKEN #REQUIRED
+     host   NMTOKEN #REQUIRED
+     port   NMTOKEN #REQUIRED
+     weight NMTOKEN "1"
      type (ssl | tcp | udp | erlang | ssl6 | tcp6 | udp6 |bosh | bosh_ssl | websocket) #REQUIRED>
 
 <!ELEMENT clients (client+)>
