@@ -199,6 +199,12 @@ parse_config(Element = #xmlElement{name=option}, Conf = #config{session_tab = Ta
 
             ts_user_server:set_random_fileid(FileId),
             Conf;
+        "offline_from_fileid" ->
+            FileId = ts_config:getAttr(atom,Element#xmlElement.attributes, value, none),
+            ?LOGF("set offline fileid to  ~p~n",[FileId],?WARN),
+
+            ts_user_server:set_offline_fileid(FileId),
+            Conf;
         "fileid_delimiter" ->
             D = ts_config:getAttr(string,Element#xmlElement.attributes, value, ";"),
             ts_user_server:set_fileid_delimiter(D),

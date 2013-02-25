@@ -269,7 +269,7 @@ handle_call(get_id, _From, State=#state{random_server_id = Id, delimiter=D}) whe
         {ok, Line} ->
             [Val|_] = ts_utils:split(Line,D),
             {reply, {binary_to_list(Val), unused}, State}; %% FIXME: use binaries in jabber_common everywhere and remove the binary_to_list call here.
-        Else ->
+        _Else ->
             {reply, {error, userid_max_zero }, State}
     end;
 handle_call(get_id, _From, State=#state{userid_max = 0}) ->
@@ -281,13 +281,12 @@ handle_call(get_id, _From, State) ->
 
 %%Get one id in the users whos have to be connected
 handle_call(get_idle, _From, State=#state{offline=Offline,connected=Connected}) ->
-    case State#state.last_offline of
-        undefined ->
+    case ets_iterator_next(Offline, State#state.last_offline ) of
+        {error, empty_ets} ->
             ?LOG("No more free users !~n", ?WARN),
             {reply, {error, no_free_userid}, State};
-        Key when is_integer(Key) ->
-            {ok,NextOffline} = ets_iterator_del(Offline,Key,State#state.last_offline),
-            ?DebugF("New nextoffline is ~p~n",[NextOffline]),
+        {ok, Key} ->
+            NextOffline = ets_iterator_del(Offline, Key, State#state.last_offline),
             ets:insert(Connected, {Key,1}),
             case State#state.first_client of
                 undefined ->
@@ -296,10 +295,7 @@ handle_call(get_idle, _From, State=#state{offline=Offline,connected=Connected}) 
                 _Id ->
                     {reply, Key, State#state{last_connected=Key,
                                              last_offline=NextOffline}}
-            end;
-        Error ->
-            ?LOGF("Error when get idle ~p~n",[Error],?ERR),
-            {reply, {error, no_free_userid}, State}
+            end
     end;
 
 %%Get one offline id
@@ -308,11 +304,11 @@ handle_call(get_offline, _From, State=#state{offline=Offline,last_offline=Prev})
         {error, _Reason} ->
             {reply, {error, no_offline}, State};
         {ok, {Next,Pwd}} ->
-            ?DebugF("Choose (next is user defined) offline user ~p~n",[Prev]),
-            {reply, {ok, Prev}, State#state{last_offline={Next,Pwd}}};
+            ?DebugF("Choose (next is user defined) offline user ~p~n",[Next]),
+            {reply, {ok, {Next,Pwd}}, State#state{last_offline={Next,Pwd}}};
         {ok, Next} ->
             ?DebugF("Choose offline user ~p~n",[Prev]),
-            {reply, {ok, Prev}, State#state{last_offline=Next}}
+            {reply, {ok, Next}, State#state{last_offline=Next}}
     end;
 
 handle_call(get_first, _From, State) ->
@@ -325,13 +321,9 @@ handle_call({reset, NFin}, _From, State) ->
 
     ?LOGF("Reset offline and online lists (maxid=~p)~n",[NFin],?NOTICE),
     fill_offline(NFin, Offline, {State#state.offline_server_id, State#state.delimiter}),
-    First = case ets:first(Offline) of
-                '$end_of_table' -> undefined; % empty offline; can happen if we only use usernames from external file
-                Val  -> Val
-            end,
     State2 = State#state{offline        = Offline,
                          first_client   = undefined,
-                         last_offline   = First,
+                         last_offline   = undefined,
                          connected      = Connected,
                          last_connected = undefined,
                          last_online    = undefined,
@@ -374,23 +366,25 @@ handle_cast({remove_connected, Id}, State=#state{online=Online,offline=Offline,c
     {noreply, LastOnline} = ets_delete_online(Online,Id,State),
     ets:delete(Connected,Id),
     ets:insert(Offline, {Id,2}),
-    case State#state.last_offline of
-        undefined -> % Offline table was empty
+    case {State#state.last_offline,ets:first(Offline)}  of
+        {undefined, Id} ->
+            %% if we don't set last_offline, the next get_idle will
+            %% respond with Id again. If possible we prefer to use
+            %% another offline user
             {noreply, State#state{last_online=LastOnline, last_offline=Id}};
-            _ ->
+        _Else ->
             {noreply, State#state{last_online=LastOnline}}
     end;
 
 %% user_defined user case
-handle_cast({add_to_connected, Id}, State=#state{connected=Connected, first_client=First}) ->
-    ?LOGF("Add ~p to connected list~n",[Id],?DEB),
+handle_cast({add_to_connected, Id}, State=#state{connected=Connected, offline=Offline,first_client=First}) ->
     ets:insert(Connected, {Id,1}),
-    %% FIXME: remove from offline if offline fileid is defined
+    NextOffline = ets_iterator_del(Offline, Id, State#state.last_offline),
     case First of
         undefined ->
-            {noreply, State#state{last_connected=Id, first_client=Id}};
+            {noreply, State#state{last_connected=Id, first_client=Id, last_offline=NextOffline}};
         _ ->
-            {noreply, State#state{last_connected=Id}}
+            {noreply, State#state{last_connected=Id,last_offline=NextOffline}}
     end;
 
 handle_cast({add_to_online, Id}, State=#state{online=Online, connected=Connected}) ->
@@ -461,8 +455,8 @@ fill_offline(0, Offline, {FileId, Delimiter})->
         {ok, Data} ->
             ?LOGF("offline user from csv ~p",[Data],?DEB),
             Fun = fun(Line) ->
-                          User=hd(ts_utils:split(Line,Delimiter)),
-                          ets:insert(Offline,{{User,""},1})
+                          [User,Pwd| _]= ts_utils:split(Line,Delimiter),
+                          ets:insert(Offline,{{binary_to_list(User),binary_to_list(Pwd)},1})
                   end,
             lists:foreach(Fun, Data),
             ok;
@@ -478,27 +472,29 @@ fill_offline(N, Tab, Opts) when is_integer(N) ->
 %%% Func: ets_iterator_del/3
 %%% Args: Ets, Key, Iterator
 %%% Purpose: delete entry Key from Ets, update iterator if needed
-%%% Returns: {ok, Key} or {ok, undefined}
+%%% Returns: Key:: integer | {string(),string()}|undefined
 %%%----------------------------------------------------------------------
 
-% iterator  equal key:it will no longer be valid
+%% iterator equal key:it will no longer be valid
 ets_iterator_del(Ets, Key, Key) ->
-    Next = ets:next(Ets,Key),
+    Last = ets:prev(Ets,Key),
     ets:delete(Ets,Key),
-    case Next of
+    case Last of
         '$end_of_table' ->
             case ets:first(Ets) of
                 '$end_of_table' ->
-                    {ok, undefined};
+                    undefined;
+                Key ->
+                    undefined;
                 NewIter ->
-                    {ok, NewIter}
+                    NewIter
             end;
         NewIter ->
-            {ok, NewIter}
+            NewIter
     end;
 ets_iterator_del(Ets, Key, Iterator) ->
     ets:delete(Ets,Key),
-    {ok, Iterator}.
+    Iterator.
 
 %%%----------------------------------------------------------------------
 %%% Func: ets_iterator_next/2
@@ -512,7 +508,7 @@ ets_iterator_next(Ets, Iterator) ->
 %%%----------------------------------------------------------------------
 %%% Func: ets_iterator_next/3
 %%% Args: Ets, Iterator, Key
-%%% Purpose: get next key, must be different from 'Key'
+%%% Purpose: get next key, should be different from 'Key', if possible
 %%%----------------------------------------------------------------------
 ets_iterator_next(Ets, undefined, Key) ->
     case ets:first(Ets) of
@@ -521,7 +517,8 @@ ets_iterator_next(Ets, undefined, Key) ->
         Key ->
             case ets:next(Ets,Key) of
                 '$end_of_table' ->
-                    {error, empty_ets};
+                    %% Key is the only entry of offline table
+                    {ok, Key};
                 Iter ->
                     {ok, Iter}
             end;
@@ -548,7 +545,7 @@ ets_delete_online(Online,Id,State) ->
         [] ->
             {noreply, State#state.last_online};
         [_|_] ->
-            {ok, LastOnline} = ets_iterator_del(Online,Id,State#state.last_online),
+            LastOnline = ets_iterator_del(Online,Id,State#state.last_online),
             %% reset the last_online entries if it's equal to Id
             case State#state.last_online of
                 Id ->

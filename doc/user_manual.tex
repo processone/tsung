@@ -1186,6 +1186,10 @@ If not set in the configuration file, the values will be set to:
 \item passwd   = sesame
 \end{itemize}
 
+Other options are available if you prefer to use a CSV file for
+username/password, see ~\ref{sec:read-user-jabber-csv}.
+
+
 You can also set the \varname{muc\_service} here (see previous example).
 
 \subsubsection{HTTP options}
@@ -1671,7 +1675,7 @@ When each client starts a session, it chooses randomly a domain (each domain has
 same probability).
 
 \paragraph{Reading usernames and password from a CSV file}
-
+\label{sec:read-user-jabber-csv}
 Since version 1.4.0, you can now use a CSV file to store the usernames
 and password.
 
@@ -1720,16 +1724,17 @@ and the first jabber request (\userinput{connect}) must include a
 Moreover (since \strong{1.5.0}), when using chat messages to random or offline users, you
 should disable the default users (not from CSV) by setting
 \varname{userid\_max} to \userinput{0} and by setting the fileid for
-random users (also used for pubsub) server:
+offline and random users (also used for pubsub):
 \begin{Verbatim}
  <options>
   <option type="ts_jabber" name="userid_max" value="0" />
   <option type="ts_jabber" name="random_from_fileid" value='userdb'/>
+  <option type="ts_jabber" name="offline_from_fileid" value='userdb'/>
   <option type="ts_jabber" name="delimiter" value=";"/>
  </options>
 \end{Verbatim}
 
-The username should be the first entry in the each CSV line (the
+The username (resp. passwd) should be the first (resp. second) entry in the each CSV line (the
 delimiter is by default \userinput{";"} and can be overriden).
 
 \paragraph{raw XML}

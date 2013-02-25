@@ -33,7 +33,7 @@ config_file_server2_test()->
 
 config_file_server3_test()->
     myset_env(),
-    ?assertMatch({ok,<< "user1">> }, ts_file_server:get_next_line(user)).
+    ?assertMatch({ok,<< "user1;sesame">> }, ts_file_server:get_next_line(user)).
 
 config_file_server4_test()->
     myset_env(),

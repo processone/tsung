@@ -23,7 +23,7 @@ next_test() ->
     ts_user_server:reset(100),
     ts_user_server:get_idle(),
     B=ts_user_server:get_idle(),
-    ?assertMatch(B,2).
+    ?assertEqual(2,B).
 
 remove_test() ->
     myset_env(),
@@ -33,7 +33,7 @@ remove_test() ->
     B=ts_user_server:get_idle(),
     ts_user_server:remove_connected(B),
     C=ts_user_server:get_idle(),
-    ?assertMatch(C,3).
+    ?assertEqual(3,C).
 
 full_offline_test() ->
     myset_env(),
@@ -65,8 +65,8 @@ full_free_offline_refull_test() ->
     {error,no_free_userid}=ts_user_server:get_idle(),
     ts_user_server:remove_connected(A),
     ts_user_server:remove_connected(B),
-    A=ts_user_server:get_idle(),
-    ?assertMatch(B,ts_user_server:get_idle()).
+    B=ts_user_server:get_idle(),
+    ?assertEqual(A,ts_user_server:get_idle()).
 
 full_huge_offline_test() ->
     myset_env(),
@@ -111,4 +111,6 @@ online_full_test() ->
     ?assertMatch({error,no_online},ts_user_server:get_online(B)).
 
 myset_env()->
-    application:set_env(stdlib,debug_level,0).
+    myset_env(0).
+myset_env(A)->
+    application:set_env(stdlib,debug_level,A).

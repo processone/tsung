@@ -184,6 +184,8 @@ get_unique_user_defined_test()-> % this test must be runned just after get_offli
     Res = "<message id='3' to='tsung1@domain.org' type='chat'><body>hello</body></message>",
     ?assertEqual(Res, binary_to_list(Msg) ).
 
+
+
 get_unique_test()->
     ts_user_server:reset(2),
     Id=ts_user_server:get_idle(),
@@ -209,9 +211,31 @@ get_random_user_defined_test()->
     Res = "<message id='6' to='user1@domain.org' type='chat'><body>hello</body></message>",
     ?assertEqual(Res, binary_to_list(Msg) ).
 
+get_offline_user_defined_offline_test()->
+    Id = xmpp,
+    ts_user_server:set_offline_fileid(Id),
+    ts_user_server:reset(0),
+    User1 =  "tsung1",
+    Pwd   =  "sesame",
+    ts_user_server:add_to_connected({User1,Pwd}),
+    ts_user_server:add_to_online(default, ts_jabber_common:set_id(user_defined,User1, Pwd) ),
 
+    Msg = ts_jabber_common:get_message(#jabber{type = 'chat', prefix="prefix", data="hello", dest = offline, user_server=default, domain="domain.org"}),
+    Res = "<message id='7' to='user1@domain.org' type='chat'><body>hello</body></message>",
+    ?assertEqual(Res, binary_to_list(Msg) ).
 
+get_offline_user_defined_no_offline_test()->
+    ts_user_server:reset(0),
+    User1 =  "user1",
+    Pwd   =  "sesame",
+    ts_user_server:add_to_connected({User1,Pwd}),
+    ts_user_server:add_to_online(default, ts_jabber_common:set_id(user_defined,User1, Pwd) ),
 
+    Msg = ts_jabber_common:get_message(#jabber{type = 'chat', prefix="prefix", data="hello", dest = offline, user_server=default, domain="domain.org"}),
+    %% Res = "<message id='8' to='user1@domain.org' type='chat'><body>hello</body></message>",
+    Res = "",
+    ts_user_server:set_offline_fileid(undefined),
+    ?assertEqual(Res, binary_to_list(Msg) ).
 
 myset_env()->
     myset_env(0).
