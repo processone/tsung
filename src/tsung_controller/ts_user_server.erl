@@ -41,6 +41,7 @@
          remove_from_online/1,
          remove_connected/1,
          add_to_connected/1,
+         set_offline_fileid/1,
          set_random_fileid/1,
          set_fileid_delimiter/1,
          get_first/0]).
@@ -74,7 +75,8 @@
           online,         %ets table
           last_online,
           first_client,   % id (integer)
-          random_server_id, % file_server id for random users
+          random_server_id,  % file_server id for random users
+          offline_server_id, % file_server id for initial offline users
           delimiter = << ";" >>,   % delimiter for file_server id username
           userid_max      % max number of ids (starts at 1)
          }).
@@ -212,6 +214,13 @@ remove_from_online(Id)  ->
 set_random_fileid(Id) ->
     gen_server:cast({global, ?MODULE}, {set_random_fileid, Id}).
 
+%% @spec set_offline_fileid(Id::atom()) -> ok
+%% @doc Set file_server id for initial offline users
+%%      This is useful and usernames and password are set from a CSV file.
+%% @end
+set_offline_fileid(Id) ->
+    gen_server:cast({global, ?MODULE}, {set_offline_fileid, Id}).
+
 %% @spec set_fileid_delimiter(D::string()) -> ok
 %% @doc Set file_server delimiter for random users @end
 set_fileid_delimiter(D) ->
@@ -315,7 +324,7 @@ handle_call({reset, NFin}, _From, State) ->
     Connected  = ets:new(connected, [set, private]),
 
     ?LOGF("Reset offline and online lists (maxid=~p)~n",[NFin],?NOTICE),
-    fill_offline(NFin, Offline),
+    fill_offline(NFin, Offline, {State#state.offline_server_id, State#state.delimiter}),
     First = case ets:first(Offline) of
                 '$end_of_table' -> undefined; % empty offline; can happen if we only use usernames from external file
                 Val  -> Val
@@ -376,6 +385,7 @@ handle_cast({remove_connected, Id}, State=#state{online=Online,offline=Offline,c
 handle_cast({add_to_connected, Id}, State=#state{connected=Connected, first_client=First}) ->
     ?LOGF("Add ~p to connected list~n",[Id],?DEB),
     ets:insert(Connected, {Id,1}),
+    %% FIXME: remove from offline if offline fileid is defined
     case First of
         undefined ->
             {noreply, State#state{last_connected=Id, first_client=Id}};
@@ -404,6 +414,10 @@ handle_cast({remove_from_online, Id}, State=#state{online=Online,connected=Conne
 handle_cast({set_random_fileid, Id}, State) ->
     ?LOGF("Set file_server id for random users to ~p~n",[Id],?INFO),
     {noreply, State#state{random_server_id=Id}};
+
+handle_cast({set_offline_fileid, Id}, State) ->
+    ?LOGF("Set file_server id for offline users to ~p~n",[Id],?INFO),
+    {noreply, State#state{offline_server_id=Id}};
 
 handle_cast({set_fileid_delimiter, D}, State) ->
     ?LOGF("Set file_server delimiter ~p~n",[D],?DEB),
@@ -438,11 +452,27 @@ code_change(_OldVsn, State, _Extra) ->
 %%%----------------------------------------------------------------------
 %%% Internal functions
 %%%----------------------------------------------------------------------
-fill_offline(0, _)->
+fill_offline(0, _, {undefined,_})->
+    ?LOG("no offline user defined",?DEB),
     ok;
-fill_offline(N, Tab) when is_integer(N) ->
+fill_offline(0, Offline, {FileId, Delimiter})->
+    %% fill offline from file id
+    case ts_file_server:get_all_lines(FileId) of
+        {ok, Data} ->
+            ?LOGF("offline user from csv ~p",[Data],?DEB),
+            Fun = fun(Line) ->
+                          User=hd(ts_utils:split(Line,Delimiter)),
+                          ets:insert(Offline,{{User,""},1})
+                  end,
+            lists:foreach(Fun, Data),
+            ok;
+        Error ->
+            ?LOGF("error no offline user from csv~p",[Error],?DEB),
+            ok
+    end;
+fill_offline(N, Tab, Opts) when is_integer(N) ->
     ets:insert(Tab,{N, 0}),
-    fill_offline(N-1, Tab).
+    fill_offline(N-1, Tab, Opts).
 
 %%%----------------------------------------------------------------------
 %%% Func: ets_iterator_del/3
