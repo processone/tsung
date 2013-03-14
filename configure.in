@@ -23,14 +23,6 @@ AC_PATH_PROG(DIALYZER,dialyzer, /usr/bin/dializer, $with_erlang:$with_erlang/bin
 AC_PREFIX_PROGRAM(erl)
 AC_ERLANG_SUBST_ROOT_DIR()
 
-AC_MSG_CHECKING(for Erlang/OTP '-hybrid' option)
-if ! $ERL -noshell -hybrid -smp 2  -s init stop 2> /dev/null; then
-  AC_MSG_RESULT(no)
-else
-  AC_MSG_RESULT(yes)
-  ERL_OPTS="-hybrid $ERL_OPTS"
-fi
-
 dnl check for xmerl include path
 AC_ERLANG_CHECK_LIB(xmerl)
 AC_ERLANG_CHECK_LIB(ssl)
