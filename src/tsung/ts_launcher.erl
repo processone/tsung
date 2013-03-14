@@ -422,5 +422,5 @@ check_max_users(Max) ->
         end
     catch
         Error:Reason ->
-            ?LOGF("Can't get file descriptors limit from system, you should verify that 'maxusers' has a good value ",?NOTICE)
+            ?LOG("Can't get file descriptors limit from system, you should verify that 'maxusers' has a good value ",?NOTICE)
     end.
