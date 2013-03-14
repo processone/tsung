@@ -164,18 +164,19 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 
 check_clients(State) ->
-    case ts_sup:has_cport(node()) of
-        true ->  %%do not finish this beam
-            ?LOGF("Beam will not be terminated because it has a cport server ~p ~p~n",[node(), os:getpid()], ?NOTICE),
-            {noreply, State};
-        false ->
-            case ts_client_sup:active_clients() of
-                0 -> % no users left, and no more launchers, stop
+    case ts_client_sup:active_clients() of
+        0 -> % no users left, and no more launchers, stop
+            case ts_sup:has_cport(node()) of
+                true ->  %%do not finish this beam
+                    ?LOGF("Beam will not be terminated because it has a cport server ~p ~p~n",[node(), os:getpid()], ?NOTICE),
+                    ts_mon:stop(), %% we must warn ts_mon that our clients have finished
+                    {noreply, State};
+                false ->
                     ?LOGF("No more active users ~p ~p~n",[node(), os:getpid()], ?NOTICE),
-                    {stop, normal, State};
-                ActiveClients ->
-                    ?LOGF("Still ~p active client(s)~n", [ActiveClients],?NOTICE),
-                    erlang:start_timer(?check_noclient_timeout, self(), check_noclient ),
-                    {noreply, State}
-            end
+                    {stop, normal, State}
+            end;
+        ActiveClients ->
+            ?LOGF("Still ~p active client(s)~n", [ActiveClients],?NOTICE),
+            erlang:start_timer(?check_noclient_timeout, self(), check_noclient ),
+            {noreply, State}
     end.
