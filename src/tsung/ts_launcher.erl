@@ -411,7 +411,7 @@ set_warm_timeout(StartDate)->
 
 check_max_users(Max) ->
     try
-        Data = os:cmd("grep \"open files\"  /proc/self/limtits"),
+        Data = os:cmd("grep \"open files\"  /proc/self/limits"),
         {match,[Val]} = re:run(Data,"Max open files\\s+(\\d+)",[{capture,all_but_first,list}]),
         Limit = list_to_integer(Val),
         case (Max > Limit ) of
