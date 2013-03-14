@@ -52,6 +52,7 @@ close(Socket) ->
     ssl:close(Socket).
 
 % set_opts/2 -> socket()
+set_opts(none,  _Opts) -> none;
 set_opts(Socket, Opts) ->
     ssl:setopts(Socket, Opts),
     Socket.
