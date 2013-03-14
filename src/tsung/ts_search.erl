@@ -177,10 +177,7 @@ match([Match=#match{regexp=RawRegExp,subst=Subst, do=Action, 'when'=When}
                 restart -> put(restart_count, 0);
                 _       -> ok
             end,
-            match(Tail, Data, Counts,[{count, nomatch} | Stats],DynVars,Tr);
-        {error,_Error} ->
-            ?LOGF("Error while matching: bad REGEXP (~p)~n", [RegExp], ?ERR),
-            match(Tail, Data, Counts,[{count, badregexp} | Stats],DynVars,Tr)
+            match(Tail, Data, Counts,[{count, nomatch} | Stats],DynVars,Tr)
     end.
 
 %%----------------------------------------------------------------------
