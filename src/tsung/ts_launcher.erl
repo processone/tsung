@@ -115,6 +115,7 @@ wait({launch, [], Seed}, State=#launcher{static_done=Static_done}) ->
     case ts_config_server:get_client_config(MyHostName) of
         {ok, {[{Intensity, Users, Duration}| Rest], StartDate, Max}} ->
             ?LOGF("Expected duration of first phase: ~p sec (~p users) ~n",[Duration/1000, Users], ?NOTICE),
+            check_max_users(Max),
             NewState = State#launcher{phases         = Rest,
                                       nusers         = Users,
                                       phase_nusers   = Users,
@@ -406,4 +407,20 @@ set_warm_timeout(StartDate)->
                  " machines are synchronized (ntp ?)~n"++
                  "Anyway, start launcher NOW! ~n", ?WARN),
             1
+    end.
+
+check_max_users(Max) ->
+    try
+        Data = os:cmd("grep \"open files\"  /proc/self/limtits"),
+        {match,[Val]} = re:run(Data,"Max open files\\s+(\\d+)",[{capture,all_but_first,list}]),
+        Limit = list_to_integer(Val),
+        case (Max > Limit ) of
+            true ->
+                ?LOGF("WARNING !!! too few file descriptors available (~w), you should decrease maxusers (currently ~w)",[Limit,Max], ?CRIT);
+            false ->
+                ?LOGF("maxusers is below file descriptors limit (~p)",[Limit], ?DEB)
+        end
+    catch
+        Error:Reason ->
+            ?LOGF("Can't get file descriptors limit from system, you should verify that 'maxusers' has a good value ",?NOTICE)
     end.
