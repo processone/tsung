@@ -218,18 +218,17 @@ parse(Element = #xmlElement{name=client, attributes=Attrs},
                 Fun = fun(N)->
                               IP = case Scan_Intf of
                                        "" ->
-                                           {ok, TmpIP } = inet:getaddr(N,inet),
-                                           TmpIP;
+                                           [];
                                        Interface ->
                                            case os:type() of
                                                {unix, linux} ->
-                                                   {scan, Interface};
+                                                    [{scan, Interface}];
                                                OS ->
                                                    io:format(standard_error,"Scan interface is not supported on OS ~p, abort~n",[OS]),
                                                    exit({error, scan_interface_not_supported_on_os})
                                            end
                                    end,
-                              #client{host=N,weight=Weight,ip=[IP],maxusers=MaxUsers}
+                              #client{host=N,weight=Weight,ip=IP,maxusers=MaxUsers}
                       end,
                 lists:map(Fun, Nodes);
             _ ->
