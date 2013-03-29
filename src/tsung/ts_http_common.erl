@@ -597,8 +597,13 @@ parse_line("http/1.1 " ++ TailLine, Http, _Host )->
 parse_line("http/1.0 " ++ TailLine, Http, _Host)->
     parse_status(TailLine, Http#http{close=true});
 
-parse_line("content-length: "++Tail, Http, _Host)->
-    CL=list_to_integer(Tail),
+parse_line("content-length: "++Tail, Http, _Host) when hd(Tail) /= $\s ->
+    %% tuning: handle common case (single LWS) to avoid a call to string:strip
+    CL = list_to_integer(Tail),
+    ?DebugF("HTTP Content-Length ~p~n",[CL]),
+    Http#http{content_length=CL};
+parse_line("content-length:  "++Tail, Http, _Host)-> % multiple white spaces
+    CL = list_to_integer(string:strip(Tail)),
     ?DebugF("HTTP Content-Length ~p~n",[CL]),
     Http#http{content_length=CL};
 parse_line("connection: close"++_Tail, Http, _Host)->
