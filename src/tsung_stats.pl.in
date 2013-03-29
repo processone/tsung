@@ -713,7 +713,7 @@ sub formatsize {
 sub version {
   print "this script is part of Tsung version $tagvsn
 
-Written by Nicolas Niclausse and Jean François Lecomte
+Written by Nicolas Niclausse and Jean FranÃ§ois Lecomte
 
 Copyright (C) 2001-2004 IDEALX (http://IDEALX.org/)
 Copyright (C) 2004-2011 Nicolas Niclausse
@@ -731,6 +731,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program (see COPYING); if not, write to the 
 Free Software Foundation, Inc., 59 Temple Place - Suite 330, 
-Boston, MA 02111-1307, USA.";
+Boston, MA 02111-1307, USA.\n";
   exit;
 }
