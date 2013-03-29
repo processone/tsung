@@ -292,6 +292,23 @@ dynvars_jsonpath_test() ->
     Dynvars=ts_dynvars:new(data,Data),
     ?assertEqual(42,ts_client:set_dynvars(jsonpath,{JSONPath,data},[toto],Dynvars,{},[])).
 
+dynvars_file_test() ->
+    myset_env(),
+    ts_file_server:stop(),
+    ts_file_server:start(),
+    ts_file_server:read([{default,"./src/test/test_file_server.csv"}]),
+
+    ?assertMatch([<<"username1">>,<<"glop">>, << >>],ts_client:set_dynvars(file,{iter,default,<< ";" >>},[],[],{},[])).
+
+dynvars_file_pipe_test() ->
+    myset_env(),
+    ts_file_server:stop(),
+    ts_file_server:start(),
+    ts_file_server:read([{default,"./src/test/test_file_server_pipe.csv"}]),
+
+    ?assertMatch([<<"conv%2F99%2F589%2Finfo.txt">>,<<"99">> ,<<"589">>],ts_client:set_dynvars(file,{iter,default,<< "|" >>},[],[],{},[])).
+
+
 
 %%TODO: out of order..
 %parse_dynvar_xpath_collection_test() ->
