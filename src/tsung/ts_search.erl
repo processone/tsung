@@ -397,6 +397,9 @@ parse_dynvar([{jsonpath,VarName, Expr}| DynVarsSpecs],Binary,String,JSON,DynVars
                 undefined ->
                     ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?WARN),
                      << >>;
+                 {struct, Struct}  ->
+                     ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,Struct],?INFO),
+                     iolist_to_binary(mochijson2:encode({struct, Struct}));
                  Val  ->
                      ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,Val],?INFO),
                      Val

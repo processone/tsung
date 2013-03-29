@@ -74,6 +74,13 @@ parse_dyn_var_jsonpath_xmpp_test() ->
     JSONPath = "nodes",
     ?assertMatch([{'nodes',[<<"suno-12">>,<<"suno-13">>]}], ts_search:parse_dynvar([{jsonpath,'nodes', JSONPath} ],list_to_binary(Data))).
 
+parse_dyn_var_jsonpath_struct_test() ->
+    myset_env(),
+    Data="{\"accessToken\":{\"id\":\"78548a96-cadd-48c0-b7d6-4ff3b81f10cc\",\"lists\":[\"testlist1\"],\"token\":\"rTgdC3f7uJ/Smg3s4b9va2KW5GdPkRHtwYNgWbvwhensgOSf2/wan95VPDiXKnAAGilsZlpw/Td4bs/OPeVeYg==\",\"scope\":[\"GET_ME\",\"WRITE_ACCESS\"]},\"accessTokenSignature\":\"gWAL+zvDcQjqLmNdSwcG/TOWyta5g==\"}",
+    JSONPath = "accessToken",
+    ?assertMatch([{'nodes',  << "{\"id\":\"78548a96-cadd-48c0-b7d6-4ff3b81f10cc\",\"lists\":[\"testlist1\"],\"token\":\"rTgdC3f7uJ/Smg3s4b9va2KW5GdPkRHtwYNgWbvwhensgOSf2/wan95VPDiXKnAAGilsZlpw/Td4bs/OPeVeYg==\",\"scope\":[\"GET_ME\",\"WRITE_ACCESS\"]}" >> }], ts_search:parse_dynvar([{jsonpath,'nodes', JSONPath} ],list_to_binary(Data))).
+
+
 parse_dyn_var_xpath_test() ->
     myset_env(),
     Data="\r\n\r\n<html><body>"++?FORMDATA++"</body></html>",
@@ -292,12 +299,21 @@ dynvars_jsonpath_test() ->
     Dynvars=ts_dynvars:new(data,Data),
     ?assertEqual(42,ts_client:set_dynvars(jsonpath,{JSONPath,data},[toto],Dynvars,{},[])).
 
+dynvars_jsonpath2_test() ->
+    myset_env(7),
+    Data="{\"accessToken\":{\"id\":\"78548a96-cadd-48c0-b7d6-4ff3b81f10cc\",\"lists\":[\"testlist1\"],\"token\":\"rTgdC3f7uJ/Smg3s4b9va2KW5GdPkRHtwYNgWbvwhensgOSf2/wan95VPDiXKnAAGilsZlpw/Td4bs/OPeVeYg==\",\"scope\":[\"GET_ME\",\"WRITE_ACCESS\"]},\"accessTokenSignature\":\"gWAL+zvDcQjqLmNdSwcG/TOWyta5g==\"}",
+    JSONPath = "accessToken",
+    JSONPath2 = "accessTokenSignature",
+    Dynvars=ts_dynvars:new(data,Data),
+    Res = << "{\"id\":\"78548a96-cadd-48c0-b7d6-4ff3b81f10cc\",\"lists\":[\"testlist1\"],\"token\":\"rTgdC3f7uJ/Smg3s4b9va2KW5GdPkRHtwYNgWbvwhensgOSf2/wan95VPDiXKnAAGilsZlpw/Td4bs/OPeVeYg==\",\"scope\":[\"GET_ME\",\"WRITE_ACCESS\"]}" >>,
+    ?assertEqual(Res,ts_client:set_dynvars(jsonpath,{JSONPath,data},[toto],Dynvars,{},[])),
+    ?assertEqual(<< "gWAL+zvDcQjqLmNdSwcG/TOWyta5g==" >>,ts_client:set_dynvars(jsonpath,{JSONPath2,data},[toto],Dynvars,{},[])).
+
 dynvars_file_test() ->
     myset_env(),
     ts_file_server:stop(),
     ts_file_server:start(),
     ts_file_server:read([{default,"./src/test/test_file_server.csv"}]),
-
     ?assertMatch([<<"username1">>,<<"glop">>, << >>],ts_client:set_dynvars(file,{iter,default,<< ";" >>},[],[],{},[])).
 
 dynvars_file_pipe_test() ->
@@ -305,7 +321,6 @@ dynvars_file_pipe_test() ->
     ts_file_server:stop(),
     ts_file_server:start(),
     ts_file_server:read([{default,"./src/test/test_file_server_pipe.csv"}]),
-
     ?assertMatch([<<"conv%2F99%2F589%2Finfo.txt">>,<<"99">> ,<<"589">>],ts_client:set_dynvars(file,{iter,default,<< "|" >>},[],[],{},[])).
 
 

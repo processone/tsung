@@ -484,6 +484,7 @@ set_dynvars(jsonpath,{JSONPath, From},_Vars,DynVars,_,_) ->
     JSON=mochijson2:decode(Val),
     case ts_utils:jsonpath(JSONPath, JSON) of
         undefined -> << >>;
+        {struct,S}->  iolist_to_binary(mochijson2:encode({struct,S}));
         V         -> V
     end;
 set_dynvars(server,_,_,_,{Host,Port},_) ->
