@@ -58,20 +58,19 @@ start() ->
 
 
 %%--------------------------------------------------------------------
+%% @spec send({StatsName::atom(), Date::term()}) -> ok
 %% @doc
 %%
 %%
-%% @spec to({StatsName, Date}) -> ok
 %% @end
 %%--------------------------------------------------------------------
 send({StatsName, Date}) when is_atom(StatsName) ->
     gen_server:cast({global, ?SERVER}, {send, StatsName, Date}).
 
 %%--------------------------------------------------------------------
+%% @spec rcv({StatsName, Date}) -> ok
 %% @doc
 %%
-%%
-%% @spec receive({StatsName, Date}) -> ok
 %% @end
 %%--------------------------------------------------------------------
 rcv({StatsName, Date}) when is_atom(StatsName) ->
@@ -79,20 +78,20 @@ rcv({StatsName, Date}) when is_atom(StatsName) ->
 
 
 %%--------------------------------------------------------------------
+%% @spec delete({StatsName}) -> ok
 %% @doc
 %%
 %%
-%% @spec delete({StatsName}) -> ok
 %% @end
 %%--------------------------------------------------------------------
 delete({StatsName}) when is_atom(StatsName) ->
     gen_server:cast({global, ?SERVER}, {delete, StatsName}).
 
 %%--------------------------------------------------------------------
+%% @spec notify({Action::atom(), StatsName::atom(), Pid::pid()}) -> ok
 %% @doc
 %%
 %%
-%% @spec from({Action, StatsName, Pid}) -> ok
 %% @end
 %%--------------------------------------------------------------------
 notify({Action, StatsName, Pid}) when is_atom(Action), is_atom(StatsName), is_pid(Pid) ->

@@ -1046,9 +1046,9 @@ get_dynvar_name(VarNameStr) ->
     end.
 
 
-%% @spec get_popularity(Proba::number(),Weight::number(),UseWeight:true|false|undefined, Total::number()) ->
-%%   {Value::number(), UseWeight:boolean(),  Total:: number()}
-%% check if we are using popularity or weights; keep the total up to date.
+%% @spec get_popularity(Proba::number(), Weight::number(), UseWeight::(true|false|undefined), Total::number()) ->
+%%   {Value::number(), UseWeight::boolean(),  Total::number()}
+%% @doc check if we are using popularity or weights; keep the total up to date. @end
 get_popularity(-1, -1, _, _)->
     erlang:error({"must set weight or probability in session"});
 get_popularity(Proba,Weight,_,_) when is_number(Proba), Proba >= 0, is_number(Weight), Weight >= 0 ->

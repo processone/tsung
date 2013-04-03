@@ -143,7 +143,7 @@ match([Match=#match{'apply_to_content'={Module,Fun}}|Tail], Data, Counts,DynVars
     match([Match|Tail], NewData, Counts, [],DynVars, Tr).
 
 %% @spec match(Match::#match{}, Data::binary() | list(), Count::tuple(),
-%%             Stats::list(), DynVars::term()) -> Count::integer()
+%%             Stats::list(), DynVars::term(), Transaction::atom()) -> Count::integer()
 match([], _Data, {Count,_, _,_}, Stats, _, _) ->
     %% all matches done, add stats, and return Count unchanged (continue)
     ts_mon:add(Stats),

@@ -68,10 +68,10 @@ decode_buffer(Buffer,#jabber_session{}) ->
     Buffer. % nothing to do for jabber
 
 
-
-%% @spec userid({Session::record(jabber_session),Dynvars:::dynvars()}) ->  userid::string()
-%% @doc  return the current userid %% @end
+%% @spec userid({Session::record(jabber_session), Dynvars::dynvars()}) ->  UID::string()
+%% @doc  return the current userid  @end
 userid({#jabber_session{username=UID},_DynVars})-> UID.
+
 
 
 %%----------------------------------------------------------------------
