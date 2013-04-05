@@ -146,10 +146,11 @@ establishment only.<em>request</em> Mean duration of requests.</span>
        </tr>
           [% FOREACH key = row %]
            <td>
+            [% IF key %]
               <a href="images/graphes-$key-mean.[% ext %]">
               <img class="graph" src="images/graphes-$key-mean_tn.png" alt="other"/>
-              </a>
-
+               </a>
+            [% END %]
            </td>
            [% END %]
        </tr>
