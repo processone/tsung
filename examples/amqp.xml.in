@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<!DOCTYPE tsung SYSTEM "/usr/local/share/tsung/tsung-1.0.dtd">
+<tsung loglevel="debug" version="1.0">
+	<clients>
+		<client host="ubuntu" maxusers="5"></client>
+	</clients>
+
+	<servers>
+        <server host="127.0.0.1" port="5672" type="tcp" />
+	</servers>
+
+	<load duration="72" unit="hour">
+        <user session="amqp_consumer" start_time="1" unit="second"></user>
+
+		<arrivalphase phase="1" duration="3" unit="second">
+			<users maxnumber="1" arrivalrate="1" unit="second"/>
+		</arrivalphase>
+	</load>
+
+	<!--amqp config: username and password -->
+	<options>
+        <option type="ts_amqp" name="username" value="guest" />
+        <option type="ts_amqp" name="password" value="guest" />
+	</options>
+
+	<sessions>
+		<session probability="100" name="amqp_publisher" type="ts_amqp" bidi="true">
+            <request>
+                <amqp type="connection.open" vhost="/"></amqp>
+            </request>
+
+            <!-- ignore this request if you don't need publisher confirm -->
+            <request>
+                <amqp type="confirm.select"></amqp>
+            </request>
+
+            <for from="1" to="200" incr="1" var="loops">
+                <for from="1" to="10000" incr="1" var="counter">
+                    <transaction name="publish">
+                        <request>
+                            <amqp type="basic.publish" exchange="test_exchange" routing_key="4.queue_lb" persistent="true" size="100"></amqp>
+                        </request>
+                    </transaction>
+                </for>
+                <!--if publish with confirm, add a thinktime per 10000 msg(or other)-->
+                <thinktime value="1" />
+            </for>
+
+            <request>
+                <amqp type="connection.close"></amqp>
+            </request>
+		</session>
+		<session probability="0" name="amqp_consumer" type="ts_amqp" bidi="true">
+            <request>
+                <amqp type="connection.open"></amqp>
+            </request>
+
+            <!-- ignore this request if you don't need qos(prefetch_count only) -->
+            <request>
+                <amqp type="basic.qos" prefetch_count="200"></amqp>
+            </request>
+
+            <request>
+                <amqp type="basic.consume" queue="4.queue_lb" ack="false"></amqp>
+            </request>
+            
+            <!-- you need this thinktime to receive the message -->
+            <thinktime value="1800" /> 
+
+            <request>
+                <amqp type="connection.close"></amqp>
+            </request>
+		</session>
+	</sessions>
+</tsung>
