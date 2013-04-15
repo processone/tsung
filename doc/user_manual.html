@@ -872,8 +872,9 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </DD><DT CLASS="dt-description"><B>HTTP status</B></DT><DD CLASS="dd-description"> HTTP reponse status (200, 304, etc.)
 </DD><DT CLASS="dt-description"><B>size</B></DT><DD CLASS="dd-description"> reponse size (in bytes)
 </DD><DT CLASS="dt-description"><B>duration</B></DT><DD CLASS="dd-description"> request duration (msec)
-</DD><DT CLASS="dt-description"><B>match</B></DT><DD CLASS="dd-description"> if a match is defined in the request: match|nomatch
-</DD><DT CLASS="dt-description"><B>error</B></DT><DD CLASS="dd-description"> name of http error
+</DD><DT CLASS="dt-description"><B>match</B></DT><DD CLASS="dd-description"> if a match is defined in the request: match|nomatch (last
+&lt;match&gt; if several are defined)
+</DD><DT CLASS="dt-description"><B>error</B></DT><DD CLASS="dd-description"> name of http error (or empty)
 </DD></DL><P>The <TT>loglevel</TT> can also have a great impact on performance:
 For high load, <FONT COLOR=purple>warning</FONT> is recommended.
 Possible values are:</P><UL CLASS="itemize"><LI CLASS="li-itemize">

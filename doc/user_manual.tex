@@ -729,8 +729,9 @@ Where:
 \item[HTTP status] HTTP reponse status (200, 304, etc.)
 \item[size] reponse size (in bytes)
 \item[duration] request duration (msec)
-\item[match] if a match is defined in the request: match|nomatch
-\item[error] name of http error
+\item[match] if a match is defined in the request: match|nomatch (last
+  <match> if several are defined)
+\item[error] name of http error (or empty)
 \end{description}
 
  The \varname{loglevel} can also have a great impact on performance:
