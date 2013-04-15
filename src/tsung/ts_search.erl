@@ -159,7 +159,7 @@ match([Match=#match{regexp=RawRegExp,subst=Subst, do=Action, 'when'=When}
         {When,_} ->
             ?LOGF("Ok Match (regexp=~p) do=~p~n",[RegExp,Action], ?INFO),
             case Action of
-                Act when Act =:= 'continue'; Act =:= 'log'    ->
+                Act when Act =:= 'continue'; Act =:= 'log'; Act =:= 'dump' ->
                     setcount(Match, Counts, [{count, match}| Stats], Data, Tr),
                     match(Tail, Data, Counts, Stats,DynVars, Tr);
                 _       -> setcount(Match, Counts, [{count, match}| Stats], Data, Tr)
@@ -167,7 +167,7 @@ match([Match=#match{regexp=RawRegExp,subst=Subst, do=Action, 'when'=When}
         When -> % nomatch
             ?LOGF("Bad Match (regexp=~p) do=~p~n",[RegExp, Action], ?INFO),
             case Action of
-                Act when Act =:= 'continue'; Act =:= 'log'    ->
+                Act when Act =:= 'continue'; Act =:= 'log'; Act =:= 'dump' ->
                     setcount(Match, Counts, [{count, nomatch}| Stats], Data, Tr),
                     match(Tail, Data, Counts, Stats,DynVars, Tr);
                 _       -> setcount(Match, Counts, [{count, nomatch}| Stats], Data, Tr)
