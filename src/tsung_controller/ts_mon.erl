@@ -436,7 +436,7 @@ start_dump(State=#state{type=Type}) ->
             ?LOG("dump file opened, starting monitor~n",?INFO),
             case Type of
                 protocol ->
-                    io:format(Stream,"#date;pid;id;http method;host;URL;HTTP status;size;match;error~n",[]);
+                    io:format(Stream,"#date;pid;id;http method;host;URL;HTTP status;size;duration,match;error~n",[]);
                 _ ->
                     ok
             end,

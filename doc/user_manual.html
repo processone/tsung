@@ -96,7 +96,7 @@ a:hover     {background:#ffffaa;}
 <!--CUT DEF section 1 --><H1 ALIGN=center>Tsung User’s manual</H1><DIV CLASS="center">
 
 <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>1.5.0</TD></TR>
-<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>February 25, 2013</TD></TR>
+<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>April 15, 2013</TD></TR>
 </TABLE>
 </DIV><!--TOC section Contents-->
 <H2 CLASS="section"><!--SEC ANCHOR -->Contents</H2><!--SEC END --><UL CLASS="toc"><LI CLASS="li-toc">
@@ -853,7 +853,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 <TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
-</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">#date;pid;id;http method;host;URL;HTTP status;size;match;error
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">#date;pid;id;http method;host;URL;HTTP status;size;duration;match;error
 </PRE></TD></TR>
 </TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>
@@ -862,7 +862,19 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE><P>The <TT>loglevel</TT> can also have a great impact on performance:
+</TABLE><P>Where:
+</P><DL CLASS="description"><DT CLASS="dt-description">
+<B>date</B></DT><DD CLASS="dd-description"> timestamp at the end of the request (seconds since 1970-01-01 00:00:00 UTC)
+</DD><DT CLASS="dt-description"><B>pid</B></DT><DD CLASS="dd-description"> erlang process id
+</DD><DT CLASS="dt-description"><B>id</B></DT><DD CLASS="dd-description"> tsung user id
+</DD><DT CLASS="dt-description"><B>host</B></DT><DD CLASS="dd-description"> server hostname
+</DD><DT CLASS="dt-description"><B>url</B></DT><DD CLASS="dd-description"> URL (relative)
+</DD><DT CLASS="dt-description"><B>HTTP status</B></DT><DD CLASS="dd-description"> HTTP reponse status (200, 304, etc.)
+</DD><DT CLASS="dt-description"><B>size</B></DT><DD CLASS="dd-description"> reponse size (in bytes)
+</DD><DT CLASS="dt-description"><B>duration</B></DT><DD CLASS="dd-description"> request duration (msec)
+</DD><DT CLASS="dt-description"><B>match</B></DT><DD CLASS="dd-description"> if a match is defined in the request: match|nomatch
+</DD><DT CLASS="dt-description"><B>error</B></DT><DD CLASS="dd-description"> name of http error
+</DD></DL><P>The <TT>loglevel</TT> can also have a great impact on performance:
 For high load, <FONT COLOR=purple>warning</FONT> is recommended.
 Possible values are:</P><UL CLASS="itemize"><LI CLASS="li-itemize">
 emergency
@@ -2705,7 +2717,7 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE><P>Now you can build you own function to use it, for example, create a
+</TABLE><P>Now you can build your own function to use it, for example, create a
 file called <TT>readcsv.erl</TT>:</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
 </TD></TR>

@@ -717,9 +717,21 @@ Since version \strong{1.4.0}, you have also a specific logging per
  with the following data:
 
 \begin{Verbatim}
-#date;pid;id;http method;host;URL;HTTP status;size;match;error
+#date;pid;id;http method;host;URL;HTTP status;size;duration;match;error
 \end{Verbatim}
-
+Where:
+\begin{description}
+\item[date] timestamp at the end of the request (seconds since 1970-01-01 00:00:00 UTC)
+\item[pid] erlang process id
+\item[id] tsung user id
+\item[host] server hostname
+\item[url] URL (relative)
+\item[HTTP status] HTTP reponse status (200, 304, etc.)
+\item[size] reponse size (in bytes)
+\item[duration] request duration (msec)
+\item[match] if a match is defined in the request: match|nomatch
+\item[error] name of http error
+\end{description}
 
  The \varname{loglevel} can also have a great impact on performance:
  For high load, \userinput{warning} is recommended.

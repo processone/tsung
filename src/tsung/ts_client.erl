@@ -975,8 +975,6 @@ handle_data_msg(Data,State=#state_rcv{dump=Dump,request=Req,id=Id,clienttype=Typ
                        NewState#state_rcv.session_id, Id},
             NewDynVars=ts_dynvars:merge(DynVars,NewState#state_rcv.dynvars),
             NewCount  =ts_search:match(Req#ts_request.match,NewBuffer,MatchArgs,NewDynVars,Transactions),
-            Type:dump(Dump,{Req,NewState#state_rcv.session,Id,
-                            NewState#state_rcv.host,NewState#state_rcv.datasize}),
             case Close of
                 true ->
                     ?Debug("Close connection required by protocol~n"),
@@ -1113,21 +1111,25 @@ update_stats_noack(#state_rcv{page_timestamp=PageTime,request=Request}) ->
 %% Returns: {TimeStamp, DynVars}
 %% Purpose: update the statistics
 %%----------------------------------------------------------------------
-update_stats(State=#state_rcv{size_mon_thresh=T,page_timestamp=PageTime,send_timestamp=SendTime}) ->
+update_stats(S=#state_rcv{host=Host,size_mon_thresh=T,page_timestamp=PageTime,
+                          clienttype=Type,request=Req,dump=Dump,id=Id,
+                          send_timestamp=SendTime,datasize=Datasize})->
     Now = ?NOW,
     Elapsed = ts_utils:elapsed(SendTime, Now),
-    Stats = case   State#state_rcv.size_mon > T of
+    Type:dump(Dump,{Req,S#state_rcv.session,Id, Host, Datasize, Elapsed}),
+
+    Stats = case S#state_rcv.size_mon > T of
                 true ->
-                    LastSize=State#state_rcv.datasize-State#state_rcv.size_mon+T,
+                    LastSize=Datasize-S#state_rcv.size_mon+T,
                     [{ sample, request, Elapsed},
                      { sum, size_rcv, LastSize}];
                 false->
                     [{ sample, request, Elapsed},
-                     { sum, size_rcv, State#state_rcv.datasize}]
+                     { sum, size_rcv, Datasize}]
             end,
-    Request = State#state_rcv.request,
+    Request = S#state_rcv.request,
     DynVars = ts_search:parse_dynvar(Request#ts_request.dynvar_specs,
-                                     State#state_rcv.buffer),
+                                     S#state_rcv.buffer),
     case Request#ts_request.endpage of
         true -> % end of a page, compute page reponse time
             PageElapsed = ts_utils:elapsed(PageTime, Now),

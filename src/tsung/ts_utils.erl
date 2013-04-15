@@ -479,7 +479,7 @@ join(_Sep, []) -> [];
 join(Sep, List) when is_list(List)->
     ToStr = fun(A) when is_integer(A) -> integer_to_list(A);
                (A) when is_list(A) -> A;
-               (A) when is_float(A) -> float_to_list(A);
+               (A) when is_float(A) -> io_lib:format("~.3f",[A]);
                (A) when is_atom(A) -> atom_to_list(A);
                (A) when is_binary(A) -> binary_to_list(A)
             end,
