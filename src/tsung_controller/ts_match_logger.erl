@@ -174,7 +174,7 @@ code_change(_OldVsn, StateData, _Extra) ->
 
 log({UserId,SessionId,RequestId,TimeStamp,{count, Val},[], Tr,Name},State=#state{fd=File}) ->
     TS=ts_utils:time2sec_hires(TimeStamp),
-    io:format(File,"~f ~B ~B ~B ~p ~s ~s~n",[TS,UserId,SessionId,RequestId,Val,log_transaction(Tr),Name]),
+    io:format(File,"~f ~B ~B ~B ~p ~s ~s~n",[TS,UserId,SessionId,RequestId,Val,ts_utils:log_transaction(Tr),Name]),
     State;
 log({UserId,SessionId,RequestId,TimeStamp,{count, Val},Bin, Tr,MatchName}, State=#state{logdir=LogDir, dumpid=Id}) ->
     log({UserId,SessionId,RequestId,TimeStamp,{count, Val},[],Tr, MatchName}, State),
@@ -183,8 +183,3 @@ log({UserId,SessionId,RequestId,TimeStamp,{count, Val},Bin, Tr,MatchName}, State
     file:write_file(Filename,Bin),
     State#state{dumpid=Id+1}.
 
-
-log_transaction([]) ->
-    "-";
-log_transaction([{TransactionName,_}| _Tail]) ->
-    TransactionName.

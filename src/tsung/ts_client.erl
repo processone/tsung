@@ -976,7 +976,7 @@ handle_data_msg(Data,State=#state_rcv{dump=Dump,request=Req,id=Id,clienttype=Typ
             NewDynVars=ts_dynvars:merge(DynVars,NewState#state_rcv.dynvars),
             NewCount  =ts_search:match(Req#ts_request.match,NewBuffer,MatchArgs,NewDynVars,Transactions),
             Type:dump(Dump,{Req,NewState#state_rcv.session,Id,
-                            NewState#state_rcv.host,NewState#state_rcv.datasize,Elapsed}),
+                            NewState#state_rcv.host,NewState#state_rcv.datasize,Elapsed,Transactions}),
 
             case Close of
                 true ->

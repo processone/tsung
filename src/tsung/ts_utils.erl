@@ -44,7 +44,7 @@
          randomstr/1,urandomstr/1,urandomstr_noflat/1, eval/1, list_to_number/1,
          time2sec/1, time2sec_hires/1, read_file_raw/1, init_seed/1, jsonpath/2, pmap/2,
          concat_atoms/1, ceiling/1, accept_loop/3, append_to_filename/3, splitchar/2,
-         randombinstr/1,urandombinstr/1
+         randombinstr/1,urandombinstr/1,log_transaction/1
         ]).
 
 level2int("debug")     -> ?DEB;
@@ -878,3 +878,8 @@ append_to_filename(Filename, From, To) ->
         RealName -> RealName
     end.
 
+
+log_transaction([]) ->
+    "-";
+log_transaction([{TransactionName,_}| _Tail]) ->
+    TransactionName.

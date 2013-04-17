@@ -130,12 +130,13 @@ subst(Job=#job{duration=D,req=Req,walltime=WT,resources=Res,options=Opts,jobid=I
 
 
 dump(protocol,{none,#job_session{jobid=JobId,owner=Owner,submission_time=Sub,queue_time=Q,
-                                 start_time=Start,end_time=E,status=Status},Name,_,_,_})->
+                                 start_time=Start,end_time=E,status=Status},Name,_,_,_,Transactions})->
     {R,_}=lists:mapfoldl(fun(A,Acc) ->
                                  {integer_to_list(round(ts_utils:elapsed(Acc,A))),A}
                          end,Sub,[Q,Start,E]),
     Date=integer_to_list(round(ts_utils:time2sec_hires(Sub))),
-    Data=ts_utils:join(";",[JobId,Name,Date]++R++[Status]),
+    Tr=ts_utils:log_transaction(Transactions),
+    Data=ts_utils:join(";",[JobId,Name,Tr,Date]++R++[Status]),
     ts_mon:dump({protocol, Owner, Data });
 dump(_P,_Args) ->
     ok.

@@ -82,7 +82,7 @@ decode_buffer(Buffer,#http{compressed={_,Comp}})->
 %%             Host::string(),DataSize::integer()}) -> ok
 %% @doc log request and response summary
 %% @end
-dump(protocol,{#ts_request{param=HttpReq},HttpResp,UserId,Server,Size,Duration})->
+dump(protocol,{#ts_request{param=HttpReq},HttpResp,UserId,Server,Size,Duration,Transactions})->
     Status = case element(2,HttpResp#http.status) of
                  none -> "error_no_http_status"; % something is really wrong here ... http 0.9 response ?
                  Int when is_integer(Int) ->
@@ -100,10 +100,11 @@ dump(protocol,{#ts_request{param=HttpReq},HttpResp,UserId,Server,Size,Duration})
                 Err ->
                     atom_to_list(Err)
             end,
+    Tr=ts_utils:log_transaction(Transactions),
     Data=ts_utils:join(";",[integer_to_list(UserId),
                             atom_to_list(HttpReq#http_request.method), Server,
                             get(last_url), Status,integer_to_list(Size),
-                            Duration,Match,Error]
+                            Duration,Tr,Match,Error]
                       ),
     ts_mon:dump({protocol, self(), Data });
 dump(_,_) ->
