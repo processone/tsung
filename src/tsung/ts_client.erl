@@ -454,7 +454,7 @@ handle_next_action(State) ->
 
 
 %%----------------------------------------------------------------------
-%% @spec set_dynvars (Type::erlang|random|urandom|file, Args::tuple(),
+%% @spec set_dynvars (Type::erlang|random|urandom|value|file, Args::tuple(),
 %%                    Variables::list(), DynVars::#dynvars{},
 %%                    {Server::string(),Port::integer()}, Session::record()) -> integer()|binary()|list()
 %% @doc setting the value of several dynamic variables at once.
@@ -473,6 +473,8 @@ set_dynvars(urandom,{string,Length},Vars,_DynVars,_,_) ->
     %% not random, but much faster
     R = fun(_) -> ts_utils:urandombinstr(Length) end,
     lists:map(R,Vars);
+set_dynvars(value,{string,Value},_Vars,_DynVars,_,_) ->
+    Value;
 set_dynvars(file,{random,FileId,Delimiter},_Vars,_DynVars,_,_) ->
     {ok,Line} = ts_file_server:get_random_line(FileId),
     ts_utils:split(Line,Delimiter);

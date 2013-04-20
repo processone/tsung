@@ -2489,6 +2489,14 @@ section \ref{Dynamic variables}.
     </setdynvars>
 \end{Verbatim}
 
+\item You can define a dynamic variable as constant value to use it in
+  a plugin
+\begin{Verbatim}
+    <setdynvars sourcetype="value" value="foobar">
+      <var name="constant" />
+    </setdynvars>
+\end{Verbatim}
+
 \end{enumerate}
 
 A \varname{setdynvars} can be defined anywhere in a session.
