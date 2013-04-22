@@ -3,6 +3,14 @@
 <div id="maincontent">
  <h2 class="main">tsung - Graphical Reports</h2> 
 
+ <script type="text/javascript">
+   var graphOptions = {
+      labelsDivWidth: 400,
+      rollPeriod: 7,
+      showRoller: true
+   };
+ </script>
+
 <div id="response_time">
 <h3>Response Time</h3> 
 <table>
@@ -13,10 +21,8 @@
   <script type="text/javascript"> 
   g2 = new Dygraph(
     document.getElementById("tr_mean"),
-    "csv_data/graphes-Transactions-mean.csv",        {
-      rollPeriod: 7,
-      showRoller: true
-    }
+    "csv_data/graphes-Transactions-mean.csv",
+	graphOptions
 );
 </script> 
  </td>
@@ -25,10 +31,8 @@
    <script type="text/javascript"> 
   g2 = new Dygraph(
     document.getElementById("perfs_mean"),
-    "csv_data/graphes-Perfs-mean.csv",        {
-      rollPeriod: 7,
-      showRoller: true
-    }
+    "csv_data/graphes-Perfs-mean.csv",
+	graphOptions
   );
 </script> 
  </td>
@@ -48,10 +52,8 @@
   <script type="text/javascript"> 
   g2 = new Dygraph(
     document.getElementById("tr_rate"),
-    "csv_data/graphes-Transactions-rate.csv",        {
-      rollPeriod: 7,
-      showRoller: true
-    }
+    "csv_data/graphes-Transactions-rate.csv",
+	graphOptions
   );
 </script> 
  </td>
@@ -60,10 +62,8 @@
    <script type="text/javascript"> 
   g2 = new Dygraph(
     document.getElementById("perfs_rate"),
-    "csv_data/graphes-Perfs-rate.csv",        {
-      rollPeriod: 7,
-      showRoller: true
-    }
+    "csv_data/graphes-Perfs-rate.csv",
+	graphOptions
   );
 </script> 
  </td>
@@ -78,10 +78,8 @@
    <script type="text/javascript"> 
   g2 = new Dygraph(
     document.getElementById("Async_rate"),
-    "csv_data/graphes-Async-rate.csv",        {
-      rollPeriod: 7,
-      showRoller: true
-    }
+    "csv_data/graphes-Async-rate.csv",
+	graphOptions
   );
 </script> 
  </td>
@@ -94,10 +92,8 @@
   <script type="text/javascript"> 
   g2 = new Dygraph(
     document.getElementById("size_rate"),
-    "csv_data/graphes-Size-rate.csv",        {
-      rollPeriod: 7,
-      showRoller: true
-    }
+    "csv_data/graphes-Size-rate.csv",
+	graphOptions
   );
 </script> 
  </td>
@@ -106,10 +102,8 @@
    <script type="text/javascript"> 
   g2 = new Dygraph(
     document.getElementById("arrival_rate"),
-    "csv_data/graphes-Users_Arrival-rate.csv",        {
-      rollPeriod: 7,
-      showRoller: true
-    }
+    "csv_data/graphes-Users_Arrival-rate.csv",
+	graphOptions
   );
 </script> 
  </td>
@@ -130,10 +124,8 @@
   <script type="text/javascript"> 
   g2 = new Dygraph(
     document.getElementById("user_sim"),
-    "csv_data/graphes-Users-simultaneous.csv",        {
-      rollPeriod: 7,
-      showRoller: true
-    }
+    "csv_data/graphes-Users-simultaneous.csv",
+	graphOptions
   );
 </script> 
  </td>
@@ -142,10 +134,8 @@
   <script type="text/javascript"> 
   g2 = new Dygraph(
     document.getElementById("match_rate"),
-    "csv_data/graphes-Match-rate.csv",        {
-      rollPeriod: 7,
-      showRoller: true
-    }
+    "csv_data/graphes-Match-rate.csv",
+	graphOptions
   );
 </script> 
  </td>
@@ -165,10 +155,8 @@
   <script type="text/javascript"> 
   g2 = new Dygraph(
     document.getElementById("cpu_mean"),
-    "csv_data/graphes-cpu-mean.csv",        {
-      rollPeriod: 7,
-      showRoller: true
-    }
+    "csv_data/graphes-cpu-mean.csv",
+	graphOptions
   );
 </script> 
  </td>
@@ -177,10 +165,8 @@
    <script type="text/javascript"> 
   g2 = new Dygraph(
     document.getElementById("freemem_mean"),
-    "csv_data/graphes-freemem-mean.csv",        {
-      rollPeriod: 7,
-      showRoller: true
-    }
+    "csv_data/graphes-freemem-mean.csv",
+	graphOptions
   );
 </script> 
  </td>
@@ -193,10 +179,8 @@
   <script type="text/javascript"> 
   g2 = new Dygraph(
     document.getElementById("load_mean"),
-    "csv_data/graphes-load-mean.csv",        {
-      rollPeriod: 7,
-      showRoller: true
-    }
+    "csv_data/graphes-load-mean.csv",
+	graphOptions
   );
 </script> 
  </td>
@@ -213,10 +197,8 @@
   <script type="text/javascript"> 
   g2 = new Dygraph(
     document.getElementById("http_code_rate"),
-    "csv_data/graphes-HTTP_CODE-rate.csv",        {
-      rollPeriod: 7,
-      showRoller: true
-    }
+    "csv_data/graphes-HTTP_CODE-rate.csv",
+	graphOptions
   );
 </script> 
 </div>
@@ -229,10 +211,8 @@
   <script type="text/javascript"> 
   g2 = new Dygraph(
     document.getElementById("errors_rate"),
-    "csv_data/graphes-Errors-rate.csv",        {
-      rollPeriod: 7,
-      showRoller: true
-    }
+    "csv_data/graphes-Errors-rate.csv",
+	graphOptions
   );
 </script> 
 </div>
