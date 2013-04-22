@@ -285,6 +285,7 @@ sub plot_stats_dygraph {
   foreach $d (0..$#{$title}) {
     #loop on all the kind of graph needed for a subject (transaction, user ...)
     $info{'path'} = "$csvdir/graphes-$datatype-@{$title}[$d].csv";
+    @rowdata = ();
     #if ($timestamp) {
     #  print "set xlabel \"unit = $timestamp sec \"\n";
     #} else {
