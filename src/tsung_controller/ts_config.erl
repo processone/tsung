@@ -548,7 +548,7 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
                      {Type,Name,Expr}
              end,
     NewDynVar = [DynVar|DynVars],
-    ?LOGF("Add new dyn variable=~p in session ~p~n",
+    ?LOGF("Add new dyn variable=~p in session ~p~",
           [NewDynVar,CurS#session.id],?INFO),
     Conf#config{ dynvar= NewDynVar };
 
@@ -854,6 +854,9 @@ parse(Element = #xmlElement{name=setdynvars, attributes=Attrs},
                      From = getAttr(atom, Attrs,from),
                      JSONPath = getAttr(Attrs,jsonpath),
                      {setdynvars,jsonpath,{JSONPath, From},Vars};
+                 "value" ->
+                     Value = getAttr(string,Attrs,value,""),
+                     {setdynvars,value,{string,Value},Vars};
                  "server" ->
                      {setdynvars,server,{},Vars}
              end,
