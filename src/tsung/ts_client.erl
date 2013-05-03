@@ -164,7 +164,7 @@ wait_ack(next_msg,State=#state_rcv{request=R}) when R#ts_request.ack==global->
     NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol,
                                       State#state_rcv.socket,
                                       [{active, once} ]),
-    {PageTimeStamp, _} = update_stats(State),
+    {PageTimeStamp, _, _} = update_stats(State),
     handle_next_action(State#state_rcv{socket=NewSocket,
                                        page_timestamp=PageTimeStamp});
 wait_ack(timeout,State) ->
@@ -418,8 +418,13 @@ handle_next_action(State) ->
             handle_next_request(Request, State);
         {change_type, NewCType, Server, Port, PType, Store, Restore} ->
             ?DebugF("Change client type, use: ~p ~p~n",[NewCType, [Server , Port, PType, Store, Restore]]),
-            DynVars=State#state_rcv.dynvars,
-            NewPort   = ts_search:subst(Port,DynVars),
+            DynVars   = State#state_rcv.dynvars,
+            NewPort   = case ts_search:subst(Port,DynVars) of
+                            I when is_integer(I) ->
+                                I;
+                            S when is_list(S) ->
+                                list_to_integer(S)
+                        end,
             NewServer = ts_search:subst(Server,DynVars),
             case Store of
                 true -> % keep state
