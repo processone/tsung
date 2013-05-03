@@ -65,7 +65,6 @@
           border-right: 1px solid #AAA;
           text-align: right;
           } 
-      #os_mon {text-align: center; } 
       .version {
           font: italic 80% sans-serif; 
           color: #005A9C; 
