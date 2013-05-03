@@ -131,8 +131,8 @@ repeat | if | change_type | foreach | set_option | interaction )*>
 <!ELEMENT change_type EMPTY>
 <!ATTLIST change_type
      new_type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav | ts_mysql | ts_fs | ts_shell | ts_job | ts_websocket) #REQUIRED
-     host NMTOKEN #REQUIRED
-     port NMTOKEN #REQUIRED
+     host CDATA #REQUIRED
+     port CDATA #REQUIRED
      server_type NMTOKEN #REQUIRED
      store  ( true | false ) "false"
      restore ( true | false ) "false"

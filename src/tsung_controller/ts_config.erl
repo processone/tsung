@@ -557,7 +557,7 @@ parse( #xmlElement{name=change_type, attributes=Attrs},
 
     CType   = getAttr(atom, Attrs, new_type),
     Server  = getAttr(string, Attrs, host),
-    Port    = getAttr(integer, Attrs, port),
+    Port    = getAttr(string, Attrs, port),
     Store   = getAttr(atom, Attrs, store, false),
     Restore = getAttr(atom, Attrs, restore, false),
     PType   = set_net_type(getAttr(Attrs, server_type)),

@@ -418,6 +418,9 @@ handle_next_action(State) ->
             handle_next_request(Request, State);
         {change_type, NewCType, Server, Port, PType, Store, Restore} ->
             ?DebugF("Change client type, use: ~p ~p~n",[NewCType, [Server , Port, PType, Store, Restore]]),
+            DynVars=State#state_rcv.dynvars,
+            NewPort   = ts_search:subst(Port,DynVars),
+            NewServer = ts_search:subst(Server,DynVars),
             case Store of
                 true -> % keep state
                     put({state, State#state_rcv.clienttype} , {State#state_rcv.socket,State#state_rcv.session});
@@ -431,7 +434,7 @@ handle_next_action(State) ->
                      {_,_} -> % nothing to restore, or no restore asked, set new session
                          {none,NewCType:new_session()}
                  end,
-            NewState=State#state_rcv{session=Session,socket=Socket,count=Count,clienttype=NewCType,protocol=PType,port=Port,host=Server},
+            NewState=State#state_rcv{session=Session,socket=Socket,count=Count,clienttype=NewCType,protocol=PType,port=NewPort,host=NewServer},
             handle_next_action(NewState);
         {set_option, undefined, rate_limit, {Rate, Burst}} ->
             ?LOGF("Set rate limits for client: rate=~p, burst=~p~n",[Rate,Burst],?DEB),
@@ -920,6 +923,7 @@ send(Proto, Socket, Message, Host, Port)  ->
     Proto:send(Socket, Message, [{host, Host}, {port, Port}]).
 
 connect(Proto, Server, Port, Opts) ->
+    ?LOGF("connect to port ~p",[Port],?DEB),
     Proto:connect(Server, Port, Opts).
 
 %%----------------------------------------------------------------------
