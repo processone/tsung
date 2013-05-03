@@ -51,7 +51,7 @@ start(NClients) ->
     gen_fsm:start_link({global, ?MODULE}, ?MODULE, [NClients], []).
 
 config(NClients) ->
-    ?LOG("Configure fsm timer",?INFO),
+    ?LOGF("Configure fsm timer with ~p",[NClients],?INFO),
     gen_fsm:send_event({global, ?MODULE}, {config, NClients}).
 
 connected(Pid) ->

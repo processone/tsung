@@ -177,7 +177,6 @@ parse_config(Element = #xmlElement{name=option}, Conf = #config{session_tab = Ta
             Conf#config{vhost_file = Val};
         "global_number" ->
             N = ts_config:getAttr(integer,Element#xmlElement.attributes, value, ?xmpp_global_number),
-            ts_timer:config(N),
             ets:insert(Tab,{{jabber_global_number, value}, N}),
             Conf;
         "userid_max" ->
