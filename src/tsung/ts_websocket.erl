@@ -161,5 +161,10 @@ parse_config(Element, Conf) ->
 %% Purpose: we dont actually do anything
 %% Returns: #websocket_request
 %%----------------------------------------------------------------------
+add_dynparams(_Bool, {DynVars, _S},
+              Param = #websocket_request{type = message, data = Data},
+              _HostData) ->
+    NewData = ts_search:subst(Data, DynVars),
+    Param#websocket_request{data = NewData};
 add_dynparams(_Bool, _DynData, Param, _HostData) ->
     Param#websocket_request{}.
