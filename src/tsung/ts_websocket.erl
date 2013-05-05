@@ -161,7 +161,7 @@ parse_config(Element, Conf) ->
 %% Purpose: we dont actually do anything
 %% Returns: #websocket_request
 %%----------------------------------------------------------------------
-add_dynparams(_Bool, {DynVars, _S},
+add_dynparams(true, {DynVars, _S},
               Param = #websocket_request{type = message, data = Data},
               _HostData) ->
     NewData = ts_search:subst(Data, DynVars),
