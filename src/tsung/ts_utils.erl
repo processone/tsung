@@ -791,7 +791,7 @@ jsonpath(JSONPath,JSON) ->
                         list_to_binary(A)
                 end
           end,
-    Str=re:replace(JSONPath,"\\[(.*)\\]","\.\\1",[{return,list},global]),
+    Str=re:replace(JSONPath,"\\[(.*?)\\]","\.\\1",[{return,list},global]),
     Keys=lists:map(Fun, string:tokens(Str,".")),
     json_get_bin(Keys,JSON).
 json_get_bin([],Val) ->
