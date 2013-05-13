@@ -300,7 +300,7 @@ dynvars_jsonpath_test() ->
     ?assertEqual(42,ts_client:set_dynvars(jsonpath,{JSONPath,data},[toto],Dynvars,{},[])).
 
 dynvars_jsonpath2_test() ->
-    myset_env(7),
+    myset_env(),
     Data="{\"accessToken\":{\"id\":\"78548a96-cadd-48c0-b7d6-4ff3b81f10cc\",\"lists\":[\"testlist1\"],\"token\":\"rTgdC3f7uJ/Smg3s4b9va2KW5GdPkRHtwYNgWbvwhensgOSf2/wan95VPDiXKnAAGilsZlpw/Td4bs/OPeVeYg==\",\"scope\":[\"GET_ME\",\"WRITE_ACCESS\"]},\"accessTokenSignature\":\"gWAL+zvDcQjqLmNdSwcG/TOWyta5g==\"}",
     JSONPath = "accessToken",
     JSONPath2 = "accessTokenSignature",
@@ -308,6 +308,20 @@ dynvars_jsonpath2_test() ->
     Res = << "{\"id\":\"78548a96-cadd-48c0-b7d6-4ff3b81f10cc\",\"lists\":[\"testlist1\"],\"token\":\"rTgdC3f7uJ/Smg3s4b9va2KW5GdPkRHtwYNgWbvwhensgOSf2/wan95VPDiXKnAAGilsZlpw/Td4bs/OPeVeYg==\",\"scope\":[\"GET_ME\",\"WRITE_ACCESS\"]}" >>,
     ?assertEqual(Res,ts_client:set_dynvars(jsonpath,{JSONPath,data},[toto],Dynvars,{},[])),
     ?assertEqual(<< "gWAL+zvDcQjqLmNdSwcG/TOWyta5g==" >>,ts_client:set_dynvars(jsonpath,{JSONPath2,data},[toto],Dynvars,{},[])).
+
+dynvars_jsonpath3_test() ->
+    myset_env(),
+    Data="\r\n\r\n{\"titi\": [42, 666] }",
+    JSONPath = "titi[1]",
+    Dynvars=ts_dynvars:new(data,Data),
+    ?assertEqual(666,ts_client:set_dynvars(jsonpath,{JSONPath,data},[toto],Dynvars,{},[])).
+
+dynvars_jsonpath4_test() ->
+    myset_env(),
+    Data="\r\n\r\n{\"titi\": [{\"val\": [ 123, 231 ] , \"name\": \"foo\"}, {\"val\":  [ 13, 23 ], \"name\": \"bar\"}]}",
+    JSONPath = "titi[?name=bar].val[0]",
+    Dynvars=ts_dynvars:new(data,Data),
+    ?assertEqual(13,ts_client:set_dynvars(jsonpath,{JSONPath,data},[toto],Dynvars,{},[])).
 
 dynvars_file_test() ->
     myset_env(),
