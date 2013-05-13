@@ -71,7 +71,7 @@ connect(Host, Port, Opts) ->
             Ret
     end.
 
-loop(#state{socket = Socket, host = Host, path = Path, port = Port, opts = Opts,
+loop(#state{socket = Socket, host = Host, path = Path,
             version = Version, subprotos = SubProtocol,
             state = not_connected} = State)->
     {Handshake, Accept} = websocket:handshake_request(Host, Path,
@@ -122,8 +122,8 @@ loop(#state{parent = Parent, socket = Socket, state = connected, buffer = Buffer
                 {incomplete, Left} ->
                     ?DebugF("receive incomplete from server: ~p~n", [Left]),
                     loop(State#state{buffer = <<Buffer/binary, Left/binary>>});
-                {close, Reason} ->
-                    ?DebugF("receive close from server: ~p~n", [Reason]),
+                {close, _Reason} ->
+                    ?DebugF("receive close from server: ~p~n", [_Reason]),
                     Parent ! {gen_ts_transport, self(), closed};
                 {Result, none} ->
                     ?DebugF("receive from server: ~p~n", [Result]),

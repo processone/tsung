@@ -119,8 +119,8 @@ parse(Data, State=#state_rcv{acc = [],
             {State#state_rcv{ack_done = true,
                              session = WebsocketSession#websocket_session{
                                          status = connected}}, [], false};
-        {error, Reason} ->
-            ?DebugF("handshake fail: ~p~n", [Reason]),
+        {error, _Reason} ->
+            ?DebugF("handshake fail: ~p~n", [_Reason]),
             ts_mon:add({count, websocket_fail}),
             {State#state_rcv{ack_done = true}, [], true}
     end;
@@ -129,14 +129,14 @@ parse(Data, State=#state_rcv{acc = [],
 parse(Data, State=#state_rcv{acc = [], session = WebsocketSession})
   when WebsocketSession#websocket_session.status == connected ->
     case websocket:decode(Data) of
-        {close, Reason} ->
-            ?DebugF("receive close from server: ~p~n", [Reason]),
+        {close, _Reason} ->
+            ?DebugF("receive close from server: ~p~n", [_Reason]),
             {State#state_rcv{ack_done = true}, [], true};
-        {Data1, none} ->
-            ?DebugF("receive from server: ~p~n", [Data1]),
+        {_Data1, none} ->
+            ?DebugF("receive from server: ~p~n", [_Data1]),
             {State#state_rcv{ack_done = true, acc = []}, [], false};
-        {Data1, Left} ->
-            ?DebugF("receive from server: ~p~n", [Data1]),
+        {_Data1, Left} ->
+            ?DebugF("receive from server: ~p~n", [_Data1]),
             {State#state_rcv{ack_done = true, acc = Left}, [], false}
     end;
 %% more data, add this to accumulator and parse, update datasize

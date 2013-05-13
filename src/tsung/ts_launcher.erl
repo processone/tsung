@@ -421,6 +421,6 @@ check_max_users(Max) ->
                 ?LOGF("maxusers is below file descriptors limit (~p)",[Limit], ?DEB)
         end
     catch
-        Error:Reason ->
+        _Error:_Reason ->
             ?LOG("Can't get file descriptors limit from system, you should verify that 'maxusers' has a good value ",?NOTICE)
     end.
