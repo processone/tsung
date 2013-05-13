@@ -225,7 +225,7 @@ handle_call({read_config, ConfigFile}, _From, State=#state{logdir=LogDir}) ->
                     {reply, {error, Reason}, State}
             end;
         {error, {{case_clause, {error, enoent}},
-                  [{xmerl_scan, fetch_DTD, 2}|_]}} ->
+                  [{xmerl_scan, fetch_DTD, 2,_}|_]}} ->
             ?LOG("Error while parsing XML: DTD not found !~n",?EMERG),
             {reply, {error, dtd_not_found}, State};
         {error, Reason} ->
