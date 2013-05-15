@@ -96,7 +96,7 @@ a:hover     {background:#ffffaa;}
 <!--CUT DEF section 1 --><H1 ALIGN=center>Tsung User’s manual</H1><DIV CLASS="center">
 
 <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Version:</TD><TD ALIGN=left NOWRAP>1.5.0</TD></TR>
-<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>April 15, 2013</TD></TR>
+<TR><TD ALIGN=left NOWRAP bgcolor="#F2F2F2"> Date :</TD><TD ALIGN=left NOWRAP>May 15, 2013</TD></TR>
 </TABLE>
 </DIV><!--TOC section Contents-->
 <H2 CLASS="section"><!--SEC ANCHOR -->Contents</H2><!--SEC END --><UL CLASS="toc"><LI CLASS="li-toc">
@@ -328,7 +328,7 @@ distribution (currently exponential)
 </LI></UL><!--TOC subsection HTTP related features-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc7">2.2</A>  HTTP related features</H3><!--SEC END --><UL CLASS="itemize"><LI CLASS="li-itemize">
 HTTP/1.0 and HTTP/1.1 support
-</LI><LI CLASS="li-itemize">GET, POST, PUT, DELETE and HEAD requests
+</LI><LI CLASS="li-itemize">GET, POST, PUT, DELETE, HEAD, OPTIONS and PATCH requests
 </LI><LI CLASS="li-itemize">Cookies: Automatic cookies management( but you can also manually
 add more cookies)
 </LI><LI CLASS="li-itemize"><CODE>'</CODE>GET If-modified since<CODE>'</CODE> type of request
@@ -3227,6 +3227,25 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">    &lt;setdynvars sourcetype="server"&gt;
       &lt;var name="host" /&gt;
       &lt;var name="port" /&gt;
+    &lt;/setdynvars&gt;
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE></LI><LI CLASS="li-enumerate">You can define a dynamic variable as constant value to use it in
+a plugin
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">    &lt;setdynvars sourcetype="value" value="foobar"&gt;
+      &lt;var name="constant" /&gt;
     &lt;/setdynvars&gt;
 </PRE></TD></TR>
 </TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>

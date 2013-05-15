@@ -181,7 +181,7 @@ repeat | if | change_type | foreach | set_option | interaction )*>
     contents_from_file CDATA #IMPLIED
     content_type       CDATA #IMPLIED
     if_modified_since  CDATA #IMPLIED
-    method             (GET | POST | PUT | DELETE | HEAD | PROPFIND | PROPPATCH | COPY | MOVE | LOCK | UNLOCK | MKCOL | MKACTIVITY | OPTIONS | REPORT | VERSION-CONTROL | MERGE | CHECKOUT) "GET"
+    method             (GET | POST | PUT | PATCH | DELETE | HEAD | PROPFIND | PROPPATCH | COPY | MOVE | LOCK | UNLOCK | MKCOL | MKACTIVITY | OPTIONS | REPORT | VERSION-CONTROL | MERGE | CHECKOUT) "GET"
     url                CDATA #REQUIRED
     version            (1.0 | 1.1) "1.1" >
 

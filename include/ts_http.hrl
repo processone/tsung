@@ -100,6 +100,7 @@
 -define(HEAD, "HEAD").
 -define(DELETE, "DELETE").
 -define(OPTIONS, "OPTIONS").
+-define(PATCH, "PATCH").
 
 -define(USER_AGENT, "Tsung").
 -define(USER_AGENT_ERROR_MSG, "Total sum of user agents frequency is not equal to 100").
