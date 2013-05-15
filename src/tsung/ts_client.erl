@@ -482,7 +482,7 @@ set_dynvars(urandom,{string,Length},Vars,_DynVars,_,_) ->
     R = fun(_) -> ts_utils:urandombinstr(Length) end,
     lists:map(R,Vars);
 set_dynvars(value,{string,Value},_Vars,_DynVars,_,_) ->
-    Value;
+    [Value];
 set_dynvars(file,{random,FileId,Delimiter},_Vars,_DynVars,_,_) ->
     {ok,Line} = ts_file_server:get_random_line(FileId),
     ts_utils:split(Line,Delimiter);
