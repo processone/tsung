@@ -20,7 +20,8 @@
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
 %%%  the EPL license and distribute linked combinations including
-%%%  the two.
+%%%  the two; the MPL (Mozilla Public License), which EPL (Erlang
+%%%  Public License) is based on, is included in this exception.
 
 %%%  Created :  23 Dec 2003 by Mickael Remond <mickael.remond@erlang-fr.org>
 

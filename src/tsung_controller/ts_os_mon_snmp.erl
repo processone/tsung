@@ -21,7 +21,8 @@
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
 %%%  the EPL license and distribute linked combinations including
-%%%  the two.
+%%%  the two; the MPL (Mozilla Public License), which EPL (Erlang
+%%%  Public License) is based on, is included in this exception.
 
 -module(ts_os_mon_snmp).
 -vc('$Id: ts_os_mon_snmp.erl,v 0.0 2008/10/21 12:57:49 nniclaus Exp $ ').

@@ -17,7 +17,8 @@
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
 %%%  the EPL license and distribute linked combinations including
-%%%  the two.
+%%%  the two; the MPL (Mozilla Public License), which EPL (Erlang
+%%%  Public License) is based on, is included in this exception.
 
 -module(ts_os_mon_sup).
 -vc('$Id: ts_client_sup.erl 953 2008-11-23 16:57:05Z nniclausse $ ').

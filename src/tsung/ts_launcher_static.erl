@@ -19,7 +19,8 @@
 %%%  In addition, as a special exception, you have the permission to
 %%%  link the code of this program with any library released under
 %%%  the EPL license and distribute linked combinations including
-%%%  the two.
+%%%  the two; the MPL (Mozilla Public License), which EPL (Erlang
+%%%  Public License) is based on, is included in this exception.
 
 -module(ts_launcher_static).
 -created('Date: 2009/03/10 19:09:57 nniclausse ').
