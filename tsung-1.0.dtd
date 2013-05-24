@@ -100,7 +100,7 @@
     id       NMTOKEN #IMPLIED
     min      NMTOKEN #IMPLIED
     max      NMTOKEN #IMPLIED
-    type     (ts_http | ts_jabber | ts_pgsql) #IMPLIED
+    type     (ts_http | ts_jabber | ts_pgsql | ts_amqp) #IMPLIED
     value    CDATA #IMPLIED>
 
 <!ELEMENT set_option (user_agent*)>
@@ -121,7 +121,7 @@ repeat | if | change_type | foreach | set_option | interaction )*>
     persistent   (true | false) #IMPLIED
     probability   NMTOKEN #IMPLIED
     weight        NMTOKEN #IMPLIED
-    type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs | ts_shell | ts_job | ts_websocket) #REQUIRED>
+    type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs | ts_shell | ts_job | ts_websocket | ts_amqp) #REQUIRED>
 
 <!ELEMENT interaction EMPTY>
 <!ATTLIST interaction
@@ -130,16 +130,16 @@ repeat | if | change_type | foreach | set_option | interaction )*>
 
 <!ELEMENT change_type EMPTY>
 <!ATTLIST change_type
-     new_type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav | ts_mysql | ts_fs | ts_shell | ts_job | ts_websocket) #REQUIRED
-     host CDATA #REQUIRED
-     port CDATA #REQUIRED
+     new_type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav | ts_mysql | ts_fs | ts_shell | ts_job | ts_websocket | ts_amqp) #REQUIRED
+     host NMTOKEN #REQUIRED
+     port NMTOKEN #REQUIRED
      server_type NMTOKEN #REQUIRED
      store  ( true | false ) "false"
      restore ( true | false ) "false"
     >
 
 <!ELEMENT request ( match*, dyn_variable*, ( http | jabber | raw |
-          pgsql | ldap | mysql |fs | shell | job | websocket) )>
+          pgsql | ldap | mysql |fs | shell | job | websocket | amqp) )>
 <!ATTLIST request
     subst (true|false) "false"
     >
@@ -338,6 +338,19 @@ repeat | if | change_type | foreach | set_option | interaction )*>
 <!ATTLIST websocket
     type (connect | message | close) #REQUIRED
     path CDATA "/" >
+
+<!ELEMENT amqp (#PCDATA) >
+<!ATTLIST amqp 
+    type CDATA #REQUIRED
+    vhost CDATA "/"
+    exchange CDATA ""
+    routing_key CDATA ""
+    size CDATA "100"
+    prefetch_size CDATA "0"
+    prefetch_count CDATA "0"
+    persistent CDATA "false"
+    queue CDATA ""
+    ack CDATA "false" >
 
 <!ELEMENT modification (attr*) >
 <!ATTLIST modification
