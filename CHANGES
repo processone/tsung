@@ -1,3 +1,35 @@
+1.4.2 -> 1.5.0 Major enhancements and bugfixes (24 May 2013)
+Bugfix:
+    * [TSUN-208] - in the jabber plugin, substitutions for raw request doesn't work in some cases.
+    * [TSUN-209] - If tag doesn't work with Tsung 1.4.2
+    * [TSUN-212] - Incorrect ERTS version being set on build.
+    * [TSUN-215] - normal ack timeout shouldn't used for global ack
+    * [TSUN-217] - If statement breaks on empty string
+    * [TSUN-218] - Race condition in tsung-recorder
+    * [TSUN-219] - Site fails to load via proxy recorder
+    * [TSUN-220] - Large configuration files trigger error
+    * [TSUN-229] - compatibility with erlang R15B
+    * [TSUN-230] - can't connect with TLS + ejabberd
+    * [TSUN-232] - Tsung for bosh protocol doesn't send a empty request to keep the user session alive.
+    * [TSUN-234] - Error encoding json string with escape_uri
+    * [TSUN-238] - Content-Length parsing broken
+    * [TSUN-241] - Invalid link Other in the graph.html
+    * [TSUN-245] - Message when dtd is not found not trivial
+Improvements:
+    * [TSUN-174] - add an option to set resource in XMPP
+    * [TSUN-222] - Support unsubscribe operation for Jabber pubsub module
+    * [TSUN-228] - allow substitutions on cookies
+    * [TSUN-236] - Add probability support for servers
+    * [TSUN-242] - add timestamp and request duration in dump=protocol for http
+    * [TSUN-246] - http PATCH support
+New Features:
+    * [TSUN-214] - Ability to pass attributes for node creation for XMPP pubsub protocol.
+    * [TSUN-227] - add new dynamic variable to get server hostname and port
+    * [TSUN-231] - add option to use weights instead of probabilities for sessions
+    * [TSUN-239] - add BOSH support
+    * [TSUN-240] - add websocket support
+    * [TSUN-244] - Percentile computation
+    * [TSUN-248] - add AMQP support
 1.4.1 -> 1.4.2 Minor enhancements and bugfixes (4 Jan 2012)
 Bugfix:
    * [TSUN-199] - computation of NUsers is wrong
