@@ -66,7 +66,9 @@ close(_Socket) -> ok.
 set_opts(Socket, _Opts) ->
     Socket.
 
+
+
+normalize_incomming_data(_Socket, Data={timeout,_,_}) ->
+    Data;
 normalize_incomming_data(Socket, Data) ->
     {gen_ts_transport, Socket, Data}.
-
-

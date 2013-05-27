@@ -94,13 +94,13 @@ session_defaults() ->
 %% @doc Initialises the state for a new protocol session.
 %% @end
 new_session() ->
-    #fs{}.
+    #fs_session{}.
 
 %% @spec decode_buffer(Buffer::binary(),Session::record(fs)) ->  NewBuffer::binary()
 %% @doc We need to decode buffer (remove chunks, decompress ...) for
 %%      matching or dyn_variables
 %% @end
-decode_buffer(Buffer,#fs{}) ->
+decode_buffer(Buffer,#fs_session{}) ->
     Buffer.
 
 
@@ -182,6 +182,9 @@ parse({file, del_dir, [Path], {error,Reason}},State) ->
     ts_mon:add({count,error_fs_del_dir}),
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
 parse({file, make_dir, [_Path], ok},State) ->
+    {State#state_rcv{ack_done=true, datasize=0}, [], false};
+parse({file, make_dir, [Path], {error, eexist} },State) ->
+    ?LOGF("error while creating diretory: ~p already exists~n",[Path],?NOTICE),
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
 parse({file, make_dir, [Path], {error,Reason}},State) ->
     ?LOGF("error while creating diretory: ~p (~p)~n",[Path, Reason],?ERR),
