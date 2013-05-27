@@ -1040,7 +1040,7 @@ set_net_type("ssl6")  -> ts_ssl6;
 set_net_type("websocket")  -> ts_server_websocket;
 set_net_type("bosh")  -> ts_bosh;
 set_net_type("bosh_ssl") -> ts_bosh_ssl;
-set_net_type("erlang") -> erlang.
+set_net_type("erlang") -> ts_erlang.
 
 get_dynvar_name(VarNameStr) ->
     %% check if the var name is for an array (myvar[N])
