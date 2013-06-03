@@ -290,9 +290,8 @@ print_stats({Name,Type},Value,Other) when Type =:= sample orelse Type =:= sample
     print_stats_txt({Name,Type,"stats: ~p ~p ~p ~p ~p ~p ~p ~p~n"},Value,Other);
 
 print_stats({Name,Type},Value,{json,Res,Log}) when is_integer(Name) -> % http return code
-    print_stats_txt({"http_"++integer_to_list(Name),Type,
-                     ", {\"name\": \"~s\", \"value\": ~p, \"total\": ~p}"},Value,{json,Res,Log});
-
+    print_stats_txt({Name,Type,
+                     ", {\"name\": \"http_~p\", \"value\": ~p, \"total\": ~p}"},Value,{json,Res,Log});
 print_stats({Name=connected,Type},Value,{json,Res,Log}) ->
     print_stats_txt({Name,Type,", {\"name\": \"~p\", \"value\": ~p, \"max\": ~p}"},Value,{json,Res,Log});
 print_stats({Name,Type},Value,{json,Res,Log}) ->
