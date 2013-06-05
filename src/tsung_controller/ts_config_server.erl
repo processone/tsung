@@ -308,6 +308,9 @@ handle_call({get_client_config, static, Host}, _From, State=#state{config=Config
             {NewUsers,Tail}=lists:split(Number,StaticUsers),
             {reply,{ok,NewUsers,StartDate},State#state{client_static_users=Done+1,start_date=StartDate,static_users=Tail}}
     end;
+
+handle_call(get_clients, _From, State=#state{config=Config})->
+    {reply, Config#config.clients, State};
 %% get randomly generated users
 handle_call({get_client_config, Host}, _From, State=#state{curcfg=OldCfg,total_weight=Total_Weight}) ->
     ?DebugF("get_client_config from ~p~n",[Host]),
@@ -375,6 +378,7 @@ handle_cast({newbeams, HostList}, State=#state{logdir   = LogDir,
             {BeamsIds, LastId} = lists:mapfoldl(fun(A,Acc) -> {{A, Acc}, Acc+1} end, Id0, RemoteBeams),
             Fun = fun({Host,Id}) -> remote_launcher(Host, Id, Args) end,
             RemoteNodes = ts_utils:pmap(Fun, BeamsIds),
+            ?LOGF("Remote nodes : ~p ~n",[RemoteNodes],?NOTICE),
             ?LOG("All remote beams started, syncing ~n",?NOTICE),
             global:sync(),
             StartLaunchers = fun(Node) ->
