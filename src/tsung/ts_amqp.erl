@@ -92,11 +92,11 @@ get_message(#amqp_request{type = 'connection.start_ok', username = UserName,
     NewAMQPSession = AMQPSession#amqp_session{status = wait_tune},
     {Frame, NewAMQPSession};
 
-get_message(#amqp_request{type = 'connection.tune_ok'},
+get_message(#amqp_request{type = 'connection.tune_ok', heartbeat = HeartBeat},
             #state_rcv{session = AMQPSession}) ->
     Protocol = AMQPSession#amqp_session.protocol,
 
-    Tune = #'connection.tune_ok'{frame_max = 131072, heartbeat = 600},
+    Tune = #'connection.tune_ok'{frame_max = 131072, heartbeat = HeartBeat},
     Frame = assemble_frame(0, Tune, Protocol),
     NewAMQPSession = AMQPSession#amqp_session{status = opening},
     {Frame, NewAMQPSession};

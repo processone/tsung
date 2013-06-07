@@ -82,6 +82,11 @@ parse_config(Element = #xmlElement{name=option}, Conf = #config{session_tab = Ta
             Val = ts_config:getAttr(string,Element#xmlElement.attributes,
                                     value,?AMQP_PASSWORD),
             ets:insert(Tab,{{amqp_password,value}, Val}),
+            Conf;
+        "heartbeat" ->
+            Val = ts_config:getAttr(float_or_integer,
+                                    Element#xmlElement.attributes, value, 600),
+            ets:insert(Tab,{{amqp_heartbeat,value}, Val}),
             Conf
     end,
     lists:foldl(fun(A,B) -> ts_config:parse(A,B) end,
@@ -134,8 +139,9 @@ parse_request(_Element, Type = 'connection.start_ok', Tab) ->
     Request = #amqp_request{type = Type, username = UserName,
                             password = Password},
     {parse, Request};
-parse_request(_Element, Type = 'connection.tune_ok', _Tab) ->
-    Request = #amqp_request{type = Type},
+parse_request(_Element, Type = 'connection.tune_ok', Tab) ->
+    HeartBeat = ts_config:get_default(Tab, amqp_heartbeat),
+    Request = #amqp_request{type = Type, heartbeat = HeartBeat},
     {no_ack, Request};
 parse_request(_Element, Type = 'confirm.select', _Tab) ->
     Request = #amqp_request{type = Type},

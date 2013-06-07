@@ -21,6 +21,7 @@
           type,
           username,
           password,
+          heartbeat,
           vhost,
           exchange,
           routing_key,
