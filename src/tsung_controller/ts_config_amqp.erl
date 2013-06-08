@@ -42,6 +42,8 @@ parse_config(Element = #xmlElement{name = amqp},
              Config = #config{curid = Id, session_tab = Tab,
                               sessions = [CurS | _], dynvar = DynVar,
                               subst = SubstFlag, match = MatchRegExp}) ->
+    initialize_options(Tab),
+
     TypeStr = ts_config:getAttr(string, Element#xmlElement.attributes, type),
     Type = list_to_atom(TypeStr),
 
@@ -82,6 +84,11 @@ parse_config(Element = #xmlElement{name=option}, Conf = #config{session_tab = Ta
             Val = ts_config:getAttr(string,Element#xmlElement.attributes,
                                     value,?AMQP_PASSWORD),
             ets:insert(Tab,{{amqp_password,value}, Val}),
+            Conf;
+        "heartbeat" ->
+            Val = ts_config:getAttr(float_or_integer,
+                                    Element#xmlElement.attributes, value, 600),
+            ets:insert(Tab,{{amqp_heartbeat,value}, Val}),
             Conf
     end,
     lists:foldl(fun(A,B) -> ts_config:parse(A,B) end,
@@ -134,8 +141,9 @@ parse_request(_Element, Type = 'connection.start_ok', Tab) ->
     Request = #amqp_request{type = Type, username = UserName,
                             password = Password},
     {parse, Request};
-parse_request(_Element, Type = 'connection.tune_ok', _Tab) ->
-    Request = #amqp_request{type = Type},
+parse_request(_Element, Type = 'connection.tune_ok', Tab) ->
+    HeartBeat = ts_config:get_default(Tab, amqp_heartbeat),
+    Request = #amqp_request{type = Type, heartbeat = HeartBeat},
     {no_ack, Request};
 parse_request(_Element, Type = 'confirm.select', _Tab) ->
     Request = #amqp_request{type = Type},
@@ -143,3 +151,14 @@ parse_request(_Element, Type = 'confirm.select', _Tab) ->
 parse_request(_Element, Type, _Tab) ->
     Request = #amqp_request{type = Type},
     {parse, Request}.
+
+
+initialize_options(Tab) ->
+    case ts_config:get_default(Tab, amqp_initialized) of
+        {undef_var, _} ->
+            ets:insert_new(Tab,{{amqp_username,value}, ?AMQP_USER}),
+            ets:insert_new(Tab,{{amqp_password,value}, ?AMQP_PASSWORD}),
+            ets:insert_new(Tab,{{amqp_heartbeat,value}, 600});
+        _Else ->
+            ok
+    end.
