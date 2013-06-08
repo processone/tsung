@@ -322,8 +322,9 @@ parse_bidi(Data, State=#state_rcv{acc = [], session = AMQPSession}) ->
             ?DebugF("decode error: ~p~n", [Reason]),
             {nodata, State};
         {ok, heartbeat, Left} ->
-            HeartBeat = rabbit_binary_generator:build_heartbeat_frame(),
-            NewAckBuf = <<AckBuf/binary, HeartBeat/binary>>, 
+            ?DebugF("receive bidi: ~p~n", [heartbeat]),
+            HB = list_to_binary(rabbit_binary_generator:build_heartbeat_frame()),
+            NewAckBuf = <<AckBuf/binary, HB/binary>>, 
             NewAMQPSession = AMQPSession#amqp_session{ack_buf = NewAckBuf},
             parse_bidi(Left, State#state_rcv{session = NewAMQPSession});
         {ok, none, Left} ->
