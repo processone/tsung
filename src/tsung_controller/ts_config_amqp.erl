@@ -42,6 +42,8 @@ parse_config(Element = #xmlElement{name = amqp},
              Config = #config{curid = Id, session_tab = Tab,
                               sessions = [CurS | _], dynvar = DynVar,
                               subst = SubstFlag, match = MatchRegExp}) ->
+    initialize_options(Tab),
+
     TypeStr = ts_config:getAttr(string, Element#xmlElement.attributes, type),
     Type = list_to_atom(TypeStr),
 
@@ -149,3 +151,14 @@ parse_request(_Element, Type = 'confirm.select', _Tab) ->
 parse_request(_Element, Type, _Tab) ->
     Request = #amqp_request{type = Type},
     {parse, Request}.
+
+
+initialize_options(Tab) ->
+    case ts_config:get_default(Tab, amqp_initialized) of
+        {undef_var, _} ->
+            ets:insert_new(Tab,{{amqp_username,value}, ?AMQP_USER}),
+            ets:insert_new(Tab,{{amqp_password,value}, ?AMQP_PASSWORD}),
+            ets:insert_new(Tab,{{amqp_heartbeat,value}, 600});
+        _Else ->
+            ok
+    end.
