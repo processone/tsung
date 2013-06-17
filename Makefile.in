@@ -54,8 +54,12 @@ else
   endif
 endif
 
+EBIN = ./ebin
+EBIN_TEST = ./ebin-test
+
 ifeq ($(TYPE),test)
 OPT =+export_all
+EBIN = $(EBIN_TEST)
 endif
 
 
@@ -63,7 +67,6 @@ INC = ./include
 CC  = $(ERLC)
 
 ESRC = ./src
-EBIN = ./ebin
 ifeq ($(TYPE),snapshot)
 DAY=$(shell date +"%Y%m%d")
 distdir = $(PACKAGE)-$(VERSION)-$(DAY)
@@ -82,7 +85,7 @@ MAN_DIR   = $(datadir)/man/man1/
 DOC_DIR   = $(docdir)
 
 # custom behaviours
-BEHAVIORS  = ebin/ts_plugin.beam ebin/gen_ts_transport.beam
+BEHAVIORS  = $(EBIN)/ts_plugin.beam $(EBIN)/gen_ts_transport.beam
 
 BUILDER_LOG   = /tmp/builder-tsung.log
 
@@ -177,10 +180,11 @@ buildtest: $(TEST_TARGET)
 fulltest:  clean test
 
 test:
+	@mkdir -p $(EBIN_TEST)
 	$(MAKE) TYPE=test dotest
 
 dotest: tsung buildtest $(CONFFILE) $(TEST_CONFFILE)
-	$(ERL) -noshell -pa ./ebin -s eunit test ts_test_all -s init stop
+	$(ERL) -noshell -pa $(EBIN_TEST) -s eunit test ts_test_all -s init stop
 
 edoc:
 	$(ERL) -noshell -eval "edoc:application($(APPLICATION), \"./$(ESRC)/$(APPLICATION)\", [$(DOC_OPTS)])" -s init stop
@@ -218,6 +222,7 @@ show:
 
 clean:
 	-cd priv && rm -f $(shell ls priv | grep -v builder\.erl| grep -v CVS) && cd ..
+	-rm -fr $(EBIN_TEST)
 	-rm -f $(TARGET) $(TMP) $(BUILD_OPTIONS_FILE) builder.beam
 	-rm -f $(TGT_APPFILES) $(PERL_SCRIPTS) $(TSPLOT) $(CONFFILE)
 	-rm -f ebin/*.beam tsung.sh tsung.spec tsung.xml tsung.sh tsung-recorder.sh
@@ -423,35 +428,35 @@ snapshot:
 builder.beam: priv/builder.erl
 	@$(CC) -W0 $(OPT) -I $(INC) $<
 
-ebin/%.beam: src/test/%.erl $(INC_FILES)
+$(EBIN)/%.beam: src/test/%.erl $(INC_FILES)
 	@echo  "Compiling test $< ... "
-	@$(CC) -W0 $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -o ebin $<
+	@$(CC) -W0 $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -o $(EBIN) $<
 
-ebin/%.beam: src/lib/%.erl $(INC_FILES)
+$(EBIN)/%.beam: src/lib/%.erl $(INC_FILES)
 	@echo  "Compiling  $< ... "
-	@$(CC) -W0 $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -o ebin $<
+	@$(CC) -W0 $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -o $(EBIN) $<
 
 # to avoid circular dependency
-ebin/ts_plugin.beam: src/$(APPLICATION)/ts_plugin.erl $(INC_FILES)
+$(EBIN)/ts_plugin.beam: src/$(APPLICATION)/ts_plugin.erl $(INC_FILES)
 	@echo  "Compiling  $< ... "
-	@$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -pa ebin -o ebin $<
+	@$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -pa $(EBIN) -o $(EBIN) $<
 
 # to avoid circular dependency
-ebin/gen_ts_transport.beam: src/$(APPLICATION)/gen_ts_transport.erl $(INC_FILES)
+$(EBIN)/gen_ts_transport.beam: src/$(APPLICATION)/gen_ts_transport.erl $(INC_FILES)
 	@echo  "Compiling  $< ... "
-	@$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -pa ebin -o ebin $<
+	@$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -pa $(EBIN) -o $(EBIN) $<
 
-ebin/%.beam: src/$(APPLICATION)/%.erl $(INC_FILES) $(BEHAVIORS)
+$(EBIN)/%.beam: src/$(APPLICATION)/%.erl $(INC_FILES) $(BEHAVIORS)
 	@echo  "Compiling  $< ... "
-	@$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -pa ebin -o ebin $<
+	@$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -pa $(EBIN) -o $(EBIN) $<
 
-ebin/%.beam: src/$(RECORDER_APPLICATION)/%.erl  $(INC_FILES) $(BEHAVIORS)
+$(EBIN)/%.beam: src/$(RECORDER_APPLICATION)/%.erl  $(INC_FILES) $(BEHAVIORS)
 	@echo  "Compiling  $< ... "
-	@$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -pa ebin -o ebin $<
+	@$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -pa $(EBIN) -o $(EBIN) $<
 
-ebin/%.beam: src/$(CONTROLLER_APPLICATION)/%.erl  $(INC_FILES) $(BEHAVIORS)
+$(EBIN)/%.beam: src/$(CONTROLLER_APPLICATION)/%.erl  $(INC_FILES) $(BEHAVIORS)
 	@echo "Compiling  $< ... "
-	@$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -pa ebin -o ebin $<
+	@$(CC) $(OPT) -I $(INC) -I $(ERLANG_XMERL_DIR) -pa $(EBIN) -o $(EBIN) $<
 
 %:%.sh
 # Override makefile default implicit rule
