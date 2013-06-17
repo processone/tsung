@@ -210,6 +210,14 @@ format_result(Data,binary) ->
 format_result(Data,_) ->
     Data.
 
+parse_re_decode_test() ->
+    myset_env(),
+    Data= << "<input name=\"jsf_tree_64\" value=\"&apos;foo&amp;bar&apos;\">" >>,
+    StrName="jsf_tree_64",
+    Regexp = ?DEF_RE_DYNVAR_BEGIN++ StrName ++?DEF_RE_DYNVAR_END,%'
+    [{Name,Value}] = ts_search:parse_dynvar([{re, 'jsf_tree_64', Regexp, fun ts_utils:conv_entities/1 }],Data),
+    ?assertEqual("'foo&bar'", ts_search:subst("%%_jsf_tree_64%%",[{Name,Value}])).
+
 parse_subst1_re_test() ->
     myset_env(),
     Data=?FORMDATA,

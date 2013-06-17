@@ -888,19 +888,19 @@ log_transaction([{TransactionName,_}| _Tail]) ->
 %% Func: conv_entities/1
 %% Purpose: Convert html entities to string
 %%--------------------------------------------------------------------
-conv_entities(String)->
-    conv_entities(String,[]).
-conv_entities([],Acc) -> 
-    lists:reverse(Acc);
-conv_entities([$&,$a,$m,$p,$;|T],Acc) -> 
-    conv_entities(T,[$&|Acc]);
-conv_entities([$&,$l,$t,$;|T],Acc) -> 
-    conv_entities(T,[$<|Acc]);
-conv_entities([$&,$g,$t,$;|T],Acc) -> 
-    conv_entities(T,[$>|Acc]);
-conv_entities([$&,$q,$u,$o,$t,$;|T],Acc) -> 
-    conv_entities(T,[$"|Acc]);
-conv_entities([$&,$a,$p,$o,$s,$;|T],Acc) -> 
-    conv_entities(T,[$'|Acc]);
-conv_entities([H|T],Acc) -> 
-    conv_entities(T,[H|Acc]).
+conv_entities(Binary)->
+    conv_entities(Binary,[]).
+conv_entities(<< >>,Acc) ->
+    list_to_binary(Acc);
+conv_entities(<< "&amp;", T/binary >> ,Acc) ->
+    conv_entities(T,[ Acc, << "&">>]);
+conv_entities(<< "&lt;", T/binary >>,Acc) ->
+    conv_entities(T,[ Acc, << "<">>]);
+conv_entities(<< "&gt;", T/binary >>,Acc) ->
+    conv_entities(T,[ Acc, << ">">>]);
+conv_entities(<<"&quot;", T/binary >>,Acc) ->
+    conv_entities(T,[ Acc, << "\"">>]);
+conv_entities(<<"&apos;", T/binary >>,Acc) ->
+    conv_entities(T,[ Acc, << "'">>]);
+conv_entities(<<H:1/binary, T/binary >>,Acc) ->
+    conv_entities(T,[ Acc, H]).

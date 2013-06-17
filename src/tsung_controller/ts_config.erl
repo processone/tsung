@@ -543,9 +543,9 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
 		     case getAttr(string,Attrs,decode,none) of
 			 "html_entities" ->
 			     ?LOGF("The re will be decoded: ~s ~n", [Expr],?INFO),
-			     {re,Name,[CompiledRegExp,html_entities]};
+			     {re,Name,CompiledRegExp,fun ts_utils:conv_entities/1};
 			 _ ->
-			     {re,Name,CompiledRegExp}
+			     {re,Name,CompiledRegExp, undefined}
 		     end;
                  xpath ->
                      ?LOGF("Add new xpath: ~s ~n", [Expr],?INFO),

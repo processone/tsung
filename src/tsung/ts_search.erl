@@ -272,31 +272,20 @@ parse_dynvar(DynVarSpecs, _Data)  ->
 %            regexp or xpath variables respectively
 parse_dynvar([],_Binary , _String,_Tree, DynVars) -> DynVars;
 
-parse_dynvar(D=[{re,_, _}| _],Binary,undefined,Tree,DynVars) ->
+parse_dynvar(D=[{re,_, _, _}| _],Binary,undefined,Tree,DynVars) ->
     parse_dynvar(D,Binary,Binary,Tree,DynVars);
-%% we use a list to pass the decoding information
-parse_dynvar([{re,VarName, RegExp}| DynVarsSpecs],Binary,Data,Tree,DynVars) when is_list(RegExp)->
-    [TRegExp|_] = RegExp,
-    case re:run(Data, TRegExp,[{capture,[1],binary}]) of
+parse_dynvar([{re,Name,RE}| Tail],Binary,Data,Tree,DynVars) ->
+    parse_dynvar([{re,Name, RE, undefined}| Tail],Binary,Data,Tree,DynVars);
+parse_dynvar([{re,VarName, RegExp, Apply}| DynVarsSpecs],Binary,Data,Tree,DynVars) ->
+    case re:run(Data, RegExp,[{capture,[1],binary}]) of
         {match,[Value]} ->
-	    ConvValue=ts_utils:conv_entities(binary_to_list(Value)),
-            ?LOGF("DynVar (RE): Match (~p=~p) ~n",[VarName, Value], ?INFO),
-            ?LOGF("DynVar (RE): Match (~p=~p) Converted ~n",[VarName, ConvValue], ?INFO),
+            ConvValue = apply_fun(Apply,Value),
+            ?LOGF("DynVar (RE): Match (~p=~p) Converted: ~p~n",[VarName, Value, ConvValue], ?INFO),
             parse_dynvar(DynVarsSpecs,Binary,Data,Tree, ts_dynvars:set(VarName,ConvValue,DynVars));
         nomatch ->
             ?LOGF("Dyn Var (RE): no Match (varname=~p), ~n",[VarName], ?WARN),
-            ?LOGF("Regexp was: ~p ~n",[TRegExp], ?INFO),
-            parse_dynvar(DynVarsSpecs,Binary,Data,Tree, ts_dynvars:set(VarName,<< >> ,DynVars))
-    end;
-parse_dynvar([{re,VarName, RegExp}| DynVarsSpecs],Binary,Data,Tree,DynVars) when is_tuple(RegExp)->
-    case re:run(Data, RegExp,[{capture,[1],binary}]) of
-        {match,[Value]} ->
-            ?LOGF("DynVar (RE): Match (~p=~p) ~n",[VarName, Value], ?INFO),
-            parse_dynvar(DynVarsSpecs, Binary,Data,Tree, ts_dynvars:set(VarName,Value,DynVars));
-        nomatch ->
-            ?LOGF("Dyn Var (RE): no Match (varname=~p), ~n",[VarName], ?WARN),
             ?LOGF("Regexp was: ~p ~n",[RegExp], ?INFO),
-            parse_dynvar(DynVarsSpecs, Binary,Data,Tree, ts_dynvars:set(VarName,<< >> ,DynVars))
+            parse_dynvar(DynVarsSpecs,Binary,Data,Tree, ts_dynvars:set(VarName,<< >> ,DynVars))
     end;
 
 parse_dynvar([{header,VarName, HeaderName}| DynVarsSpecs],
@@ -442,6 +431,11 @@ parse_dynvar([{pgsql_expr,VarName, Expr}| DynVarsSpecs],Binary,String,PGSQL,DynV
 parse_dynvar(Args, _Binary,_String,_Tree, _DynVars) ->
     ?LOGF("Bad args while parsing Dyn Var (~p)~n", [Args], ?ERR),
     << >>.
+
+apply_fun(undefined, Value) ->
+    Value;
+apply_fun(Fun,Value) ->
+    Fun(Value).
 
 extract_body(Data) ->
     case re:run(Data,"\r\n\r\n(.*)$",[{capture,all_but_first,binary},dotall]) of
