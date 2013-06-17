@@ -539,7 +539,14 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
                  re ->
                      ?LOGF("Add new re: ~s ~n", [Expr],?INFO),
                      {ok, CompiledRegExp} = re:compile(FlattenExpr),
-                     {re,Name,CompiledRegExp};
+		     %% TSUN-249		     
+		     case getAttr(string,Attrs,decode,none) of
+			 "html_entities" ->
+			     ?LOGF("The re will be decoded: ~s ~n", [Expr],?INFO),
+			     {re,Name,[CompiledRegExp,html_entities]};
+			 _ ->
+			     {re,Name,CompiledRegExp}
+		     end;
                  xpath ->
                      ?LOGF("Add new xpath: ~s ~n", [Expr],?INFO),
                      CompiledXPathExp = mochiweb_xpath:compile_xpath(FlattenExpr),
