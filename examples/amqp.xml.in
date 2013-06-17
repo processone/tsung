@@ -17,10 +17,13 @@
 		</arrivalphase>
 	</load>
 
-	<!--amqp config: username and password -->
 	<options>
+        <!--amqp config: username and password -->
         <option type="ts_amqp" name="username" value="guest" />
         <option type="ts_amqp" name="password" value="guest" />
+
+        <!--amqp heartbeat timeout: 30s (default 600s)-->
+        <option type="ts_amqp" name="heartbeat" value="30" />
 	</options>
 
 	<sessions>
