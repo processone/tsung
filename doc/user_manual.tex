@@ -2426,6 +2426,20 @@ A row description looks like this:
 
 So in the example, the \varname{row} variable equals "aid".
 
+\paragraph{Decoding variables}
+
+It's possible to decode variable that contains html entities encoded,
+this is done with \strong{decode} attribute set to \strong{html_entities}.
+
+\begin{Verbatim}
+    <request>
+      <dyn_variable name="mytitlevar"
+                    re="&lt;title&gt;(.*)&lt;/title&gt;"
+                    decode="html_entities"/>
+      <http url="/testtsung.html" method="GET" version="1.0"></http>
+    </request>
+\end{Verbatim}
+
 \paragraph{set\_dynvars}
 
 \strong{Since version 1.3.0}, more powerful dynamic variables are implemented:

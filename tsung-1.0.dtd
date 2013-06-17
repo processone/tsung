@@ -196,7 +196,8 @@ repeat | if | change_type | foreach | set_option | interaction )*>
     jsonpath   CDATA #IMPLIED
     pgsql_expr CDATA #IMPLIED
     regexp     CDATA #IMPLIED
-    header     CDATA #IMPLIED >
+    header     CDATA #IMPLIED
+    decode     (html_entities | false) "false" >
 
 <!ELEMENT http_header EMPTY >
 <!ATTLIST http_header
