@@ -43,7 +43,7 @@
 %% External exports
 -export([start/1, stop/0, newclient/1, endclient/1, sendmes/1, add/2,
          start_clients/1, abort/0, status/0, rcvmes/1, add/1, dumpstats/0,
-         add_match/2, dump/1, launcher_is_alive/0
+         add_match/2, dump/1, launcher_is_alive/0, log_dir/0
         ]).
 
 %% gen_server callbacks
@@ -113,6 +113,9 @@ add_match(Data=[Head|_],{UserId,SessionId,RequestId,Bin,Tr,Name}) ->
     put(last_match,Head),
     ts_mon_cache:add_match(Data,{UserId,SessionId,RequestId,TimeStamp, Bin,Tr,Name}).
 
+log_dir()->
+    gen_server:call({global, ?MODULE}, log_dir).
+
 status() ->
     gen_server:call({global, ?MODULE}, {status}).
 
@@ -175,7 +178,7 @@ init([LogDir]) ->
             case file:open(Filename,[write]) of
                 {ok, Stream} ->
                     ?LOG("starting monitor~n",?INFO),
-                    {ok, State#state{log=Stream}};
+                    {ok, State#state{log=Stream }};
                 {error, Reason} ->
                     ?LOGF("Can't open mon log file! ~p~n",[Reason], ?ERR),
                     {stop, Reason}
@@ -205,6 +208,9 @@ handle_call({status}, _From, State) ->
                  end,
     Reply = { State#state.client, Request,Connected, Interval, Phase},
     {reply, Reply, State};
+
+handle_call(log_dir, _From, State) ->
+    {reply, State#state.log_dir, State};
 
 handle_call(Request, _From, State) ->
     ?LOGF("Unknown call ~p !~n",[Request],?ERR),
@@ -410,7 +416,8 @@ start_logger({Machines, DumpType, fullstats}, From, State=#state{fullstats=undef
 
 start_logger({Machines, DumpType, Backend}, _From, State=#state{log=Log,fullstats=FS}) ->
     ?LOGF("Activate clients with ~p backend~n",[Backend],?NOTICE),
-    print_headline(Log,Backend),
+    Pids = ts_stats_mon:pids(),
+    print_headline({Log, Pids},Backend),
     timer:apply_interval(State#state.dump_interval, ?MODULE, dumpstats, [] ),
     start_launchers(Machines),
     ts_stats_mon:set_output(Backend,{Log,FS}),
@@ -420,9 +427,9 @@ start_logger({Machines, DumpType, Backend}, _From, State=#state{log=Log,fullstat
     ts_stats_mon:set_output(Backend,{Log,FS}, page),
     start_dump(State#state{type=DumpType, backend=Backend}).
 
-print_headline(Log,json)->
+print_headline(LogPids,json)->
     DateStr = ts_utils:now_sec(),
-    io:format(Log,"{~n \"stats\": [~n {\"timestamp\": ~p,  \"samples\": [",[DateStr]);
+    ts_stats_mon:format(LogPids,"{~n \"stats\": [~n {\"timestamp\": ~p,  \"samples\": [",[DateStr]);
 print_headline(_Log,_Backend)->
     ok.
 
@@ -451,29 +458,31 @@ start_dump(State=#state{type=Type}) ->
 %% Func: export_stats/1
 %%----------------------------------------------------------------------
 export_stats(State=#state{log=Log,stats=Stats,laststats=LastStats, backend=json}) ->
+    Pids = ts_stats_mon:pids(),
     DateStr = ts_utils:now_sec(),
-    io:format(Log,"]},~n {\"timestamp\": ~w,  \"samples\": [",[DateStr]),
+    ts_stats_mon:format({Log, Pids},"]}, {\"timestamp\": ~w,  \"samples\": [",[DateStr]),
     %% print number of simultaneous users
-    io:format(Log,"   {\"name\": \"users\", \"value\": ~p, \"max\": ~p}",[State#state.client,State#state.maxclient]),
-    export_stats_common(json, Stats,LastStats,Log);
+    ts_stats_mon:format({Log, Pids},"   {\"name\": \"users\", \"value\": ~p, \"max\": ~p}",[State#state.client,State#state.maxclient]),
+    export_stats_common(json, Stats,LastStats,{Log, Pids});
 
 export_stats(State=#state{log=Log,stats=Stats,laststats=LastStats, backend=BackEnd}) ->
+    Pids = ts_stats_mon:pids(),
     DateStr = ts_utils:now_sec(),
-    io:format(Log,"# stats: dump at ~w~n",[DateStr]),
+    ts_stats_mon:format({Log, Pids},"# stats: dump at ~w~n",[DateStr]),
     %% print number of simultaneous users
-    io:format(Log,"stats: ~p ~p ~p~n",[users,State#state.client,State#state.maxclient]),
-    export_stats_common(BackEnd, Stats,LastStats,Log).
+    ts_stats_mon:format({Log, Pids},"stats: ~p ~p ~p~n",[users,State#state.client,State#state.maxclient]),
+    export_stats_common(BackEnd, Stats,LastStats,{Log, Pids}).
 
-export_stats_common(BackEnd, Stats,LastStats,Log)->
-    Param = {BackEnd,LastStats#stats.os_mon,Log},
+export_stats_common(BackEnd, Stats,LastStats,LogPids)->
+    Param = {BackEnd,LastStats#stats.os_mon,LogPids},
     dict:fold(fun ts_stats_mon:print_stats/3, Param, Stats#stats.os_mon),
-    ts_stats_mon:print_stats({session, sample}, Stats#stats.session,{BackEnd,[],Log}),
+    ts_stats_mon:print_stats({session, sample}, Stats#stats.session,{BackEnd,[],LogPids}),
     ts_stats_mon:print_stats({users_count, count},
                                  Stats#stats.users_count,
-                                 {BackEnd,LastStats#stats.users_count,Log}),
+                                 {BackEnd,LastStats#stats.users_count,LogPids}),
     ts_stats_mon:print_stats({finish_users_count, count},
                              Stats#stats.finish_users_count,
-                             {BackEnd,LastStats#stats.finish_users_count,Log}),
+                             {BackEnd,LastStats#stats.finish_users_count,LogPids}),
     ts_stats_mon:dumpstats(request),
     ts_stats_mon:dumpstats(page),
     ts_stats_mon:dumpstats(connect),

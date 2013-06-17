@@ -47,6 +47,7 @@
 %% More external exports for ts_mon
 -export([update_stats/3, add_stats_data/2, reset_all_stats/1]).
 -export([print_stats/3]).
+-export([register_pid/0, deregister_pid/0, pids/0, format/3]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
@@ -58,7 +59,8 @@
                 type = ts_stats_mon, % type of stats
                 fullstats,    % fullstats fd
                 stats,        % dict keeping stats info
-                laststats     % values of last printed stats
+                laststats,    % values of last printed stats
+                pids = []
                }).
 
 %%%----------------------------------------------------------------------
@@ -106,6 +108,23 @@ set_output(BackEnd,Stream) ->
 
 set_output(BackEnd,Stream,Id) ->
     gen_server:cast({global, Id}, {set_output, BackEnd, Stream}).
+
+register_pid()->
+    gen_server:cast({global, ?MODULE}, {register_pid, self() }),
+    gen_server:cast({global, connect}, {register_pid, self() }),
+    gen_server:cast({global, page}, {register_pid, self() }),
+    gen_server:cast({global, request}, {register_pid, self() }),
+    gen_server:cast({global, transaction}, {register_pid, self() }).
+
+deregister_pid()->
+    gen_server:cast({global, ?MODULE}, {deregister_pid, self() }),
+    gen_server:cast({global, connect}, {deregister_pid, self() }),
+    gen_server:cast({global, page}, {deregister_pid, self() }),
+    gen_server:cast({global, request}, {deregister_pid, self() }),
+    gen_server:cast({global, transaction}, {deregister_pid, self() }).
+
+pids()->
+    gen_server:call({global, ?MODULE}, pids).
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from gen_server
@@ -155,6 +174,9 @@ handle_call({status, Name, Type}, _From, State ) ->
     Value = dict:find({Name,Type}, State#state.stats),
     {reply, Value, State};
 
+handle_call(pids, _From, State)->
+    {reply, State#state.pids, State};
+
 handle_call(Request, _From, State) ->
     ?LOGF("Unknown call ~p !~n",[Request],?ERR),
     Reply = ok,
@@ -166,6 +188,11 @@ handle_call(Request, _From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
+handle_cast({register_pid, Pid}, State=#state{pids=Pids})->
+    {noreply, State#state{pids=[Pid|Pids]}};
+handle_cast({deregister_pid, Pid}, State=#state{pids=Pids})->
+    {noreply, State#state{pids=Pids--[Pid]}};
+
 handle_cast({add, Data}, State=#state{type=Type}) when (( Type == 'connect') or
                                                          (Type == 'page') or
                                                          (Type == 'request'))  ->
@@ -197,6 +224,7 @@ handle_cast({set_output, BackEnd, {Stream, StreamFull}}, State) ->
     {noreply,State#state{backend=BackEnd, log=Stream, fullstats=StreamFull}};
 
 handle_cast({dumpstats}, State) ->
+    ?LOGF("State ~p", [State], ?ERR),
     export_stats(State),
     NewStats = reset_all_stats(State#state.stats),
     {noreply, State#state{laststats = NewStats, stats=NewStats}};
@@ -260,10 +288,10 @@ add_stats_data({sum, Name, Val}, Stats)  ->
 %% Func: export_stats/2
 %%----------------------------------------------------------------------
 export_stats(State=#state{type=Type,backend=Backend}) when Type == 'connect'; Type == 'page'; Type == 'request' ->
-    Param = {Backend,State#state.laststats,State#state.log},
+    Param = {Backend,State#state.laststats, {State#state.log, State#state.pids}},
     print_stats({Type,sample}, State#state.stats, Param);
 export_stats(State=#state{backend=Backend}) ->
-    Param = {Backend,State#state.laststats,State#state.log},
+    Param = {Backend,State#state.laststats, {State#state.log, State#state.pids}},
     dict:fold(fun print_stats/3, Param, State#state.stats).
 
 %%----------------------------------------------------------------------
@@ -302,28 +330,35 @@ print_stats({Name,Type},Value,Other) ->
 
 %% @spec print_stats_txt(tuple(),Data::list(),tuple()) -> {Backend::atom(),LastRest::term(), LogFile::term()}
 print_stats_txt({Name,_,Format}, [Mean,0,Max,Min,Count,MeanFB,CountFB|_], {Backend,LastRes,Logfile})->
-    io:format(Logfile, Format,
+    format(Logfile, Format,
               [Name, Count, Mean, 0, Max, Min,MeanFB,CountFB ]),
     {Backend,LastRes, Logfile};
 print_stats_txt({Name,_,Format},[Mean,Var,Max,Min,Count,MeanFB,CountFB|_],{Backend,LastRes,Logfile})->
     StdDev = math:sqrt(Var/Count),
-    io:format(Logfile, Format,
+    format(Logfile, Format,
               [Name, Count, Mean, StdDev, Max, Min, MeanFB,CountFB]),
     {Backend,LastRes, Logfile};
 print_stats_txt({Name, _,Format}, [Value,Last], {Backend,LastRes, Logfile}) ->
-    io:format(Logfile, Format, [Name, Value, Last ]),
+    format(Logfile, Format, [Name, Value, Last ]),
     {Backend,LastRes, Logfile};
 print_stats_txt({Name, _,Format}, Value, {Backend,LastRes, Logfile}) when is_number(LastRes)->
-    io:format(Logfile, Format, [Name, Value-LastRes, Value]),
+    format(Logfile, Format, [Name, Value-LastRes, Value]),
     {Backend,LastRes, Logfile};
 print_stats_txt({Name, Type, Format}, Value, {Backend,LastRes, Logfile}) when is_number(Value)->
     PrevVal = case dict:find({Name, Type}, LastRes) of
                   {ok, OldVal} -> OldVal;
                   error        -> 0
               end,
-    io:format(Logfile, Format, [Name, Value-PrevVal, Value]),
+    format(Logfile, Format, [Name, Value-PrevVal, Value]),
     {Backend,LastRes, Logfile}.
 
+
+
+format({Logfile, Pids}, Format, Values)->
+    io:format(Logfile, Format, Values),
+    Formatted = io_lib:format(Format, Values),
+    ?LOGF("Pid is ~p, Message is ~p", [Pids, Values], ?ERR) ,
+    lists:map(fun(Pid)-> Pid ! {message, Values} end , Pids).
 
 %%----------------------------------------------------------------------
 %% update_stats/3
