@@ -77,6 +77,7 @@ connect(Host, Port, Opts, Type) when Type =:= 'tcp' ; Type =:= 'ssl' ->
     Parent = self(),
     Path = "/http-bind/",
     Pid = spawn(fun() -> loop(Host, Port, Path, Opts, Type, Parent) end),
+    ?DebugF("connect ~p ~p ~p ~p",[Host, Port, self(), Pid]),
     {ok, Pid}.
 
 extract_domain("to='" ++ Rest) ->
@@ -118,10 +119,10 @@ protocol_options(#proto_opts{}) ->
     [].
 
 loop(Host, Port, Path, Opts, Type, Parent) ->
-   {A,B,C} = now(),
-   random:seed(A,B,C),
-   _MonitorRef = erlang:monitor(process,Parent),
-   loop(#state{session_state = fresh,
+    {A,B,C} = now(),
+    random:seed(A,B,C),
+    _MonitorRef = erlang:monitor(process,Parent),
+    loop(#state{session_state = fresh,
                port = Port,
                path = Path,
                parent_pid = Parent,
@@ -132,6 +133,7 @@ loop(Host, Port, Path, Opts, Type, Parent) ->
               }).
 
 loop(#state{parent_pid = ParentPid} = State) ->
+    ?DebugF("loop: wait for message free:~p open:~p",[State#state.free, State#state.open]),
     receive
         {'DOWN', _MonitorRef, _Type, _Object, _Info} ->  %%parent terminates
             ok;
@@ -172,6 +174,7 @@ loop(#state{parent_pid = ParentPid} = State) ->
             ParentPid ! {ok, Ref},
             loop(NewState);
         {Tag, Socket, {http_response, Vsn, 200, "OK"}} when Tag == 'http' ; Tag == 'ssl'->
+            ?Debug("loop: http response received"),
             case do_receive_http_response(State, Socket, Vsn) of
                 {ok, NewState} ->
                     loop(NewState);
@@ -186,6 +189,7 @@ loop(#state{parent_pid = ParentPid} = State) ->
                     State#state.parent_pid ! {gen_ts_transport, self(), closed}
             end;
         {Close, Socket} when Close == tcp_closed ; Close == 'ssl_closed' ->
+            ?LOG("loop: close",?DEB),
             case lists:keymember(Socket, 1, State#state.open) of
                 true ->
                     %%ERROR, a current request is closed
@@ -228,6 +232,7 @@ do_receive_http_response(State, Socket, Vsn) ->
             NewState2  = if
                              NewOpen == [] andalso State#state.session_state =:= 'normal' ->
                                  socket_setopts(Type, Socket, [{packet, http}, {active, once}]),
+                                 ?DebugF("make empty request for normal session state ~p ~p ~p queue:~p", [Type,Socket,Rid, Queue]),
                                  ok = make_empty_request(Type, Socket,Sid, Rid, Queue, Host, Path),
                                  case length(Queue) of
                                      0 -> ok;
@@ -266,6 +271,7 @@ do_receive_http_response(State, Socket, Vsn) ->
     end.
 
 do_connect(#state{type = Type, host = Host, path = Path, parent_pid = ParentPid} = State, Domain) ->
+    ?DebugF("do_connect ~p",[State]),
     Rid = 1000 + random:uniform(100000),
     %%Port= proplists:get_value(local_port, Options, undefined),
     NewState = State#state{
@@ -289,11 +295,11 @@ do_connect(#state{type = Type, host = Host, path = Path, parent_pid = ParentPid}
     NewState3#state{rid = Rid +1,
                     open = [],
                     sid = get_attr(Attrs, sid),
-                    session_state = normal,
                     max_requests = 2
                    }.
 
 do_reset(State) ->
+    ?DebugF("do_reset free: ~p open:~p",[State#state.free,State#state.open]),
     #state{sid = Sid,
            rid = Rid,
            host = Host,
@@ -316,6 +322,7 @@ do_send(State, Data) ->
           type = Type,
           path = Path,
           queue = Queue} = State,
+    ?LOGF("do_send, rid:~p open:~p free:~p", [Rid,Open, State#state.free],?DEB),
     Result = if
                 Open == []  -> send;
                 true ->
@@ -331,7 +338,7 @@ do_send(State, Data) ->
          send ->
               {NewState, Socket} = new_socket(State, once),
               ok = make_request(Type, Socket, Sid, Rid, Queue, Host, Path, Data),
-              {sent, NewState#state{rid = Rid +1, open = [{Socket, Rid}|Open], queue = []}};
+              {sent, NewState#state{rid = Rid +1, open = [{Socket, Rid}|Open], queue = Queue}};
          queue ->
                 Queue = State#state.queue,
                 NewQueue =  [Data|Queue],
@@ -340,6 +347,7 @@ do_send(State, Data) ->
 
 make_empty_request(Type, Socket, Sid, Rid, Queue, Host, Path) ->
     StanzasText = lists:reverse(Queue),
+    ?LOGF("make empty request ~p ~p ~p", [Type,Socket,Rid],?DEB),
     Body = stanzas_msg(Sid, Rid, StanzasText),
     make_request(Type, Socket, Host, Path, Body, iolist_size(StanzasText)).
 
@@ -348,6 +356,7 @@ make_raw_request(Type, Socket, Host, Path, Body) ->
 
 make_request(Type, Socket, Sid, Rid, Queue, Host, Path, Packet) ->
     StanzasText = lists:reverse([Packet|Queue]),
+    ?LOGF("make  request ~p ~p ~p ~p", [Type,Socket,Rid, StanzasText],?DEB),
     Body = stanzas_msg(Sid, Rid, StanzasText),
     make_request(Type, Socket, Host, Path, Body, iolist_size(StanzasText)).
 make_request(Type, Socket,Host, Path, Body, OriginalSize) ->
