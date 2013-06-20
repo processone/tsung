@@ -744,30 +744,38 @@ handle_next_request(Request, State) ->
                         _ ->
                             {next_state, wait_ack, NewState}
                         end;
-                {error, closed} ->
+                {error, closed} when State#state_rcv.retries < ?MAX_RETRIES ->
                     ?LOG("connection close while sending message !~n", ?WARN),
+                    Retries = State#state_rcv.retries +1,
                     handle_close_while_sending(State#state_rcv{socket=NewSocket,
                                                                protocol=Protocol,
                                                                host=Host,
                                                                session=NewSession,
+                                                               retries=Retries,
                                                                port=Port});
-                {error, Reason} ->
+                {error, Reason}  when State#state_rcv.retries < ?MAX_RETRIES ->
                     %% LOG only at INFO level since we report also an error to ts_mon
                     ?LOGF("Error: Unable to send data, reason: ~p~n",[Reason],?INFO),
                     CountName="error_send_"++atom_to_list(Reason),
                     ts_mon:add({ count, list_to_atom(CountName) }),
-                     handle_timeout_while_sending(State#state_rcv{session=NewSession});
-                {'EXIT', {noproc, _Rest}} ->
+                    Retries = State#state_rcv.retries +1,
+                    handle_timeout_while_sending(State#state_rcv{session=NewSession,retries=Retries});
+                {'EXIT', {noproc, _Rest}}  when State#state_rcv.retries < ?MAX_RETRIES ->
                     ?LOG("EXIT from ssl app while sending message !~n", ?WARN),
+                    Retries = State#state_rcv.retries +1,
                     handle_close_while_sending(State#state_rcv{socket=NewSocket,
                                                                protocol=Protocol,
                                                                session=NewSession,
+                                                               retries=Retries,
                                                                host=Host,
                                                                port=Port});
-                Exit ->
+                Exit when State#state_rcv.retries < ?MAX_RETRIES ->
                     ?LOGF("EXIT Error: Unable to send data, reason: ~p~n",
                           [Exit], ?ERR),
                     ts_mon:add({ count, error_send }),
+                    {stop, normal, State};
+                _ ->
+                    ts_mon:add({ count, error_abort_max_send_retries }),
                     {stop, normal, State}
             end;
         {error,_Reason} when State#state_rcv.retries < ?MAX_RETRIES ->
