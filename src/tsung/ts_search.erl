@@ -217,7 +217,7 @@ setcount(#match{do=restart, max_restart=MaxRestart, name=Name}, {Count, MaxC,Ses
             put(restart_count,1),
             ts_mon:add_match([{count, match_restart} | Stats],Ids),
             MaxC ;
-        Val when Val > MaxRestart ->
+        Val when Val >= MaxRestart ->
             ?LOG("Max restart reached, abort ! ~n", ?WARN),
             ts_mon:add_match([{count, match_restart_abort} | Stats],Ids),
             0;
