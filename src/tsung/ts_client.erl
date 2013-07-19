@@ -655,6 +655,10 @@ rel(R,A,B) when is_list(B) ->
     rel(R,A,list_to_binary(B));
 rel(R,A,B) when is_list(A) ->
     rel(R,list_to_binary(A),B);
+rel(R,A,B) when is_atom(A) ->
+    rel(R,atom_to_binary(A,utf8),B);
+rel(R,A,B) when is_atom(B) ->
+    rel(R,A,atom_to_binary(B,utf8));
 rel('eq',A,B)  ->
     A == B;
 rel('neq',A,B) -> A /= B.
