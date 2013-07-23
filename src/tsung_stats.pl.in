@@ -32,7 +32,7 @@ use strict;
 use Getopt::Long;
 use vars qw ($help @files $dygraph $verbose $debug $noplot $noextra $version $stats
              $template_dir $nohtml $template_dir $gnuplot $logy $rotate_xtics
-             $imgfmt $oldgnuplot );
+             $imgfmt $oldgnuplot $report_title );
 use File::Spec::Functions qw(rel2abs);
 use File::Basename;
 use File::Copy;
@@ -52,7 +52,8 @@ GetOptions( "help",\$help,
             "nohtml",\$nohtml,
             "rotate-xtics",\$rotate_xtics,
             "noextra",\$noextra,
-            "img_format=s",\$imgfmt
+            "img_format=s",\$imgfmt,
+            "title=s",\$report_title
           );
 
 &usage if $help or $Getopt::Long::error;
@@ -89,6 +90,7 @@ unless ($template_dir) {
 $stats = "tsung.log" unless $stats;
 die "The stats file ($stats) does not exist, abort !" unless -e $stats;
 
+$report_title = "Tsung" unless $report_title;
 $imgfmt = "png" unless $imgfmt;
 my %imgfmt_list = ("png" => 1, "svg" => 1,  "pdf" => 1,  "ps" => 1); # hash of all the format we support to make search more efficient
 die "Image format \"$imgfmt\" not supported" unless $imgfmt_list{"$imgfmt"};
@@ -417,6 +419,10 @@ sub parse_stats_file {
             if ($interval) {
                 $rate /= $interval;
                 $maxval->{'rate'}->{$type} = &max($rate, $maxval->{'rate'}->{$type});
+                $maxval->{'rate_total'}->{$type} = 0 if not defined $maxval->{'rate_total'}->{$type};
+                $maxval->{'rate_count'}->{$type} = 0 if not defined $maxval->{'rate_count'}->{$type};
+                $maxval->{'rate_total'}->{$type} = $maxval->{'rate_total'}->{$type} + $rate;
+                $maxval->{'rate_count'}->{$type} = $maxval->{'rate_count'}->{$type} + 1;
                 $maxval->{'maxmean'}->{$type} = &max($mean, $maxval->{'maxmean'}->{$type});
                 $maxval->{'mean'}->{$type} = $meanfb;
                 $maxval->{'count'}->{$type} = &max($countfb, $maxval->{'count'}->{$type});
@@ -562,7 +568,7 @@ sub parse_stats_file {
 
 sub html_report {
     require Template;
-    my $titre     = 'Tsung ';
+    my $titre     = $report_title;
     my $version   = $tagvsn;
     my $contact   = '@PACKAGE_BUGREPORT@';
     my $output   = 'index.html';
@@ -589,6 +595,10 @@ sub html_report {
             next if not ($data eq "session" or $data eq "connect" or $data eq "request" or $data eq "page" or $data =~ m/^tr_/);
             $maxval->{$type}->{$data} = &formattime($maxval->{$type}->{$data});
         }
+    }
+    foreach my $data (keys % {$maxval->{'rate_count'}} ) {
+        next if ($data =~ m/^size/);
+        $maxval->{'rate_mean'}->{$data} = sprintf "%.2f",$maxval->{'rate_total'}->{$data} / $maxval->{'rate_count'}->{$data};
     }
     foreach my $size ("size_rcv", "size_sent") {
         if ($maxval->{rate}->{$size}) {
@@ -663,7 +673,8 @@ type `tsung_stats.pl --version` for details.\n\n";
     "[--rotate-xtics  (rotate legend of x axes)\n\t",
     "[--stats <file>] (stats file to analyse, default=tsung.log)\n\t",
     "[--img_format <format>] (output format for images, default=png
-                                 available format: ps, svg, png, pdf)\n\t";
+                                 available format: ps, svg, png, pdf)\n\t",
+    "[--title <title>] (report title, default=Tsung)\n\t";
     exit;
 }
 
