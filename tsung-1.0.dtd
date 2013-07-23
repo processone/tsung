@@ -89,7 +89,7 @@
 <!ATTLIST user
      start_time NMTOKEN #IMPLIED
      unit (hour | minute | second  | millisecond) "second"
-     session      NMTOKEN #REQUIRED>
+     session      CDATA #REQUIRED>
 
 <!ELEMENT options (option*)>
 <!ELEMENT option (user_agent*)>

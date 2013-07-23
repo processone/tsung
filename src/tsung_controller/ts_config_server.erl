@@ -703,8 +703,21 @@ loop_load(Config=#config{load_loop=Loop, arrivalphases=Arrival},Max,Current) ->
 %% @doc sort static users by start time
 sort_static(Config=#config{static_users=S})->
     ?LOGF("sort static users: ~p ~n", [S], ?DEB),
-    SortedL= lists:keysort(1,S),
+    ES = expand_static(S,Config#config.sessions),
+    SortedL= lists:keysort(1,ES),
     Config#config{static_users=static_name_to_session(Config#config.sessions,SortedL)}.
+
+%% expand static users (if it contains wildcards)
+expand_static(StaticUsers, Sessions) ->
+    Names = lists:map(fun(#session{name=A}) -> A end ,Sessions),
+    expand_static(StaticUsers, Names, []).
+
+expand_static([], _Names, Static) -> Static;
+expand_static([{Delay, Name} | Static],SessionsNames, Acc) ->
+    Names  = ts_utils:wildcard(Name, SessionsNames),
+    NewStatic = lists:map(fun(N) -> {Delay, N} end, Names),
+    expand_static(Static, SessionsNames, Acc ++ NewStatic).
+
 
 %%
 %% @doc start a remote beam

@@ -175,7 +175,7 @@ read_config_static_test() ->
                           ?LOGF("X: ~p~n",[length(Res)],?ERR),
                           length(Res)
                   end,  C),
-    ?assertEqual(lists:sum(M) , 4).
+    ?assertEqual(lists:sum(M) , 5).
 
 
 cport_list_node_test() ->
@@ -238,6 +238,13 @@ launcher_empty_test() ->
                                                 phase_duration=Duration,
                                                 phase_start = _,
                                                 intensity = Intensity},_},Res).
+
+
+wildcard_test() ->
+    Names = ["foo1", "foo2", "bar", "barfoo", "foobar", "foo", "fof","glop"],
+    ?assertEqual(["foo1", "foo2", "foobar", "foo"], ts_utils:wildcard("foo*",Names)),
+    ?assertEqual(["foo1", "foo2"], ts_utils:wildcard("foo?",Names)),
+    ?assertEqual(["foobar"], ts_utils:wildcard("foo*r",Names)).
 
 myset_env()->
     myset_env(0).

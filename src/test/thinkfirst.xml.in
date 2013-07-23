@@ -27,7 +27,7 @@
     <user session="example" start_time="1" unit="second"/>
     <user session="example" start_time="2" unit="second"/>
     <user session="example" start_time="4" unit="second"/>
-    <user session="example" start_time="10" unit="second"/>
+    <user session="example*" start_time="10" unit="second"/>
    <arrivalphase phase="1" duration="1" unit="minute">
     <users maxnumber="5" interarrival="1" unit="second"></users>
    </arrivalphase>
@@ -41,13 +41,21 @@
     <option name="hibernate" value="3"></option>
   </options>
   <sessions>
-   <session probability="100" name="example" type="ts_http">
+   <session probability="90" name="example" type="ts_http">
     <thinktime value="30"></thinktime>
     <transaction name="offline">
       <request> <http url="/" method="GET"></http> </request>
     </transaction>
     <thinktime min="3" max="4" random="false"></thinktime>
   </session>
+
+   <session probability="5" name="example2" type="ts_http">
+     <request> <http url="/" method="GET"></http> </request>
+   </session>
+
+   <session probability="5" name="foo" type="ts_http">
+     <request> <http url="/" method="GET"></http> </request>
+   </session>
 
  </sessions>
 </tsung>
