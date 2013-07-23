@@ -1,3 +1,13 @@
+tsung (1.5.0-1.1+nmu) unstable; urgency=low
+
+  * Fixing with with attempting to set_opts on closed socket
+  * Updating mochiweb for better xpath support
+  * Adding mean rate calculation to tsung_stats reports.
+  * Adding --title option to set header of report
+  * Applying debian spelling correction patch
+
+ -- Don Kjer <don.kjer@gmail.com>  Tue, 23 Jul 2013 06:00:53 +0000
+
 tsung (1.5.0-1) unstable; urgency=low
 
   * New upstream release
