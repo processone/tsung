@@ -149,7 +149,7 @@ repeat | if | change_type | foreach | set_option | interaction )*>
 <!ELEMENT request ( match*, dyn_variable*, ( http | jabber | raw |
           pgsql | ldap | mysql |fs | shell | job | websocket | amqp | mqtt) )>
 <!ATTLIST request
-    subst (true|false) "false"
+    subst (true|false|all_except_body) "false"
     tag   NMTOKEN "undefined"
     >
 

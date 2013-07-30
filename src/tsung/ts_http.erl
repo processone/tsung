@@ -171,8 +171,8 @@ parse_config(Element, Conf) ->
 %%----------------------------------------------------------------------
 add_dynparams(false, {_DynVars, Session}, Param, HostData) ->
     add_dynparams(Session, Param, HostData);
-add_dynparams(true,  {DynVars, Session}, OldReq=#http_request{url=OldUrl}, HostData={_PrevHost, _PrevPort, PrevProto}) ->
-    Req = subst(OldReq, DynVars),
+add_dynparams(SubstParam,  {DynVars, Session}, OldReq=#http_request{url=OldUrl}, HostData={_PrevHost, _PrevPort, PrevProto}) ->
+    Req = subst(SubstParam, OldReq, DynVars),
     case Req#http_request.url of
         OldUrl ->
             add_dynparams(Session,Req, HostData);
@@ -235,12 +235,17 @@ add_dynparams(#http{session_cookies=DynCookie,user_agent=UA}, Req, _) ->
 %%          request parameters.
 %% @end
 %%----------------------------------------------------------------------
-subst(Req=#http_request{url=URL, body=Body, headers = Headers, oauth_url=OUrl,
+subst(SubstParam, Req=#http_request{url=URL, body=Body, headers = Headers, oauth_url=OUrl,
                         oauth_access_token=AToken, oauth_access_secret=ASecret,digest_qop = QOP,
                         digest_cnonce=CNonce, digest_nc=Nc,digest_nonce=Nonce, digest_opaque=Opaque,
                         realm=Realm, userid=UserId, passwd=Passwd, cookie = Cookies}, DynVars) ->
     Req#http_request{url =  escape_url(ts_search:subst(URL, DynVars)),
-             body   = ts_search:subst(Body, DynVars),
+             body   = case SubstParam of 
+                        true ->
+                            ts_search:subst(Body, DynVars);
+                        all_except_body -> 
+                            Body
+                      end,
              headers = lists:foldl(fun ({Name, Value}, Result) ->
                                            [{Name, ts_search:subst(Value, DynVars)} | Result]
                                    end, [], Headers),
