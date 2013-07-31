@@ -42,11 +42,17 @@
 >
 
 <!ELEMENT monitoring ( monitor+ )>
-<!ELEMENT monitor ( snmp? | munin?)>
+<!ELEMENT monitor ( snmp? | munin? | mysqladmin? )>
 <!ATTLIST monitor
      host NMTOKEN #REQUIRED
      batch (true | false) "false"
      type (snmp | erlang | munin) "erlang">
+
+<!ELEMENT mysqladmin EMPTY>
+<!ATTLIST mysqladmin
+     port  NMTOKEN "3306"
+     username  NMTOKEN "root"
+     password NMTOKEN #IMPLIED>
 
 <!ELEMENT snmp (oid)*>
 <!ATTLIST snmp

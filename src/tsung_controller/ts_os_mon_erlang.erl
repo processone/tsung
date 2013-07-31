@@ -32,7 +32,7 @@
 -include("ts_macros.hrl").
 -include("ts_os_mon.hrl").
 
--export([start/1, updatestats/2, client_start/0]).
+-export([start/1, updatestats/3, client_start/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -47,7 +47,8 @@
           interval,   % interval
           node,       % name of node to monitor
           host,       % hostname of server to monitor
-          pid         % remote pid
+          pid,        % remote pid
+          options     % updatestats options
          }).
 
 start(Args) ->
@@ -61,7 +62,7 @@ start(Args) ->
 %%          ignore               |
 %%          {stop, Reason}
 %%--------------------------------------------------------------------
-init( {Host, {}, Interval,  MonServer} ) ->
+init( {Host, Options, Interval,  MonServer} ) ->
     {ok, LocalHost} = ts_utils:node_to_hostname(node()),
     %% to get the EXIT signal from spawned processes on remote nodes
     process_flag(trap_exit,true),
@@ -73,11 +74,11 @@ init( {Host, {}, Interval,  MonServer} ) ->
     case list_to_atom(LocalHost) of
         Host -> % same host, don't start a new beam
             ?LOG("Running os_mon on the same host as the controller, use the same beam~n",?INFO),
-            Pid = spawn_link(?MODULE, updatestats, [Interval, MonServer]),
-            {ok, #state{node=node(),mon=MonServer, host=Host,interval=Interval,pid=Pid}};
+            Pid = spawn_link(?MODULE, updatestats, [Options, Interval, MonServer]),
+            {ok, #state{node=node(),mon=MonServer, host=Host, interval=Interval, pid=Pid, options=Options}};
         _ ->
             erlang:start_timer(?INIT_WAIT, self(), start_beam),
-            {ok, #state{host=Host, mon=MonServer, interval=Interval}}
+            {ok, #state{host=Host, mon=MonServer, interval=Interval, options=Options}}
     end.
 
 
@@ -121,12 +122,12 @@ handle_info({timeout,_Ref,start_beam},State=#state{host=Host})->
             ?LOGF("ping ~p: ~p~n", [Node, Pong],?INFO),
             load_code([Node]),
             Pid = spawn_link(Node, ?MODULE, updatestats,
-                             [State#state.interval, State#state.mon]),
+                             [State#state.options, State#state.interval, State#state.mon]),
             {noreply, State#state{node=Node,pid=Pid}};
         {error,{already_running,Node}} ->
             ?LOGF("Node ~p is already running, start updatestats process~n", [Node],?NOTICE),
             Pid = spawn_link(Node, ?MODULE, updatestats,
-                             [State#state.interval, State#state.mon]),
+                             [State#state.options, State#state.interval, State#state.mon]),
             {noreply, State#state{node=Node,pid=Pid}};
        Error ->
             ?LOGF("Fail to start beam on host ~p (~p)~n", [Host, Error],?ERR),
@@ -150,20 +151,33 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 %%--------------------------------------------------------------------
-%% Function: updatestats/2
+%% Function: updatestats/3
 %% Purpose: update stats for erlang monitoring. Executed on the remote host
 %%--------------------------------------------------------------------
-updatestats(Interval,Mon_Server) ->
+updatestats(Options, Interval,Mon_Server) ->
     Node = atom_to_list(node()),
     {Cpu, FreeMem, RecvPackets, SentPackets, Load} = node_data(),
-    ts_os_mon:send(Mon_Server,[{sample, {cpu, Node}, Cpu},
-                     {sample, {freemem, Node}, FreeMem},
-                     {sample, {load, Node}, Load},
-                     {sample_counter, {recvpackets, Node}, RecvPackets},
-                     {sample_counter, {sentpackets,  Node}, SentPackets}]),
+    Stats = [{sample, {cpu, Node}, Cpu},
+             {sample, {freemem, Node}, FreeMem},
+             {sample, {load, Node}, Load},
+             {sample_counter, {recvpackets, Node}, RecvPackets},
+             {sample_counter, {sentpackets,  Node}, SentPackets}],
+
+    Fun = fun(Option, AccumStats) ->
+            case Option of
+                {mysqladmin, MysqlOptions} ->
+                    {Threads, Questions} = mysqladmin_data(MysqlOptions),
+                    lists:append(AccumStats, [{sample, {mysql_threads, Node}, Threads},
+                                              {sample_counter, {mysql_questions, Node}, Questions}]);
+                _ ->
+                    AccumStats
+            end
+        end,
+
+    ts_os_mon:send(Mon_Server, lists:append(Stats, lists:foldl(Fun, [], Options))),
 
     timer:sleep(Interval),
-    updatestats(Interval,Mon_Server).
+    updatestats(Options, Interval,Mon_Server).
 
 
 %%--------------------------------------------------------------------
@@ -199,6 +213,22 @@ load_code(Nodes) ->
 node_data() ->
     {RecvPackets, SentPackets} = get_os_data(packets),
     {get_os_data(cpu), get_os_data(freemem), RecvPackets, SentPackets, get_os_data(load)}.
+
+%%--------------------------------------------------------------------
+%% Func: mysqladmin_data/1
+%%--------------------------------------------------------------------
+mysqladmin_data({Port, Username, Password}) ->
+    PasswdArg = case Password of
+                    false ->
+                        "";
+                    _ ->
+                        io_lib:format("-p\"~s\"", [Password])
+                end,
+    Cmd = io_lib:format("mysqladmin -u\"~s\" ~s -P~B status", [Username, PasswdArg, Port]),
+    Result = os:cmd(Cmd),
+    % Uptime: 1146892  Threads: 2  Questions: 15242050  Slow queries: 0  Opens: 176  Flush tables: 1  Open tables: 101  Queries per second avg: 13.290
+    [_, Uptime, _, Threads, _, Questions, _, _, SlowQueries, _, Opens, _, _, FlushTables, _, _, OpenTables, _, _, _, _, QPS] = string:tokens(Result, " \n"),
+    {list_to_integer(Threads), list_to_integer(Questions)}.
 
 
 %%--------------------------------------------------------------------
