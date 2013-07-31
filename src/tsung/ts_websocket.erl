@@ -167,5 +167,10 @@ add_dynparams(true, {DynVars, _S},
               _HostData) ->
     NewData = ts_search:subst(Data, DynVars),
     Param#websocket_request{data = NewData};
+add_dynparams(true, {DynVars, _S},
+              Param = #websocket_request{type = connect, path = Path},
+              _HostData) ->
+    NewPath = ts_search:subst(Path, DynVars),
+    Param#websocket_request{path = NewPath};
 add_dynparams(_Bool, _DynData, Param, _HostData) ->
     Param#websocket_request{}.
