@@ -1,6 +1,15 @@
+tsung (1.5.0-1.2+nmu) unstable; urgency=low
+
+   * Adding 'all_except_body' option to ts_http request subst.
+   ** Using "<request subst='all_except_body'> will run substitutions on everything except body contents.
+   * Adding 'mysqladmin' monitoring options to erlang monitors.
+   ** Collects statistics on threads/questions on a mysql server.
+
+ -- Don Kjer <don@lindenlab.com>  Wed, 31 Jul 2013 22:21:32 +0000
+
 tsung (1.5.0-1.1+nmu) unstable; urgency=low
 
-  * Fixing with with attempting to set_opts on closed socket
+  * Fixing issue with attempting to set_opts on closed socket
   * Updating mochiweb for better xpath support
   * Adding mean rate calculation to tsung_stats reports.
   * Adding --title option to set header of report
