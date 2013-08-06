@@ -93,7 +93,7 @@ Plot several tsung logs on the same charts, for comparison purpose.
   <refsect1>
     <title>CONFIGURATION</title>
     <para>
-      The configuration file of <command>tsplot</command> allows to
+      The configuration file of <command>tsplot</command> allows one to
       define the plots you want to obtain, from their label to the
       data they will show. The configuration file adopts a
       <filename>.ini</filename> file syntax, each section defining a
@@ -108,7 +108,7 @@ Plot several tsung logs on the same charts, for comparison purpose.
     </para>
     <para>
       A <command>DEFAULT</command> section may be provided, any
-      element configured here may then be overriden into a specific
+      element configured here may then be overridden into a specific
       plot section.
     </para>
     <para>
