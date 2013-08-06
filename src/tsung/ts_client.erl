@@ -417,7 +417,7 @@ handle_next_action(State) ->
             ctrl_struct(CtrlData,State,Count);
         Request=#ts_request{} ->
             handle_next_request(Request, State);
-        {change_type, NewCType, Server, Port, PType, Store, Restore} ->
+        {change_type, NewCType, Server, Port, PType, Store, Restore, Bidi} ->
             ?DebugF("Change client type, use: ~p ~p~n",[NewCType, [Server , Port, PType, Store, Restore]]),
             DynVars   = State#state_rcv.dynvars,
             NewPort   = case ts_search:subst(Port,DynVars) of
@@ -440,7 +440,8 @@ handle_next_action(State) ->
                      {_,_} -> % nothing to restore, or no restore asked, set new session
                          {none,NewCType:new_session()}
                  end,
-            NewState=State#state_rcv{session=Session,socket=Socket,count=Count,clienttype=NewCType,protocol=PType,port=NewPort,host=NewServer},
+            NewState=State#state_rcv{session=Session,socket=Socket,count=Count,clienttype=NewCType,protocol=PType,
+                                     port=NewPort,host=NewServer,bidi=Bidi},
             handle_next_action(NewState);
         {set_option, undefined, rate_limit, {Rate, Burst}} ->
             ?LOGF("Set rate limits for client: rate=~p, burst=~p~n",[Rate,Burst],?DEB),
