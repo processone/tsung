@@ -569,11 +569,12 @@ parse( #xmlElement{name=change_type, attributes=Attrs},
     Store   = getAttr(atom, Attrs, store, false),
     Restore = getAttr(atom, Attrs, restore, false),
     PType   = set_net_type(getAttr(Attrs, server_type)),
+    Bidi    = getAttr(atom, Attrs, bidi, false),
     SessType=case Conf#config.main_sess_type == CType of
                  false -> CurS#session.type;
                  true  -> CType % back to the main type
              end,
-    ets:insert(Tab,{{CurS#session.id, Id+1}, {change_type, CType, Server, Port, PType, Store, Restore}}),
+    ets:insert(Tab,{{CurS#session.id, Id+1}, {change_type, CType, Server, Port, PType, Store, Restore, Bidi}}),
     ?LOGF("Parse change_type (~p) ~p:~p:~p:~p ~n",[CType, Server,Port,PType,Id],?NOTICE),
     Conf#config{main_sess_type=SessType, curid=Id+1,
                 sessions=[CurS#session{type=CType}|Other] };

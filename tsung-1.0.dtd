@@ -136,6 +136,7 @@ repeat | if | change_type | foreach | set_option | interaction )*>
      server_type NMTOKEN #REQUIRED
      store  ( true | false ) "false"
      restore ( true | false ) "false"
+     bidi ( true | false ) "false"
     >
 
 <!ELEMENT request ( match*, dyn_variable*, ( http | jabber | raw |
