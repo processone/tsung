@@ -43,14 +43,13 @@
          decode_buffer/2,
          new_session/0]).
 
-
 %%----------------------------------------------------------------------
 %% Function: session_default/0
-%% Purpose: default parameters for session
-%% Returns: {ok, ack_type = parse|no_ack|local, persistent = true|false} 
+%% Purpose: default parameters for session (persistent & bidirectional)
+%% Returns: {ok, true|false, true|false}
 %%----------------------------------------------------------------------
 session_defaults() ->
-    {ok, true}.
+    {ok, true, true}.
 
 %% @spec decode_buffer(Buffer::binary(),Session::record(jabber)) -> 
 %%      NewBuffer::binary()
