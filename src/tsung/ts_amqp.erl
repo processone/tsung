@@ -318,7 +318,7 @@ parse_bidi(Data, State=#state_rcv{acc = [], session = AMQPSession}) ->
     Protocol = AMQPSession#amqp_session.protocol,
     AckBuf = AMQPSession#amqp_session.ack_buf,
     case decode_frame(Protocol, Data) of
-        {error, Reason} ->
+        {error, _Reason} ->
             ?DebugF("decode error: ~p~n", [Reason]),
             {nodata, State};
         {ok, heartbeat, Left} ->
@@ -333,7 +333,7 @@ parse_bidi(Data, State=#state_rcv{acc = [], session = AMQPSession}) ->
             ?DebugF("receive bidi: ~p~n", [Method]),
             NewAMQPSession = should_ack(AckBuf, Method, AMQPSession),
             parse_bidi(Left, State#state_rcv{session = NewAMQPSession});
-        {ok, Method, Content, Left} ->
+        {ok, Method, _Content, Left} ->
             ?DebugF("receive bidi: ~p ~p~n", [Method, Content]),
             NewAMQPSession = should_ack(AckBuf, Method, AMQPSession),
             parse_bidi(Left, State#state_rcv{session = NewAMQPSession});
@@ -467,7 +467,7 @@ build_content(Properties, PFR) ->
 
 decode_and_check(Data, Expecting, State, Protocol) ->
     case decode_frame(Protocol, Data) of
-        {error, Reason} ->
+        {error, _Reason} ->
             ?DebugF("decode error: ~p~n", [Reason]),
             ts_mon:add({count, amqp_error}),
             {fail, {State#state_rcv{ack_done = true}, [], true}};
