@@ -208,6 +208,14 @@ parse({file, delete, [Path], {error,Reason}},State) ->
     ?LOGF("error while deleting file: ~p (~p)~n",[Path, Reason],?ERR),
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
 
+parse({file, read_file_info, [_Path], {ok, _FileInfo}},State) ->
+    %% which value should we use for datasize ?
+    {State#state_rcv{ack_done=true,datasize=0}, [], false};
+parse({file, read_file_info, [Path], {error,Reason}},State) ->
+    ?LOGF("error while running stat file: ~p (~p)~n",[Path,Reason],?ERR),
+    ts_mon:add({count,error_fs_stat}),
+    {State#state_rcv{ack_done=true,datasize=0}, [], false};
+
 parse({ts_utils, read_file_raw, [_Path], {ok,_Res,Size}},State) ->
     {State#state_rcv{ack_done=true,datasize=Size}, [], false};
 parse({ts_utils, read_file_raw, [Path], {error,Reason}},State) ->
@@ -255,6 +263,8 @@ get_message2(#fs{command=make_dir, path=Path}) ->
     {file,make_dir,[Path],0};
 get_message2(#fs{command=make_symlink, path=Existing, dest=New}) ->
     {file,make_symlink,[Existing, New],0};
+get_message2(#fs{command=stat, path=Path}) ->
+    {file,read_file_info,[Path],0};
 get_message2(#fs{command=write,path=Path, size=Size}) ->
     {file,write_file,[Path,ts_utils:urandomstr(Size),[raw]],Size}.
 

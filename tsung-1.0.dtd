@@ -263,7 +263,7 @@ repeat | if | change_type | foreach | set_option | interaction )*>
 <!ELEMENT fs EMPTY >
 <!ATTLIST fs
     cmd
-          (read|write|open|delete|stats|copy|read_chunk|write_chunk|close|make_dir|del_dir|make_symlink)  "write"
+          (read|write|open|delete|stat|copy|read_chunk|write_chunk|close|make_dir|del_dir|make_symlink)  "write"
     path     CDATA   #IMPLIED
     size     CDATA   "1024"
     position CDATA   #IMPLIED
