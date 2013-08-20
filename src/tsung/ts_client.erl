@@ -335,6 +335,12 @@ handle_info2({gen_ts_transport, _Socket, Data}, think, State) ->
 handle_info2({inet_reply, _Socket,ok}, StateName, State ) ->
     ?LOGF("inet_reply ok received in state ~p~n",[StateName],?NOTICE),
     {next_state, StateName, State};
+%% TODO this would happen in mixed session when previous session was saved and
+%% there are data send from the server, and handle_info will NOT normalize
+%% these data as {gen_ts_transport, Socket, Datat}, Ignore it currently.
+handle_info2({tcp, _Socket, _Data}, StateName, State ) ->
+    ?LOGF("tcp data received in state ~p~n",[StateName],?NOTICE),
+    {next_state, StateName, State};
 handle_info2(Msg, StateName, State ) ->
     ?LOGF("Error: Unknown msg ~p receive in state ~p, stop~n", [Msg,StateName], ?ERR),
     ts_mon:add({ count, error_unknown_msg }),
