@@ -174,6 +174,10 @@ parse({file, write_file, [Path,_], {error,Reason}},State) ->
 parse({file, pwrite, [_IODev,Pos,Data], ok},State=#state_rcv{session=S}) ->
     NewDyn=S#fs_session{position=Pos+length(Data)},
     {State#state_rcv{ack_done=true,datasize=0,session=NewDyn}, [], false};
+parse({file, pwrite, Args, {error,Reason}},State) ->
+    ?LOGF("error while writing file: ~p (~p)~n",[Args, Reason],?ERR),
+    ts_mon:add({count,error_fs_pwrite}),
+    {State#state_rcv{ack_done=true, datasize=0}, [], false};
 
 parse({file, del_dir, [_Path], ok},State) ->
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
