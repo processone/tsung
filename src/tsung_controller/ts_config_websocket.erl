@@ -59,6 +59,9 @@ parse_config(Element = #xmlElement{name = websocket},
     Ack = case Type of
               connect ->
                   parse;
+              %% we should wait a close response from the server
+              close ->
+                  ack;
               _ ->
                   no_ack
           end,
