@@ -39,3 +39,6 @@ o Adam Spotton: Bug reports and tests (status, HTTP proxy load testing)
 o Matthew Schulkind: small fix to freemem computation
 o t ty: plugin tutorial
 o Jesper Wilhelmsson: testing
+
+New contributors since the migration to git are available here:
+ https://github.com/processone/tsung/graphs/contributors
