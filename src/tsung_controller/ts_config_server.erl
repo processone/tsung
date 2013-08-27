@@ -888,15 +888,27 @@ get_one_node_per_host([Node | Nodes], Dict) ->
 
 %% compute popularities of sessions for all phases
 compute_popularities(Config=#config{arrivalphases=Phases, sessions=Sessions}) ->
-    ?LOGF("Compute popularities per phases ~p",[Phases],?DEB),
+
+    %% popularities can contains wildcards, need to expand them
+    Names = lists:map(fun(#session{name=A}) -> A end ,Sessions),
+    Expand = fun( Phase = #arrivalphase{popularities= Pops} ) ->
+                     NewPops = lists:foldl(fun({Name,Popularity},Acc) ->
+                                                   Expanded = ts_utils:wildcard(Name, Names),
+                                                   Acc ++ lists:map(fun(X) -> {X, Popularity} end, Expanded)
+                                           end, [], Pops),
+                     Phase#arrivalphase{popularities=NewPops}
+             end,
+    NewPhases = lists:map(Expand,Phases),
+    ?LOGF("Compute popularities per phases ~p",[NewPhases],?DEB),
+
     F = fun(Session=#session{popularity=Pop, name=Name}) ->
-           NewPop = set_pop(Name, Pop, Phases),
+           NewPop = set_pop(Name, Pop, NewPhases),
            Session#session{popularity=NewPop}
         end,
     NewSessions = lists:map(F, Sessions),
     ?LOGF("Old sessions:~p",[Sessions],?DEB),
     ?LOGF("New sessions:~p",[NewSessions],?DEB),
-    Config#config{sessions=NewSessions, total_popularity=update_total_pop(Config#config.use_weights, Phases, NewSessions)}.
+    Config#config{sessions=NewSessions, arrivalphases = NewPhases, total_popularity=update_total_pop(Config#config.use_weights, NewPhases, NewSessions)}.
 
 update_total_pop(UseWeight,Phases, Sessions) ->
     update_total_pop(UseWeight, length(Phases), Sessions, []).
