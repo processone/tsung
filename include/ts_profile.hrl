@@ -124,6 +124,7 @@
          phase_nusers,   % total number of users to start in the current phase
          phase_duration, % expected phase duration
          phase_start,    % timestamp
+         phase_id      = 1,
          start_date,
          short_timeout = ?short_timeout,
          maxusers %% if maxusers are currently active, launch a

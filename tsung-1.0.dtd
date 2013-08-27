@@ -72,7 +72,7 @@
      loop     NMTOKEN "0"
      >
 
-<!ELEMENT arrivalphase (users)>
+<!ELEMENT arrivalphase (users | session_setup)+>
 <!ATTLIST arrivalphase
      duration NMTOKEN #REQUIRED
      phase    NMTOKEN #REQUIRED
@@ -122,6 +122,13 @@ repeat | if | change_type | foreach | set_option | interaction )*>
     probability   NMTOKEN #IMPLIED
     weight        NMTOKEN #IMPLIED
     type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs | ts_shell | ts_job | ts_websocket | ts_amqp) #REQUIRED>
+
+<!ELEMENT session_setup EMPTY>
+<!ATTLIST session_setup
+    name         CDATA #REQUIRED
+    probability  NMTOKEN #IMPLIED
+    weight       NMTOKEN #IMPLIED
+>
 
 <!ELEMENT interaction EMPTY>
 <!ATTLIST interaction

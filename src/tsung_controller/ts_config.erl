@@ -289,7 +289,7 @@ parse(Element = #xmlElement{name=ip, attributes=Attrs},
 parse(Element = #xmlElement{name=arrivalphase, attributes=Attrs},
       Conf = #config{arrivalphases=AList}) ->
 
-    Phase     = getAttr(integer,Attrs, phase),
+    Phase      = getAttr(integer,Attrs, phase),
     IDuration  = getAttr(integer, Attrs, duration),
     Unit  = getAttr(string,Attrs, unit, "second"),
     D = to_milliseconds(Unit, IDuration),
@@ -386,6 +386,22 @@ parse(Element = #xmlElement{name=session, attributes=Attrs},
                             use_weights=NewUseWeights,
                             total_popularity=NewTotal,
                             curid=0, cur_req_id=0},% re-initialize request id
+                Element#xmlElement.content);
+
+%% Parsing the session_setup element
+parse(Element = #xmlElement{name=session_setup, attributes=Attrs}, Conf = #config{arrivalphases=[Phase|Phases]}) ->
+
+    Name         = getAttr(Attrs, name),
+    {Popularity, NewUseWeights} =  case { Conf#config.use_weights,  getAttr(float_or_integer, Attrs, weight, -1) } of
+                                      {Use, -1} when (Use == undefined orelse Use == false) ->
+                                          { getAttr(float_or_integer, Attrs, probability, -1), false };
+                                      {_, Val} ->
+                                          { Val, true}
+                                  end,
+    SessionsPopularities = Phase#arrivalphase.popularities,
+    NewPhase = Phase#arrivalphase{popularities= [{Name, Popularity}| SessionsPopularities]},
+    lists:foldl(fun parse/2,
+                Conf#config{ use_weights      = NewUseWeights, arrivalphases = [NewPhase | Phases] },
                 Element#xmlElement.content);
 
 %%%% Parsing the transaction element
@@ -539,14 +555,14 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
                  re ->
                      ?LOGF("Add new re: ~s ~n", [Expr],?INFO),
                      {ok, CompiledRegExp} = re:compile(FlattenExpr),
-		     %% TSUN-249		     
-		     case getAttr(string,Attrs,decode,none) of
-			 "html_entities" ->
-			     ?LOGF("The re will be decoded: ~s ~n", [Expr],?INFO),
-			     {re,Name,CompiledRegExp,fun ts_utils:conv_entities/1};
-			 _ ->
-			     {re,Name,CompiledRegExp, undefined}
-		     end;
+                     %% TSUN-249
+                     case getAttr(string,Attrs,decode,none) of
+                         "html_entities" ->
+                             ?LOGF("The re will be decoded: ~s ~n", [Expr],?INFO),
+                             {re,Name,CompiledRegExp,fun ts_utils:conv_entities/1};
+                         _ ->
+                             {re,Name,CompiledRegExp, undefined}
+                     end;
                  xpath ->
                      ?LOGF("Add new xpath: ~s ~n", [Expr],?INFO),
                      CompiledXPathExp = mochiweb_xpath:compile_xpath(FlattenExpr),
@@ -556,8 +572,7 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
                      {Type,Name,Expr}
              end,
     NewDynVar = [DynVar|DynVars],
-    ?LOGF("Add new dyn variable=~p in session ~p~",
-          [NewDynVar,CurS#session.id],?INFO),
+    ?LOGF("Add new dyn variable=~p in session ~p", [NewDynVar, CurS#session.id],?INFO),
     Conf#config{ dynvar= NewDynVar };
 
 parse( #xmlElement{name=change_type, attributes=Attrs},
