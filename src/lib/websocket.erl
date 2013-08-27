@@ -93,7 +93,12 @@ encode_text(Data) ->
     encode(Data, ?OP_TEXT).
 
 encode_close(Reason) ->
-    encode(Reason, ?OP_CLOSE).
+    %% According RFC6455, we shoud add a status code for close frame,
+    %% check here: http://tools.ietf.org/html/rfc6455#section-7.4,
+    %% we add a normal closure status code 1000 here.
+    StatusCode = <<3, 232>>,
+    Data = <<StatusCode/binary, Reason/binary>>,
+    encode(Data, ?OP_CLOSE).
 
 encode(Data, Opcode) ->
     Key = crypto:rand_bytes(4),
