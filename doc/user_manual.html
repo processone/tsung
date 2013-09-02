@@ -1899,6 +1899,41 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TABLE></TD></TR>
 </TABLE></TD></TR>
 </TABLE><P>See also <A HREF="#bidi:presence">4.5.2</A> for automatic handling of subscribing requests.</P><!--TOC paragraph SASL Anonymous-->
+<H5 CLASS="paragraph"><!--SEC ANCHOR -->SASL Plain</H5><!--SEC END --><P>SASL Plain authentication example:
+</P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
+CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD><TD><TABLE BORDER=0 CELLPADDING="1" CELLSPACING=0><TR><TD><PRE CLASS="verbatim">&lt;session probability="100" name="sasl" type="ts_jabber"&gt;
+
+    &lt;request&gt; &lt;jabber type="connect" ack="local"&gt;&lt;/jabber&gt; &lt;/request&gt;
+
+    &lt;thinktime value="10"&gt;&lt;/thinktime&gt;
+
+    &lt;transaction name="authenticate"&gt;
+     &lt;request&gt;
+       &lt;jabber type="auth_sasl" ack="local"&gt;&lt;/jabber&gt;&lt;/request&gt;
+
+     &lt;request&gt;
+       &lt;jabber type="connect" ack="local"&gt;&lt;/jabber&gt; &lt;/request&gt;
+
+    &lt;request&gt;
+       &lt;jabber type="auth_sasl_bind" ack="local" &gt;&lt;/jabber&gt;&lt;/request&gt;
+    &lt;request&gt;
+       &lt;jabber type="auth_sasl_session" ack="local" &gt;&lt;/jabber&gt;&lt;/request&gt;
+
+    &lt;/transaction&gt;
+</PRE></TD></TR>
+</TABLE></TD><TD BGCOLOR=black COLSPAN="1"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+<TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
+</TD></TR>
+</TABLE></TD></TR>
+</TABLE></TD></TR>
+</TABLE>
 <H5 CLASS="paragraph"><!--SEC ANCHOR -->SASL Anonymous</H5><!--SEC END --><P>SASL Anonymous authentication example:
 </P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0><TR><TD><TABLE BORDER=0 CELLPADDING=0
 CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDING=0 BORDER=0><TR><TD>
@@ -1933,7 +1968,8 @@ CELLSPACING=0><TR><TD BGCOLOR=black COLSPAN="3"><TABLE CELLSPACING="1" CELLPADDI
 </TD></TR>
 </TABLE></TD></TR>
 </TABLE></TD></TR>
-</TABLE><!--TOC paragraph Presence-->
+</TABLE>
+<!--TOC paragraph Presence-->
 <H5 CLASS="paragraph"><!--SEC ANCHOR -->Presence</H5><!--SEC END --><UL CLASS="itemize"><LI CLASS="li-itemize">
 <TT>type</TT> can be either <FONT COLOR=purple>presence:broadcast</FONT> or <FONT COLOR=purple>presence:directed</FONT>.
 </LI><LI CLASS="li-itemize"><TT>show</TT> value must be either <FONT COLOR=purple>away</FONT>, <FONT COLOR=purple>chat</FONT>, <FONT COLOR=purple>dnd</FONT>, or <FONT COLOR=purple>xa</FONT>.
