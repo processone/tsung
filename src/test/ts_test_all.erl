@@ -11,6 +11,10 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+
+run() ->
+    eunit:test([ts_test_all], [{report,{eunit_surefire,[{dir,"."}]}}]).
+
 test() -> ok.
 
 all_test_() -> [ts_test_recorder,

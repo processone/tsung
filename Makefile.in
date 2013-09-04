@@ -184,7 +184,7 @@ test:
 	$(MAKE) TYPE=test dotest
 
 dotest: tsung buildtest $(CONFFILE) $(TEST_CONFFILE)
-	$(ERL) -noshell -pa $(EBIN_TEST) -s eunit test ts_test_all -s init stop
+	$(ERL) -noshell -pa $(EBIN_TEST) -s ts_test_all run -s init stop
 
 edoc:
 	$(ERL) -noshell -eval "edoc:application($(APPLICATION), \"./$(ESRC)/$(APPLICATION)\", [$(DOC_OPTS)])" -s init stop
