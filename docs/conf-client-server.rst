@@ -112,7 +112,7 @@ equal to 1.5 for each CPU.
 .. _maxusers-label:
 
 maxusers
-========
+^^^^^^^^
 
 The **maxusers** parameter is used to bypass the limit of
 maximum number of sockets opened by a single process (1024 by

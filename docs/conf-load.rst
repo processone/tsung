@@ -110,7 +110,7 @@ session), one starting after 10 minutes, and a last one starting after
 .. index:: duration
 
 Duration of the load test
--------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 By default, tsung will end when all started users have finished their
 session. So it can be much longer than the duration of

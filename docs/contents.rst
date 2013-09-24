@@ -11,12 +11,6 @@ Table of contents
    benchmark
    proxy
    configuration
-   conf-client-server
-   conf-monitoring
-   conf-load
-   conf-options
-   conf-sessions
-   conf-advanced-features
    reports
    references
    acknowledgment

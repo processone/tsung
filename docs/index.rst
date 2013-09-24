@@ -19,8 +19,8 @@ Welcome to Tsung's documentation!
 
 .. toctree::
    :maxdepth: 1
+   :numbered:
 
-   contents
    introduction
    features
    installation
@@ -34,6 +34,7 @@ Welcome to Tsung's documentation!
    errorslist
    changelog
    dtd
+
 
 Indices and tables
 ==================
