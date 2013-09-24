@@ -18,7 +18,7 @@ Welcome to Tsung's documentation!
    * **Bugtracker**: `Jira <https://support.process-one.net/browse/TSUN>`_
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :numbered:
 
    introduction

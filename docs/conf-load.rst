@@ -62,8 +62,8 @@ In this case, only 100 users will be created in the first phases, and
 
 
 The complete sequence can be executed several times using the
-\varname{loop} attribute in the \varname{load} tag
-(\userinput{loop='2'} means the sequence will be looped twice, so the
+``loop`` attribute in the ``load`` tag
+(``loop='2'`` means the sequence will be looped twice, so the
 complete load will be executed 3 times) (feature available since
 version 1.2.2).
 
@@ -103,9 +103,9 @@ it is possible since version **1.3.1**:
 In this example, we have two sessions, one has a "0" probability (and
 therefore will not be used in the first phase), and the other
 100\%. We define 3 users starting respectively 3mn and 5 seconds
-after the beginning of the test (using the \userinput{http-example}
+after the beginning of the test (using the ``http-example``
 session), one starting after 10 minutes, and a last one starting after
-11 minutes (using the \userinput{foo} session this time)
+11 minutes (using the ``foo`` session this time)
 
 .. index:: duration
 
@@ -116,7 +116,7 @@ By default, tsung will end when all started users have finished their
 session. So it can be much longer than the duration of
 arrivalphases. If you want to stop Tsung  after a given duration
 (even if phases are not finished or if some sessions are still actives),
-you can do this with the **duration** attribute in **load** (**feature added in 1.3.2**):
+you can do this with the ``duration`` attribute in ``load`` (**feature added in 1.3.2**):
 
 .. code-block:: xml
 
@@ -128,4 +128,4 @@ you can do this with the **duration** attribute in **load** (**feature added in 
 
 
 Currently, the maximum value for duration is a little bit less than 50
-days. **unit** can be **second**, **minute** or **hour**.
+days. ``unit`` can be ``second``, ``minute`` or ``hour``.
