@@ -1,0 +1,17 @@
+$ tsung -h
+Usage: tsung <options> start|stop|debug|status
+Options:
+    -f <file>     set configuration file (default is ~/.tsung/tsung.xml)
+                   (use - for standard input)
+    -l <logdir>   set log directory (default is ~/.tsung/log/YYYYMMDD-HHMM/)
+    -i <id>       set controller id (default is empty)
+    -r <command>  set remote connector (default is ssh)
+    -s            enable erlang smp on client nodes
+    -p <max>      set maximum erlang processes per vm (default is 250000)
+    -m <file>     write monitoring output on this file (default is tsung.log)
+                   (use - for standard output)
+    -F            use long names (FQDN) for erlang nodes
+    -w            warmup delay (default is 10 sec)
+    -v            print version information and exit
+    -6            use IPv6 for Tsung internal communications
+    -h            display this help and exit
