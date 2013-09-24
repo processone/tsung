@@ -2,13 +2,14 @@
 .. index:: proxy
 .. index:: tsung-recorder
 .. _tsung-recorder:
+
 ========================
 Using the proxy recorder
 ========================
 
 The recorder has three plugins: for HTTP, WebDAV and for PostgreSQL.
 
-To start it, run :command:`tsung-recorder -p <PLUGIN> start`, where \varname{PLUGIN} can be
+To start it, run :command:`tsung-recorder -p <PLUGIN> start`, where **PLUGIN** can be
 *http*, *webdav* or *pgsql* for PostgreSQL. The default plugin is **http**.
 
 
