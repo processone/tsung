@@ -64,16 +64,16 @@ Available stats
 
 .. index:: page
 
-* **request** Response time for each request.
-* **page** Response time for each set of requests (a page is a group
+* ``request`` Response time for each request.
+* ``page`` Response time for each set of requests (a page is a group
   of request not separated by a thinktime).
-* **connect** Duration of the connection establishment.
-* **reconnect** Number of reconnection.
-* **size_rcv** Size of responses in bytes.
-* **size_sent** Size of requests in bytes.
-* **session** Duration of a user's session.
-* **users** Number of simultaneous users (it's session has started, but not yet finished).
-* **connected** number of users with an opened TCP/UDP connection (example: for
+* ``connect`` Duration of the connection establishment.
+* ``reconnect`` Number of reconnection.
+* ``size_rcv`` Size of responses in bytes.
+* ``size_sent`` Size of requests in bytes.
+* ``session`` Duration of a user's session.
+* ``users`` Number of simultaneous users (it's session has started, but not yet finished).
+* ``connected`` number of users with an opened TCP/UDP connection (example: for
   HTTP, during a think time, the TCP connection can be closed by the server,
   and it won't be reopened until the thinktime has expired). **new in 1.2.2**.
 * custom transactions
@@ -93,13 +93,13 @@ HTTP specific stats:
 Jabber specific stats:
 ----------------------
 
-* **request_noack** Counter of **no_ack** requests. Since
-  response time is meaningless with **no_ack**
+* ``request_noack`` Counter of ``no_ack`` requests. Since
+  response time is meaningless with ``no_ack``
   requests, we keep a separate stats for this. **new in 1.2.2**.
-* **async_unknown_data_rcv** Only if bidi is true for a
+* ``async_unknown_data_rcv`` Only if bidi is true for a
   session. counter the number of messages received from the server
-  without doing anything.  **new in 1.2.2.
-* **async_data_sent** Only if bidi is true for a
+  without doing anything.  **new in 1.2.2**.
+* ``async_data_sent`` Only if bidi is true for a
   session. Count the number of messages sent to the server in response
   of a message received from the server. **new in 1.2.2**.
 
@@ -129,16 +129,16 @@ done for two kinds of data:
 .. index:: sample
 .. index:: sample_counter
 
-* **sample**, for things like response time
-* **sample_counter** when the input is a cumulative one (number of
+* ``sample``, for things like response time
+* ``sample_counter`` when the input is a cumulative one (number of
   packet sent for ex.).
 
 
 There are also two other types of useful data (no averaging is done for
 those) :
 
-* **counter**: a simple counter, for HTTP status code for ex.
-* **sum** for ex. the cumulative HTTP response's size (it gives an
+* ``counter``: a simple counter, for HTTP status code for ex.
+* ``sum`` for ex. the cumulative HTTP response's size (it gives an
   estimated bandwidth usage).
 
 
@@ -209,7 +209,7 @@ Tsung Plotter
 
 Tsung-Plotter (:command:`tsplot`} command) is an optional tool recently
 added in the Tsung distribution (it is written in Python), useful to
-compare different tests runned by Tsung. \command{tsplot} is able to
+compare different tests runned by Tsung. :command:`tsplot` is able to
 plot data from several :file:`tsung.log` files onto the same charts,
 for further comparisons and analyzes. You can easily customize the
 plots you want to generate by editing simple configuration files. You
@@ -235,4 +235,4 @@ RRD
 ===
 
 A contributed perl script :command:`tsung-rrd.pl` is able to create rrd
-files from the tsung log files. It's available in \file{/usr/lib/tsung/bin/tsung-rrd.pl}
+files from the tsung log files. It's available in :file:`/usr/lib/tsung/bin/tsung-rrd.pl`
