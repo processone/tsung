@@ -220,6 +220,8 @@ To use OAuth authentication:
       </request>
 
 
+.. _sec-session-jabber-label:
+
 Jabber/XMPP
 ^^^^^^^^^^^
 

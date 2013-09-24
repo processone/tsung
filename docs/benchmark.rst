@@ -60,7 +60,7 @@ LDAP
 ====
 
 An LDAP plugin for the recorder is not yet implemented, so you have to
-write the session by yourself; see section :ref:`sec-session-ldap-label`` for
+write the session by yourself; see section :ref:`sec-session-ldap-label` for
 more information.
 
 PostgreSQL
@@ -98,7 +98,7 @@ There are two differences between HTTP and Jabber testing:
 
 * There is no recorder for Jabber, so you have to write your
   sessions by hand (an example is provided in
-  :ref:`sec-sessions-jabber-label`).
+  :ref:`sec-session-jabber-label`).
 
 * the jabber plugin does not parse XML; instead it uses packet
   acknowledgments.
