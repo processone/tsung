@@ -1,9 +1,10 @@
 .. index:: options
+.. _sec-options-label:
 
 Setting options
 ===============
 
-\label{sec:options}
+
 
 .. index:: thinktime
 .. index:: ssl_ciphers
