@@ -26,9 +26,9 @@ A transaction is just a way to have customized statistics. Say if you
 want to know the response time of the login page of your website, you
 just have to put all the requests of this page (HTML + embedded
 pictures) within a transaction. In the example above, the transaction
-called \varname{index\_request} will gives you in the
+called ``index_request`` will gives you in the
 statistics/reports the mean response time to get
-\userinput{index.en.html + header.gif}. Be warn that If you have a
+``index.en.html + header.gif``. Be warn that If you have a
 thinktime inside the transaction, the thinktime will be part of the
 response time.
 
@@ -39,7 +39,7 @@ Thinktimes
 
 You can set static or random thinktimes to separate requests. By
 default, a random thinktime will be a exponential distribution with
-mean equals to \varname{value}.
+mean equals to ``value``.
 
 .. code-block:: xml
 
@@ -50,7 +50,7 @@ In this case, the thinktime will be an exponential distribution with a
 mean equals to 20 seconds.
 
 **Since version 1.3.0**, you can also use a range
-\userinput{[min:max]} instead of a mean for random thinktimes (the
+``[min:max]`` instead of a mean for random thinktimes (the
 distribution will be uniform in the interval):
 
 .. code-block:: xml
@@ -63,7 +63,7 @@ the thinktime value:
 
 .. code-block:: xml
 
- <thinktime value='%%_rndthink%%' random='true'></thinktime>
+ <thinktime value="%%_rndthink%%" random="true"></thinktime>
 
 
 HTTP
@@ -72,7 +72,7 @@ HTTP
 
 This example shows several features of the HTTP protocol support in
 Tsung: GET and POST request, basic authentication, transaction for
-statistics definition, conditional request (IF MODIFIED SINCE), ...
+statistics definition, conditional request (IF MODIFIED SINCE):
 
 
 .. code-block:: xml
@@ -119,7 +119,7 @@ statistics definition, conditional request (IF MODIFIED SINCE), ...
 
 
 If you use an absolute URL, the server used in the URL will override
-the one specified in the \varname{<server>} section. The following relative
+the one specified in the ``<server>`` section. The following relative
 requests in the session will also use this new server value (until a
 new absolute URL is set).
 
@@ -141,11 +141,11 @@ request from an external file:
 
 .. code-block:: xml
 
- <http url='mypage' method='POST' contents_from_file='/tmp/myfile' />
+ <http url="mypage" method="POST" contents_from_file="/tmp/myfile" />
 
 
 Since **1.3.1**, you can also manually set a cookie, though the
-cookie is not persistent: you must add it in every \varname{<requests>}:
+cookie is not persistent: you must add it in every ``<requests>``:
 
 .. code-block:: xml
 
@@ -223,8 +223,9 @@ To use OAuth authentication:
 Jabber/XMPP
 ^^^^^^^^^^^
 
-\label{sec:sessions:jabber}
-\par Here is an example of a session definition for the Jabber/XMPP protocol:
+.. index:: jabber
+
+Here is an example of a session definition for the Jabber/XMPP protocol:
 
 .. code-block:: xml
 
@@ -271,13 +272,13 @@ What you can do with rosters using Tsung:
 You can
 
 #. Add a new contact to their roster
-   - The new contact is added to the \userinput{Tsung Group} group, and their name matches their JID
+   - The new contact is added to the ``Tsung Group`` group, and their name matches their JID
 
-#. Send a \userinput{subscribe} presence notification to the new contact's JID
-   - This results in a \emph{pending} subscription
+#. Send a ``subscribe`` presence notification to the new contact's JID
+   - This results in a *pending* subscription
 
 #. Rename a roster contact
-   This changes the previously added contact's name from the default JID, to \userinput{Tsung Testuser}
+   This changes the previously added contact's name from the default JID, to ``Tsung Testuser``
 
 #. Delete the previously added contact.
 
@@ -332,7 +333,7 @@ Example roster modification setup:
   </session>
 
 
-See also \ref{bidi:presence} for automatic handling of  subscribing requests.
+See also :ref:`bidi-presence-label` for automatic handling of subscribing requests.
 
 .. index:: sasl plain
 
@@ -397,8 +398,8 @@ Presence
 """"""""
 
 
-* **type** can be either \userinput{presence:broadcast} or \userinput{presence:directed}.
-* **show** value must be either \userinput{away}, \userinput{chat}, \userinput{dnd}, or \userinput{xa}.
+* **type** can be either ``presence:broadcast`` or ``presence:directed``.
+* **show** value must be either ``away``, ``chat``, ``dnd``, or ``xa``.
 * **status** value can be any text.
 
 
@@ -438,7 +439,7 @@ Example of broadcast presence (broadcast to members of your roster):
     <thinktime value="5"></thinktime>
 
 
-Example of directed presence (sent to random \userinput{online} users):
+Example of directed presence (sent to random ``online`` users):
 
 .. code-block:: xml
 
@@ -475,10 +476,10 @@ MUC
 
 Tsung supports three MUC operations:
 
-* Join a room (attribute \userinput{type='muc:join'})
-* Send a message to a room (attribute \userinput{type='muc:chat'})
-* Change nickname (attribute \userinput{type='muc:nick'})
-* Exit a room (attribute \userinput{type='muc:exit})
+* Join a room (attribute ``type='muc:join'``)
+* Send a message to a room (attribute ``type='muc:chat'``)
+* Change nickname (attribute ``type='muc:nick'``)
+* Exit a room (attribute ``type='muc:exit'``)
 
 
 Here's an example:
@@ -517,7 +518,7 @@ Here's an example:
  </request>
 
 
-MUC support is available since version 1.3.1
+MUC support is available since version **1.3.1**.
 
 PubSub
 """"""
@@ -550,8 +551,11 @@ The vhost list is read from a file:
 When each client starts a session, it chooses randomly a domain (each domain has the
 same probability).
 
-\paragraph{Reading usernames and password from a CSV file}
-\label{sec:read-user-jabber-csv}
+Reading usernames and password from a CSV file
+""""""""""""""""""""""""""""""""""""""""""""""
+
+.. _sec-read-user-jabber-csv-label:
+
 Since version 1.4.0, you can now use a CSV file to store the usernames
 and password.
 
@@ -564,9 +568,9 @@ Configure the CSV file:
  </options>
 
 
-And then you have to defined two variables of type \userinput{file},
-and the first jabber request (\userinput{connect}) must include a
-\varname{xmpp\_authenticate} tag:
+And then you have to defined two variables of type ``file``,
+and the first jabber request (``connect``) must include a
+``xmpp_authenticate`` tag:
 
 .. code-block:: xml
 
@@ -601,7 +605,7 @@ and the first jabber request (\userinput{connect}) must include a
 
 Moreover (since **1.5.0**), when using chat messages to random or offline users, you
 should disable the default users (not from CSV) by setting
-\varname{userid\_max} to \userinput{0} and by setting the fileid for
+``userid_max`` to ``0`` and by setting the fileid for
 offline and random users (also used for pubsub):
 
 .. code-block:: xml
@@ -615,33 +619,33 @@ offline and random users (also used for pubsub):
 
 
 The username (resp. passwd) should be the first (resp. second) entry in the each CSV line (the
-delimiter is by default \userinput{";"} and can be overriden).
+delimiter is by default ``";"`` and can be overriden).
 
 raw XML
 """""""
 
-You can send raw XML data to the server using the \varname{raw} type:
+You can send raw XML data to the server using the ``raw`` type:
 
 .. code-block:: xml
 
  <jabber type="raw" ack="no_ack" data="&lt;stream&gt;foo&lt;/stream&gt;"></jabber>
 
 
-Beware: you must encode XML characters like \userinput{<}
-,\userinput{>}, \userinput{\&}, etc.
+Beware: you must encode XML characters like ``<`` , ``>``, ``&``, etc.
 
-\paragraph{resource}
+resource
+""""""""
 
-By default, the XMPP resource is set to \userinput{tsung}. Since
-version 1.5.0, you can override this (in all \varname{auth\_*} and
-\varname{register} requests) using the \varname{resource} attribute.
+By default, the XMPP resource is set to ``tsung``. Since
+version 1.5.0, you can override this (in all ``auth_*`` and
+``register`` requests) using the ``resource`` attribute.
 
 PostgreSQL
 ^^^^^^^^^^
 
 For PostgreSQL, 4 types of requests are available:
 
-* connect (to a given database with a given username
+* connect (to a given database with a given username)
 * authenticate (with password or not)
 * sql (basic protocol)
 * close
@@ -735,7 +739,7 @@ MySQL
 
 For MySQL, 4 types of requests are available (same as PostgreSQL):
 
-* connect (to a given database with a given username
+* connect (to a given database with a given username)
 * authenticate (with password or not)
 * sql
 * close
@@ -766,7 +770,8 @@ This example shows most of the features of a MySQL session:
 
 Websocket
 ^^^^^^^^^
-\label{sec:session:websocket}
+.. _sec-session-websocket-label:
+
 For Websocket, 3 types of requests are available:
 
 * connect (to a given path)
@@ -794,9 +799,11 @@ Example with Websocket as a session type:
 LDAP
 ^^^^
 
-\label{sec:session:ldap}
+.. _sec-session-ldap-label:
 
-\paragraph{Authentication}
+Authentication
+""""""""""""""
+
 The recommended mechanism used to authenticate users against a LDAP
 repository requires two steps to follow. Given an username and
 password, we:
@@ -808,18 +815,16 @@ If the bind is successful, the user is authenticated (this is the
 scheme used, among others, by the LDAP authentication module for
 Apache http://httpd.apache.org/docs/2.0/mod/mod_auth_ldap.html)
 
-\paragraph{LDAP Setup}
+LDAP Setup
+""""""""""
+
 For this example we are going to use a simple repository with the following hierarchy:
 
-\begin{figure}[htb]
-  \begin{center}
-    \includegraphics[width=0.4\linewidth]{ldap-hierarchy}
-    \end{center}
-      \caption{LDAP Hierarchy}
-    \label{fig:ldap:hierarchy}
-\end{figure}
+.. figure:: ../doc/images/ldap-hierarchy.png
 
-the repository has users in two organizational units
+  LDAP hierarchy
+
+The repository has users in two organizational units
 
 #. users (with four members)
 #. users2 (with tree members)
@@ -828,21 +833,19 @@ the repository has users in two organizational units
 For simplicity we set the password of each user to be  the same as its common name (cn).
 Tsung Setup
 We will use a CSV file as input, containing the user:password pairs
-for our test. So we start by writing it, in this case we name the file \file{users.csv}
+for our test. So we start by writing it, in this case we name the file ``users.csv``::
 
-\begin{Verbatim}
-user1;user1
-user2;user2
-user3;user3
-user4;user4
-jane;jane
-mary;mary
-paul;pablo
-paul;paul
-\end{Verbatim}
+  user1;user1
+  user2;user2
+  user3;user3
+  user4;user4
+  jane;jane
+  mary;mary
+  paul;pablo
+  paul;paul
 
-(the pair paul:pablo should fail to authenticate, we will note that in the Tsung report)
-Then, in our Tsung scenario, we let Tsung know about this file
+The pair ``paul:pablo`` should fail to authenticate, we will note that in the Tsung report.
+Then, in our Tsung scenario, we let Tsung know about this file:
 
 .. code-block:: xml
 
@@ -864,7 +867,7 @@ To start the authentication process we instruct Tsung to perform a search, to fi
         result_var="search_result" scope="wholeSubtree"></ldap>
 
 
-As we need to access the search result, we specify it using the \varname{result\_var} attribute. This attribute tells Tsung in which dynamic variable we want to store the result (if the \varname{result\_var} attribute isn't set, Tsung doesn't store the search result in any place).
+As we need to access the search result, we specify it using the ``result_var`` attribute. This attribute tells Tsung in which dynamic variable we want to store the result (if the ``result_var`` attribute isn't set, Tsung doesn't store the search result in any place).
 Finally,  we try to bind as that user.
 
 .. code-block:: xml
@@ -875,7 +878,7 @@ Finally,  we try to bind as that user.
  </request>
 
 
-The only thing that remains to do is to implement the \varname{ldap\_auth:user\_dn} function, that extract the distinguished name from the search result.
+The only thing that remains to do is to implement the ``ldap_auth:user_dn`` function, that extract the distinguished name from the search result.
 
 .. code-block:: erlang
 
@@ -887,23 +890,20 @@ The only thing that remains to do is to implement the \varname{ldap\_auth:user\_
       DN.
 
 
-We aren't covering errors here. supposing that there is always one (and only one) user found, that we extract from the \varname{search\_result} variable (as defined in the previous search operation).
-Each entry in the result set is a SearchResultEntry record. The record definition can be found in \file{<TSUNG_DIR>/include/ELDAPv3.hrl}.
+We aren't covering errors here. supposing that there is always one (and only one) user found, that we extract from the ``search_result`` variable (as defined in the previous search operation).
+Each entry in the result set is a SearchResultEntry record. The record definition can be found in ``<TSUNG_DIR>/include/ELDAPv3.hrl``.
 
 As we only need to access the distinguished name of the object, we index into the result tuple directly. But if you need to access other attributes you probably will want to include the appropriate .hrl and use the record syntax instead. One of the eight user:password pairs in our users file was wrong, so we expect 1/8 of the authentication attempts to fail.
 
 Indeed, after running the scenario we can confirm this in the Tsung
-report (see figure \ref{fig:ldap:results}). The bind operation maintains two
-counters: \varname{ldap\_bind\_ok} and \varname{ldap\_bind\_error},
+report (see figure :ref:`fig-ldap-results-label`). The bind operation maintains two
+counters: ``ldap_bind_ok`` and ``ldap_bind_error``,
 that counts successful and unsuccessful bind attempts.
 
-\begin{figure}[htb]
-  \begin{center}
-    \includegraphics[width=0.4\linewidth]{ldap-results}
-    \end{center}
-      \caption{LDAP Results}
-    \label{fig:ldap:results}
-\end{figure}
+.. _fig-ldap-results-label:
+.. figure:: ../doc/images/ldap-results.png
+
+  LDAP Results
 
 Other examples
 """"""""""""""
@@ -975,15 +975,15 @@ used in a session to change it's type.
  destination="previous"/> </request>
 
 
-\userinput{store='true'} can be used to save the current state of the session (socket,
-cookies for http, \ldots{}) and \userinput{restore='true'} to reuse the previous state when
+``store="true"`` can be used to save the current state of the session (socket,
+cookies for http, …) and ``restore="true"`` to reuse the previous state when
 you switch back to the old protocol.
 
-You can use \userinput{bidi='true'} to indicate that the new protocol is bidirectional or
-\userinput{bidi='false'} for a non-bidirectional protocol (only available in version
-**1.5.1** and newer)).
+You can use ``bidi="true"`` to indicate that the new protocol is bidirectional or
+``bidi="false"`` for a non-bidirectional protocol (only available in version
+**1.5.1** and newer).
 
 A dynamic variable set in the first part of the session will be
-available after a **change_type**. There is currently one caveat: you have
+available after a **<change_type>**. There is currently one caveat: you have
 to use a full URL in the first http request after a **<change_type>** (a
 relative URL will fail).

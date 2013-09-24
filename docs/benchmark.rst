@@ -140,7 +140,12 @@ finished. There are 3 possibilities:
   \varname{global\_number} users
 
 
-\label{bidi:presence}
+.. _bidi-presence-label:
+
+Bidirectional Presence
+^^^^^^^^^^^^^^^^^^^^^^
+
+
 **New in 1.2.2**: This version adds an new option for a
 session. if you set the attribute \varname{bidi} (for bidirectional)
 in the \varname{session} tag: \userinput{<session ... bidi='true'>},
