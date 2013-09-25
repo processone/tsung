@@ -245,12 +245,12 @@ the format is, for **request**, **page**,
 How can I compute percentile/quartiles/median for transactions or requests response time ?
 ==========================================================================================
 
-It's not directly possible. But since \strong{version 1.3.0}, you can
-use a new experimental statistic backend: set \userinput{backend="fullstats"} in the
-\userinput{<tsung>} section of your configuration file.
+It's not directly possible. But since **version 1.3.0**, you can
+use a new experimental statistic backend: set ``backend="fullstats"`` in the
+``<tsung>`` section of your configuration file.
 
 This will print every statistics data in a raw format in a file named
-\file{tsung-fullstats.log}. \strong{Warning}: this may impact the performance of
+:file:`tsung-fullstats.log`. **Warning**: this may impact the performance of
 the controller node (a lot of data has to be written to disk).
 
 The data looks like::
@@ -288,17 +288,19 @@ a function of the arrival rate and the mean session duration.
 For example, if your web site has $1000$ visits/hour, the arrival rate
 is $1000/3600 = 0.2778$ visits/second. If you want to simulate the same
 load, set the inter-arrival time is to $1/0.27778 = 3.6 sec$ (\texttt{<users
-interarrival="3.6" unit="second">} in the \varname{arrivalphase} node in the
+interarrival="3.6" unit="second">} in the ``arrivalphase`` node in the
 XML config file).
+
+.. _sec-faq-snmp:
 
 SNMP monitoring doesn't work ?!
 ===============================
 
-\label{sec:faq:snmp}
-It use SNMP v1 and the 'public' community. It has been tested with
-\url{http://net-snmp.sourceforge.net/}.
 
-You can try with \command{snmpwalk} to see if your snmpd config is ok::
+It use SNMP v1 and the 'public' community. It has been tested with
+http://net-snmp.sourceforge.net/.
+
+You can try with :command:`snmpwalk` to see if your snmpd config is ok::
 
  >snmpwalk -v 1 -c public IP-OF-YOUR-SERVER .1.3.6.1.4.1.2021.4.5.0
  UCD-SNMP-MIB::memTotalReal.0 = INTEGER: 1033436
@@ -328,10 +330,10 @@ work on earlier version::
 How can i simulate a fix number of users ?
 ==========================================
 
-Use \varname{maxnumber} to set the max number of concurrent users in a
+Use ``maxnumber`` to set the max number of concurrent users in a
 phase, and if you want Tsung to behave like ab, you can use a loop
 in a session (to send requests as fast as possible); you can also define a
-max  \varname{duration} in \varname{<load>}.
+max ``duration`` in ``<load>``.
 
 
 .. code-block:: xml
