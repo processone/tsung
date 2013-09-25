@@ -4,8 +4,6 @@
 Setting options
 ===============
 
-
-
 .. index:: thinktime
 .. index:: ssl_ciphers
 .. index:: tcp_snd_buffer
@@ -13,11 +11,10 @@ Setting options
 .. index:: udp_snd_buffer
 .. index:: udp_rcv_buffer
 
-
 Thinktimes, SSL, Buffers
 ------------------------
 
-Default values can be set-up globally: **thinktime** between requests
+Default values can be set-up globally: ``thinktime`` between requests
 in the scenario, SSL cipher algorithms, TCP/UDP buffer sizes (the
 default value is 32KB). These values overrides those set in session
 configuration tags if override is true.
@@ -41,7 +38,7 @@ Timeout for acknowledgments of messages
 
 This is used to set the idle timeout(used for 'parse' and 'local' ack) and
 global ack timeout(used for 'global' ack). By default, idle timeout will be
-10min(600000) and global ack timeout will be \userinput{infinity}. This value
+10min(600000) and global ack timeout will be ``infinity``. This value
 can be changed like this:
 
 .. code-block:: xml
@@ -57,7 +54,7 @@ Hibernate
 
 .. versionadded:: 1.3.1
 
-The option **hibernate** is used to reduced memory consumption of
+The option ``hibernate`` is used to reduced memory consumption of
 simulated users during thinktimes. By default, hibernation will be
 activated for thinktimes higher than 10sec. This value can be changed
 like this:
@@ -67,7 +64,7 @@ like this:
   <option name="hibernate" value="5"></option>
 
 
-To disable hibernation, you must set the value to **infinity**.
+To disable hibernation, you must set the value to ``infinity``.
 
 .. index:: rate_limit
 
@@ -76,10 +73,10 @@ Rate_limit
 
 .. versionadded:: 1.4.0
 
-**rate_limit**. This will limit the bandwidth of each client
+``rate_limit``. This will limit the bandwidth of each client
 (using a token bucket algorithm). The value is in KBytes per
 second. You can also specify a maximum burst value
-(eg. \userinput{max='2048'}). By default the burst size is the same as
+(eg. ``max='2048'``). By default the burst size is the same as
 the rate (1024KB in the following example). Currently, only incoming
 traffic is rate limited.
 
@@ -109,7 +106,7 @@ Setting the  seed for random numbers
 ------------------------------------
 
 If you want to use a fixed seed for the random generator, you can use
-the **seed** option, like this (by default, tsung will use the
+the ``seed`` option, like this (by default, tsung will use the
 current time to set the seed, therefore random numbers should be
 different for every test).
 
@@ -147,29 +144,29 @@ example of option values for Jabber/XMPP:
   <option type="ts_jabber" name="muc_service" value="conference.localhost"/>
 
 
-Using these values, users will be **myuserXXX** where XXX is an integer in
-the interval [1:userid\_max] and passwd  **mypasswdXXX**
+Using these values, users will be ``myuserXXX`` where *XXX* is an integer in
+the interval *[1:userid_max]* and passwd ``mypasswdXXX``
 
 If not set in the configuration file, the values will be set to:
 
-* global\_number = 100
-* userid\_max    = 10000
+* global_number = 100
+* userid_max    = 10000
 * domain   = erlang-projects.org
 * username = tsunguser
 * passwd   = sesame
 
 
 Other options are available if you prefer to use a CSV file for
-username/password, see ~\ref{sec:read-user-jabber-csv}.
+username/password, see :ref:`sec-read-user-jabber-csv-label`.
 
 
-You can also set the **muc_service** here (see previous example).
+You can also set the ``muc_service`` here (see previous example).
 
 
 HTTP options
 ------------
 
-For HTTP, you can set the **UserAgent** values
+For HTTP, you can set the ``UserAgent`` values
 (**available since Tsung 1.1.0**), using a probability for each
 value (the sum of all probabilities must be equal to 100)
 
