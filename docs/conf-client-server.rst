@@ -42,14 +42,14 @@ a float):
  </servers>
 
 
-(in version older than **1.5.0**, the **weight** option was
+(in version older than **1.5.0**, the ``weight`` option was
 not implemented and a round robin algorithm was used to choose the
 server).
 
-*Type* can be **tcp**, **ssl**,
-**udp** (for IPv6, use **tcp6**, **ssl6** or
-**udp6** ; only available in  version **1.4.2** and newer)
-or **websocket** (only available in version **1.5.0** and newer))
+*Type* can be ``tcp``, ``ssl``,
+``udp`` (for IPv6, use ``tcp6``, ``ssl6`` or
+``udp6`` ; only available in  version **1.4.2** and newer)
+or ``websocket`` (only available in version **1.5.0** and newer))
 
 Advanced setup
 --------------
@@ -80,8 +80,8 @@ IP is no longer mandatory. If not specified, the default IP will be
 used.
 
 
-**New in 1.4.0:** You can use \userinput{<ip scan="yes" value="eth0"/>} to scan for all the IP aliases on a given interface
-(\userinput{eth0} in this example).
+**New in 1.4.0:** You can use ``<ip scan="yes" value="eth0"/>`` to scan for all the IP aliases on a given interface
+(``eth0`` in this example).
 
 In this example, a second machine is used in the Tsung cluster,
 with a higher weight, and 2 cpus. Two Erlang virtual machines will be
@@ -92,9 +92,9 @@ used to take advantage of the number of CPU.
    Even if an Erlang VM is now able to handle several CPUs
    (erlang SMP), benchmarks shows that it's more efficient to use one VM
    per CPU (with SMP disabled) for tsung clients. Only the controller node is using SMP
-   erlang. Therefore, \varname{cpu} should be equal to the number of cores of
-   your nodes. If you prefer to use erlang SMP, add the \userinput{-s}
-   option when starting tsung (and don't set \varname{cpu} in the config
+   erlang. Therefore, ``cpu`` should be equal to the number of cores of
+   your nodes. If you prefer to use erlang SMP, add the ``-s``
+   option when starting tsung (and don't set ``cpu`` in the config
    file).
 
 
@@ -114,16 +114,15 @@ equal to 1.5 for each CPU.
 maxusers
 ^^^^^^^^
 
-The **maxusers** parameter is used to bypass the limit of
-maximum number of sockets opened by a single process (1024 by
-default on many OS)
-and the lack of scalability of the \varname{select} system call. When
+The ``maxusers`` parameter is used to bypass the limit of maximum
+number of sockets opened by a single process (1024 by default on many
+OS) and the lack of scalability of the ``select`` system call. When
 the number of users is higher than the limit, a new erlang virtual
 machine will be started to handle new users. The default value of
-\varname{maxusers} is 800 . Nowadays, with kernel polling enable, you
-can and should use a very large value for \varname{maxusers} (30000 for example) without
-performance penalty (but don't forget to raise the limit of the OS with
-\command{ulimit -n}, see also :ref:`faq-emfile`).
+``maxusers`` is 800. Nowadays, with kernel polling enable, you can and
+should use a very large value for ``maxusers`` (30000 for example)
+without performance penalty (but don't forget to raise the limit of
+the OS with :command:`ulimit -n`, see also :ref:`faq-emfile`).
 
 .. note:: 
 
@@ -139,7 +138,7 @@ Running Tsung with a job scheduler
 
 Tsung is able to get its client node list from a batch/job
 :index:`scheduler`. It currently handle PBS/torque, LSF and OAR. To do this,
-set the **type** attribute to **batch**, e.g.:
+set the ``type`` attribute to ``batch``, e.g.:
 
 .. code-block:: xml
 
