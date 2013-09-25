@@ -9,10 +9,10 @@ Tsung main features
 * *High Performance*: ``Tsung`` can simulate a huge number of
   simultaneous users per physical computer: It can simulates thousands
   of users on a single CPU (Note: a simulated user is not always
-  active: it can be idle during a \varname{thinktime}
+  active: it can be idle during a ``thinktime``
   period). Traditional injection tools can hardly go further than a 
   few hundreds (Hint: if all you want to do is requesting a single URL
-  in a loop, use \program{ab}; but if you want to build complex
+  in a loop, use :program:`ab`; but if you want to build complex
   scenarios with extended reports, ``Tsung`` is for you).
 
 * *Distributed*: the load can be distributed on a cluster of client machines
@@ -100,9 +100,9 @@ Jabber/XMPP related features
 
 * Roster set and get requests
 
-* Global users\verb|'| synchronization can be set on specific actions
+* Global users' synchronization can be set on specific actions
 
-* BOSH \& XMPP over Websocket
+* BOSH & XMPP over Websocket
 
 * raw XML messages
 
