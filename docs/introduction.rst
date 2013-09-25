@@ -58,7 +58,7 @@ History:
   industrial projects.  It is now hosted by Erlang-projects, and
   supported by http://process-one.net/}. The list of contributors
   is available in the source archive
-  (\url{https://git.process-one.net/tsung/mainline/blobs/master/CONTRIBUTORS}).
+  (https://git.process-one.net/tsung/mainline/blobs/master/CONTRIBUTORS).
 
 * It is an industrial strength implementation of a *stochastic model*
   for real users simulation. User events distribution is based on a Poisson Process. More information on this topic in:
