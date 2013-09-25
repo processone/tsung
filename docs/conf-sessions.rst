@@ -553,10 +553,10 @@ The vhost list is read from a file:
 When each client starts a session, it chooses randomly a domain (each domain has the
 same probability).
 
+.. _sec-read-user-jabber-csv-label:
+
 Reading usernames and password from a CSV file
 """"""""""""""""""""""""""""""""""""""""""""""
-
-.. _sec-read-user-jabber-csv-label:
 
 Since version 1.4.0, you can now use a CSV file to store the usernames
 and password.
