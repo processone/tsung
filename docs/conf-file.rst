@@ -20,10 +20,13 @@ Scenarios are enclosed into **tsung** tags:
 .. index:: dumptraffic
 
 If you add the attribute **dumptraffic="true"**, all the
-traffic will be logged to a file. \emph{Warn:} this will considerably
-slow down Tsung, so use with care. It is useful for debugging
-purpose. You can use the attribute **dumptraffic="light"** to
-dump only the first 44 bytes.
+traffic will be logged to a file. 
+
+.. warning::
+
+   this will considerably slow down Tsung, so use with care. It is
+   useful for debugging purpose. You can use the attribute
+   **dumptraffic="light"** to dump only the first 44 bytes.
 
 Since version **1.4.0**, you have also a specific logging per
 protocol, using **dumptraffic="protocol"**. It's currently
