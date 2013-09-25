@@ -122,7 +122,7 @@ machine will be started to handle new users. The default value of
 ``maxusers`` is 800. Nowadays, with kernel polling enable, you can and
 should use a very large value for ``maxusers`` (30000 for example)
 without performance penalty (but don't forget to raise the limit of
-the OS with :command:`ulimit -n`, see also :ref:`faq-emfile`).
+the OS with :command:`ulimit -n`, see also :ref:`faq-emfile-label`).
 
 .. note:: 
 

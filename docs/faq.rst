@@ -32,17 +32,16 @@ You should see this::
 
   {ok,bar@remotehost}
 
-If you got *{error,timeout}*, it can be caused by
-several problems:
+If you got ``{error,timeout}``, it can be caused by several problems:
 
 * ssh in not working (you must have a key without passphrase, or
   use an agent)
 * Tsung and Erlang are not installed on all clients nodes
 * Erlang version or location (install path) is not the same on all clients nodes
-* A firewall is dropping erlang packets: indeed erlang virtual machines use
+* A firewall is dropping Erlang packets: Erlang virtual machines use
   several TCP ports (dynamically generated) to communicate (if you are
   using EC2, you may have to change the Security Group that is applied on the VMs used
-  for Tsung: open port-range “0 – 65535”)
+  for Tsung: open port range 0 - 65535)
 * SELinux: You should disable SELinux on all clients.
 * Bad :file:`/etc/hosts`:
   This one is wrong (real hostname should not refer to localhost/loopback)::
@@ -56,40 +55,40 @@ several problems:
 
 * sshd configuration:
   For example, for SuSE 9.2 sshd is compiled with restricted set of
-  paths (\ie{} when you shell into the account you get the users shell,
+  paths (ie. when you shell into the account you get the users shell,
   when you execute a command via ssh you don't) and this makes it
-  impossible to start an erlang node (if erlang is installed in
-  \file{/usr/local} for example).
+  impossible to start an Erlang node (if Erlang is installed in
+  :file:`/usr/local` for example).
 
   Run::
 
     ssh myhostname erl
 
-  If the erlang shell doesn't start then check what paths sshd was compiled with
-  (in SuSE see \file{/etc/ssh/sshd_config}) and symlink from one of the approved paths
-  to the erlang executable (thanks to Gordon Guthrie for reporting this).
-* old beam processes (erlang virtual machines) running on client nodes: kill all
-  beam processes before starting tsung.
+  If the Erlang shell doesn't start then check what paths sshd was compiled with
+  (in SuSE see :file:`/etc/ssh/sshd_config`) and symlink from one of the approved paths
+  to the Erlang executable (thanks to Gordon Guthrie for reporting this).
+* old beam processes (Erlang virtual machines) running on client nodes: kill all
+  beam processes before starting Tsung.
 
 
 
-Note that you do not need to use the 127.0.0.1 address in the configuration file.
+Note that you do not need to use the ``127.0.0.1`` address in the configuration file.
 It will not work if you use it as the injection interface. The shortname
 of your client machine should not refer to this address.
 
-\emph{Warn:}Tsung launches a new erlang virtual machine to do the actual injection
+**Warning** Tsung launches a new Erlang virtual machine to do the actual injection
 even when you have only one machine in the injection cluster (unless
-\varname{'use\_controller\_vm'} is set to true). This is because it
+``use_controller_vm`` is set to true). This is because it
 needs to by-pass some limit with the number of open socket from a
 single process (1024 most of the time). The idea is to have several
 system processes (Erl beam) that can handle only a small part of the
 network connection from the given computer. When the
-\varname{maxusers} limit (simultaneous) is reach, a new Erlang beam
+``maxusers`` limit (simultaneous) is reach, a new Erlang beam
 is launched and the newest connection can be handled by the new beam).
 
 **New in 1.1.0**: If you don't use the distributed feature of
 Tsung and have trouble to start a remote beam on a local machine,
-you can set the \varname{'use\_controller\_vm'} attribute to true, for ex.::
+you can set the ``use_controller_vm`` attribute to true::
 
   <client host="mymachine" use_controller_vm="true">
 
@@ -97,7 +96,7 @@ you can set the \varname{'use\_controller\_vm'} attribute to true, for ex.::
 Tsung crashes when I start it
 =============================
 
-Does your Erlang system has ssl support enabled ?
+Does your Erlang system has SSL support enabled ?
 
 to test it::
 
@@ -107,42 +106,41 @@ to test it::
   you should see 'ok'
 
 
-.. _faq-emfile:
+.. _faq-emfile-label:
 
-Why do i have error_connect_emfile errors ?
-===========================================
-
+Why do i have error_connect_emfile errors?
+==========================================
 
 :index:`emfile` error means : **too many open files**
 
 This happens usually when you set a high value for :ref:`maxusers-label`
-(in the **<client>** section) (the default value is 800).
+(in the ``<client>`` section) (the default value is 800).
 
 The errors means that you are running out of file descriptors; you
 must check that :ref:`maxusers-label` is less than the maximum number of
-file descriptors per process in your system (see :command:`ulimit -n`)
+file descriptors per process in your system (see :command:`ulimit -n`).
 
-You can either raise the limit of your operating system ( see
-:file:`/etc/security/limits.conf` for Linux ) or decrease :ref:`maxusers-label`
-(Tsung will have to start several virtual machine on the same host to
-bypass the maxusers limit).
+You can either raise the limit of your operating system (see
+:file:`/etc/security/limits.conf` for Linux) or decrease :ref:`maxusers-label`
+Tsung will have to start several virtual machine on the same host to
+bypass the maxusers limit.
 
 It could be good if you want to test a large number of users to make some
-modifications to your system before launching tsung :
+modifications to your system before launching Tsung:
 
 * Put the domain name into :file:`/etc/hosts` if you don't want the DNS
   overhead and you only want to test the target server
-* Increase the maximum number of open files and customize tcp settings in
+* Increase the maximum number of open files and customize TCP settings in
   :file:`/etc/sysctl.conf`. For example::
 
-	  net.ipv4.tcp_tw_reuse = 1
-	  net.ipv4.tcp_tw_recycle = 1
-	  net.ipv4.ip_local_port_range = 1024 65000
-	  fs.file-max = 65000
+    net.ipv4.tcp_tw_reuse = 1
+    net.ipv4.tcp_tw_recycle = 1
+    net.ipv4.ip_local_port_range = 1024 65000
+    fs.file-max = 65000
 
 
-Tsung still crashes/fails  when I start it !
-============================================
+Tsung still crashes/fails when I start it!
+==========================================
 
 First look at the log file
 :file:`~/.tsung/log/XXX/tsung_controller@yourhostname` to see if there
@@ -150,20 +148,21 @@ is a problem.
 
 If the file is not created and a crashed dump file is present, maybe
 you are using a binary installation of Tsung not compatible with the
-version of erlang you used.
+version of Erlang you used.
 
-If you see nothing wrong, you can compile \program{Tsung} with full
-debugging: recompile with \command{make debug} , and
-don't forget to set the loglevel to "debug" in the XML file.
+If you see nothing wrong, you can compile Tsung with full
+debugging: recompile with :command:`make debug`, and
+don't forget to set the loglevel to ``debug`` in the XML file
+(see :ref:`tsung.xml log levels <sec-file-structure-label>`).
 
-To start the debugger or see what happen, start \program{tsung} with the
-\userinput{debug} argument instead of \userinput{start}. You will have
-an erlang shell on the \varname{tsung\_controller} node. Use
-:command:`toolbar:start()`. to launch the graphical tools provided by
+To start the debugger or see what happen, start Tsung with the
+``debug`` argument instead of ``start``. You will have
+an Erlang shell on the ``tsung_controller`` node. Use
+:command:`toolbar:start().` to launch the graphical tools provided by
 Erlang.
 
-Can I dynamically follow redirect with HTTP ?
-=============================================
+Can I dynamically follow redirect with HTTP?
+============================================
 
 If your HTTP server sends 30X responses (:index:`redirect`) with dynamic URLs,
 you can handle this situation using a dynamic variable:
@@ -201,8 +200,8 @@ successively using a repeat loop (this works only with version 1.3.0 and up):
 
 .. _what-format-stats:
 
-What is the format of the stats file tsung.log ?
-================================================
+What is the format of the stats file tsung.log?
+===============================================
 
 
 Sample tsung.log::
@@ -232,22 +231,20 @@ Sample tsung.log::
   ...
 
 
-the format is, for **request**, **page**,
- **session** and transactions **tr_XXX**:
+the format is, for ``request``, ``page``, ``session`` and transactions ``tr_XXX``::
 
- \texttt{ \# stats:'name' 10sec\_count, 10sec\_mean, 10sec\_stddev,
-   max, min, mean, count}
+  stats: name, 10sec_count, 10sec_mean, 10sec_stddev, max, min, mean, count
 
- or for HTTP returns code, size ...
+or for HTTP returns codes, ``size_sent`` and ``size_rcv``::
 
-\texttt{ \# stats:'name' count(during the last 10sec), totalcount(since the beginning)}
+  stats: name, count(during the last 10sec), totalcount(since the beginning)
 
-How can I compute percentile/quartiles/median for transactions or requests response time ?
-==========================================================================================
+How can I compute percentile/quartiles/median for transactions or requests response time?
+=========================================================================================
 
 It's not directly possible. But since **version 1.3.0**, you can
 use a new experimental statistic backend: set ``backend="fullstats"`` in the
-``<tsung>`` section of your configuration file.
+``<tsung>`` section of your configuration file (also see :ref:`sec-file-structure-label`).
 
 This will print every statistics data in a raw format in a file named
 :file:`tsung-fullstats.log`. **Warning**: this may impact the performance of
@@ -276,28 +273,28 @@ The data looks like::
 Since version **1.5.0**, a script :command:`tsung_percentile.pl` is
 provided to compute the percentiles from this file.
 
-How can I specify the number of concurrent users ?
-==================================================
+How can I specify the number of concurrent users?
+=================================================
 
 You can't. But it's on purpose: the load generated by
 Tsung is dependent on the arrival time between new
 clients. Indeed, once a client has finished his session in
-tsung, it stops. So the number of concurrent users is
+Tsung, it stops. So the number of concurrent users is
 a function of the arrival rate and the mean session duration.
 
-For example, if your web site has $1000$ visits/hour, the arrival rate
-is $1000/3600 = 0.2778$ visits/second. If you want to simulate the same
-load, set the inter-arrival time is to $1/0.27778 = 3.6 sec$ (\texttt{<users
-interarrival="3.6" unit="second">} in the ``arrivalphase`` node in the
+For example, if your web site has 1,000 visits/hour, the arrival rate
+is ``1000/3600 = 0.2778`` visits/second. If you want to simulate the same
+load, set the inter-arrival time is to ``1/0.27778 = 3.6 sec`` (e.g. ``<users
+interarrival="3.6" unit="second">`` in the ``arrivalphase`` node in the
 XML config file).
 
 .. _sec-faq-snmp-label:
 
-SNMP monitoring doesn't work ?!
-===============================
+SNMP monitoring doesn't work?!
+==============================
 
 
-It use SNMP v1 and the 'public' community. It has been tested with
+It use SNMP v1 and the "public" community. It has been tested with
 http://net-snmp.sourceforge.net/.
 
 You can try with :command:`snmpwalk` to see if your snmpd config is ok::
@@ -305,11 +302,10 @@ You can try with :command:`snmpwalk` to see if your snmpd config is ok::
  >snmpwalk -v 1 -c public IP-OF-YOUR-SERVER .1.3.6.1.4.1.2021.4.5.0
  UCD-SNMP-MIB::memTotalReal.0 = INTEGER: 1033436
 
+SNMP doesn't work with Erlang R10B and Tsung older than 1.2.0.
 
-SNMP doesn't work with erlang R10B and Tsung older than 1.2.0.
-
-There is a small bug in the \file{snmp_mgr} module in old Erlang
-release (R9C-0). This is fixed in erlang R9C-1 and up, but you can apply this patch to make it
+There is a small bug in the ``snmp_mgr`` module in old Erlang
+release (R9C-0). This is fixed in Erlang R9C-1 and up, but you can apply this patch to make it
 work on earlier version::
 
   --- lib/snmp-3.4/src/snmp_mgr.erl.orig  2004-03-22 15:21:59.000000000 +0100
@@ -327,8 +323,8 @@ work on earlier version::
    is_options_ok([]) -> true.
 
 
-How can i simulate a fix number of users ?
-==========================================
+How can i simulate a fix number of users?
+=========================================
 
 Use ``maxnumber`` to set the max number of concurrent users in a
 phase, and if you want Tsung to behave like ab, you can use a loop
