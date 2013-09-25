@@ -2,8 +2,8 @@ Monitoring
 ==========
 
 Tsung is able to monitor remote servers using several backends that
-communicates with remote agent; This is configured in the *<monitoring>* section. Available
-statistics are: CPU activity, load average, memory usage.
+communicates with remote agent. This is configured in the ``<monitoring>`` section. Available
+statistics are: CPU activity, load average and memory usage.
 
 Note that you can get the nodes to monitor from a job scheduler, like:
 
@@ -13,7 +13,8 @@ Note that you can get the nodes to monitor from a job scheduler, like:
 
 
 
-Several types of remote agents are supported (\userinput{erlang} is the default) :
+Several types of remote agents are supported (``erlang`` is the default):
+
 
 Erlang
 ------
@@ -36,16 +37,16 @@ cluster monitoring definition based on Erlang agents, for a cluster of
 
 
 
-.. note:: 
+.. note::
 
  monitored computers needs to be accessible through the network, and
- erlang communications must be allowed (no firewall is better ). SSH
+ erlang communications must be allowed (no firewall is better). SSH
  (or rsh) needs to be configured to allow connection without password
- on. \strong{You must use the same version of Erlang/OTP on all nodes
- otherwise it may not work properly !}
+ on. **You must use the same version of Erlang/OTP on all nodes
+ otherwise it may not work properly!**
 
 If you can't have erlang installed on remote servers, you can use one
-of the other available agents:
+of the other available agents.
 
 
 .. index:: snmp
@@ -53,10 +54,10 @@ of the other available agents:
 SNMP
 ----
 
-The type keyword \userinput{snmp} can replace the erlang keyword, if SNMP monitoring
-is preferred. They can be mixed. Since version 1.2.2, you can customize the SNMP version,
-community and port number. It uses the MIB provided in
-\program{net-snmp} (see also \ref{sec:faq:snmp}).
+The ``type`` keyword ``snmp`` can replace the erlang keyword, if SNMP monitoring
+is preferred. They can be mixed. **Since version 1.2.2**, you can customize the SNMP version,
+community and port number. It uses the Management Information Base (MIB) provided in
+``net-snmp`` (see also :ref:`sec-faq-snmp-label`).
 
 .. code-block:: xml
 
@@ -69,11 +70,11 @@ community and port number. It uses the MIB provided in
   </monitoring>
 
 
-The default version is \userinput{v1}, default community
-\userinput{public} and default port \userinput{161}.
+The default ``version`` is ``v1``, default community
+``public`` and default port ``161``.
 
-Since version **1.4.2**, you can also customize the OIDs
-retrieved from the SNMP server, using one or several \userinput{oid}
+Since version **1.4.2**, you can also customize the object identifiers (OID)
+retrieved from the SNMP server, using one or several ``oid``
 element:
 
 .. code-block:: xml
@@ -86,9 +87,9 @@ element:
  </monitor>
 
 
-\varname{type} can be \userinput{sample}, \userinput{counter} or
-\userinput{sum}, and optionally you can define a function (with erlang
-syntax) to be applied to the value (\varname{eval} attribute).
+``type`` can be ``sample``, ``counter`` or
+``sum``, and optionally you can define a function (with erlang
+syntax) to be applied to the value (``eval`` attribute).
 
 .. index:: munin
 
@@ -98,8 +99,8 @@ Munin
 .. versionadded:: 1.3.1
 
 Tsung is able to retrieve data from a munin-node agent
-(see http://munin.projects.linpro.no/wiki/munin-node). The \varname{type}
-keyword must be set to \userinput{munin}, for example:
+(see http://munin-monitoring.org/wiki/munin-node). The ``type``
+keyword must be set to ``munin``, for example:
 
 .. code-block:: xml
 

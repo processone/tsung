@@ -291,7 +291,7 @@ load, set the inter-arrival time is to $1/0.27778 = 3.6 sec$ (\texttt{<users
 interarrival="3.6" unit="second">} in the ``arrivalphase`` node in the
 XML config file).
 
-.. _sec-faq-snmp:
+.. _sec-faq-snmp-label:
 
 SNMP monitoring doesn't work ?!
 ===============================
