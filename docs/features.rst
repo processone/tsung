@@ -172,7 +172,7 @@ statistics regarding:
 
 * *Performance*: response time, connection time,  decomposition of the
   user scenario based on request grouping  instruction (called
-  \textit{transactions}), requests per second
+  *transactions*), requests per second
 
 * *Errors*: Statistics on page return code to trace errors
 
