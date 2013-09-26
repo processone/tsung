@@ -47,7 +47,7 @@ Here is the Erlang code of the module used for dynamic substitution:
 
 
 Use :command:`erlc` to compiled the code, and put the resulting .beam
-file in :file::`\$PREFIX/lib/erlang/lib/tsung-X.X.X/ebin/` on all client
+file in :file:`\$PREFIX/lib/erlang/lib/tsung-X.X.X/ebin/` on all client
 machines.
 
 As you can see, writing scenario with dynamic substitution is
@@ -93,7 +93,7 @@ attribute to identify each file:
 
 
 Now you can build your own function to use it, for example, create a
-file called :file::`readcsv.erl`:
+file called :file:`readcsv.erl`:
 
 .. code-block:: erlang
 
