@@ -109,7 +109,7 @@ file called :file::`readcsv.erl`:
 The output of the function will be a string ``username=USER&password=PASSWORD``
 
 Then compile it with :command:`erlc readcsv.erl` and put
-:file::`readcsv.beam` in :file::`$prefix/lib/erlang/lib/tsung-VERSION/ebin` directory (if the
+:file:`readcsv.beam` in :file:`$prefix/lib/erlang/lib/tsung-VERSION/ebin` directory (if the
 file has an id set to ``random``, change the call to ``ts_file_server:get_next_line(random)``).
 
 Then use something like this in your session:
