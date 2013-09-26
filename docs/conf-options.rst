@@ -4,6 +4,7 @@
 Setting options
 ===============
 
+.. index:: override
 .. index:: thinktime
 .. index:: ssl_ciphers
 .. index:: tcp_snd_buffer
