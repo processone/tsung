@@ -1,0 +1,15 @@
+These list of package are needed to generate the doc in pdf format
+under Debian Wheezy
+
+ii  texlive                               2012.20120611-5               all          TeX Live: A decent selection of the TeX Live packages
+ii  texlive-base                          2012.20120611-5               all          TeX Live: Essential programs and files
+ii  texlive-binaries                      2012.20120530-2+b1            i386         Binaries for TeX Live
+ii  texlive-common                        2012.20120611-1               all          TeX Live: Base component
+ii  texlive-doc-base                      2012.20120611-1               all          TeX Live: TeX Live documentation
+ii  texlive-fonts-recommended             2012.20120611-5               all          TeX Live: Recommended fonts
+ii  texlive-lang-english                  2012.20120611-2               all          TeX Live: US and UK English
+ii  texlive-lang-french                   2012.20120611-2               all          TeX Live: French
+ii  texlive-latex-base                    2012.20120611-5               all          TeX Live: Basic LaTeX packages
+ii  texlive-latex-extra                   2012.20120611-2               all          TeX Live: LaTeX supplementary packages
+ii  texlive-latex-recommended             2012.20120611-5               all          TeX Live: LaTeX recommended packages
+ii  texlive-pictures                      2012.20120611-5               all          TeX Live: Graphics packages and programs
