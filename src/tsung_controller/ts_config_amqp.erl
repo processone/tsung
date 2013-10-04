@@ -111,13 +111,15 @@ parse_request(Element, Type = 'basic.publish', _Tab) ->
     RoutingKey = ts_config:getAttr(string, Element#xmlElement.attributes,
                                    routing_key, "/"),
     Size = ts_config:getAttr(float_or_integer, Element#xmlElement.attributes,
-                             size, 100),
+                             synthetic_payload_size, 100),
     PersistentStr = ts_config:getAttr(string, Element#xmlElement.attributes,
                                       persistent, "false"),
+    Payload = ts_config:getAttr(string, Element#xmlElement.attributes,
+                                      payload, ""),
     Persistent = list_to_atom(PersistentStr),
     Request = #amqp_request{type = Type, exchange = Exchange,
-                            routing_key = RoutingKey, size = Size,
-                            persistent = Persistent},
+                            routing_key = RoutingKey, synthetic_payload_size = Size,
+                            payload = Payload, persistent = Persistent},
     {no_ack, Request};
 parse_request(Element, Type = 'basic.consume', _Tab) ->
     Queue = ts_config:getAttr(string,
