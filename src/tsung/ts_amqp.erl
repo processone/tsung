@@ -140,7 +140,7 @@ get_message(#amqp_request{type = 'basic.qos', prefetch_size = PrefetchSize,
     {Frame, NewAMQPSession};
 
 get_message(#amqp_request{type = 'basic.publish', exchange = Exchange,
-                          routing_key = RoutingKey, synthetic_payload_size = Size,
+                          routing_key = RoutingKey, payload_size = Size,
                           payload=Payload, persistent = Persistent},
             #state_rcv{session = AMQPSession}) ->
     Protocol = AMQPSession#amqp_session.protocol,

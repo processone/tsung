@@ -40,11 +40,11 @@
             <for from="1" to="200" incr="1" var="loops">
                 <for from="1" to="10000" incr="1" var="counter">
                     <transaction name="publish">
-                        <!-- specify synthetic_payload_size to have tsung generate a payload for you -->
+                        <!-- specify payload_size to have tsung generate a payload for you -->
                         <request>
-                            <amqp type="basic.publish" exchange="test_exchange" routing_key="4.queue_lb" persistent="true" synthetic_payload_size="100"></amqp>
+                            <amqp type="basic.publish" exchange="test_exchange" routing_key="4.queue_lb" persistent="true" payload_size="100"></amqp>
                         </request>
-                        <!-- substitutions are supported on the payload.  This will override synthetic_payload_size. -->
+                        <!-- substitutions are supported on the payload.  Payload will override payload_size. -->
                         <request>
                             <amqp type="basic.publish" exchange="test_exchange" routing_key="4.queue_lb" persistent="true" payload="Test Payload"></amqp>
                         </request>

@@ -30,7 +30,7 @@
           prefetch_count,
           persistent,
           payload,
-          synthetic_payload_size,
+          payload_size,
           queue,
           ack
          }).

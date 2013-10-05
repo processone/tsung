@@ -356,7 +356,7 @@ repeat | if | change_type | foreach | set_option | interaction )*>
     exchange CDATA ""
     routing_key CDATA ""
     payload CDATA ""
-    synthetic_payload_size CDATA "100"
+    payload_size CDATA "100"
     prefetch_size CDATA "0"
     prefetch_count CDATA "0"
     persistent CDATA "false"
