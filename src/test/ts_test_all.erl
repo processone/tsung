@@ -19,6 +19,7 @@ test() -> ok.
 
 all_test_() -> [ts_test_recorder,
                 ts_test_config,
+                ts_test_client,
                 ts_test_dynvars_api,
                 ts_test_file_server,
                 ts_test_options,
