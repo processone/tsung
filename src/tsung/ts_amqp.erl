@@ -140,20 +140,23 @@ get_message(#amqp_request{type = 'basic.qos', prefetch_size = PrefetchSize,
     {Frame, NewAMQPSession};
 
 get_message(#amqp_request{type = 'basic.publish', exchange = Exchange,
-                          routing_key = RoutingKey, size = Size,
-                          persistent = Persistent},
+                          routing_key = RoutingKey, payload_size = Size,
+                          payload=Payload, persistent = Persistent},
             #state_rcv{session = AMQPSession}) ->
     Protocol = AMQPSession#amqp_session.protocol,
-    Payload = list_to_binary(ts_utils:urandomstr_noflat(Size)),
+    MsgPayload = case Payload of
+                     "" ->list_to_binary(ts_utils:urandomstr_noflat(Size));
+                     _ -> list_to_binary(Payload)
+                 end,
     Publish = #'basic.publish'{exchange = list_to_binary(Exchange),
                                routing_key = list_to_binary(RoutingKey)},
     Msg = case Persistent of 
         true ->
             Props = #'P_basic'{delivery_mode = 2}, %% persistent message
-            build_content(Props, Payload);
+            build_content(Props, MsgPayload);
         false ->
             Props = #'P_basic'{},
-            build_content(Props, Payload)
+            build_content(Props, MsgPayload)
     end,
     Frame = assemble_frames(1, Publish, Msg, ?FRAME_MIN_SIZE, Protocol),
     NewAMQPSession = case AMQPSession#amqp_session.next_pub_seqno of
@@ -362,8 +365,12 @@ parse_config(Element, Conf) ->
 %% Purpose: we dont actually do anything
 %% Returns: #amqp_request
 %%----------------------------------------------------------------------
-add_dynparams(_Bool, _DynData, Param, _HostData) ->
-    Param.
+add_dynparams(false, {_DynVars, _Session}, Param, _HostData) ->
+    Param;
+
+add_dynparams(true, {DynVars, _Session}, Req=#amqp_request{payload=Payload}, _HostData) ->
+    SubstPayload=ts_search:subst(Payload, DynVars),
+    Req#amqp_request{payload=SubstPayload}.
 
 %%----------------------------------------------------------------------
 confirm_ack_buf(AckBuf) ->

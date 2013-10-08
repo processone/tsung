@@ -29,7 +29,8 @@
           prefetch_size,
           prefetch_count,
           persistent,
-          size,
+          payload,
+          payload_size,
           queue,
           ack
          }).
