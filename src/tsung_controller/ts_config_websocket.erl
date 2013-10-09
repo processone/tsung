@@ -57,13 +57,10 @@ parse_config(Element = #xmlElement{name = websocket},
     Request = #websocket_request{data=CleanStr, type=Type, path=Path},
 
     Ack = case Type of
-              connect ->
-                  parse;
-              %% we should wait a close response from the server
-              close ->
-                  ack;
+              message ->
+                  no_ack;
               _ ->
-                  no_ack
+                  parse
           end,
 
     Msg = #ts_request{ack = Ack,
