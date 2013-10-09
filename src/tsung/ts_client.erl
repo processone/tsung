@@ -337,9 +337,35 @@ handle_info2({inet_reply, _Socket,ok}, StateName, State ) ->
     {next_state, StateName, State};
 %% TODO this would happen in mixed session when previous session was saved and
 %% there are data send from the server, and handle_info will NOT normalize
-%% these data as {gen_ts_transport, Socket, Datat}, Ignore it currently.
-handle_info2({tcp, _Socket, _Data}, StateName, State ) ->
+%% these data as {gen_ts_transport, Socket, Data}. Ignore it currently.
+handle_info2({tcp, Socket, _Data}, StateName, State ) ->
     ?LOGF("tcp data received in state ~p~n",[StateName],?NOTICE),
+
+    %% we need a set_opts call and update the old socket to the new one,
+    %% or if we switch back to the saved session, we can't receive data
+    %% from the old socket.
+    NewSocket = (State#state_rcv.protocol):set_opts(Socket, [{active, once}]),
+    DictList = get(),
+    lists:foldl(fun({Key, Value}, Acc) ->
+                case {Key, Value} of
+                    {{state, _}, {Socket, Session}} ->
+                        put(Key, {NewSocket, Session});
+                    _ -> ok
+                end, Acc end, unused, DictList),
+    {next_state, StateName, State};
+handle_info2({tcp_closed, Socket, _Data}, StateName, State ) ->
+    ?LOGF("tcp_closed received in state ~p~n",[StateName],?NOTICE),
+
+    %% socket closed for the saved session, update the old socket to none.
+    %% it's ok if we don't do that: when the old closed socket is used,
+    %% tsung will aware the closed state, and do a reconnection.
+    DictList = get(),
+    lists:foldl(fun({Key, Value}, Acc) ->
+                case {Key, Value} of
+                    {{state, _}, {Socket, Session}} ->
+                        put(Key, {none, Session});
+                    _ -> ok
+                end, Acc end, unused, DictList),
     {next_state, StateName, State};
 handle_info2(Msg, StateName, State ) ->
     ?LOGF("Error: Unknown msg ~p receive in state ~p, stop~n", [Msg,StateName], ?ERR),
