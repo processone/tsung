@@ -58,7 +58,8 @@ parse_config(Element = #xmlElement{name = websocket},
 
     Ack = case Type of
               message ->
-                  no_ack;
+                  ts_config:getAttr(atom, Element#xmlElement.attributes,
+                                    ack, parse);
               _ ->
                   parse
           end,

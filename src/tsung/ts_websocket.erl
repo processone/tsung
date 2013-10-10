@@ -57,7 +57,11 @@ session_defaults() ->
 %%      matching or dyn_variables
 %% @end
 decode_buffer(Buffer,#websocket_session{}) ->
-    Buffer. % nothing to do for websocket
+    Result = case websocket:decode(Buffer) of
+        {{close, _Reason}, _} -> <<>>;
+        {Data, _} -> Data
+    end,
+    Result.
 
 %%----------------------------------------------------------------------
 %% Function: new_session/0
