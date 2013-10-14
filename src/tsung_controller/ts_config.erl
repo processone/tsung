@@ -427,10 +427,25 @@ parse(Element = #xmlElement{name=transaction, attributes=Attrs},
 parse(_Element = #xmlElement{name='if', attributes=Attrs,content=Content},
       Conf = #config{session_tab = Tab, sessions=[CurS|_], curid=Id}) ->
     VarName=get_dynvar_name(getAttr(string,Attrs,var)),
-    {Rel,Value} = case getAttr(string,Attrs,eq,none) of
-                none -> {neq,getAttr(string,Attrs,neq)};
-                X ->  {eq,X}
-            end,
+    {Rel,Value} = case {getAttr(string,Attrs,eq,none),
+                        getAttr(string,Attrs,neq,none),
+                        getAttr(string,Attrs,gt,none),
+                        getAttr(string,Attrs,lt,none),
+                        getAttr(string,Attrs,gte,none),
+                        getAttr(string,Attrs,lte,none)} of
+                      {none, Neq, none, none, none, none} ->
+                          {neq,Neq};
+                      {Eq, none, none, none, none, none} ->
+                          {eq,Eq};
+                      {none, none, Gt, none, none, none} ->
+                          {gt,Gt};
+                      {none, none, none, Lt, none, none} ->
+                          {lt,Lt};
+                      {none, none, none, none, Gte, none} ->
+                          {gt,Gte};
+                      {none, none, none, none, none, Lte} ->
+                          {lt,Lte}
+                  end,
     ?LOGF("Add if_start action in session ~p as id ~p",
           [CurS#session.id,Id+1],?INFO),
     NewConf = lists:foldl(fun parse/2, Conf#config{curid=Id+1}, Content),
@@ -506,11 +521,28 @@ parse(_Element = #xmlElement{name=repeat,attributes=Attrs,content=Content},
     case LastElement of
         #xmlElement{name=While,attributes=WhileAttrs}
         when (While == 'while') or (While == 'until')->
-            {Rel,Value} = case getAttr(string,WhileAttrs,eq,none) of
-                              none -> {neq,getAttr(string,WhileAttrs,neq)};
-                              X ->  {eq,X}
+            {Rel,Value} = case {getAttr(string,WhileAttrs,eq,none),
+                                getAttr(string,WhileAttrs,neq,none),
+                                getAttr(string,WhileAttrs,gt,none),
+                                getAttr(string,WhileAttrs,lt,none),
+                                getAttr(string,WhileAttrs,gte,none),
+                                getAttr(string,WhileAttrs,lte,none)} of
+                              {none, Neq, none, none, none, none} ->
+                                  {neq,Neq};
+                              {Eq, none, none, none, none, none} ->
+                                  {eq,Eq};
+                              {none, none, Gt, none, none, none} ->
+                                  {gt,Gt};
+                              {none, none, none, Lt, none, none} ->
+                                  {lt,Lt};
+                              {none, none, none, none, Gte, none} ->
+                                  {gt,Gte};
+                              {none, none, none, none, none, Lte} ->
+                                  {lt,Lte}
                           end,
-                          %either <while .. eq=".."/> or <while ..neq=".."/>
+                          %either <while .. eq=".."/> , <while ..neq=".."/>
+                          %either <while .. gt=".."/> , <while ..gte=".."/>
+                          %either <while .. lt=".."/> , <while ..lte=".."/>
             Var = getAttr(atom,WhileAttrs,var),
             NewConf = lists:foldl(fun parse/2, Conf#config{curid=Id}, Content),
             NewId = NewConf#config.curid,
