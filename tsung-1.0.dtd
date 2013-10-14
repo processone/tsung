@@ -423,16 +423,28 @@ repeat | if | change_type | foreach | set_option | interaction )*>
 <!ATTLIST if
     var       CDATA #REQUIRED
     eq        CDATA #IMPLIED
-    neq       CDATA #IMPLIED >
+    neq       CDATA #IMPLIED
+    gt        CDATA #IMPLIED
+    gte       CDATA #IMPLIED
+    lt        CDATA #IMPLIED
+    lte       CDATA #IMPLIED >
 
 <!ELEMENT while EMPTY>
 <!ATTLIST while
-    var  CDATA #REQUIRED
-    eq   CDATA #IMPLIED
-    neq  CDATA #IMPLIED >
+    var       CDATA #REQUIRED
+    eq        CDATA #IMPLIED
+    neq       CDATA #IMPLIED
+    gt        CDATA #IMPLIED
+    gte       CDATA #IMPLIED
+    lt        CDATA #IMPLIED
+    lte       CDATA #IMPLIED >
 
 <!ELEMENT until EMPTY>
 <!ATTLIST until
-    var  CDATA #REQUIRED
-    eq   CDATA #IMPLIED
-    neq  CDATA #IMPLIED >
+    var       CDATA #REQUIRED
+    eq        CDATA #IMPLIED
+    neq       CDATA #IMPLIED
+    gt        CDATA #IMPLIED
+    gte       CDATA #IMPLIED
+    lt        CDATA #IMPLIED
+    lte       CDATA #IMPLIED >

@@ -676,6 +676,10 @@ dynamic variables:
 
 You can use ``eq`` or ``neq`` to check the variable.
 
+**Since 1.5.1** you can also use the comparison operators ``gt``,
+``gte``, ``lt`` and ``lte`` to do respectively ``greater than``,
+``greater than or equal to``, ``less than`` and ``less than or equal to``.
+
 If the dynamic variable is a list (output from XPath for example), you
 can access to the n-th element of a list like this:
 

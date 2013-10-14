@@ -666,9 +666,18 @@ rel(R,A,B) when is_atom(A) ->
     rel(R,atom_to_binary(A,utf8),B);
 rel(R,A,B) when is_atom(B) ->
     rel(R,A,atom_to_binary(B,utf8));
-rel('eq',A,B)  ->
+rel('eq',A,B) ->
     A == B;
-rel('neq',A,B) -> A /= B.
+rel('neq',A,B) ->
+    A /= B;
+rel('gt',A,B) ->
+    binary_to_num(B) > binary_to_num(A);
+rel('lt',A,B) ->
+    binary_to_num(B) < binary_to_num(A);
+rel('gte',A,B) ->
+    binary_to_num(B) >= binary_to_num(A);
+rel('lte',A,B) ->
+    binary_to_num(B) =< binary_to_num(A).
 
 need_jump('while',F) -> F;
 need_jump('until',F) -> not F;
@@ -677,6 +686,13 @@ need_jump('if',F) -> not F.
 jump_if(true,Target,DynVars)   -> {jump,Target,DynVars};
 jump_if(false,_Target,DynVars) -> {next,DynVars}.
 
+binary_to_num([H|_T]) ->
+    binary_to_num(H);
+binary_to_num(Value) ->
+    case (catch list_to_float(binary_to_list(Value))) of
+        {'EXIT', _} -> list_to_integer(binary_to_list(Value));
+        Float -> Float
+    end.
 
 %%----------------------------------------------------------------------
 %% Func: handle_next_request/2
