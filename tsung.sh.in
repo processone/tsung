@@ -33,6 +33,7 @@ CONTROLLER=tsung_controller
 SMP_DISABLE=true
 WARM_TIME=10
 MAX_PROCESS=250000
+EXCLUDE_REQUESTS=""
 
 TSUNGPATH=$INSTALL_DIR/lib/tsung-$VERSION/ebin
 CONTROLLERPATH=$INSTALL_DIR/lib/tsung_controller-$VERSION/ebin
@@ -76,6 +77,7 @@ start() {
     -tsung_controller smp_disable $SMP_DISABLE \
     -tsung_controller debug_level $DEBUG_LEVEL \
     -tsung_controller warm_time $WARM_TIME \
+    -tsung_controller exclude_requests $EXCLUDE_REQUESTS \
     -tsung_controller config_file \"$CONF_OPT_FILE\" -tsung_controller $LOG_OPT -tsung_controller $MON_FILE
 }
 

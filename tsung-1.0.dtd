@@ -150,6 +150,7 @@ repeat | if | change_type | foreach | set_option | interaction )*>
           pgsql | ldap | mysql |fs | shell | job | websocket | amqp) )>
 <!ATTLIST request
     subst (true|false) "false"
+    tag   NMTOKEN "undefined"
     >
 
 <!ELEMENT match (#PCDATA)>

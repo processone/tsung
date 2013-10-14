@@ -661,13 +661,20 @@ parse(Element = #xmlElement{name=request, attributes=Attrs},
 
     Type  = CurSess#session.type,
     SubstitutionFlag  = getAttr(atom, Attrs, subst, false),
-
-    lists:foldl( fun(A,B) ->Type:parse_config(A,B) end,
-                 Conf#config{curid=Id+1, cur_req_id=Id+1,
-                             subst=SubstitutionFlag,
-                             match=[]
-                            },
-                 Element#xmlElement.content);
+    Tag = getAttr(string, Attrs, tag, "undefined"),
+    
+    %% do not add in Conf excluded requests
+    case Tag of
+        "foo" -> 
+            Conf;
+        _ ->
+            lists:foldl( fun(A,B) ->Type:parse_config(A,B) end,
+                         Conf#config{curid=Id+1, cur_req_id=Id+1,
+                                     subst=SubstitutionFlag,
+                                     match=[]
+                                    },
+                         Element#xmlElement.content)
+        end;
 %%% Match
 parse(Element=#xmlElement{name=match,attributes=Attrs},
       Conf=#config{match=Match})->
