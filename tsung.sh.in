@@ -33,7 +33,7 @@ CONTROLLER=tsung_controller
 SMP_DISABLE=true
 WARM_TIME=10
 MAX_PROCESS=250000
-EXCLUDE_REQUESTS=""
+EXCLUDE_TAG_LIST=""
 
 TSUNGPATH=$INSTALL_DIR/lib/tsung-$VERSION/ebin
 CONTROLLERPATH=$INSTALL_DIR/lib/tsung_controller-$VERSION/ebin
@@ -77,7 +77,7 @@ start() {
     -tsung_controller smp_disable $SMP_DISABLE \
     -tsung_controller debug_level $DEBUG_LEVEL \
     -tsung_controller warm_time $WARM_TIME \
-    -tsung_controller exclude_requests $EXCLUDE_REQUESTS \
+    -tsung_controller exclude_tag \"$EXCLUDE_TAG_LIST\" \
     -tsung_controller config_file \"$CONF_OPT_FILE\" -tsung_controller $LOG_OPT -tsung_controller $MON_FILE
 }
 
@@ -86,6 +86,7 @@ debug() {
      -pa $TSUNGPATH -pa $CONTROLLERPATH \
      -tsung_controller warm_time $WARM_TIME \
      -tsung_controller config_file \"$CONF_OPT_FILE\" \
+     -tsung_controller exclude_tag \"$EXCLUDE_TAG_LIST\" \
      -tsung_controller $LOG_OPT -tsung_controller $MON_FILE
 }
 
@@ -148,11 +149,12 @@ usage() {
     echo "    -w            warmup delay (default is 10 sec)"
     echo "    -v            print version information and exit"
     echo "    -6            use IPv6 for Tsung internal communications"
+    echo "    -x <tags>     list of requests tag to be excluded from the run (separated by comma)"
     echo "    -h            display this help and exit"
     exit
 }
 
-while getopts "6vhf:l:d:r:i:Fsw:m:p:" Option
+while getopts "6vhf:l:d:r:i:Fsw:m:p:x:" Option
 do
     case $Option in
         f) CONF_OPT_FILE=$OPTARG;;
@@ -178,6 +180,7 @@ do
            COOKIE=$COOKIE"_"$ID
            CONTROLLER=$CONTROLLER"_"$ID
            ;;
+        x) EXCLUDE_TAG_LIST=$OPTARG;;
         h) usage;;
         *) usage ;;
     esac

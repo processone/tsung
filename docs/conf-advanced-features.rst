@@ -753,3 +753,31 @@ For example, to limit the rate to 64KB/sec for a given session:
 
 
 Only the incoming traffic is rate limited currently.
+
+.. index:: tag
+
+Requests exclusion
+^^^^^^^^^^^^^^^^^^
+
+.. versionadded:: 1.5.1
+
+It is possible to exclude some request for a special run. To do this
+you have to tag them and use the option ``-x`` when launching the run.
+
+For example, to exclude the GET of foo.png, add a ``tag`` to the
+respective request:
+
+.. code-block:: xml
+
+   <request>
+     <http url="/" method="GET"></http>
+   </request>
+   <request tag="image">
+     <http url="/foo.png" method="GET"></http>
+   </request>
+
+Then launch the run with::
+
+   tsung -f SCENARIO.xml -x image start
+
+Only the GET to ``/`` will be done.

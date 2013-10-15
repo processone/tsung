@@ -662,12 +662,14 @@ parse(Element = #xmlElement{name=request, attributes=Attrs},
     Type  = CurSess#session.type,
     SubstitutionFlag  = getAttr(atom, Attrs, subst, false),
     Tag = getAttr(string, Attrs, tag, "undefined"),
-    
+    Tags = lists:map(fun(X)->{X,ok} end, string:tokens(?config(exclude_tag),",")),
     %% do not add in Conf excluded requests
-    case Tag of
-        "foo" -> 
+    case proplists:is_defined(Tag, Tags) of
+        true ->
+            ?LOGF("Tag  ~p in ~p ~p ~p ~n",[Tag,true,?config(exclude_tag),Tags],?NOTICE),
             Conf;
-        _ ->
+        false ->
+            ?LOGF("Tag  ~p in ~p ~p ~p ~n",[Tag,false,?config(exclude_tag),Tags],?NOTICE),
             lists:foldl( fun(A,B) ->Type:parse_config(A,B) end,
                          Conf#config{curid=Id+1, cur_req_id=Id+1,
                                      subst=SubstitutionFlag,
