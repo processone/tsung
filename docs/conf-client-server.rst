@@ -51,6 +51,8 @@ server).
 ``udp6`` ; only available in  version **1.4.2** and newer)
 or ``websocket`` (only available in version **1.5.0** and newer))
 
+.. index:: cpu
+
 Advanced setup
 --------------
 
