@@ -673,7 +673,8 @@ parse(Element = #xmlElement{name=request, attributes=Attrs},
             lists:foldl( fun(A,B) ->Type:parse_config(A,B) end,
                          Conf#config{curid=Id+1, cur_req_id=Id+1,
                                      subst=SubstitutionFlag,
-                                     match=[]
+                                     match=[],
+                                     tag=Tag
                                     },
                          Element#xmlElement.content)
         end;

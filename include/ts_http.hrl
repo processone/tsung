@@ -52,7 +52,8 @@
           digest_nc,
           digest_qop,
           realm,
-          soap_action % for SOAP support
+          soap_action, % for SOAP support
+          tag % for tagged requests
          }).
 
 -record(url,
