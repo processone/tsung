@@ -14,6 +14,13 @@
 test()->
     ok.
 
+add_time_test() ->
+    ?assertEqual({1382,29907,875287}, ts_utils:add_time({1382,29904,875287},3)),
+    %% have to check this second test, maybe 1383 instead of 1392
+    Old = {1382,999999,875287},
+    New = ts_utils:add_time(Old,3),
+    ?assertEqual(3*1000*1000, timer:now_diff(New, Old)).
+
 node_to_hostname_test() ->
     ?assertEqual({ok, "foo"}, ts_utils:node_to_hostname('bar@foo')).
 
