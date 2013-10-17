@@ -57,7 +57,10 @@ session_defaults() ->
 %%      matching or dyn_variables
 %% @end
 decode_buffer(Buffer,#websocket_session{}) ->
-    Buffer. % nothing to do for websocket
+    case websocket:decode(Buffer) of
+        {{close, _Reason}, _} -> <<>>;
+        {Data, _} -> Data
+    end.
 
 %%----------------------------------------------------------------------
 %% Function: new_session/0
@@ -129,7 +132,7 @@ parse(Data, State=#state_rcv{acc = [],
 parse(Data, State=#state_rcv{acc = [], session = WebsocketSession})
   when WebsocketSession#websocket_session.status == connected ->
     case websocket:decode(Data) of
-        {close, _Reason} ->
+        {{close, _Reason}, _} ->
             ?DebugF("receive close from server: ~p~n", [_Reason]),
             {State#state_rcv{ack_done = true}, [], true};
         {_Data1, none} ->
