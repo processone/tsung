@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<!DOCTYPE tsung SYSTEM "@prefix@/share/@PACKAGE_NAME@/@DTD@">
+<tsung loglevel="notice" version="1.0">
+
+  <!-- Client side setup -->
+  <clients>
+    <client host="localhost" use_controller_vm="true"/>
+  </clients>
+
+  <!-- Server side setup -->
+  <servers>
+    <server host="localhost" port="80" type="tcp"></server>
+  </servers>
+
+  <load>
+  <!-- several arrival phases can be set: for each phase, you can set
+  the mean inter-arrival time between new clients and the phase
+  duration -->
+   <arrivalphase phase="1" duration="10" unit="minute">
+     <users interarrival="2" unit="second"></users>
+   </arrivalphase>
+  </load>
+
+ <sessions>
+  <session name="images" probability="100" type="ts_http">
+
+    <request>
+      <http url="/" method="GET" version="1.1"></http>
+    </request>
+
+    <!-- this request will be exclude in the unit test -->
+    <request tag="landing">
+      <http url="/img/excluded.png" method="GET" version="1.1"></http>
+    </request>
+
+    <!-- this request will be exclude in the unit test -->
+    <request tag="gif">
+      <http url="/img/excluded.gif" method="GET" version="1.1"></http>
+    </request>
+
+    <request>
+      <http url="/img/not-excluded.png" method="GET" version="1.1"></http>
+    </request>
+
+
+  </session>
+ </sessions>
+</tsung>

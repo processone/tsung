@@ -92,6 +92,8 @@ ensure_string(proxy_log_file, Atom) when is_atom(Atom) ->
     atom_to_list(Atom);
 ensure_string(config_file, Atom) when is_atom(Atom) ->
     atom_to_list(Atom);
+ensure_string(exclude_tag, Atom) when is_atom(Atom) ->
+    atom_to_list(Atom);
 ensure_string(_, Other) ->
     Other.
 

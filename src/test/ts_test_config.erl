@@ -13,6 +13,7 @@
 -include("ts_config.hrl").
 -include_lib("eunit/include/eunit.hrl").
 -include("xmerl.hrl").
+-include("ts_http.hrl").
 
 test()->
     ok.
@@ -124,6 +125,40 @@ config_thinktime2_test() ->
     random:seed(), % reinit seed for others tests
     ?assertMatch({random,1000}, Req).
 
+read_config_tag_noexclusion_test() ->
+    %% no exclusion all request will be played
+    myset_env(),
+    ok = ts_config_server:read_config("./examples/http_tag.xml"),
+    {ok, Session=#session{userid=7} } = ts_config_server:get_next_session({"localhost",1}),
+    Id = Session#session.id,
+    ReqRef = #http_request{url="/img/excluded.png"},
+    {ts_request,parse,false,[],[],Req,_,_,_,_} = ts_config_server:get_req(Id,2),
+    ?assertEqual(ReqRef#http_request.url, Req#http_request.url).
+
+read_config_tag_one_test() ->
+    %% one tag defined
+    %% exclude urls tagged as 'landing'
+    myset_env(),
+    application:set_env(stdlib,exclude_tag,"landing"),
+    ok = ts_config_server:read_config("./examples/http_tag.xml"),
+    {ok, Session=#session{userid=8} } = ts_config_server:get_next_session({"localhost",1}),
+    Id = Session#session.id,
+    ReqRef = #http_request{url="/img/excluded.gif"},
+    {ts_request,parse,false,[],[],Req,_,_,_,_} = ts_config_server:get_req(Id,2),
+    ?assertEqual(ReqRef#http_request.url, Req#http_request.url).
+
+read_config_tag_two_test() ->
+    %% two tag defined
+    %% exclude urls tagged as 'landing' and 'gif'
+    myset_env(),
+    application:set_env(stdlib,exclude_tag,"gif,landing"),
+    ok = ts_config_server:read_config("./examples/http_tag.xml"),
+    {ok, Session=#session{userid=9} } = ts_config_server:get_next_session({"localhost",1}),
+    Id = Session#session.id,
+    ReqRef = #http_request{url="/img/not-excluded.png"},
+    {ts_request,parse,false,[],[],Req,_,_,_,_} = ts_config_server:get_req(Id,2),
+    ?assertEqual(ReqRef#http_request.url, Req#http_request.url).
+
 config_arrivalrate_test() ->
     myset_env(),
     ok = ts_config_server:read_config("./examples/thinks.xml"),
@@ -145,7 +180,6 @@ config_interarrival_test() ->
     ?assertEqual({RealIntensity,RealNU,RealDur}, Phase1),
     ?assertEqual({RealIntensity/60,RealNU div 60,RealDur}, Phase2),
     ?assertEqual({RealIntensity/3600,12,RealDur*36}, Phase3).
-
 
 read_config_maxusers_test() ->
     read_config_maxusers({5,15},10,"./src/test/thinkfirst.xml").
@@ -177,7 +211,6 @@ read_config_static_test() ->
                   end,  C),
     ?assertEqual(lists:sum(M) , 5).
 
-
 cport_list_node_test() ->
     List=['tsung1@toto',
           'tsung3@titi',
@@ -204,7 +237,6 @@ ifalias_ip_test() ->
     Out=ts_ip_scan:get_ip_aliases(L,[]),
     Res=lists:foldl(fun(A,L) -> [{192,12,0,A}|L] end, [],lists:seq(1,12)),
     ?assertEqual(Out,Res).
-
 
 encode_test() ->
     Encoded="ts_encoded_47myfilepath_47toto_47titi_58sdfsdf_45sdfsdf_44aa_47",
@@ -254,4 +286,5 @@ myset_env(Level)->
     application:set_env(stdlib,warm_time,1000),
     application:set_env(stdlib,thinktime_value,"5"),
     application:set_env(stdlib,thinktime_override,"false"),
-    application:set_env(stdlib,thinktime_random,"false").
+    application:set_env(stdlib,thinktime_random,"false"),
+    application:set_env(stdlib,exclude_tag,"").
