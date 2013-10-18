@@ -101,11 +101,17 @@ dump(protocol,{#ts_request{param=HttpReq},HttpResp,UserId,Server,Size,Duration,T
                     atom_to_list(Err)
             end,
     Tr=ts_utils:log_transaction(Transactions),
+    Tag = case HttpReq#http_request.tag of
+               undefined ->
+                   "";
+               _ ->
+                   HttpReq#http_request.tag
+              end,
     Data=ts_utils:join(";",[integer_to_list(UserId),
                             atom_to_list(HttpReq#http_request.method), Server,
                             get(last_url), Status,integer_to_list(Size),
                             Duration,Tr,Match,Error,
-                            HttpReq#http_request.tag]
+                            Tag]
                       ),
     ts_mon:dump({protocol, self(), Data });
 dump(_,_) ->
