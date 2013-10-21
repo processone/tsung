@@ -67,9 +67,17 @@ read(Filename=standard_io, LogDir) ->
                                        {validation,true}]),Filename,LogDir);
 read(Filename, LogDir) ->
     ?LOGF("Reading config file: ~s~n", [Filename], ?NOTICE),
-    handle_read(catch xmerl_scan:file(Filename,
-                                      [{fetch_path,["/usr/share/tsung/","./"]},
-                                       {validation,true}]),Filename,LogDir).
+    Result = handle_read(catch xmerl_scan:file(Filename,
+                                               [{fetch_path,["/usr/share/tsung/","./"]},
+                                                {validation,true}]),Filename,LogDir),
+    %% In case of error we reparse the file with xmerl_sax_parser:file/2 to obtain
+    %% a more verbose output
+    case Result of
+        {ok, _} -> Result;
+        _ -> xmerl_sax_parser:file(Filename,[]),
+             Result
+    end.
+
 
 handle_read( {Root = #xmlElement{}, _Tail}, Filename, LogDir) ->
     Table = ets:new(sessiontable, [ordered_set, protected]),
