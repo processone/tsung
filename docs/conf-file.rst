@@ -55,7 +55,7 @@ duration    request duration (msec)
 transaction name of the transaction (if any) this request was made in
 match       if a match is defined in the request: match|nomatch (last <match> if several are defined)
 error       name of http error (or empty)
-request tag tag name if the request was tagged; empty otherwise
+tag         tag name if the request was tagged; empty otherwise
 =========== =====================================================================================
 
 .. index:: loglevel
