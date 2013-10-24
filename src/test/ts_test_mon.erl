@@ -91,6 +91,12 @@ netstat2_test()->
     ?assertMatch({41687492504,56858242340},
                  ts_os_mon_erlang:get_os_data(packets, {unix, linux}, Lines)).
 
+netstat3_test()->
+    myset_env(),
+    {ok, Lines} = ts_utils:file_to_list("./src/test/netstat_test3.txt"),
+    ?assertMatch({58334153,45308889},
+                 ts_os_mon_erlang:get_os_data(packets, {unix, linux}, Lines)).
+
 myset_env()->
     myset_env(0).
 myset_env(V)->

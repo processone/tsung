@@ -1,0 +1,17 @@
+Table d'interfaces noyau
+Iface       MTU Met    RX-OK RX-ERR RX-DRP RX-OVR    TX-OK TX-ERR TX-DRP TX-OVR Flg
+eth0       1500   0 11887768      0      0      0   833748      0      0      0 BMRU
+eth0:0     1500   0      - no statistics available -                            BMRU
+eth0:1     1500   0      - no statistics available -                            BMRU
+eth0:3     1500   0      - no statistics available -                            BMRU
+eth0:4     1500   0      - no statistics available -                            BMRU
+eth0:8     1500   0      - no statistics available -                            BMRU
+eth1       1500   0 40621236      0      0      0 40325942      0      0      0 BMRU
+eth1:0     1500   0      - no statistics available -                            BMRU
+eth1:1     1500   0      - no statistics available -                            BMRU
+eth1:2     1500   0      - no statistics available -                            BMRU
+eth1:3     1500   0      - no statistics available -                            BMRU
+eth1:4     1500   0      - no statistics available -                            BMRU
+eth2       1500   0  5825149      0      0      0  4149195      0      0      0 BMRU
+eth3       1500   0        0      0      0      0        4      0      0      0 BMRU
+lo        16436   0 10530106      0      0      0 10530106      0      0      0 LRU
