@@ -123,7 +123,19 @@ parse(Element = #xmlElement{name=monitor, attributes=Attrs},
     Host = getAttr(Attrs, host),
     Type = case getAttr(atom, Attrs, type, erlang) of
                erlang ->
-                   {erlang, {}};
+                   case lists:keysearch(mysqladmin,#xmlElement.name,
+                                        Element#xmlElement.content) of
+                       {value, MysqlEl=#xmlElement{} } ->
+                           Port = getAttr(integer,MysqlEl#xmlElement.attributes,
+                                                    port, ?config(mysql_port)),
+                           Username = getAttr(string,MysqlEl#xmlElement.attributes,
+                                                    username, ?config(mysql_user)),
+                           Password = getAttr(string,MysqlEl#xmlElement.attributes,
+                                                    password, ?config(mysql_password)),
+                           {erlang, [{mysqladmin, {Port, Username, Password}}]};
+                        _ ->
+                           {erlang, []}
+                    end;
                snmp ->
                    case lists:keysearch(snmp,#xmlElement.name,
                                         Element#xmlElement.content) of

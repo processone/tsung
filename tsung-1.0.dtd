@@ -42,11 +42,17 @@
 >
 
 <!ELEMENT monitoring ( monitor+ )>
-<!ELEMENT monitor ( snmp? | munin?)>
+<!ELEMENT monitor ( snmp? | munin? | mysqladmin? )>
 <!ATTLIST monitor
      host NMTOKEN #REQUIRED
      batch (true | false) "false"
      type (snmp | erlang | munin) "erlang">
+
+<!ELEMENT mysqladmin EMPTY>
+<!ATTLIST mysqladmin
+     port  NMTOKEN "3306"
+     username  NMTOKEN "root"
+     password NMTOKEN #IMPLIED>
 
 <!ELEMENT snmp (oid)*>
 <!ATTLIST snmp
@@ -149,7 +155,7 @@ repeat | if | change_type | foreach | set_option | interaction )*>
 <!ELEMENT request ( match*, dyn_variable*, ( http | jabber | raw |
           pgsql | ldap | mysql |fs | shell | job | websocket | amqp) )>
 <!ATTLIST request
-    subst (true|false) "false"
+    subst (true|false|all_except_body) "false"
     tag   NMTOKEN "undefined"
     >
 
