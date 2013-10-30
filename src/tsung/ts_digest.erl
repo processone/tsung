@@ -58,10 +58,10 @@ md5hex(Clear) ->
 %%% Func: shahex/1
 %%%----------------------------------------------------------------------
 shahex(Clear) ->
-    ShaVal= case catch crypto:sha(Clear) of 
+    ShaVal= case catch crypto:hash(sha,Clear) of
                 {'EXIT',_} ->
                     crypto:start(),
-                    crypto:sha(Clear);
+                    crypto:hash(sha,Clear);
                 Sha -> Sha
             end,
     tohex(binary_to_list(ShaVal)).

@@ -57,7 +57,7 @@ Proxy recorder for the tsung load testing tool.
        <varlistentry>
         <term><option>start</option></term>
         <listitem>
-          <para>start the proxy recorder (listening port is 8090). By default the HTTP recorder is started. With the -p option, you can select another plugin. The resulting files will be created as <filename>~/.tsung/tsung_recorderYYYMMDD-HH:MM.xml</filename>; if it doesn't work, take a look at <filename>~/.tsung/log/tsung.log-tsunami_recorder@hostname</filename> </para>
+          <para>start the proxy recorder (listening port is 8090). By default the HTTP recorder is started. With the <option>-p</option> option, you can select another plugin. The resulting files will be created as <filename>~/.tsung/tsung_recorderYYYMMDD-HH:MM.xml</filename>; if it doesn't work, take a look at <filename>~/.tsung/log/tsung.log-tsunami_recorder@hostname</filename> </para>
         </listitem>
       </varlistentry>
        <varlistentry>

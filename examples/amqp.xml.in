@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!DOCTYPE tsung SYSTEM "/usr/local/share/tsung/tsung-1.0.dtd">
+<!DOCTYPE tsung SYSTEM "@prefix@/share/@PACKAGE_NAME@/@DTD@">
 <tsung loglevel="debug" version="1.0">
 	<clients>
 		<client host="ubuntu" maxusers="5"></client>
@@ -36,12 +36,17 @@
             <request>
                 <amqp type="confirm.select"></amqp>
             </request>
-
+            
             <for from="1" to="200" incr="1" var="loops">
                 <for from="1" to="10000" incr="1" var="counter">
                     <transaction name="publish">
+                        <!-- specify payload_size to have tsung generate a payload for you -->
                         <request>
-                            <amqp type="basic.publish" exchange="test_exchange" routing_key="4.queue_lb" persistent="true" size="100"></amqp>
+                            <amqp type="basic.publish" exchange="test_exchange" routing_key="4.queue_lb" persistent="true" payload_size="100"></amqp>
+                        </request>
+                        <!-- substitutions are supported on the payload.  Payload will override payload_size. -->
+                        <request>
+                            <amqp type="basic.publish" exchange="test_exchange" routing_key="4.queue_lb" persistent="true" payload="Test Payload"></amqp>
                         </request>
                     </transaction>
                 </for>

@@ -273,7 +273,12 @@ get_os_data(packets, _OS) ->
 %% %% packets , special case with File as a variable for easy testing
 get_os_data(packets, {unix, _}, Data) ->
     Eth=[io_lib:fread("~d~d~d~d~d~d~d~d~d", X) ||
-        {E,X}<-lists:map(fun(Y)->ts_utils:split2(Y,32,strip) end ,Data),
+        {E,X}<-lists:filtermap(fun(Y)->
+                                 case string:chr(Y, $:) of
+                                     0 -> {true, ts_utils:split2(Y,32,strip)};
+                                     _ -> false
+                                 end
+                               end , Data),
         string:str(E,"eth") /= 0],
     Fun = fun (A, {Rcv, Sent}) ->
                   {ok,[_,_,RcvBytes,_,_,_,SentBytes,_,_],_}=A,

@@ -117,5 +117,7 @@
          unit,
          intensity,
          maxnumber,
-         curnumber = 0
+         curnumber = 0,
+         popularities = [],
+         id
         }).

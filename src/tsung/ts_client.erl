@@ -340,6 +340,38 @@ handle_info2({gen_ts_transport, _Socket, Data}, think, State) ->
 handle_info2({inet_reply, _Socket,ok}, StateName, State ) ->
     ?LOGF("inet_reply ok received in state ~p~n",[StateName],?NOTICE),
     {next_state, StateName, State};
+%% TODO this would happen in mixed session when previous session was saved and
+%% there are data send from the server, and handle_info will NOT normalize
+%% these data as {gen_ts_transport, Socket, Data}. Ignore it currently.
+handle_info2({tcp, Socket, _Data}, StateName, State ) ->
+    ?LOGF("tcp data received in state ~p~n",[StateName],?NOTICE),
+
+    %% we need a set_opts call and update the old socket to the new one,
+    %% or if we switch back to the saved session, we can't receive data
+    %% from the old socket.
+    NewSocket = (State#state_rcv.protocol):set_opts(Socket, [{active, once}]),
+    DictList = get(),
+    lists:foldl(fun({Key, Value}, Acc) ->
+                case {Key, Value} of
+                    {{state, _}, {Socket, Session}} ->
+                        put(Key, {NewSocket, Session});
+                    _ -> ok
+                end, Acc end, unused, DictList),
+    {next_state, StateName, State};
+handle_info2({tcp_closed, Socket, _Data}, StateName, State ) ->
+    ?LOGF("tcp_closed received in state ~p~n",[StateName],?NOTICE),
+
+    %% socket closed for the saved session, update the old socket to none.
+    %% it's ok if we don't do that: when the old closed socket is used,
+    %% tsung will aware the closed state, and do a reconnection.
+    DictList = get(),
+    lists:foldl(fun({Key, Value}, Acc) ->
+                case {Key, Value} of
+                    {{state, _}, {Socket, Session}} ->
+                        put(Key, {none, Session});
+                    _ -> ok
+                end, Acc end, unused, DictList),
+    {next_state, StateName, State};
 handle_info2(Msg, StateName, State ) ->
     ?LOGF("Error: Unknown msg ~p receive in state ~p, stop~n", [Msg,StateName], ?ERR),
     ts_mon:add({ count, error_unknown_msg }),
@@ -422,7 +454,7 @@ handle_next_action(State) ->
             ctrl_struct(CtrlData,State,Count);
         Request=#ts_request{} ->
             handle_next_request(Request, State);
-        {change_type, NewCType, Server, Port, PType, Store, Restore} ->
+        {change_type, NewCType, Server, Port, PType, Store, Restore, Bidi} ->
             ?DebugF("Change client type, use: ~p ~p~n",[NewCType, [Server , Port, PType, Store, Restore]]),
             DynVars   = State#state_rcv.dynvars,
             NewPort   = case ts_search:subst(Port,DynVars) of
@@ -445,7 +477,8 @@ handle_next_action(State) ->
                      {_,_} -> % nothing to restore, or no restore asked, set new session
                          {none,NewCType:new_session()}
                  end,
-            NewState=State#state_rcv{session=Session,socket=Socket,count=Count,clienttype=NewCType,protocol=PType,port=NewPort,host=NewServer},
+            NewState=State#state_rcv{session=Session,socket=Socket,count=Count,clienttype=NewCType,protocol=PType,
+                                     port=NewPort,host=NewServer,bidi=Bidi},
             handle_next_action(NewState);
         {set_option, undefined, rate_limit, {Rate, Burst}} ->
             ?LOGF("Set rate limits for client: rate=~p, burst=~p~n",[Rate,Burst],?DEB),
@@ -651,18 +684,31 @@ ctrl_struct_impl({foreach_end,ForEachName,VarName,Filter,Target}, DynVars) ->
     end.
 
 
-
+%%
 rel(R,A,B) when is_integer(B) and not is_integer(A)->
     rel(R,A,list_to_binary(integer_to_list(B)));
 rel(R,A,B) when is_integer(A) and not is_integer(B)->
-    rel(R,B,list_to_binary(integer_to_list(A)));
+    rel(R,list_to_binary(integer_to_list(A)),B);
 rel(R,A,B) when is_list(B) ->
     rel(R,A,list_to_binary(B));
 rel(R,A,B) when is_list(A) ->
     rel(R,list_to_binary(A),B);
-rel('eq',A,B)  ->
+rel(R,A,B) when is_atom(A) ->
+    rel(R,atom_to_binary(A,utf8),B);
+rel(R,A,B) when is_atom(B) ->
+    rel(R,A,atom_to_binary(B,utf8));
+rel('eq',A,B) ->
     A == B;
-rel('neq',A,B) -> A /= B.
+rel('neq',A,B) ->
+    A /= B;
+rel('gt',A,B) ->
+    binary_to_num(B) > binary_to_num(A);
+rel('lt',A,B) ->
+    binary_to_num(B) < binary_to_num(A);
+rel('gte',A,B) ->
+    binary_to_num(B) >= binary_to_num(A);
+rel('lte',A,B) ->
+    binary_to_num(B) =< binary_to_num(A).
 
 need_jump('while',F) -> F;
 need_jump('until',F) -> not F;
@@ -671,6 +717,13 @@ need_jump('if',F) -> not F.
 jump_if(true,Target,DynVars)   -> {jump,Target,DynVars};
 jump_if(false,_Target,DynVars) -> {next,DynVars}.
 
+binary_to_num([H|_T]) ->
+    binary_to_num(H);
+binary_to_num(Value) ->
+    case (catch list_to_float(binary_to_list(Value))) of
+        {'EXIT', _} -> list_to_integer(binary_to_list(Value));
+        Float -> Float
+    end.
 
 %%----------------------------------------------------------------------
 %% Func: handle_next_request/2

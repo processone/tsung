@@ -55,7 +55,7 @@
          get_client_config/2, get_user_param/1, get_user_port/1, get_jobs_state/0 ]).
 
 %%debug
--export([choose_client_ip/1, choose_session/2]).
+-export([choose_client_ip/1, choose_session/3]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
@@ -100,8 +100,8 @@ newbeams(HostList)->
 %% Description: start a new beam with given config. Use by launcher
 %%  when maxclient is reached. In this case, the arrival rate is known
 %%--------------------------------------------------------------------
-newbeam(Host, {Arrivals, MaxUsers})->
-    gen_server:cast({global, ?MODULE},{newbeam, Host, {Arrivals, MaxUsers} }).
+newbeam(Host, Args)->
+    gen_server:cast({global, ?MODULE},{newbeam, Host, Args }).
 
 %%--------------------------------------------------------------------
 %% Function: get_req/2
@@ -141,20 +141,21 @@ get_client_config(Type, Host)->
     gen_server:call({global,?MODULE},{get_client_config, Type, Host}, ?config_timeout).
 
 %%--------------------------------------------------------------------
-%% Function: get_monitor_hosts/0
-%% Returns: [Hosts]
+%% @spec get_monitor_hosts() -> List
+%%  List = [Hosts::string()]
+%% @doc get list of hosts to monitor  @end
 %%--------------------------------------------------------------------
 get_monitor_hosts()->
         gen_server:call({global,?MODULE},{get_monitor_hosts}).
 
 %%--------------------------------------------------------------------
-%% @spec get_next_session(Host::string())-> {ok, SessionId::integer(),
-%%              SessionSize::integer(),IP::tuple(), UserId::integer()}
+%% @spec get_next_session({Host::string(), PhaseId::integer()}) ->
+%%  {ok, SessionId::integer(), SessionSize::integer(), IP::tuple(), UserId::integer() }
 %% @doc Choose randomly a session
 %% @end
 %%--------------------------------------------------------------------
-get_next_session(Host)->
-    gen_server:call({global, ?MODULE},{get_next_session, Host}).
+get_next_session({Host, PhaseId})->
+    gen_server:call({global, ?MODULE},{get_next_session, Host, PhaseId}).
 
 get_user_param(Host)->
     gen_server:call({global, ?MODULE},{get_user_param, Host}).
@@ -201,25 +202,27 @@ init([LogDir]) ->
 handle_call({read_config, ConfigFile}, _From, State=#state{logdir=LogDir}) ->
     case catch ts_config:read(ConfigFile, LogDir) of
         {ok, Config=#config{curid=LastReqId,sessions=[LastSess| Sessions]}} ->
-            case check_config(Config) of
+            ts_utils:init_seed(Config#config.seed),
+            ts_user_server:init_seed(Config#config.seed),
+            application:set_env(tsung_controller, clients, Config#config.clients),
+            application:set_env(tsung_controller, dump, Config#config.dump),
+            application:set_env(tsung_controller, stats_backend, Config#config.stats_backend),
+            application:set_env(tsung_controller, debug_level, Config#config.loglevel),
+            SumWeights = fun(X, Sum) -> X#client.weight + Sum end,
+            Sum = lists:foldl(SumWeights, 0, Config#config.clients),
+            %% we only know now the size of last session from the file: add it
+            %% in the table
+            print_info(),
+            NewLast=LastSess#session{size = LastReqId, type=Config#config.main_sess_type},
+            %% start the file server (if defined) using a separate process (it can be long)
+            spawn(?MODULE, start_file_server, [Config]),
+            ConfigTmp = loop_load(sort_static(Config#config{sessions=[NewLast]++Sessions})),
+            %% Compute per phase popularities
+            NewConfig = compute_popularities(ConfigTmp),
+            set_max_duration(NewConfig#config.duration),
+            ts_job_notify:listen(NewConfig#config.job_notify_port),
+            case check_config(NewConfig) of
                 ok ->
-                    ts_utils:init_seed(Config#config.seed),
-                    ts_user_server:init_seed(Config#config.seed),
-                    application:set_env(tsung_controller, clients, Config#config.clients),
-                    application:set_env(tsung_controller, dump, Config#config.dump),
-                    application:set_env(tsung_controller, stats_backend, Config#config.stats_backend),
-                    application:set_env(tsung_controller, debug_level, Config#config.loglevel),
-                    SumWeights = fun(X, Sum) -> X#client.weight + Sum end,
-                    Sum = lists:foldl(SumWeights, 0, Config#config.clients),
-                    %% we only know now the size of last session from the file: add it
-                    %% in the table
-                    print_info(),
-                    NewLast=LastSess#session{size = LastReqId, type=Config#config.main_sess_type},
-                    %% start the file server (if defined) using a separate process (it can be long)
-                    spawn(?MODULE, start_file_server, [Config]),
-                    NewConfig=loop_load(sort_static(Config#config{sessions=[NewLast]++Sessions})),
-                    set_max_duration(Config#config.duration),
-                    ts_job_notify:listen(Config#config.job_notify_port),
                     {reply, ok, State#state{config=NewConfig, static_users=NewConfig#config.static_users,total_weight = Sum}};
                 {error, Reason} ->
                     ?LOGF("Error while checking config: ~p~n",[Reason],?EMERG),
@@ -274,11 +277,11 @@ handle_call({get_user_port, IP}, _From, State=#state{ports=Ports}) ->
     {reply, {ok, CPort}, State#state{ports = NewPorts}};
 
 %% get a new session id and user parameters for the given node
-handle_call({get_next_session, HostName}, _From, State=#state{users=Users}) ->
+handle_call({get_next_session, HostName, PhaseId}, _From, State=#state{users=Users}) ->
     Config = State#state.config,
     {value, Client} = lists:keysearch(HostName, #client.host, Config#config.clients),
     ?DebugF("get new session for ~p~n",[_From]),
-    case choose_session(Config#config.sessions, Config#config.total_popularity) of
+    case choose_session(Config#config.sessions, Config#config.total_popularity, PhaseId) of
         {ok, Session=#session{id=Id}} ->
             ?LOGF("Session ~p choosen~n",[Id],?INFO),
             ts_mon:newclient({Id,?NOW}),
@@ -316,7 +319,7 @@ handle_call({get_client_config, Host}, _From, State=#state{curcfg=OldCfg,total_w
     %% set start date if not done yet
     StartDate = set_start_date(State#state.start_date),
     {value, Client} = lists:keysearch(Host, #client.host, Clients),
-    IsLast = OldCfg + 1 >= length(Clients),% test is this is the last launcher to ask for it's config
+    IsLast = OldCfg + 1 >= length(Clients),% test if this is the last launcher to ask for it's config
     Get = fun(Phase,Args)-> {get_client_cfg(Phase,Args),Args} end,
     {Res, _Acc} = lists:mapfoldl(Get, {Total_Weight,Client,IsLast},Config#config.arrivalphases),
     {NewPhases,ClientParams} = lists:unzip(Res),
@@ -410,12 +413,12 @@ handle_cast({newbeam, Host, _}, State=#state{ hostname=LocalHost,config=Config})
     {noreply, State};
 
 %% start a launcher on a new beam with slave module
-handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId, config=Config, logdir = LogDir}) ->
+handle_cast({newbeam, Host, Args}, State=#state{last_beam_id = NodeId, config=Config, logdir = LogDir}) ->
     Args = set_remote_args(LogDir,Config#config.ports_range),
     Seed = Config#config.seed,
     Node = remote_launcher(Host, NodeId, Args),
     ts_launcher_static:stop(Node), % no need for static launcher in this case (already have one)
-    ts_launcher:launch({Node, Arrivals, Seed}),
+    ts_launcher:launch({Node, Args, Seed}),
     {noreply, State#state{last_beam_id = NodeId+1}};
 
 handle_cast({end_launching, _Node}, State=#state{ending_beams=Beams}) ->
@@ -536,15 +539,25 @@ choose_rr(List, Key, _) ->
 %% Purpose: choose an session randomly
 %% Returns: #session
 %%----------------------------------------------------------------------
-choose_session([Session], _Total) -> %% only one Session
+choose_session([Session], _Total, _PhaseId) -> %% only one Session
     {ok, Session};
-choose_session(Sessions,Total) ->
-    choose_session(Sessions, random:uniform() * Total, 0).
+choose_session(Sessions,Total,PhaseId) when is_number(Total)->
+    choose_session(Sessions, random:uniform() * Total, 0, PhaseId);
+choose_session(Sessions,Total,PhaseId) when is_list(Total) ->
+    choose_session(Sessions, random:uniform() * lists:nth(PhaseId, Total), 0, PhaseId).
 
-choose_session([S=#session{popularity=P} | _],Rand,Cur) when Rand =< P+Cur->
+choose_session([S=#session{popularity=P} | _],Rand,Cur,_PhaseId) when is_number(P) andalso Rand =< P+Cur->
     {ok, S};
-choose_session([#session{popularity=P} | SList], Rand, Cur) ->
-    choose_session(SList, Rand, Cur+P).
+choose_session([#session{popularity=P} | SList], Rand, Cur, PhaseId) when is_number(P)->
+    choose_session(SList, Rand, Cur+P, PhaseId);
+choose_session([S=#session{popularity=PopList} | SList],Rand,Cur,PhaseId) ->
+    P = lists:nth(PhaseId,PopList),
+    if
+        Rand =< P+Cur ->
+            {ok, S};
+        true ->
+            choose_session(SList, Rand, Cur+P, PhaseId)
+    end.
 
 
 %%----------------------------------------------------------------------
@@ -652,16 +665,17 @@ setup_user_servers(FileId,Val) when is_atom(FileId), is_integer(Val) ->
 %% Func: check_config/1
 %% Returns: ok | {error, ErrorList}
 %%----------------------------------------------------------------------
-check_config(Config=#config{use_weights=true})->
-    %% FIXME: we should not depend on a protocol specific feature here
-    ts_config_http:check_user_agent_sum(Config#config.session_tab);
-check_config(Config)->
-    case abs(100-Config#config.total_popularity) < 0.05 of
-        false ->
-            {error, {bad_sum, Config#config.total_popularity ,?SESSION_POP_ERROR_MSG}};
-        true  ->
-            ts_config_http:check_user_agent_sum(Config#config.session_tab)
+check_config(Config=#config{use_weights=UseWeights})->
+    case lists:dropwhile(fun(Pop) -> check_popularity(UseWeights,Pop) == ok end, Config#config.total_popularity) of
+        [] ->
+            ts_config_http:check_user_agent_sum(Config#config.session_tab);
+        [BadPop|_] ->
+            {error, {bad_sum, BadPop, ?SESSION_POP_ERROR_MSG}}
     end.
+
+check_popularity(false, Val) when abs(100-Val) < 0.05 -> ok;
+check_popularity(false,_Val) -> {error, bad_sum };
+check_popularity(true, _Val) -> ok.
 
 load_app(Name) when is_atom(Name) ->
     FName = atom_to_list(Name) ++ ".app",
@@ -683,18 +697,18 @@ load_app(Name) when is_atom(Name) ->
 %% Returns: #config
 %% Purpose: duplicate phases 'load_loop' times.
 %%----------------------------------------------------------------------
-loop_load(Config=#config{load_loop=0,arrivalphases=Arrival}) ->
-    Sorted=lists:keysort(#arrivalphase.phase, Arrival),
-    Config#config{arrivalphases=Sorted};
 loop_load(Config=#config{load_loop=Loop,arrivalphases=Arrival}) when is_integer(Loop) ->
-    loop_load(Config, ts_utils:keymax(#arrivalphase.phase, Arrival), Arrival ).
+    Sorted=lists:keysort(#arrivalphase.phase, Arrival),
+    {SortedWithId,_} = lists:mapfoldl(fun(Phase, Id) -> {Phase#arrivalphase{id=Id}, Id+1} end, 1, Sorted),
+    loop_load(Config#config{arrivalphases=SortedWithId}, ts_utils:keymax(#arrivalphase.phase, Arrival), SortedWithId ).
 
 %% We have a list of n phases: duplicate the list and increase by the
 %% max to get a new unique id for all phases. Here we don't care about
 %% the order, so we start with the last iteration (Loop* Max)
 loop_load(Config=#config{load_loop=0},_,Current) ->
-    Sorted=lists:keysort(#arrivalphase.phase, Current),% is it necessary ?
-    Config#config{arrivalphases = Sorted};
+    Sorted=lists:keysort(#arrivalphase.phase, Current),
+    ?LOGF("sorted phases: ~p ~n", [Sorted], ?DEB),
+    Config#config{arrivalphases=Sorted};
 loop_load(Config=#config{load_loop=Loop, arrivalphases=Arrival},Max,Current) ->
     Fun= fun(Phase) -> Phase+Max*Loop end,
     NewArrival = lists:keymap(Fun,#arrivalphase.phase,Arrival),
@@ -703,8 +717,21 @@ loop_load(Config=#config{load_loop=Loop, arrivalphases=Arrival},Max,Current) ->
 %% @doc sort static users by start time
 sort_static(Config=#config{static_users=S})->
     ?LOGF("sort static users: ~p ~n", [S], ?DEB),
-    SortedL= lists:keysort(1,S),
+    ES = expand_static(S,Config#config.sessions),
+    SortedL= lists:keysort(1,ES),
     Config#config{static_users=static_name_to_session(Config#config.sessions,SortedL)}.
+
+%% expand static users (if it contains wildcards)
+expand_static(StaticUsers, Sessions) ->
+    Names = lists:map(fun(#session{name=A}) -> A end ,Sessions),
+    expand_static(StaticUsers, Names, []).
+
+expand_static([], _Names, Static) -> Static;
+expand_static([{Delay, Name} | Static],SessionsNames, Acc) ->
+    Names  = ts_utils:wildcard(Name, SessionsNames),
+    NewStatic = lists:map(fun(N) -> {Delay, N} end, Names),
+    expand_static(Static, SessionsNames, Acc ++ NewStatic).
+
 
 %%
 %% @doc start a remote beam
@@ -858,4 +885,63 @@ get_one_node_per_host([Node | Nodes], Dict) ->
             get_one_node_per_host(Nodes,NewDict)
     end.
 
+
+%% compute popularities of sessions for all phases
+compute_popularities(Config=#config{arrivalphases=Phases, sessions=Sessions}) ->
+
+    %% popularities can contains wildcards, need to expand them
+    Names = lists:map(fun(#session{name=A}) -> A end ,Sessions),
+    Expand = fun( Phase = #arrivalphase{popularities= Pops} ) ->
+                     NewPops = lists:foldl(fun({Name,Popularity},Acc) ->
+                                                   Expanded = ts_utils:wildcard(Name, Names),
+                                                   Acc ++ lists:map(fun(X) -> {X, Popularity} end, Expanded)
+                                           end, [], Pops),
+                     Phase#arrivalphase{popularities=NewPops}
+             end,
+    NewPhases = lists:map(Expand,Phases),
+    ?LOGF("Compute popularities per phases ~p",[NewPhases],?DEB),
+
+    F = fun(Session=#session{popularity=Pop, name=Name}) ->
+           NewPop = set_pop(Name, Pop, NewPhases),
+           Session#session{popularity=NewPop}
+        end,
+    NewSessions = lists:map(F, Sessions),
+    ?LOGF("Old sessions:~p",[Sessions],?DEB),
+    ?LOGF("New sessions:~p",[NewSessions],?DEB),
+    Config#config{sessions=NewSessions, arrivalphases = NewPhases, total_popularity=update_total_pop(Config#config.use_weights, NewPhases, NewSessions)}.
+
+update_total_pop(UseWeight,Phases, Sessions) ->
+    update_total_pop(UseWeight, length(Phases), Sessions, []).
+
+update_total_pop(_UseWeight,0, _, Total) ->
+    ?LOGF("New Total popularities:~p",[Total],?DEB),
+    Total;
+update_total_pop(UseWeight,N, Sessions, Total)   ->
+    Sum = fun(#session{popularity=P},Acc) when is_number(P) ->
+                  Acc+P ;
+             (#session{popularity=L},Acc) ->
+                  Acc+lists:nth(N,L)
+          end,
+    PhaseTotal = lists:foldl(Sum, 0, Sessions),
+    update_total_pop(UseWeight, N-1, Sessions, [PhaseTotal |Total]).
+
+%% set popularity of session 'Name' per phase (needed when <session_setup> is used)
+set_pop(Name,Popularity,Phases) ->
+    set_pop(Name,Popularity,Phases,[]).
+
+set_pop(_Name,_Popularity,[], Acc) ->
+    %% optimization: if all values are equal, return a single value and not a list
+    Min=lists:min(Acc),
+    case lists:max(Acc) of
+        Min -> Min; % min = max
+        _   -> lists:reverse(Acc)
+    end;
+set_pop(Name,Popularity,[#arrivalphase{popularities=Pop}|Tail], Acc) ->
+    New = case lists:keysearch(Name,1,Pop) of
+              false ->
+                  Popularity;
+              {value, {_, Val}} ->
+                  Val
+          end,
+    set_pop(Name,Popularity,Tail, [New|Acc]).
 

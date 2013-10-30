@@ -14,10 +14,15 @@
     <monitor host="localhost" type="erlang"/> 
   </monitoring>
 
-  <load>
+  <load loop="2">
     <arrivalphase phase="1" duration="1" unit="minute">
       <users maxnumber="1" interarrival="0.1" unit="second"/>
   </arrivalphase>
+    <arrivalphase phase="3" duration="1" unit="minute">
+      <session_setup name="http_test_1" probability="80"/>
+      <session_setup name="fake"        probability="20"/>
+      <users maxnumber="2" interarrival="1" unit="second"/>
+    </arrivalphase>
   </load>
 
   <options>
@@ -80,6 +85,11 @@
       <request><http url="/" method="GET" version="1.1"/></request>
 
     </session>
+
+    <session name="fake" probability="0" type="ts_http">
+      <thinktime value="5" random="true"/>
+    </session>
+
 </sessions>
 
 </tsung>

@@ -798,9 +798,11 @@ a float):
 not implemented and a round robin algorithm was used to choose the
 server).
 
-\varname{Type} can be \userinput{tcp}, \userinput{ssl} or
+\varname{Type} can be \userinput{tcp}, \userinput{ssl},
 \userinput{udp} (for IPv6, use \userinput{tcp6}, \userinput{ssl6} or
 \userinput{udp6} ; only available in  version \strong{1.4.2} and newer)
+or \userinput{websocket} (only available in version \strong{1.5.0} and
+newer))
 
 \subsubsection{Advanced setup}
 
@@ -1524,6 +1526,30 @@ Example roster modification setup:
 
 See also \ref{bidi:presence} for automatic handling of  subscribing requests.
 
+\paragraph{SASL Plain}
+
+SASL Plain authentication example:
+\begin{Verbatim}
+<session probability="100" name="sasl" type="ts_jabber">
+
+    <request> <jabber type="connect" ack="local"></jabber> </request>
+
+    <thinktime value="10"></thinktime>
+
+    <transaction name="authenticate">
+     <request>
+       <jabber type="auth_sasl" ack="local"></jabber></request>
+
+     <request>
+       <jabber type="connect" ack="local"></jabber> </request>
+
+    <request>
+       <jabber type="auth_sasl_bind" ack="local" ></jabber></request>
+    <request>
+       <jabber type="auth_sasl_session" ack="local" ></jabber></request>
+
+    </transaction>
+\end{Verbatim}
 
 \paragraph{SASL Anonymous}
 
@@ -2094,6 +2120,10 @@ destination="previous"/> </request>
 \userinput{store='true'} can be used to save the current state of the session (socket,
 cookies for http, \ldots{}) and \userinput{restore='true'} to reuse the previous state when
 you switch back to the old protocol.
+
+You can use \userinput{bidi='true'} to indicate that the new protocol is bidirectional or
+\userinput{bidi='false'} for a non-bidirectional protocol (only available in version
+\strong{1.5.1} and newer)).
 
 A dynamic variable set in the first part of the session will be
 available after a \varname{change\_type}. There is currently one caveat: you have

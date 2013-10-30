@@ -80,7 +80,7 @@ get_message(#raw{datasize=Size},#state_rcv{session=S}) when is_integer(Size), Si
     BitSize = Size*8,
    {<< 0:BitSize >>,S} ;
 get_message(#raw{data=Data},#state_rcv{session=S})->
-    {Data,S}.
+    {list_to_binary(Data),S}.
 
 
 %%----------------------------------------------------------------------

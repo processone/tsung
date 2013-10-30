@@ -78,7 +78,7 @@
      loop     NMTOKEN "0"
      >
 
-<!ELEMENT arrivalphase (users)>
+<!ELEMENT arrivalphase (users | session_setup)+>
 <!ATTLIST arrivalphase
      duration NMTOKEN #REQUIRED
      phase    NMTOKEN #REQUIRED
@@ -95,7 +95,7 @@
 <!ATTLIST user
      start_time NMTOKEN #IMPLIED
      unit (hour | minute | second  | millisecond) "second"
-     session      NMTOKEN #REQUIRED>
+     session      CDATA #REQUIRED>
 
 <!ELEMENT options (option*)>
 <!ELEMENT option (user_agent*)>
@@ -129,6 +129,13 @@ repeat | if | change_type | foreach | set_option | interaction )*>
     weight        NMTOKEN #IMPLIED
     type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs | ts_shell | ts_job | ts_websocket | ts_amqp) #REQUIRED>
 
+<!ELEMENT session_setup EMPTY>
+<!ATTLIST session_setup
+    name         CDATA #REQUIRED
+    probability  NMTOKEN #IMPLIED
+    weight       NMTOKEN #IMPLIED
+>
+
 <!ELEMENT interaction EMPTY>
 <!ATTLIST interaction
           action (send|receive) #REQUIRED
@@ -142,12 +149,14 @@ repeat | if | change_type | foreach | set_option | interaction )*>
      server_type NMTOKEN #REQUIRED
      store  ( true | false ) "false"
      restore ( true | false ) "false"
+     bidi ( true | false ) "false"
     >
 
 <!ELEMENT request ( match*, dyn_variable*, ( http | jabber | raw |
           pgsql | ldap | mysql |fs | shell | job | websocket | amqp) )>
 <!ATTLIST request
     subst (true|false|all_except_body) "false"
+    tag   NMTOKEN "undefined"
     >
 
 <!ELEMENT match (#PCDATA)>
@@ -267,7 +276,8 @@ repeat | if | change_type | foreach | set_option | interaction )*>
 
 <!ELEMENT fs EMPTY >
 <!ATTLIST fs
-    cmd      (read|write|open|delete|stats|copy|read_chunk|write_chunk|close|make_dir|del_dir)  "write"
+    cmd
+          (read|write|open|delete|stat|copy|read_chunk|write_chunk|close|make_dir|del_dir|make_symlink)  "write"
     path     CDATA   #IMPLIED
     size     CDATA   "1024"
     position CDATA   #IMPLIED
@@ -344,6 +354,7 @@ repeat | if | change_type | foreach | set_option | interaction )*>
 <!ELEMENT websocket (#PCDATA) >
 <!ATTLIST websocket
     type (connect | message | close) #REQUIRED
+    ack  (no_ack | parse) #IMPLIED
     path CDATA "/" >
 
 <!ELEMENT amqp (#PCDATA) >
@@ -352,7 +363,8 @@ repeat | if | change_type | foreach | set_option | interaction )*>
     vhost CDATA "/"
     exchange CDATA ""
     routing_key CDATA ""
-    size CDATA "100"
+    payload CDATA ""
+    payload_size CDATA "100"
     prefetch_size CDATA "0"
     prefetch_count CDATA "0"
     persistent CDATA "false"
@@ -419,16 +431,28 @@ repeat | if | change_type | foreach | set_option | interaction )*>
 <!ATTLIST if
     var       CDATA #REQUIRED
     eq        CDATA #IMPLIED
-    neq       CDATA #IMPLIED >
+    neq       CDATA #IMPLIED
+    gt        CDATA #IMPLIED
+    gte       CDATA #IMPLIED
+    lt        CDATA #IMPLIED
+    lte       CDATA #IMPLIED >
 
 <!ELEMENT while EMPTY>
 <!ATTLIST while
-    var  CDATA #REQUIRED
-    eq   CDATA #IMPLIED
-    neq  CDATA #IMPLIED >
+    var       CDATA #REQUIRED
+    eq        CDATA #IMPLIED
+    neq       CDATA #IMPLIED
+    gt        CDATA #IMPLIED
+    gte       CDATA #IMPLIED
+    lt        CDATA #IMPLIED
+    lte       CDATA #IMPLIED >
 
 <!ELEMENT until EMPTY>
 <!ATTLIST until
-    var  CDATA #REQUIRED
-    eq   CDATA #IMPLIED
-    neq  CDATA #IMPLIED >
+    var       CDATA #REQUIRED
+    eq        CDATA #IMPLIED
+    neq       CDATA #IMPLIED
+    gt        CDATA #IMPLIED
+    gte       CDATA #IMPLIED
+    lt        CDATA #IMPLIED
+    lte       CDATA #IMPLIED >

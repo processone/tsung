@@ -13,6 +13,7 @@
 -include("ts_config.hrl").
 -include_lib("eunit/include/eunit.hrl").
 -include("xmerl.hrl").
+-include("ts_http.hrl").
 
 test()->
     ok.
@@ -55,16 +56,16 @@ read_config_xmpp_muc_test() ->
     ?assertMatch({ok, Config}, ts_config:read("./src/test/xmpp-muc.xml",".")).
 
 config_get_session_test() ->
-    myset_env(),
+    myset_env(0),
     ts_user_server:start([]),
     ts_config_server:start_link(["/tmp"]),
     ok = ts_config_server:read_config("./examples/http_setdynvars.xml"),
-    {ok, Session=#session{userid=1,dump=full} }  = ts_config_server:get_next_session("localhost"),
+    {ok, Session=#session{userid=1,dump=full} }  = ts_config_server:get_next_session({"localhost",1}),
     ?assertEqual(1, Session#session.id).
 
 config_get_session_size_test() ->
     myset_env(),
-    {ok, Session=#session{userid=2} }  = ts_config_server:get_next_session("localhost"),
+    {ok, Session=#session{userid=2} }  = ts_config_server:get_next_session({"localhost",1}),
     ?assertEqual(13, Session#session.size).
 
 
@@ -72,7 +73,7 @@ read_config_badpop_test() ->
     myset_env(),
     ts_user_server:start([]),
     {ok, Config} = ts_config:read("./src/test/badpop.xml","."),
-    ?assertMatch({error,{bad_sum,_,_}}, ts_config_server:check_config(Config)).
+    ?assertMatch({error,{bad_sum,_,_}}, ts_config_server:check_config( ts_config_server:compute_popularities(Config))).
 
 
 read_config_thinkfirst_test() ->
@@ -82,13 +83,13 @@ read_config_thinkfirst_test() ->
 
 config_minmax_test() ->
     myset_env(),
-    {ok, Session=#session{userid=3} }  = ts_config_server:get_next_session("localhost"),
+    {ok, Session=#session{userid=3} }  = ts_config_server:get_next_session({"localhost",1}),
     Id = Session#session.id,
     ?assertMatch({thinktime,{range,2000,4000}}, ts_config_server:get_req(Id,7)).
 
 config_minmax2_test() ->
     myset_env(),
-    {ok, Session=#session{userid=4} }  = ts_config_server:get_next_session("localhost"),
+    {ok, Session=#session{userid=4} }  = ts_config_server:get_next_session({"localhost",1}),
     Id = Session#session.id,
     {thinktime, Req} = ts_config_server:get_req(Id,7),
     Think=ts_client:set_thinktime(Req),
@@ -100,7 +101,7 @@ config_minmax2_test() ->
 config_thinktime_test() ->
     myset_env(),
     ok = ts_config_server:read_config("./examples/thinks.xml"),
-    {ok, Session=#session{userid=5} }  = ts_config_server:get_next_session("localhost"),
+    {ok, Session=#session{userid=5} }  = ts_config_server:get_next_session({"localhost",1}),
     Id = Session#session.id,
     {thinktime, Req=2000} = ts_config_server:get_req(Id,5),
     {thinktime, 2000} = ts_config_server:get_req(Id,7),
@@ -114,7 +115,7 @@ config_thinktime_test() ->
 config_thinktime2_test() ->
     myset_env(),
     ok = ts_config_server:read_config("./examples/thinks2.xml"),
-    {ok, Session=#session{userid=6} }  = ts_config_server:get_next_session("localhost"),
+    {ok, Session=#session{userid=6} }  = ts_config_server:get_next_session({"localhost",1}),
     Id = Session#session.id,
     {thinktime, Req} = ts_config_server:get_req(Id,5),
     Ref=ts_client:set_thinktime(Req),
@@ -123,6 +124,40 @@ config_thinktime2_test() ->
     end,
     random:seed(), % reinit seed for others tests
     ?assertMatch({random,1000}, Req).
+
+read_config_tag_noexclusion_test() ->
+    %% no exclusion all request will be played
+    myset_env(),
+    ok = ts_config_server:read_config("./examples/http_tag.xml"),
+    {ok, Session=#session{userid=7} } = ts_config_server:get_next_session({"localhost",1}),
+    Id = Session#session.id,
+    ReqRef = #http_request{url="/img/excluded.png"},
+    {ts_request,parse,false,[],[],Req,_,_,_,_} = ts_config_server:get_req(Id,2),
+    ?assertEqual(ReqRef#http_request.url, Req#http_request.url).
+
+read_config_tag_one_test() ->
+    %% one tag defined
+    %% exclude urls tagged as 'landing'
+    myset_env(),
+    application:set_env(stdlib,exclude_tag,"landing"),
+    ok = ts_config_server:read_config("./examples/http_tag.xml"),
+    {ok, Session=#session{userid=8} } = ts_config_server:get_next_session({"localhost",1}),
+    Id = Session#session.id,
+    ReqRef = #http_request{url="/img/excluded.gif"},
+    {ts_request,parse,false,[],[],Req,_,_,_,_} = ts_config_server:get_req(Id,2),
+    ?assertEqual(ReqRef#http_request.url, Req#http_request.url).
+
+read_config_tag_two_test() ->
+    %% two tag defined
+    %% exclude urls tagged as 'landing' and 'gif'
+    myset_env(),
+    application:set_env(stdlib,exclude_tag,"gif,landing"),
+    ok = ts_config_server:read_config("./examples/http_tag.xml"),
+    {ok, Session=#session{userid=9} } = ts_config_server:get_next_session({"localhost",1}),
+    Id = Session#session.id,
+    ReqRef = #http_request{url="/img/not-excluded.png"},
+    {ts_request,parse,false,[],[],Req,_,_,_,_} = ts_config_server:get_req(Id,2),
+    ?assertEqual(ReqRef#http_request.url, Req#http_request.url).
 
 config_arrivalrate_test() ->
     myset_env(),
@@ -145,7 +180,6 @@ config_interarrival_test() ->
     ?assertEqual({RealIntensity,RealNU,RealDur}, Phase1),
     ?assertEqual({RealIntensity/60,RealNU div 60,RealDur}, Phase2),
     ?assertEqual({RealIntensity/3600,12,RealDur*36}, Phase3).
-
 
 read_config_maxusers_test() ->
     read_config_maxusers({5,15},10,"./src/test/thinkfirst.xml").
@@ -175,8 +209,7 @@ read_config_static_test() ->
                           ?LOGF("X: ~p~n",[length(Res)],?ERR),
                           length(Res)
                   end,  C),
-    ?assertEqual(lists:sum(M) , 4).
-
+    ?assertEqual(lists:sum(M) , 5).
 
 cport_list_node_test() ->
     List=['tsung1@toto',
@@ -204,7 +237,6 @@ ifalias_ip_test() ->
     Out=ts_ip_scan:get_ip_aliases(L,[]),
     Res=lists:foldl(fun(A,L) -> [{192,12,0,A}|L] end, [],lists:seq(1,12)),
     ?assertEqual(Out,Res).
-
 
 encode_test() ->
     Encoded="ts_encoded_47myfilepath_47toto_47titi_58sdfsdf_45sdfsdf_44aa_47",
@@ -239,6 +271,13 @@ launcher_empty_test() ->
                                                 phase_start = _,
                                                 intensity = Intensity},_},Res).
 
+
+wildcard_test() ->
+    Names = ["foo1", "foo2", "bar", "barfoo", "foobar", "foo", "fof","glop"],
+    ?assertEqual(["foo1", "foo2", "foobar", "foo"], ts_utils:wildcard("foo*",Names)),
+    ?assertEqual(["foo1", "foo2"], ts_utils:wildcard("foo?",Names)),
+    ?assertEqual(["foobar"], ts_utils:wildcard("foo*r",Names)).
+
 myset_env()->
     myset_env(0).
 myset_env(Level)->
@@ -247,4 +286,5 @@ myset_env(Level)->
     application:set_env(stdlib,warm_time,1000),
     application:set_env(stdlib,thinktime_value,"5"),
     application:set_env(stdlib,thinktime_override,"false"),
-    application:set_env(stdlib,thinktime_random,"false").
+    application:set_env(stdlib,thinktime_random,"false"),
+    application:set_env(stdlib,exclude_tag,"").

@@ -43,14 +43,13 @@
          decode_buffer/2,
          new_session/0]).
 
-
 %%----------------------------------------------------------------------
 %% Function: session_default/0
-%% Purpose: default parameters for session
-%% Returns: {ok, ack_type = parse|no_ack|local, persistent = true|false} 
+%% Purpose: default parameters for session (persistent & bidirectional)
+%% Returns: {ok, true|false, true|false}
 %%----------------------------------------------------------------------
 session_defaults() ->
-    {ok, true}.
+    {ok, true, true}.
 
 %% @spec decode_buffer(Buffer::binary(),Session::record(jabber)) -> 
 %%      NewBuffer::binary()
@@ -58,7 +57,10 @@ session_defaults() ->
 %%      matching or dyn_variables
 %% @end
 decode_buffer(Buffer,#websocket_session{}) ->
-    Buffer. % nothing to do for websocket
+    case websocket:decode(Buffer) of
+        {{close, _Reason}, _} -> <<>>;
+        {Data, _} -> Data
+    end.
 
 %%----------------------------------------------------------------------
 %% Function: new_session/0
@@ -130,7 +132,7 @@ parse(Data, State=#state_rcv{acc = [],
 parse(Data, State=#state_rcv{acc = [], session = WebsocketSession})
   when WebsocketSession#websocket_session.status == connected ->
     case websocket:decode(Data) of
-        {close, _Reason} ->
+        {{close, _Reason}, _} ->
             ?DebugF("receive close from server: ~p~n", [_Reason]),
             {State#state_rcv{ack_done = true}, [], true};
         {_Data1, none} ->
@@ -167,5 +169,10 @@ add_dynparams(true, {DynVars, _S},
               _HostData) ->
     NewData = ts_search:subst(Data, DynVars),
     Param#websocket_request{data = NewData};
+add_dynparams(true, {DynVars, _S},
+              Param = #websocket_request{type = connect, path = Path},
+              _HostData) ->
+    NewPath = ts_search:subst(Path, DynVars),
+    Param#websocket_request{path = NewPath};
 add_dynparams(_Bool, _DynData, Param, _HostData) ->
     Param#websocket_request{}.

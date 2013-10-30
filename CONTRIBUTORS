@@ -8,13 +8,13 @@ o Nicolas Niclausse <nicolas@niclux.org>: Maintainer;
 CONTRIBUTORS:
 ======================
 
-o Jean François Lecomte : several enhancements for Jabber
+o Jean FranÃ§ois Lecomte : several enhancements for Jabber
 
-o Mickaël Rémond <mickael.remond@erlang-fr.org>: erlang server monitoring;
+o MickaÃ«l RÃ©mond <mickael.remond@erlang-fr.org>: erlang server monitoring;
   various patches for HTTP; configure support; SOAP support; initial
   dynamic substitution implementation.
 
-o Jérome Sautret: Multiple file patch for file_server, costum header
+o JÃ©rome Sautret: Multiple file patch for file_server, costum header
   for HTTP, bug reports
 
 o Jason Tucker: Solaris testing and fixes, jabber patches (sip_digest,
@@ -39,3 +39,6 @@ o Adam Spotton: Bug reports and tests (status, HTTP proxy load testing)
 o Matthew Schulkind: small fix to freemem computation
 o t ty: plugin tutorial
 o Jesper Wilhelmsson: testing
+
+New contributors since the migration to git are available here:
+ https://github.com/processone/tsung/graphs/contributors

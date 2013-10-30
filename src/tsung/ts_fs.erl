@@ -125,8 +125,8 @@ add_dynparams(#fs_session{}, Param, _HostData) ->
 %% @doc Replace on the fly dynamic element of the request.
 %% @end
 %%----------------------------------------------------------------------
-subst(Req=#fs{path=Path,size=Size}, DynVars) ->
-    Req#fs{path=ts_search:subst(Path,DynVars),size=ts_search:subst(Size,DynVars)}.
+subst(Req=#fs{path=Path,size=Size,dest=Dest}, DynVars) ->
+    Req#fs{path=ts_search:subst(Path,DynVars),dest=ts_search:subst(Dest,DynVars), size=ts_search:subst(Size,DynVars)}.
 
 %% @spec parse(Data::client_data(), State) -> {NewState, Opts, Close}
 %% State = #state_rcv{}
@@ -174,6 +174,10 @@ parse({file, write_file, [Path,_], {error,Reason}},State) ->
 parse({file, pwrite, [_IODev,Pos,Data], ok},State=#state_rcv{session=S}) ->
     NewDyn=S#fs_session{position=Pos+length(Data)},
     {State#state_rcv{ack_done=true,datasize=0,session=NewDyn}, [], false};
+parse({file, pwrite, Args, {error,Reason}},State) ->
+    ?LOGF("error while writing file: ~p (~p)~n",[Args, Reason],?ERR),
+    ts_mon:add({count,error_fs_pwrite}),
+    {State#state_rcv{ack_done=true, datasize=0}, [], false};
 
 parse({file, del_dir, [_Path], ok},State) ->
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
@@ -181,6 +185,7 @@ parse({file, del_dir, [Path], {error,Reason}},State) ->
     ?LOGF("error while delete directory: ~p (~p)~n",[Path, Reason],?ERR),
     ts_mon:add({count,error_fs_del_dir}),
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
+
 parse({file, make_dir, [_Path], ok},State) ->
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
 parse({file, make_dir, [Path], {error, eexist} },State) ->
@@ -190,11 +195,30 @@ parse({file, make_dir, [Path], {error,Reason}},State) ->
     ?LOGF("error while creating diretory: ~p (~p)~n",[Path, Reason],?ERR),
     ts_mon:add({count,error_fs_mkdir}),
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
+
+parse({file, make_symlink, _Args, ok},State) ->
+    {State#state_rcv{ack_done=true, datasize=0}, [], false};
+parse({file, make_symlink, [_Existing, New], {error, eexist} },State) ->
+    ?LOGF("error while creating symlink: ~p already exists~n",[New],?NOTICE),
+    {State#state_rcv{ack_done=true, datasize=0}, [], false};
+parse({file, make_symlink, [Existing, New], {error,Reason}},State) ->
+    ?LOGF("error while creating symlink: ~p to ~p (~p)~n",[Existing, New, Reason],?ERR),
+    ts_mon:add({count,error_fs_mksymlink}),
+    {State#state_rcv{ack_done=true, datasize=0}, [], false};
+
 parse({file, delete, [_Path], ok},State) ->
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
 parse({file, delete, [Path], {error,Reason}},State) ->
     ?LOGF("error while deleting file: ~p (~p)~n",[Path, Reason],?ERR),
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
+
+parse({file, read_file_info, [_Path], {ok, _FileInfo}},State) ->
+    %% which value should we use for datasize ?
+    {State#state_rcv{ack_done=true,datasize=0}, [], false};
+parse({file, read_file_info, [Path], {error,Reason}},State) ->
+    ?LOGF("error while running stat file: ~p (~p)~n",[Path,Reason],?ERR),
+    ts_mon:add({count,error_fs_stat}),
+    {State#state_rcv{ack_done=true,datasize=0}, [], false};
 
 parse({ts_utils, read_file_raw, [_Path], {ok,_Res,Size}},State) ->
     {State#state_rcv{ack_done=true,datasize=Size}, [], false};
@@ -241,6 +265,10 @@ get_message2(#fs{command=del_dir, path=Path}) ->
     {file,del_dir,[Path],0};
 get_message2(#fs{command=make_dir, path=Path}) ->
     {file,make_dir,[Path],0};
+get_message2(#fs{command=make_symlink, path=Existing, dest=New}) ->
+    {file,make_symlink,[Existing, New],0};
+get_message2(#fs{command=stat, path=Path}) ->
+    {file,read_file_info,[Path],0};
 get_message2(#fs{command=write,path=Path, size=Size}) ->
     {file,write_file,[Path,ts_utils:urandomstr(Size),[raw]],Size}.
 

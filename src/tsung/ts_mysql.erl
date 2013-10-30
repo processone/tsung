@@ -235,18 +235,14 @@ make_auth(User, Password, Database, Salt) ->
     UserB/binary, 0:8, PasswordL:8, EncryptedPassword/binary, DatabaseB/binary>>).
 
 encrypt_password(Password, Salt) ->
-    Stage1= case catch crypto:sha(Password) of
+    Stage1= case catch crypto:hash(sha,Password) of
                 {'EXIT',_} ->
                     crypto:start(),
-                    crypto:sha(Password);
+                    crypto:hash(sha,Password);
                 Sha -> Sha
             end,
-    Stage2 = crypto:sha(Stage1),
-    Res = crypto:sha_final(
-        crypto:sha_update(
-          crypto:sha_update(crypto:sha_init(), Salt),
-          Stage2)
-       ),
+    Stage2 = crypto:hash(sha,Stage1),
+    Res = crypto:hash_final(crypto:hash_update(crypto:hash_update(crypto:hash_init(sha), Salt), Stage2)),
     bxor_binary(Res, Stage1).
 
 %% @doc Find the first zero-byte in Data and add everything before it

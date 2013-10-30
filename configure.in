@@ -46,6 +46,7 @@ AC_CACHE_CHECK([if Erlang/OTP SSL application is running fine],
             AC_RUN_IFELSE(
             [AC_LANG_PROGRAM([], [dnl
                application:start(crypto),
+               application:start(asn1),
                application:start(public_key),
                case application:start(ssl) of
                     ok  -> ok;
@@ -53,7 +54,7 @@ AC_CACHE_CHECK([if Erlang/OTP SSL application is running fine],
                end,
                halt(0)])],
                [erlang_cv_ssl_runnable=yes
-                ERLANG_APPLICATIONS="kernel,stdlib,crypto,public_key,ssl"],
+                ERLANG_APPLICATIONS="kernel,stdlib,asn1,crypto,public_key,ssl"],
                 [ERLANG_APPLICATIONS="kernel,stdlib"
                  AC_MSG_RESULT(WARNING: ssl application is not working properly !!!)])
         ])

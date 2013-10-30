@@ -301,7 +301,7 @@ parse(Element = #xmlElement{name=ip, attributes=Attrs},
 parse(Element = #xmlElement{name=arrivalphase, attributes=Attrs},
       Conf = #config{arrivalphases=AList}) ->
 
-    Phase     = getAttr(integer,Attrs, phase),
+    Phase      = getAttr(integer,Attrs, phase),
     IDuration  = getAttr(integer, Attrs, duration),
     Unit  = getAttr(string,Attrs, unit, "second"),
     D = to_milliseconds(Unit, IDuration),
@@ -400,6 +400,22 @@ parse(Element = #xmlElement{name=session, attributes=Attrs},
                             curid=0, cur_req_id=0},% re-initialize request id
                 Element#xmlElement.content);
 
+%% Parsing the session_setup element
+parse(Element = #xmlElement{name=session_setup, attributes=Attrs}, Conf = #config{arrivalphases=[Phase|Phases]}) ->
+
+    Name         = getAttr(Attrs, name),
+    {Popularity, NewUseWeights} =  case { Conf#config.use_weights,  getAttr(float_or_integer, Attrs, weight, -1) } of
+                                      {Use, -1} when (Use == undefined orelse Use == false) ->
+                                          { getAttr(float_or_integer, Attrs, probability, -1), false };
+                                      {_, Val} ->
+                                          { Val, true}
+                                  end,
+    SessionsPopularities = Phase#arrivalphase.popularities,
+    NewPhase = Phase#arrivalphase{popularities= [{Name, Popularity}| SessionsPopularities]},
+    lists:foldl(fun parse/2,
+                Conf#config{ use_weights      = NewUseWeights, arrivalphases = [NewPhase | Phases] },
+                Element#xmlElement.content);
+
 %%%% Parsing the transaction element
 parse(Element = #xmlElement{name=transaction, attributes=Attrs},
       Conf = #config{session_tab = Tab, sessions=[CurS|_], curid=Id}) ->
@@ -423,10 +439,25 @@ parse(Element = #xmlElement{name=transaction, attributes=Attrs},
 parse(_Element = #xmlElement{name='if', attributes=Attrs,content=Content},
       Conf = #config{session_tab = Tab, sessions=[CurS|_], curid=Id}) ->
     VarName=get_dynvar_name(getAttr(string,Attrs,var)),
-    {Rel,Value} = case getAttr(string,Attrs,eq,none) of
-                none -> {neq,getAttr(string,Attrs,neq)};
-                X ->  {eq,X}
-            end,
+    {Rel,Value} = case {getAttr(string,Attrs,eq,none),
+                        getAttr(string,Attrs,neq,none),
+                        getAttr(string,Attrs,gt,none),
+                        getAttr(string,Attrs,lt,none),
+                        getAttr(string,Attrs,gte,none),
+                        getAttr(string,Attrs,lte,none)} of
+                      {none, Neq, none, none, none, none} ->
+                          {neq,Neq};
+                      {Eq, none, none, none, none, none} ->
+                          {eq,Eq};
+                      {none, none, Gt, none, none, none} ->
+                          {gt,Gt};
+                      {none, none, none, Lt, none, none} ->
+                          {lt,Lt};
+                      {none, none, none, none, Gte, none} ->
+                          {gt,Gte};
+                      {none, none, none, none, none, Lte} ->
+                          {lt,Lte}
+                  end,
     ?LOGF("Add if_start action in session ~p as id ~p",
           [CurS#session.id,Id+1],?INFO),
     NewConf = lists:foldl(fun parse/2, Conf#config{curid=Id+1}, Content),
@@ -502,11 +533,28 @@ parse(_Element = #xmlElement{name=repeat,attributes=Attrs,content=Content},
     case LastElement of
         #xmlElement{name=While,attributes=WhileAttrs}
         when (While == 'while') or (While == 'until')->
-            {Rel,Value} = case getAttr(string,WhileAttrs,eq,none) of
-                              none -> {neq,getAttr(string,WhileAttrs,neq)};
-                              X ->  {eq,X}
+            {Rel,Value} = case {getAttr(string,WhileAttrs,eq,none),
+                                getAttr(string,WhileAttrs,neq,none),
+                                getAttr(string,WhileAttrs,gt,none),
+                                getAttr(string,WhileAttrs,lt,none),
+                                getAttr(string,WhileAttrs,gte,none),
+                                getAttr(string,WhileAttrs,lte,none)} of
+                              {none, Neq, none, none, none, none} ->
+                                  {neq,Neq};
+                              {Eq, none, none, none, none, none} ->
+                                  {eq,Eq};
+                              {none, none, Gt, none, none, none} ->
+                                  {gt,Gt};
+                              {none, none, none, Lt, none, none} ->
+                                  {lt,Lt};
+                              {none, none, none, none, Gte, none} ->
+                                  {gt,Gte};
+                              {none, none, none, none, none, Lte} ->
+                                  {lt,Lte}
                           end,
-                          %either <while .. eq=".."/> or <while ..neq=".."/>
+                          %either <while .. eq=".."/> , <while ..neq=".."/>
+                          %either <while .. gt=".."/> , <while ..gte=".."/>
+                          %either <while .. lt=".."/> , <while ..lte=".."/>
             Var = getAttr(atom,WhileAttrs,var),
             NewConf = lists:foldl(fun parse/2, Conf#config{curid=Id}, Content),
             NewId = NewConf#config.curid,
@@ -551,14 +599,14 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
                  re ->
                      ?LOGF("Add new re: ~s ~n", [Expr],?INFO),
                      {ok, CompiledRegExp} = re:compile(FlattenExpr),
-		     %% TSUN-249		     
-		     case getAttr(string,Attrs,decode,none) of
-			 "html_entities" ->
-			     ?LOGF("The re will be decoded: ~s ~n", [Expr],?INFO),
-			     {re,Name,CompiledRegExp,fun ts_utils:conv_entities/1};
-			 _ ->
-			     {re,Name,CompiledRegExp, undefined}
-		     end;
+                     %% TSUN-249
+                     case getAttr(string,Attrs,decode,none) of
+                         "html_entities" ->
+                             ?LOGF("The re will be decoded: ~s ~n", [Expr],?INFO),
+                             {re,Name,CompiledRegExp,fun ts_utils:conv_entities/1};
+                         _ ->
+                             {re,Name,CompiledRegExp, undefined}
+                     end;
                  xpath ->
                      ?LOGF("Add new xpath: ~s ~n", [Expr],?INFO),
                      CompiledXPathExp = mochiweb_xpath:compile_xpath(FlattenExpr),
@@ -568,8 +616,7 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
                      {Type,Name,Expr}
              end,
     NewDynVar = [DynVar|DynVars],
-    ?LOGF("Add new dyn variable=~p in session ~p~",
-          [NewDynVar,CurS#session.id],?INFO),
+    ?LOGF("Add new dyn variable=~p in session ~p", [NewDynVar, CurS#session.id],?INFO),
     Conf#config{ dynvar= NewDynVar };
 
 parse( #xmlElement{name=change_type, attributes=Attrs},
@@ -581,11 +628,12 @@ parse( #xmlElement{name=change_type, attributes=Attrs},
     Store   = getAttr(atom, Attrs, store, false),
     Restore = getAttr(atom, Attrs, restore, false),
     PType   = set_net_type(getAttr(Attrs, server_type)),
+    Bidi    = getAttr(atom, Attrs, bidi, false),
     SessType=case Conf#config.main_sess_type == CType of
                  false -> CurS#session.type;
                  true  -> CType % back to the main type
              end,
-    ets:insert(Tab,{{CurS#session.id, Id+1}, {change_type, CType, Server, Port, PType, Store, Restore}}),
+    ets:insert(Tab,{{CurS#session.id, Id+1}, {change_type, CType, Server, Port, PType, Store, Restore, Bidi}}),
     ?LOGF("Parse change_type (~p) ~p:~p:~p:~p ~n",[CType, Server,Port,PType,Id],?NOTICE),
     Conf#config{main_sess_type=SessType, curid=Id+1,
                 sessions=[CurS#session{type=CType}|Other] };
@@ -625,13 +673,22 @@ parse(Element = #xmlElement{name=request, attributes=Attrs},
 
     Type  = CurSess#session.type,
     SubstitutionFlag  = getAttr(atom, Attrs, subst, false),
-
-    lists:foldl( fun(A,B) ->Type:parse_config(A,B) end,
-                 Conf#config{curid=Id+1, cur_req_id=Id+1,
-                             subst=SubstitutionFlag,
-                             match=[]
-                            },
-                 Element#xmlElement.content);
+    Tag = getAttr(string, Attrs, tag, "undefined"),
+    Tags = lists:map(fun(X)->{X,ok} end, string:tokens(?config(exclude_tag),",")),
+    %% do not add in Conf excluded requests
+    case proplists:is_defined(Tag, Tags) of
+        true ->
+            ?LOGF("Tag  ~p in ~p ~p ~p ~n",[Tag,true,?config(exclude_tag),Tags],?NOTICE),
+            Conf;
+        false ->
+            ?LOGF("Tag  ~p in ~p ~p ~p ~n",[Tag,false,?config(exclude_tag),Tags],?NOTICE),
+            lists:foldl( fun(A,B) ->Type:parse_config(A,B) end,
+                         Conf#config{curid=Id+1, cur_req_id=Id+1,
+                                     subst=SubstitutionFlag,
+                                     match=[]
+                                    },
+                         Element#xmlElement.content)
+        end;
 %%% Match
 parse(Element=#xmlElement{name=match,attributes=Attrs},
       Conf=#config{match=Match})->
