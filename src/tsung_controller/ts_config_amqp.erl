@@ -51,11 +51,23 @@ parse_config(Element = #xmlElement{name = amqp},
         %% connection.open request, we add all the requests to be done
         'connection.open' ->
             ['connect', 'connection.start_ok', 'connection.tune_ok',
-             'connection.open', 'channel.open'];
+             'connection.open'];
+        'waitForConfirms' ->
+            Timeout = ts_config:getAttr(float_or_integer,
+                                        Element#xmlElement.attributes,
+                                        timeout, 1),
+            ets:insert(Tab, {{CurS#session.id, Id}, {thinktime, Timeout * 1000}}),
+            [];
+        'waitForMessages' ->
+            Timeout = ts_config:getAttr(float_or_integer,
+                                        Element#xmlElement.attributes,
+                                        timeout, 60),
+            ets:insert(Tab, {{CurS#session.id, Id}, {thinktime, Timeout * 1000}}),
+            [];
         _ ->
             [Type]
     end,
-    ResultId = lists:foldl(fun(RequestType, CurrId) ->
+    Result = lists:foldl(fun(RequestType, CurrId) ->
                 {Ack, Request} = parse_request(Element, RequestType, Tab),
                 Msg = #ts_request{ack = Ack,
                                   endpage = true,
@@ -66,10 +78,16 @@ parse_config(Element = #xmlElement{name = amqp},
                 ets:insert(Tab, {{CurS#session.id, CurrId}, Msg}),
                 CurrId + 1
         end, Id, ReqList),
+
+    ResultId = case ReqList of
+        [] -> Id;
+        _ -> Result - 1
+    end,
     
     ts_config:mark_prev_req(Id - 1, Tab, CurS),
+
     lists:foldl(fun(A, B) -> ts_config:parse(A, B) end,
-                Config#config{dynvar = [], curid = ResultId - 1},
+                Config#config{dynvar = [], curid = ResultId},
                 Element#xmlElement.content);
 
 %% Parsing options
@@ -105,7 +123,24 @@ parse_request(Element, Type = 'connection.open', _Tab) ->
     Vhost = ts_config:getAttr(string, Element#xmlElement.attributes, vhost, "/"),
     Request = #amqp_request{type = Type, vhost = Vhost},
     {parse, Request};
+parse_request(_Element, Type = 'connection.start_ok', Tab) ->
+    UserName = ts_config:get_default(Tab, amqp_username),
+    Password = ts_config:get_default(Tab, amqp_password),
+    Request = #amqp_request{type = Type, username = UserName,
+                            password = Password},
+    {parse, Request};
+parse_request(_Element, Type = 'connection.tune_ok', Tab) ->
+    HeartBeat = ts_config:get_default(Tab, amqp_heartbeat),
+    Request = #amqp_request{type = Type, heartbeat = HeartBeat},
+    {no_ack, Request};
+parse_request(Element, Type = 'channel.open', _Tab) ->
+    Channel = ts_config:getAttr(string, Element#xmlElement.attributes,
+                                channel, "0"),
+    Request = #amqp_request{type = Type, channel = Channel},
+    {parse, Request};
 parse_request(Element, Type = 'basic.publish', _Tab) ->
+    Channel = ts_config:getAttr(string, Element#xmlElement.attributes,
+                                channel, "1"),
     Exchange = ts_config:getAttr(string, Element#xmlElement.attributes,
                                  exchange, ""),
     RoutingKey = ts_config:getAttr(string, Element#xmlElement.attributes,
@@ -117,41 +152,35 @@ parse_request(Element, Type = 'basic.publish', _Tab) ->
     Payload = ts_config:getAttr(string, Element#xmlElement.attributes,
                                       payload, ""),
     Persistent = list_to_atom(PersistentStr),
-    Request = #amqp_request{type = Type, exchange = Exchange,
+    Request = #amqp_request{type = Type, channel = Channel, exchange = Exchange,
                             routing_key = RoutingKey, payload_size = Size,
                             payload = Payload, persistent = Persistent},
     {no_ack, Request};
 parse_request(Element, Type = 'basic.consume', _Tab) ->
-    Queue = ts_config:getAttr(string,
-                              Element#xmlElement.attributes, queue, ""),
+    Channel = ts_config:getAttr(string, Element#xmlElement.attributes,
+                                channel, "1"),
+    Queue = ts_config:getAttr(string, Element#xmlElement.attributes, queue, ""),
     AckStr = ts_config:getAttr(string,
-                              Element#xmlElement.attributes, ack, "false"),
+                               Element#xmlElement.attributes, ack, "false"),
     Ack = list_to_atom(AckStr),
-    Request = #amqp_request{type = Type, queue = Queue, ack = Ack},
+    Request = #amqp_request{type = Type, channel = Channel,
+                            queue = Queue, ack = Ack},
     {parse, Request};
 parse_request(Element, Type = 'basic.qos', _Tab) ->
+    Channel = ts_config:getAttr(string, Element#xmlElement.attributes,
+                                channel, "1"),
     PrefetchSize = ts_config:getAttr(float_or_integer,
                               Element#xmlElement.attributes, prefetch_size, 0),
     PrefetchCount = ts_config:getAttr(float_or_integer,
                               Element#xmlElement.attributes, prefetch_count, 0),
-    Request = #amqp_request{type = Type, prefetch_size = PrefetchSize,
+    Request = #amqp_request{type = Type, channel = Channel,
+                            prefetch_size = PrefetchSize,
                             prefetch_count = PrefetchCount},
     {parse, Request};
-parse_request(_Element, Type = 'connection.start_ok', Tab) ->
-    UserName = ts_config:get_default(Tab, amqp_username),
-    Password = ts_config:get_default(Tab, amqp_password),
-    Request = #amqp_request{type = Type, username = UserName,
-                            password = Password},
-    {parse, Request};
-parse_request(_Element, Type = 'connection.tune_ok', Tab) ->
-    HeartBeat = ts_config:get_default(Tab, amqp_heartbeat),
-    Request = #amqp_request{type = Type, heartbeat = HeartBeat},
-    {no_ack, Request};
-parse_request(_Element, Type = 'confirm.select', _Tab) ->
-    Request = #amqp_request{type = Type},
-    {parse, Request};
-parse_request(_Element, Type, _Tab) ->
-    Request = #amqp_request{type = Type},
+parse_request(Element, Type, _Tab) ->
+    Channel = ts_config:getAttr(string, Element#xmlElement.attributes,
+                                channel, "1"),
+    Request = #amqp_request{type = Type, channel = Channel},
     {parse, Request}.
 
 

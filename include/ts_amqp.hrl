@@ -23,6 +23,7 @@
           password,
           heartbeat,
           vhost,
+          channel = "1",
           exchange,
           routing_key,
           confirm,
@@ -40,14 +41,20 @@
          }
        ).
 
+-record(ch, {
+          ack,
+          next_pub_seqno,
+          unconfirmed_set
+         }
+       ).
+
 -record(amqp_session, {
           vhost,
           protocol, 
-          channel,
-          next_pub_seqno,
-          unconfirmed_set,
-          ack,
+          channel_max = 65535,
+          map_num_pa,
           ack_buf,
-          status % status of handshake
+          status, % status of handshake
+          waiting = none % waiting state: {Channel, Expecting}
          }).
 

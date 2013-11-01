@@ -32,26 +32,44 @@
                 <amqp type="connection.open" vhost="/"></amqp>
             </request>
 
+            <!--  open channel, channel id is from 1 to 10 -->
+            <for from="1" to="10" incr="1" var="loops">
+                <request>
+                    <amqp type="channel.open"></amqp>
+                </request>
+            </for>
+
             <!-- ignore this request if you don't need publisher confirm -->
-            <request>
-                <amqp type="confirm.select"></amqp>
-            </request>
+            <for from="1" to="10" incr="1" var="loops">
+                <request subst="true">
+                    <amqp type="confirm.select" channel="%%_loops%%"></amqp>
+                </request>
+            </for>
             
-            <for from="1" to="200" incr="1" var="loops">
-                <for from="1" to="10000" incr="1" var="counter">
+            <for from="1" to="10" incr="1" var="loops">
+                <for from="1" to="100" incr="1" var="counter">
                     <transaction name="publish">
                         <!-- specify payload_size to have tsung generate a payload for you -->
-                        <request>
-                            <amqp type="basic.publish" exchange="test_exchange" routing_key="4.queue_lb" persistent="true" payload_size="100"></amqp>
+                        <request subst="true">
+                            <amqp type="basic.publish" channel="%%_loops%%" exchange="test_exchange" routing_key="test_queue" persistent="true" payload_size="100"></amqp>
                         </request>
-                        <!-- substitutions are supported on the payload.  Payload will override payload_size. -->
-                        <request>
-                            <amqp type="basic.publish" exchange="test_exchange" routing_key="4.queue_lb" persistent="true" payload="Test Payload"></amqp>
+                        <!-- substitutions are supported on the payload. Payload will override payload_size. -->
+                        <request subst="true">
+                            <amqp type="basic.publish" channel="%%_loops%%" exchange="test_exchange" routing_key="test_queue" persistent="true" payload="Test Payload"></amqp>
                         </request>
                     </transaction>
                 </for>
-                <!--if publish with confirm, add a thinktime per 10000 msg(or other)-->
-                <thinktime value="1" />
+
+                <!-- if publish with confirm, add a waitForConfirms request as you need: timeout=1s -->
+                <request>
+                    <amqp type="waitForConfirms" timeout="1"></amqp>
+                </request>
+            </for>
+
+            <for from="1" to="10" incr="1" var="loops">
+                <request subst="true">
+                    <amqp type="channel.close" channel="%%_loops%%"></amqp>
+                </request>
             </for>
 
             <request>
@@ -63,17 +81,35 @@
                 <amqp type="connection.open"></amqp>
             </request>
 
+            <for from="1" to="10" incr="1" var="loops">
+                <request>
+                    <amqp type="channel.open"></amqp>
+                </request>
+            </for>
+
             <!-- ignore this request if you don't need qos(prefetch_count only) -->
+            <for from="1" to="10" incr="1" var="loops">
+                <request subst="true">
+                    <amqp type="basic.qos" channel="%%_loops%%" prefetch_count="200"></amqp>
+                </request>
+            </for>
+
+            <for from="1" to="10" incr="1" var="loops">
+                <request subst="true">
+                    <amqp type="basic.consume" channel="%%_loops%%" queue="test_queue" ack="true"></amqp>
+                </request>
+            </for>
+
+            <!-- wait to receive messages from the server: timeout=180s -->
             <request>
-                <amqp type="basic.qos" prefetch_count="200"></amqp>
+                <amqp type="waitForMessages" timeout="180"></amqp>
             </request>
 
-            <request>
-                <amqp type="basic.consume" queue="4.queue_lb" ack="false"></amqp>
-            </request>
-            
-            <!-- you need this thinktime to receive the message -->
-            <thinktime value="1800" /> 
+            <for from="1" to="10" incr="1" var="loops">
+                <request subst="true">
+                    <amqp type="channel.close" channel="%%_loops%%"></amqp>
+                </request>
+            </for>
 
             <request>
                 <amqp type="connection.close"></amqp>
