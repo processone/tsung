@@ -58,8 +58,8 @@ session_defaults() ->
 %% @end
 decode_buffer(Buffer,#websocket_session{}) ->
     case websocket:decode(Buffer) of
-        {{close, _Reason}, _} -> <<>>;
-        {Data, _} -> Data
+        more -> <<>>;
+        {_Opcode, Payload, _Rest} -> Payload
     end.
 
 %%----------------------------------------------------------------------
@@ -81,8 +81,8 @@ dump(A,B) ->
 get_message(#websocket_request{type = connect, path = Path,
                                subprotos = SubProtocol, version = Version},
             State=#state_rcv{session = WebsocketSession}) ->
-    {Request, Accept} = websocket:handshake_request(State#state_rcv.host, Path,
-                                                    SubProtocol, Version),
+    {Request, Accept} = websocket:get_handshake(State#state_rcv.host, Path,
+                                                SubProtocol, Version),
     {Request, WebsocketSession#websocket_session{status = waiting_handshake,
                                                  accept = Accept}};
 get_message(#websocket_request{type = message, data = Data},
@@ -132,15 +132,15 @@ parse(Data, State=#state_rcv{acc = [],
 parse(Data, State=#state_rcv{acc = [], session = WebsocketSession})
   when WebsocketSession#websocket_session.status == connected ->
     case websocket:decode(Data) of
-        {{close, _Reason}, _} ->
+        {?OP_CLOSE, _Reason, _} ->
             ?DebugF("receive close from server: ~p~n", [_Reason]),
             {State#state_rcv{ack_done = true}, [], true};
-        {_Data1, none} ->
-            ?DebugF("receive from server: ~p~n", [_Data1]),
-            {State#state_rcv{ack_done = true, acc = []}, [], false};
-        {_Data1, Left} ->
-            ?DebugF("receive from server: ~p~n", [_Data1]),
-            {State#state_rcv{ack_done = true, acc = Left}, [], false}
+        {_Opcode, _Payload, Left} ->
+            ?DebugF("receive from server: ~p ~p~n", [_Opcode, _Payload]),
+            {State#state_rcv{ack_done = true, acc = Left}, [], false};
+        more ->
+            ?DebugF("receive incomplete frame from server: ~p~n", [Data]),
+            {State#state_rcv{ack_done = true, acc = Data}, [], false}
     end;
 %% more data, add this to accumulator and parse, update datasize
 parse(Data, State=#state_rcv{acc = Acc, datasize = DataSize}) ->
