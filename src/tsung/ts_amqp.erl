@@ -62,8 +62,7 @@ decode_buffer(Buffer,#amqp_session{}) ->
 %% Returns: record or []
 %%----------------------------------------------------------------------
 new_session() ->
-    #amqp_session{unconfirmed_set = gb_sets:new(),
-                  next_pub_seqno = 0, ack_buf = <<>>}.
+    #amqp_session{map_num_pa = gb_trees:empty(), ack_buf = <<>>}.
 
 dump(A,B) ->
     ts_plugin:dump(A,B).
@@ -73,12 +72,18 @@ dump(A,B) ->
 %% Args:	record
 %% Returns: binary
 %%----------------------------------------------------------------------
-get_message(#amqp_request{type = connect}, #state_rcv{session = AMQPSession}) ->
-    NewAMQPSession = AMQPSession#amqp_session{status = wait_start,
-                                              protocol = ?PROTOCOL},
-    {?PROTOCOL_HEADER, NewAMQPSession};
+get_message(Request = #amqp_request{channel = ChannelStr}, State) ->
+    ?DebugF("get message on channel: ~p ~p~n", [ChannelStr, Request]),
+    ChannelNum = list_to_integer(ChannelStr),
+    get_message1(Request#amqp_request{channel = ChannelNum}, State).
 
-get_message(#amqp_request{type = 'connection.start_ok', username = UserName,
+get_message1(#amqp_request{type = connect}, #state_rcv{session = AMQPSession}) ->
+    Waiting = {0, 'connection.start'},
+    {?PROTOCOL_HEADER, AMQPSession#amqp_session{status = handshake,
+                                                waiting = Waiting,
+                                                protocol = ?PROTOCOL}};
+
+get_message1(#amqp_request{type = 'connection.start_ok', username = UserName,
                           password = Password},
             #state_rcv{session = AMQPSession}) ->
     Protocol = AMQPSession#amqp_session.protocol,
@@ -89,63 +94,86 @@ get_message(#amqp_request{type = 'connection.start_ok', username = UserName,
     StartOk = #'connection.start_ok'{client_properties = client_properties([]),
                                      mechanism = <<"PLAIN">>, response = Resp},
     Frame = assemble_frame(0, StartOk, Protocol),
-    NewAMQPSession = AMQPSession#amqp_session{status = wait_tune},
-    {Frame, NewAMQPSession};
+    Waiting = {0, 'connection.tune'},
+    {Frame, AMQPSession#amqp_session{waiting = Waiting}};
 
-get_message(#amqp_request{type = 'connection.tune_ok', heartbeat = HeartBeat},
+get_message1(#amqp_request{type = 'connection.tune_ok', heartbeat = HeartBeat},
             #state_rcv{session = AMQPSession}) ->
     Protocol = AMQPSession#amqp_session.protocol,
 
     Tune = #'connection.tune_ok'{frame_max = 131072, heartbeat = HeartBeat},
     Frame = assemble_frame(0, Tune, Protocol),
-    NewAMQPSession = AMQPSession#amqp_session{status = opening},
-    {Frame, NewAMQPSession};
+    {Frame, AMQPSession#amqp_session{waiting = none}};
 
-get_message(#amqp_request{type = 'connection.open', vhost = VHost},
+get_message1(#amqp_request{type = 'connection.open', vhost = VHost},
             #state_rcv{session = AMQPSession}) ->
     Protocol = AMQPSession#amqp_session.protocol,
 
     Open = #'connection.open'{virtual_host = list_to_binary(VHost)},
     Frame = assemble_frame(0, Open, Protocol),
-    NewAMQPSession = AMQPSession#amqp_session{status = wait_open},
-    {Frame, NewAMQPSession};
+    Waiting = {0, 'connection.open_ok'},
+    {Frame, AMQPSession#amqp_session{waiting = Waiting}};
 
-get_message(#amqp_request{type = 'channel.open'},
+get_message1(#amqp_request{type = 'channel.open', channel = Channel},
+            #state_rcv{session = AMQPSession}) ->
+    Protocol = AMQPSession#amqp_session.protocol,
+    MapNPA = AMQPSession#amqp_session.map_num_pa,
+
+    ChannelOpen = #'channel.open'{},
+    case new_number(Channel, AMQPSession) of
+        {ok, Number} ->
+            MapNPA1 = gb_trees:enter(Number, unused, MapNPA),
+            put({chstate, Number}, #ch{unconfirmed_set = gb_sets:new(),
+                                       next_pub_seqno = 0}),
+            Frame = assemble_frame(Number, ChannelOpen, Protocol),
+            Waiting = {Number, 'channel.open_ok'},
+            {Frame, AMQPSession#amqp_session{waiting = Waiting,
+                                             map_num_pa = MapNPA1}};
+        {error, _} ->
+            {<<>>, AMQPSession#amqp_session{waiting = none}}
+    end;
+
+get_message1(#amqp_request{type = 'channel.close', channel = Channel},
             #state_rcv{session = AMQPSession}) ->
     Protocol = AMQPSession#amqp_session.protocol,
 
-    ChannelOpen = #'channel.open'{},
-    Frame = assemble_frame(1, ChannelOpen, Protocol),
-    NewAMQPSession = AMQPSession#amqp_session{status = wait_channel},
-    {Frame, NewAMQPSession};
+    ChannelClose = #'channel.close'{reply_text = <<"Goodbye">>,
+                                    reply_code = 200,
+                                    class_id   = 0,
+                                    method_id  = 0},
+    Frame = assemble_frame(Channel, ChannelClose, Protocol),
+    Waiting = {Channel, 'channel.close_ok'},
+    {Frame, AMQPSession#amqp_session{waiting = Waiting}};
 
-get_message(#amqp_request{type = 'confirm.select'},
+get_message1(#amqp_request{type = 'confirm.select', channel = Channel},
             #state_rcv{session = AMQPSession}) ->
     Protocol = AMQPSession#amqp_session.protocol,
 
     Confirm = #'confirm.select'{},
-    Frame = assemble_frame(1, Confirm, Protocol),
-    NewAMQPSession = AMQPSession#amqp_session{status = wait_select},
-    {Frame, NewAMQPSession};
+    Frame = assemble_frame(Channel, Confirm, Protocol),
+    Waiting = {Channel, 'confirm.select_ok'},
+    {Frame, AMQPSession#amqp_session{waiting = Waiting}};
 
-get_message(#amqp_request{type = 'basic.qos', prefetch_size = PrefetchSize,
+get_message1(#amqp_request{type = 'basic.qos', prefetch_size = PrefetchSize,
+                          channel = Channel,
                           prefetch_count = PrefetchCount},
             #state_rcv{session = AMQPSession}) ->
     Protocol = AMQPSession#amqp_session.protocol,
 
     Qos = #'basic.qos'{prefetch_size = PrefetchSize,
                        prefetch_count = PrefetchCount},
-    Frame = assemble_frame(1, Qos, Protocol),
-    NewAMQPSession = AMQPSession#amqp_session{status = wait_qos},
-    {Frame, NewAMQPSession};
+    Frame = assemble_frame(Channel, Qos, Protocol),
+    Waiting = {Channel, 'basic.qos_ok'},
+    {Frame, AMQPSession#amqp_session{waiting = Waiting}};
 
-get_message(#amqp_request{type = 'basic.publish', exchange = Exchange,
-                          routing_key = RoutingKey, payload_size = Size,
-                          payload=Payload, persistent = Persistent},
+get_message1(#amqp_request{type = 'basic.publish', channel = Channel,
+                          exchange = Exchange, routing_key = RoutingKey,
+                          payload_size = Size, payload = Payload,
+                          persistent = Persistent},
             #state_rcv{session = AMQPSession}) ->
     Protocol = AMQPSession#amqp_session.protocol,
     MsgPayload = case Payload of
-                     "" ->list_to_binary(ts_utils:urandomstr_noflat(Size));
+                     "" -> list_to_binary(ts_utils:urandomstr_noflat(Size));
                      _ -> list_to_binary(Payload)
                  end,
     Publish = #'basic.publish'{exchange = list_to_binary(Exchange),
@@ -158,20 +186,23 @@ get_message(#amqp_request{type = 'basic.publish', exchange = Exchange,
             Props = #'P_basic'{},
             build_content(Props, MsgPayload)
     end,
-    Frame = assemble_frames(1, Publish, Msg, ?FRAME_MIN_SIZE, Protocol),
-    NewAMQPSession = case AMQPSession#amqp_session.next_pub_seqno of
+    Frame = assemble_frames(Channel, Publish, Msg, ?FRAME_MIN_SIZE, Protocol),
+    ChState = get({chstate, Channel}),
+    NewChState = case ChState#ch.next_pub_seqno of
         0 ->
-            AMQPSession;
+            ChState;
         SeqNo ->
-            USet = AMQPSession#amqp_session.unconfirmed_set,
-            AMQPSession#amqp_session{unconfirmed_set = gb_sets:add(SeqNo, USet),
+            USet = ChState#ch.unconfirmed_set,
+            ChState#ch{unconfirmed_set = gb_sets:add(SeqNo, USet),
                                      next_pub_seqno = SeqNo + 1}
     end,
+    put({chstate, Channel}, NewChState),
     ts_mon:add({count, amqp_published}),
-    {Frame, NewAMQPSession};
+    {Frame, AMQPSession};
 
-get_message(#amqp_request{type = 'basic.consume', queue = Queue, ack = Ack},
-            #state_rcv{session = AMQPSession}) ->
+get_message1(#amqp_request{type = 'basic.consume', channel = Channel,
+                           queue = Queue, ack = Ack},
+             #state_rcv{session = AMQPSession}) ->
     Protocol = AMQPSession#amqp_session.protocol,
 
     NoAck = case Ack of
@@ -179,14 +210,16 @@ get_message(#amqp_request{type = 'basic.consume', queue = Queue, ack = Ack},
         _ -> true
     end,
 
-    ConsumerTag = list_to_binary(["tsung-", ts_utils:urandomstr_noflat(10)]),
+    ConsumerTag = list_to_binary(["tsung-", ts_utils:randombinstr(10)]),
     Sub = #'basic.consume'{queue = list_to_binary(Queue),
-                           consumer_tag = ConsumerTag ,no_ack = NoAck},
-    Frame = assemble_frame(1, Sub, Protocol),
-    NewAMQPSession = AMQPSession#amqp_session{ack = Ack, status = wait_consume},
-    {Frame, NewAMQPSession};
+                           consumer_tag = ConsumerTag, no_ack = NoAck},
+    ChState = get({chstate, Channel}),
+    put({chstate, Channel}, ChState#ch{ack = Ack}),
+    Frame = assemble_frame(Channel, Sub, Protocol),
+    Waiting = {Channel, 'basic.consume_ok'},
+    {Frame, AMQPSession#amqp_session{waiting = Waiting}};
 
-get_message(#amqp_request{type = 'connection.close'},
+get_message1(#amqp_request{type = 'connection.close'},
             #state_rcv{session = AMQPSession}) ->
     Protocol = AMQPSession#amqp_session.protocol,
 
@@ -195,8 +228,8 @@ get_message(#amqp_request{type = 'connection.close'},
                                 class_id   = 0,
                                 method_id  = 0},
     Frame = assemble_frame(0, Close, Protocol),
-    NewAMQPSession = AMQPSession#amqp_session{status = wait_close},
-    {Frame, NewAMQPSession}.
+    Waiting = {0, 'connection.close_ok'},
+    {Frame, AMQPSession#amqp_session{waiting = Waiting}}.
 %%----------------------------------------------------------------------
 %% Function: parse/2
 %% Purpose: parse the response from the server and keep information
@@ -205,112 +238,20 @@ get_message(#amqp_request{type = 'connection.close'},
 %% Returns: {NewState, Options for socket (list), Close = true|false}
 %%----------------------------------------------------------------------
 parse(closed, State) ->
-    {State#state_rcv{ack_done = true, datasize=0}, [], true};
+    {State#state_rcv{ack_done = true, datasize = 0}, [], true};
 %% new response, compute data size (for stats)
-parse(Data, State=#state_rcv{acc = [], datasize= 0}) ->
-    parse(Data, State#state_rcv{datasize= size(Data)});
+parse(Data, State=#state_rcv{acc = [], datasize = 0}) ->
+    parse(Data, State#state_rcv{datasize = size(Data)});
 
 %% handshake stage, parse response, and validate
-parse(Data, State=#state_rcv{acc = [], session = AMQPSession})
-        when AMQPSession#amqp_session.status == wait_start ->
-    Expecting = 'connection.start',
-    do_parse(Data, Expecting, State);
-
-parse(Data, State=#state_rcv{acc = [], session = AMQPSession})
-        when AMQPSession#amqp_session.status == wait_tune ->
-    Expecting = 'connection.tune',
-    do_parse(Data, Expecting, State);
-
-parse(Data, State=#state_rcv{acc = [], session = AMQPSession})
-        when AMQPSession#amqp_session.status == wait_open ->
-    Expecting = 'connection.open_ok',
-    do_parse(Data, Expecting, State);
-
-parse(Data, State=#state_rcv{acc = [], session = AMQPSession})
-        when AMQPSession#amqp_session.status == wait_channel ->
-    Expecting = 'channel.open_ok',
-    PostFun = fun({NewState, Options, Close}) ->
-            NewAMQPSession = AMQPSession#amqp_session{status = connected},
-            NewState1 = NewState#state_rcv{session = NewAMQPSession},
-            ts_mon:add({count, amqp_connected}),
-            {NewState1, Options, Close}
-    end,
-    do_parse(Data, Expecting, State, PostFun);
-
-parse(Data, State=#state_rcv{acc = [], session = AMQPSession})
-        when AMQPSession#amqp_session.status == wait_select ->
-    Expecting = 'confirm.select_ok',
-    PostFun = fun({NewState, Options, Close}) ->
-            NewAMQPSession = AMQPSession#amqp_session{status = select_ok,
-                                                      next_pub_seqno = 1},
-            NewState1 = NewState#state_rcv{acc = [], session = NewAMQPSession},
-            {NewState1, Options, Close}
-    end,
-    do_parse(Data, Expecting, State, PostFun);
-
-parse(Data, State=#state_rcv{acc = [], session = AMQPSession})
-        when AMQPSession#amqp_session.status == wait_qos ->
-    Expecting = 'basic.qos_ok',
-    do_parse(Data, Expecting, State);
-
-parse(Data, State=#state_rcv{acc = [], session = AMQPSession})
-        when AMQPSession#amqp_session.status == wait_confirm ->
-    Expecting = 'basic.ack',
-    PostFun = fun(Result) ->
-            ts_mon:add({count, amqp_confirmed}),
-            Result
-    end,
-    do_parse(Data, Expecting, State, PostFun);
-
-parse(Data, State=#state_rcv{socket = Socket, acc = [], session = AMQPSession})
-        when AMQPSession#amqp_session.status == wait_consume ->
-    Expecting = 'basic.consume_ok',
-    PostFun = fun({NewState, Options, Close}) ->
-            ts_mon:add({count, amqp_consumer}),
-            LeftData = NewState#state_rcv.acc,
-            NewAMQPSession = AMQPSession#amqp_session{status = consume_ok},
-            NewState1 = NewState#state_rcv{acc = [], session = NewAMQPSession},
-            %% trick, trigger the parse_bidi call
-            self() ! {gen_ts_transport, Socket, LeftData},
-            {NewState1, Options, Close}
-    end,
-    do_parse(Data, Expecting, State, PostFun);
-
-parse(Data, State=#state_rcv{acc = [], session = AMQPSession})
-        when AMQPSession#amqp_session.status == wait_close ->
-    Expecting = 'connection.close_ok',
-    PostFun = fun({NewState, Options, _Close}) ->
-            ts_mon:add({count, amqp_closed}),
-            {NewState, Options, true}
-    end,
-    do_parse(Data, Expecting, State, PostFun);
+parse(Data, State=#state_rcv{acc = []}) ->
+    do_parse(Data, State);
 
 %% more data, add this to accumulator and parse, update datasize
 parse(Data, State=#state_rcv{acc = Acc, datasize = DataSize}) ->
     NewSize= DataSize + size(Data),
-    ?DebugF("parse data: ~p ~p~n", [Data, Acc]),
     parse(<< Acc/binary, Data/binary >>,
           State#state_rcv{acc = [], datasize = NewSize}).
-
-do_parse(Data, Expecting, State = #state_rcv{session = AMQPSession}) ->
-    Protocol = AMQPSession#amqp_session.protocol,
-    case decode_and_check(Data, Expecting, State, Protocol) of
-        {ok, _Method, Result} ->
-            Result;
-        {fail, Result} ->
-            Result
-    end.
-do_parse(Data, Expecting, State = #state_rcv{session = AMQPSession}, PostFun) ->
-    Protocol = AMQPSession#amqp_session.protocol,
-    case decode_and_check(Data, Expecting, State, Protocol) of
-        {ok, _Method, Result} ->
-            PostFun(Result);
-        {fail, Result} ->
-            Result
-    end.
-
-plain(none, Username, Password) ->
-    <<0, Username/binary, 0, Password/binary>>.
 
 parse_bidi(<<>>, State=#state_rcv{acc = [], session = AMQPSession}) ->
     AckBuf = AMQPSession#amqp_session.ack_buf,
@@ -318,6 +259,7 @@ parse_bidi(<<>>, State=#state_rcv{acc = [], session = AMQPSession}) ->
     ?DebugF("ack buf: ~p~n", [AckBuf]),
     {confirm_ack_buf(AckBuf), State#state_rcv{session = NewAMQPSession}};
 parse_bidi(Data, State=#state_rcv{acc = [], session = AMQPSession}) ->
+    ?DebugF("parse bidi data: ~p ~p~n", [size(Data), Data]),
     Protocol = AMQPSession#amqp_session.protocol,
     AckBuf = AMQPSession#amqp_session.ack_buf,
     case decode_frame(Protocol, Data) of
@@ -330,15 +272,11 @@ parse_bidi(Data, State=#state_rcv{acc = [], session = AMQPSession}) ->
             NewAckBuf = <<AckBuf/binary, HB/binary>>, 
             NewAMQPSession = AMQPSession#amqp_session{ack_buf = NewAckBuf},
             parse_bidi(Left, State#state_rcv{session = NewAMQPSession});
-        {ok, none, Left} ->
+        {ok, _, none, Left} ->
             parse_bidi(Left, State);
-        {ok, Method, Left} ->
-            ?DebugF("receive bidi: ~p~n", [Method]),
-            NewAMQPSession = should_ack(AckBuf, Method, AMQPSession),
-            parse_bidi(Left, State#state_rcv{session = NewAMQPSession});
-        {ok, Method, _Content, Left} ->
-            ?DebugF("receive bidi: ~p ~p~n", [Method, _Content]),
-            NewAMQPSession = should_ack(AckBuf, Method, AMQPSession),
+        {ok, Channel, Method, Left} ->
+            ?DebugF("receive bidi: ~p ~p~n", [Channel, Method]),
+            NewAMQPSession = should_ack(Channel, AckBuf, Method, AMQPSession),
             parse_bidi(Left, State#state_rcv{session = NewAMQPSession});
         {incomplete, Left} ->
             ?DebugF("incomplete frame: ~p~n", [Left]),
@@ -346,8 +284,8 @@ parse_bidi(Data, State=#state_rcv{acc = [], session = AMQPSession}) ->
     end;
 parse_bidi(Data, State=#state_rcv{acc = Acc, datasize = DataSize,
                                   session = AMQPSession}) ->
-    NewSize= DataSize + size(Data),
-    ?DebugF("parse bidi data: ~p ~p~n", [Data, Acc]),
+    NewSize = DataSize + size(Data),
+    ?DebugF("parse bidi data: ~p ~p~n", [NewSize, Data, Acc]),
     parse_bidi(<<Acc/binary, Data/binary>>,
                State#state_rcv{acc = [], datasize = NewSize, session =
                                AMQPSession#amqp_session{ack_buf = <<>>}}).
@@ -367,55 +305,170 @@ parse_config(Element, Conf) ->
 %%----------------------------------------------------------------------
 add_dynparams(false, {_DynVars, _Session}, Param, _HostData) ->
     Param;
-
-add_dynparams(true, {DynVars, _Session}, Req=#amqp_request{payload=Payload}, _HostData) ->
-    SubstPayload=ts_search:subst(Payload, DynVars),
-    Req#amqp_request{payload=SubstPayload}.
+add_dynparams(true, {DynVars, _Session},
+              Req = #amqp_request{channel = Channel, payload = Payload},
+              _HostData) ->
+    SubstChannel = ts_search:subst(Channel, DynVars),
+    SubstPayload = ts_search:subst(Payload, DynVars),
+    Req#amqp_request{channel = SubstChannel, payload = SubstPayload}.
 
 %%----------------------------------------------------------------------
+plain(none, Username, Password) ->
+    <<0, Username/binary, 0, Password/binary>>.
+
+do_parse(Data, State = #state_rcv{session = AMQPSession}) ->
+    ?DebugF("start do_parse: ~p ~n", [Data]),
+    Protocol = AMQPSession#amqp_session.protocol,
+    Waiting = AMQPSession#amqp_session.waiting,
+    case decode_and_check(Data, Waiting, State, Protocol) of
+        {ok, _Method, Result} ->
+            Result;
+        {fail, Result} ->
+            Result
+    end.
+
+get_post_fun(_Channel, 'connection.open_ok') ->
+    fun({NewState, Options, Close}) ->
+            AMQPSession = NewState#state_rcv.session,
+            NewAMQPSession = AMQPSession#amqp_session{status = connected},
+            NewState1 = NewState#state_rcv{session = NewAMQPSession},
+            ts_mon:add({count, amqp_connected}),
+            {NewState1, Options, Close}
+    end;
+
+get_post_fun(_Channel, 'channel.open_ok') ->
+    fun({NewState, Options, Close}) ->
+            ts_mon:add({count, amqp_channel_opened}),
+            {NewState, Options, Close}
+    end;
+
+get_post_fun(_Channel, 'channel.close_ok') ->
+    fun({NewState, Options, Close}) ->
+            ts_mon:add({count, amqp_channel_closed}),
+            {NewState, Options, Close}
+    end;
+
+get_post_fun(Channel, 'confirm.select_ok') ->
+    fun({NewState, Options, Close}) ->
+            ChState = get({chstate, Channel}),
+            NewChState = ChState#ch{next_pub_seqno = 1},
+            put({chstate, Channel}, NewChState),
+            NewState1 = NewState#state_rcv{acc = []},
+            {NewState1, Options, Close}
+    end;
+
+get_post_fun(_Channel, 'basic.consume_ok') ->
+    fun({NewState, Options, Close}) ->
+            AMQPSession = NewState#state_rcv.session,
+            Socket = NewState#state_rcv.socket,
+            ts_mon:add({count, amqp_consumer}),
+            LeftData = NewState#state_rcv.acc,
+            NewAMQPSession = AMQPSession#amqp_session{waiting = none},
+            NewState1 = NewState#state_rcv{acc = [], session = NewAMQPSession},
+            case LeftData of
+                <<>> -> ok;
+                %% trick, trigger the parse_bidi call
+                _ -> self() ! {gen_ts_transport, Socket, LeftData}
+            end,
+            {NewState1, Options, Close}
+    end;
+
+get_post_fun(_Channel, 'connection.close_ok') ->
+    fun({NewState, Options, _Close}) ->
+            ts_mon:add({count, amqp_closed}),
+            {NewState, Options, true}
+    end;
+
+get_post_fun(_Channel, _) ->
+    fun({NewState, Options, Close}) ->
+            AMQPSession = NewState#state_rcv.session,
+            NewAMQPSession = AMQPSession#amqp_session{waiting = none},
+            NewState1 = NewState#state_rcv{session = NewAMQPSession},
+            {NewState1, Options, Close}
+    end.
+
+new_number(0, #amqp_session{channel_max = ChannelMax,
+                               map_num_pa = MapNPA}) ->
+    case gb_trees:is_empty(MapNPA) of
+        true  -> {ok, 1};
+        false -> {Smallest, _} = gb_trees:smallest(MapNPA),
+                 if Smallest > 1 ->
+                        {ok, Smallest - 1};
+                    true ->
+                        {Largest, _} = gb_trees:largest(MapNPA),
+                        if Largest < ChannelMax -> {ok, Largest + 1};
+                           true                 -> find_free(MapNPA)
+                        end
+                 end
+    end;
+new_number(Proposed, Session = #amqp_session{channel_max = ChannelMax,
+                                             map_num_pa  = MapNPA}) ->
+    IsValid = Proposed > 0 andalso Proposed =< ChannelMax andalso
+        not gb_trees:is_defined(Proposed, MapNPA),
+    case IsValid of true  -> {ok, Proposed};
+                    false -> new_number(none, Session)
+    end.
+
+find_free(MapNPA) ->
+    find_free(gb_trees:iterator(MapNPA), 1).
+
+find_free(It, Candidate) ->
+    case gb_trees:next(It) of
+        {Number, _, It1} -> if Number > Candidate ->
+                                   {ok, Number - 1};
+                               Number =:= Candidate ->
+                                   find_free(It1, Candidate + 1)
+                            end;
+        none             -> {error, out_of_channel_numbers}
+    end.
+
 confirm_ack_buf(AckBuf) ->
     case AckBuf of
         <<>> -> nodata;
         _ -> AckBuf
     end.
 
-should_ack(AckBuf, #'basic.deliver'{delivery_tag = DeliveryTag},
-           AMQPSession = #amqp_session{ack = true, protocol = Protocol}) ->
-    ?DebugF("delivered: ~p ~n", [ack]),
-    Ack = #'basic.ack'{delivery_tag = DeliveryTag},
-    Frame = assemble_frame(1, Ack, Protocol),
-    ts_mon:add({count, amqp_delivered}),
-    NewAckBuf = case AckBuf of
-        nodata -> Frame;
-        _ -> <<AckBuf/binary, Frame/binary>>
-    end,
-    AMQPSession#amqp_session{ack_buf = NewAckBuf};
-should_ack(AckBuf, #'basic.deliver'{}, AMQPSession) ->
-    ?DebugF("delivered: ~p ~n", [noack]),
-    ts_mon:add({count, amqp_delivered}),
-    AMQPSession#amqp_session{ack_buf = AckBuf};
-should_ack(AckBuf, Method = #'basic.ack'{}, AMQPSession) ->
+should_ack(Channel, AckBuf, #'basic.deliver'{delivery_tag = DeliveryTag},
+           AMQPSession = #amqp_session{protocol = Protocol}) ->
+    ChState = get({chstate, Channel}),
+    case ChState#ch.ack of
+        true ->
+            ?DebugF("delivered: ~p ~n", [ack]),
+            Ack = #'basic.ack'{delivery_tag = DeliveryTag},
+            Frame = assemble_frame(Channel, Ack, Protocol),
+            ts_mon:add({count, amqp_delivered}),
+            NewAckBuf = case AckBuf of
+                nodata -> Frame;
+                _ -> <<AckBuf/binary, Frame/binary>>
+            end,
+            AMQPSession#amqp_session{ack_buf = NewAckBuf};
+        false ->
+            ?DebugF("delivered: ~p ~n", [noack]),
+            ts_mon:add({count, amqp_delivered}),
+            AMQPSession#amqp_session{ack_buf = AckBuf}
+    end;
+should_ack(Channel, AckBuf, Method = #'basic.ack'{}, AMQPSession) ->
     ?DebugF("publish confirm: ~p ~n", [ack]),
-    NewAMQPSession = update_confirm_set(Method, AMQPSession),
-    NewAMQPSession#amqp_session{ack_buf = AckBuf};
-should_ack(AckBuf, Method = #'basic.nack'{}, AMQPSession) ->
+    update_confirm_set(Channel, Method),
+    AMQPSession#amqp_session{ack_buf = AckBuf};
+should_ack(Channel, AckBuf, Method = #'basic.nack'{}, AMQPSession) ->
     ?DebugF("publish confirm: ~p ~n", [nack]),
-    NewAMQPSession = update_confirm_set(Method, AMQPSession),
-    NewAMQPSession#amqp_session{ack_buf = AckBuf};
-should_ack(AckBuf, _Method, AMQPSession) ->
+    update_confirm_set(Channel, Method),
+    AMQPSession#amqp_session{ack_buf = AckBuf};
+should_ack(_Channel, AckBuf, _Method, AMQPSession) ->
     ?DebugF("delivered: ~p ~n", [other]),
     AMQPSession#amqp_session{ack_buf = AckBuf}.
 
-update_confirm_set(#'basic.ack'{delivery_tag = SeqNo,
-                                multiple     = Multiple},
-                   AMQPSession = #amqp_session{unconfirmed_set = USet}) ->
-    AMQPSession#amqp_session{unconfirmed_set =
-                             update_unconfirmed(ack, SeqNo, Multiple, USet)};
-update_confirm_set(#'basic.nack'{delivery_tag = SeqNo,
-                                 multiple     = Multiple},
-                   AMQPSession = #amqp_session{unconfirmed_set = USet}) ->
-    AMQPSession#amqp_session{unconfirmed_set =
-                update_unconfirmed(nack, SeqNo, Multiple, USet)}.
+update_confirm_set(Channel, #'basic.ack'{delivery_tag = SeqNo, multiple = Multiple}) ->
+    ChState = get({chstate, Channel}),
+    USet = ChState#ch.unconfirmed_set,
+    USet1 = update_unconfirmed(ack, SeqNo, Multiple, USet),
+    put({chstate, Channel}, ChState#ch{unconfirmed_set = USet1});
+update_confirm_set(Channel, #'basic.nack'{delivery_tag = SeqNo, multiple = Multiple}) ->
+    ChState = get({chstate, Channel}),
+    USet = ChState#ch.unconfirmed_set,
+    USet1 = update_unconfirmed(nack, SeqNo, Multiple, USet),
+    put({chstate, Channel}, ChState#ch{unconfirmed_set = USet1}).
 
 update_unconfirmed(AckType, SeqNo, false, USet) ->
     add_ack_stat(AckType),
@@ -472,7 +525,7 @@ build_content(Properties, PFR) ->
              protocol = none,
              payload_fragments_rev = PFR}.
 
-decode_and_check(Data, Expecting, State, Protocol) ->
+decode_and_check(Data, Waiting, State, Protocol) ->
     case decode_frame(Protocol, Data) of
         {error, _Reason} ->
             ?DebugF("decode error: ~p~n", [_Reason]),
@@ -481,27 +534,41 @@ decode_and_check(Data, Expecting, State, Protocol) ->
         {ok, heartbeat, Left} ->
             {ok, heartbeat, {State#state_rcv{ack_done = false, acc = Left},
                              [], true}};
-        {ok, Method, Left} ->
-            check(Expecting, Method, State, Left);
-        {ok, Method, _Content, Left} ->
-            check(Expecting, Method, State, Left);
+        {ok, Channel, Method, Left} ->
+            check(Channel, Waiting, Method, State, Left);
         {incomplete, Left} ->
             ?DebugF("incomplete frame: ~p~n", [Left]),
             {fail, {State#state_rcv{ack_done = false, acc = Left}, [], false}}
     end.
 
-check(Expecting, Method, State, Left) ->
+check(Channel, {Channel, Expecting}, Method, State, Left) ->
     ?DebugF("receive from server: ~p~n", [Method]),
     case {Expecting, element(1, Method)} of
         {E, M} when E =:= M ->
+            PostFun = get_post_fun(Channel, Expecting),
             {ok, Method,
-             {State#state_rcv{ack_done = true, acc = Left}, [], false}};
+             PostFun({State#state_rcv{ack_done = true, acc = Left}, [], false})};
         _ ->
-            ts_mon:add({count, amqp_unexpedted}),
+            ts_mon:add({count, amqp_unexpected}),
             ?DebugF("unexpected_method: ~p, expecting ~p~n",
                     [Method, Expecting]),
             {fail, {State#state_rcv{ack_done = true}, [], true}}
-    end.
+    end;
+check(Channel, Waiting = {WaitingCh, Expecting}, Method = #'basic.deliver'{},
+      State = #state_rcv{session = AMQPSession}, Left) ->
+    ?LOGF("waiting on ~p, expecting ~p, but receive deliver on ~p ~p~n",
+          [WaitingCh, Expecting, Channel, Method], ?NOTICE),
+    AckBuf = AMQPSession#amqp_session.ack_buf,
+    NewAMQPSession = should_ack(Channel, AckBuf, Method, AMQPSession),
+    Protocol = AMQPSession#amqp_session.protocol,
+    decode_and_check(Left, Waiting,
+                     State#state_rcv{session = NewAMQPSession}, Protocol);
+check(Channel, Waiting = {WaitingCh, Expecting}, Method,
+      State = #state_rcv{session = AMQPSession}, Left) ->
+    ?LOGF("waiting on ~p, but received on ~p, expecting: ~p, actual: ~p~n",
+          [WaitingCh, Channel, Expecting, Method], ?NOTICE),
+    Protocol = AMQPSession#amqp_session.protocol,
+    decode_and_check(Left, Waiting, State, Protocol).
 
 decode_frame(Protocol, <<Type:8, Channel:16, Length:32, Body/binary>>)
         when size(Body) > Length ->
@@ -519,18 +586,20 @@ process_frame(Frame, Channel, Protocol, Left) ->
             InitAState;
         AState1-> AState1
     end,
-    process_channel_frame(Frame, Channel, AState, Left).
+    case process_channel_frame(Frame, AState, Left) of
+        {ok, Method, NewAState, Left} ->
+            put({channel, Channel}, NewAState),
+            {ok, Channel, Method, Left};
+        Other -> Other
+    end.
 
-process_channel_frame(Frame, Channel, AState, Left) ->
+process_channel_frame(Frame, AState, Left) ->
     case rabbit_command_assembler:process(Frame, AState) of
         {ok, NewAState} ->
-            put({channel, Channel}, NewAState),
-            {ok, none, Left};
+            {ok, none, NewAState, Left};
         {ok, Method, NewAState} ->
-            put({channel, Channel}, NewAState),
-            {ok, Method, Left};
-        {ok, Method, Content, NewAState} ->
-            put({channel, Channel}, NewAState),
-            {ok, Method, Content, Left};
+            {ok, Method, NewAState, Left};
+        {ok, Method, _Content, NewAState} ->
+            {ok, Method, NewAState, Left};
         {error, Reason} -> {error, Reason}
     end.

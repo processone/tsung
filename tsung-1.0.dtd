@@ -355,6 +355,7 @@ repeat | if | change_type | foreach | set_option | interaction )*>
 <!ATTLIST amqp 
     type CDATA #REQUIRED
     vhost CDATA "/"
+    channel CDATA "-1"
     exchange CDATA ""
     routing_key CDATA ""
     payload CDATA ""
@@ -363,6 +364,7 @@ repeat | if | change_type | foreach | set_option | interaction )*>
     prefetch_count CDATA "0"
     persistent CDATA "false"
     queue CDATA ""
+    timeout CDATA "1"
     ack CDATA "false" >
 
 <!ELEMENT modification (attr*) >
