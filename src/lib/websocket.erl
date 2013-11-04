@@ -55,13 +55,15 @@ get_handshake(Host, Path, SubProtocol, Version) ->
 check_handshake(Response, Accept) ->
     ?DebugF("check handshake, response is : ~p~n",[Response]),
     [HeaderPart, _] = binary:split(Response, <<"\r\n\r\n">>),
-    Headers = binary:split(HeaderPart, <<"\r\n">>, [global, trim]),
+    [StatusLine | Headers] = binary:split(HeaderPart, <<"\r\n">>, [global, trim]),
 
-    MapFun = fun(HeaderLine = <<"HTTP/1.1", _/binary>>, Acc) ->
-            {Prefix, _} = split_binary(HeaderLine, 12),
-            [_, Code] = binary:split(Prefix, <<" ">>),
-            dict:store("status", binary_to_list(Code), Acc);
-        (HeaderLine, Acc) ->
+    Map = dict:new(),
+    {Prefix, _} = split_binary(StatusLine, 12),
+    [Version, Code] = binary:split(Prefix, <<" ">>),
+    Map1 = dict:store("version", string:to_lower(binary_to_list(Version)), Map),
+    Map2 = dict:store("status", binary_to_list(Code), Map1),
+
+    MapFun = fun(HeaderLine, Acc) ->
             [Header, Value] = binary:split(HeaderLine, <<": ">>),
             HeaderStr = string:to_lower(binary_to_list(Header)),
             ValueStr = case HeaderStr of
@@ -71,8 +73,9 @@ check_handshake(Response, Accept) ->
             dict:store(HeaderStr, ValueStr, Acc)
     end,
 
-    HeaderMap = lists:foldl(MapFun, dict:new(), Headers),
-    RequiredHeaders = [{"Status", "101"},
+    HeaderMap = lists:foldl(MapFun, Map2, Headers),
+    RequiredHeaders = [{"Version", "HTTP/1.1"},
+                       {"Status", "101"},
                        {"Upgrade", "websocket"},
                        {"Connection", "Upgrade"},
                        {"Sec-WebSocket-Accept", Accept}],

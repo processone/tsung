@@ -80,7 +80,14 @@ handshake_test() ->
                  "Upgrade: websocket\r\n",
                  "Connection: Upgrade\r\n\r\n"],
     ?assertEqual({error, {miss_headers, "Sec-WebSocket-Accept"}},
-                 websocket:check_handshake(list_to_binary(Response8), Accept)).
+                 websocket:check_handshake(list_to_binary(Response8), Accept)),
+
+    Response9 = ["HTTP/1.0 101 Switching Protocols\r\n",
+                 "Upgrade: websocket\r\n",
+                 "Connection: Upgrade\r\n",
+                 "Sec-WebSocket-Accept: " ++ Accept ++ "\r\n\r\n"],
+    ?assertEqual({error, {mismatch, "Version", "HTTP/1.1", "http/1.0"}},
+                 websocket:check_handshake(list_to_binary(Response9), Accept)).
 
 decode_test() ->
     Data1 = <<16#81,16#05,16#48,16#65,16#6c,16#6c,16#6f>>,
