@@ -100,6 +100,7 @@ get_message(#mqtt_request{type = disconnect},
     PingPid = MqttSession#mqtt_session.ping_pid,
     PingPid ! stop,
     Message = #mqtt{type = ?DISCONNECT},
+    ts_mon:add({count, mqtt_disconnected}),
     {mqtt_frame:encode(Message),
      MqttSession#mqtt_session{wait = none, status = disconnect}};
 get_message(#mqtt_request{type = publish, topic = Topic, qos = Qos,
