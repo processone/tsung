@@ -231,9 +231,8 @@ encode_message(#mqtt{type = ?CONNECT, arg = Options}) ->
   end,
   {WillFlag, WillQoS, WillRetain, PayloadList} = case Options#connect_options.will of
     {will, WillTopic, WillMessage, WillOptions} ->
-      O = set_publish_options(WillOptions),
       {
-        1, O#publish_options.qos, O#publish_options.retain,
+        1, WillOptions#publish_options.qos, WillOptions#publish_options.retain,
         [encode_string(Options#connect_options.client_id), encode_string(WillTopic), encode_string(WillMessage)]
       };
     undefined ->

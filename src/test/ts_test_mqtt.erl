@@ -28,15 +28,27 @@
 
 encode_connect_test() ->
     ClientId = "tsung-test-id",
+    PublishOptions = mqtt_frame:set_publish_options([{qos, 0},
+                                                     {retain, false}]),
+    Will = #will{topic = "will_topic", message = "will_message",
+                 publish_options = PublishOptions},
+
     Options = mqtt_frame:set_connect_options([{client_id, ClientId},
                                               {clean_start, true},
-                                              {keepalive, 10}]),
+                                              {keepalive, 10},
+                                              Will]),
     Message = #mqtt{type = ?CONNECT, arg = Options},
     EncodedData = mqtt_frame:encode(Message),
-    ?assertEqual(<<16,27,0,6,77,81,73,115,100,112,3,2,0,10,0,13,116,115,117,110,103,45,116,101,115,116,45,105,100>>, EncodedData).
+    ?assertEqual(<<16,53,0,6,77,81,73,115,100,112,3,6,0,10,0,13,116,115,117,110,
+                   103,45,116,101,115,116,45,105,100,0,10,119,105,108,108,95,
+                   116,111,112,105,99,0,12,119,105,108,108,95,109,101,115,115,
+                   97,103,101>>, EncodedData).
 
 decode_connect_test() ->
-    Data = <<16,27,0,6,77,81,73,115,100,112,3,2,0,10,0,13,116,115,117,110,103,45,116,101,115,116,45,105,100>>,
+    Data = <<16,53,0,6,77,81,73,115,100,112,3,6,0,10,0,13,116,115,117,110,
+             103,45,116,101,115,116,45,105,100,0,10,119,105,108,108,95,
+             116,111,112,105,99,0,12,119,105,108,108,95,109,101,115,115,
+             97,103,101>>,
     {#mqtt{type = Type}, Left} = mqtt_frame:decode(Data),
     ?assertEqual(<<>>, Left),
     ?assertEqual(?CONNECT, Type).

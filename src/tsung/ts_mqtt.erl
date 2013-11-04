@@ -78,12 +78,20 @@ dump(A, B) ->
 %% Returns: binary
 %%----------------------------------------------------------------------
 get_message(#mqtt_request{type = connect, clean_start = CleanStart,
-                          keepalive = KeepAlive},
+                          keepalive = KeepAlive, will_topic = WillTopic,
+                          will_qos = WillQos, will_msg = WillMsg,
+                          will_retain = WillRetain},
             #state_rcv{session = MqttSession}) ->
     ClientId = ["tsung-", ts_utils:randombinstr(10)],
+    PublishOptions = mqtt_frame:set_publish_options([{qos, WillQos},
+                                                     {retain, WillRetain}]),
+    Will = #will{topic = WillTopic, message = WillMsg,
+                 publish_options = PublishOptions},
+
     Options = mqtt_frame:set_connect_options([{client_id, ClientId},
                                               {clean_start, CleanStart},
-                                              {keepalive, KeepAlive}]),
+                                              {keepalive, KeepAlive},
+                                              Will]),
     Message = #mqtt{type = ?CONNECT, arg = Options},
     {mqtt_frame:encode(Message),
      MqttSession#mqtt_session{wait = ?CONNACK, keepalive = KeepAlive}};

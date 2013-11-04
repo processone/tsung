@@ -31,6 +31,10 @@
           type,
           clean_start = true,
           keepalive = 10, % 10s
+          will_topic,
+          will_qos,
+          will_msg,
+          will_retain,
           topic,
           qos = 0,
           retained = false,

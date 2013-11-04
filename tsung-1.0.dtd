@@ -372,6 +372,10 @@ repeat | if | change_type | foreach | set_option | interaction )*>
     type CDATA #REQUIRED
     clean_start CDATA "false"
     keepalive CDATA "10"
+    will_topic CDATA ""
+    will_qos CDATA "0"
+    will_msg CDATA ""
+    will_retain CDATA "false"
     topic CDATA ""
     qos CDATA "0"
     retained CDATA "false"
