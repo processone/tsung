@@ -1,6 +1,6 @@
-%%%  This code was developped by IDEALX (http://IDEALX.org/) and
-%%%  contributors (their names can be found in the CONTRIBUTORS file).
-%%%  Copyright (C) 2000-2001 IDEALX
+%%%  This code was developped by Zhihui Jiao(jzhihui521@gmail.com).
+%%%
+%%%  Copyright (C) 2013 Zhihui Jiao
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
 %%%  it under the terms of the GNU General Public License as published by

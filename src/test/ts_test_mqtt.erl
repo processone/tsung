@@ -1,4 +1,6 @@
-%%%	 Author: Zhihui Jiao <jzhihui521@gmail.com>
+%%%  This code was developped by Zhihui Jiao(jzhihui521@gmail.com).
+%%%
+%%%  Copyright (C) 2013 Zhihui Jiao
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
 %%%  it under the terms of the GNU General Public License as published by
@@ -14,6 +16,11 @@
 %%%  along with this program; if not, write to the Free Software
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 %%%
+%%%  In addition, as a special exception, you have the permission to
+%%%  link the code of this program with any library released under
+%%%  the EPL license and distribute linked combinations including
+%%%  the two; the MPL (Mozilla Public License), which EPL (Erlang
+%%%  Public License) is based on, is included in this exception.
 
 -module(ts_test_mqtt).
 -vc('$Id$ ').
