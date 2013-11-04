@@ -19,7 +19,7 @@
     <sessions>
         <session name="mqtt_publisher" probability="100" type="ts_mqtt">
             <request>
-                <mqtt type="connect" clean_start="true" keepalive="10"></mqtt>
+                <mqtt type="connect" clean_start="true" keepalive="10" will_topic="will_topic" will_qos="0" will_msg="will_msg" will_retain="false"></mqtt>
             </request>
 
             <for from="1" to="10" incr="1" var="loops">
