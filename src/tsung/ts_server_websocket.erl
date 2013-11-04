@@ -75,8 +75,7 @@ connect(Host, Port, Opts) ->
 loop(#state{socket = Socket, host = Host, path = Path,
             version = Version, subprotos = SubProtocol,
             state = not_connected} = State)->
-    {Handshake, Accept} = websocket:handshake_request(Host, Path,
-                                                      SubProtocol, Version),
+    {Handshake, Accept} = websocket:get_handshake(Host, Path, SubProtocol, Version),
     gen_tcp:send(Socket, Handshake),
     loop(State#state{socket = Socket, accept = Accept,
                      state = waiting_handshake});
@@ -118,21 +117,16 @@ loop(#state{parent = Parent, socket = Socket, state = connected, buffer = Buffer
             inet:setopts(Socket, Opts),
             loop(State);
         {tcp, Socket, Data}->
-            DecodeResult = websocket:decode(<<Buffer/binary, Data/binary>>),
-            case DecodeResult of
-                {incomplete, Left} ->
-                    ?DebugF("receive incomplete from server: ~p~n", [Left]),
-                    loop(State#state{buffer = <<Buffer/binary, Left/binary>>});
-                {close, _Reason} ->
+            case websocket:decode(<<Buffer/binary, Data/binary>>) of
+                more ->
+                    ?DebugF("receive incomplete from server: ~p~n", [Data]),
+                    loop(State#state{buffer = <<Buffer/binary, Data/binary>>});
+                {?OP_CLOSE, _Reason, _} ->
                     ?DebugF("receive close from server: ~p~n", [_Reason]),
                     Parent ! {gen_ts_transport, self(), closed};
-                {Result, none} ->
-                    ?DebugF("receive from server: ~p~n", [Result]),
-                    Parent ! {gen_ts_transport, self(), Result},
-                    loop(State#state{buffer = <<>>});
-                {Result, Left} ->
-                    ?DebugF("receive from server: ~p~n", [Result]),
-                    Parent ! {gen_ts_transport, self(), Result},
+                {_Opcode, Payload, Left} ->
+                    ?DebugF("receive from server: ~p ~p~n", [_Opcode, Payload]),
+                    Parent ! {gen_ts_transport, self(), Payload},
                     loop(State#state{buffer = Left})
             end;
         {tcp_closed, Socket}->

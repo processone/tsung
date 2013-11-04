@@ -45,13 +45,6 @@
           accept  % Sec-Websocket-Accept header value
          }).
 
--record(ws_http, {
-          status,
-          accept,
-          headers=[],
-          close
-         }).
-
 %% opcode of websocket
 -define(OP_CONT, 0).
 -define(OP_TEXT, 1).
