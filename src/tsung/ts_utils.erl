@@ -204,7 +204,7 @@ add_time({MSec, Seconds, MicroSec}, SecToAdd) when is_integer(SecToAdd)->
     NewSec = Seconds +SecToAdd,
     case NewSec < 1000000 of
         true -> {MSec, NewSec, MicroSec};
-        false ->{MSec+ (NewSec div 100000), NewSec-1000000, MicroSec}
+        false ->{MSec+ (NewSec div 1000000), NewSec-1000000, MicroSec}
     end.
 
 node_to_hostname(Node) ->
