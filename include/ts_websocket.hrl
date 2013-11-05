@@ -1,6 +1,6 @@
-%%%  This code was developped by IDEALX (http://IDEALX.org/) and
-%%%  contributors (their names can be found in the CONTRIBUTORS file).
-%%%  Copyright (C) 2000-2001 IDEALX
+%%%  This code was developped by Zhihui Jiao(jzhihui521@gmail.com).
+%%%
+%%%  Copyright (C) 2013 Zhihui Jiao
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
 %%%  it under the terms of the GNU General Public License as published by
@@ -21,7 +21,6 @@
 %%%  the EPL license and distribute linked combinations including
 %%%  the two; the MPL (Mozilla Public License), which EPL (Erlang
 %%%  Public License) is based on, is included in this exception.
-
 
 -vc('$Id$ ').
 -author('jzhihui521@gmail.com').
