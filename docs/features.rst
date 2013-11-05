@@ -134,7 +134,11 @@ This plugin is experimental. It works only with MySQL version 4.1 and higher.
 Websocket related features
 ==========================
 
-This plugin is experimental. It only support :RFC:`6455` currently.
+This plugin is experimental. It only supports :RFC:`6455` currently.
+For used as a server type, it works like other transport protocol like
+tcp and udp, any application specific protocol data can be send on it.
+
+You can find examples used as session type in examples/websocket.xml.
 
 * Both as a server type and session type
 
@@ -142,25 +146,37 @@ This plugin is experimental. It only support :RFC:`6455` currently.
 AMQP related features
 =====================
 
-This plugin is experimental. It only support AMQP-0.9.1 currently. You
-can find examples in doc/amqp.xml.
+This plugin is experimental. It only supports AMQP-0.9.1 currently.
+You can find examples in examples/amqp.xml.
 
-* basic publish and consume
+* Basic publish and consume
 
-* publisher confirm and consumer ack
+* Publisher confirm and consumer ack
 
-* qos
+* QoS
 
+MQTT related features
+=====================
 
+This plugin is experimental. It supports MQTT V3.1.
+You can find examples in examples/mqtt.xml.
+
+* Connect to mqtt broker with options
+
+* Publish mqtt messages to the broker
+
+* Subscribe/unsubscribe topics
+
+* Support QoS 0 and QoS 1
 
 LDAP related features
 =====================
 
-* bind
+* Bind
 
-* add, modify and search queries
+* Add, modify and search queries
 
-* starttls
+* Starttls
 
 Complete reports set
 ====================
