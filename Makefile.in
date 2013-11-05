@@ -116,10 +116,10 @@ CONFFILE_SRC = $(wildcard examples/*.xml.in)
 CONFFILE = $(basename $(CONFFILE_SRC))
 TEST_CONFFILE_SRC = $(wildcard src/test/*.xml.in)
 TEST_CONFFILE = $(basename $(TEST_CONFFILE_SRC))
-USERMANUAL = doc/user_manual.html  doc/IDXDOC.css
-USERMANUAL_IMG = $(wildcard doc/images/*.png)
-USERMANUAL_SRC = doc/user_manual.tex
-MANPAGES   = $(wildcard doc/*.1)
+USERMANUAL = docs/_build/latex/Tsung.pdf
+USERMANUAL_IMG = $(wildcard docs/images/*.png)
+USERMANUAL_SRC = $(wildcard docs/*.rst docs/*.txt)
+MANPAGES   = $(wildcard man/*.1)
 PERL_SCRIPTS_SRC = $(wildcard $(ESRC)/*.pl.in)
 PERL_SCRIPTS = $(basename $(PERL_SCRIPTS_SRC))
 
@@ -257,7 +257,7 @@ install: doc boot install_recorder install_controller $(CONFFILE)
 	install -m 0644 $(MANPAGES) $(DESTDIR)$(MAN_DIR)
 	install -d $(DESTDIR)$(DOC_DIR)/images
 	install -m 0644 $(USERMANUAL) $(DESTDIR)$(DOC_DIR)
-	install -m 0644 $(USERMANUAL_IMG) $(DESTDIR)$(DOC_DIR)/images
+#	install -m 0644 $(USERMANUAL_IMG) $(DESTDIR)$(DOC_DIR)/images
 
 # create startup script
 	install -m 0755 tsung.sh $(DESTDIR)$(SCRIPT)
@@ -397,7 +397,8 @@ configure: configure.in $(CONFIGURE_DEPENDENCIES)
 	@autoconf
 
 doc:
-	$(MAKE) -C doc
+	$(MAKE) -C docs latexpdf
+	$(MAKE) -C man man
 
 
 release: Makefile tsung.spec doc
@@ -407,7 +408,8 @@ release: Makefile tsung.spec doc
 		$(CONTROLLER_SRC) $(CONTROLLER_SRC_APPFILES_IN) $(TESTSRC) \
 		$(RECORDER_SRC_APPFILES_IN) \
 		$(RECORDER_SRC) $(RECORDER_SRC_APPFILES) $(TEMPLATES) \
-		doc/*.erl doc/*.txt doc/*.dia doc/*.png doc/Makefile doc/*.sgml doc/*.1 \
+		man/*.erl man/*.txt man/*.dia man/*.png man/Makefile man/*.sgml man/*.1 \
+		docs/*.rst docs/Makefile docs/*.txt docs/README docs/*.py docs/_static docs/_templates \
 		$(USERMANUAL) $(USERMANUAL_SRC) $(USERMANUAL_IMG) $(DTD) \
 		COPYING README LISEZMOI TODO $(CONFFILE_SRC) $(TEST_CONFFILE_SRC) \
 		priv/builder.erl tsung.sh.in vsn.mk  src/test/*.csv src/test/*.txt \

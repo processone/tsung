@@ -16,7 +16,7 @@ Packager: Nicolas Niclausse <nicolas@niclux.org>
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires: erlang
+BuildRequires: erlang doxygen-latex python-sphinx texlive-titlesec texlive-framed texlive-threeparttable texlive-wrapfig
 
 Requires: erlang
 Requires: perl(Template)
