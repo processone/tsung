@@ -969,7 +969,7 @@ LDAP Setup
 
 For this example we are going to use a simple repository with the following hierarchy:
 
-.. figure:: ../doc/images/ldap-hierarchy.png
+.. figure:: ./images/ldap-hierarchy.png
 
   LDAP hierarchy
 
@@ -1050,7 +1050,7 @@ counters: ``ldap_bind_ok`` and ``ldap_bind_error``,
 that counts successful and unsuccessful bind attempts.
 
 .. _fig-ldap-results-label:
-.. figure:: ../doc/images/ldap-results.png
+.. figure:: ./images/ldap-results.png
 
   LDAP Results
 
