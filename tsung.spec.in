@@ -45,7 +45,7 @@ make %{?_smp_mflags}
 rm -rf $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
 
-install -p -m 644 CHANGES CONTRIBUTORS COPYING README TODO \
+install -p -m 644 CHANGES CONTRIBUTORS COPYING README.md TODO \
     $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/
 
 %clean
