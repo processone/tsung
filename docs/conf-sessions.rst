@@ -834,6 +834,7 @@ Available request types:
 Example with AMQP as a session type:
 
 .. code-block:: xml
+
     <session probability="100" name="amqp-example" type="ts_amqp" bidi="true">
         <request>
             <amqp type="connection.open" vhost="/"></amqp>

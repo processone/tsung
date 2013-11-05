@@ -15,7 +15,7 @@ client/server applications (supported protocols: HTTP, WebDAV, SOAP,
 PostgreSQL, MySQL, LDAP and Jabber/XMPP)
 
 A User's manual is available :
-          http://tsung.erlang-projects.org/user_manual.html
+          http://tsung.erlang-projects.org/user_manual/
 
 ##  Problems/Bugs
 
