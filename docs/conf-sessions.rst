@@ -777,7 +777,8 @@ Websocket
 For Websocket, 3 types of requests are available:
 
 * connect (to a given path)
-* message (send message to server)
+* message (send message to server, add a attribute 'ack' to specify whether
+  tsung should wait for a response)
 * close
 
 
@@ -785,18 +786,164 @@ Example with Websocket as a session type:
 
 .. code-block:: xml
 
- <session probability="100" name="mysql-example" type="ts_websocket">
-   <request>
+ <session probability="100" name="websocket-example" type="ts_websocket">
+   <request subst="true">
      <websocket type="connect" path="/path/to/ws"></websocket>
    </request>
    <request>
-     <websocket type="message">Hello world!</websocket>
+     <dyn_variable name="uid" jsonpath="uid"/>
+     <websocket type="message">{"user":"user", "password":"password"}</websocket>
    </request>
+
+   <request subst="true">
+     <match do="log" when="nomatch">ok</match>
+     <websocket type="message">{"uid":"%%_uid%%", "data":"data"}</websocket>
+   </request>
+
+   <request>
+     <websocket type="message" ack="no_ack">{"key":"value"}</websocket>
+   </request>
+
    <request>
      <websocket type="close"></websocket>
    </request> 
  </session>
 
+You can do substitution on attribute 'path' and message content, match a
+response or define dynamic variables based on the response message.
+
+AMQP
+^^^^^^^^^
+.. _sec-session-amqp-label:
+
+For AMQP, it supports publish and consume messages on multiple channel,
+Available request types:
+
+* connection.open (to a given vhost)
+* connection.close
+* channel.open (with specified and valid channel id)
+* channel.close (with specified and valid channel id)
+* confirm.select (on specified and already opened channel)
+* basic.qos (on specified and already opened channel, only supports
+  attribute 'prefetch_count')
+* basic.publish (with channel id, exchange name, routing_key and the payload
+* basic.consume (with channel id, queue name)
+* waitForConfirms (with timeout for confirmations from the server)
+* waitForMessages (with timeout for messages delivered to the client)
+
+Example with AMQP as a session type:
+
+.. code-block:: xml
+    <session probability="100" name="amqp-example" type="ts_amqp" bidi="true">
+        <request>
+            <amqp type="connection.open" vhost="/"></amqp>
+        </request>
+
+        <!--  open channel, channel id is from 1 to 10 -->
+        <for from="1" to="10" incr="1" var="loops">
+            <request>
+                <amqp type="channel.open"></amqp>
+            </request>
+        </for>
+
+        <!-- ignore this request if you don't need publisher confirm -->
+        <for from="1" to="10" incr="1" var="loops">
+            <request subst="true">
+                <amqp type="confirm.select" channel="%%_loops%%"></amqp>
+            </request>
+        </for>
+
+        <for from="1" to="10" incr="1" var="loops">
+            <for from="1" to="100" incr="1" var="counter">
+                <transaction name="publish">
+                    <!-- specify payload_size to have tsung generate a payload for you -->
+                    <request subst="true">
+                        <amqp type="basic.publish" channel="%%_loops%%" exchange="test_exchange"
+                        routing_key="test_queue" persistent="true" payload_size="100"></amqp>
+                    </request>
+            <!-- substitutions are supported on the payload. Payload will override payload_size. -->
+                    <request subst="true">
+                        <amqp type="basic.publish" channel="%%_loops%%" exchange="test_exchange"
+                        routing_key="test_queue" persistent="true" payload="Test Payload"></amqp>
+                    </request>
+                </transaction>
+            </for>
+
+            <!-- if publish with confirm, add a waitForConfirms request as you need: timeout=1s -->
+            <request>
+                <amqp type="waitForConfirms" timeout="1"></amqp>
+            </request>
+        </for>
+
+        <for from="1" to="10" incr="1" var="loops">
+            <request subst="true">
+                <amqp type="basic.consume" channel="%%_loops%%" queue="test_queue" ack="true"></amqp>
+            </request>
+        </for>
+
+        <!-- wait to receive messages from the server: timeout=180s -->
+        <request>
+            <amqp type="waitForMessages" timeout="180"></amqp>
+        </request>
+
+        <for from="1" to="10" incr="1" var="loops">
+            <request subst="true">
+                <amqp type="channel.close" channel="%%_loops%%"></amqp>
+            </request>
+        </for>
+
+        <request>
+            <amqp type="connection.close"></amqp>
+        </request>
+    </session>
+
+MQTT
+^^^^^^^^^
+.. _sec-session-mqtt-label:
+
+It supports publish messages, subscribe and unsubscribe topics,
+Available request types:
+
+* connect (with options like clean_start, will_topic etc)
+* disconnect
+* publish (with topic name, qos level and retain flag)
+* subscribe (with topic name and qos level)
+* unsubscribe (with topic name)
+* waitForMessages (with timeout for messages published from server to the
+  client)
+
+Example with MQTT as a session type:
+
+.. code-block:: xml
+
+    <session name="mqtt-example" probability="100" type="ts_mqtt">
+        <request>
+            <mqtt type="connect" clean_start="true" keepalive="10" will_topic="will_topic" will_qos="0" will_msg="will_msg" will_retain="false"></mqtt>
+        </request>
+
+        <for from="1" to="10" incr="1" var="loops">
+            <request subst="true">
+                <mqtt type="publish" topic="test_topic" qos="1" retained="true">test_message</mqtt>
+            </request>
+        </for>
+
+        <request subst="true">
+            <mqtt type="subscribe" topic="test_topic" qos="1"></mqtt>
+        </request>
+
+        <request>
+            <!-- wait for 60s -->
+            <mqtt type="waitForMessages" timeout="60"></mqtt>
+        </request>
+
+        <request subst="true">
+            <mqtt type="unsubscribe" topic="test_topic"></mqtt>
+        </request>
+
+        <request>
+            <mqtt type="disconnect"></mqtt>
+        </request>
+    </session>
 
 LDAP
 ^^^^
