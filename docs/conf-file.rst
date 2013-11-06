@@ -37,7 +37,7 @@ with the following data:
 
 .. code-block:: text
 
-   #date;pid;id;http method;host;URL;HTTP status;size;duration;transaction;match;error;request tag
+   #date;pid;id;http method;host;URL;HTTP status;size;duration;transaction;match;error;tag
 
 Where:
 
