@@ -661,7 +661,7 @@ parse(Element = #xmlElement{name=request, attributes=Attrs},
 
     Type  = CurSess#session.type,
     SubstitutionFlag  = getAttr(atom, Attrs, subst, false),
-    Tag = getAttr(string, Attrs, tag, undefined),
+    Tag = getAttr(string, Attrs, tag, ""),
     Tags = lists:map(fun(X)->{X,ok} end, string:tokens(?config(exclude_tag),",")),
     %% do not add in Conf excluded requests
     case proplists:is_defined(Tag, Tags) of
