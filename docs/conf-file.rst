@@ -37,24 +37,26 @@ with the following data:
 
 .. code-block:: text
 
-   #date;pid;id;http method;host;URL;HTTP status;size;duration;match;error
+   #date;pid;id;http method;host;URL;HTTP status;size;duration;transaction;match;error;tag
 
 Where:
 
-======== =====================================================================================
-field    description
-======== =====================================================================================
-date     timestamp at the end of the request (seconds since 1970-01-01 00:00:00 UTC)
-pid      erlang process id
-id       tsung user id
-host     server hostname
-url      URL (relative)
-HTTP     status HTTP reponse status (200, 304, etc.)
-size     reponse size (in bytes)
-duration request duration (msec)
-match    if a match is defined in the request: match|nomatch (last <match> if several are defined)
-error    name of http error (or empty)
-======== =====================================================================================
+=========== =====================================================================================
+field       description
+=========== =====================================================================================
+date        timestamp at the end of the request (seconds since 1970-01-01 00:00:00 UTC)
+pid         erlang process id
+id          tsung user id
+host        server hostname
+url         URL (relative)
+HTTP        status HTTP reponse status (200, 304, etc.)
+size        reponse size (in bytes)
+duration    request duration (msec)
+transaction name of the transaction (if any) this request was made in
+match       if a match is defined in the request: match|nomatch (last <match> if several are defined)
+error       name of http error (or empty)
+tag         tag name if the request was tagged; empty otherwise
+=========== =====================================================================================
 
 .. index:: loglevel
 

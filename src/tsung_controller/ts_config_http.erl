@@ -78,7 +78,8 @@ parse_config(Element = #xmlElement{name=http},
                             version     = Version,
                             get_ims_date= Date,
                             content_type= ContentType,
-                            body        = Contents},
+                            body        = Contents,
+                            tag         = Config#config.tag},
     %% SOAP Support: Add SOAPAction header to the message
     Request2 = case lists:keysearch(soap,#xmlElement.name,
                                     Element#xmlElement.content) of

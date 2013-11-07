@@ -780,4 +780,6 @@ Then launch the run with::
 
    tsung -f SCENARIO.xml -x image start
 
-Only the GET to ``/`` will be done.
+Only the GET to ``/`` will be performed.
+
+Note that request tags also get logged on **dumptraffic="protocol"** (see :ref:`sec-file-structure-label`) 
