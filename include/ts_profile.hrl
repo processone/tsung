@@ -55,6 +55,7 @@
 % protocol options
 -record(proto_opts,
         {ssl_ciphers   = negociate, % for ssl only
+         bosh_path = "/http-bind/",  % for bash only
          websocket_path = "/chat",  % for websocket only
          retry_timeout = 10,        % retry sending in microsec
          idle_timeout  = 600000,    % timeout for local ack
