@@ -75,9 +75,9 @@ connect(Host, Port, Opts) ->
 
 connect(Host, Port, Opts, Type) when Type =:= 'tcp' ; Type =:= 'ssl' ->
     Parent = self(),
-    Path = "/http-bind/",
-    Pid = spawn(fun() -> loop(Host, Port, Path, Opts, Type, Parent) end),
-    ?DebugF("connect ~p ~p ~p ~p",[Host, Port, self(), Pid]),
+    [BoshPath | OtherOpts] = Opts,
+    Pid = spawn(fun() -> loop(Host, Port, BoshPath, OtherOpts, Type, Parent) end),
+    ?DebugF("connect ~p ~p ~p ~p ~p",[Host, Port, BoshPath, self(), Pid]),
     {ok, Pid}.
 
 extract_domain("to='" ++ Rest) ->
@@ -115,8 +115,8 @@ close(Pid) ->
 set_opts(Pid, _Opts) ->
     Pid.
 
-protocol_options(#proto_opts{}) ->
-    [].
+protocol_options(#proto_opts{bosh_path = BoshPath}) ->
+    [BoshPath].
 
 loop(Host, Port, Path, Opts, Type, Parent) ->
     {A,B,C} = now(),

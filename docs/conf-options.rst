@@ -126,6 +126,16 @@ for Websocket as following:
 
   <option name="websocket_path" value="/chat"/>
 
+Path for BOSH
+------------------
+
+You can use the following config option for setting the path to BOSH
+request:
+
+.. code-block:: xml
+
+  <option name="bosh_path" value="/http-bind"/>
+
 .. _jabber-options-label:
 
 XMPP/Jabber options
