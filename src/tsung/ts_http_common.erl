@@ -182,7 +182,9 @@ oauth_sign(Method, #http_request{url=URL,
                          oauth_access_token=AccessToken,
                          oauth_access_secret=AccessSecret,
                          oauth_url=ServerURL})->
-    UrlParams = oauth_uri:params_from_string(URL),
+    %%UrlParams = oauth_uri:params_from_string(URL),
+    [_He|Ta] = string:tokens(URL,"?"),
+    UrlParams = oauth_uri:params_from_string(lists:flatten(Ta)),
     Params = oauth:signed_params(Method, ServerURL, UrlParams, Consumer, AccessToken, AccessSecret),
     ["Authorization: OAuth ", oauth_uri:params_to_header_string(Params),?CRLF].
 
