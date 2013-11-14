@@ -23,7 +23,7 @@
 
 -module(oauth_http).
 
--export([get/1, post/2, response_params/1, response_body/1, response_code/1]).
+-export([get/1, post/2, put/2, response_params/1, response_body/1, response_code/1]).
 
 -type http_status() :: {string(), integer(), string()}.
 
@@ -34,6 +34,10 @@ get(URL) ->
 -spec post(string(), term()) -> {ok, {Status::http_status(), Headers::[{string(), string()}], Body::string()}} | {error, term()}.
 post(URL, Data) ->
   request(post, {URL, [], "application/x-www-form-urlencoded", Data}).
+
+-spec put(string(), term()) -> {ok, {Status::http_status(), Headers::[{string(), string()}], Body::string()}} | {error, term()}.
+put(URL, Data) ->
+  request(put, {URL, [], "application/x-www-form-urlencoded", Data}).
 
 -spec request(httpc:method(), tuple()) -> {ok, {Status::http_status(), Headers::[{string(), string()}], Body::string()}} | {error, term()}.
 request(Method, Request) ->
