@@ -242,8 +242,9 @@ get_os_data(packets, _OS) ->
 
 %% %% packets , special case with File as a variable for easy testing
 get_os_data(packets, {unix, _}, Data) ->
+    %% lists:zf is called lists:filtermap in erlang R16B1 and newer
     Eth=[io_lib:fread("~d~d~d~d~d~d~d~d~d", X) ||
-        {E,X}<-lists:filtermap(fun(Y)->
+        {E,X}<-lists:zf(fun(Y)->
                                  case string:chr(Y, $:) of
                                      0 -> {true, ts_utils:split2(Y,32,strip)};
                                      _ -> false
