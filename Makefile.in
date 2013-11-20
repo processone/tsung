@@ -252,12 +252,9 @@ install: doc boot install_recorder install_controller $(CONFFILE)
 	echo $(BUILD_OPTIONS_DOT) > $(DESTDIR)$(TARGETDIR)/BUILD_OPTIONS
 
 
-# install the man page & user's manual
+# install the man page
 	install -d $(DESTDIR)$(MAN_DIR)
 	install -m 0644 $(MANPAGES) $(DESTDIR)$(MAN_DIR)
-	install -d $(DESTDIR)$(DOC_DIR)/images
-	install -m 0644 $(USERMANUAL) $(DESTDIR)$(DOC_DIR)
-#	install -m 0644 $(USERMANUAL_IMG) $(DESTDIR)$(DOC_DIR)/images
 
 # create startup script
 	install -m 0755 tsung.sh $(DESTDIR)$(SCRIPT)
@@ -397,11 +394,12 @@ configure: configure.in $(CONFIGURE_DEPENDENCIES)
 	@autoconf
 
 doc:
-	$(MAKE) -C docs latexpdf
 	$(MAKE) -C man man
 
+user_guide:
+	$(MAKE) -C docs latexpdf
 
-release: Makefile tsung.spec doc
+release: Makefile tsung.spec doc user_guide
 	rm -fr $(distdir)
 	mkdir -p $(distdir)
 	tar zcf tmp.tgz $(SRC) $(SRC_APPFILES_IN) $(INC_FILES) $(LIBSRC) \
