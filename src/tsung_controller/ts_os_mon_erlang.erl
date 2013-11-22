@@ -270,10 +270,19 @@ get_os_data(packets, {unix, Val}) ->
 get_os_data(packets, _OS) ->
     {0, 0 }. % FIXME: not implemented for other arch.
 
+filtermap(Fun, List1) ->
+    lists:foldr(fun(Elem, Acc) ->
+                       case Fun(Elem) of
+                           false -> Acc;
+                           true -> [Elem|Acc];
+                           {true,Value} -> [Value|Acc]
+                       end
+                end, [], List1).
+
 %% %% packets , special case with File as a variable for easy testing
 get_os_data(packets, {unix, _}, Data) ->
     Eth=[io_lib:fread("~d~d~d~d~d~d~d~d~d", X) ||
-        {E,X}<-lists:filtermap(fun(Y)->
+        {E,X}<-filtermap(fun(Y)->
                                  case string:chr(Y, $:) of
                                      0 -> {true, ts_utils:split2(Y,32,strip)};
                                      _ -> false
