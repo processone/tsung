@@ -27,6 +27,7 @@
   [ get/5
   , header/1
   , post/5
+  , put/5
   , signature/5
   , signature_base_string/3
   , signed_params/6
@@ -45,6 +46,11 @@ get(URL, ExtraParams, Consumer, Token, TokenSecret) ->
 post(URL, ExtraParams, Consumer, Token, TokenSecret) ->
   SignedParams = signed_params("POST", URL, ExtraParams, Consumer, Token, TokenSecret),
   oauth_http:post(URL, oauth_uri:params_to_string(SignedParams)).
+
+-spec put(string(), [proplists:property()], oauth_client:consumer(), string(), string()) -> {ok, {Status::tuple(), Headers::[{string(), string()}], Body::string()}} | {error, term()}.
+put(URL, ExtraParams, Consumer, Token, TokenSecret) ->
+  SignedParams = signed_params("PUT", URL, ExtraParams, Consumer, Token, TokenSecret),
+  oauth_http:put(URL, oauth_uri:params_to_string(SignedParams)).
 
 -spec uri(string(), [proplists:property()]) -> string().
 uri(Base, []) ->
