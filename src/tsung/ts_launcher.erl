@@ -300,10 +300,12 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%%----------------------------------------------------------------------
 
 %%% @spec skip_empty_phase(record(launcher)) -> {next_state, launcher, record(launcher)}
-%%% @doc if a phase contains no users, sleep, before tryinh the next one @end
+%%% @doc if a phase contains no users, sleep, before trying the next one @end
 skip_empty_phase(State=#launcher{phases=Phases,phase_id=Id,phase_duration=Duration})->
     ?LOGF("No user, skip phase (~p ~p)~n",[Phases,Duration],?INFO),
     case change_phase(0, Phases, 0, {Duration, 0}) of
+        {stop} ->
+            {stop, normal, State};
         {change, 0, _, PhaseLength, Rest} ->
             %% next phase is also empty, loop
             skip_empty_phase(State#launcher{phases=Rest,phase_duration=PhaseLength,phase_id=Id+1});
