@@ -227,7 +227,7 @@ mysqladmin_data({Port, Username, Password}) ->
     Cmd = io_lib:format("mysqladmin -u\"~s\" ~s -P~B status", [Username, PasswdArg, Port]),
     Result = os:cmd(Cmd),
     % Uptime: 1146892  Threads: 2  Questions: 15242050  Slow queries: 0  Opens: 176  Flush tables: 1  Open tables: 101  Queries per second avg: 13.290
-    [_, Uptime, _, Threads, _, Questions, _, _, SlowQueries, _, Opens, _, _, FlushTables, _, _, OpenTables, _, _, _, _, QPS] = string:tokens(Result, " \n"),
+    [_, _Uptime, _, Threads, _, Questions, _, _, _SlowQueries, _, _Opens, _, _, _FlushTables, _, _, _OpenTables, _, _, _, _, _QPS] = string:tokens(Result, " \n"),
     {list_to_integer(Threads), list_to_integer(Questions)}.
 
 
