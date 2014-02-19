@@ -54,7 +54,7 @@ ipv4_url_test() ->
 
 subst_url_test() ->
     DynVars=ts_dynvars:new('image', "/images/my image with spaces.png"),
-    Req=ts_http:subst(#http_request{url="%%_image%%"}, DynVars),
+    Req=ts_http:subst(true,#http_request{url="%%_image%%"}, DynVars),
     ?assertEqual("/images/my%20image%20with%20spaces.png", Req#http_request.url).
 
 subst_redirect_test()->
