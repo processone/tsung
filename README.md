@@ -12,7 +12,7 @@ Tsung is multi-protocol distributed load testing tool.
 
 It can be used to test the scalability and performances of IP based
 client/server applications (supported protocols: HTTP, WebDAV, SOAP,
-PostgreSQL, MySQL, LDAP and Jabber/XMPP)
+PostgreSQL, MySQL, LDAP, AMQP and Jabber/XMPP)
 
 A User's manual is available :
           http://tsung.erlang-projects.org/user_manual/
