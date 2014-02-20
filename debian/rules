@@ -24,6 +24,7 @@ build-stamp: configure-stamp
 
 	# Add here commands to compile the package.
 	$(MAKE)
+	$(MAKE) -C docs singlehtml
 	touch build-stamp
 
 

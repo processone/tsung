@@ -1,3 +1,10 @@
+tsung (1.5.1a-1) unstable; urgency=low
+
+  * fix make deb
+  * prepare for new release
+
+ -- Nicolas Niclausse <nicolas.niclausse@niclux.org>  Thu, 20 Feb 2014 10:53:05 +0200
+
 tsung (1.5.0-1.2+nmu) unstable; urgency=low
 
    * Adding 'all_except_body' option to ts_http request subst.
