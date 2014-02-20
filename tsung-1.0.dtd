@@ -355,6 +355,7 @@ repeat | if | change_type | foreach | set_option | interaction )*>
 <!ATTLIST websocket
     type (connect | message | close) #REQUIRED
     ack  (no_ack | parse) #IMPLIED
+    frame (binary | text) #IMPLIED
     path CDATA "/" >
 
 <!ELEMENT amqp (#PCDATA) >

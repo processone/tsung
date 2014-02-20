@@ -832,6 +832,12 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     NewProto =  OldProto#proto_opts{websocket_path=Path},
                     lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
                                  Element#xmlElement.content);
+                "websocket_frame" ->
+                    Frame = getAttr(string,Attrs, value, ?config(websocket_frame)),
+                    OldProto =  Conf#config.proto_opts,
+                    NewProto =  OldProto#proto_opts{websocket_frame=Frame},
+                    lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                 Element#xmlElement.content);
                 "bosh_path" ->
                     Path = getAttr(string,Attrs, value, ?config(bosh_path)),
                     OldProto =  Conf#config.proto_opts,

@@ -792,7 +792,8 @@ Example with Websocket as a session type:
    </request>
    <request>
      <dyn_variable name="uid" jsonpath="uid"/>
-     <websocket type="message">{"user":"user", "password":"password"}</websocket>
+     <!-- send data with text frame, default binary-->
+     <websocket type="message" frame="text">{"user":"user", "password":"password"}</websocket>
    </request>
 
    <request subst="true">

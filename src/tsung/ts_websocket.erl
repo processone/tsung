@@ -85,10 +85,14 @@ get_message(#websocket_request{type = connect, path = Path,
                                                 SubProtocol, Version),
     {Request, WebsocketSession#websocket_session{status = waiting_handshake,
                                                  accept = Accept}};
-get_message(#websocket_request{type = message, data = Data},
+get_message(#websocket_request{type = message, data = Data, frame = Frame},
             #state_rcv{session = WebsocketSession})
   when WebsocketSession#websocket_session.status == connected ->
-    {websocket:encode_binary(list_to_binary(Data)), WebsocketSession};
+    ResultData = case Frame of
+        "text" -> websocket:encode_text(list_to_binary(Data));
+        _ -> websocket:encode_binary(list_to_binary(Data))
+    end,
+    {ResultData, WebsocketSession};
 get_message(#websocket_request{type = close},
             #state_rcv{session = WebsocketSession})
   when WebsocketSession#websocket_session.status == connected ->
