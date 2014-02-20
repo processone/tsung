@@ -51,10 +51,13 @@ parse_config(Element = #xmlElement{name = websocket},
     Type = ts_config:getAttr(atom, Element#xmlElement.attributes, type),
     ValRaw = ts_config:getText(Element#xmlElement.content),
     Path = ts_config:getAttr(string, Element#xmlElement.attributes, path, "/"),
+    Frame = ts_config:getAttr(string, Element#xmlElement.attributes, frame,
+                              "binary"),
 
     %%is this needed ?
     CleanStr = ts_utils:clean_str(ValRaw),
-    Request = #websocket_request{data=CleanStr, type=Type, path=Path},
+    Request = #websocket_request{data = CleanStr, type = Type,
+                                 path = Path, frame = Frame},
 
     Ack = case Type of
               message ->

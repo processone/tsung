@@ -30,6 +30,7 @@
           version = "13", % default is 13(rfc6455)
           type, % connect or message
           path, % connection path
+          frame = "binary",
           subprotos = [], % subprotocols
           data % websocket data
          }).

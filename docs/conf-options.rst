@@ -103,7 +103,7 @@ you have to defined a range for available clients ports, for ex:
 
 .. index:: seed
 
-Setting the  seed for random numbers
+Setting the seed for random numbers
 ------------------------------------
 
 If you want to use a fixed seed for the random generator, you can use
@@ -116,16 +116,6 @@ different for every test).
   <option name="seed" value="42"/>
 
 
-Path for Websocket
-------------------
-
-When you use Websocket as a server type, you can set the connect path
-for Websocket as following:
-
-.. code-block:: xml
-
-  <option name="websocket_path" value="/chat"/>
-
 Path for BOSH
 ------------------
 
@@ -137,6 +127,25 @@ request:
   <option name="bosh_path" value="/http-bind"/>
 
 .. _jabber-options-label:
+
+
+Websocket options
+------------------
+
+When you use Websocket as a server type, you can set the following options
+for Websocket:
+
+.. code-block:: xml
+
+  <option name="websocket_path" value="/chat"/>
+
+  <!-- send websocket data with text frame, default binary-->
+  <option name="websocket_frame" value="text"/>
+
+Use ``websocket_path`` for setting the path of the websocket request; use
+``websocket_frame`` for setting the frame type(option type: binary and text,
+and binary as default) of the sending websocket data.
+
 
 XMPP/Jabber options
 -------------------

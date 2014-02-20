@@ -36,13 +36,13 @@
 -include("ts_websocket.hrl").
 
 -record(state, {parent, socket = none, accept, host, port, path, opts, version,
-                buffer = <<>>, state = not_connected, subprotos = []}).
+                frame, buffer = <<>>, state = not_connected, subprotos = []}).
 
--record(ws_config, {path, version = "13"}).
+-record(ws_config, {path, version = "13", frame}).
 
 protocol_options(#proto_opts{tcp_rcv_size = Rcv, tcp_snd_size = Snd,
-                             websocket_path = Path}) ->
-    [#ws_config{path = Path},
+                             websocket_path = Path, websocket_frame = Frame}) ->
+    [#ws_config{path = Path, frame = Frame},
      binary,
      {active, once},
      {recbuf, Rcv},
@@ -56,6 +56,7 @@ connect(Host, Port, Opts) ->
     [WSConfig | TcpOpts] = Opts,
     Path = WSConfig#ws_config.path,
     Version = WSConfig#ws_config.version,
+    Frame = WSConfig#ws_config.frame,
 
     case gen_tcp:connect(Host, Port, opts_to_tcp_opts(TcpOpts)) of
         {ok, Socket} ->
@@ -63,7 +64,7 @@ connect(Host, Port, Opts) ->
                     fun() ->
                             loop(#state{parent = Parent, host = Host, port = Port,
                                         opts = TcpOpts, path = Path, version = Version,
-                                        socket = Socket})
+                                        frame = Frame, socket = Socket})
                     end),
             gen_tcp:controlling_process(Socket, Pid),
             inet:setopts(Socket, [{active, once}]),
@@ -102,10 +103,14 @@ loop(#state{parent = Parent, socket = Socket, accept = Accept,
             Parent ! {gen_ts_transport, self(), error, Error}
     end;
 
-loop(#state{parent = Parent, socket = Socket, state = connected, buffer = Buffer} = State)->
+loop(#state{parent = Parent, socket = Socket, state = connected,
+            buffer = Buffer, frame = Frame} = State)->
     receive
         {send, Data, Ref} ->
-            EncodedData = websocket:encode_binary(Data),
+            EncodedData = case Frame of
+                "text" -> websocket:encode_text(Data);
+                _ -> websocket:encode_binary(Data)
+            end,
             gen_tcp:send(Socket, EncodedData),
             Parent ! {ok, Ref},
             loop(State);
