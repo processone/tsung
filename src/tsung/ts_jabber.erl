@@ -182,7 +182,7 @@ presence_bidi(RcvdXml, State)->
 
 starttls_bidi(_RcvdXml, #state_rcv{socket= Socket}=State)->
     ssl:start(),
-    #ts_request{param = Req} = State#state_rcv.request,
+    Req = subst(State#state_rcv.request#ts_request.param, State#state_rcv.dynvars),
     {ok, SSL} = ts_ssl:connect(Socket, [{certfile,Req#jabber.certfile},
                                         {keyfile,Req#jabber.keyfile},
                                         {password,Req#jabber.keypass},
@@ -284,7 +284,11 @@ subst(Req=#jabber{id=user_defined, username=Name,passwd=Pwd, data=Data, resource
 subst(Req=#jabber{data=Data,resource=Resource}, Dynvars) ->
     subst2(Req#jabber{data=ts_search:subst(Data,Dynvars),resource=ts_search:subst(Resource,Dynvars)},Dynvars).
 
-
+subst2(Req=#jabber{type = Type}, Dynvars) when Type == 'starttls' ->
+    Req#jabber{cacertfile = ts_search:subst(Req#jabber.cacertfile, Dynvars),
+               keyfile = ts_search:subst(Req#jabber.keyfile, Dynvars),
+               keypass = ts_search:subst(Req#jabber.keypass, Dynvars),
+               certfile = ts_search:subst(Req#jabber.certfile, Dynvars)};
 subst2(Req=#jabber{type = Type}, Dynvars) when Type == 'muc:chat' ; Type == 'muc:join'; Type == 'muc:nick' ; Type == 'muc:exit' ->
     Req#jabber{nick = ts_search:subst(Req#jabber.nick, Dynvars),
                room = ts_search:subst(Req#jabber.room, Dynvars)};
