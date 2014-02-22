@@ -182,7 +182,11 @@ presence_bidi(RcvdXml, State)->
 
 starttls_bidi(_RcvdXml, #state_rcv{socket= Socket}=State)->
     ssl:start(),
-    {ok, SSL} = ts_ssl:connect(Socket, []),
+    #ts_request{param = Req} = State#state_rcv.request,
+    {ok, SSL} = ts_ssl:connect(Socket, [{certfile,Req#jabber.certfile},
+                                        {keyfile,Req#jabber.keyfile},
+                                        {password,Req#jabber.keypass},
+                                        {cacertfile,Req#jabber.cacertfile}]),
     ?LOGF("Upgrading to TLS : ~p",[SSL],?INFO),
     {nodata, State#state_rcv{socket=SSL,protocol=ts_ssl}}.
 
