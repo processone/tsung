@@ -58,6 +58,10 @@
                  node_type,
                  subid,
                  version ="1.0", %% 1.0 or "legacy", used by type=connect
+                 cacertfile,   %% PEM encoded CA certificates file, used by type=starttls
+                 keyfile,      %% user's private PEM encoded key file, used by type=starttls
+                 keypass,      %% passphase of user's private PEM encoded key file, used by type=starttls
+                 certfile,     %% the user's certificate file, userd by type=starttls
                  prefix   %% username prefix
                 }).
 

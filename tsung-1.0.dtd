@@ -266,6 +266,10 @@ repeat | if | change_type | foreach | set_option | interaction )*>
     resource    CDATA "tsung"
     node_type   CDATA #IMPLIED
     version     CDATA #IMPLIED
+    cacertfile  CDATA #IMPLIED
+    keyfile     CDATA #IMPLIED
+    keypass     CDATA #IMPLIED
+    certfile    CDATA #IMPLIED
     subid       CDATA #IMPLIED >
 
 <!ELEMENT xmpp_authenticate EMPTY >
