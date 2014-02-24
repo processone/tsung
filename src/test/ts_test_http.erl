@@ -71,6 +71,29 @@ subst_redirect_test()->
     {Res,_}=ts_http:get_message(Req,#state_rcv{}),
     ?assertEqual(Str, binary_to_list(Res)).
 
+
+subst_ipv6_host_test()->
+    URL="/%%_dynpath%%",
+    Proto=#http{user_agent="Firefox"},
+    DynVars=ts_dynvars:new(dynpath,"bidule/truc"),
+    Rep=ts_http:add_dynparams(true,{DynVars, Proto},
+                                  #http_request{url=URL},
+                                  {"2178:2:5:0:28f:0:3",80,gen_tcp6}),
+    {Res,_}=ts_http:get_message(Rep,#state_rcv{}),
+    OK = << "GET /bidule/truc HTTP/1.1\r\nHost: [2178:2:5:0:28f:0:3]\r\nUser-Agent: Firefox\r\n\r\n" >>,
+    ?assertEqual(OK, Res).
+
+subst_ipv6_host2_test()->
+    URL="/%%_dynpath%%",
+    Proto=#http{user_agent="Firefox"},
+    DynVars=ts_dynvars:new(dynpath,"bidule/truc"),
+    Rep=ts_http:add_dynparams(true,{DynVars, Proto},
+                                  #http_request{url=URL},
+                                  {"::1",8080,gen_tcp6}),
+    {Res,_}=ts_http:get_message(Rep,#state_rcv{}),
+    OK = << "GET /bidule/truc HTTP/1.1\r\nHost: [::1]:8080\r\nUser-Agent: Firefox\r\n\r\n" >>,
+    ?assertEqual(OK, Res).
+
 subst_redirect_proto_test()->
     myset_env(),
     URL="%%_redirect%%",

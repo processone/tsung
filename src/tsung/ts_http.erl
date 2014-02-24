@@ -206,13 +206,13 @@ add_dynparams(Session,Param=#http_request{host_header=undefined}, HostData )->
                  {Host,443,  ssl}->
                      Host;
                  {Host,80,   gen_tcp6}->
-                     Host;
+                     ts_config_http:encode_ipv6_address(Host);
                  {Host,443,  ssl6}->
-                     Host;
+                     ts_config_http:encode_ipv6_address(Host);
                  {Host,Port,_,_} ->
-                     Host++":"++ integer_to_list(Port);
+                     ts_config_http:encode_ipv6_address(Host)++":"++ integer_to_list(Port);
                  {Host,Port,_Proto} ->
-                     Host++":"++ integer_to_list(Port)
+                     ts_config_http:encode_ipv6_address(Host)++":"++ integer_to_list(Port)
              end,
     ?DebugF("set host header dynamically: ~s~n",[Header]),
     add_dynparams(Session, Param#http_request{host_header=Header},HostData);
