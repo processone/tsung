@@ -32,7 +32,7 @@
 -author('nicolas.niclausse@niclux.org').
 
 -export([parse_config/2, parse_URL/1, set_port/1, set_scheme/1,
-         check_user_agent_sum/1, set_query/1]).
+         check_user_agent_sum/1, set_query/1, encode_ipv6_address/1]).
 
 -include("ts_profile.hrl").
 -include("ts_http.hrl").
@@ -341,11 +341,11 @@ set_port(#url{port=Port}) -> integer_to_list(Port).
 %% server is configured with IPv6, we assume that the we should also
 %% use IPv6 for the given absolut URL
 %% @end
-set_scheme({http, gen_tcp6}) -> ts_tcp6;
-set_scheme({http, ssl6})     -> ts_tcp6;
+set_scheme({http, ts_tcp6})  -> ts_tcp6;
+set_scheme({http, ts_ssl6})  -> ts_tcp6;
 set_scheme({http, _})        -> ts_tcp;
-set_scheme({https, ssl6})    -> ts_ssl6;
-set_scheme({https, gen_tcp6})-> ts_ssl6;
+set_scheme({https, ts_ssl6}) -> ts_ssl6;
+set_scheme({https, ts_tcp6}) -> ts_ssl6;
 set_scheme({https, _})       -> ts_ssl.
 
 
