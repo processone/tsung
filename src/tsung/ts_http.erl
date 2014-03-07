@@ -201,13 +201,13 @@ add_dynparams(Session,Param=#http_request{host_header=undefined}, HostData )->
                      Host;
                  {Host,443,_,https}->
                      Host;
-                 {Host,80,   gen_tcp}->
+                 {Host,80,   ts_tcp}->
                      Host;
-                 {Host,443,  ssl}->
+                 {Host,443,  ts_ssl}->
                      Host;
-                 {Host,80,   gen_tcp6}->
+                 {Host,80,   ts_tcp6}->
                      ts_config_http:encode_ipv6_address(Host);
-                 {Host,443,  ssl6}->
+                 {Host,443,  ts_ssl6}->
                      ts_config_http:encode_ipv6_address(Host);
                  {Host,Port,_,_} ->
                      ts_config_http:encode_ipv6_address(Host)++":"++ integer_to_list(Port);
