@@ -246,26 +246,34 @@ parse_cookie([_| Tail], Cookies) ->
 %% server. These informations are stored in the #ts_request record.
 set_msg(HTTP=#http_request{url="http" ++ URL},
         {SubstFlag, MatchRegExp, UseProxy, [Server|_], _PrevHTTPServer, Tab, Id}) ->
-    URLrec     = parse_URL("http" ++ URL),
-    Path       = set_query(URLrec),
-    HostHeader = set_host_header(URLrec),
-    Port       = set_port(URLrec),
-    Scheme     = set_scheme({URLrec#url.scheme,Server#server.type}),
-    ets:insert(Tab,{{http_server, Id}, {HostHeader, URLrec#url.scheme}}),
+    case {SubstFlag, re:run(URL, "%%.+%%")} of
+        {true, {match,_}} ->
+            %% url is a dynvar, don't preset host header
+            set_msg2(HTTP, #ts_request{ack = parse, subst = true, match = MatchRegExp });
+        _ ->
 
-    {RealServer, RealPath} = case UseProxy of
-                     true  -> {Server, "http"++ URL};
-                     false -> {#server{host=URLrec#url.host, port=Port, type=Scheme},
-                               Path}
-                 end,
+            URLrec     = parse_URL("http" ++ URL),
+            Path       = set_query(URLrec),
+            HostHeader = set_host_header(URLrec),
+            Port       = set_port(URLrec),
+            Scheme     = set_scheme({URLrec#url.scheme,Server#server.type}),
+            ets:insert(Tab,{{http_server, Id}, {HostHeader, URLrec#url.scheme}}),
 
-    set_msg2(HTTP#http_request{url=RealPath, host_header = HostHeader},
-             #ts_request{ack    = parse,
-                         subst  = SubstFlag,
-                         match  = MatchRegExp,
-                         host   = RealServer#server.host,
-                         scheme = RealServer#server.type,
-                         port   = RealServer#server.port});
+            {RealServer, RealPath} = case UseProxy of
+                                         true  ->
+                                             {Server, "http"++ URL};
+                                         false ->
+                                             {#server{host=URLrec#url.host,port=Port,type=Scheme},Path}
+                                     end,
+
+            set_msg2(HTTP#http_request{url=RealPath, host_header = HostHeader},
+                     #ts_request{ack    = parse,
+                                 subst  = SubstFlag,
+                                 match  = MatchRegExp,
+                                 host   = RealServer#server.host,
+                                 scheme = RealServer#server.type,
+                                 port   = RealServer#server.port})
+    end;
 
 %% relative URL, no previous HTTP server, use proxy, error !
 set_msg(_, {_, _, true, _Server, [],_Tab,_Id}) ->

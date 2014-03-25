@@ -297,11 +297,19 @@ set_msg_dyn_test() ->
     ?assertMatch(#http_request{url=URL}, Res#ts_request.param).
 
 set_msg_test() ->
-    URL   = "http://server:8080/path",
+    URL   = "http://server:8080/path%%bla%%",
+    Subst = false,
+    Res   = ts_config_http:set_msg(#http_request{url= URL},
+                                   {Subst, undefined, false, [#server{host="myserver", port=99, type="tcp"}], "myserver", ets:new(fake,[]), 1}),
+    ?assertMatch(#http_request{url="/path%%bla%%",host_header= "server:8080"}, Res#ts_request.param),
+    ?assertMatch(#ts_request{host="server", port=8080, scheme = ts_tcp}, Res).
+
+set_msg2_test() ->
+    URL   = "http://server:8080/path%%",
     Subst = true,
     Res   = ts_config_http:set_msg(#http_request{url= URL},
                                    {Subst, undefined, false, [#server{host="myserver", port=99, type="tcp"}], "myserver", ets:new(fake,[]), 1}),
-    ?assertMatch(#http_request{url="/path",host_header= "server:8080"}, Res#ts_request.param),
+    ?assertMatch(#http_request{url="/path%%",host_header= "server:8080"}, Res#ts_request.param),
     ?assertMatch(#ts_request{host="server", port=8080, scheme = ts_tcp}, Res).
 
  myset_env()->
