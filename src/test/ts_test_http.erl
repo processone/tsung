@@ -66,7 +66,7 @@ subst_redirect_test()->
     DynVars=ts_dynvars:new(redirect,"http://erlang.org/bidule/truc"),
     {Req,_}=ts_http:add_dynparams(true,{DynVars, Proto} ,
                                   #http_request{url=URL},
-                                  {"erlang.org",80,gen_tcp}),
+                                  {"erlang.org",80,ts_tcp}),
     Str="GET /bidule/truc HTTP/1.1\r\nHost: erlang.org\r\nUser-Agent: Firefox\r\nCookie: toto=bar\r\n\r\n",
     {Res,_}=ts_http:get_message(Req,#state_rcv{}),
     ?assertEqual(Str, binary_to_list(Res)).
@@ -78,7 +78,7 @@ subst_ipv6_host_test()->
     DynVars=ts_dynvars:new(dynpath,"bidule/truc"),
     Rep=ts_http:add_dynparams(true,{DynVars, Proto},
                                   #http_request{url=URL},
-                                  {"2178:2:5:0:28f:0:3",80,gen_tcp6}),
+                                  {"2178:2:5:0:28f:0:3",80,ts_tcp6}),
     {Res,_}=ts_http:get_message(Rep,#state_rcv{}),
     OK = << "GET /bidule/truc HTTP/1.1\r\nHost: [2178:2:5:0:28f:0:3]\r\nUser-Agent: Firefox\r\n\r\n" >>,
     ?assertEqual(OK, Res).
@@ -89,7 +89,7 @@ subst_ipv6_host2_test()->
     DynVars=ts_dynvars:new(dynpath,"bidule/truc"),
     Rep=ts_http:add_dynparams(true,{DynVars, Proto},
                                   #http_request{url=URL},
-                                  {"::1",8080,gen_tcp6}),
+                                  {"::1",8080,ts_tcp6}),
     {Res,_}=ts_http:get_message(Rep,#state_rcv{}),
     OK = << "GET /bidule/truc HTTP/1.1\r\nHost: [::1]:8080\r\nUser-Agent: Firefox\r\n\r\n" >>,
     ?assertEqual(OK, Res).
@@ -103,7 +103,7 @@ subst_redirect_proto_test()->
     DynVars=ts_dynvars:new(redirect,"http://erlang.org/bidule/truc"),
     Rep=ts_http:add_dynparams(true,{DynVars, Proto},
                                   #http_request{url=URL},
-                                  {"erlang.org",80,gen_tcp6}),
+                                  {"erlang.org",80,ts_tcp6}),
     ?assertMatch({_,{"erlang.org",80,ts_tcp6}}, Rep).
 
 subst_cookie_test()->
@@ -115,7 +115,7 @@ subst_cookie_test()->
     DynVars=ts_dynvars:new(foovar,"foo"),
     Req=ts_http:add_dynparams(true,{DynVars, Proto},
                                   #http_request{url=URL,cookie=Cookies},
-                                  {"erlang.org",80,gen_tcp}),
+                                  {"erlang.org",80,ts_tcp}),
     Str="GET /bidule/truc HTTP/1.1\r\nHost: erlang.org\r\nUser-Agent: Firefox\r\nCookie: bar=foo\r\n\r\n",
     {Res,_}=ts_http:get_message(Req,#state_rcv{}),
     ?assertEqual(Str, binary_to_list(Res)).
@@ -129,7 +129,7 @@ cookie_subdomain_test()->
     DynVars=ts_dynvars:new(),
     Req=ts_http:add_dynparams(false,{DynVars, Proto},
                                   #http_request{url=URL},
-                                  {"www.domain.org",80,gen_tcp}),
+                                  {"www.domain.org",80,ts_tcp}),
     Str="GET /bidule/truc HTTP/1.1\r\nHost: www.domain.org\r\nUser-Agent: Firefox\r\nCookie: toto=bar\r\n\r\n",
     {Res,_}=ts_http:get_message(Req,#state_rcv{}),
     ?assertEqual(Str, binary_to_list(Res)).
@@ -143,7 +143,7 @@ cookie_dotdomain_test()->
     DynVars=ts_dynvars:new(),
     Req=ts_http:add_dynparams(false,{DynVars, Proto},
                                   #http_request{url=URL},
-                                  {"www.domain.org",80, gen_tcp}),
+                                  {"www.domain.org",80, ts_tcp}),
     Str="GET /bidule/truc HTTP/1.1\r\nHost: www.domain.org\r\nUser-Agent: Firefox\r\nCookie: toto=bar\r\n\r\n",
     {Res,_}=ts_http:get_message(Req,#state_rcv{}),
     ?assertEqual(Str, binary_to_list(Res)).
@@ -208,7 +208,7 @@ add_cookie_samekey_nodomain_req_test()->
     DynVars=ts_dynvars:new(),
     Req=ts_http:add_dynparams(false,{DynVars, Proto},
                                   #http_request{url=URL},
-                                  {"www.foobar.net",80, gen_tcp}),
+                                  {"www.foobar.net",80, ts_tcp}),
     Str="GET /bidule/truc HTTP/1.1\r\nHost: www.foobar.net\r\nUser-Agent: Firefox\r\nCookie: RMID=42\r\n\r\n",
     {Res,_}=ts_http:get_message(Req,#state_rcv{}),
     ?assertEqual(Str, binary_to_list(Res)).
@@ -288,6 +288,21 @@ oauth_test()->
     ?assertMatch([{'token',<< "requestsecret" >>}], ts_search:parse_dynvar([{re,'token', "oauth_token_secret=([^&]*)"} ],Data)),
     ?assertMatch([{'token',<< "requestkey" >>}], ts_search:parse_dynvar([{re,'token', "oauth_token=([^&]*)"} ],Data)).
 
+
+set_msg_dyn_test() ->
+    URL = "http://jm-11:%%_myport%%/%%_myurl%%",
+    Subst =true,
+    Res = ts_config_http:set_msg(#http_request{url= URL},
+            {Subst, undefined, false, [#server{host="myserver", port=99, type="tcp"}], "myserver", ets:new(fake,[]), 1}),
+    ?assertMatch(#http_request{url=URL}, Res#ts_request.param).
+
+set_msg_test() ->
+    URL   = "http://server:8080/path",
+    Subst = true,
+    Res   = ts_config_http:set_msg(#http_request{url= URL},
+                                   {Subst, undefined, false, [#server{host="myserver", port=99, type="tcp"}], "myserver", ets:new(fake,[]), 1}),
+    ?assertMatch(#http_request{url="/path",host_header= "server:8080"}, Res#ts_request.param),
+    ?assertMatch(#ts_request{host="server", port=8080, scheme = ts_tcp}, Res).
 
  myset_env()->
     myset_env(0).
