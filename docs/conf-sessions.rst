@@ -265,6 +265,24 @@ Here is an example of a session definition for the Jabber/XMPP protocol:
      </session>
    </sessions>
 
+StartTLS
+""""""""
+
+To secure a stream with STARTTLS, use:
+
+.. code-block:: xml
+
+ <jabber type="starttls" ack="local" />
+
+Client certificate is implemented since **1.5.1**, for example, you can
+use dynamic variables like this:
+
+.. code-block:: xml
+
+ <jabber type="starttls" ack="local"
+            cacertfile="%%_cacert%%"
+            certfile="%%_certfile%%"
+            keyfile="%%_keyfile%%" />
 
 Roster
 """"""
