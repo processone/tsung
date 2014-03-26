@@ -266,7 +266,7 @@ set_msg(HTTP=#http_request{url="http" ++ URL},
                                              {#server{host=URLrec#url.host,port=Port,type=Scheme},Path}
                                      end,
 
-            set_msg2(HTTP#http_request{url=RealPath, host_header = HostHeader},
+            set_msg2(HTTP#http_request{url=RealPath, host_header = HostHeader, use_proxy=UseProxy},
                      #ts_request{ack    = parse,
                                  subst  = SubstFlag,
                                  match  = MatchRegExp,

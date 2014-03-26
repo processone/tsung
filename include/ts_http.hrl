@@ -53,7 +53,8 @@
           digest_qop,
           realm,
           soap_action, % for SOAP support
-          tag % for tagged requests
+          tag, % for tagged requests
+          use_proxy = false
          }).
 
 -record(url,

@@ -183,8 +183,8 @@ add_dynparams(SubstParam,  {DynVars, Session}, OldReq=#http_request{url=OldUrl},
             NewReq  = add_dynparams(Session,
                                     Req#http_request{host_header=undefined},
                                     {URL#url.host, NewPort, PrevProto, URL#url.scheme}), % add scheme
-            case OldUrl of
-                "http"++_ -> % old url absolute: useproxy must be true
+            case OldReq#http_request.use_proxy of
+                true ->
                     NewReq#http_request{url="http"++Rest};
                 _ ->
                     NewUrl=ts_config_http:set_query(URL),

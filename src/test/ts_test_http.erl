@@ -57,6 +57,18 @@ subst_url_test() ->
     Req=ts_http:subst(true,#http_request{url="%%_image%%"}, DynVars),
     ?assertEqual("/images/my%20image%20with%20spaces.png", Req#http_request.url).
 
+subst_full_url_test() ->
+    myset_env(),
+    URL="http://myserver/%%_path%%",
+    Proto=#http{user_agent="Firefox"},
+    DynVars=ts_dynvars:new(path,"bidule/truc"),
+    {Req,_}=ts_http:add_dynparams(true,{DynVars, Proto} ,
+                                  #http_request{url=URL},
+                                  {"erlang.org",80,ts_tcp}),
+    Str="GET /bidule/truc HTTP/1.1\r\nHost: myserver\r\nUser-Agent: Firefox\r\n\r\n",
+    {Res,_}=ts_http:get_message(Req,#state_rcv{}),
+    ?assertEqual(Str, binary_to_list(Res)).
+
 subst_redirect_test()->
     myset_env(),
     URL="%%_redirect%%",
