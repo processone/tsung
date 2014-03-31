@@ -8,11 +8,11 @@
 -include("ts_config.hrl").
 
 
-protocol_options(#proto_opts{ssl_ciphers=negociate}) ->
-    [binary, {active, once} ];
-protocol_options(#proto_opts{ssl_ciphers=Ciphers}) ->
+protocol_options(#proto_opts{ssl_ciphers=negociate, certificate = Cert}) ->
+    [binary, {active, once} ] ++ Cert;
+protocol_options(#proto_opts{ssl_ciphers=Ciphers, certificate = Cert}) ->
     ?DebugF("cipher is ~p~n",[Ciphers]),
-    [binary, {active, once}, {ciphers, Ciphers} ].
+    [binary, {active, once}, {ciphers, Ciphers} ] ++ Cert.
 
 %% -> {ok, Socket}
 connect(Host, Port, Opts) ->

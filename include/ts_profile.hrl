@@ -64,7 +64,8 @@
          tcp_rcv_size  = 32768,     % tcp buffers size
          tcp_snd_size  = 32768,
          udp_rcv_size,              % udp buffers size
-         udp_snd_size}).
+         udp_snd_size,
+         certificate = [] }).
 
 -record(token_bucket,
         {rate,

@@ -109,7 +109,7 @@
     type     (ts_http | ts_jabber | ts_pgsql | ts_amqp) #IMPLIED
     value    CDATA #IMPLIED>
 
-<!ELEMENT set_option (user_agent*)>
+<!ELEMENT set_option (user_agent*| certificate)>
 <!ATTLIST set_option
     name     NMTOKEN #REQUIRED
     id       NMTOKEN #IMPLIED
@@ -117,6 +117,14 @@
     max      NMTOKEN #IMPLIED
     type     (ts_http | ts_jabber | ts_pgsql) #IMPLIED
     value    CDATA #IMPLIED>
+
+<!ELEMENT certificate EMPTY >
+<!ATTLIST certificate
+    cacertfile  CDATA #IMPLIED
+    keyfile     CDATA #IMPLIED
+    keypass     CDATA #IMPLIED
+    certfile    CDATA #IMPLIED
+>
 
 <!ELEMENT sessions (session+)>
 <!ELEMENT session ( request | thinktime | transaction | setdynvars | for |

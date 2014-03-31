@@ -663,14 +663,24 @@ parse( Element = #xmlElement{name=set_option, attributes=Attrs},
 
     case getAttr(atom, Attrs, type) of
         "" ->
-            {Type,Name,Args} = case getAttr(string, Attrs, name) of
-                                   "rate_limit" ->
-                                       Rate = getAttr(integer, Attrs, value),
-                                       Max  = getAttr(integer, Attrs, max, Rate),
-                                       {undefined, rate_limit, {1024*Rate div 1000, 1024 * Max}}
-                               end,
-        ets:insert(Tab,{{CurS#session.id, Id+1}, {set_option,Type,Name,Args}}),
-        Conf#config{curid=Id+1};
+            {Type,Name,Args} =
+                case getAttr(string, Attrs, name) of
+                    "rate_limit" ->
+                        Rate = getAttr(integer, Attrs, value),
+                        Max  = getAttr(integer, Attrs, max, Rate),
+                        {undefined, rate_limit, {1024*Rate div 1000, 1024 * Max}};
+                    "certificate" ->
+                        {value, #xmlElement{attributes=AttrCert}} = lists:keysearch(certificate,
+                                                                     #xmlElement.name,
+                                                                     Element#xmlElement.content),
+                        Cacert = getAttr(string, AttrCert, cacertfile, undefined),
+                        KeyFile = getAttr(string, AttrCert, keyfile, undefined),
+                        KeyPass = getAttr(string, AttrCert, keypass, undefined),
+                        CertFile = getAttr(string, AttrCert, certfile, undefined),
+                        {undefined, certificate, {Cacert, KeyFile,KeyPass,CertFile}}
+                end,
+            ets:insert(Tab,{{CurS#session.id, Id+1}, {set_option,Type,Name,Args}}),
+            Conf#config{curid=Id+1};
         Mod ->
             Mod:parse_config(Element, Conf)
     end;

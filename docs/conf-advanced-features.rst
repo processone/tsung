@@ -783,3 +783,20 @@ Then launch the run with::
 Only the GET to ``/`` will be performed.
 
 Note that request tags also get logged on **dumptraffic="protocol"** (see :ref:`sec-file-structure-label`) 
+
+Client certificate
+^^^^^^^^^^^^^^^^^^
+.. versionadded:: 1.5.1
+
+It is possible to use a client certificate for ssl authentication. You
+can use dynamic variables to set some parameters of the certificate
+(and the key password is optional).
+
+.. code-block:: xml
+
+  <session name="https-with-cert" probability="70" type="ts_http">
+
+    <set_option name="certificate">
+      <certificate cacertfile="/etc/ssl/ca.pem"
+                   keyfile="%%_keyfile%%" keypass="%%_keypass%%" certfile="/home/nobody/.tsung/client.pem"/>
+    </set_option>

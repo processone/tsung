@@ -404,13 +404,13 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 handle_next_action(State=#state_rcv{count=0}) ->
     ?LOG("Session ending ~n", ?INFO),
     {stop, normal, State};
-handle_next_action(State) ->
+handle_next_action(State=#state_rcv{dynvars = DynVars}) ->
     Count = State#state_rcv.count-1,
     case set_profile(State#state_rcv.maxcount,State#state_rcv.count,State#state_rcv.session_id) of
         {thinktime, TmpThink} ->
             Think = case TmpThink of
                         "%%"++_Tail ->
-                            Raw=ts_search:subst(TmpThink,State#state_rcv.dynvars),
+                            Raw=ts_search:subst(TmpThink,DynVars),
                             ts_utils:list_to_number(Raw)*1000;
                         Val ->
                             Val
@@ -451,7 +451,6 @@ handle_next_action(State) ->
             handle_next_request(Request, State);
         {change_type, NewCType, Server, Port, PType, Store, Restore, Bidi} ->
             ?DebugF("Change client type, use: ~p ~p~n",[NewCType, [Server , Port, PType, Store, Restore]]),
-            DynVars   = State#state_rcv.dynvars,
             NewPort   = case ts_search:subst(Port,DynVars) of
                             I when is_integer(I) ->
                                 I;
@@ -480,14 +479,34 @@ handle_next_action(State) ->
             RateConf=#token_bucket{rate=Rate,burst=Burst,last_packet_date=?NOW},
             Thresh=lists:min([Burst,State#state_rcv.size_mon_thresh]),
             handle_next_action(State#state_rcv{size_mon=Thresh,size_mon_thresh=Thresh,rate_limit=RateConf,count=Count});
+        {set_option, undefined, certificate, {Cacert, KeyFile, KeyPass, CertFile}} ->
+            ?LOGF("Set client certificate: ~p ~p ~p ~p~n",[Cacert, KeyFile, KeyPass, CertFile],?DEB),
+            Opts = lists:filtermap(fun({N,V}) ->
+                                           case V of
+                                               undefined ->
+                                                   false;
+                                               B when is_binary(B)->
+                                                   {true, {N,ts_search:subst(binary_to_list(B), DynVars)}};
+                                               Val ->
+                                                   {true, {N,ts_search:subst(Val, DynVars)}}
+                                           end
+                                   end ,
+                                   [{certfile, CertFile},
+                                    {keyfile,KeyFile},
+                                    {password,KeyPass},
+                                    {cacertfile,Cacert}]),
+            ?LOGF("SSL options for certificate: ~p~n",[Opts],?DEB),
+            OldOpts = State#state_rcv.proto_opts,
+            NewOpts = OldOpts#proto_opts{certificate = Opts},
+            handle_next_action(State#state_rcv{proto_opts=NewOpts,count=Count});
         {set_option, Type, Name, Args} ->
             NewState=Type:set_option(Name,Args,State),
             handle_next_action(NewState);
         {interaction, send, Id} ->
-            ts_interaction_server:send({ts_search:subst(Id, State#state_rcv.dynvars),?NOW}),
+            ts_interaction_server:send({ts_search:subst(Id, DynVars),?NOW}),
             handle_next_action(State#state_rcv{count=Count});
         {interaction, 'receive', Id} ->
-            ts_interaction_server:rcv({ts_search:subst(Id, State#state_rcv.dynvars),?NOW}),
+            ts_interaction_server:rcv({ts_search:subst(Id, DynVars),?NOW}),
             handle_next_action(State#state_rcv{count=Count});
         Other ->
             ?LOGF("Error: set profile return value is ~p (count=~p)~n",[Other,Count],?ERR),
