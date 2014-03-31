@@ -72,6 +72,20 @@ depend on the mean number of requests within a session (if you have a
 mean value of 100 requests per session and 10 new users per seconds,
 the theoretical average throughput will be 1000 requests/ sec).
 
+.. versionadded:: 1.5.1
+
+You can also override the probability settings of sessions within a
+specific phase, using ``session_setup``:
+
+.. code-block:: xml
+
+    <arrivalphase phase="3" duration="1" unit="minute">
+      <session_setup name="http_test_1" probability="80"/>
+      <session_setup name="fake"        probability="20"/>
+      <users  interarrival="1" unit="second"/>
+    </arrivalphase>
+
+
 .. index:: start_time
 
 Statically generated users
@@ -94,6 +108,9 @@ it is possible since version **1.3.1**:
    <session name="http-example" probability="0" type="ts_http">
      <request> <http url="/" method="GET"></http> </request>
    </session>
+   <session name="foobar" probability="0" type="ts_http">
+     <request> <http url="/bar" method="GET"></http> </request>
+   </session>
    <session name="foo" probability="100" type="ts_http">
      <request> <http url="/" method="GET"></http> </request>
    </session>
@@ -106,6 +123,19 @@ therefore will not be used in the first phase), and the other
 after the beginning of the test (using the ``http-example``
 session), one starting after 10 minutes, and a last one starting after
 11 minutes (using the ``foo`` session this time)
+
+.. versionadded:: 1.5.1
+
+If you want to start several sessions at once, and if the name of
+these sessions starts with the same prefix, you can use a
+wildcard. Given the previous sessions, this example will start two
+users (one with ``foo`` session, and one with ``foobar`` session) at
+starttime +10s.
+
+.. code-block:: xml
+
+    <user session="foo*" start_time="10" unit="second"/>
+
 
 .. index:: duration
 

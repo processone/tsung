@@ -201,3 +201,12 @@ value (the sum of all probabilities must be equal to 100)
     </user_agent>
   </option>
 
+AMQP options
+------------
+
+You can set the AMQP heartbeat timeout; for example to set it to 30s
+(default is 600s), add:
+
+.. code-block:: xml
+
+       <option type="ts_amqp" name="heartbeat" value="30" />
