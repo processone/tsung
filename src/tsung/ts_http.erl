@@ -128,7 +128,7 @@ get_message2(Req=#http_request{method=head}) ->
     ts_http_common:http_no_body(?HEAD, Req);
 
 get_message2(Req=#http_request{method=delete}) ->
-    ts_http_common:http_no_body(?DELETE, Req);
+    ts_http_common:http_body(?DELETE, Req);
 
 get_message2(Req=#http_request{method=post}) ->
     ts_http_common:http_body(?POST, Req);
