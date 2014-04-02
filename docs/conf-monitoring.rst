@@ -48,6 +48,18 @@ cluster monitoring definition based on Erlang agents, for a cluster of
 If you can't have erlang installed on remote servers, you can use one
 of the other available agents.
 
+.. versionadded:: 1.5.1
+
+erlang monitoring includes now an option to monitor a mysql db with
+mysqladmin. Use it like this:
+
+.. code-block:: xml
+
+    <monitor host="db" type="erlang"></monitor>
+     <mysqladmin port="3306" username="root" password="sesame" />
+    </monitor>
+
+Availabe stats: number of mysql threads and Questions (queries)
 
 .. index:: snmp
 

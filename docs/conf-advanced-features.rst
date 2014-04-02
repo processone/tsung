@@ -30,6 +30,9 @@ Here is an example of use of substitution in a Tsung scenario:
      </request>
    </session>
 
+For the http plugin, and since version 1.5.1, you can use the special value
+``subst='all_except_body'`` instead of ``'true'`` to skip the substitutions in
+the body part of the HTTP response.
 
 Here is the Erlang code of the module used for dynamic substitution:
 
