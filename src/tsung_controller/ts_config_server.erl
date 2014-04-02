@@ -219,7 +219,6 @@ handle_call({read_config, ConfigFile}, _From, State=#state{logdir=LogDir}) ->
             ConfigTmp = loop_load(sort_static(Config#config{sessions=[NewLast]++Sessions})),
             %% Compute per phase popularities
             NewConfig = compute_popularities(ConfigTmp),
-            set_max_duration(NewConfig#config.duration),
             ts_job_notify:listen(NewConfig#config.job_notify_port),
             case check_config(NewConfig) of
                 ok ->
@@ -400,6 +399,7 @@ handle_cast({newbeams, HostList}, State=#state{logdir   = LogDir,
                     lists:foreach(fun ts_sup:start_cport/1 ,CPorts)
             end,
             lists:foreach(StartLaunchers, RemoteNodes),
+            set_max_duration(Config#config.duration),
             {noreply, State#state{last_beam_id = LastId}}
     end;
 
