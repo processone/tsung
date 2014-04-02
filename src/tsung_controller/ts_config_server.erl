@@ -795,7 +795,7 @@ set_nodename(NodeId) when is_integer(NodeId)->
 set_max_duration(0) -> ok; % nothing to do
 set_max_duration(Duration) when Duration =< 4294967 ->
     ?LOGF("Set max duration of test: ~p s ~n",[Duration],?NOTICE),
-    erlang:start_timer(Duration*1000, self(), end_tsung ).
+    erlang:start_timer((Duration+?config(warm_time))*1000, self(), end_tsung ).
 
 
 
