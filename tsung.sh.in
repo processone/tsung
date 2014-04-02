@@ -31,7 +31,7 @@ PGSQL_SERVER_PORT=5432
 NAME=tsung
 CONTROLLER=tsung_controller
 SMP_DISABLE=true
-WARM_TIME=10
+WARM_TIME=1
 MAX_PROCESS=250000
 EXCLUDE_TAG_LIST=""
 
@@ -146,7 +146,7 @@ usage() {
     echo "    -m <file>     write monitoring output on this file (default is tsung.log)"
     echo "                   (use - for standard output)"
     echo "    -F            use long names (FQDN) for erlang nodes"
-    echo "    -w            warmup delay (default is 10 sec)"
+    echo "    -w            warmup delay (default is 1 sec)"
     echo "    -v            print version information and exit"
     echo "    -6            use IPv6 for Tsung internal communications"
     echo "    -x <tags>     list of requests tag to be excluded from the run (separated by comma)"
