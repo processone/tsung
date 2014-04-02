@@ -156,15 +156,13 @@ init(#session{ id           = SessionId,
 %%          {next_state, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}
 %%--------------------------------------------------------------------
-think(next_msg,State=#state_rcv{protocol=P,socket=S}) ->
+think(next_msg,State=#state_rcv{}) ->
     ?LOG("Global ack received, continue~n", ?DEB),
-    NewSocket = ts_utils:inet_setopts(P, S, [{active, once} ]),
+    NewSocket = (State#state_rcv.protocol):set_opts(State#state_rcv.socket, [{active, once}]),
     handle_next_action(State#state_rcv{socket=NewSocket }).
 
 wait_ack(next_msg,State=#state_rcv{request=R}) when R#ts_request.ack==global->
-    NewSocket = ts_utils:inet_setopts(State#state_rcv.protocol,
-                                      State#state_rcv.socket,
-                                      [{active, once} ]),
+    NewSocket = (State#state_rcv.protocol):set_opts(State#state_rcv.socket, [{active, once}]),
     {PageTimeStamp, _, _} = update_stats(State),
     handle_next_action(State#state_rcv{socket=NewSocket,
                                        page_timestamp=PageTimeStamp});
