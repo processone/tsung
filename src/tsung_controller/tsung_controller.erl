@@ -41,22 +41,32 @@
 %%----------------------------------------------------------------------
 start(_Type, _StartArgs) ->
     error_logger:tty(false),
-    {ok, {LogDir, _Name}} = ts_utils:setsubdir(?config(log_dir)),
-    erlang:display("Log directory is: " ++ LogDir),
-    LogFile = filename:join(LogDir, atom_to_list(node()) ++ ".log"),
-    case  error_logger:logfile({open, LogFile }) of
-        ok ->
-            case ts_controller_sup:start_link(LogDir) of
-                {ok, Pid} ->
-                    {ok, Pid};
-                Error ->
-                    io:format(standard_error,"Can't start ! ~p ~n",[Error]),
-                    Error
-            end;
-        {error, Reason} ->
-            Msg = "Error while opening log file: " ,
-            io:format(standard_error,Msg ++ " ~p ~n",[Reason]),
-            {error, Reason}
+    case ts_utils:setsubdir(?config(log_dir)) of
+        {error, {error, eacces} } ->
+            Msg = "Error while creating log directory in ~s: permission denied~n" ,
+            io:format(standard_error,Msg,[?config(log_dir)]),
+            halt(77);
+        {error, Err} ->
+            Msg = "Error while creating log directory : ~s~n" ,
+            io:format(standard_error,Msg,[Err]),
+            halt(1);
+        {ok, {LogDir, _Name}} ->
+            erlang:display("Log directory is: " ++ LogDir),
+            LogFile = filename:join(LogDir, atom_to_list(node()) ++ ".log"),
+            case  error_logger:logfile({open, LogFile }) of
+                ok ->
+                    case ts_controller_sup:start_link(LogDir) of
+                        {ok, Pid} ->
+                            {ok, Pid};
+                        Error ->
+                            io:format(standard_error,"Can't start ! ~p ~n",[Error]),
+                            halt(1)
+                    end;
+                {error, Reason} ->
+                    Msg = "Error while opening log file: " ,
+                    io:format(standard_error,Msg ++ " ~p ~n",[Reason]),
+                    halt(1)
+            end
     end.
 
 start_phase(load_config, _StartType, _PhaseArgs) ->
