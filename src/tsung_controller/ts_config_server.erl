@@ -832,19 +832,13 @@ remote_launcher(Host, NodeId, Args) when is_list(NodeId)->
     remote_launcher(Host, list_to_integer(NodeId), Args);
 remote_launcher(Host, NodeId, Args)->
     Name = set_nodename(NodeId),
-    ?LOGF("starting newbeam on host ~p with Args ~p~n", [Host, Args], ?INFO),
+    ?LOGF("starting newbeam ~p on host ~p with Args ~p~n", [Name, Host, Args], ?INFO),
     start_slave(Host, Name, Args).
 
 set_remote_args(LogDir,PortsRange)->
-    {ok, [[BootController]]}    = init:get_argument(boot),
-    ?DebugF("BootController ~p~n", [BootController]),
-    {ok, [[?TSUNGPATH,PathVar]]}    = init:get_argument(boot_var),
-    ?DebugF("BootPathVar ~p~n", [PathVar]),
     {ok, PAList}    = init:get_argument(pa),
     PA = lists:flatmap(fun(A) -> [" -pa "] ++A end,PAList),
     ?DebugF("PA list ~p ~n", [PA]),
-    Boot = re:replace(BootController,"tsung_controller","tsung",[{return,list},global]),
-    ?DebugF("Boot ~p~n", [Boot]),
     Sys_Args= ts_utils:erl_system_args(),
     LogDirEnc = encode_filename(LogDir),
     Ports = case PortsRange of
@@ -853,8 +847,8 @@ set_remote_args(LogDir,PortsRange)->
                 undefined ->
                     ""
             end,
-    lists:flatten([ Sys_Args," -boot ", Boot,
-                    " -boot_var ", ?TSUNGPATH, " ",PathVar, PA,
+    lists:flatten([ Sys_Args," -s tsung ",
+                    PA,
                     " +K true ",
                     " -tsung debug_level ", integer_to_list(?config(debug_level)),
                     " -tsung log_file ", LogDirEnc, Ports

@@ -1,6 +1,6 @@
 {application, tsung_recorder,
       [{description,  "tsung recorder"},
-       {vsn,          "%VSN%"},
+       {vsn,          "@PACKAGE_VERSION@"},
        {modules,      [
 					   tsung_recorder,
 					   ts_recorder_sup,

@@ -1,6 +1,6 @@
 {application, tsung,
       [{description,  "tsung, a load testing tool for TCP/UDP servers"},
-       {vsn,          "%VSN%"},
+       {vsn,          "@PACKAGE_VERSION@"},
        {modules,      [
                        tsung,
                        ts_launcher,

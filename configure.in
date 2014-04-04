@@ -123,9 +123,9 @@ AC_CONFIG_FILES([\
         src/tsung_stats.pl \
         src/tsung-plotter/tsplot.py \
         src/log2tsung.pl \
-        src/tsung_controller/tsung_controller.app.src \
-        src/tsung_recorder/tsung_recorder.app.src \
-        src/tsung/tsung.app.src \
+        src/tsung_controller/tsung_controller.app \
+        src/tsung_recorder/tsung_recorder.app \
+        src/tsung/tsung.app \
         ])
 
 AC_OUTPUT

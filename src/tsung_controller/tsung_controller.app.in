@@ -1,6 +1,6 @@
 {application, tsung_controller,
       [{description,  "tsung, a bench tool for TCP/UDP servers"},
-       {vsn,          "%VSN%"},
+       {vsn,          "@PACKAGE_VERSION@"},
        {modules,      [
                        tsung_controller,
                        ts_controller_sup,

@@ -35,10 +35,15 @@
 -vc('$Id$ ').
 -author('nicolas.niclausse@niclux.org').
 
--export([start/2,stop/1, stop_all/1]).
+-export([start/0, start/2, stop/1, stop_all/1]).
 -behaviour(application).
 
 -include("ts_macros.hrl").
+
+
+%% start the application with it's dependencies
+start() ->
+    ts_utils:ensure_all_started(tsung_recorder, permanent).
 
 %%----------------------------------------------------------------------
 %% Func: start/2

@@ -39,40 +39,20 @@ TSUNGPATH=$INSTALL_DIR/lib/tsung-$VERSION/ebin
 CONTROLLERPATH=$INSTALL_DIR/lib/tsung_controller-$VERSION/ebin
 
 CONF_OPT_FILE="$HOME/.tsung/tsung.xml"
-BOOT_OPT="-boot $INSTALL_DIR/lib/tsung_controller-$VERSION/priv/tsung_controller -boot_var TSUNGPATH  $INSTALL_DIR "
 DEBUG_LEVEL=5
 ERL_RSH=" -rsh ssh "
 ERL_DIST_PORTS=" -kernel inet_dist_listen_min 64000 -kernel inet_dist_listen_max 65500 "
 ERL_OPTS=" $ERL_DIST_PORTS -smp auto +P $MAX_PROCESS +A 16 +K true @ERL_OPTS@ "
 COOKIE='tsung'
-ERTS_RUN=`$ERL -version 2>&1 | tr -cd 0123456789.`
-ERTS_BOOT=`grep erts $TSUNGPATH/../priv/tsung.rel 2> /dev/null| tr -cd 0123456789.`
 
 stop() {
     $ERL $ERL_OPTS $ERL_RSH -noshell $PROTO_DIST $NAMETYPE killer -setcookie $COOKIE -pa $TSUNGPATH -pa $CONTROLLERPATH -s tsung_controller stop_all $HOST -s init stop
 }
 
-checkversion() {
-    if [ $ERTS_RUN != $ERTS_BOOT ]
-    then
-        echo "Erlang version has changed ! [$ERTS_BOOT] != [$ERTS_RUN]"
-        echo "Must create new boot files (you may have to run this one time as root ! )"
-        makebootfiles
-    fi
-}
-
-makebootfiles() {
-    cd $TSUNGPATH/..
-    echo "creating boot file for tsung application"
-    $ERL $ERL_OPTS -noshell -pa $TSUNGPATH -s builder go -s init stop > /dev/null
-    cd $CONTROLLERPATH/..
-    echo "creating boot file for tsung_controller application"
-    $ERL $ERL_OPTS -noshell -pa $TSUNGPATH -s builder go -s init stop > /dev/null
-}
-
 start() {
     echo "Starting Tsung"
-    $ERL $ERL_OPTS $ERL_RSH -noshell $PROTO_DIST $NAMETYPE $CONTROLLER -setcookie $COOKIE  $BOOT_OPT \
+    $ERL $ERL_OPTS $ERL_RSH -noshell $PROTO_DIST $NAMETYPE $CONTROLLER -setcookie $COOKIE \
+    -s tsung_controller \
     -pa $TSUNGPATH -pa $CONTROLLERPATH \
     -tsung_controller smp_disable $SMP_DISABLE \
     -tsung_controller debug_level $DEBUG_LEVEL \
@@ -82,7 +62,8 @@ start() {
 }
 
 debug() {
-    $ERL $ERL_OPTS $ERL_RSH $NAMETYPE $CONTROLLER $PROTO_DIST -setcookie $COOKIE $BOOT_OPT \
+    $ERL $ERL_OPTS $ERL_RSH $NAMETYPE $CONTROLLER $PROTO_DIST -setcookie $COOKIE  \
+     -s tsung_controller \
      -pa $TSUNGPATH -pa $CONTROLLERPATH \
      -tsung_controller warm_time $WARM_TIME \
      -tsung_controller config_file \"$CONF_OPT_FILE\" \
@@ -190,18 +171,12 @@ shift $(($OPTIND - 1))
 case $1 in
     start)
         checkconfig
-        checkversion
         maindir
         logdir
         start
         ;;
-    boot)
-        checkversion
-        ;;
-
     debug)
         checkconfig
-        checkversion
         maindir
         logdir
         debug

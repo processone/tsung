@@ -27,15 +27,11 @@ RECORDERPATH=$INSTALL_DIR/lib/tsung_recorder-$VERSION/ebin
 CONTROLLERPATH=$INSTALL_DIR/lib/tsung_controller-$VERSION/ebin
 
 CONF_OPT_FILE="$HOME/.tsung/tsung.xml"
-BOOT_OPT="-boot $INSTALL_DIR/lib/tsung_controller-$VERSION/priv/tsung_controller -boot_var TSUNGPATH  $INSTALL_DIR "
-REC_BOOT_OPT="-boot $INSTALL_DIR/lib/tsung_recorder-$VERSION/priv/tsung_recorder -boot_var TSUNGPATH  $INSTALL_DIR "
 DEBUG_LEVEL=5
 RECORDER_PLUGIN="http"
 ERL_RSH=" -rsh ssh "
 ERL_OPTS=" -smp auto +P 250000 +A 16 +K true @ERL_OPTS@ "
 COOKIE='tsung'
-ERTS_RUN=`$ERL -version 2>&1 | tr -cd 0123456789.`
-ERTS_BOOT=`grep erts $TSUNGPATH/../priv/tsung.rel 2> /dev/null| tr -cd 0123456789.`
 
 stop() {
     $ERL $ERL_OPTS $ERL_RSH -noshell  $NAMETYPE killer -setcookie $COOKIE -pa $TSUNGPATH -pa $RECORDERPATH -s tsung_recorder stop_all $HOST -s init stop
@@ -57,24 +53,10 @@ status() {
     fi
 }
 
-checkversion() {
-    if [ $ERTS_RUN != $ERTS_BOOT ]
-    then
-        echo "Erlang version has changed ! [$ERTS_BOOT] != [$ERTS_RUN]"
-        echo "Must create new boot files (you may have to run this one time as root ! )"
-        makebootfiles
-    fi
-}
-
-makebootfiles() {
-    echo "creating boot file for tsung_recorder application"
-    cd $RECORDERPATH/..
-    $ERL $ERL_OPTS -noshell -pa $TSUNGPATH -s builder go -s init stop > /dev/null
-}
-
 start() {
     echo "Starting Tsung recorder on port $LISTEN_PORT"
-    $ERL $ERL_OPTS $ERL_RSH -noshell $NAMETYPE $RECORDER -setcookie $COOKIE  $REC_BOOT_OPT \
+    $ERL $ERL_OPTS $ERL_RSH -noshell $NAMETYPE $RECORDER -setcookie $COOKIE  \
+    -s tsung_recorder \
     -pa $TSUNGPATH -pa $RECORDERPATH -pa $CONTROLLERPATH \
     -tsung_recorder debug_level $DEBUG_LEVEL \
     -tsung_recorder $LOG_OPT \
@@ -179,7 +161,6 @@ shift $(($OPTIND - 1))
 case $1 in
     start)
         PIDFILE="/tmp/tsung_recorder.pid"
-        checkversion
         maindir
         logdir
         checkrunning
@@ -188,9 +169,6 @@ case $1 in
 
     record_tag)
         record_tag $*
-        ;;
-    boot)
-        checkversion
         ;;
     stop)
         PIDFILE="/tmp/tsung_recorder.pid"

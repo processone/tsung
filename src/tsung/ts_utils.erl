@@ -44,8 +44,8 @@
          randomstr/1,urandomstr/1,urandomstr_noflat/1, eval/1, list_to_number/1,
          time2sec/1, time2sec_hires/1, read_file_raw/1, init_seed/1, jsonpath/2, pmap/2,
          concat_atoms/1, ceiling/1, accept_loop/3, append_to_filename/3, splitchar/2,
-         randombinstr/1,urandombinstr/1,log_transaction/1,conv_entities/1, wildcard/2
-        ]).
+         randombinstr/1,urandombinstr/1,log_transaction/1,conv_entities/1, wildcard/2,
+         ensure_all_started/2]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -907,7 +907,22 @@ conv_entities(<<"&apos;", T/binary >>,Acc) ->
 conv_entities(<<H:1/binary, T/binary >>,Acc) ->
     conv_entities(T,[ Acc, H]).
 
+%% start an application and it's dependencies recursively
+%% does the same as application:ensure_all_started (only in R16B2)
+ensure_all_started(App, Type) ->
+    start_ok(App, Type, application:start(App, Type)).
+
+start_ok(_App, _Type, ok) -> ok;
+start_ok(_App, _Type, {error, {already_started, _App}}) -> ok;
+start_ok(App, Type, {error, {not_started, Dep}}) ->
+    ok = ensure_all_started(Dep, Type),
+    ensure_all_started(App, Type);
+start_ok(App, _Type, {error, Reason}) ->
+    erlang:error({app_start_failed, App, Reason}).
+
 wildcard(Wildcard,Names) ->
     PatternTmp = re:replace("^"++Wildcard,"\\*",".*",[{return,list}]),
     Pattern = re:replace(PatternTmp,"\\?",".{1}",[{return,list}]) ++ "$" ,
     lists:filter(fun(N) -> re:run(N, Pattern) =/= nomatch end, Names).
+
+
