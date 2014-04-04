@@ -138,12 +138,12 @@ TEST_TARGET   = $(addsuffix .beam, $(basename \
              $(addprefix $(EBIN)/, $(notdir $(TESTSRC)))))
 DEBIAN    = debian/changelog debian/control debian/compat debian/copyright debian/docs debian/tsung.dirs debian/rules
 
-SRC_APPFILES   = $(EBIN)/$(APPLICATION).app
-SRC_APPFILES_IN   = $(ESRC)/$(APPLICATION)/$(APPLICATION).app.in
-CONTROLLER_SRC_APPFILES   = $(EBIN)/$(CONTROLLER_APPLICATION).app
-CONTROLLER_SRC_APPFILES_IN   = $(ESRC)/$(CONTROLLER_APPLICATION)/$(CONTROLLER_APPLICATION).app.in
-RECORDER_SRC_APPFILES   = $(EBIN)/$(RECORDER_APPLICATION).app
-RECORDER_SRC_APPFILES_IN   = $(ESRC)/$(RECORDER_APPLICATION)/$(RECORDER_APPLICATION).app.in
+APPFILES   = $(EBIN)/$(APPLICATION).app
+APPFILES_IN   = $(ESRC)/$(APPLICATION)/$(APPLICATION).app.in
+CONTROLLER_APPFILES   = $(EBIN)/$(CONTROLLER_APPLICATION).app
+CONTROLLER_APPFILES_IN   = $(ESRC)/$(CONTROLLER_APPLICATION)/$(CONTROLLER_APPLICATION).app.in
+RECORDER_APPFILES   = $(EBIN)/$(RECORDER_APPLICATION).app
+RECORDER_APPFILES_IN   = $(ESRC)/$(RECORDER_APPLICATION)/$(RECORDER_APPLICATION).app.in
 
 SCRIPT   = $(BINDIR)/tsung
 REC_SCRIPT   = $(BINDIR)/tsung-recorder
@@ -159,13 +159,13 @@ BUILD_OPTIONS_DOT = $(subst $(PWD)/temp/,./,$(BUILD_OPTIONS))
 
 BUILD_OPTIONS_FILE = ./BUILD_OPTIONS
 
-DIST_COMMON=Makefile.in $(CONFFILE_SRC) $(PERL_SCRIPTS_SRC) $(TSPLOT_SRC) tsung.sh.in tsung-recorder.sh.in tsung.spec.in $(CONTROLLER_SRC_APPFILES_IN)
+DIST_COMMON=Makefile.in $(CONFFILE_SRC) $(PERL_SCRIPTS_SRC) $(TSPLOT_SRC) tsung.sh.in tsung-recorder.sh.in tsung.spec.in $(CONTROLLER_APPFILES_IN)
 
 DOC_OPTS={def,{version,\"$(VERSION)\"}}
 
 .PHONY: doc
 
-tsung: Makefile config.status $(PERL_SCRIPTS)  $(TSPLOT) tsung.sh tsung-recorder.sh tsung.spec $(TARGET) $(RECORDER_TARGET) $(CONTROLLER_TARGET) $(LIB_TARGET)  $(CONTROLLER_SRC_APPFILES) $(SRC_APPFILES) $(RECORDER_SRC_APPFILES)
+tsung: Makefile config.status $(PERL_SCRIPTS)  $(TSPLOT) tsung.sh tsung-recorder.sh tsung.spec $(TARGET) $(RECORDER_TARGET) $(CONTROLLER_TARGET) $(LIB_TARGET)  $(CONTROLLER_APPFILES) $(APPFILES) $(RECORDER_APPFILES)
 
 buildtest: $(TEST_TARGET)
 
@@ -215,7 +215,7 @@ show:
 clean:
 	-rm -fr $(EBIN_TEST)
 	-rm -f $(TARGET) $(TMP) $(BUILD_OPTIONS_FILE)
-	-rm -f $(RECORDER_SRC_APPFILES)  $(CONTROLLER_SRC_APPFILES) $(SRC_APPFILES)
+	-rm -f $(RECORDER_APPFILES)  $(CONTROLLER_APPFILES) $(APPFILES)
 	-rm -f $(EBIN)/*.app  $(PERL_SCRIPTS) $(TSPLOT) $(CONFFILE)
 	-rm -f $(EBIN)/*.beam tsung.sh tsung.spec tsung.xml tsung.sh tsung-recorder.sh
 	-rm -f *.xml config.log src/test/*.xml src/test/usersdb.csv
@@ -235,9 +235,9 @@ install: doc install_recorder install_controller $(CONFFILE)
 	install -m 0644 $(LIB_TARGET) $(DESTDIR)$(TARGETDIR)/ebin/
 
 
-	install -m 0644 $(TGT_APPFILES_E) $(DESTDIR)$(TARGETDIR)/ebin/
+	install -m 0644 $(APPFILES) $(DESTDIR)$(TARGETDIR)/ebin/
 
-	install -m 0644 $(SRC) $(SRC_APPFILES) $(DESTDIR)$(TARGETDIR)/src/
+	install -m 0644 $(SRC) $(DESTDIR)$(TARGETDIR)/src/
 	echo $(BUILD_OPTIONS_DOT) > $(DESTDIR)$(TARGETDIR)/BUILD_OPTIONS
 
 
@@ -272,9 +272,9 @@ install_recorder:
 	install -m 0644 $(INC_FILES) $(DESTDIR)$(RECORDER_TARGETDIR)/include
 	install -m 0644 $(RECORDER_TARGET) $(DESTDIR)$(RECORDER_TARGETDIR)/ebin
 
-	install -m 0644 $(RECORDER_TGT_APPFILES_E) $(DESTDIR)$(RECORDER_TARGETDIR)/ebin
+	install -m 0644 $(RECORDER_APPFILES) $(DESTDIR)$(RECORDER_TARGETDIR)/ebin
 
-	install -m 0644 $(RECORDER_SRC) $(RECORDER_SRC_APPFILES) $(DESTDIR)$(RECORDER_TARGETDIR)/src
+	install -m 0644 $(RECORDER_SRC) $(DESTDIR)$(RECORDER_TARGETDIR)/src
 	@echo $(BUILD_OPTIONS_DOT) > $(DESTDIR)$(RECORDER_TARGETDIR)/BUILD_OPTIONS
 
 install_controller:
@@ -285,9 +285,9 @@ install_controller:
 	install -m 0644 $(INC_FILES) $(DESTDIR)$(CONTROLLER_TARGETDIR)/include
 	install -m 0644 $(CONTROLLER_TARGET) $(DESTDIR)$(CONTROLLER_TARGETDIR)/ebin
 
-	install -m 0644 $(CONTROLLER_TGT_APPFILES_E) $(DESTDIR)$(CONTROLLER_TARGETDIR)/ebin
+	install -m 0644 $(CONTROLLER_APPFILES) $(DESTDIR)$(CONTROLLER_TARGETDIR)/ebin
 
-	install -m 0644 $(CONTROLLER_SRC) $(CONTROLLER_SRC_APPFILES) $(DESTDIR)$(CONTROLLER_TARGETDIR)/src
+	install -m 0644 $(CONTROLLER_SRC) $(DESTDIR)$(CONTROLLER_TARGETDIR)/src
 	@echo $(BUILD_OPTIONS_DOT) > $(DESTDIR)$(CONTROLLER_TARGETDIR)/BUILD_OPTIONS
 
 uninstall:
@@ -311,13 +311,13 @@ Makefile: Makefile.in config.status
 %.sh :%.sh.in vsn.mk
 	@$(SHELL) ./config.status --file=$@
 
-$(SRC_APPFILES): $(SRC_APPFILES_IN)
+$(APPFILES): $(APPFILES_IN)
 	@$(SHELL) ./config.status --file=$@:$<
 
-$(CONTROLLER_SRC_APPFILES): $(CONTROLLER_SRC_APPFILES_IN)
+$(CONTROLLER_APPFILES): $(CONTROLLER_APPFILES_IN)
 	@$(SHELL) ./config.status --file=$@:$<
 
-$(RECORDER_SRC_APPFILES): $(RECORDER_SRC_APPFILES_IN)
+$(RECORDER_APPFILES): $(RECORDER_APPFILES_IN)
 	@$(SHELL) ./config.status --file=$@:$<
 
 config.status: configure $(CONFIG_STATUS_DEPENDENCIES)
@@ -337,9 +337,9 @@ user_guide:
 release: Makefile tsung.spec doc user_guide
 	rm -fr $(distdir)
 	mkdir -p $(distdir)
-	tar zcf tmp.tgz $(SRC) $(SRC_APPFILES_IN) $(INC_FILES) $(LIBSRC) \
-		$(CONTROLLER_SRC) $(CONTROLLER_SRC_APPFILES_IN) $(TESTSRC) \
-		$(RECORDER_SRC_APPFILES_IN) \
+	tar zcf tmp.tgz $(SRC) $(APPFILES_IN) $(INC_FILES) $(LIBSRC) \
+		$(CONTROLLER_SRC) $(CONTROLLER_APPFILES_IN) $(TESTSRC) \
+		$(RECORDER_APPFILES_IN) \
 		$(RECORDER_SRC) $(TEMPLATES) \
 		man/*.erl man/*.txt man/*.dia man/*.png man/Makefile man/*.sgml man/*.1 \
 		docs/*.rst docs/Makefile docs/*.txt docs/README docs/*.py docs/_static docs/_templates \
