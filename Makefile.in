@@ -138,15 +138,12 @@ TEST_TARGET   = $(addsuffix .beam, $(basename \
              $(addprefix $(EBIN)/, $(notdir $(TESTSRC)))))
 DEBIAN    = debian/changelog debian/control debian/compat debian/copyright debian/docs debian/tsung.dirs debian/rules
 
-SRC_APPFILES   = $(ESRC)/$(APPLICATION)/$(APPLICATION).app
+SRC_APPFILES   = $(EBIN)/$(APPLICATION).app
 SRC_APPFILES_IN   = $(ESRC)/$(APPLICATION)/$(APPLICATION).app.in
-CONTROLLER_SRC_APPFILES   = $(ESRC)/$(CONTROLLER_APPLICATION)/$(CONTROLLER_APPLICATION).app
+CONTROLLER_SRC_APPFILES   = $(EBIN)/$(CONTROLLER_APPLICATION).app
 CONTROLLER_SRC_APPFILES_IN   = $(ESRC)/$(CONTROLLER_APPLICATION)/$(CONTROLLER_APPLICATION).app.in
-RECORDER_SRC_APPFILES   = $(ESRC)/$(RECORDER_APPLICATION)/$(RECORDER_APPLICATION).app
+RECORDER_SRC_APPFILES   = $(EBIN)/$(RECORDER_APPLICATION).app
 RECORDER_SRC_APPFILES_IN   = $(ESRC)/$(RECORDER_APPLICATION)/$(RECORDER_APPLICATION).app.in
-TGT_APPFILES_E = $(EBIN)/$(APPLICATION).app
-CONTROLLER_TGT_APPFILES_E = $(EBIN)/$(CONTROLLER_APPLICATION).app
-RECORDER_TGT_APPFILES_E = $(EBIN)/$(RECORDER_APPLICATION).app
 
 SCRIPT   = $(BINDIR)/tsung
 REC_SCRIPT   = $(BINDIR)/tsung-recorder
@@ -168,7 +165,7 @@ DOC_OPTS={def,{version,\"$(VERSION)\"}}
 
 .PHONY: doc
 
-tsung: Makefile config.status $(PERL_SCRIPTS)  $(TSPLOT) tsung.sh tsung-recorder.sh tsung.spec $(TARGET) $(RECORDER_TARGET) $(CONTROLLER_TARGET) $(LIB_TARGET)  $(CONTROLLER_SRC_APPFILES) $(SRC_APPFILES) $(RECORDER_SRC_APPFILES) $(TGT_APPFILES_E) $(CONTROLLER_TGT_APPFILES_E) $(RECORDER_TGT_APPFILES_E)
+tsung: Makefile config.status $(PERL_SCRIPTS)  $(TSPLOT) tsung.sh tsung-recorder.sh tsung.spec $(TARGET) $(RECORDER_TARGET) $(CONTROLLER_TARGET) $(LIB_TARGET)  $(CONTROLLER_SRC_APPFILES) $(SRC_APPFILES) $(RECORDER_SRC_APPFILES)
 
 buildtest: $(TEST_TARGET)
 
@@ -314,9 +311,14 @@ Makefile: Makefile.in config.status
 %.sh :%.sh.in vsn.mk
 	@$(SHELL) ./config.status --file=$@
 
-%.app: %.app.in
-	@$(SHELL) ./config.status --file=$@
-	cp $@ $(EBIN)
+$(SRC_APPFILES): $(SRC_APPFILES_IN)
+	@$(SHELL) ./config.status --file=$@:$<
+
+$(CONTROLLER_SRC_APPFILES): $(CONTROLLER_SRC_APPFILES_IN)
+	@$(SHELL) ./config.status --file=$@:$<
+
+$(RECORDER_SRC_APPFILES): $(RECORDER_SRC_APPFILES_IN)
+	@$(SHELL) ./config.status --file=$@:$<
 
 config.status: configure $(CONFIG_STATUS_DEPENDENCIES)
 	$(SHELL) ./config.status --recheck
@@ -357,11 +359,6 @@ release: Makefile tsung.spec doc user_guide
 
 snapshot:
 	$(MAKE) TYPE=snapshot release
-
-$(EBIN)/%.app:
-	cp $(RECORDER_SRC_APPFILES) $(EBIN)
-	cp $(SRC_APPFILES) $(EBIN)
-	cp $(CONTROLLER_SRC_APPFILES) $(EBIN)
 
 $(EBIN)/%.beam: src/test/%.erl $(INC_FILES)
 	@echo  "Compiling test $< ... "
