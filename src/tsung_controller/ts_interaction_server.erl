@@ -24,7 +24,7 @@
 %%%  Public License) is based on, is included in this exception.
 %%%
 %%% @end
-%%% Created: 20 août 2009 by Nicolas Niclausse  <nicolas@niclux.org>
+%%% Created: 20 aoÃ»t 2009 by Nicolas Niclausse  <nicolas@niclux.org>
 %%%-------------------------------------------------------------------
 -module(ts_interaction_server).
 

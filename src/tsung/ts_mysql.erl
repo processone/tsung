@@ -1,4 +1,4 @@
-%%%  Created :  July 2008 by Grégoire Reboul <gregoire.reboul@laposte.net>
+%%%  Created :  July 2008 by GrÃ©goire Reboul <gregoire.reboul@laposte.net>
 %%%  From     :    ts_pgsql.erl by Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%  Note    :  Based on erlang-mysql by Magnus Ahltorp & Fredrik Thulin <ft@it.su.se>
 %%

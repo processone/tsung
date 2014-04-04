@@ -1,5 +1,5 @@
 %%%
-%%%  Copyright 2011 © INRIA
+%%%  Copyright 2011 Â© INRIA
 %%%
 %%%  Author : Nicolas Niclausse <nicolas.niclausse@inria.fr>
 %%%  Created: 4 mai 2011 by Nicolas Niclausse <nicolas.niclausse@inria.fr>

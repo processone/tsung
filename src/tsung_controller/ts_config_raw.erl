@@ -1,5 +1,5 @@
 %%%
-%%%  Copyright © IDEALX S.A.S. 2004
+%%%  Copyright Â© IDEALX S.A.S. 2004
 %%%
 %%%	 Author : Nicolas Niclausse <nicolas.niclausse@niclux.org>
 %%%  Created: 20 Apr 2004 by Nicolas Niclausse <nicolas.niclausse@niclux.org>

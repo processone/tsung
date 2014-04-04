@@ -1,8 +1,8 @@
 %%%
-%%%  Copyright 2009 © INRIA
+%%%  Copyright 2009 Â© INRIA
 %%%
 %%%  Author : Nicolas Niclausse <nniclaus@sophia.inria.fr>
-%%%  Created: 20 août 2009 by Nicolas Niclausse <nniclaus@sophia.inria.fr>
+%%%  Created: 20 aoÃ»t 2009 by Nicolas Niclausse <nniclaus@sophia.inria.fr>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
 %%%  it under the terms of the GNU General Public License as published by

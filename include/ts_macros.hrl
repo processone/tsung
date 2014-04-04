@@ -1,8 +1,8 @@
 %%%
-%%%  Copyright 2012 © nicolas niclausse
+%%%  Copyright 2012 Â© nicolas niclausse
 %%%
 %%%  Author : Nicolas Niclausse <nicolas@niclux.org>
-%%%  Created: 22 août 2012 by Nicolas Niclausse <nicolas@niclux.org>
+%%%  Created: 22 aoÃ»t 2012 by Nicolas Niclausse <nicolas@niclux.org>
 %%%
 %%%  This program is free software; you can redistribute it and/or modify
 %%%  it under the terms of the GNU General Public License as published by

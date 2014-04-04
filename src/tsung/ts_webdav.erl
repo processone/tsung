@@ -1,5 +1,5 @@
 %%%
-%%%  Copyright © Nicolas Niclausse. 2008
+%%%  Copyright Â© Nicolas Niclausse. 2008
 %%%
 %%%  Author : Nicolas Niclausse <nicolas@niclux.org>
 %%%  Created: 12 mar 2008 by Nicolas Niclausse <nicolas@niclux.org>
