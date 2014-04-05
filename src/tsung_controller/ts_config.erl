@@ -699,7 +699,6 @@ parse(Element = #xmlElement{name=request, attributes=Attrs},
             ?LOGF("Tag  ~p in ~p ~p ~p ~n",[Tag,true,?config(exclude_tag),Tags],?NOTICE),
             Conf;
         false ->
-            ?LOGF("Tag  ~p in ~p ~p ~p ~n",[Tag,false,?config(exclude_tag),Tags],?NOTICE),
             lists:foldl( fun(A,B) ->Type:parse_config(A,B) end,
                          Conf#config{curid=Id+1, cur_req_id=Id+1,
                                      subst=SubstitutionFlag,
