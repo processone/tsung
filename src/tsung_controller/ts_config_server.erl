@@ -95,6 +95,7 @@ status() ->
 %%--------------------------------------------------------------------
 newbeams(HostList)->
     gen_server:cast({global, ?MODULE},{newbeams, HostList }).
+
 %%--------------------------------------------------------------------
 %% Function: newbeam/2
 %% Description: start a new beam with given config. Use by launcher
@@ -372,35 +373,47 @@ handle_cast({newbeams, HostList}, State=#state{logdir   = LogDir,
             ts_mon:abort(),
             {stop, normal,State};
         Id0 ->
-            Seed=Config#config.seed,
+            Seed = Config#config.seed,
             Args = set_remote_args(LogDir, Config#config.ports_range),
             {BeamsIds, LastId} = lists:mapfoldl(fun(A,Acc) -> {{A, Acc}, Acc+1} end, Id0, RemoteBeams),
             Fun = fun({Host,Id}) -> remote_launcher(Host, Id, Args) end,
             RemoteNodes = ts_utils:pmap(Fun, BeamsIds),
             ?LOG("All remote beams started, syncing ~n",?NOTICE),
             global:sync(),
-            StartLaunchers = fun(Node) ->
-                                     ts_launcher_static:launch({Node,[]}),
-                                     ts_launcher:launch({Node, [], Seed})
-                             end,
-            case Config#config.ports_range of
-                undefined ->
-                    ok;
-                _ ->
-                    ?LOG("Start client port server on remote nodes ~n",?NOTICE),
-                    %% first, get a single erlang node per host, and start the cport gen_server on this node
-                    UNodes = get_one_node_per_host(RemoteNodes),
-                    SetParams = fun(Node) ->
-                            {ok, MyHostName} =ts_utils:node_to_hostname(Node),
-                            {Node, "cport-" ++ MyHostName}
-                          end,
-                    CPorts = lists:map(SetParams, UNodes),
-                    ?LOGF("Will run start_cport with arg:~p ~n",[CPorts],?DEB),
-                    lists:foreach(fun ts_sup:start_cport/1 ,CPorts)
-            end,
-            lists:foreach(StartLaunchers, RemoteNodes),
-            set_max_duration(Config#config.duration),
-            {noreply, State#state{last_beam_id = LastId}}
+            ?LOG("Syncing done, start remote tsung application ~n", ?DEB),
+            {Resl, BadNodes} = rpc:multicall(RemoteNodes,tsung,start,[],5000),
+            ?LOGF("RPC result: ~p ~p ~n",[Resl,BadNodes],?DEB),
+            case BadNodes of
+                [] ->
+                    StartLaunchers = fun(Node) ->
+                                             ts_launcher_static:launch({Node,[]}),
+                                             ts_launcher:launch({Node, [], Seed})
+                                     end,
+                    case Config#config.ports_range of
+                        undefined ->
+                            ?LOG("Undefined ports_range config ~n",?NOTICE),
+                            ok;
+                        _ ->
+                            ?LOG("Start client port server on remote nodes ~n",?NOTICE),
+                            %% first, get a single erlang node per host, and start the cport gen_server on this node
+                            UNodes = get_one_node_per_host(RemoteNodes),
+                            SetParams = fun(Node) ->
+                                                {ok, MyHostName} =ts_utils:node_to_hostname(Node),
+                                                {Node, "cport-" ++ MyHostName}
+                                        end,
+                            CPorts = lists:map(SetParams, UNodes),
+                            ?LOGF("Will run start_cport with arg:~p ~n",[CPorts],?DEB),
+                            lists:foreach(fun ts_sup:start_cport/1 ,CPorts)
+                    end,
+                    lists:foreach(StartLaunchers, RemoteNodes),
+                    set_max_duration(Config#config.duration),
+
+                    {noreply, State#state{last_beam_id = LastId}};
+                Bad ->
+                    ?LOGF("Can't start tsung application on all remote clients, abort ~p~n",[Bad],?ERR),
+                    ts_mon:abort(),
+                    {stop,normal,State}
+            end
     end;
 
 
@@ -847,7 +860,7 @@ set_remote_args(LogDir,PortsRange)->
                 undefined ->
                     ""
             end,
-    lists:flatten([ Sys_Args," -s tsung ",
+    lists:flatten([ Sys_Args,
                     PA,
                     " +K true ",
                     " -tsung debug_level ", integer_to_list(?config(debug_level)),
