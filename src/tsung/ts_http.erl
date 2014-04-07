@@ -228,7 +228,8 @@ add_dynparams(#http{session_cookies=DynCookie,user_agent=UA}, Req, _) ->
 
 
 %%----------------------------------------------------------------------
-%% @spec subst(Req::#http_request{}, DynData::#dynvars{} ) -> #http_request{}
+%% @spec subst(SubstParam::true|all_except_body, Req::#http_request{},
+%%             DynData::#dynvars{} ) -> #http_request{}
 %% @doc Replace on the fly dynamic element of the HTTP request For
 %%          the moment, we only do dynamic substitution in URL, body,
 %%          userid, passwd, because we see no need for the other HTTP
