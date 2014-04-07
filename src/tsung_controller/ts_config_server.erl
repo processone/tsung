@@ -76,6 +76,8 @@
                 total_weight      % total weight of client machines
                }).
 
+-define(RPC_TIMEOUT, 30000).
+
 %%====================================================================
 %% External functions
 %%====================================================================
@@ -381,7 +383,7 @@ handle_cast({newbeams, HostList}, State=#state{logdir   = LogDir,
             ?LOG("All remote beams started, syncing ~n",?NOTICE),
             global:sync(),
             ?LOG("Syncing done, start remote tsung application ~n", ?DEB),
-            {Resl, BadNodes} = rpc:multicall(RemoteNodes,tsung,start,[],5000),
+            {Resl, BadNodes} = rpc:multicall(RemoteNodes,tsung,start,[],?RPC_TIMEOUT),
             ?LOGF("RPC result: ~p ~p ~n",[Resl,BadNodes],?DEB),
             case BadNodes of
                 [] ->
@@ -831,6 +833,13 @@ local_launcher([Host],LogDir,Config) ->
         ok ->
             ?LOG("Application started, activate launcher, ~n", ?INFO),
             application:set_env(tsung, debug_level, Config#config.loglevel),
+            case Config#config.ports_range of
+                {Min, Max} ->
+                    application:set_env(tsung, cport_min, Min),
+                    application:set_env(tsung, cport_max, Max);
+                undefined ->
+                    ""
+            end,
             ts_launcher_static:launch({node(), Host, []}),
             ts_launcher:launch({node(), Host, [], Config#config.seed}),
             1 ;
