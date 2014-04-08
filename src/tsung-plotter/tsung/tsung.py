@@ -86,7 +86,7 @@ class sample(data):
     def __repr__(self):
         """ human readable output """
         return "sample: %s %s %s %s %s" % (self.value, self.mean,
-                                           self.stddev, self.min, self.max, self.gmean)
+                                           self.stddev, self.max, self.min, self.gmean)
 
 class counter(data):
     """ tsung counter stats """
