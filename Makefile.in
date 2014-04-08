@@ -148,16 +148,6 @@ RECORDER_APPFILES_IN   = $(ESRC)/$(RECORDER_APPLICATION)/$(RECORDER_APPLICATION)
 SCRIPT   = $(BINDIR)/tsung
 REC_SCRIPT   = $(BINDIR)/tsung-recorder
 PWD = $(shell pwd)
-BUILD_OPTIONS = '[{systools, \
-        [{variables,[ \
-         {"TSUNGPATH", "$(PWD)/temp/"}] \
-        }]}, \
-        {sh_script, none}, \
-        {make_app, true }, {make_rel, true}].'
-
-BUILD_OPTIONS_DOT = $(subst $(PWD)/temp/,./,$(BUILD_OPTIONS))
-
-BUILD_OPTIONS_FILE = ./BUILD_OPTIONS
 
 DIST_COMMON=Makefile.in $(CONFFILE_SRC) $(PERL_SCRIPTS_SRC) $(TSPLOT_SRC) tsung.sh.in tsung-recorder.sh.in tsung.spec.in $(CONTROLLER_APPFILES_IN)
 
@@ -214,7 +204,7 @@ show:
 
 clean:
 	-rm -fr $(EBIN_TEST)
-	-rm -f $(TARGET) $(TMP) $(BUILD_OPTIONS_FILE)
+	-rm -f $(TARGET) $(TMP)
 	-rm -f $(RECORDER_APPFILES)  $(CONTROLLER_APPFILES) $(APPFILES)
 	-rm -f $(EBIN)/*.app  $(PERL_SCRIPTS) $(TSPLOT) $(CONFFILE)
 	-rm -f $(EBIN)/*.beam tsung.sh tsung.spec tsung.xml tsung.sh tsung-recorder.sh
@@ -238,8 +228,6 @@ install: doc install_recorder install_controller $(CONFFILE)
 	install -m 0644 $(APPFILES) $(DESTDIR)$(TARGETDIR)/ebin/
 
 	install -m 0644 $(SRC) $(DESTDIR)$(TARGETDIR)/src/
-	echo $(BUILD_OPTIONS_DOT) > $(DESTDIR)$(TARGETDIR)/BUILD_OPTIONS
-
 
 # install the man page
 	install -d $(DESTDIR)$(MAN_DIR)
@@ -275,7 +263,6 @@ install_recorder:
 	install -m 0644 $(RECORDER_APPFILES) $(DESTDIR)$(RECORDER_TARGETDIR)/ebin
 
 	install -m 0644 $(RECORDER_SRC) $(DESTDIR)$(RECORDER_TARGETDIR)/src
-	@echo $(BUILD_OPTIONS_DOT) > $(DESTDIR)$(RECORDER_TARGETDIR)/BUILD_OPTIONS
 
 install_controller:
 	install -d $(DESTDIR)$(CONTROLLER_TARGETDIR)/priv
@@ -288,7 +275,6 @@ install_controller:
 	install -m 0644 $(CONTROLLER_APPFILES) $(DESTDIR)$(CONTROLLER_TARGETDIR)/ebin
 
 	install -m 0644 $(CONTROLLER_SRC) $(DESTDIR)$(CONTROLLER_TARGETDIR)/src
-	@echo $(BUILD_OPTIONS_DOT) > $(DESTDIR)$(CONTROLLER_TARGETDIR)/BUILD_OPTIONS
 
 uninstall:
 	rm -rf $(TARGETDIR) $(SCRIPT)
