@@ -177,6 +177,8 @@ check_clients(State=#state{check_timeout=CheckTimeout}) ->
                     {stop, normal, State}
             end;
         ActiveClients when ActiveClients > 1000 ->
+            %% the call to active_clients can be cpu hungry if lot's of clients are running
+            %% use a long timer in this case.
             ?LOGF("Still ~p active client(s)~n", [ActiveClients],?NOTICE),
             erlang:start_timer(CheckTimeout, self(), check_noclient ),
             {noreply, State};
