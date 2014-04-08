@@ -42,7 +42,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state, {launchers=0, synced}).
+-record(state, {launchers=0, synced, check_timeout}).
 
 %%====================================================================
 %% API
@@ -76,7 +76,7 @@ check_registered()->
 %%--------------------------------------------------------------------
 init([]) ->
     ?LOG("starting",?INFO),
-    {ok, #state{}}.
+    {ok, #state{check_timeout=?check_noclient_timeout}}.
 
 %%--------------------------------------------------------------------
 %% Function: %% handle_call(Request, From, State) -> {reply, Reply, State} |
@@ -164,7 +164,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%--------------------------------------------------------------------
 
-check_clients(State) ->
+check_clients(State=#state{check_timeout=CheckTimeout}) ->
     case ts_client_sup:active_clients() of
         0 -> % no users left, and no more launchers, stop
             case ts_sup:has_cport(node()) of
@@ -176,8 +176,12 @@ check_clients(State) ->
                     ?LOGF("No more active users ~p ~p~n",[node(), os:getpid()], ?NOTICE),
                     {stop, normal, State}
             end;
-        ActiveClients ->
+        ActiveClients when ActiveClients > 1000 ->
             ?LOGF("Still ~p active client(s)~n", [ActiveClients],?NOTICE),
-            erlang:start_timer(?check_noclient_timeout, self(), check_noclient ),
+            erlang:start_timer(CheckTimeout, self(), check_noclient ),
+            {noreply, State};
+        ActiveClients ->
+            ?LOGF("Still ~p active client(s)~n", [ActiveClients],?DEB),
+            erlang:start_timer(?fast_check_noclient_timeout, self(), check_noclient ),
             {noreply, State}
     end.

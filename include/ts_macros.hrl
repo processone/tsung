@@ -69,6 +69,7 @@
 -define(infinity_timeout, 15000).
 -define(config_timeout, 60000).
 -define(check_noclient_timeout, 60000).
+-define(fast_check_noclient_timeout, 5000).
 -define(retries, 4).
 
 
