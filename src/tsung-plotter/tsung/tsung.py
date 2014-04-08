@@ -79,8 +79,8 @@ class sample(data):
         self.count  = float(values[0])
         self.mean   = float(values[1])
         self.stddev = float(values[2])
-        self.min    = float(values[3])
-        self.max    = float(values[4])
+        self.max    = float(values[3])
+        self.min    = float(values[4])
         self.gmean  = float(values[5])
 
     def __repr__(self):
