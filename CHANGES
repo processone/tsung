@@ -1,3 +1,50 @@
+1.5.0 -> 1.5.1 Major enhancements and bugfixes (7 Apr 2014)
+Bugfix:
+  * [TSUN-250] - BOSH Crash
+  * [TSUN-252] - Too many requests when using max_restart
+  * [TSUN-253] - Code blocks in html version of user manual is unreadable
+  * [TSUN-256] - Unexpected ack="global" behaviour on BOSH
+  * [TSUN-265] - Wrong header line in tsung.dump
+  * [TSUN-270] - Substitution not working in <websocket/> path attribute
+  * [TSUN-271] - SSL does not work with erlang >= R16
+  * [TSUN-272] - Support literal IPv6 addresses when defining servers
+  * [TSUN-278] - Tsung 1.5.0 is notable to do https out of the box
+                 when it is compiled from tarballs
+  * [TSUN-279] - Tsung 1.5.0 is not able to do substitution of hostname
+                  or port in a URL. It only can do substitution of path
+  * [TSUN-281] - Fix debian build for Tsung 1.5, replaces DocBook with Sphinx
+  * [TSUN-285] - In some rare conditions in a distributed setup,
+                 Tsung fails to start the load test.
+  * [TSUN-287] - request.max statistic lower than request.mean
+  * [PR #71]   - oAuth bug fix, PUT method
+  * [PR #41]   - Fix websocket path subst
+  * [PR #44]   - Add bidi attribute to change_type
+  * [PR #49]   - Fix websocket close issue: we should wait a close response
+Improvements:
+  * [TSUN-255] - Fix unused vars in tq_amqp
+  * [TSUN-259] - Tsung in Fedora
+  * [TSUN-268] - Use xmerl_sax_parser:file/2 in case of xml parsing error
+  * [TSUN-276] - Add text frame support for websocket
+  * [TSUN-284] - Do not use boot files to start tsung and
+                 tsung_controller applications
+  * [PR #51]   - Updated dygraph charting library to the latest release
+  * [PR #65]   - AMQP: add multiple channel, add waitForConfirms and
+                 waitForMessages
+  * [PR #70]   - Add bosh_path config option
+  * [PR #74]   - Add text frame support for Websocket, and update doc
+New features:
+  * [TSUN-260] - Add option to change popularities of sessions for each phase
+  * [TSUN-264] - New comparison operators
+  * [TSUN-269] - Logging of request tags to dumpfile
+  * [TSUN-275] - Add MQTT support
+  * [TSUN-280] - Tsung to support pkcs#12 certificates or at least
+                 cacerts, clientcerts and keys
+  * [PR #42]   - Adding all_except_body' option to ts_http request subst.
+                 Adding mysqladmin monitoring options to erlang monitors.
+                 Adding mean rate calculation to tsung_stats reports.
+                 Adding --title option to set header of report
+  * [PR #75]   - Support SSL/TLS client certificate file attributes
+                 for jabber starttls
 1.4.2 -> 1.5.0 Major enhancements and bugfixes (24 May 2013)
 Bugfix:
     * [TSUN-208] - in the jabber plugin, substitutions for raw request doesn't work in some cases.

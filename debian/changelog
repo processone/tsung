@@ -1,3 +1,9 @@
+tsung (1.5.1-1) unstable; urgency=low
+
+  * 1.5.1
+
+ -- Nicolas Niclausse <nicolas.niclausse@niclux.org>  Wed, 09 Apr 2014 08:53:05 +0200
+
 tsung (1.5.1a-1) unstable; urgency=low
 
   * fix make deb
