@@ -38,7 +38,9 @@
           topic,
           qos = 0,
           retained = false,
-          payload
+          payload,
+          username,
+          password
          }).
 
 -record(mqtt_dyndata, {

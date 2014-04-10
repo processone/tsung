@@ -371,7 +371,7 @@ repeat | if | change_type | foreach | set_option | interaction )*>
     path CDATA "/" >
 
 <!ELEMENT amqp (#PCDATA) >
-<!ATTLIST amqp 
+<!ATTLIST amqp
     type CDATA #REQUIRED
     vhost CDATA "/"
     channel CDATA "-1"
@@ -398,7 +398,9 @@ repeat | if | change_type | foreach | set_option | interaction )*>
     topic CDATA ""
     qos CDATA "0"
     retained CDATA "false"
-    timeout CDATA "1" >
+    timeout CDATA "1"
+    username CDATA ""
+    password CDATA "">
 
 <!ELEMENT modification (attr*) >
 <!ATTLIST modification

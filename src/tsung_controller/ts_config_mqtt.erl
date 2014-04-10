@@ -51,6 +51,10 @@ parse_config(Element = #xmlElement{name = mqtt},
     Type = ts_config:getAttr(atom, Element#xmlElement.attributes, type),
     CleanStart = ts_config:getAttr(atom, Element#xmlElement.attributes,
                                    clean_start, true),
+    UserName = ts_config:getAttr(string, Element#xmlElement.attributes,
+                                   username, ""),
+    Password = ts_config:getAttr(string, Element#xmlElement.attributes,
+                                   password, ""),
     KeepAlive = ts_config:getAttr(float_or_integer, Element#xmlElement.attributes,
                                   keepalive, 10),
     WillTopic = ts_config:getAttr(string, Element#xmlElement.attributes,
@@ -78,7 +82,7 @@ parse_config(Element = #xmlElement{name = mqtt},
                             keepalive = KeepAlive, will_topic = WillTopic,
                             will_qos = WillQos, will_msg = WillMsg,
                             will_retain = WillRetain, topic = Topic, qos = Qos,
-                            retained = RetainValue, payload = Payload},
+                            retained = RetainValue, payload = Payload, username = UserName, password = Password},
     Ack = case {Type, Qos} of
         {publish, 0} -> no_ack;
         {disconnect, _} -> no_ack;
@@ -112,4 +116,3 @@ parse_config(Element = #xmlElement{}, Conf = #config{}) ->
 %% Parsing non #xmlElement elements
 parse_config(_, Conf = #config{}) ->
     Conf.
-
