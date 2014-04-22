@@ -7,6 +7,7 @@ Setting options
 .. index:: override
 .. index:: thinktime
 .. index:: ssl_ciphers
+.. index:: ssl_reuse_sessions
 .. index:: tcp_snd_buffer
 .. index:: tcp_rcv_buffer
 .. index:: udp_snd_buffer
@@ -30,6 +31,16 @@ configuration tags if override is true.
  <option name="udp_snd_buffer" value="16384"></option>
  <option name="udp_rcv_buffer" value="16384"></option>
 
+.. versionadded:: 1.5.2
+
+You can disable the SSL session cache (it is enabled by default)
+
+.. code-block:: xml
+
+ <option name="ssl_reuse_sessions" value="false"/>
+
+You can also use the command line option ``-L <value>`` to change the
+session liefetime in the cache (10mn by default); value must be in seconds.
 
 .. index:: idle_timeout
 .. index:: global_ack_timeout

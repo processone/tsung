@@ -44,6 +44,9 @@ ERL_RSH=" -rsh ssh "
 ERL_DIST_PORTS=" -kernel inet_dist_listen_min 64000 -kernel inet_dist_listen_max 65500 "
 ERL_OPTS=" $ERL_DIST_PORTS -smp auto +P $MAX_PROCESS +A 16 +K true @ERL_OPTS@ "
 COOKIE='tsung'
+SSL_CACHE="ts_ssl_session_cache"
+# 10 mn ssl session lifetime instead of 24h
+SSL_SESSION_LIFETIME="600"
 
 stop() {
     $ERL $ERL_OPTS $ERL_RSH -noshell $PROTO_DIST $NAMETYPE killer -setcookie $COOKIE -pa $TSUNGPATH -pa $CONTROLLERPATH -s tsung_controller stop_all $HOST -s init stop
@@ -54,6 +57,8 @@ start() {
     $ERL $ERL_OPTS $ERL_RSH -noshell $PROTO_DIST $NAMETYPE $CONTROLLER -setcookie $COOKIE \
     -s tsung_controller \
     -pa $TSUNGPATH -pa $CONTROLLERPATH \
+    -ssl session_cb $SSL_CACHE \
+    -ssl session_lifetime $SSL_SESSION_LIFETIME \
     -tsung_controller smp_disable $SMP_DISABLE \
     -tsung_controller debug_level $DEBUG_LEVEL \
     -tsung_controller warm_time $WARM_TIME \
@@ -65,6 +70,8 @@ debug() {
     $ERL $ERL_OPTS $ERL_RSH $NAMETYPE $CONTROLLER $PROTO_DIST -setcookie $COOKIE  \
      -s tsung_controller \
      -pa $TSUNGPATH -pa $CONTROLLERPATH \
+     -ssl session_cb $SSL_CACHE \
+     -ssl session_lifetime $SSL_SESSION_LIFETIME \
      -tsung_controller warm_time $WARM_TIME \
      -tsung_controller config_file \"$CONF_OPT_FILE\" \
      -tsung_controller exclude_tag \"$EXCLUDE_TAG_LIST\" \
@@ -127,6 +134,7 @@ usage() {
     echo "    -m <file>     write monitoring output on this file (default is tsung.log)"
     echo "                   (use - for standard output)"
     echo "    -F            use long names (FQDN) for erlang nodes"
+    echo "    -L <lifetime> SSL session lifetime (600sec by default)"
     echo "    -w            warmup delay (default is 1 sec)"
     echo "    -v            print version information and exit"
     echo "    -6            use IPv6 for Tsung internal communications"
@@ -154,6 +162,7 @@ do
         r) ERL_RSH=" -rsh $OPTARG ";;
         6) PROTO_DIST=" -proto_dist inet6_tcp ";;
         F) NAMETYPE="-name";;
+        L) SSL_SESSION_LIFETIME=$OPTARG;;
         w) WARM_TIME=$OPTARG;;
         s) SMP_DISABLE="false";;
         v) version;;

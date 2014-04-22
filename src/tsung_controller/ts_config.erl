@@ -761,6 +761,17 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     NewProto =  OldProto#proto_opts{ssl_ciphers=Cipher},
                     lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
                                  Element#xmlElement.content);
+                "ssl_reuse_sessions" ->
+                    case getAttr(atom,Attrs, value, true) of
+                        false ->
+                            application:set_env(tsung,ssl_session_cache, 0),
+                            OldProto =  Conf#config.proto_opts,
+                            NewProto =  OldProto#proto_opts{reuse_sessions=false},
+                            lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                         Element#xmlElement.content);
+                        true -> % default value, do nothing
+                            lists:foldl( fun parse/2, Conf, Element#xmlElement.content)
+                        end;
                 "seed" ->
                     Seed =  getAttr(integer,Attrs, value, now),
                     lists:foldl( fun parse/2, Conf#config{seed=Seed},

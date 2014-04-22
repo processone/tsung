@@ -314,13 +314,26 @@ erl_system_args(extended)->
                     undefined -> "";
                     {ok, Max} -> " -kernel inet_dist_listen_max " ++ integer_to_list(Max)++" "
                 end,
+    SSLCache = case application:get_env(ssl,session_cb) of
+                   {ok, CB} when is_atom(CB) -> " -ssl session_cb " ++ atom_to_list(CB)++" ";
+                   _ -> ""
+               end,
+    SSLLifetime = case application:get_env(ssl,session_lifetime) of
+                   {ok, Time} when is_integer(Time) -> " -ssl session_lifetime " ++ integer_to_list(Time)++" ";
+                   _ -> ""
+               end,
+    SSLCacheSize = case application:get_env(tsung,ssl_session_cache) of
+                   {ok, Reuse} when is_integer(Reuse)-> " -tsung reuse_sessions " ++ integer_to_list(Reuse)++" ";
+                   _ -> ""
+               end,
     Threads= "+A "++integer_to_list(erlang:system_info(thread_pool_size))++" ",
     ProcessMax="+P "++integer_to_list(erlang:system_info(process_limit))++" ",
     Mea = case  erlang:system_info(version) of
               "5.3" ++ _Tail     -> " +Mea r10b ";
               _ -> " "
           end,
-    lists:append([BasicArgs, Shared, Hybrid, Smp, Mea, Inet, Proto, Threads,ProcessMax,ListenMin,ListenMax]).
+    lists:append([BasicArgs, Shared, Hybrid, Smp, Mea, Inet, Proto, Threads,
+                  ProcessMax,ListenMin,ListenMax,SSLCache,SSLLifetime,SSLCacheSize]).
 
 %%----------------------------------------------------------------------
 %% setsubdir/1

@@ -8,11 +8,14 @@
 -include("ts_config.hrl").
 
 
-protocol_options(#proto_opts{ssl_ciphers=negociate, certificate = Cert}) ->
-    [binary, {active, once} ] ++ Cert;
+protocol_options(#proto_opts{ssl_ciphers=Ciphers, certificate = Cert,
+                             is_first_connect = First, reuse_sessions =Reuse}) when First or not Reuse->
+    [binary, {active, once}, {reuse_sessions, false} ] ++ Cert ++ set_ciphers(Ciphers);
 protocol_options(#proto_opts{ssl_ciphers=Ciphers, certificate = Cert}) ->
-    ?DebugF("cipher is ~p~n",[Ciphers]),
-    [binary, {active, once}, {ciphers, Ciphers} ] ++ Cert.
+    [binary, {active, once}] ++ Cert ++ set_ciphers(Ciphers).
+
+set_ciphers(negociate)-> [];
+set_ciphers(Ciphers)  -> [{ciphers, Ciphers}].
 
 %% -> {ok, Socket}
 connect(Host, Port, Opts) ->

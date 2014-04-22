@@ -65,7 +65,10 @@
          tcp_snd_size  = 32768,
          udp_rcv_size,              % udp buffers size
          udp_snd_size,
-         certificate = [] }).
+         certificate = [],          % for ssl
+         reuse_sessions = true,     % for ssl
+         is_first_connect = true   % whether it's the first connection
+        }).
 
 -record(token_bucket,
         {rate,

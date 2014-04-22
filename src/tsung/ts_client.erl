@@ -782,8 +782,8 @@ handle_next_request(Request, State) ->
     Now = ?NOW,
 
     %% reconnect if needed
-    Proto = {Protocol,State#state_rcv.proto_opts},
-    case reconnect(Socket,Host,Port,Proto,State#state_rcv.ip) of
+    ProtoOpts = State#state_rcv.proto_opts,
+    case reconnect(Socket,Host,Port,{Protocol,ProtoOpts},State#state_rcv.ip) of
         {ok, NewSocket} ->
             case catch send(Protocol, NewSocket, Message, Host, Port) of
                 ok ->
@@ -801,6 +801,7 @@ handle_next_request(Request, State) ->
                                                port     = Port,
                                                count    = Count,
                                                session  = NewSession,
+                                               proto_opts = ProtoOpts#proto_opts{is_first_connect = false},
                                                page_timestamp= PageTimeStamp,
                                                send_timestamp= Now,
                                                timestamp= Now },
@@ -872,6 +873,7 @@ size_msg({_Mod,_Fun,_Args,Size}) -> Size.
 %%----------------------------------------------------------------------
 finish_session(State) ->
     Now = ?NOW,
+    (State#state_rcv.protocol):close(State#state_rcv.socket),
     set_connected_status(false),
     Elapsed = ts_utils:elapsed(State#state_rcv.starttime, Now),
     case State#state_rcv.transactions of
