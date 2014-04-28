@@ -1,149 +1,78 @@
-<?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
 <html>
   <head>
     <title>[% title %] - [% subtitle %] </title>
-	<meta http-equiv="content-type" content="text/html; charset=iso-8859-1"/>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
 	<link rel="Index" href="/"/>
-    <style type="text/css">
-	  body { background-color: #EEEEEE;}
-      h1, h2, h3, h4 { color: #005A9C;  }
-      h1 { font: 175% sans-serif; padding: 5px; text-align: center;}
-      h2 { font: 130% sans-serif; padding: 5px; }
-      h2.main { text-align: center;
-          background-color: #DD8888;
-          }
-      h3 { font: 130% sans-serif; 
-          text-align: center;
-          background-color: #DDDDDD;
-          margin-left: 20px; 
-          border: 1px solid #CCCCCC;
-          margin-right: 20px; 
-          }
-      h4 { font: bold 100% sans-serif }
-      h5 { font: italic 100% sans-serif }
-      h6 { font: small-caps 100% sans-serif }
-      var {color: red; }
-      kbd {font-weight: bold;}
-      code {color: blue; }
-      samp {color: #5A009C; }
-      table.stats {
-          margin-left: 25px;
-          background-color: #DDDDDD;
-          border: 1px solid #000;
-          }
-      address { font-size: small; text-align: center;}
-      #footer {
-          position:              fixed;
-          bottom:                0px;
-          left:                  0;
-          right:                  0;
-          background-color: #fff; 
-          width: 100%;
-          padding: 2px;
-          border: 1px solid #999999;
-          }
-      #maincontent {     
-          margin-left:  190px;
-          padding: 5px;
-          }
-      #headerBox {
-          position:    fixed;
-          float:       left;
-          width:  190px;
-          height: 90%;
-          background-color: #FFFFFF; 
-          border: 1px solid #ffffff;
-             } 
-      th.stats {
-          border-bottom: 1px solid #005A9C;
-          border-top: 1px solid #005A9C;
-          } 
-      td.stats {
-          border-right: 1px solid #AAA;
-          text-align: right;
-          } 
-      .version {
-          font: italic 80% sans-serif; 
-          color: #005A9C; 
-          text-align: center;
-          }
+    <script type="text/javascript" src="style/dygraph-combined.js"></script>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        .tooltip {
-            border-bottom: 1px dotted #000000; color: #000000; outline: none;
-            cursor: help; text-decoration: none;
-            position: relative;
-        }
-        .tooltip span {
-            display: none;
-        }
-      .tooltip:hover span {
-         display:block;
-         position:absolute; z-index: 99;
-         top:2em; left:2em; width:15em;
-         text-align: center}
-        }
-        .tooltip:hover img {
-            border: 0; margin: -10px 0 0 -55px;
-            float: left; position: absolute;
-        }
-        .tooltip:hover em {
-            font-family: Candara, Tahoma, Geneva, sans-serif; font-size: 1.2em; font-weight: bold;
-            display: block; padding: 0.2em 0 0.6em 0;
-        }
-        .classic { padding: 0.8em 1em; }
-        .custom { padding: 0.5em 0.8em 0.8em 2em; }
-        * html a:hover { background: transparent; }
-        .classic {background: #FFFFAA; border: 1px solid #FFAD33; }
-        .critical { background: #FFCCAA; border: 1px solid #FF3334;    }
-        .help { background: #9FDAEE; border: 1px solid #2BB0D7;    }
-        .info { background: #9FDAEE; border: 1px solid #2BB0D7;    }
-        .warning { background: #FFFFAA; border: 1px solid #FFAD33; }
-
-      </style>
-    <script type="text/javascript" src="dygraph-combined.js"></script> 
+    <link href="style/bootstrap.min.css" rel="stylesheet">
+    <link href="style/dashboard.css" rel="stylesheet">
+    <link href="style/docs.min.css" rel="stylesheet">
+    <!-- <link href="style/tsung-graphs.css" rel="stylesheet"> -- -->
 
   </head>
 <body>
-	<div id="headerBox">
-        <h1>[% title %]</h1>
-      <p class="version"><em>version [% version %]</em></p>
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="style/jquery.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="style/bootstrap.min.js"></script>
 
-      <h2><a class="subtitle" href="report.html">[% stats_subtitle %]</a></h2>
-      <ul>
-        <li><a href="report.html#stats">Main statistics</a></li>
-        <li><a href="report.html#transaction">Transactions</a></li>
-        <li><a href="report.html#network">Network Throughput</a></li>
-        <li><a href="report.html#count">Counters</a></li>
-        [% IF os_mon %]
-        <li><a href="report.html#os_mon">Server monitoring</a></li>
-        [% END %]
-        [% IF http %]
-        <li><a href="report.html#http_status">HTTP status</a></li>
-        [% END %]
-        [% IF errors %]
-        <li><a href="report.html#errors">Errors</a></li>
-        [% END %]
-      </ul>
-
-      <h2><a class="subtitle" href="graph.html">[% graph_subtitle %]</a></h2>
-      <ul>
-        <li><a href="graph.html#response_time">Response times</a></li>
-        <li><a href="graph.html#throughput">Throughput graphs</a></li>
-        <li><a href="graph.html#users">Simultaneous Users</a></li>
-        [% IF os_mon %]
-        <li><a href="graph.html#os_mon">Server monitoring</a></li>
-        [% END %]
-        [% IF http %]
-        <li><a href="graph.html#http_status">HTTP status</a></li>
-        [% END %]
-        [% IF errors %]
-        <li><a href="graph.html#errors">Errors</a></li>
-        [% END %]
-     </ul>
-        [% IF conf %]
-      <h2><a class="subtitle" href="[% conf %]">XML Config file</a></h2>
-        [% END %]
+    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">Tsung <!-- SUBTITLE --></a>
+        </div>
+        <div class="navbar-collapse collapse">
+          <ul class="nav navbar-nav navbar-right">
+            <li><a href="/tsung/tsung_web:status">Status</a></li>
+            <li><a href="report.html">Reports</a></li>
+            <li><a href="graph.html">Graphs</a></li>
+            <li><a href="/tsung/tsung_web:logs">Logs</a></li>
+            <li><a href="[% conf %]">Config</a></li>
+          </ul>
+        </div>
+      </div>
     </div>
+
+  <div class="container-fluid">
+      <div class="row">
+        <div class="col-sm-3 col-md-2 sidebar">
+          <ul class="nav nav-sidebar">
+            <li><a href="report.html#stats">Main statistics</a></li>
+            <li><a href="report.html#transaction">Transactions</a></li>
+            <li><a href="report.html#network">Network Throughput</a></li>
+            <li><a href="report.html#count">Counters</a></li>
+            [% IF os_mon %]
+            <li><a href="report.html#os_mon">Server monitoring</a></li>
+            [% END %]
+            [% IF http %]
+            <li><a href="report.html#http_status">HTTP status</a></li>
+            [% END %]
+            [% IF errors %]
+            <li><a href="report.html#errors">Errors</a></li>
+            [% END %]
+          </ul>
+          <ul class="nav nav-sidebar">
+            <li><a href="graph.html#response_time">Response times</a></li>
+            <li><a href="graph.html#throughput">Throughput graphs</a></li>
+            <li><a href="graph.html#users">Simultaneous Users</a></li>
+            [% IF os_mon %]
+            <li><a href="graph.html#os_mon">Server monitoring</a></li>
+            [% END %]
+            [% IF http %]
+            <li><a href="graph.html#http_status">HTTP status</a></li>
+            [% END %]
+            [% IF errors %]
+            <li><a href="graph.html#errors">Errors</a></li>
+            [% END %]
+          </ul>
+       </div>
+        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">

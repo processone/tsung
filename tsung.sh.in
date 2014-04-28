@@ -33,6 +33,7 @@ CONTROLLER=tsung_controller
 SMP_DISABLE=true
 WARM_TIME=1
 MAX_PROCESS=250000
+WEB_GUI=true
 EXCLUDE_TAG_LIST=""
 
 TSUNGPATH=$INSTALL_DIR/lib/tsung-$VERSION/ebin
@@ -59,6 +60,7 @@ start() {
     -pa $TSUNGPATH -pa $CONTROLLERPATH \
     -ssl session_cb $SSL_CACHE \
     -ssl session_lifetime $SSL_SESSION_LIFETIME \
+    -tsung_controller web_gui $WEB_GUI \
     -tsung_controller smp_disable $SMP_DISABLE \
     -tsung_controller debug_level $DEBUG_LEVEL \
     -tsung_controller warm_time $WARM_TIME \
@@ -72,6 +74,7 @@ debug() {
      -pa $TSUNGPATH -pa $CONTROLLERPATH \
      -ssl session_cb $SSL_CACHE \
      -ssl session_lifetime $SSL_SESSION_LIFETIME \
+     -tsung_controller web_gui $WEB_GUI \
      -tsung_controller warm_time $WARM_TIME \
      -tsung_controller config_file \"$CONF_OPT_FILE\" \
      -tsung_controller exclude_tag \"$EXCLUDE_TAG_LIST\" \
@@ -136,6 +139,7 @@ usage() {
     echo "    -F            use long names (FQDN) for erlang nodes"
     echo "    -L <lifetime> SSL session lifetime (600sec by default)"
     echo "    -w            warmup delay (default is 1 sec)"
+    echo "    -n            disable web GUI"
     echo "    -v            print version information and exit"
     echo "    -6            use IPv6 for Tsung internal communications"
     echo "    -x <tags>     list of requests tag to be excluded from the run (separated by comma)"
@@ -143,7 +147,7 @@ usage() {
     exit
 }
 
-while getopts "6vhf:l:d:r:i:Fsw:m:p:x:" Option
+while getopts "6vhnf:l:d:r:i:Fsw:m:p:x:" Option
 do
     case $Option in
         f) CONF_OPT_FILE=$OPTARG;;
@@ -157,6 +161,7 @@ do
             fi
             ;;
         m) MON_FILE="mon_file \"$OPTARG\"";;
+        n) WEB_GUI="false";;
         d) DEBUG_LEVEL=$OPTARG;;
         p) MAX_PROCESS=$OPTARG;;
         r) ERL_RSH=" -rsh $OPTARG ";;

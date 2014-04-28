@@ -1,22 +1,19 @@
 [% INCLUDE header.thtml %]
 
-<div id="maincontent">
- <h2 class="main">tsung - Graphical Reports</h2> 
-
 <div id="response_time">
 <h3>Response Time</h3> 
 <table>
 <tr><th>Transactions and Pages</th><th>Requests and connection establishment</th></tr>
 <tr>
  <td>
- <a class="tooltip" href="images/graphes-Transactions-mean.[% ext %]">
+ <a class="ts_tooltip" href="images/graphes-Transactions-mean.[% ext %]">
   <img class="graph" src="images/graphes-Transactions-mean_tn.png" alt="transaction response time"/>
 <span class="classic"> Response time for pages and transactions (a page
 is a group of requests not separated by a thinktime).</span>
 </a>
  </td>
  <td>
-  <a class="tooltip" href="images/graphes-Perfs-mean.[% ext %]">
+  <a class="ts_tooltip" href="images/graphes-Perfs-mean.[% ext %]">
    <img class="graph" src="images/graphes-Perfs-mean_tn.png" alt="mean request response time"/> 
 <span class="classic"> <em>connect</em> Mean duration of the connection
 establishment only.<em>request</em> Mean duration of requests.</span>
@@ -89,7 +86,7 @@ establishment only.<em>request</em> Mean duration of requests.</span>
 [% END %]
 </tr>
 <tr>
- <td> <a class="tooltip" href="images/graphes-Users-simultaneous.[% ext %]">
+ <td> <a class="ts_tooltip" href="images/graphes-Users-simultaneous.[% ext %]">
   <img class="graph" src="images/graphes-Users-simultaneous_tn.png"
   alt="Users"/> 
 <span class="classic"><em>users</em> Number of simultaneous users (it's session has started, but not yet finished).
@@ -179,8 +176,5 @@ establishment only.<em>request</em> Mean duration of requests.</span>
 </div>
 [% END %]
 
-
-
-</div>
 
 [% INCLUDE footer.thtml %]

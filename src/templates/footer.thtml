@@ -1,9 +1,14 @@
-<hr/>
-<div id="footer">
-    <address>
-		<a href="http://tsung.erlang-projects.org">http://tsung.erlang-projects.org/</a>
+<footer class="bs-docs-footer" role="contentinfo">
+  <ul class="bs-docs-footer-links muted">
+    <li>Tsung version [% version %]</li>
+    <li><address>
         Contact:   <a href="mailto:[% contact %]">[% contact %]</a>
-    </address>
+        </address>
+     </li>
+   </ul>
+</footer>
+ </div>
+ </div>
 </div>
-  </body>
+</body>
 </html>

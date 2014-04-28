@@ -1,7 +1,8 @@
 [% INCLUDE header.thtml %]
 
-<div id="maincontent">
- <h2 class="main">tsung - Graphical Reports</h2> 
+<div class="row placeholders">
+<!-- tsung_stats_duration -->
+</div>
 
  <script type="text/javascript">
    var graphOptions = {
@@ -12,36 +13,40 @@
  </script>
 
 <div id="response_time">
-<h3>Response Time</h3> 
+<h3 class="sub-header">Response Time</h3>
 <table>
 <tr><th>Transactions</th><th>Requests and connection establishment</th></tr>
 <tr>
  <td>
-<div id="tr_mean" style="width:500px; height:300px;"></div> 
-  <script type="text/javascript"> 
+<div id="tr_mean" style="width:500px; height:300px;"></div>
+  <script type="text/javascript">
   g2 = new Dygraph(
     document.getElementById("tr_mean"),
     "csv_data/graphes-Transactions-mean.csv",
-	graphOptions
+    graphOptions
 );
-</script> 
+</script>
+<span class="ts_tooltip"> Response time for pages and transactions (a page
+is a group of requests not separated by a thinktime).</span>
  </td>
  <td>
-<div id="perfs_mean" style="width:500px; height:300px;"></div>	
-   <script type="text/javascript"> 
+<div id="perfs_mean" style="width:500px; height:300px;"></div>
+   <script type="text/javascript">
   g2 = new Dygraph(
     document.getElementById("perfs_mean"),
     "csv_data/graphes-Perfs-mean.csv",
-	graphOptions
+    graphOptions
   );
-</script> 
+</script>
+<dl class="ts_tooltip"> <dt>connect</dt> <dd>Mean duration of the connection
+establishment only.</dd><dt>request</dt> <dd>Mean duration of requests.</dd></dl>
  </td>
  </tr>
 </table>
 </div>
 
 <div id="throughput">
-<h3>Throughput</h3> 
+<h3 class="sub-header">Throughput</h3> 
 
 <table>
 <tr><th>Transactions</th><th>Requests</th>
@@ -112,7 +117,7 @@
 </div>
 
 <div id="users">
-<h3>Simultaneous Users</h3> 
+<h3 class="sub-header">Simultaneous Users</h3> 
 <table>
 <tr><th>Simultaneous Users</th>
 [% IF match %]
@@ -127,7 +132,10 @@
     "csv_data/graphes-Users-simultaneous.csv",
 	graphOptions
   );
-</script> 
+</script>
+<dl class="ts_tooltip"><dt>users</dt><dd> Number of simultaneous users (it's session has started, but not yet finished).</dd>
+<dt>connected</dt> <dd>number of users with an opened TCP/UDP connection (example: for HTTP, during a think time, the TCP connection can be closed by the server, and it won't be reopened until the thinktime has expired)</dd></dl>
+
  </td>
 [% IF match %]
 <div id="match_rate" style="width:500px; height:300px;"></div> 
@@ -146,7 +154,7 @@
 
 [% IF os_mon %]
 <div id="os_mon">
-<h3>Server OS monitoring</h3> 
+<h3 class="sub-header">Server OS monitoring</h3> 
 <table>
 <tr><th>CPU%</th><th>Free Memory</th></tr>
 <tr>
@@ -192,7 +200,7 @@
 
 [% IF http %]
 <div id="http_status">
-<h3>HTTP return code Status (rate)</h3> 
+<h3 class="sub-header">HTTP return code Status (rate)</h3> 
 <div id="http_code_rate" style="width:500px; height:300px;"></div> 
   <script type="text/javascript"> 
   g2 = new Dygraph(
@@ -206,7 +214,7 @@
 
 [% IF errors %]
 <div id="errors">
-<h3>Errors (rate)</h3> 
+<h3 class="sub-header">Errors (rate)</h3> 
 <div id="errors_rate" style="width:500px; height:300px;"></div> 
   <script type="text/javascript"> 
   g2 = new Dygraph(
@@ -217,9 +225,5 @@
 </script> 
 </div>
 [% END %]
-
-
-
-</div>
 
 [% INCLUDE footer.thtml %]

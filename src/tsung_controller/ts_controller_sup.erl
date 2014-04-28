@@ -88,6 +88,7 @@ init([LogDir]) ->
                worker, [ts_job_notify]},
     Interaction = {ts_interaction_server, {ts_interaction_server, start, []}, transient, 2000,
                    worker, [ts_interaction_server]},
+    start_inets(LogDir),
     {ok,{{one_for_one,?retries,10},
          [Config, Mon, Stats_Mon, Request_Mon, Page_Mon, Connect_Mon, Transaction_Mon,
           Match_Log, Timer, Msg, Notify, Interaction, UserSup, ErlangSup, MuninSup,SNMPSup]}}.
@@ -96,3 +97,37 @@ init([LogDir]) ->
 %%% Internal functions
 %%%----------------------------------------------------------------------
 
+start_inets(LogDir) ->
+    case application:get_env(tsung_controller,web_gui) of
+        {ok, true} ->
+            inets:start(),
+            Path = filename:absname(filename:dirname(code:which(tsung_controller))++"/../priv/style"),
+            {ok,Styles} = file:list_dir(Path),
+            DestDir = filename:join(LogDir,"style"),
+            file:make_dir(DestDir),
+            lists:foreach(fun(CSS) ->
+                                  DestName = filename:join(DestDir,CSS),
+                                  file:copy(filename:join(Path,CSS),DestName)
+                          end,Styles),
+            Inets = inets:start(httpd, [{port, 8091},
+                                        {modules,[mod_esi,
+                                                  mod_dir,
+                                                  mod_alias,
+                                                  mod_get,
+                                                  mod_head,
+                                                  mod_log,
+                                                  mod_disk_log]},
+                                        {erl_script_alias, {"/tsung", [tsung_web]}},
+                                        {error_log, "inets_error.log"},
+                                        {security_log, "inets_security.log"},
+                                        {transfer_log, "inets_transfer.log"},
+                                        {mime_types,[ {"html","text/html"},
+                                                      {"css","text/css"},
+                                                      {"png","image/png"},
+                                                      {"js","application/x-javascript"}]},
+                                        {server_name,"tsung_controller"}, {server_root,LogDir},
+                                        {document_root,LogDir}]),
+            ?LOGF("starting inets on port 8091: ~p",[Inets],?INFO);
+        _ ->
+            ?LOG("Web gui disabled, skip inets",?INFO)
+    end.
