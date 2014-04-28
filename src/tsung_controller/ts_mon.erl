@@ -196,14 +196,14 @@ handle_call({start_logger, Machines, DumpType, Backend}, From, State) ->
 
 %%% get status
 handle_call({status}, _From, State) ->
-    {Request,ReqMax} = ts_stats_mon:status(request),
+    Request = ts_stats_mon:status(request),
     Interval    = ts_utils:elapsed(State#state.lastdate, ?NOW) / 1000,
     Phase       = ts_stats_mon:status(newphase,sum),
     Connected   =  case ts_stats_mon:status(connected,sum) of
                      {ok, Val} -> Val;
                      _ -> 0
                  end,
-    Reply = { State#state.client, Request,ReqMax, Connected, Interval, Phase},
+    Reply = { State#state.client, Request, Connected, Interval, Phase},
     {reply, Reply, State};
 
 handle_call(Request, _From, State) ->
@@ -491,3 +491,33 @@ start_launchers(Machines) ->
     ?LOGF("Starting tsung clients on hosts: ~p~n",[HostList],?NOTICE),
     %% starts beam on all client hosts
     ts_config_server:newbeams(HostList).
+
+%% post_process_logs(FileName) ->
+%%     {ok, Device} = file:open(FileName, [read]),
+%%     post_process_line(io:get_line(Device, ""), Device, []).
+
+%% post_process_line(eof, Device, State) ->
+%%     file:close(Device);
+%% post_process_line("End "++ _, Device, Logs) ->
+%%     post_process_line(io:get_line(Device, ""),Device, Logs);
+%% post_process_line("# stats: dump at "++ TimeStamp, D, Logs=#logs{start_time=undefined}) ->
+%%     {StartTime,_}=string:to_integer(TimeStamp),
+%%     post_process_line(io:get_line(D, ""),D, #logs{start_time=StartTime});
+%% post_process_line("# stats: dump at "++ TimeStamp, Dev, Logs) ->
+%%     {Time,_}=string:to_integer(TimeStamp),
+%%     Current=Time-Logs#logs.start_time,
+%%     post_process_line(io:get_line(Dev, ""),Dev, Logs#logs{current_time=Current});
+%% post_process_line("# stats:  "++ Stats, Dev, Logs) ->
+%%     case string:tokens(Stats," ") of
+%%         {"users",Count, GlobalCount} ->
+%%             todo;
+%%         {Name, Count, Max} ->
+%%             todo;
+%%         {"tr_" ++ TrName, Count, Mean, StdDev, Max, Min, GMean,GCount} ->
+%%             todo;
+%%         {"{"++ Name, Count, Mean, StdDev, Max, Min, GMean,GCount} ->
+%%             todo;
+%%         {Name, Count, Mean, StdDev, Max, Min, GMean,GCount} ->
+%%             todo
+%%     end,
+%%     post_process_line(io:get_line(Dev, ""),Dev, Logs).

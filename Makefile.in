@@ -330,7 +330,7 @@ release: Makefile tsung.spec doc user_guide
 	tar zcf tmp.tgz $(SRC) $(APPFILES_IN) $(INC_FILES) $(LIBSRC) \
 		$(CONTROLLER_SRC) $(CONTROLLER_APPFILES_IN) $(TESTSRC) \
 		$(RECORDER_APPFILES_IN) \
-		$(RECORDER_SRC) $(TEMPLATES) \
+		$(RECORDER_SRC) $(TEMPLATES) $(STYLES)\
 		man/*.erl man/*.txt man/*.dia man/*.png man/Makefile man/*.sgml man/*.1 \
 		docs/*.rst docs/Makefile docs/*.txt docs/README docs/*.py docs/_static docs/_templates \
 		$(USERMANUAL) $(USERMANUAL_SRC) $(USERMANUAL_IMG) $(DTD) \

@@ -135,14 +135,13 @@ status(SessionID, _Env, _Input) ->
     {ok, Nodes, Ended_Beams, MaxPhases} = ts_config_server:status(),
     Active    = Nodes - Ended_Beams,
     ActiveBeamsBar  = progress_bar(Active,Nodes,"", "Active nodes: "),
-    {Clients, ReqRate, RawMaxReqRate, Connected, Interval, Phase} = ts_mon:status(),
+    {Clients, ReqRate, Connected, Interval, Phase} = ts_mon:status(),
     NPhase = case Phase of
                  error -> 1;
                  {ok,N} -> (N div Nodes) + 1
              end,
     {ok, Dump_Interval} = application:get_env(tsung_controller,dumpstats_interval),
-    MaxReqRate = 1000.0 * RawMaxReqRate / Dump_Interval,
-    RequestsBar  = progress_bar(ReqRate/Interval, MaxReqRate,"req/sec", lists:flatten("Request rate: (max is " ++ number_to_list(MaxReqRate) ++ " req / sec)"),true),
+    RequestsBar  = progress_bar(ReqRate/Interval, ReqRate/Interval,"req/sec", lists:flatten("Request rate: ")),
     PhasesBar  = progress_bar(NPhase, MaxPhases,"", lists:flatten("Current phase (total is " ++ number_to_list(MaxPhases) ++" )")),
     UsersBar  = progress_bar(Clients, Clients,"", "Running users"),
     ConnectedBar  = progress_bar(Connected, Clients,"", "Connected users"),
