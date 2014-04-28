@@ -196,14 +196,14 @@ handle_call({start_logger, Machines, DumpType, Backend}, From, State) ->
 
 %%% get status
 handle_call({status}, _From, State) ->
-    Request   = ts_stats_mon:status(request),
-    Interval  = ts_utils:elapsed(State#state.lastdate, ?NOW) / 1000,
-    Phase     = ts_stats_mon:status(newphase,sum),
-    Connected =  case ts_stats_mon:status(connected,sum) of
+    {Request,ReqMax} = ts_stats_mon:status(request),
+    Interval    = ts_utils:elapsed(State#state.lastdate, ?NOW) / 1000,
+    Phase       = ts_stats_mon:status(newphase,sum),
+    Connected   =  case ts_stats_mon:status(connected,sum) of
                      {ok, Val} -> Val;
                      _ -> 0
                  end,
-    Reply = { State#state.client, Request,Connected, Interval, Phase},
+    Reply = { State#state.client, Request,ReqMax, Connected, Interval, Phase},
     {reply, Reply, State};
 
 handle_call(Request, _From, State) ->
@@ -491,4 +491,3 @@ start_launchers(Machines) ->
     ?LOGF("Starting tsung clients on hosts: ~p~n",[HostList],?NOTICE),
     %% starts beam on all client hosts
     ts_config_server:newbeams(HostList).
-

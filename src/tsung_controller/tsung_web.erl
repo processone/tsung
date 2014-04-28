@@ -53,7 +53,7 @@ graph(SessionID, Env, Input, File) ->
                     Time=ts_utils:elapsed(Begin,now()),
                     Text="<div class=\"alert alert-success alert-dismissable\">
   <button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-hidden=\"true\">\\\&times;</button>
- "++ ts_utils:datestr() ++ ": Report and graphs generated in "++ io_lib:format("~.2f",[Time/1000]) ++" sec
+ "++ ts_utils:datestr() ++ ": Report and graphs generated in "++ number_to_list(Time/1000) ++" sec
 </div>",
                     WorkingDir=filename:basename(Path),
                     Str=replace(Data,[{"=\"style/","=\"/style/"},
@@ -61,7 +61,7 @@ graph(SessionID, Env, Input, File) ->
                                       {"\"report.html","\"/tsung/tsung_web:report"},
                                       {"csv_data","/csv_data"},
                                       {"<!-- tsung_stats_duration -->",Text},
-                                      {"<!-- SUBTITLE -->","Realtime Monitoring - " ++ WorkingDir}
+                                      {"<!-- SUBTITLE -->","Dashboard - " ++ WorkingDir}
                                      ]),
                     mod_esi:deliver(SessionID,
                                     [ "Content-Type: text/html\r\n\r\n",
@@ -70,10 +70,6 @@ graph(SessionID, Env, Input, File) ->
             end
     end.
 
-replace(Data,[]) ->
-    binary_to_list(iolist_to_binary(Data));
-replace(Data,[{Regexp,Replace}|Tail]) ->
-    replace(re:replace(Data,Regexp,Replace,[global]), Tail).
 
 error(SessionID, Env, Input) ->
     error(SessionID, Env, Input, "").
@@ -130,14 +126,26 @@ update(SessionID, Env, _Input) ->
                                 ++ nav()
                                 ++ sidebar()
                                 ++"<div class=\"container\">"
-                                ++ "<div><em>Time to update reports:"++ io_lib:format("~.2f",[Time/1000]) ++" sec </em></div>"
+                                ++ "<div><em>Time to update reports:"++ number_to_list(Time/1000) ++" sec </em></div>"
                                 ++ foot()
                                ]).
 
-
 status(SessionID, _Env, _Input) ->
     Title ="<title>Tsung Status</title>",
-    {Time, Status} = timer:tc(tsung_controller,status_str,[]),
+    {ok, Nodes, Ended_Beams, MaxPhases} = ts_config_server:status(),
+    Active    = Nodes - Ended_Beams,
+    ActiveBeamsBar  = progress_bar(Active,Nodes,"", "Active nodes: "),
+    {Clients, ReqRate, RawMaxReqRate, Connected, Interval, Phase} = ts_mon:status(),
+    NPhase = case Phase of
+                 error -> 1;
+                 {ok,N} -> (N div Nodes) + 1
+             end,
+    {ok, Dump_Interval} = application:get_env(tsung_controller,dumpstats_interval),
+    MaxReqRate = 1000.0 * RawMaxReqRate / Dump_Interval,
+    RequestsBar  = progress_bar(ReqRate/Interval, MaxReqRate,"req/sec", lists:flatten("Request rate: (max is " ++ number_to_list(MaxReqRate) ++ " req / sec)"),true),
+    PhasesBar  = progress_bar(NPhase, MaxPhases,"", lists:flatten("Current phase (total is " ++ number_to_list(MaxPhases) ++" )")),
+    UsersBar  = progress_bar(Clients, Clients,"", "Running users"),
+    ConnectedBar  = progress_bar(Connected, Clients,"", "Connected users"),
     mod_esi:deliver(SessionID, [
                                 "Content-Type: text/html\r\n\r\n",
                                 head(Title)
@@ -147,7 +155,11 @@ status(SessionID, _Env, _Input) ->
                                 ++ " <div class=\"col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main\">"
                                 ++ "<h1 class=\"page-header\">Status</h1>"
 
-                                ++ "<pre>" ++Status ++ "</pre>"
+                                ++ UsersBar
+                                ++ ConnectedBar
+                                ++ RequestsBar
+                                ++ ActiveBeamsBar
+                                ++ PhasesBar
                                 ++ foot()
                                ]).
 
@@ -223,7 +235,7 @@ head(Title) ->
 nav() ->
     {ok,Path} = application:get_env(tsung_controller,log_dir_real),
     WorkingDir=filename:basename(Path),
-    Subtitle = "Realtime Monitoring - " ++ WorkingDir,
+    Subtitle = "Dashboard - " ++ WorkingDir,
     "
     <div class=\"navbar navbar-inverse navbar-fixed-top\" role=\"navigation\">
       <div class=\"container-fluid\">
@@ -242,7 +254,6 @@ nav() ->
             <li><a href=\"/tsung/tsung_web:report\">Reports</a></li>
             <li><a href=\"/tsung/tsung_web:graph\">Graphs</a></li>
             <li><a href=\"/tsung/tsung_web:logs\">Logs</a></li>
-            <li><a href=\"[% conf %]\">Config</a></li>
           </ul>
         </div>
       </div>
@@ -295,3 +306,49 @@ format(Path,Entry,RequestURI) ->
         {error, _Reason} ->
             ""
     end.
+
+
+%% helper functions
+
+number_to_list(F) when is_integer(F)-> integer_to_list(F);
+number_to_list(F) -> io_lib:format("~.2f",[F]).
+
+replace(Data,[]) ->
+    binary_to_list(iolist_to_binary(Data));
+replace(Data,[{Regexp,Replace}|Tail]) ->
+    replace(re:replace(Data,Regexp,Replace,[global]), Tail).
+
+progress_bar(Val, Max, Unit, Title) ->
+    progress_bar(Val, Max, Unit, Title, false).
+
+progress_bar(Val, Max, Unit, Title, Variable) ->
+    Percent = case Max of
+                  0 -> 0;
+                  0.0 -> 0;
+                  M -> round(100 * Val / M)
+              end,
+    ProgressType = if
+                       Variable == false ->
+                           "progress-bar-success";
+                       Percent > 80 ->
+                           "progress-bar-danger";
+                       Percent > 60 ->
+                           "progress-bar-warning";
+                       Percent > 40 ->
+                           "progress-bar-info";
+                       true->
+                           "progress-bar-success"
+                   end,
+
+    Title ++ "<div class=\"progress\">"
+        ++ "<div class=\"progress-bar "++ ProgressType++ "\" role=\"progressbar\" aria-valuenow=\""
+        ++ number_to_list(Val)
+        ++ "\" aria-valuemin=\"0\" aria-valuemax=\""
+        ++ number_to_list(Max)
+        ++ "\" style=\"width: "
+        ++ number_to_list(Percent)
+        ++ "%;\">"
+        ++ number_to_list(Val)
+        ++ " " ++Unit
+        ++"</div> </div>".
+

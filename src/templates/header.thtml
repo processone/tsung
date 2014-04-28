@@ -10,14 +10,9 @@
     <link href="style/bootstrap.min.css" rel="stylesheet">
     <link href="style/dashboard.css" rel="stylesheet">
     <link href="style/docs.min.css" rel="stylesheet">
-    <!-- <link href="style/tsung-graphs.css" rel="stylesheet"> -- -->
 
   </head>
 <body>
-    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-    <script src="style/jquery.min.js"></script>
-    <!-- Include all compiled plugins (below), or include individual files as needed -->
-    <script src="style/bootstrap.min.js"></script>
 
     <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
       <div class="container-fluid">
@@ -36,7 +31,7 @@
             <li><a href="report.html">Reports</a></li>
             <li><a href="graph.html">Graphs</a></li>
             <li><a href="/tsung/tsung_web:logs">Logs</a></li>
-            <li><a href="[% conf %]">Config</a></li>
+            <!-- <li><a href="[% conf %]">Config</a></li> -->
           </ul>
         </div>
       </div>

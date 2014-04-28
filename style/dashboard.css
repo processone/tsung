@@ -95,35 +95,4 @@ body {
   border-radius: 50%;
 }
 
-      /*   .ts_tooltip { */
-      /*       border-bottom: 1px dotted #000000; color: #000000; outline: none; */
-      /*       cursor: help; text-decoration: none; */
-      /*       position: relative; */
-      /*       background: #FFFFAA; */
-      /*   } */
-      /*   .ts_tooltip span { */
-      /*       display: none; */
-      /*   } */
-      /*   .ts_tooltip dl { */
-      /*       display: none; */
-      /*   } */
-      /*   .ts_tooltip th { */
-      /*       display: none; */
-      /*   } */
-      /* .ts_tooltip:hover span { */
-      /*    display:block; */
-      /*    position:absolute; z-index: 99; */
-      /*    top:2em; left:2em; width:15em; */
-      /*    text-align: center} */
-      /*   } */
-      /*   .ts_tooltip:hover img { */
-      /*       border: 0; margin: -10px 0 0 -55px; */
-      /*       float: left; position: absolute; */
-      /*   } */
-      /*   .ts_tooltip:hover em { */
-      /*       font-family: Candara, Tahoma, Geneva, sans-serif; font-size: 1.2em; font-weight: bold; */
-      /*       display: block; padding: 0.2em 0 0.6em 0; */
-      /*   } */
-      /*   .classic { padding: 0.8em 1em; } */
- .ts_tooltip { font-size: 80%; background: #FFFFAA;  } */
-
+ .ts_tooltip { font-size: 80%; background: #FFFFAA;  }

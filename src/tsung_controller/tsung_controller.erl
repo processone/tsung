@@ -117,14 +117,14 @@ status([Host]) when is_atom(Host)->
 
 status_str()->
     case catch ts_mon:status() of
-        {Clients, Count, Connected, Interval, Phase} ->
+        {Clients, Count, _ReqMax, Connected, Interval, Phase} ->
 
             S1 = io_lib:format("Tsung is running [OK]~n" ++
                                    " Current request rate:    ~.2f req/sec~n" ++
                                    " Current users:           ~p~n" ++
                                    " Current connected users: ~p ~n",
                                [Count/Interval, Clients, Connected]),
-            {ok, Nodes, Ended_Beams} = ts_config_server:status(),
+            {ok, Nodes, Ended_Beams, _} = ts_config_server:status(),
             case {Phase, Nodes == Ended_Beams} of
                 {error, _} -> % newphase not initialised, first phase
                     S1 ++ " Current phase:           1";

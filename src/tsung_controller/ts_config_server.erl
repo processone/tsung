@@ -334,10 +334,10 @@ handle_call({get_monitor_hosts}, _From, State) ->
     Config = State#state.config,
     {reply, Config#config.monitor_hosts, State};
 
-% get status: send the number of actives nodes
+% get status: send the number of actives nodes, number of phases
 handle_call({status}, _From, State) ->
     Config = State#state.config,
-    Reply = {ok, length(Config#config.clients), State#state.ending_beams},
+    Reply = {ok, length(Config#config.clients), State#state.ending_beams, length(Config#config.arrivalphases) },
     {reply, Reply, State};
 
 handle_call({get_jobs_state}, _From, State) when State#state.config == undefined ->
