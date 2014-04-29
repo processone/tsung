@@ -379,7 +379,10 @@ handle_cast({newbeams, HostList}, State=#state{logdir   = LogDir,
             Args = set_remote_args(LogDir, Config#config.ports_range),
             {BeamsIds, LastId} = lists:mapfoldl(fun(A,Acc) -> {{A, Acc}, Acc+1} end, Id0, RemoteBeams),
             Fun = fun({Host,Id}) -> remote_launcher(Host, Id, Args) end,
-            RemoteNodes = ts_utils:pmap(Fun, BeamsIds),
+            %% start beams in parallel, at most 10 in parallel
+            %% (because sshd MaxSessions = 10, in case we have to
+            %% start more than 10 beams on a single host)
+            RemoteNodes = ts_utils:pmap(Fun, BeamsIds,9),
             ?LOG("All remote beams started, syncing ~n",?NOTICE),
             global:sync(),
             ?LOG("Syncing done, start remote tsung application ~n", ?DEB),

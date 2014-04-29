@@ -57,3 +57,26 @@ export_text_escape_test()->
     ?assertEqual("&quot;B&quot;",ts_utils:export_text("\"B\"")),
     ?assertEqual("&lt; A",ts_utils:export_text(<<"< A">>)).
 
+
+pmap_test()->
+    F = fun(X) ->X + 1 end,
+    L = [1,2,4,12,6,2,7,9,2,10],
+    Res = lists:map(F,L),
+    ResP = ts_utils:pmap(F,L),
+    ?assertEqual(ResP, Res).
+
+pmapn_test()->
+    F = fun(X) ->X + 1 end,
+    L = [1,2,4,12,6,2,7,9,2,10],
+    Res = lists:map(F,L),
+    ResP = ts_utils:pmap(F,L,3),
+    ?assertEqual(ResP, Res),
+    ResP2 = ts_utils:pmap(F,L,8),
+    ?assertEqual(ResP2, Res).
+
+pmapn_big_test()->
+    F = fun(X) ->X + 1 end,
+    L = lists:duplicate(1000, 42),
+    Res = lists:map(F,L),
+    ResP = ts_utils:pmap(F,L,10),
+    ?assertEqual(ResP, Res).

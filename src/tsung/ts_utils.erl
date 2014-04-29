@@ -42,10 +42,10 @@
          check_sum/3, check_sum/5, clean_str/1, file_to_list/1, term_to_list/1,
          decode_base64/1, encode_base64/1, to_lower/1, release_is_newer_or_eq/1,
          randomstr/1,urandomstr/1,urandomstr_noflat/1, eval/1, list_to_number/1,
-         time2sec/1, time2sec_hires/1, read_file_raw/1, init_seed/1, jsonpath/2, pmap/2,
+         time2sec/1, time2sec_hires/1, read_file_raw/1, init_seed/1, jsonpath/2,
          concat_atoms/1, ceiling/1, accept_loop/3, append_to_filename/3, splitchar/2,
          randombinstr/1,urandombinstr/1,log_transaction/1,conv_entities/1, wildcard/2,
-         ensure_all_started/2]).
+         ensure_all_started/2, pmap/2, pmap/3]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -853,6 +853,32 @@ pmap(F, L) ->
     Parent = self(),
     [receive {Pid, Result} -> Result end || Pid <- [spawn(fun() -> Parent ! {self(), F(X)} end) || X <- L]].
 
+
+%% Map function F over list L in parallel, with maximum NProcs in parallel
+%% FIXME: handle timeout
+pmap(F, L, NProcs) ->
+    pmap(F, L, NProcs,"").
+
+pmap(F, L, NProcs, Res) when length(L) > NProcs->
+    {Head, Tail} = lists:split(NProcs,L),
+    Parent = self(),
+    erlang:display([spawn, NProcs]),
+    lists:foldl(fun(X, Acc) -> spawn(fun() -> Parent ! {self(), F(X), Acc} end), Acc+1  end, 0, Head),
+    NewRes = wait_result(NProcs,[]),
+    pmap(F,Tail, NProcs, Res ++ NewRes);
+
+pmap(F, L, _NProcs, Acc) ->
+    Acc ++ pmap(F,L).
+
+wait_result(0, Res)->
+    {_Ids, RealRes} = lists:unzip(lists:keysort(1, Res)),
+    RealRes;
+wait_result(Nprocs, Res)->
+    receive
+        {_Pid, Result, Id} ->
+            NewRes = Res ++ [{Id, Result}],
+            wait_result(Nprocs-1, NewRes)
+    end.
 
 %%
 ceiling(X) ->
