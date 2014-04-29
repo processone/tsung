@@ -101,7 +101,7 @@ start_inets(LogDir) ->
     case application:get_env(tsung_controller,web_gui) of
         {ok, true} ->
             inets:start(),
-            Path = filename:absname(filename:dirname(code:which(tsung_controller))++"/../priv/style"),
+            Path = filename:join(filename:dirname(code:which(tsung_controller)),"../../../../../share/tsung/templates/style"),
             {ok,Styles} = file:list_dir(Path),
             DestDir = filename:join(LogDir,"style"),
             file:make_dir(DestDir),
@@ -119,8 +119,6 @@ start_inets(LogDir) ->
                                                   mod_disk_log]},
                                         {erl_script_alias, {"/tsung", [tsung_web]}},
                                         {error_log, "inets_error.log"},
-                                        {security_log, "inets_security.log"},
-                                        {transfer_log, "inets_transfer.log"},
                                         {mime_types,[ {"html","text/html"},
                                                       {"css","text/css"},
                                                       {"png","image/png"},

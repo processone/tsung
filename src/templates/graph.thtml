@@ -1,23 +1,30 @@
 [% INCLUDE header.thtml %]
 
 <div id="response_time">
-<h3>Response Time</h3> 
+<h3>Response Time</h3>
 <table>
 <tr><th>Transactions and Pages</th><th>Requests and connection establishment</th></tr>
 <tr>
  <td>
- <a class="ts_tooltip" href="images/graphes-Transactions-mean.[% ext %]">
+ <a href="images/graphes-Transactions-mean.[% ext %]">
   <img class="graph" src="images/graphes-Transactions-mean_tn.png" alt="transaction response time"/>
-<span class="classic"> Response time for pages and transactions (a page
-is a group of requests not separated by a thinktime).</span>
 </a>
+<br/>
+<p class="collapse alert-info" id="detailrequest"> Response time in
+msec for pages and transactions (a page
+is a group of requests not separated by a thinktime).</p>
+<a class="btn btn-info" data-toggle="collapse" data-target="#detailrequest"> <i class="icon-ok icon-white"></i>Info &raquo;</a>
  </td>
  <td>
-  <a class="ts_tooltip" href="images/graphes-Perfs-mean.[% ext %]">
-   <img class="graph" src="images/graphes-Perfs-mean_tn.png" alt="mean request response time"/> 
-<span class="classic"> <em>connect</em> Mean duration of the connection
-establishment only.<em>request</em> Mean duration of requests.</span>
+  <a href="images/graphes-Perfs-mean.[% ext %]">
+   <img class="graph" src="images/graphes-Perfs-mean_tn.png" alt="mean request response time"/>
   </a>
+<br/>
+<dl class="collapse alert-info" id="detailconnection">
+<dt>connect</dt> <dd>Mean duration (in msec) of the connection
+establishment only.</dd><dt>request</dt> <dd>Mean duration of
+requests (in msec).</dd></dl>
+<a class="btn btn-info" data-toggle="collapse" data-target="#detailconnection"> <i class="icon-ok icon-white"></i>Info &raquo;</a>
  </td>
  </tr>
 </table>
@@ -78,7 +85,7 @@ establishment only.<em>request</em> Mean duration of requests.</span>
 </div>
 
 <div id="users">
-<h3>Simultaneous Users</h3> 
+<h3>Simultaneous Users</h3>
 <table>
 <tr><th>Simultaneous Users</th>
 [% IF match %]
@@ -86,16 +93,18 @@ establishment only.<em>request</em> Mean duration of requests.</span>
 [% END %]
 </tr>
 <tr>
- <td> <a class="ts_tooltip" href="images/graphes-Users-simultaneous.[% ext %]">
+ <td> <a href="images/graphes-Users-simultaneous.[% ext %]">
   <img class="graph" src="images/graphes-Users-simultaneous_tn.png"
-  alt="Users"/> 
-<span class="classic"><em>users</em> Number of simultaneous users (it's session has started, but not yet finished).
-<em>connected</em> number of users with an opened TCP/UDP connection (example: for HTTP, during a think time, the TCP connection can be closed by the server, and it won't be reopened until the thinktime has expired)</span>
+  alt="Users"/>
  </a>
+<br/>
+<dl class="collapse alert-info" id="detailsimul"><dt>users</dt><dd> Number of simultaneous users (it's session has started, but not yet finished).</dd>
+<dt>connected</dt> <dd>number of users with an opened TCP/UDP connection (example: for HTTP, during a think time, the TCP connection can be closed by the server, and it won't be reopened until the thinktime has expired)</dd></dl>
+<a class="btn btn-info" data-toggle="collapse" data-target="#detailsimul"> <i class="icon-ok icon-white"></i>Info &raquo;</a>
  </td>
 [% IF match %]
  <td> <a href="images/graphes-Match-rate.[% ext %]">
-  <img class="graph" src="images/graphes-Match-rate_tn.png" alt="Match"/> 
+  <img class="graph" src="images/graphes-Match-rate_tn.png" alt="Match"/>
  </a>
  </td>
 [% END %]

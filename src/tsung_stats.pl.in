@@ -643,11 +643,18 @@ sub html_report {
          conf        => $xml_conf,
          ext         => $imgfmt
         };
+
+    mkdir "style" unless -d "./style";
+    copy (($template_dir . "/style/bootstrap.min.js"), "./style/") or die "copy failed : $!";
+    copy (($template_dir . "/style/bootstrap.min.css"), "./style/") or die "copy failed : $!";
+    copy (($template_dir . "/style/dashboard.css"), "./style/") or die "copy failed : $!";
+    copy (($template_dir . "/style/docs.min.css"), "./style/") or die "copy failed : $!";
+    copy (($template_dir . "/style/jquery.min.js"), "./style/") or die "copy failed : $!";
   if (not $dygraph) {
     $tt->process("graph.thtml", $vars, "graph.html") or die $tt->error(), "\n";
   } else {
     $tt->process("graph_dy.thtml", $vars, "graph.html") or die $tt->error(), "\n";
-    copy (($template_dir . "/dygraph-combined.js"), ".") or die "copy failed : $!";
+    copy (($template_dir . "/style/dygraph-combined.js"), "./style/") or die "copy failed : $!";
   }
 }
 
