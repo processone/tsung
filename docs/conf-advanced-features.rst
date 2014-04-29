@@ -750,7 +750,7 @@ For example, to limit the rate to 64KB/sec for a given session:
 .. code-block:: xml
 
   <session name="http-example" probability="70" type="ts_http">
-    <set_option name="rate_limit" value="64"></option>
+    <set_option name="rate_limit" value="64" />
     ...
   </session>
 
