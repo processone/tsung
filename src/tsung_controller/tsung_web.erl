@@ -74,7 +74,7 @@ graph(SessionID, Env, Input, File) ->
 error(SessionID, Env, Input) ->
     error(SessionID, Env, Input, "").
 
-error(SessionID, Env, Input, Msg) ->
+error(SessionID, _Env, _Input, Msg) ->
     Title = "<title>Tsung Update Error</title>",
     Text  = "<div class=\"alert alert-danger \">
   <button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-hidden=\"true\"></button>
@@ -98,7 +98,6 @@ script_paths()->
 
 update_reports() ->
     %% Referer = proplists:get_value(http_referer,Env),
-    Title ="<title>Tsung Update stats</title>",
     {ok,Path} = application:get_env(tsung_controller,log_dir_real),
     case os:find_executable("tsung_stats.pl") of
         false ->
@@ -114,9 +113,9 @@ update_reports() ->
             os:cmd(Cmd)
     end.
 
-update(SessionID, Env, _Input) ->
+update(SessionID, _Env, _Input) ->
     Begin=now(),
-    Title ="<title>Tsung Update stats</title>",
+    Title ="Tsung Update stats",
     update_reports(),
     Time=ts_utils:elapsed(Begin,now()),
     mod_esi:deliver(SessionID, [
@@ -131,7 +130,7 @@ update(SessionID, Env, _Input) ->
                                ]).
 
 status(SessionID, _Env, _Input) ->
-    Title ="<title>Tsung Status</title>",
+    Title ="Tsung Status",
     {ok, Nodes, Ended_Beams, MaxPhases} = ts_config_server:status(),
     Active    = Nodes - Ended_Beams,
     ActiveBeamsBar  = progress_bar(Active,Nodes,"", "Active nodes: "),
@@ -140,7 +139,6 @@ status(SessionID, _Env, _Input) ->
                  error -> 1;
                  {ok,N} -> (N div Nodes) + 1
              end,
-    {ok, Dump_Interval} = application:get_env(tsung_controller,dumpstats_interval),
     RequestsBar  = progress_bar(ReqRate/Interval, ReqRate/Interval,"req/sec", lists:flatten("Request rate: ")),
     PhasesBar  = progress_bar(NPhase, MaxPhases,"", lists:flatten("Current phase (total is " ++ number_to_list(MaxPhases) ++" )")),
     UsersBar  = progress_bar(Clients, Clients,"", "Running users"),
@@ -163,7 +161,7 @@ status(SessionID, _Env, _Input) ->
                                ]).
 
 logs(SessionID, _Env, _Input) ->
-    Title ="<title>Tsung Logs</title>",
+    Title ="Tsung Logs",
     {ok,Path} = application:get_env(tsung_controller,log_dir_real),
     {ok,Files} = file:list_dir(Path),
     FilesHTML = lists:map(fun(F)->format(Path,F,"") end,Files),

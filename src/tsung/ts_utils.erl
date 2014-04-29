@@ -862,7 +862,6 @@ pmap(F, L, NProcs) ->
 pmap(F, L, NProcs, Res) when length(L) > NProcs->
     {Head, Tail} = lists:split(NProcs,L),
     Parent = self(),
-    erlang:display([spawn, NProcs]),
     lists:foldl(fun(X, Acc) -> spawn(fun() -> Parent ! {self(), F(X), Acc} end), Acc+1  end, 0, Head),
     NewRes = wait_result(NProcs,[]),
     pmap(F,Tail, NProcs, Res ++ NewRes);
