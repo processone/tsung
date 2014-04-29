@@ -269,7 +269,8 @@ add_dynparams2(true, DynVars, Param, _Host) ->
 %% than use side effects, as get_message/1 andn add_dynparams/4 aren't allowed
 %% to return a new DynData, and so they can't modify the session state.
 choose_domain(VHostFileId) ->
-    {ok,Domain} = ts_file_server:get_random_line(VHostFileId),
+    {ok,DomainBin} = ts_file_server:get_random_line(VHostFileId),
+    Domain=binary_to_list(DomainBin),
     UserServer = global:whereis_name(list_to_atom("us_"++Domain)),
     {Domain,UserServer}.
 

@@ -672,7 +672,7 @@ setup_user_servers(FileId,Val) when is_atom(FileId), is_integer(Val) ->
     {ok,Domains} = ts_file_server:get_all_lines(FileId),
     ?LOGF("Domains:~p~n",[Domains],?DEB),
     lists:foreach(fun(Domain) ->
-                    {ok,_} = ts_user_server_sup:start_user_server(list_to_atom("us_" ++Domain))
+                    {ok,_} = ts_user_server_sup:start_user_server(list_to_atom("us_" ++binary_to_list(Domain)))
                   end, Domains),
     ts_user_server:reset_all(Val).
 
