@@ -1,0 +1,141 @@
+/*
+ *  * Base structure
+ *   */
+
+/* Move down content because we have a fixed navbar that is 50px tall */
+body {
+  padding-top: 50px;
+}
+
+
+/*
+ *  * Global add-ons
+ *   */
+
+.sub-header {
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+
+/*
+ *  * Sidebar
+ *   */
+
+/* Hide for mobile, show later */
+.sidebar {
+  display: none;
+}
+@media (min-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 51px;
+    bottom: 0;
+    left: 0;
+    z-index: 1000;
+    display: block;
+    padding: 20px;
+    overflow-x: hidden;
+    overflow-y: auto; /* Scrollable contents if viewport is shorter than content. */
+    background-color: #f5f5f5;
+    border-right: 1px solid #eee;
+  }
+}
+
+/* Sidebar navigation */
+.nav-sidebar {
+  margin-right: -21px; /* 20px padding + 1px border */
+  margin-bottom: 20px;
+  margin-left: -20px;
+}
+.nav-sidebar > li > a {
+  padding-right: 20px;
+  padding-left: 20px;
+}
+.nav-sidebar > .active > a {
+  color: #fff;
+  background-color: #428bca;
+}
+
+
+/*
+ *  * Main content
+ *   */
+
+.main {
+  padding: 20px;
+}
+@media (min-width: 768px) {
+  .main {
+    padding-right: 40px;
+    padding-left: 40px;
+  }
+}
+.main .page-header {
+  margin-top: 0;
+}
+
+
+/*
+ *  * Placeholder dashboard ideas
+ *   */
+
+.placeholders {
+  margin-bottom: 30px;
+  text-align: center;
+}
+.placeholders h4 {
+  margin-bottom: 0;
+}
+.placeholder {
+  margin-bottom: 20px;
+}
+.placeholder img {
+  display: inline-block;
+  border-radius: 50%;
+}
+
+/* .ts_tooltip { */
+/*      font-size: 80%; background: #FFFFAA; */
+/*      border-bottom: 1px dotted #000000; color: #000000; outline: none; */
+/*      cursor: help; text-decoration: none; */
+/*      position: relative; */
+/*  } */
+
+/*  .ts_tooltip span { */
+/*      display: none; */
+/*  } */
+
+/* .ts_tooltip:hover span { */
+/*      display:block; */
+/*      position:absolute; z-index: 99; */
+/*      top:2em; left:2em; width:15em; */
+/*      text-align: center} */
+
+/* .ts_tooltip:hover img { */
+/*     border: 0; margin: -10px 0 0 -55px; */
+/*     float: left; position: absolute; */
+/* } */
+
+/* .ts_tooltip:hover em { */
+/*     font-family: Candara, Tahoma, Geneva, sans-serif; font-size: 1.2em; font-weight: bold; */
+/*     display: block; padding: 0.2em 0 0.6em 0; */
+/* } */
+
+/* .classic { padding: 0.8em 1em; } */
+
+.collapse {
+  display: none;
+}
+
+.collapse.in {
+  display: block;
+}
+
+.collapsing {
+  position: relative;
+  height: 0;
+  overflow: hidden;
+  -webkit-transition: height 0.35s ease;
+          transition: height 0.35s ease;
+}
