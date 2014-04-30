@@ -234,6 +234,8 @@ nav() ->
     WorkingDir=filename:basename(Path),
     Subtitle = "Dashboard - " ++ WorkingDir,
     "
+    <script src=\"/style/jquery.min.js\"></script>
+    <script src=\"/style/bootstrap.min.js\"></script>
     <div class=\"navbar navbar-inverse navbar-fixed-top\" role=\"navigation\">
       <div class=\"container-fluid\">
         <div class=\"navbar-header\">
