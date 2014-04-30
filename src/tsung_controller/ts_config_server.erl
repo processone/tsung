@@ -945,6 +945,8 @@ update_total_pop(UseWeight,N, Sessions, Total)   ->
     update_total_pop(UseWeight, N-1, Sessions, [PhaseTotal |Total]).
 
 %% set popularity of session 'Name' per phase (needed when <session_setup> is used)
+set_pop(_Name,Popularity,[]) ->
+    Popularity;
 set_pop(Name,Popularity,Phases) ->
     set_pop(Name,Popularity,Phases,[]).
 

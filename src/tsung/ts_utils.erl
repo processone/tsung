@@ -645,6 +645,7 @@ keyumerge(N,[A|Rest],B)->
 %% Purpose: Return Max of Nth element of a list of tuples
 %% Returns: Number
 %%----------------------------------------------------------------------
+keymax(_N,[])-> 0;
 keymax(N,[L])-> element(N,L);
 keymax(N,[E|Tail])->
     keymax(N,Tail,element(N,E)).
