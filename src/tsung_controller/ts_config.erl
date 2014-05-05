@@ -100,7 +100,8 @@ parse(Element = #xmlElement{parents = [], attributes=Attrs}, Conf=#config{}) ->
                    "false" -> none;
                    "true"  -> full;
                    "light" -> light;
-                   "protocol" -> protocol
+                   "protocol" -> protocol;
+                   "protocol_local" -> protocol_local
                end,
     lists:foldl(fun parse/2,
                 Conf#config{dump= DumpType, stats_backend=BackEnd,

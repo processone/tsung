@@ -79,9 +79,11 @@ init([]) ->
                     transient, 2000, worker, [ts_session_cache]},
     MonCache = {ts_mon_cache, {ts_mon_cache, start, []},
                     transient, 2000, worker, [ts_mon_cache]},
+    LocalMon = {ts_local_mon, {ts_local_mon, start, []},
+                    transient, 2000, worker, [ts_local_mon]},
     IPScan = {ts_ip_scan, {ts_ip_scan, start_link, []},
                     transient, 2000, worker, [ts_ip_scan]},
-    {ok,{{one_for_one,?retries,10}, [IPScan, LauncherManager, SessionCache, MonCache,ClientsSup, StaticLauncher,Launcher  ]}}.
+    {ok,{{one_for_one,?retries,10}, [IPScan, LauncherManager, SessionCache, MonCache, LocalMon, ClientsSup, StaticLauncher,Launcher  ]}}.
 
 %%%----------------------------------------------------------------------
 %%% Internal functions
