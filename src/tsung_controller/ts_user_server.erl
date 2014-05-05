@@ -146,7 +146,7 @@ get_online(default,Id) ->
     get_online(Id);
 get_online(UserServer,Id) when is_list(Id)->
     get_online(UserServer,list_to_integer(Id));
-get_online(UserServer,Id) when Id->
+get_online(UserServer,Id) ->
     gen_server:call(UserServer, {get_online, Id}).
 
 get_online(Id) when is_list(Id) ->

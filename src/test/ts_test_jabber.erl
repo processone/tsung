@@ -138,6 +138,19 @@ get_online_test()->
     {ok,Online}  = ts_user_server:get_online(Id),
     ?assertEqual({1,3,2},{Id,Offline,Online} ).
 
+get_online_user_test()->
+    Server="myserver",
+    ts_user_server_sup:start_user_server(list_to_atom("us_" ++Server)),
+    MyServer = global:whereis_name(list_to_atom("us_"++Server)),
+    ts_user_server:reset(MyServer,100),
+    Id=ts_user_server:get_idle(MyServer),
+    IdOther = ts_user_server:get_idle(MyServer),
+    RealId  = ts_jabber_common:set_id(IdOther,"tsung","tsung"),
+    ts_user_server:add_to_online(MyServer,RealId),
+    {ok,Offline} = ts_user_server:get_offline(MyServer),
+    {ok,Online}  = ts_user_server:get_online(MyServer, Id),
+    ?assertEqual({1,3,2},{Id,Offline,Online} ).
+
 get_online_user_defined_test()->
     ts_user_server:reset(0),
     ts_msg_server:stop(),
