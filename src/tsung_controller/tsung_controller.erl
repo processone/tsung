@@ -111,8 +111,12 @@ start_phase(start_clients, _StartType, _PhaseArgs) ->
 %%----------------------------------------------------------------------
 status([Host]) when is_atom(Host)->
     _List = net_adm:world_list([Host]),
-    global:sync(),
-    Msg = status_str(),
+    Msg = case global:sync() of
+              ok ->
+                  status_str();
+              {error, _Reason} ->
+                  "No status available: Can't synchronize with Tsung erlang nodes"
+          end,
     io:format("~s~n",[Msg]).
 
 status_str()->
@@ -135,7 +139,9 @@ status_str()->
                     io_lib:format("~s Current phase:        ~p",[S1,NPhases])
             end;
         {'EXIT', {noproc, _}} ->
-            "Tsung is not started"
+            "Tsung is not started";
+        {'EXIT', _Else} ->
+            "No status: Can't communicate with Tsung controller "
     end.
 
 %%----------------------------------------------------------------------
