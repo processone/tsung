@@ -19,14 +19,16 @@
 %%%  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 %%%
 
--module(tsung_web).
--vc('$Id: tsung_web.erl,v 0.0 2014/04/23 12:12:17 nniclaus Exp $ ').
+-module(ts_web).
+-vc('$Id: ts_web.erl,v 0.0 2014/04/23 12:12:17 nniclaus Exp $ ').
 -author('nicolas@niclux.org').
 
 -include("ts_macros.hrl").
 -include_lib("kernel/include/file.hrl").
 
 -export([status/3, logs/3, update/3, graph/3, error/3, report/3]).
+
+-export([number_to_list/1]).
 
 graph(SessionID, Env, Input) ->
     graph(SessionID, Env, Input,"graph.html").
@@ -57,8 +59,8 @@ graph(SessionID, Env, Input, File) ->
 </div>",
                     WorkingDir=filename:basename(Path),
                     Str=replace(Data,[{"=\"style/","=\"/style/"},
-                                      {"\"graph.html","\"/tsung/tsung_web:graph"},
-                                      {"\"report.html","\"/tsung/tsung_web:report"},
+                                      {"\"graph.html","\"/es/ts_web:graph"},
+                                      {"\"report.html","\"/es/ts_web:report"},
                                       {"csv_data","/csv_data"},
                                       {"<!-- tsung_stats_duration -->",Text},
                                       {"<!-- SUBTITLE -->","Dashboard - " ++ WorkingDir}
@@ -249,10 +251,10 @@ nav() ->
         </div>
         <div class=\"navbar-collapse collapse\">
           <ul class=\"nav navbar-nav navbar-right\">
-            <li><a href=\"/tsung/tsung_web:status\">Status</a></li>
-            <li><a href=\"/tsung/tsung_web:report\">Reports</a></li>
-            <li><a href=\"/tsung/tsung_web:graph\">Graphs</a></li>
-            <li><a href=\"/tsung/tsung_web:logs\">Logs</a></li>
+            <li><a href=\"/es/ts_web:status\">Status</a></li>
+            <li><a href=\"/es/ts_web:report\">Reports</a></li>
+            <li><a href=\"/es/ts_web:graph\">Graphs</a></li>
+            <li><a href=\"/es/ts_web:logs\">Logs</a></li>
           </ul>
         </div>
       </div>
