@@ -45,7 +45,7 @@
          time2sec/1, time2sec_hires/1, read_file_raw/1, init_seed/1, jsonpath/2,
          concat_atoms/1, ceiling/1, accept_loop/3, append_to_filename/3, splitchar/2,
          randombinstr/1,urandombinstr/1,log_transaction/1,conv_entities/1, wildcard/2,
-         ensure_all_started/2, pmap/2, pmap/3, get_node_id/0]).
+         ensure_all_started/2, pmap/2, pmap/3, get_node_id/0, filtermap/2]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -223,6 +223,14 @@ decode_base64(Base64)->
 % return true if current version of erlang is newer or equal
 release_is_newer_or_eq(Release)->
     erlang:system_info(version) >= Release.
+
+filtermap(Fun, List)->
+    case ts_utils:release_is_newer_or_eq("5.10.2") of
+        true ->
+            lists:filtermap(Fun,List);
+        false ->
+            lists:zf(Fun,List)
+    end.
 
 
 %%----------------------------------------------------------------------

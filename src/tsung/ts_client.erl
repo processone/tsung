@@ -479,7 +479,7 @@ handle_next_action(State=#state_rcv{dynvars = DynVars}) ->
             handle_next_action(State#state_rcv{size_mon=Thresh,size_mon_thresh=Thresh,rate_limit=RateConf,count=Count});
         {set_option, undefined, certificate, {Cacert, KeyFile, KeyPass, CertFile}} ->
             ?LOGF("Set client certificate: ~p ~p ~p ~p~n",[Cacert, KeyFile, KeyPass, CertFile],?DEB),
-            Opts = lists:filtermap(fun({N,V}) ->
+            Opts = ts_utils:filtermap(fun({N,V}) ->
                                            case V of
                                                undefined ->
                                                    false;
