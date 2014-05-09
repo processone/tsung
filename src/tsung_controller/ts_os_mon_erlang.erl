@@ -71,9 +71,11 @@ init( {Host, Options, Interval,  MonServer} ) ->
     %% last boot)  is returned by cpu_sup:util), we must spawn a process
     %% on the remote node that will do the stats collection and send it back
     %% to ts_mon
-    case list_to_atom(LocalHost) of
+    case LocalHost of
         Host -> % same host, don't start a new beam
             ?LOG("Running os_mon on the same host as the controller, use the same beam~n",?INFO),
+            application:start(sasl),
+            application:start(os_mon),
             Pid = spawn_link(?MODULE, updatestats, [Options, Interval, MonServer]),
             {ok, #state{node=node(),mon=MonServer, host=Host, interval=Interval, pid=Pid, options=Options}};
         _ ->

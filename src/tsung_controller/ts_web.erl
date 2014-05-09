@@ -136,7 +136,7 @@ status(SessionID, _Env, _Input) ->
     {ok, Nodes, Ended_Beams, MaxPhases} = ts_config_server:status(),
     Active    = Nodes - Ended_Beams,
     ActiveBeamsBar  = progress_bar(Active,Nodes,"", "Active nodes: "),
-    {Clients, ReqRate, Connected, Interval, Phase} = ts_mon:status(),
+    {Clients, ReqRate, Connected, Interval, Phase, Cpu} = ts_mon:status(),
     NPhase = case Phase of
                  error -> 1;
                  {ok,N} -> (N div Nodes) + 1
@@ -145,6 +145,7 @@ status(SessionID, _Env, _Input) ->
     PhasesBar  = progress_bar(NPhase, MaxPhases,"", lists:flatten("Current phase (total is " ++ number_to_list(MaxPhases) ++" )")),
     UsersBar  = progress_bar(Clients, Clients,"", "Running users"),
     ConnectedBar  = progress_bar(Connected, Clients,"", "Connected users"),
+    CPUBar  = progress_bar(Cpu, 100,"", "Controller CPU usage", true),
     mod_esi:deliver(SessionID, [
                                 "Content-Type: text/html\r\n\r\n",
                                 head(Title)
@@ -159,6 +160,7 @@ status(SessionID, _Env, _Input) ->
                                 ++ RequestsBar
                                 ++ ActiveBeamsBar
                                 ++ PhasesBar
+                                ++ CPUBar
                                 ++ foot()
                                ]).
 

@@ -121,7 +121,7 @@ status([Host]) when is_atom(Host)->
 
 status_str()->
     case catch ts_mon:status() of
-        {Clients, Count, Connected, Interval, Phase} ->
+        {Clients, Count, Connected, Interval, Phase, _Cpu} ->
 
             S1 = io_lib:format("Tsung is running [OK]~n" ++
                                    " Current request rate:    ~.2f req/sec~n" ++

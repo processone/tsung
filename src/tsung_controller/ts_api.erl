@@ -31,8 +31,7 @@
 status(SessionID, _Env, _Input) ->
     {ok, Nodes, Ended_Beams, MaxPhases} = ts_config_server:status(),
     Active    = Nodes - Ended_Beams,
-    %% ActiveBeamsBar  = progress_bar(Active,Nodes,"", "Active nodes: "),
-    {Clients, ReqRate, Connected, Interval, Phase} = ts_mon:status(),
+    {Clients, ReqRate, Connected, Interval, Phase, Cpu} = ts_mon:status(),
     NPhase = case Phase of
                  error -> 1;
                  {ok,N} -> (N div Nodes) + 1
@@ -42,7 +41,8 @@ status(SessionID, _Env, _Input) ->
          ++ "\"users\": "++ integer_to_list(Clients) ++ ","
          ++ "\"connected_users\": "++ integer_to_list(Connected) ++ ","
          ++ "\"request_rate\": "++ ts_web:number_to_list(ReqRate/Interval) ++ ","
-         ++ "\"active_beams\": "++ integer_to_list(Active)
+         ++ "\"active_beams\": "++ integer_to_list(Active) ++ ","
+         ++ "\"cpu_controller\": "++ ts_web:number_to_list(Cpu)
          ++ "}",
     mod_esi:deliver(SessionID, [
                                 "Content-Type: application/json\r\n\r\n",

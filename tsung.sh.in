@@ -60,6 +60,7 @@ start() {
     -pa $TSUNGPATH -pa $CONTROLLERPATH \
     -ssl session_cb $SSL_CACHE \
     -ssl session_lifetime $SSL_SESSION_LIFETIME \
+    -sasl sasl_error_logger false \
     -tsung_controller web_gui $WEB_GUI \
     -tsung_controller smp_disable $SMP_DISABLE \
     -tsung_controller debug_level $DEBUG_LEVEL \
@@ -74,6 +75,7 @@ debug() {
      -pa $TSUNGPATH -pa $CONTROLLERPATH \
      -ssl session_cb $SSL_CACHE \
      -ssl session_lifetime $SSL_SESSION_LIFETIME \
+     -sasl sasl_error_logger \{file\,\"$LOG_DIR/tsung-sasl.log\"\} \
      -tsung_controller web_gui $WEB_GUI \
      -tsung_controller warm_time $WARM_TIME \
      -tsung_controller config_file \"$CONF_OPT_FILE\" \
@@ -155,8 +157,10 @@ do
             echo "$OPTARG" | grep -q "^/"
             RES=$?
             if [ "$RES" == 0 ]; then
+                LOG_DIR=$OPTARG
                 LOG_OPT="log_dir \"$OPTARG/\" "
             else
+                LOG_DIR=$OPTARG
                 LOG_OPT="log_dir \"$PWD/$OPTARG/\" "
             fi
             ;;

@@ -195,15 +195,19 @@ handle_call({start_logger, Machines, DumpType, Backend}, From, State) ->
     start_logger({Machines, DumpType, Backend}, From, State);
 
 %%% get status
-handle_call({status}, _From, State) ->
-    Request = ts_stats_mon:status(request),
+handle_call({status}, _From, State=#state{stats=Stats}) ->
+    {ok, Localhost} = ts_utils:node_to_hostname(node()),
+    CpuName         = {{cpu,"tsung_controller@"++Localhost}, sample},
+    {ok, CPU} = dict:find(CpuName,Stats#stats.os_mon),
+
+    Request     = ts_stats_mon:status(request),
     Interval    = ts_utils:elapsed(State#state.lastdate, ?NOW) / 1000,
     Phase       = ts_stats_mon:status(newphase,sum),
     Connected   =  case ts_stats_mon:status(connected,sum) of
                      {ok, Val} -> Val;
                      _ -> 0
                  end,
-    Reply = { State#state.client, Request, Connected, Interval, Phase},
+    Reply = { State#state.client, Request, Connected, Interval, Phase, hd(CPU)},
     {reply, Reply, State};
 
 handle_call(Request, _From, State) ->
