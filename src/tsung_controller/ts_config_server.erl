@@ -383,6 +383,7 @@ handle_cast({newbeams, HostList}, State=#state{logdir   = LogDir,
             %% (because sshd MaxSessions = 10, in case we have to
             %% start more than 10 beams on a single host)
             RemoteNodes = ts_utils:pmap(Fun, BeamsIds,9),
+            check_remotes_ok(RemoteNodes),
             ?LOG("All remote beams started, syncing ~n",?NOTICE),
             global:sync(),
             ?LOG("Syncing done, start remote tsung application ~n", ?DEB),
@@ -763,7 +764,7 @@ start_slave(Host, Name, Args) when is_atom(Host), is_atom(Name)->
             Node;
         {error, Reason} ->
             ?LOGF("Can't start newbeam on host ~p (reason: ~p) ! Aborting!~n",[Host, Reason],?EMERG),
-            exit({slave_failure, Reason})
+            {error, {slave_failure, Reason}}
     end.
 choose_port(_,_, undefined) ->
     {[],0};
@@ -859,6 +860,14 @@ remote_launcher(Host, NodeId, Args)->
     Name = set_nodename(NodeId),
     ?LOGF("starting newbeam ~p on host ~p with Args ~p~n", [Name, Host, Args], ?INFO),
     start_slave(Host, Name, Args).
+
+check_remotes_ok(Remotes) ->
+    lists:foreach(fun({error, Reason}) ->
+                          ts_mon:abort(),
+                          exit(Reason);
+                     (_) ->
+                          ok
+                  end, Remotes).
 
 set_remote_args(LogDir,PortsRange)->
     {ok, PAList}    = init:get_argument(pa),
