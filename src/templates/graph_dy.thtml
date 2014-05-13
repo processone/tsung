@@ -7,7 +7,7 @@
  <script type="text/javascript">
    var graphOptions = {
       labelsDivWidth: 400,
-      rollPeriod: 7,
+      rollPeriod: 1,
       showRoller: true
    };
  </script>
