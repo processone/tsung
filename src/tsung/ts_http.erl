@@ -84,7 +84,7 @@ decode_buffer(Buffer,#http{compressed={_,Comp}})->
 %% @end
 dump(protocol, Args)->
     Data = dump2str(Args),
-    ts_mon:dump({protocol, self(), Data });
+    ts_mon_cache:dump({protocol, self(), Data });
 dump(protocol_local, Args)->
     Data = dump2str(Args),
     ?DebugF("local protocol: ~p",[Data]),

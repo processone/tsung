@@ -36,7 +36,7 @@
 
 %%--------------------------------------------------------------------
 %% External exports
--export([start/0, add/1, add_match/2]).
+-export([start/0, add/1, add_match/2, dump/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
@@ -50,6 +50,7 @@
           requests=[],      % cache requests stats msgs
           connections=[],   % cache connect stats msgs
           match=[],         % cache match logs
+          protocol=[],      % cache dump=protocol data
           sum               % cache sum stats msgs
          }).
 
@@ -80,6 +81,12 @@ add(Data) ->
 %%                  TimeStamp::tuple(), Transactions::list()}) -> ok
 add_match(Data,{UserId,SessionId,RequestId,TimeStamp,Bin,Tr,Name}) ->
     gen_server:cast(?MODULE, {add_match, Data, {UserId,SessionId,RequestId,TimeStamp,Bin,Tr,Name}}).
+
+
+%% @spec dump({Type, Who, What}) -> ok @end
+dump({none, _, _})       ->  skip;
+dump({_Type, Who, What}) ->
+    gen_server:cast(?MODULE, {dump, Who, ?NOW, What}).
 
 %%====================================================================
 %% Server functions
@@ -130,6 +137,10 @@ handle_cast({add_match, Data=[First|_Tail],{UserId,SessionId,RequestId,TimeStamp
     NewMatchList=lists:append([{UserId,SessionId,RequestId,TimeStamp,First, Bin, Tr,Name}], MatchList),
     {noreply, State#state{stats = lists:append(Data, List), match = NewMatchList}};
 
+handle_cast({dump, Who, When, What}, State=#state{protocol=Cache}) ->
+    Log = io_lib:format("~w;~w;~s~n",[ts_utils:time2sec_hires(When),Who,What]),
+    {noreply, State#state{protocol=[Log|Cache]}};
+
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -140,7 +151,7 @@ handle_cast(_Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
-handle_info({timeout, _Ref, dump_stats}, State =#state{stats= Stats, match=MatchList}) ->
+handle_info({timeout, _Ref, dump_stats}, State =#state{protocol=ProtocolData, stats= Stats, match=MatchList}) ->
     Fun = fun(Key,Val, Acc) -> [{sum,Key,Val}| Acc] end,
     NewStats=dict:fold(Fun, Stats, State#state.sum),
     ts_stats_mon:add(NewStats),
@@ -148,9 +159,10 @@ handle_info({timeout, _Ref, dump_stats}, State =#state{stats= Stats, match=Match
     ts_stats_mon:add(State#state.connections,connect),
     ts_stats_mon:add(State#state.transactions,transaction),
     ts_stats_mon:add(State#state.pages,page),
+    ts_mon:dump({cached, list_to_binary(ProtocolData)}),
     ts_match_logger:add(MatchList),
     erlang:start_timer(?DUMP_STATS_INTERVAL, self(), dump_stats ),
-    {noreply, State#state{stats=[],match=[],pages=[],requests=[],transactions=[],connections=[],sum=dict:new()}};
+    {noreply, State#state{protocol=[],stats=[],match=[],pages=[],requests=[],transactions=[],connections=[],sum=dict:new()}};
 
 handle_info(_Info, State) ->
     {noreply, State}.

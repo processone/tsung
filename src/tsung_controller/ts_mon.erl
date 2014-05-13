@@ -140,8 +140,11 @@ rcvmes({_Type, Who, What})  ->
     gen_server:cast({global, ?MODULE}, {rcvmsg, Who, ?NOW, What}).
 
 dump({none, _, _})-> skip;
+dump({cached, << >> })-> skip;
 dump({_Type, Who, What})  ->
-    gen_server:cast({global, ?MODULE}, {dump, Who, ?NOW, What}).
+    gen_server:cast({global, ?MODULE}, {dump, Who, ?NOW, What});
+dump({cached, Data})->
+    gen_server:cast({global, ?MODULE}, {dump, cached, Data}).
 
 launcher_is_alive() ->
     gen_server:cast({global, ?MODULE}, {launcher_is_alive}).
@@ -308,6 +311,10 @@ handle_cast({sendmsg, Who, When, What}, State=#state{type=full,dumpfile=Log}) ->
 
 handle_cast({dump, Who, When, What}, State=#state{type=protocol,dumpfile=Log}) ->
     io:format(Log,"~w;~w;~s~n",[ts_utils:time2sec_hires(When),Who,What]),
+    {noreply, State};
+
+handle_cast({dump, cached, Data}, State=#state{type=protocol,dumpfile=Log}) ->
+    file:write(Log,Data),
     {noreply, State};
 
 handle_cast({rcvmsg, _, _, _}, State = #state{type=none}) ->
