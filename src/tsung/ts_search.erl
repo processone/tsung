@@ -283,7 +283,7 @@ parse_dynvar([{re,VarName, RegExp, Apply}| DynVarsSpecs],Binary,Data,Tree,DynVar
             ?LOGF("DynVar (RE): Match (~p=~p) Converted: ~p~n",[VarName, Value, ConvValue], ?INFO),
             parse_dynvar(DynVarsSpecs,Binary,Data,Tree, ts_dynvars:set(VarName,ConvValue,DynVars));
         nomatch ->
-            ?LOGF("Dyn Var (RE): no Match (varname=~p), ~n",[VarName], ?WARN),
+            ?LOGF("Dyn Var (RE): no Match (varname=~p), ~n",[VarName], ?NOTICE),
             ?LOGF("Regexp was: ~p ~n",[RegExp], ?INFO),
             parse_dynvar(DynVarsSpecs,Binary,Data,Tree, ts_dynvars:set(VarName,<< >> ,DynVars))
     end;
@@ -299,37 +299,37 @@ parse_dynvar([{header,VarName, HeaderName}| DynVarsSpecs],
         parse_dynvar(DynVarsSpecs, Binary,String,Tree,
                         ts_dynvars:set(VarName,V1,DynVars));
       [H1,SubH] ->
-        Value = case mochiweb_headers:get_value(H1, Headers) of 
+        Value = case mochiweb_headers:get_value(H1, Headers) of
           [] ->
             {ok, Old} = ts_dynvars:lookup(VarName, DynVars, ""),
-            ?LOGF("DynVar: Header ~p not found ; using ~p ~n",[H1, Old], ?WARN),
+            ?LOGF("DynVar: Header ~p not found ; using ~p ~n",[H1, Old], ?NOTICE),
             Old;
           undefined ->
             {ok, Old} = ts_dynvars:lookup(VarName, DynVars, ""),
-            ?LOGF("DynVar: Header ~p not found ; using ~p ~n",[H1, Old], ?WARN),
+            ?LOGF("DynVar: Header ~p not found ; using ~p ~n",[H1, Old], ?NOTICE),
             Old;
           SubV when H1 == "www-authenticate" orelse H1 == "authentication-info"->
-            ?LOGF("DynVar: Found header ~p ~n",[SubV], ?WARN),
+            ?LOGF("DynVar: Found header ~p ~n",[SubV], ?NOTICE),
             {_, Params} = parse_header(SubV, ","),
-            ?LOGF("DynVar: Parsed subheader ~p ~n",[Params], ?WARN),
+            ?LOGF("DynVar: Parsed subheader ~p ~n",[Params], ?NOTICE),
             case lists:keyfind(SubH, 1, Params) of
               false ->
                 {ok, Old} = ts_dynvars:lookup(VarName, DynVars, ""),
-                ?LOGF("DynVar: SubHeader ~p not found ; using ~p ~n",[VarName, Old], ?WARN),
+                ?LOGF("DynVar: SubHeader ~p not found ; using ~p ~n",[VarName, Old], ?NOTICE),
                 Old;
               {_, V} ->
                 ?LOGF("DynVar: SubHeader (~p=~p) ~n",[VarName, V], ?DEB),
                 V
-            end; 
+            end;
           SubV ->
             {_, Params}= parse_header(SubV, ";"),
             case lists:keyfind(SubH, 1, Params) of
               false ->
-                ?LOGF("DynVar: SubHeader ~p not found ~n",[VarName], ?WARN),
+                ?LOGF("DynVar: SubHeader ~p not found ~n",[VarName], ?NOTICE),
                 {ok, Old} = ts_dynvars:lookup(VarName, DynVars, ""),
                 Old;
               {_, V} ->
-                ?LOGF("DynVar: SubHeader (~p=~p) ~n",[VarName, V], ?NOTICE),
+                ?LOGF("DynVar: SubHeader (~p=~p) ~n",[VarName, V], ?INFO),
                 V
             end
         end,
@@ -395,7 +395,7 @@ parse_dynvar([{pgsql_expr,VarName,_Expr}|DynVarsSpecs],Binary,String,pgsql_error
 parse_dynvar([{xpath,VarName, Expr}| DynVarsSpecs],Binary,String,Tree,DynVars)->
     Value = case mochiweb_xpath:execute(Expr,Tree) of
                 [] ->
-                    ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?WARN),
+                    ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?NOTICE),
                     << >>;
                 Val  ->
                     ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,Val],?INFO),
@@ -406,7 +406,7 @@ parse_dynvar([{xpath,VarName, Expr}| DynVarsSpecs],Binary,String,Tree,DynVars)->
 parse_dynvar([{jsonpath,VarName, Expr}| DynVarsSpecs],Binary,String,JSON,DynVars)->
     Values = case ts_utils:jsonpath(Expr,JSON) of
                 undefined ->
-                    ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?WARN),
+                    ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?NOTICE),
                      << >>;
                  {struct, Struct}  ->
                      ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,Struct],?INFO),
@@ -420,7 +420,7 @@ parse_dynvar([{jsonpath,VarName, Expr}| DynVarsSpecs],Binary,String,JSON,DynVars
 parse_dynvar([{pgsql_expr,VarName, Expr}| DynVarsSpecs],Binary,String,PGSQL,DynVars)->
     Values = case ts_pgsql:find_pair(Expr,PGSQL) of
                  undefined ->
-                     ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?WARN),
+                     ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?NOTICE),
                      << >>;
                  Val  ->
                      ?LOGF("Dyn Var: Match (~p=~p), ~n",[VarName,Val],?INFO),
@@ -443,14 +443,14 @@ extract_body(Data) ->
         {match, [Val]} -> Val;
         _              -> Data
     end.
-    
+
 extract_headers(<<"\r\n",Rest/binary>>) ->
     Rest;
 extract_headers(<<_:1/binary,Rest/binary>>) ->
     extract_headers(Rest);
 extract_headers(<<>>) ->
     <<>>.
-    
+
 %% Comes from mochiweb_utils.erl ; very slightly adapted.
 parse_header(String, ";")-> % for Content-Type and friends
     [Type | Parts] = [string:strip(S) || S <- string:tokens(String, ";")],
