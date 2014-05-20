@@ -130,11 +130,13 @@ endclient({Who, When, Elapsed}) ->
 
 sendmes({none, _, _})       -> skip;
 sendmes({protocol, _, _})   -> skip;
+sendmes({protocol_local, _, _})   -> skip;
 sendmes({_Type, Who, What}) ->
     gen_server:cast({global, ?MODULE}, {sendmsg, Who, ?NOW, What}).
 
 rcvmes({none, _, _})    -> skip;
 rcvmes({protocol, _, _})-> skip;
+rcvmes({protocol_local, _, _})-> skip;
 rcvmes({_, _, closed})  -> skip;
 rcvmes({_Type, Who, What})  ->
     gen_server:cast({global, ?MODULE}, {rcvmsg, Who, ?NOW, What}).
