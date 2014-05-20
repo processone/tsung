@@ -252,6 +252,7 @@ handle_cast({newclient, Who, When}, State=#state{stats=Stats}) ->
     case State#state.type of
         none     -> ok;
         protocol -> ok;
+        protocol_local -> ok;
         _ ->
             io:format(State#state.dumpfile,"NewClient:~w:~p~n",[ts_utils:time2sec_hires(When), Who]),
             io:format(State#state.dumpfile,"load:~w~n",[Clients])
@@ -275,6 +276,8 @@ handle_cast({endclient, Who, When, Elapsed}, State=#state{stats=Stats}) ->
         none ->
             skip;
         protocol ->
+            skip;
+        protocol_local ->
             skip;
         _Type ->
             io:format(State#state.dumpfile,"EndClient:~w:~p~n",[ts_utils:time2sec_hires(When), Who]),

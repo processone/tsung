@@ -47,7 +47,7 @@ start(_Type, _StartArgs) ->
     LogFileEnc = ts_config_server:decode_filename(?config(log_file)),
     LogFile = filename:join(LogFileEnc, atom_to_list(node()) ++ ".log"),
     LogDir = filename:dirname(LogFile),
-    ok = ts_utils:make_dir_rec(LogDir),
+    ok = ts_utils:make_dir(LogDir),
     error_logger:logfile({open, LogFile}),
     ?LOG("ok~n",?DEB),
     case ts_sup:start_link() of

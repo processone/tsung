@@ -38,7 +38,7 @@
          erl_system_args/0, erl_system_args/1, setsubdir/1, export_text/1,
          foreach_parallel/2, spawn_par/3, inet_setopts/3, resolve/2,
          stop_all/2, stop_all/3, stop_all/4, join/2, split/2, split2/2, split2/3,
-         make_dir_rec/1, is_ip/1, from_https/1, to_https/1, keymax/2,
+         make_dir/1, make_dir_raw/1, is_ip/1, from_https/1, to_https/1, keymax/2,
          check_sum/3, check_sum/5, clean_str/1, file_to_list/1, term_to_list/1,
          decode_base64/1, encode_base64/1, to_lower/1, release_is_newer_or_eq/1,
          randomstr/1,urandomstr/1,urandomstr_noflat/1, eval/1, list_to_number/1,
@@ -415,30 +415,36 @@ stop_all(_,_,_,_)->
     erlang:display("Bad Hostname").
 
 %%----------------------------------------------------------------------
-%% make_dir_rec/1
+%% make_dir/1
 %% Purpose: create directory. Missing parent directories ARE created
 %%----------------------------------------------------------------------
-make_dir_rec(DirName) when is_list(DirName) ->
-    case  file:read_file_info(DirName) of
+make_dir(DirName) ->
+    make_dir_rec(DirName,file).
+
+make_dir_raw(DirName) ->
+    make_dir_rec(DirName,prim_file).
+
+make_dir_rec(DirName,FileMod) when is_list(DirName) ->
+    case  FileMod:read_file_info(DirName) of
         {ok, #file_info{type=directory}} ->
             ok;
         {error,enoent} ->
-            make_dir_rec("", filename:split(DirName));
+            make_dir_rec("", FileMod,filename:split(DirName));
         {error, Reason}  ->
             {error,Reason}
     end.
 
-make_dir_rec(_Path, []) ->
+make_dir_rec(_Path, _FileMod, []) ->
     ok;
-make_dir_rec(Path, [Parent|Childs]) ->
+make_dir_rec(Path, FileMod,[Parent|Childs]) ->
     CurrentDir=filename:join([Path,Parent]),
-    case  file:read_file_info(CurrentDir) of
+    case  FileMod:read_file_info(CurrentDir) of
         {ok, #file_info{type=directory}} ->
-            make_dir_rec(CurrentDir, Childs);
+            make_dir_rec(CurrentDir, FileMod,Childs);
         {error,enoent} ->
-            case file:make_dir(CurrentDir) of
+            case FileMod:make_dir(CurrentDir) of
                 ok ->
-                    make_dir_rec(CurrentDir, Childs);
+                    make_dir_rec(CurrentDir, FileMod, Childs);
                 Error ->
                     Error
             end;

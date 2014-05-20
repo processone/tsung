@@ -85,8 +85,10 @@ dump({_Type, Who, What})  ->
 init([]) ->
     %% erlang:start_timer(?DUMP_STATS_INTERVAL, self(), dump_stats ),
     Id  = integer_to_list(ts_utils:get_node_id()),
-    {ok,[[Dir]]} = init:get_argument(home),
-    FileName = filename:join(Dir,"tsung-"++Id ++ ".dump"),
+    LogFileEnc = ts_config_server:decode_filename(?config(log_file)),
+    FileName = filename:join(LogFileEnc, "tsung-"++Id ++ ".dump"),
+    LogDir = filename:dirname(FileName),
+    ok = ts_utils:make_dir_raw(LogDir),
     case file:open(FileName,[write,raw, delayed_write]) of
         {ok, IODev} ->
             {ok, #state{dump_iodev=IODev}};
