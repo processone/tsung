@@ -324,7 +324,7 @@ parse(Data,  State=#state_rcv{session=Http, datasize=PreviousSize}) ->
     CLength = Http#http.content_length,
     case Http#http.body_size + DataSize of
         CLength -> % end of response
-            {State#state_rcv{session=reset_session(Http), acc=[], ack_done = true, datasize = CLength},
+            {State#state_rcv{session=reset_session(Http), acc=[], ack_done = true, datasize = DataSize+PreviousSize},
              [], Http#http.close};
         Size ->
             {State#state_rcv{session = Http#http{body_size = Size}, ack_done = false,
