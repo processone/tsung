@@ -40,7 +40,7 @@ Dependencies
   ``tsung_stats.pl`` script). The Template Toolkit is used for HTML
   reports (see http://template-toolkit.org/).
 
-* **python** and **mathplotlib** (optional; for graphical output with ``tsung-plotter``).
+* **python** and **matplotlib** (optional; for graphical output with ``tsung-plotter``).
 
 * for distributed tests, you need SSH access to remote machines
   without password (use a RSA/DSA key without passphrase or
