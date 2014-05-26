@@ -409,7 +409,7 @@ handle_next_action(State=#state_rcv{dynvars = DynVars}) ->
             Think = case TmpThink of
                         "%%"++_Tail ->
                             Raw=ts_search:subst(TmpThink,DynVars),
-                            ts_utils:list_to_number(Raw)*1000;
+                            round(ts_utils:list_to_number(Raw)*1000);
                         Val ->
                             Val
                     end,
