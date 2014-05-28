@@ -159,7 +159,7 @@ handle_info({timeout, _Ref, dump_stats}, State =#state{protocol=ProtocolData, st
     ts_stats_mon:add(State#state.connections,connect),
     ts_stats_mon:add(State#state.transactions,transaction),
     ts_stats_mon:add(State#state.pages,page),
-    ts_mon:dump({cached, list_to_binary(ProtocolData)}),
+    ts_mon:dump({cached, list_to_binary(lists:reverse(ProtocolData))}),
     ts_match_logger:add(MatchList),
     erlang:start_timer(?DUMP_STATS_INTERVAL, self(), dump_stats ),
     {noreply, State#state{protocol=[],stats=[],match=[],pages=[],requests=[],transactions=[],connections=[],sum=dict:new()}};

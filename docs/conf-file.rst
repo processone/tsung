@@ -58,6 +58,17 @@ error       name of http error (or empty)
 tag         tag name if the request was tagged; empty otherwise
 =========== =====================================================================================
 
+.. warning::
+
+   In the general case (several Tsung clients used), the resulting
+   file will not be sorted, so you may have to sort it before analyzing it.
+
+For heavy load testing (tens of thousands requests per second), the
+**protocol** logging may overload the controller. In this case, you can
+use **protocol_local** instead. In this case, the log files will be
+written on each slave locally. You will have to manually merged the
+logs at the end of the test.
+
 .. index:: loglevel
 
 The **loglevel** can also have a great impact on performance:
