@@ -45,7 +45,7 @@
          time2sec/1, time2sec_hires/1, read_file_raw/1, init_seed/1, jsonpath/2,
          concat_atoms/1, ceiling/1, accept_loop/3, append_to_filename/3, splitchar/2,
          randombinstr/1,urandombinstr/1,log_transaction/1,conv_entities/1, wildcard/2,
-         ensure_all_started/2, pmap/2, pmap/3, get_node_id/0, filtermap/2]).
+         ensure_all_started/2, pmap/2, pmap/3, get_node_id/0, filtermap/2, new_ets/2]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -978,4 +978,14 @@ wildcard(Wildcard,Names) ->
     Pattern = re:replace(PatternTmp,"\\?",".{1}",[{return,list}]) ++ "$" ,
     lists:filter(fun(N) -> re:run(N, Pattern) =/= nomatch end, Names).
 
-
+%%--------------------------------------------------------------------
+%% Func: new_ets/1
+%% Purpose: Wrapper for ets:new/1 used in external modules
+%% @spec new_ets(Prefix::binary(), UserId::integer()) -> string()
+%% @doc init an ets:table
+%% @end
+%%--------------------------------------------------------------------
+new_ets(Prefix, UserId)->
+    EtsName = binary_to_list(Prefix) ++ "_" ++ integer_to_list(UserId),
+    ?LOGF("create ets:table ~p ~n", [EtsName], ?INFO),
+    ets:new(list_to_atom(EtsName), []).
