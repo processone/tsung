@@ -55,6 +55,9 @@
 -define(DELAYED_WRITE_SIZE,524288). % 512KB
 -define(DELAYED_WRITE_DELAY,5000).  % 5 sec
 
+%% one global ts_stats_mon procs + 4 dedicated stats procs to share the load
+-define(STATSPROCS, [request, connect, page, transaction, ts_stats_mon]).
+
 -record(state, {log,          % log fd
                 backend,      % type of backend: text|...
                 log_dir,      % log directory
@@ -379,8 +382,9 @@ handle_info(_Info, State) ->
 terminate(Reason, State) ->
     ?LOGF("stopping monitor (~p)~n",[Reason],?NOTICE),
     export_stats(State),
-    ts_stats_mon:status(ts_stats_mon), % blocking call to ts_stats_mon; this way, we are
-                                       % sure the last call to dumpstats is finished
+    % blocking call to all ts_stats_mon; this way, we are
+    % sure the last call to dumpstats is finished
+    lists:foreach(fun(Name) -> ts_stats_mon:status(Name) end, ?STATSPROCS),
     case State#state.backend of
         json ->
             io:format(State#state.log,"]}]}~n",[]);
@@ -427,13 +431,9 @@ start_logger({Machines, DumpType, fullstats}, From, State=#state{fullstats=undef
 start_logger({Machines, DumpType, Backend}, _From, State=#state{log=Log,fullstats=FS}) ->
     ?LOGF("Activate clients with ~p backend~n",[Backend],?NOTICE),
     print_headline(Log,Backend),
-    timer:apply_interval(State#state.dump_interval, ?MODULE, dumpstats, [] ),
     start_launchers(Machines),
-    ts_stats_mon:set_output(Backend,{Log,FS}),
-    ts_stats_mon:set_output(Backend,{Log,FS}, transaction),
-    ts_stats_mon:set_output(Backend,{Log,FS}, request),
-    ts_stats_mon:set_output(Backend,{Log,FS}, connect),
-    ts_stats_mon:set_output(Backend,{Log,FS}, page),
+    timer:apply_interval(State#state.dump_interval, ?MODULE, dumpstats, [] ),
+    lists:foreach(fun(Name) -> ts_stats_mon:set_output(Backend,{Log,FS}, Name) end, ?STATSPROCS),
     start_dump(State#state{type=DumpType, backend=Backend}).
 
 print_headline(Log,json)->
@@ -490,11 +490,7 @@ export_stats_common(BackEnd, Stats,LastStats,Log)->
     ts_stats_mon:print_stats({finish_users_count, count},
                              Stats#stats.finish_users_count,
                              {BackEnd,LastStats#stats.finish_users_count,Log}),
-    ts_stats_mon:dumpstats(request),
-    ts_stats_mon:dumpstats(page),
-    ts_stats_mon:dumpstats(connect),
-    ts_stats_mon:dumpstats(transaction),
-    ts_stats_mon:dumpstats().
+    lists:foreach(fun(Name) -> ts_stats_mon:dumpstats(Name) end, ?STATSPROCS).
 
 %%----------------------------------------------------------------------
 %% Func: start_launchers/2
