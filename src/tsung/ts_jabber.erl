@@ -181,7 +181,6 @@ presence_bidi(RcvdXml, State)->
     bidi_resp(subscribed,RcvdXml,SubMatches,State).
 
 starttls_bidi(_RcvdXml, #state_rcv{socket= Socket}=State)->
-    ssl:start(),
     Req = subst(State#state_rcv.request#ts_request.param, State#state_rcv.dynvars),
     Opt = lists:filter(fun({_,V}) -> V /= undefined end, 
                       [{certfile,Req#jabber.certfile},

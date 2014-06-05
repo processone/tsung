@@ -43,6 +43,7 @@ start() ->
 %%----------------------------------------------------------------------
 start(_Type, _StartArgs) ->
 % error_logger:tty(false),
+    ssl:start(),
     ?LOG("open logfile  ~n",?DEB),
     LogFileEnc = ts_config_server:decode_filename(?config(log_file)),
     LogFile = filename:join(LogFileEnc, atom_to_list(node()) ++ ".log"),
