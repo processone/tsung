@@ -224,14 +224,18 @@ decode_base64(Base64)->
 release_is_newer_or_eq(Release)->
     erlang:system_info(version) >= Release.
 
+%%----------------------------------------------------------------------
+%% Func: filtermap/2
+%% Purpose lists:zf is called lists:filtermap in erlang R16B1 and newer
+%%
+%%----------------------------------------------------------------------
 filtermap(Fun, List)->
-    case ts_utils:release_is_newer_or_eq("5.10.2") of
+    case erlang:function_exported(lists, filtermap, 2) of
         true ->
             lists:filtermap(Fun,List);
         false ->
             lists:zf(Fun,List)
     end.
-
 
 %%----------------------------------------------------------------------
 %% Func: key1search/2
