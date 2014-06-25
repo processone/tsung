@@ -270,7 +270,13 @@ matchdomain_url(Cookie, Host, URL) ->
 %%  about the response if State#state_rcv.session
 %%----------------------------------------------------------------------
 parse(closed, State=#state_rcv{session=Http}) ->
-    {State#state_rcv{session=reset_session(Http), ack_done = true}, [], true};
+    NewHttp = case State#state_rcv.acc == [] of
+        0 ->
+            Http#http{time_to_first_byte=?NOW};
+        _ ->
+            Http
+    end,
+    {State#state_rcv{session=reset_session(NewHttp), ack_done = true}, [], true};
 
 parse(Data, State=#state_rcv{session=HTTP}) when element(1,HTTP#http.status)  == none;
                                                  HTTP#http.partial == true ->
@@ -279,8 +285,8 @@ parse(Data, State=#state_rcv{session=HTTP}) when element(1,HTTP#http.status)  ==
     TotalSize = size(Data),
     Header = State#state_rcv.acc ++ List,
 
-    NewHttp = case HTTP#http.body_size of
-        0 ->
+    NewHttp = case State#state_rcv.acc of
+        [] ->
             HTTP#http{time_to_first_byte=?NOW};
         _ ->
             HTTP
@@ -316,25 +322,39 @@ parse(Data, State=#state_rcv{session=HTTP}) when element(1,HTTP#http.status)  ==
 
 %% continued chunked transfer
 parse(Data, State=#state_rcv{session=Http}) when Http#http.chunk_toread >=0 ->
+    NewHttp = case State#state_rcv.acc of
+        [] ->
+            Http#http{time_to_first_byte=?NOW};
+        _ ->
+            Http
+    end,
+
     ?DebugF("Parse chunk data = [~s]~n", [Data]),
-    case read_chunk_data(Data,State,Http#http.chunk_toread,Http#http.body_size) of
+    case read_chunk_data(Data,State,NewHttp#http.chunk_toread,NewHttp#http.body_size) of
         {NewState=#state_rcv{ack_done=false}, NewOpts}->
             {NewState, NewOpts, false};
         {NewState, NewOpts}->
-            {NewState#state_rcv{acc=[]}, NewOpts, Http#http.close}
+            {NewState#state_rcv{acc=[]}, NewOpts, NewHttp#http.close}
     end;
 
 %% continued normal transfer
 parse(Data,  State=#state_rcv{session=Http, datasize=PreviousSize}) ->
+    NewHttp = case Http#http.body_size of
+        [] ->
+            Http#http{time_to_first_byte=?NOW};
+        _ ->
+            Http
+    end,
+
     DataSize = size(Data),
     ?DebugF("HTTP Body size=~p ~n",[DataSize]),
-    CLength = Http#http.content_length,
-    case Http#http.body_size + DataSize of
+    CLength = NewHttp#http.content_length,
+    case NewHttp#http.body_size + DataSize of
         CLength -> % end of response
-            {State#state_rcv{session=reset_session(Http), acc=[], ack_done = true, datasize = DataSize+PreviousSize},
-             [], Http#http.close};
+            {State#state_rcv{session=reset_session(NewHttp), acc=[], ack_done = true, datasize = DataSize+PreviousSize},
+             [], NewHttp#http.close};
         Size ->
-            {State#state_rcv{session = Http#http{body_size = Size}, ack_done = false,
+            {State#state_rcv{session = NewHttp#http{body_size = Size}, ack_done = false,
                              datasize = DataSize+PreviousSize}, [], false}
     end.
 
@@ -674,11 +694,11 @@ get_line([], _, _) -> %% Headers are fragmented ... We need more data
 
 %% we need to keep the compressed value of the current request
 reset_session(#http{user_agent=UA,session_cookies=Cookies,
-                    compressed={Compressed,_}, status= {Status,_}, chunk_toread=Val}) when Val > -1 ->
-    #http{session_cookies=Cookies,user_agent=UA,compressed={false,Compressed}, chunk_toread=-2, status={none,Status}} ;
+                    compressed={Compressed,_}, status= {Status,_}, chunk_toread=Val, time_to_first_byte=TimeToFirstByte}) when Val > -1 ->
+    #http{session_cookies=Cookies,user_agent=UA,compressed={false,Compressed}, chunk_toread=-2, status={none,Status}, time_to_first_byte=TimeToFirstByte} ;
 reset_session(#http{user_agent=UA,session_cookies=Cookies,
-                    compressed={Compressed,_}, status= {Status,_}})  ->
-    #http{session_cookies=Cookies,user_agent=UA,compressed={false,Compressed}, status={none,Status}}.
+                    compressed={Compressed,_}, status= {Status,_}, time_to_first_byte=TimeToFirstByte}) ->
+    #http{session_cookies=Cookies,user_agent=UA,compressed={false,Compressed}, status={none,Status}, time_to_first_byte=TimeToFirstByte}.
 
 log_error(protocol,Error) ->
     put(protocol_error,Error),

@@ -111,12 +111,25 @@ dump2str({#ts_request{param=HttpReq},HttpResp,UserId,Server,Size,Duration,Transa
                     atom_to_list(Err)
             end,
     Tr=ts_utils:log_transaction(Transactions),
-    ts_utils:join(";",[integer_to_list(UserId),
-                            atom_to_list(HttpReq#http_request.method), Server,
-                            get(last_url), Status,integer_to_list(Size),
-                            Duration,Tr,Match,Error,
-                            HttpReq#http_request.tag]
-                      ).
+    TimeToFirstByte = case HttpResp#http.time_to_first_byte of
+        0 ->
+            "";
+        Time ->
+            ts_utils:time2sec_hires(Time)
+    end,
+    ts_utils:join(";",[
+        TimeToFirstByte,
+        integer_to_list(UserId),
+        atom_to_list(HttpReq#http_request.method),
+        Server,
+        get(last_url),
+        Status,integer_to_list(Size),
+        Duration,
+        Tr,
+        Match,
+        Error,
+        HttpReq#http_request.tag
+    ]).
 
 
 %%----------------------------------------------------------------------
