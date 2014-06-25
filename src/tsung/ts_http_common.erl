@@ -270,8 +270,8 @@ matchdomain_url(Cookie, Host, URL) ->
 %%  about the response if State#state_rcv.session
 %%----------------------------------------------------------------------
 parse(closed, State=#state_rcv{session=Http}) ->
-    NewHttp = case State#state_rcv.acc == [] of
-        0 ->
+    NewHttp = case {State#state_rcv.acc, Http#http.status} of
+        {[], none} ->
             Http#http{time_to_first_byte=?NOW};
         _ ->
             Http
@@ -285,8 +285,8 @@ parse(Data, State=#state_rcv{session=HTTP}) when element(1,HTTP#http.status)  ==
     TotalSize = size(Data),
     Header = State#state_rcv.acc ++ List,
 
-    NewHttp = case State#state_rcv.acc of
-        [] ->
+    NewHttp = case {State#state_rcv.acc, HTTP#http.status} of
+        {[], {none, _}} ->
             HTTP#http{time_to_first_byte=?NOW};
         _ ->
             HTTP
@@ -322,8 +322,8 @@ parse(Data, State=#state_rcv{session=HTTP}) when element(1,HTTP#http.status)  ==
 
 %% continued chunked transfer
 parse(Data, State=#state_rcv{session=Http}) when Http#http.chunk_toread >=0 ->
-    NewHttp = case State#state_rcv.acc of
-        [] ->
+    NewHttp = case {State#state_rcv.acc, Http#http.status} of
+        {[], {none, _}} ->
             Http#http{time_to_first_byte=?NOW};
         _ ->
             Http
@@ -339,8 +339,8 @@ parse(Data, State=#state_rcv{session=Http}) when Http#http.chunk_toread >=0 ->
 
 %% continued normal transfer
 parse(Data,  State=#state_rcv{session=Http, datasize=PreviousSize}) ->
-    NewHttp = case Http#http.body_size of
-        [] ->
+    NewHttp = case {State#state_rcv.acc, Http#http.status} of
+        {[], {none, _}} ->
             Http#http{time_to_first_byte=?NOW};
         _ ->
             Http
