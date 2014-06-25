@@ -279,7 +279,14 @@ parse(Data, State=#state_rcv{session=HTTP}) when element(1,HTTP#http.status)  ==
     TotalSize = size(Data),
     Header = State#state_rcv.acc ++ List,
 
-    case parse_headers(HTTP, Header, State#state_rcv.host) of
+    NewHttp = case HTTP#http.body_size of
+        0 ->
+            HTTP#http{time_to_first_byte=?NOW};
+        _ ->
+            HTTP
+    end,
+
+    case parse_headers(NewHttp, Header, State#state_rcv.host) of
         %% Partial header:
         {more, HTTPRec, Tail} ->
             ?LOGF("Partial Header: [HTTP=~p : Tail=~p]~n",[HTTPRec, Tail],?DEB),
