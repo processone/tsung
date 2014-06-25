@@ -66,18 +66,19 @@
 
 %% use by the client process to store information about the current request during
 %% the parsing of the response, and for the whole session (user_agent and cookies)
--record(http, {content_length= 0,  % HTTP header: content length
-               body_size     = 0,  % current size of body,
-               chunk_toread  = -1, % chunk data to be read (-1 = not chunked, -2 = not chunked, but last response was)
-               status        = {none,none}, % HTTP resp. status :200, etc. 'none'
-                                     % if no current cnx.
-               close         = false, % true if HTTP/1.0 or 'connection: close'
-                                     % has been received
-               partial=false,    % true if headers are partially received
-               compressed={false,false},    % type of compression if body is compressed
-               cookie=[],         %cookies of the current request
+-record(http, {content_length     = 0,  % HTTP header: content length
+               body_size          = 0,  % current size of body,
+               time_to_first_byte = 0,  % time when first byte was received
+               chunk_toread       = -1, % chunk data to be read (-1 = not chunked, -2 = not chunked, but last response was)
+               status             = {none,none},  % HTTP resp. status :200, etc. 'none'
+                                                  % if no current cnx.
+               close              = false,  % true if HTTP/1.0 or 'connection: close'
+                                            % has been received
+               partial            = false,          % true if headers are partially received
+               compressed         = {false,false},  % type of compression if body is compressed
+               cookie             = [],  %cookies of the current request
                user_agent,
-               session_cookies = []      % Cookies of the session
+               session_cookies    = []   % Cookies of the session
               }).
 
 
