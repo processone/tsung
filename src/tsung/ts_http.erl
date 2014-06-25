@@ -92,7 +92,7 @@ dump(protocol_local, Args)->
 dump(_,_) ->
     ok.
 
-dump2str({#ts_request{param=HttpReq},HttpResp,UserId,Server,Size,Duration,Transactions})->
+dump2str({#ts_request{param=HttpReq},HttpResp,UserId,Server,Size,StartTime,DurationToConnect,Duration,Transactions})->
     Status = case element(2,HttpResp#http.status) of
                  none -> "error_no_http_status"; % something is really wrong here ... http 0.9 response ?
                  Int when is_integer(Int) ->
@@ -112,18 +112,21 @@ dump2str({#ts_request{param=HttpReq},HttpResp,UserId,Server,Size,Duration,Transa
             end,
     Tr=ts_utils:log_transaction(Transactions),
     TimeToFirstByte = case HttpResp#http.time_to_first_byte of
-        0 ->
+        {0,0} ->
             "";
-        Time ->
-            ts_utils:time2sec_hires(Time)
+        {_,Time} ->
+            ts_utils:elapsed(StartTime, Time)
+            % ts_utils:time2sec_hires(Time)
     end,
     ts_utils:join(";",[
+        ts_utils:time2sec_hires(StartTime),
         TimeToFirstByte,
         integer_to_list(UserId),
         atom_to_list(HttpReq#http_request.method),
         Server,
         get(last_url),
         Status,integer_to_list(Size),
+        DurationToConnect,
         Duration,
         Tr,
         Match,

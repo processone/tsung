@@ -786,7 +786,7 @@ handle_next_request(Request, State) ->
     %% reconnect if needed
     ProtoOpts = State#state_rcv.proto_opts,
     case reconnect(Socket,Host,Port,{Protocol,ProtoOpts},State#state_rcv.ip) of
-        {ok, NewSocket} ->
+        {ok, NewSocket, DurationToConnect} ->
             case catch send(Protocol, NewSocket, Message, Host, Port) of
                 ok ->
                     PageTimeStamp = case State#state_rcv.page_timestamp of
@@ -806,6 +806,7 @@ handle_next_request(Request, State) ->
                                                proto_opts = ProtoOpts#proto_opts{is_first_connect = false},
                                                page_timestamp= PageTimeStamp,
                                                send_timestamp= Now,
+                                               duration_to_connect= DurationToConnect,
                                                timestamp= Now },
                     case Request#ts_request.ack of
                         no_ack ->
@@ -976,10 +977,10 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort, Try}) when 
             ts_mon:add({ sample, connect, Elapsed }),
             set_connected_status(true),
             ?Debug("(Re)connected~n"),
-            {ok, Socket};
+            {ok, Socket, Elapsed};
         {error, timeout} ->
             % don't handle connect timeouts at this level
-            {error, timeout};
+            {error, timeout, 0};
         {error, Reason} ->
             {A,B,C,D} = IP,
             %% LOG only at INFO level since we report also an error to ts_mon
@@ -1004,7 +1005,7 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort, Try}) when 
                     CountName="error_connect_"++atom_to_list(Reason),
                     ts_mon:add({ count, list_to_atom(CountName) })
             end,
-            {error, Reason}
+            {error, Reason, 0}
     end;
 reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPortServer}) ->
     CPort = case catch ts_cport:get_port(CPortServer,IP) of
@@ -1016,7 +1017,7 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPortServer}) ->
                end,
     reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort,CPortServer});
 reconnect(Socket, _Server, _Port, _Protocol, _IP) ->
-    {ok, Socket}.
+    {ok, Socket, 0}.
 
 
 %% set options for local socket ip/ports
@@ -1095,8 +1096,18 @@ handle_data_msg(Data,State=#state_rcv{dump=Dump,request=Req,id=Id,clienttype=Typ
                        NewState#state_rcv.session_id, Id},
             NewDynVars=ts_dynvars:merge(DynVars,NewState#state_rcv.dynvars),
             NewCount  =ts_search:match(Req#ts_request.match,NewBuffer,MatchArgs,NewDynVars,Transactions),
-            Type:dump(Dump,{Req,NewState#state_rcv.session,Id,
-                            NewState#state_rcv.host,NewState#state_rcv.datasize,Elapsed,Transactions}),
+            Type:dump(Dump, {
+                Req,                            % http_request
+                NewState#state_rcv.session,     % session
+                Id,                             % client id
+                NewState#state_rcv.host,        % target host
+                NewState#state_rcv.datasize,    % response size
+                % TODO add request size
+                NewState#state_rcv.starttime,   % time when request was started
+                NewState#state_rcv.duration_to_connect,   % time required to establish the TCP connection or 0
+                Elapsed,                        % total request-response duration
+                Transactions
+            }),
 
             case Close of
                 true ->

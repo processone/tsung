@@ -68,7 +68,7 @@
 %% the parsing of the response, and for the whole session (user_agent and cookies)
 -record(http, {content_length     = 0,  % HTTP header: content length
                body_size          = 0,  % current size of body,
-               time_to_first_byte = 0,  % time when first byte was received for last request
+               time_to_first_byte = {0,0},  % time when first byte was received for last request (current and previous)
                chunk_toread       = -1, % chunk data to be read (-1 = not chunked, -2 = not chunked, but last response was)
                status             = {none,none},  % HTTP resp. status :200, etc. 'none'
                                                   % if no current cnx.

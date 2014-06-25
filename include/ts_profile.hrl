@@ -99,6 +99,7 @@
          persistent,  % if true, don't exit when connexion is closed
          timestamp,   % previous message date
          starttime,   % date of the beginning of the session
+         duration_to_connect, % duration for establishing the connection
          count,       % number of requests waiting to be sent
          maxcount,        % number of requests waiting to be sent
          ack_done=false,  % 'true' if the ack was sent, else 'false' (unused if ack=no_ack)
