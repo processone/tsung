@@ -321,7 +321,7 @@ handle_cast({sendmsg, Who, When, What}, State=#state{type=full,dumpfile=Log}) ->
     {noreply, State};
 
 handle_cast({dump, Who, When, What}, State=#state{type=protocol,dumpfile=Log}) ->
-    io:format(Log,"~w;~w;~s~n",[ts_utils:time2sec_hires(When),Who,What]),
+    io:format(Log,"~w,~w,~s~n",[ts_utils:time2sec_hires(When),Who,What]),
     {noreply, State};
 
 handle_cast({dump, cached, Data}, State=#state{type=protocol,dumpfile=Log}) ->
