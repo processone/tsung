@@ -103,7 +103,8 @@
          count,       % number of requests waiting to be sent
          maxcount,        % number of requests waiting to be sent
          ack_done=false,  % 'true' if the ack was sent, else 'false' (unused if ack=no_ack)
-         send_timestamp,  % date when the 'request' was sent
+         send_timestamp,  % date when the sending the request begun
+         send_completed_duration,  % date when the 'request' was completely sent
          completed_timestamp,  % date when the 'request' was completed
          page_timestamp=0,% date when the first 'request' of a page was sent
          acc=[],     % Accumulator to store temporary unparsable data
@@ -112,6 +113,7 @@
                      % all the response to do pattern matching)
          session,    % record of session status; depends on 'clienttype' (cas be used to store data dynamically generated during the
                      % session (Cookies for examples))
+         request_size = 0, % size of request headers + payload
          datasize=0,
          id,         % user id
          size_mon_thresh=?size_mon_thresh, % if rcv data is > to this, update stats

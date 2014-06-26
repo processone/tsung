@@ -794,7 +794,8 @@ handle_next_request(Request, State) ->
                                         _ -> %page already started
                                             State#state_rcv.page_timestamp
                                     end,
-                    ts_mon:add({ sum, size_sent, size_msg(Message)}),
+                    MessageSize = size_msg(Message),
+                    ts_mon:add({ sum, size_sent, MessageSize}),
                     ts_mon:sendmes({State#state_rcv.dump, self(), Message}),
                     NewState = State#state_rcv{socket   = NewSocket,
                                                protocol = Protocol,
@@ -806,6 +807,8 @@ handle_next_request(Request, State) ->
                                                proto_opts = ProtoOpts#proto_opts{is_first_connect = false},
                                                page_timestamp= PageTimeStamp,
                                                send_timestamp= Now,
+                                               send_completed_duration= ts_utils:elapsed(Now, ?NOW),
+                                               request_size= MessageSize,
                                                duration_to_connect= DurationToConnect,
                                                timestamp= Now },
                     case Request#ts_request.ack of
@@ -1097,15 +1100,17 @@ handle_data_msg(Data,State=#state_rcv{dump=Dump,request=Req,id=Id,clienttype=Typ
             NewDynVars=ts_dynvars:merge(DynVars,NewState#state_rcv.dynvars),
             NewCount  =ts_search:match(Req#ts_request.match,NewBuffer,MatchArgs,NewDynVars,Transactions),
             Type:dump(Dump, {
-                Req,                                    % http_request
-                NewState#state_rcv.session,             % session
-                Id,                                     % client id
-                NewState#state_rcv.host,                % target host
-                NewState#state_rcv.datasize,            % response size, TODO add request (req. header + payload) size
-                NewState#state_rcv.send_timestamp,      % time when request was started
-                NewState#state_rcv.duration_to_connect, % time required to establish the TCP connection or 0
-                NewState#state_rcv.completed_timestamp, % time when request was finished
-                Elapsed,                                % duration of total request-response duration, excluding connect time
+                Req,                                        % http_request
+                NewState#state_rcv.session,                 % session
+                Id,                                         % client id
+                NewState#state_rcv.host,                    % target host
+                NewState#state_rcv.request_size,            % request size
+                NewState#state_rcv.datasize,                % response size
+                NewState#state_rcv.send_timestamp,          % time when request was started
+                NewState#state_rcv.duration_to_connect,     % time required to establish the TCP connection or 0
+                NewState#state_rcv.send_completed_duration, % duration to send the request
+                NewState#state_rcv.completed_timestamp,     % time when request was finished
+                Elapsed,                                    % duration of total request-response duration, excluding connect time
                 Transactions
             }),
 

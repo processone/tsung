@@ -37,7 +37,7 @@ with the following data:
 
 .. code-block:: text
 
-   date,pid,id,start,connect,time_to_first_byte,duration,host,http_method,relative_url,http_status,response_size,transaction,match,error,tag
+   date,pid,id,start,connect,request_duration,time_to_first_byte,duration,host,http_method,relative_url,http_status,request_size,response_size,transaction,match,error,tag
 
 Where:
 
@@ -49,12 +49,14 @@ pid                  erlang process id
 id                   tsung user id
 start                timestamp when request was started
 connect              duration in msec to establish the TCP connection, 0 if the connection was already established
+request_duration     duration in msec to send the request headers and payload if any
 time_to_first_byte   duration in msec it took after request was send, before first response byte was received
 duration             duration in msec for the entire request to complete (connect + time to first byte + rest of transfer)
 host                 server host name
 http_method          HTTP Method/Verb (GET, POST, PUT, etc.)
 relative_url         Relative URL
 http_status          status HTTP response status (200, 304, etc.)
+request_size         request size, headers and payload, if any (in bytes)
 response_size        response size (in bytes)
 transaction          name of the transaction (if any) this request was made in
 match                if a match is defined in the request: match|nomatch (last <match> if several are defined)

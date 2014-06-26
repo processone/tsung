@@ -91,7 +91,7 @@ init([]) ->
     ts_utils:make_dir_raw(LogDir),
     case file:open(FileName,[write,raw, delayed_write]) of
         {ok, IODev} ->
-            Header = io_lib:format("date,pid,id,start,connect,time_to_first_byte,duration,host,http_method,relative_url,http_status,response_size,transaction,match,error,tag~n",[]),
+            Header = io_lib:format("date,pid,id,start,connect,request_duration,time_to_first_byte,duration,host,http_method,relative_url,http_status,request_size,response_size,transaction,match,error,tag~n",[]),
             file:write(IODev, Header),
             {ok, #state{dump_iodev=IODev}};
         {error, Reason} ->
