@@ -274,7 +274,7 @@ parse(closed, State) ->
 
     {State#state_rcv{session=reset_session(Http), ack_done = true, completed_timestamp=?NOW}, [], true};
 
-parse(Data, State=#state_rcv{session=#http{status=Status, partial=Partial}}) when Status == none;
+parse(Data, State=#state_rcv{session=#http{status={Status,_}, partial=Partial}}) when Status == none;
                                                                                   Partial == true ->
 
     List = binary_to_list(Data),
