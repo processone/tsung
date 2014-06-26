@@ -122,7 +122,7 @@ handle_cast(_, State=#state{dump_iodev=undefined}) ->
     {noreply, State};
 
 handle_cast({dump, Who, When, What}, State=#state{dump_iodev=IODev}) ->
-    Data = io_lib:format("~w;~w;~s~n",[ts_utils:time2sec_hires(When),Who,What]),
+    Data = io_lib:format("~w,~w,~s~n",[ts_utils:time2sec_hires(When),Who,What]),
     file:write(IODev,Data),
     {noreply, State};
 

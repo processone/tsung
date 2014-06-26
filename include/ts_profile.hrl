@@ -104,6 +104,7 @@
          maxcount,        % number of requests waiting to be sent
          ack_done=false,  % 'true' if the ack was sent, else 'false' (unused if ack=no_ack)
          send_timestamp,  % date when the 'request' was sent
+         completed_timestamp,  % date when the 'request' was completed
          page_timestamp=0,% date when the first 'request' of a page was sent
          acc=[],     % Accumulator to store temporary unparsable data
                      % (Waiting for more data)

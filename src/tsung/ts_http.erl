@@ -92,7 +92,7 @@ dump(protocol_local, Args)->
 dump(_,_) ->
     ok.
 
-dump2str({#ts_request{param=HttpReq},HttpResp,UserId,Server,Size,StartTime,DurationToConnect,Duration,Transactions})->
+dump2str({#ts_request{param=HttpReq},HttpResp,UserId,Server,Size,StartTime,DurationToConnect,EndTime,Duration,Transactions})->
     Status = case element(2,HttpResp#http.status) of
                  none -> "error_no_http_status"; % something is really wrong here ... http 0.9 response ?
                  Int when is_integer(Int) ->
@@ -116,18 +116,18 @@ dump2str({#ts_request{param=HttpReq},HttpResp,UserId,Server,Size,StartTime,Durat
             "";
         {_,Time} ->
             ts_utils:elapsed(StartTime, Time)
-            % ts_utils:time2sec_hires(Time)
     end,
-    ts_utils:join(";",[
-        ts_utils:time2sec_hires(StartTime),
-        TimeToFirstByte,
+    ts_utils:join(",", [
         integer_to_list(UserId),
-        atom_to_list(HttpReq#http_request.method),
-        Server,
-        get(last_url),
-        Status,integer_to_list(Size),
+        ts_utils:time2sec_hires(StartTime) - DurationToConnect/1000,
         DurationToConnect,
+        TimeToFirstByte,
         Duration,
+        Server,
+        atom_to_list(HttpReq#http_request.method),
+        erlang:iolist_to_binary([<<"\"">>, get(last_url), <<"\"">>]),
+        Status,
+        integer_to_list(Size),
         Tr,
         Match,
         Error,

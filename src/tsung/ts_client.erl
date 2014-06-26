@@ -1097,15 +1097,15 @@ handle_data_msg(Data,State=#state_rcv{dump=Dump,request=Req,id=Id,clienttype=Typ
             NewDynVars=ts_dynvars:merge(DynVars,NewState#state_rcv.dynvars),
             NewCount  =ts_search:match(Req#ts_request.match,NewBuffer,MatchArgs,NewDynVars,Transactions),
             Type:dump(Dump, {
-                Req,                            % http_request
-                NewState#state_rcv.session,     % session
-                Id,                             % client id
-                NewState#state_rcv.host,        % target host
-                NewState#state_rcv.datasize,    % response size
-                % TODO add request size
-                NewState#state_rcv.starttime,   % time when request was started
-                NewState#state_rcv.duration_to_connect,   % time required to establish the TCP connection or 0
-                Elapsed,                        % total request-response duration
+                Req,                                    % http_request
+                NewState#state_rcv.session,             % session
+                Id,                                     % client id
+                NewState#state_rcv.host,                % target host
+                NewState#state_rcv.datasize,            % response size, TODO add request (req. header + payload) size
+                NewState#state_rcv.send_timestamp,      % time when request was started
+                NewState#state_rcv.duration_to_connect, % time required to establish the TCP connection or 0
+                NewState#state_rcv.completed_timestamp, % time when request was finished
+                Elapsed,                                % duration of total request-response duration, excluding connect time
                 Transactions
             }),
 
@@ -1244,9 +1244,9 @@ update_stats_noack(#state_rcv{page_timestamp=PageTime,request=Request}) ->
 %% Purpose: update the statistics
 %%----------------------------------------------------------------------
 update_stats(S=#state_rcv{size_mon_thresh=T,page_timestamp=PageTime,
-                          send_timestamp=SendTime,datasize=Datasize})->
+                          send_timestamp=SendTime,completed_timestamp=CompletedTime,datasize=Datasize})->
     Now = ?NOW,
-    Elapsed = ts_utils:elapsed(SendTime, Now),
+    Elapsed = ts_utils:elapsed(SendTime, CompletedTime),
 
     Stats = case S#state_rcv.size_mon > T of
                 true ->

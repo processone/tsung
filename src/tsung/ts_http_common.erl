@@ -277,7 +277,7 @@ parse(closed, State=#state_rcv{session=Http}) ->
         _ ->
             Http
     end,
-    {State#state_rcv{session=reset_session(NewHttp), ack_done = true}, [], true};
+    {State#state_rcv{session=reset_session(NewHttp), ack_done = true, completed_timestamp=?NOW}, [], true};
 
 parse(Data, State=#state_rcv{session=HTTP}) when element(1,HTTP#http.status)  == none;
                                                  HTTP#http.partial == true ->
@@ -355,7 +355,7 @@ parse(Data,  State=#state_rcv{session=Http, datasize=PreviousSize}) ->
     CLength = NewHttp#http.content_length,
     case NewHttp#http.body_size + DataSize of
         CLength -> % end of response
-            {State#state_rcv{session=reset_session(NewHttp), acc=[], ack_done = true, datasize = DataSize+PreviousSize},
+            {State#state_rcv{session=reset_session(NewHttp), acc=[], ack_done = true, datasize = DataSize+PreviousSize, completed_timestamp=?NOW},
              [], NewHttp#http.close};
         Size ->
             {State#state_rcv{session = NewHttp#http{body_size = Size}, ack_done = false,
@@ -370,14 +370,15 @@ parse(Data,  State=#state_rcv{session=Http, datasize=PreviousSize}) ->
 check_resp_size(Http=#http{content_length=CLength, close=Close},
                 CLength, State, DataSize, _Dump) ->
     %% end of response
-    {State#state_rcv{session= reset_session(Http), ack_done = true, datasize = DataSize }, [], Close};
+    {State#state_rcv{session= reset_session(Http), ack_done = true, datasize = DataSize, completed_timestamp=?NOW}, [], Close};
 check_resp_size(Http=#http{content_length=CLength, close=Close},
                 BodySize, State, DataSize, Dump) when BodySize > CLength ->
     ?LOGF("Error: HTTP Body (~p)> Content-Length (~p) !~n",
           [BodySize, CLength], ?ERR),
     log_error(Dump, error_http_bad_content_length),
     {State#state_rcv{session= reset_session(Http), ack_done = true,
-                     datasize = DataSize }, [], Close};
+                     datasize = DataSize,
+                     completed_timestamp=?NOW}, [], Close};
 check_resp_size(Http=#http{}, BodySize,  State, DataSize,_Dump) ->
     %% need to read more data
     {State#state_rcv{session  = Http#http{body_size = BodySize},
@@ -417,7 +418,8 @@ read_chunk(<<Char:1/binary, Data/binary>>, State=#state_rcv{session=Http}, Int, 
     <<?CR>> when Int==0, size(Data) == 3 -> %% should be the end of transfer
             ?DebugF("Finish tranfer chunk ~p~n", [binary_to_list(Data)]),
             {State#state_rcv{session= reset_session(Http), ack_done = true,
-                             datasize = Acc %% FIXME: is it the correct size?
+                             datasize = Acc, %% FIXME: is it the correct size?
+                             completed_timestamp=?NOW
                             }, []};
     <<?CR>> when Int==0, size(Data) < 3 ->  % lack ?CRLF, continue
             { State#state_rcv{acc =  <<48, ?CR , Data/binary>>, ack_done=false }, [] };
@@ -427,7 +429,7 @@ read_chunk(<<Char:1/binary, Data/binary>>, State=#state_rcv{session=Http}, Int, 
     _Other ->
             ?LOGF("Unexpected error while parsing chunk ~p~n", [_Other] ,?WARN),
             log_error(State#state_rcv.dump, error_http_unexpected_chunkdata),
-            {State#state_rcv{session= reset_session(Http), ack_done = true}, []}
+            {State#state_rcv{session= reset_session(Http), ack_done = true, completed_timestamp=?NOW}, []}
     end.
 
 
@@ -698,11 +700,27 @@ get_line([], _, _) -> %% Headers are fragmented ... We need more data
 
 %% we need to keep the compressed value of the current request
 reset_session(#http{user_agent=UA,session_cookies=Cookies,
-                    compressed={Compressed,_}, status= {Status,_}, chunk_toread=Val, time_to_first_byte={PrevTimeToFirstByte, _}}) when Val > -1 ->
-    #http{session_cookies=Cookies,user_agent=UA,compressed={false,Compressed}, chunk_toread=-2, status={none,Status}, time_to_first_byte={0, PrevTimeToFirstByte}} ;
-reset_session(#http{user_agent=UA,session_cookies=Cookies,
-                    compressed={Compressed,_}, status= {Status,_}, time_to_first_byte={PrevTimeToFirstByte, _}}) ->
-    #http{session_cookies=Cookies,user_agent=UA,compressed={false,Compressed}, status={none,Status}, time_to_first_byte={0, PrevTimeToFirstByte}}.
+                    compressed={Compressed,_},
+                    status= {Status,_},
+                    chunk_toread=Val,
+                    time_to_first_byte={PrevTimeToFirstByte, _}}) when Val > -1 ->
+    #http{session_cookies=Cookies,
+          user_agent=UA,
+          compressed={false,Compressed},
+          chunk_toread=-2,
+          status={none,Status},
+          time_to_first_byte={0, PrevTimeToFirstByte}};
+
+reset_session(#http{user_agent=UA,
+                    session_cookies=Cookies,
+                    compressed={Compressed,_},
+                    status= {Status,_},
+                    time_to_first_byte={PrevTimeToFirstByte, _}}) ->
+    #http{session_cookies=Cookies,
+          user_agent=UA,
+          compressed={false,Compressed},
+          status={none,Status},
+          time_to_first_byte={0, PrevTimeToFirstByte}}.
 
 log_error(protocol,Error) ->
     put(protocol_error,Error),
