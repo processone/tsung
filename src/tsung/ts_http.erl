@@ -92,7 +92,7 @@ dump(protocol_local, Args)->
 dump(_,_) ->
     ok.
 
-dump2str({#ts_request{param=HttpReq},HttpResp,UserId,Server,Size,StartTime,DurationToConnect,EndTime,Duration,Transactions})->
+dump2str({#ts_request{param=HttpReq},HttpResp,UserId,Server,Size,StartTime,DurationToConnect,_EndTime,Duration,Transactions})->
     Status = case element(2,HttpResp#http.status) of
                  none -> "error_no_http_status"; % something is really wrong here ... http 0.9 response ?
                  Int when is_integer(Int) ->
