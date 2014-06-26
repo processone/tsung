@@ -269,32 +269,21 @@ matchdomain_url(Cookie, Host, URL) ->
 %% Purpose: parse the response from the server and keep information
 %%  about the response if State#state_rcv.session
 %%----------------------------------------------------------------------
-parse(closed, State=#state_rcv{session=Http}) ->
-    NewHttp = case {State#state_rcv.acc, Http#http.status} of
-        {[], {none, _}} ->
-            {_, PrevTimeToFirstByte} = Http#http.time_to_first_byte,
-            Http#http{time_to_first_byte={?NOW, PrevTimeToFirstByte}};
-        _ ->
-            Http
-    end,
-    {State#state_rcv{session=reset_session(NewHttp), ack_done = true, completed_timestamp=?NOW}, [], true};
+parse(closed, State) ->
+    Http = update_time_to_first_byte(State),
 
-parse(Data, State=#state_rcv{session=HTTP}) when element(1,HTTP#http.status)  == none;
-                                                 HTTP#http.partial == true ->
+    {State#state_rcv{session=reset_session(Http), ack_done = true, completed_timestamp=?NOW}, [], true};
+
+parse(Data, State=#state_rcv{session=#http{status=Status, partial=Partial}}) when Status == none;
+                                                                                  Partial == true ->
 
     List = binary_to_list(Data),
     TotalSize = size(Data),
     Header = State#state_rcv.acc ++ List,
 
-    NewHttp = case {State#state_rcv.acc, HTTP#http.status} of
-        {[], {none, _}} ->
-            {_, PrevTimeToFirstByte} = HTTP#http.time_to_first_byte,
-            HTTP#http{time_to_first_byte={?NOW, PrevTimeToFirstByte}};
-        _ ->
-            HTTP
-    end,
+    HTTP = update_time_to_first_byte(State),
 
-    case parse_headers(NewHttp, Header, State#state_rcv.host) of
+    case parse_headers(HTTP, Header, State#state_rcv.host) of
         %% Partial header:
         {more, HTTPRec, Tail} ->
             ?LOGF("Partial Header: [HTTP=~p : Tail=~p]~n",[HTTPRec, Tail],?DEB),
@@ -303,10 +292,10 @@ parse(Data, State=#state_rcv{session=HTTP}) when element(1,HTTP#http.status)  ==
         {ok, Http=#http{content_length=0, chunk_toread=0}, Tail} ->
             NewCookies = concat_cookies(Http#http.cookie, Http#http.session_cookies),
             case parse_chunked(Tail, State#state_rcv{session=Http, acc=[]}) of
-                {NewState=#state_rcv{ack_done=false, session=Http}, Opts} ->
-                    {NewState#state_rcv{session=Http#http{session_cookies=NewCookies}}, Opts, false};
-                {NewState=#state_rcv{session=NewHttp2}, Opts} ->
-                    {NewState#state_rcv{acc=[],session=NewHttp2#http{session_cookies=NewCookies}}, Opts, Http#http.close}
+                {NewState=#state_rcv{ack_done=false, session=NewHttp}, Opts} ->
+                    {NewState#state_rcv{session=NewHttp#http{session_cookies=NewCookies}}, Opts, false};
+                {NewState=#state_rcv{session=NewHttp}, Opts} ->
+                    {NewState#state_rcv{acc=[],session=NewHttp#http{session_cookies=NewCookies}}, Opts, Http#http.close}
             end;
         {ok, Http=#http{content_length=0, close=true}, _} ->
             %% no content length, close=true: the server will close the connection
@@ -324,13 +313,7 @@ parse(Data, State=#state_rcv{session=HTTP}) when element(1,HTTP#http.status)  ==
 
 %% continued chunked transfer
 parse(Data, State=#state_rcv{session=Http}) when Http#http.chunk_toread >=0 ->
-    NewHttp = case {State#state_rcv.acc, Http#http.status} of
-        {[], {none, _}} ->
-            {_, PrevTimeToFirstByte} = Http#http.time_to_first_byte,
-            Http#http{time_to_first_byte={?NOW, PrevTimeToFirstByte}};
-        _ ->
-            Http
-    end,
+    NewHttp = update_time_to_first_byte(State),
 
     ?DebugF("Parse chunk data = [~s]~n", [Data]),
     case read_chunk_data(Data,State,NewHttp#http.chunk_toread,NewHttp#http.body_size) of
@@ -341,25 +324,28 @@ parse(Data, State=#state_rcv{session=Http}) when Http#http.chunk_toread >=0 ->
     end;
 
 %% continued normal transfer
-parse(Data,  State=#state_rcv{session=Http, datasize=PreviousSize}) ->
-    NewHttp = case {State#state_rcv.acc, Http#http.status} of
+parse(Data,  State=#state_rcv{datasize=PreviousSize}) ->
+    Http = update_time_to_first_byte(State),
+
+    DataSize = size(Data),
+    ?DebugF("HTTP Body size=~p ~n",[DataSize]),
+    CLength = Http#http.content_length,
+    case Http#http.body_size + DataSize of
+        CLength -> % end of response
+            {State#state_rcv{session=reset_session(Http), acc=[], ack_done = true, datasize = DataSize+PreviousSize, completed_timestamp=?NOW},
+             [], Http#http.close};
+        Size ->
+            {State#state_rcv{session = Http#http{body_size = Size}, ack_done = false,
+                             datasize = DataSize+PreviousSize}, [], false}
+    end.
+
+update_time_to_first_byte(#state_rcv{acc=Acc, session=Http}) ->
+    case {Acc, Http#http.status} of
         {[], {none, _}} ->
             {_, PrevTimeToFirstByte} = Http#http.time_to_first_byte,
             Http#http{time_to_first_byte={?NOW, PrevTimeToFirstByte}};
         _ ->
             Http
-    end,
-
-    DataSize = size(Data),
-    ?DebugF("HTTP Body size=~p ~n",[DataSize]),
-    CLength = NewHttp#http.content_length,
-    case NewHttp#http.body_size + DataSize of
-        CLength -> % end of response
-            {State#state_rcv{session=reset_session(NewHttp), acc=[], ack_done = true, datasize = DataSize+PreviousSize, completed_timestamp=?NOW},
-             [], NewHttp#http.close};
-        Size ->
-            {State#state_rcv{session = NewHttp#http{body_size = Size}, ack_done = false,
-                             datasize = DataSize+PreviousSize}, [], false}
     end.
 
 %%----------------------------------------------------------------------
