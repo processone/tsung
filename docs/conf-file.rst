@@ -51,7 +51,7 @@ start                timestamp when request was started
 connect              duration in msec to establish the TCP connection, 0 if the connection was already established
 request_duration     duration in msec to send the request headers and payload if any
 time_to_first_byte   duration in msec it took after request was send, before first response byte was received
-duration             duration in msec for the entire request to complete (connect + time to first byte + rest of transfer)
+duration             duration in msec for the entire request to complete (connect + sending request + time to first byte + rest of transfer)
 host                 server host name
 http_method          HTTP Method/Verb (GET, POST, PUT, etc.)
 relative_url         Relative URL

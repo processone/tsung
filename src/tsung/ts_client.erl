@@ -787,6 +787,7 @@ handle_next_request(Request, State) ->
     ProtoOpts = State#state_rcv.proto_opts,
     case reconnect(Socket,Host,Port,{Protocol,ProtoOpts},State#state_rcv.ip) of
         {ok, NewSocket, DurationToConnect} ->
+            ConnectTime = ?NOW,
             case catch send(Protocol, NewSocket, Message, Host, Port) of
                 ok ->
                     PageTimeStamp = case State#state_rcv.page_timestamp of
@@ -807,7 +808,7 @@ handle_next_request(Request, State) ->
                                                proto_opts = ProtoOpts#proto_opts{is_first_connect = false},
                                                page_timestamp= PageTimeStamp,
                                                send_timestamp= Now,
-                                               send_completed_duration= ts_utils:elapsed(Now, ?NOW),
+                                               send_completed_duration= ts_utils:elapsed(ConnectTime, ?NOW),
                                                request_size= MessageSize,
                                                duration_to_connect= DurationToConnect,
                                                timestamp= Now },

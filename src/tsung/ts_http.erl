@@ -123,7 +123,7 @@ dump2str({#ts_request{param=HttpReq},HttpResp,UserId,Server,RequestSize,Response
         DurationToConnect,
         RequestDuration,
         TimeToFirstByte,
-        Duration,
+        Duration + DurationToConnect,
         Server,
         atom_to_list(HttpReq#http_request.method),
         erlang:iolist_to_binary([<<"\"">>, get(last_url), <<"\"">>]),
