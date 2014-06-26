@@ -271,7 +271,7 @@ matchdomain_url(Cookie, Host, URL) ->
 %%----------------------------------------------------------------------
 parse(closed, State=#state_rcv{session=Http}) ->
     NewHttp = case {State#state_rcv.acc, Http#http.status} of
-        {[], none} ->
+        {[], {none, _}} ->
             {_, PrevTimeToFirstByte} = Http#http.time_to_first_byte,
             Http#http{time_to_first_byte={?NOW, PrevTimeToFirstByte}};
         _ ->
@@ -303,10 +303,10 @@ parse(Data, State=#state_rcv{session=HTTP}) when element(1,HTTP#http.status)  ==
         {ok, Http=#http{content_length=0, chunk_toread=0}, Tail} ->
             NewCookies = concat_cookies(Http#http.cookie, Http#http.session_cookies),
             case parse_chunked(Tail, State#state_rcv{session=Http, acc=[]}) of
-                {NewState=#state_rcv{ack_done=false, session=NewHttp}, Opts} ->
-                    {NewState#state_rcv{session=NewHttp#http{session_cookies=NewCookies}}, Opts, false};
-                {NewState=#state_rcv{session=NewHttp}, Opts} ->
-                    {NewState#state_rcv{acc=[],session=NewHttp#http{session_cookies=NewCookies}}, Opts, Http#http.close}
+                {NewState=#state_rcv{ack_done=false, session=Http}, Opts} ->
+                    {NewState#state_rcv{session=Http#http{session_cookies=NewCookies}}, Opts, false};
+                {NewState=#state_rcv{session=NewHttp2}, Opts} ->
+                    {NewState#state_rcv{acc=[],session=NewHttp2#http{session_cookies=NewCookies}}, Opts, Http#http.close}
             end;
         {ok, Http=#http{content_length=0, close=true}, _} ->
             %% no content length, close=true: the server will close the connection
