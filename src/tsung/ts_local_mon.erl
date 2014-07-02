@@ -88,7 +88,7 @@ init([]) ->
     LogFileEnc = ts_config_server:decode_filename(?config(log_file)),
     FileName = filename:join(LogFileEnc, "tsung-"++Id ++ ".dump"),
     LogDir = filename:dirname(FileName),
-    ok = ts_utils:make_dir_raw(LogDir),
+    ts_utils:make_dir_raw(LogDir),
     case file:open(FileName,[write,raw, delayed_write]) of
         {ok, IODev} ->
             {ok, #state{dump_iodev=IODev}};
