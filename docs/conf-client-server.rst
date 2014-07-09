@@ -82,7 +82,7 @@ IP is no longer mandatory. If not specified, the default IP will be
 used.
 
 
-**New in 1.4.0:** You can use ``<ip scan="yes" value="eth0"/>`` to scan for all the IP aliases on a given interface
+**New in 1.4.0:** You can use ``<ip scan="true" value="eth0"/>`` to scan for all the IP aliases on a given interface
 (``eth0`` in this example).
 
 In this example, a second machine is used in the Tsung cluster,
