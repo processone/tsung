@@ -253,7 +253,9 @@ encode_message(#mqtt{type = ?CONNECT, arg = Options}) ->
   end,
   {WillFlag, WillQoS, WillRetain, PayloadList} =
         case Options#connect_options.will of
-            #will{ topic = undefined, message = undefined } ->
+            #will{ topic = undefined } ->
+                {0, 0, 0, [encode_string(Options#connect_options.client_id)]};
+            #will{ topic = "" } ->
                 {0, 0, 0, [encode_string(Options#connect_options.client_id)]};
             undefined ->
                 {0, 0, 0, [encode_string(Options#connect_options.client_id)]};
