@@ -251,15 +251,21 @@ encode_message(#mqtt{type = ?CONNECT, arg = Options}) ->
     Password ->
       {1, Password}
   end,
-  {WillFlag, WillQoS, WillRetain, PayloadList} = case Options#connect_options.will of
-    {will, WillTopic, WillMessage, WillOptions} ->
-      {
-        1, WillOptions#publish_options.qos, WillOptions#publish_options.retain,
-        [encode_string(Options#connect_options.client_id), encode_string(WillTopic), encode_string(WillMessage)]
-      };
-    undefined ->
-      {0, 0, 0, [encode_string(Options#connect_options.client_id)]}
-  end,
+  {WillFlag, WillQoS, WillRetain, PayloadList} =
+        case Options#connect_options.will of
+            #will{ topic = undefined, message = undefined } ->
+                {0, 0, 0, [encode_string(Options#connect_options.client_id)]};
+            undefined ->
+                {0, 0, 0, [encode_string(Options#connect_options.client_id)]};
+            #will{ topic = WillTopic, message = WillMessage, publish_options = WillOptions } ->
+                {1,
+                 WillOptions#publish_options.qos,
+                 WillOptions#publish_options.retain,
+                 [encode_string(Options#connect_options.client_id),
+                  encode_string(WillTopic),
+                  encode_string(WillMessage)]
+                }
+        end,
   Payload1 = case UserNameValue of
     undefined -> list_to_binary(PayloadList);
     _ ->
