@@ -35,6 +35,7 @@
 protocol_options(#proto_opts{tcp_rcv_size=Rcv, tcp_snd_size=Snd}) ->
     [binary,
      {active, once},
+     {reuseaddr, true},
      {recbuf, Rcv},
      {sndbuf, Snd},
      {keepalive, true} %% FIXME: should be an option
