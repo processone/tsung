@@ -38,6 +38,7 @@ EXCLUDE_TAG_LIST=""
 
 TSUNGPATH=$INSTALL_DIR/lib/tsung-$VERSION/ebin
 CONTROLLERPATH=$INSTALL_DIR/lib/tsung_controller-$VERSION/ebin
+EXTRA_LOAD_PATHS=""
 
 CONF_OPT_FILE="$HOME/.tsung/tsung.xml"
 DEBUG_LEVEL=5
@@ -50,13 +51,14 @@ SSL_CACHE="ts_ssl_session_cache"
 SSL_SESSION_LIFETIME="600"
 
 stop() {
-    $ERL $ERL_OPTS $ERL_RSH -noshell $PROTO_DIST $NAMETYPE killer -setcookie $COOKIE -pa $TSUNGPATH -pa $CONTROLLERPATH -s tsung_controller stop_all $HOST -s init stop
+    $ERL $ERL_OPTS $ERL_RSH -noshell $PROTO_DIST $NAMETYPE killer -setcookie $COOKIE $EXTRA_LOAD_PATHS -pa $TSUNGPATH -pa $CONTROLLERPATH -s tsung_controller stop_all $HOST -s init stop
 }
 
 start() {
     echo "Starting Tsung"
     $ERL $ERL_OPTS $ERL_RSH -noshell $PROTO_DIST $NAMETYPE $CONTROLLER -setcookie $COOKIE \
     -s tsung_controller \
+    $EXTRA_LOAD_PATHS \
     -pa $TSUNGPATH -pa $CONTROLLERPATH \
     -ssl session_cb $SSL_CACHE \
     -ssl session_lifetime $SSL_SESSION_LIFETIME \
@@ -72,6 +74,7 @@ start() {
 debug() {
     $ERL $ERL_OPTS $ERL_RSH $NAMETYPE $CONTROLLER $PROTO_DIST -setcookie $COOKIE  \
      -s tsung_controller \
+     $EXTRA_LOAD_PATHS \
      -pa $TSUNGPATH -pa $CONTROLLERPATH \
      -ssl session_cb $SSL_CACHE \
      -ssl session_lifetime $SSL_SESSION_LIFETIME \
@@ -114,7 +117,7 @@ logdir() {
 
 status() {
     SNAME=tsung_status_$RANDOM
-    $ERL -noshell $NAMETYPE $SNAME -setcookie $COOKIE -pa $TSUNGPATH -pa $CONTROLLERPATH -s tsung_controller status $HOST -s init stop
+    $ERL -noshell $NAMETYPE $SNAME -setcookie $COOKIE $EXTRA_LOAD_PATHS -pa $TSUNGPATH -pa $CONTROLLERPATH -s tsung_controller status $HOST -s init stop
 }
 
 checkrunning_controller() {
@@ -136,6 +139,7 @@ usage() {
     echo "    -r <command>  set remote connector (default is ssh)"
     echo "    -s            enable erlang smp on client nodes"
     echo "    -p <max>      set maximum erlang processes per vm (default is 250000)"
+    echo "    -X <dir>      add additional erlang load paths (multiple -X arguments allowed)"
     echo "    -m <file>     write monitoring output on this file (default is tsung.log)"
     echo "                   (use - for standard output)"
     echo "    -F            use long names (FQDN) for erlang nodes"
@@ -149,7 +153,7 @@ usage() {
     exit
 }
 
-while getopts "6vhnf:l:d:r:i:Fsw:m:p:x:" Option
+while getopts "6vhnf:l:d:r:i:Fsw:m:p:x:X:" Option
 do
     case $Option in
         f) CONF_OPT_FILE=$OPTARG;;
@@ -168,6 +172,7 @@ do
         n) WEB_GUI="false";;
         d) DEBUG_LEVEL=$OPTARG;;
         p) MAX_PROCESS=$OPTARG;;
+        X) EXTRA_LOAD_PATHS="$EXTRA_LOAD_PATHS -pa $OPTARG";;
         r) ERL_RSH=" -rsh $OPTARG ";;
         6) PROTO_DIST=" -proto_dist inet6_tcp ";;
         F) NAMETYPE="-name";;
