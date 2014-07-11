@@ -877,6 +877,17 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     lists:foldl( fun parse/2,
                                  Conf#config{file_server=[{Id, FileName} | Conf#config.file_server]},
                                  Element#xmlElement.content);
+                "tcp_reuseaddr" ->
+                    Reuseaddr = getAttr(atom, Attrs, value, false),
+                    case Reuseaddr of
+                        true ->
+                            OldProto =  Conf#config.proto_opts,
+                            NewProto =  OldProto#proto_opts{tcp_reuseaddr = Reuseaddr},
+                            lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                         Element#xmlElement.content);
+                        false ->
+                            lists:foldl( fun parse/2, Conf, Element#xmlElement.content)
+                    end;
                 Other ->
                     ?LOGF("Unknown option ~p !~n",[Other], ?WARN),
                     lists:foldl( fun parse/2, Conf, Element#xmlElement.content)
