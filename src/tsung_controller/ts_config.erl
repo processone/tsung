@@ -888,6 +888,10 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                         false ->
                             lists:foldl( fun parse/2, Conf, Element#xmlElement.content)
                     end;
+                "global_ack_number" ->
+                    GlobalAckNumber = getAttr(integer, Attrs, value, ?config(global_ack_number)),
+                    ts_timer:config(GlobalAckNumber),
+                    lists:foldl( fun parse/2, Conf#config{}, Element#xmlElement.content);
                 Other ->
                     ?LOGF("Unknown option ~p !~n",[Other], ?WARN),
                     lists:foldl( fun parse/2, Conf, Element#xmlElement.content)
