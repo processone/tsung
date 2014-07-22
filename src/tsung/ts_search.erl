@@ -368,7 +368,8 @@ parse_dynvar(D=[{jsonpath,_VarName, _Expr}| _DynVarsSpecs],
     catch
         Type:Exp ->
             ?LOGF("JSON couldn't be parsed:(~p:~p) ~n Page:~p~n",
-                    [Type,Exp,Binary],?ERR),
+                    [Type,Exp,Binary],?NOTICE),
+            ts_mon:add({ count, error_json_unparsable }),
             parse_dynvar(D,Binary,String,json_error,DynVars)
     end;
 
@@ -385,7 +386,8 @@ parse_dynvar([{xpath,VarName,_Expr}|DynVarsSpecs],Binary,String,xpath_error,DynV
 
 parse_dynvar([{jsonpath,VarName,_Expr}|DynVarsSpecs],Binary,String,json_error,DynVars)->
     ?LOGF("Couldn't execute JSONPath: page not parsed (varname=~p)~n",
-          [VarName],?ERR),
+          [VarName],?NOTICE),
+    ts_mon:add({ count, error_json_not_parsed }),
     parse_dynvar(DynVarsSpecs, Binary,String,json_error,DynVars);
 
 parse_dynvar([{pgsql_expr,VarName,_Expr}|DynVarsSpecs],Binary,String,pgsql_error,DynVars)->
