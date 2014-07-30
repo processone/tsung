@@ -25,7 +25,7 @@
 
 -module(ts_tcp).
 
--export([ connect/3, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2 ]).
+-export([ connect/3, connect/4, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2 ]).
 
 -behaviour(gen_ts_transport).
 
@@ -41,7 +41,10 @@ protocol_options(#proto_opts{tcp_rcv_size=Rcv, tcp_snd_size=Snd}) ->
     ].
 %% -> {ok, Socket}
 connect(Host, Port, Opts) ->
-    gen_tcp:connect(Host, Port, opts_to_tcp_opts(Opts)).
+    connect(Host, Port, Opts, infinity).
+
+connect(Host, Port, Opts, ConnectTimeout) ->
+    gen_tcp:connect(Host, Port, opts_to_tcp_opts(Opts), ConnectTimeout).
 
 opts_to_tcp_opts(Opts) -> Opts.
 
