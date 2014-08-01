@@ -285,7 +285,7 @@ handle_call({get_next_session, HostName, PhaseId}, _From, State=#state{users=Use
     ?DebugF("get new session for ~p~n",[_From]),
     case choose_session(Config#config.sessions, Config#config.total_popularity, PhaseId) of
         {ok, Session=#session{id=Id}} ->
-            ?LOGF("Session ~p choosen~n",[Id],?INFO),
+            ?LOGF("Session ~p chosen~n",[Id],?INFO),
             ts_mon:newclient({Id,?NOW}),
             {IPParam, Server} = get_user_param(Client,Config),
             {reply, {ok, Session#session{client_ip= IPParam, server=Server,userid=Users,
