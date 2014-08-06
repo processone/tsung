@@ -1,6 +1,6 @@
 -module(ts_ssl).
 
--export([ connect/3,connect/2, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2 ]).
+-export([ connect/2, connect/3, connect/4, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2 ]).
 
 -behaviour(gen_ts_transport).
 
@@ -18,11 +18,18 @@ set_ciphers(negociate)-> [];
 set_ciphers(Ciphers)  -> [{ciphers, Ciphers}].
 
 %% -> {ok, Socket}
-connect(Host, Port, Opts) ->
-    ssl:connect(Host, Port, opts_to_tcp_opts(Opts)).
+connect(Host, Port, Opts) when is_list(Host) ->
+    connect(Host, Port, opts_to_tcp_opts(Opts), infinity);
 
-connect(Socket, Opts)->
-    ssl:connect(Socket,  opts_to_tcp_opts(Opts)).
+connect(Socket, Opts, ConnectTimeout) ->
+    ssl:connect(Socket, opts_to_tcp_opts(Opts), ConnectTimeout).
+
+connect(Host, Port, Opts, ConnectTimeout) ->
+    ssl:connect(Host, Port, opts_to_tcp_opts(Opts), ConnectTimeout).
+
+connect(Socket, Opts) ->
+    connect(Socket, Opts, infinity).
+
 
 opts_to_tcp_opts(Opts) -> Opts.
 

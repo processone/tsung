@@ -678,7 +678,10 @@ parse( Element = #xmlElement{name=set_option, attributes=Attrs},
                         KeyFile = getAttr(string, AttrCert, keyfile, undefined),
                         KeyPass = getAttr(string, AttrCert, keypass, undefined),
                         CertFile = getAttr(string, AttrCert, certfile, undefined),
-                        {undefined, certificate, {Cacert, KeyFile,KeyPass,CertFile}}
+                        {undefined, certificate, {Cacert, KeyFile,KeyPass,CertFile}};
+                    "connect_timeout" ->
+                        ConnectTimeout = getAttr(integer, Attrs, value),
+                        {undefined, connect_timeout, {ConnectTimeout}}
                 end,
             ets:insert(Tab,{{CurS#session.id, Id+1}, {set_option,Type,Name,Args}}),
             Conf#config{curid=Id+1};
@@ -805,6 +808,13 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     Port = getAttr(integer,Attrs, value, ?config(job_notify_port)),
                     lists:foldl( fun parse/2, Conf#config{job_notify_port=Port},
                                  Element#xmlElement.content);
+                "connect_timeout" ->
+                    ConnectTimeout = getAttr(integer,Attrs, value, ?config(connect_timeout)),
+                    OldProto =  Conf#config.proto_opts,
+                    NewProto =  OldProto#proto_opts{connect_timeout=ConnectTimeout},
+                    lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                 Element#xmlElement.content);
+
                 "tcp_rcv_buffer" ->
                     Size = getAttr(integer,Attrs, value, ?config(rcv_size)),
                     OldProto =  Conf#config.proto_opts,
@@ -839,6 +849,12 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     Timeout = getAttr(integer,Attrs, value, ?config(global_ack_timeout)),
                     OldProto =  Conf#config.proto_opts,
                     NewProto =  OldProto#proto_opts{global_ack_timeout=Timeout},
+                    lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                 Element#xmlElement.content);
+                "max_retries" ->
+                    MaxRetries = getAttr(integer,Attrs, value, ?config(max_retries)),
+                    OldProto =  Conf#config.proto_opts,
+                    NewProto =  OldProto#proto_opts{max_retries=MaxRetries},
                     lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
                                  Element#xmlElement.content);
                 "retry_timeout" ->

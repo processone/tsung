@@ -38,9 +38,6 @@
 -include("ts_config.hrl").
 -include("ts_profile.hrl").
 
--define(MAX_RETRIES,3). % max number of connection retries
--define(RETRY_TIMEOUT,10000). % waiting time between retries (msec)
-
 %% External exports
 -export([start/1, next/1]).
 
@@ -497,6 +494,11 @@ handle_next_action(State=#state_rcv{dynvars = DynVars}) ->
             OldOpts = State#state_rcv.proto_opts,
             NewOpts = OldOpts#proto_opts{certificate = Opts},
             handle_next_action(State#state_rcv{proto_opts=NewOpts,count=Count});
+        {set_option, undefined, connect_timeout, {ConnectTimeout}} ->
+            ?LOGF("Set connect timeout: ~p~n", [ConnectTimeout], ?DEB),
+            OldOpts = State#state_rcv.proto_opts,
+            NewOpts = OldOpts#proto_opts{connect_timeout = ConnectTimeout},
+            handle_next_action(State#state_rcv{proto_opts=NewOpts, count=Count});
         {set_option, Type, Name, Args} ->
             NewState=Type:set_option(Name,Args,State),
             handle_next_action(NewState);
@@ -815,7 +817,7 @@ handle_next_request(Request, State) ->
                         _ ->
                             {next_state, wait_ack, NewState}
                         end;
-                {error, closed} when State#state_rcv.retries < ?MAX_RETRIES ->
+                {error, closed} when State#state_rcv.retries < ProtoOpts#proto_opts.max_retries ->
                     ?LOG("connection close while sending message !~n", ?WARN),
                     Retries = State#state_rcv.retries +1,
                     handle_close_while_sending(State#state_rcv{socket=NewSocket,
@@ -824,14 +826,14 @@ handle_next_request(Request, State) ->
                                                                session=NewSession,
                                                                retries=Retries,
                                                                port=Port});
-                {error, Reason}  when State#state_rcv.retries < ?MAX_RETRIES ->
+                {error, Reason}  when State#state_rcv.retries < ProtoOpts#proto_opts.max_retries ->
                     %% LOG only at INFO level since we report also an error to ts_mon
                     ?LOGF("Error: Unable to send data, reason: ~p~n",[Reason],?INFO),
                     CountName="error_send_"++atom_to_list(Reason),
                     ts_mon:add({ count, list_to_atom(CountName) }),
                     Retries = State#state_rcv.retries +1,
                     handle_timeout_while_sending(State#state_rcv{session=NewSession,retries=Retries});
-                {'EXIT', {noproc, _Rest}}  when State#state_rcv.retries < ?MAX_RETRIES ->
+                {'EXIT', {noproc, _Rest}}  when State#state_rcv.retries < ProtoOpts#proto_opts.max_retries ->
                     ?LOG("EXIT from ssl app while sending message !~n", ?WARN),
                     Retries = State#state_rcv.retries +1,
                     handle_close_while_sending(State#state_rcv{socket=NewSocket,
@@ -840,7 +842,7 @@ handle_next_request(Request, State) ->
                                                                retries=Retries,
                                                                host=Host,
                                                                port=Port});
-                Exit when State#state_rcv.retries < ?MAX_RETRIES ->
+                Exit when State#state_rcv.retries < ProtoOpts#proto_opts.max_retries ->
                     ?LOGF("EXIT Error: Unable to send data, reason: ~p~n",
                           [Exit], ?ERR),
                     ts_mon:add({ count, error_send }),
@@ -849,14 +851,20 @@ handle_next_request(Request, State) ->
                     ts_mon:add({ count, error_abort_max_send_retries }),
                     {stop, normal, State}
             end;
-        {error,_Reason} when State#state_rcv.retries < ?MAX_RETRIES ->
-            Retries= State#state_rcv.retries +1,
-            % simplified exponential backoff algorithm: we increase
-            % the timeout when the number of retries increase, with a
-            % simple rule: number of retries * retry_timeout
-            set_thinktime(?RETRY_TIMEOUT *  Retries ),
-            {next_state, think, State#state_rcv{retries=Retries,session=NewSession}};
-        {error,_Reason}  ->
+
+        {error, timeout} when State#state_rcv.retries < ProtoOpts#proto_opts.max_retries ->
+            ts_mon:add({count, error_connect_timeout}),
+
+            handle_reconnect_issue(State#state_rcv{session=NewSession});
+
+        {error, _Reason} when State#state_rcv.retries < ProtoOpts#proto_opts.max_retries ->
+            handle_reconnect_issue(State#state_rcv{session=NewSession});
+
+        {error, Reason} ->
+            case Reason of
+                timeout ->
+                    ts_mon:add({count, error_connect_timeout})
+            end,
             ts_mon:add({ count, error_abort_max_conn_retries }),
             {stop, normal, State}
     end.
@@ -887,6 +895,23 @@ finish_session(State) ->
                           TrList)
     end,
     ts_mon:endclient({State#state_rcv.id, Now, Elapsed}).
+
+
+%%----------------------------------------------------------------------
+%% Func: handle_reconnect_issue/1
+%% Args: State
+%% Purpose: there was an issue (re)opening the connection. Retry with
+%%          backoff in a moment.
+%%----------------------------------------------------------------------
+handle_reconnect_issue(#state_rcv{proto_opts = PO} = State) ->
+    Retries = State#state_rcv.retries + 1,
+
+    % simplified exponential backoff algorithm: we increase
+    % the timeout when the number of retries increase, with a
+    % simple rule: number of retries * retry_timeout
+    set_thinktime(PO#proto_opts.retry_timeout * Retries),
+    {next_state, think, State#state_rcv{retries=Retries}}.
+
 
 %%----------------------------------------------------------------------
 %% Func: handle_close_while_sending/1
@@ -945,13 +970,16 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort, Try}) when 
             [ServerName,Port,IP,Protocol]),
     Opts = protocol_options(Protocol, Proto_opts)  ++ socket_opts(IP, CPort, Protocol),
     Before= ?NOW,
-    case connect(Protocol,ServerName, Port, Opts) of
+    case connect(Protocol, ServerName, Port, Opts, Proto_opts#proto_opts.connect_timeout) of
         {ok, Socket} ->
             Elapsed = ts_utils:elapsed(Before, ?NOW),
             ts_mon:add({ sample, connect, Elapsed }),
             set_connected_status(true),
             ?Debug("(Re)connected~n"),
             {ok, Socket};
+        {error, timeout} ->
+            % don't handle connect timeouts at this level
+            {error, timeout};
         {error, Reason} ->
             {A,B,C,D} = IP,
             %% LOG only at INFO level since we report also an error to ts_mon
@@ -1008,9 +1036,9 @@ socket_opts(IP, CPort, _)->
 send(Proto, Socket, Message, Host, Port)  ->
     Proto:send(Socket, Message, [{host, Host}, {port, Port}]).
 
-connect(Proto, Server, Port, Opts) ->
+connect(Proto, Server, Port, Opts, ConnectTimeout) ->
     ?LOGF("connect to port ~p",[Port],?DEB),
-    Proto:connect(Server, Port, Opts).
+    Proto:connect(Server, Port, Opts, ConnectTimeout).
 
 %%----------------------------------------------------------------------
 %% Func: protocol_options/1

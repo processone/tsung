@@ -26,7 +26,7 @@
 
 -module(ts_ssl6).
 
--export([ connect/3,connect/2, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2 ]).
+-export([ connect/2, connect/3, connect/4, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2 ]).
 
 -behaviour(gen_ts_transport).
 
@@ -38,11 +38,17 @@ protocol_options(Opts) ->
     [inet6]++ts_ssl:protocol_options(Opts).
 
 %% -> {ok, Socket}
-connect(Host, Port, Opts) ->
-    ssl:connect(Host, Port, Opts).
+connect(Host, Port, Opts) when is_list(Host) ->
+    connect(Host, Port, Opts, infinity);
 
-connect(Socket, Opts)->
-    ssl:connect(Socket,  Opts).
+connect(Socket, Opts, ConnectTimeout) ->
+    ssl:connect(Socket, Opts, ConnectTimeout).
+
+connect(Host, Port, Opts, ConnectTimeout) ->
+    ssl:connect(Host, Port, Opts, ConnectTimeout).
+
+connect(Socket, Opts) ->
+    connect(Socket, Opts, infinity).
 
 %% send/3 -> ok | {error, Reason}
 send(Socket, Data, _Opts)  ->

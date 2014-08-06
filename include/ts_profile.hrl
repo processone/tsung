@@ -29,7 +29,7 @@
         { regexp,
           subst = false,
          'when' = false,
-		  name, 
+		  name,
           do    = continue, %(continue | loop | abort | log )
           sleep_loop,       % in seconds
           apply_to_content,
@@ -58,8 +58,10 @@
          bosh_path = "/http-bind/",  % for bash only
          websocket_path = "/chat",  % for websocket only
          websocket_frame = "binary",  % for websocket only
-         retry_timeout = 10,        % retry sending in microsec
+         retry_timeout = 10,        % retry sending in milliseconds
+         max_retries = 0,           % maximum number of retries
          idle_timeout  = 600000,    % timeout for local ack
+         connect_timeout  = infinity,   % timeout for gen_tcp:connect/4 (infinity OR time in milliseconds)
          global_ack_timeout = infinity, % timeout for global ack
          tcp_rcv_size  = 32768,     % tcp buffers size
          tcp_snd_size  = 32768,
