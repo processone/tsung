@@ -66,6 +66,8 @@ http_no_body(Method,#http_request{url=URL, version=Version, cookie=Cookie,
     R = list_to_binary([Method, " ", URL," ", "HTTP/", Version, ?CRLF,
                     set_header("Host",Host,Headers, ""),
                     set_header("User-Agent",UA,Headers, ?USER_AGENT),
+                    set_header("Content-Type", undefined, Headers, undefined),
+                    set_header("Content-Length", undefined, Headers, undefined),
                     authenticate(Req),
                     oauth_sign(Method,Req),
                     soap_action(SOAPAction),
@@ -84,6 +86,8 @@ http_no_body(Method,#http_request{url=URL, version=Version, cookie=Cookie,
                     ["If-Modified-Since: ", Date, ?CRLF],
                     set_header("Host",Host,Headers, ""),
                     set_header("User-Agent",UA,Headers, ?USER_AGENT),
+                    set_header("Content-Type", undefined, Headers, undefined),
+                    set_header("Content-Length", undefined, Headers, undefined),
                     soap_action(SOAPAction),
                     authenticate(Req),
                     oauth_sign(Method,Req),
@@ -108,16 +112,17 @@ http_body(Method,#http_request{url=URL, version=Version,
                                body=Content, host_header=Host}=Req) ->
     ContentLength=integer_to_list(size(Content)),
     ?DebugF("Content Length of POST: ~p~n.", [ContentLength]),
+
     H = [Method, " ", URL," ", "HTTP/", Version, ?CRLF,
                set_header("Host",Host,Headers, ""),
                set_header("User-Agent",UA,Headers, ?USER_AGENT),
+               set_header("Content-Type", ContentType, Headers, undefined),
+               set_header("Content-Length", ContentLength, Headers, undefined),
                authenticate(Req),
                soap_action(SOAPAction),
                oauth_sign(Method, Req),
                set_cookie_header({Cookie, Host, URL}),
                headers(Headers),
-               "Content-Type: ", ContentType, ?CRLF,
-               "Content-Length: ",ContentLength, ?CRLF,
                ?CRLF
               ],
     ?LOGF("Headers~n-------------~n~s~n",[H],?DEB),
@@ -196,10 +201,12 @@ oauth_sign(Method, #http_request{url=URL,
 %% @end
 %%----------------------------------------------------------------------
 set_header(Name, Value, Headers, Default) when length(Headers) > 0 ->
-    case  lists:keysearch(Name, 1, Headers) of
+    case lists:keysearch(string:to_lower(Name), 1, normalize_headers(Headers)) of
         {value, {_,Val}} -> [Name, ": ", Val, ?CRLF];
         false      -> set_header(Name,Value,[], Default)
     end;
+set_header(_Name, undefined, [], undefined) ->
+    [];
 set_header(Name, undefined, [], Default) ->
     [Name++": ", Default, ?CRLF];
 set_header(Name, Value, [], _) ->
@@ -209,15 +216,23 @@ soap_action(undefined) -> [];
 soap_action(SOAPAction) -> ["SOAPAction: \"", SOAPAction, "\"", ?CRLF].
 
 % user defined headers
-headers([]) ->[];
+headers([]) -> [];
 headers(Headers) ->
-    lists:foldl(fun({"Host", _}, Result) ->
-                        Result;
-                   ({"User-Agent", _}, Result) ->
-                        Result;
-                   ({Name, Value}, Result) ->
-                         [Name, ": ", Value, ?CRLF | Result]
-                 end, [], lists:reverse(Headers)).
+    HeadersToIgnore = ["host", "user-agent", "content-type", "content-length"],
+
+    lists:foldl(fun({Name, Value}, Result) ->
+        case lists:member(string:to_lower(Name), HeadersToIgnore) of
+            true ->
+                Result;
+            Name ->
+                [Name, ": ", Value, ?CRLF | Result]
+        end
+    end, [], lists:reverse(Headers)).
+
+normalize_headers([]) -> [];
+normalize_headers(Headers) ->
+    lists:map(fun({Name, Value}) -> {string:to_lower(Name), Value} end, Headers).
+
 
 %%----------------------------------------------------------------------
 %% Function: set_cookie_header/1
