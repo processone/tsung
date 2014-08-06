@@ -841,6 +841,12 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     NewProto =  OldProto#proto_opts{global_ack_timeout=Timeout},
                     lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
                                  Element#xmlElement.content);
+                "max_retries" ->
+                    MaxRetries = getAttr(integer,Attrs, value, ?config(max_retries)),
+                    OldProto =  Conf#config.proto_opts,
+                    NewProto =  OldProto#proto_opts{max_retries=MaxRetries},
+                    lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                 Element#xmlElement.content);
                 "retry_timeout" ->
                     Timeout = getAttr(integer,Attrs, value, ?config(client_retry_timeout)),
                     OldProto =  Conf#config.proto_opts,

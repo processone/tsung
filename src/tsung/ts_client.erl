@@ -38,9 +38,6 @@
 -include("ts_config.hrl").
 -include("ts_profile.hrl").
 
--define(MAX_RETRIES,3). % max number of connection retries
--define(RETRY_TIMEOUT,10000). % waiting time between retries (msec)
-
 %% External exports
 -export([start/1, next/1]).
 
@@ -820,7 +817,7 @@ handle_next_request(Request, State) ->
                         _ ->
                             {next_state, wait_ack, NewState}
                         end;
-                {error, closed} when State#state_rcv.retries < ?MAX_RETRIES ->
+                {error, closed} when State#state_rcv.retries < ProtoOpts#proto_opts.max_retries ->
                     ?LOG("connection close while sending message !~n", ?WARN),
                     Retries = State#state_rcv.retries +1,
                     handle_close_while_sending(State#state_rcv{socket=NewSocket,
@@ -829,14 +826,14 @@ handle_next_request(Request, State) ->
                                                                session=NewSession,
                                                                retries=Retries,
                                                                port=Port});
-                {error, Reason}  when State#state_rcv.retries < ?MAX_RETRIES ->
+                {error, Reason}  when State#state_rcv.retries < ProtoOpts#proto_opts.max_retries ->
                     %% LOG only at INFO level since we report also an error to ts_mon
                     ?LOGF("Error: Unable to send data, reason: ~p~n",[Reason],?INFO),
                     CountName="error_send_"++atom_to_list(Reason),
                     ts_mon:add({ count, list_to_atom(CountName) }),
                     Retries = State#state_rcv.retries +1,
                     handle_timeout_while_sending(State#state_rcv{session=NewSession,retries=Retries});
-                {'EXIT', {noproc, _Rest}}  when State#state_rcv.retries < ?MAX_RETRIES ->
+                {'EXIT', {noproc, _Rest}}  when State#state_rcv.retries < ProtoOpts#proto_opts.max_retries ->
                     ?LOG("EXIT from ssl app while sending message !~n", ?WARN),
                     Retries = State#state_rcv.retries +1,
                     handle_close_while_sending(State#state_rcv{socket=NewSocket,
@@ -845,7 +842,7 @@ handle_next_request(Request, State) ->
                                                                retries=Retries,
                                                                host=Host,
                                                                port=Port});
-                Exit when State#state_rcv.retries < ?MAX_RETRIES ->
+                Exit when State#state_rcv.retries < ProtoOpts#proto_opts.max_retries ->
                     ?LOGF("EXIT Error: Unable to send data, reason: ~p~n",
                           [Exit], ?ERR),
                     ts_mon:add({ count, error_send }),
@@ -855,12 +852,12 @@ handle_next_request(Request, State) ->
                     {stop, normal, State}
             end;
 
-        {error, timeout} when State#state_rcv.retries < ?MAX_RETRIES ->
+        {error, timeout} when State#state_rcv.retries < ProtoOpts#proto_opts.max_retries ->
             ts_mon:add({count, error_connect_timeout}),
 
             handle_reconnect_issue(State#state_rcv{session=NewSession});
 
-        {error, _Reason} when State#state_rcv.retries < ?MAX_RETRIES ->
+        {error, _Reason} when State#state_rcv.retries < ProtoOpts#proto_opts.max_retries ->
             handle_reconnect_issue(State#state_rcv{session=NewSession});
 
         {error, Reason} ->
@@ -906,13 +903,13 @@ finish_session(State) ->
 %% Purpose: there was an issue (re)opening the connection. Retry with
 %%          backoff in a moment.
 %%----------------------------------------------------------------------
-handle_reconnect_issue(State) ->
+handle_reconnect_issue(#state_rcv{proto_opts = PO} = State) ->
     Retries = State#state_rcv.retries + 1,
 
     % simplified exponential backoff algorithm: we increase
     % the timeout when the number of retries increase, with a
     % simple rule: number of retries * retry_timeout
-    set_thinktime(?RETRY_TIMEOUT * Retries),
+    set_thinktime(PO#proto_opts.retry_timeout * Retries),
     {next_state, think, State#state_rcv{retries=Retries}}.
 
 
