@@ -1050,7 +1050,7 @@ protocol_options(Proto, #proto_opts{} = ProtoOpts) ->
 %%----------------------------------------------------------------------
 %% Func: set_thinktime/1
 %% Purpose: set a timer for thinktime if it is not infinite
-%%          returns the choosen thinktime in msec
+%%          returns the chosen thinktime in msec
 %%----------------------------------------------------------------------
 set_thinktime(infinity) -> infinity;
 set_thinktime(wait_global) ->
