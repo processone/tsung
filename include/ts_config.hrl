@@ -77,7 +77,9 @@
           use_weights      , % true if we use weights instead of probabilities
           total_server_weights=0,
           job_notify_port,
-          tag
+          tag,
+          modules_source = [],   % list of paths of modules to be compiled and distributed
+          modules_beam = []      % list of module names (atoms) to be distributed
          }).
 
 

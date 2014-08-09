@@ -223,6 +223,7 @@ handle_call({read_config, ConfigFile}, _From, State=#state{logdir=LogDir}) ->
             %% Compute per phase popularities
             NewConfig = compute_popularities(ConfigTmp),
             ts_job_notify:listen(NewConfig#config.job_notify_port),
+            ts_module_distribution:load_modules_locally(NewConfig),
             case check_config(NewConfig) of
                 ok ->
                     {reply, ok, State#state{config=NewConfig, static_users=NewConfig#config.static_users,total_weight = Sum}};
@@ -386,7 +387,15 @@ handle_cast({newbeams, HostList}, State=#state{logdir   = LogDir,
             check_remotes_ok(RemoteNodes),
             ?LOG("All remote beams started, syncing ~n",?NOTICE),
             global:sync(),
-            ?LOG("Syncing done, start remote tsung application ~n", ?DEB),
+            ?LOG("Syncing done~n", ?DEB),
+            case length(Config#config.modules_source) + length(Config#config.modules_beam) of
+                0 ->
+                    ok;
+                _ ->
+                    ?LOG("Preparing custom erlang modules for distribution~n", ?NOTICE),
+                    ts_module_distribution:distribute_modules(RemoteNodes, Config)
+            end,
+            ?LOG("Start remote tsung application ~n", ?DEB),
             {Resl, BadNodes} = rpc:multicall(RemoteNodes,tsung,start,[],?RPC_TIMEOUT),
             ?LOGF("RPC result: ~p ~p ~n",[Resl,BadNodes],?DEB),
             case BadNodes of

@@ -107,7 +107,8 @@
     min      NMTOKEN #IMPLIED
     max      NMTOKEN #IMPLIED
     type     (ts_http | ts_jabber | ts_pgsql | ts_amqp) #IMPLIED
-    value    CDATA #IMPLIED>
+    value    CDATA #IMPLIED
+    module_type  (beam | source) #IMPLIED>
 
 <!ELEMENT set_option (user_agent*| certificate)>
 <!ATTLIST set_option
