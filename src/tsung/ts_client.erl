@@ -362,6 +362,20 @@ handle_info2({tcp_closed, Socket, _Data}, StateName, State ) ->
                     _ -> ok
                 end, Acc end, unused, DictList),
     {next_state, StateName, State};
+
+handle_info2({ssl_closed, Socket, _Data}, StateName, State) ->
+    ?LOGF("ssl_closed received in state ~p~n", [StateName], ?NOTICE),
+
+    % set old socket to none, like when receiving tcp_closed
+    DictList = get(),
+    lists:foldl(fun({Key, Value}, Acc) ->
+                case {Key, Value} of
+                    {{state, _}, {Socket, Session}} ->
+                        put(Key, {none, Session});
+                    _ -> ok
+                end, Acc end, unused, DictList),
+    {next_state, StateName, State};
+
 handle_info2(Msg, StateName, State ) ->
     ?LOGF("Error: Unknown msg ~p receive in state ~p, stop~n", [Msg,StateName], ?ERR),
     ts_mon:add({ count, error_unknown_msg }),
@@ -818,7 +832,8 @@ handle_next_request(Request, State) ->
                             {next_state, wait_ack, NewState}
                         end;
                 {error, closed} when State#state_rcv.retries < ProtoOpts#proto_opts.max_retries ->
-                    ?LOG("connection close while sending message !~n", ?WARN),
+                    ?LOG("connection close while sending message!~n", ?NOTICE),
+                    ts_mon:add({ count, error_connection_closed }),
                     Retries = State#state_rcv.retries +1,
                     handle_close_while_sending(State#state_rcv{socket=NewSocket,
                                                                protocol=Protocol,
