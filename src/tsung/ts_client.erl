@@ -863,7 +863,11 @@ handle_next_request(Request, State) ->
         {error, Reason} ->
             case Reason of
                 timeout ->
-                    ts_mon:add({count, error_connect_timeout})
+                    ts_mon:add({count, error_connect_timeout});
+                closed ->
+                    ts_mon:add({count, error_connect_closed});
+                _ ->
+                    ok
             end,
             ts_mon:add({ count, error_abort_max_conn_retries }),
             {stop, normal, State}
