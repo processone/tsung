@@ -363,7 +363,7 @@ handle_info2({tcp_closed, Socket, _Data}, StateName, State ) ->
                 end, Acc end, unused, DictList),
     {next_state, StateName, State};
 
-handle_info2({ssl_closed, Socket, _Data}, StateName, State) ->
+handle_info2({ssl_closed, Socket}, StateName, State) ->
     ?LOGF("ssl_closed received in state ~p~n", [StateName], ?NOTICE),
 
     % set old socket to none, like when receiving tcp_closed
