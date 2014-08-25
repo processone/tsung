@@ -166,7 +166,7 @@ init_seed({A,B}) when is_integer(A) and is_integer(B)->
     %% initial pseudo random values will be quite closed to each
     %% other. Trying to avoid this by using a multiplier big enough
     %% (because the algorithm use mod 30XXX , see random.erl).
-    random:seed(1000*A*A,-1000*B*B,1000*Id*Id);
+    random:seed(4000*A*B*Id,-4000*B*A*Id,4000*Id*Id*A);
 init_seed({A,B,C}) ->
     random:seed(A,B,C).
 
