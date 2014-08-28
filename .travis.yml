@@ -1,0 +1,9 @@
+language: erlang
+otp_release:
+   - 17.1
+   - R16B03-1
+   - R15B03
+   - R14B04
+script: ./configure && make test
+notifications:
+   email: nicolas@niclux.org
