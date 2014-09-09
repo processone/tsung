@@ -140,6 +140,11 @@ decode_pong_test() ->
     ?assertEqual(<<>>, Left),
     ?assertEqual(?PINGRESP, Type).
 
+more_fixedheader_only_test() ->
+    Data = <<208>>,
+    Result = mqtt_frame:decode(Data),
+    ?assertEqual(more, Result).
+
 more_test() ->
     Data = <<64,2,0>>,
     Result = mqtt_frame:decode(Data),
