@@ -43,14 +43,16 @@ encode(#mqtt{} = Message) ->
   <<FixedHeader/binary, EncodedLength/binary, VariableHeader/binary, Payload/binary>>.
 
 decode(<<FixedHeader:8/big, Rest/binary>>) ->
-  {RemainingLength, Rest1} = decode_length(Rest),
-  Size = size(Rest1),
-  if
-    RemainingLength == 0 andalso Size == 0 -> more;
-    Size >= RemainingLength ->
-      <<Body:RemainingLength/binary-unit:8, Left/binary>> = Rest1,
-      {decode_message(decode_fixed_header(<<FixedHeader>>), Body), Left};
-    true -> more
+  case decode_length(Rest) of
+      more -> more;
+  {RemainingLength, Rest1} ->
+          Size = size(Rest1),
+          if
+              Size >= RemainingLength ->
+                  <<Body:RemainingLength/binary-unit:8, Left/binary>> = Rest1,
+                  {decode_message(decode_fixed_header(<<FixedHeader>>), Body), Left};
+              true -> more
+          end
   end;
 decode(_Data) ->
   more.
@@ -335,6 +337,7 @@ encode_message(#mqtt{type = ?DISCONNECT}) ->
 encode_message(#mqtt{} = Message) ->
   exit({encode_message, unknown_type, Message}).
 
+decode_length(<<>>) -> more;
 decode_length(Data) ->
   decode_length(Data, 1, 0).
 decode_length(<<>>, Multiplier, Value) ->
