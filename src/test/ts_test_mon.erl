@@ -18,14 +18,14 @@ test()->
     ok.
 
 munin_data_ok_test()->
-    myset_env(7),
+    myset_env(),
     %% error because of empty socket in gen_tcp:recv
     %% FIXME: start a fake tcp server
     ?assertError(function_clause,
                  ts_os_mon_munin:read_munin_data(undefined,{ok,"glop 100"},[300])).
 
 munin_data_nok_test()->
-    myset_env(7),
+    myset_env(),
     %% error because of empty socket in gen_tcp:recv
     %% FIXME: start a fake tcp server
     ?assertError(function_clause,

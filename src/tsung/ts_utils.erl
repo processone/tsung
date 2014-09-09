@@ -34,7 +34,7 @@
 %% user interface
 -export([debug/3, debug/4, get_val/1, init_seed/0, chop/1, elapsed/2,
          now_sec/0, node_to_hostname/1, add_time/2, keyumerge/3, key1search/2,
-         level2int/1, mkey1search/2, datestr/0, datestr/1,
+         level2int/1, mkey1search/2, datestr/0, datestr/1, size_or_length/1,
          erl_system_args/0, erl_system_args/1, setsubdir/1, export_text/1,
          foreach_parallel/2, spawn_par/3, inet_setopts/3, resolve/2,
          stop_all/2, stop_all/3, stop_all/4, join/2, split/2, split2/2, split2/3,
@@ -993,3 +993,10 @@ new_ets(Prefix, UserId)->
     EtsName = binary_to_list(Prefix) ++ "_" ++ integer_to_list(UserId),
     ?LOGF("create ets:table ~p ~n", [EtsName], ?INFO),
     ets:new(list_to_atom(EtsName), []).
+
+
+size_or_length(Data) when is_binary(Data) ->
+    size(Data);
+size_or_length(Data) when is_list(Data) ->
+    length(Data).
+    

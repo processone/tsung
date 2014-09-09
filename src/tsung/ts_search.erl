@@ -135,10 +135,10 @@ match([Match=#match{'skip_headers'=http}|Tail], Data, Counts, DynVars, Tr) when 
         end;
 
 match([Match=#match{'apply_to_content'=undefined}|Tail], Data, Counts,DynVars,Tr) ->
-    ?DebugF("Matching Data size ~p; apply undefined~n",[size(Data)]),
+    ?DebugF("Matching Data size ~p; apply undefined~n",[ts_utils:size_or_length(Data)]),
     match([Match|Tail], Data, Counts, [],DynVars, Tr);
 match([Match=#match{'apply_to_content'={Module,Fun}}|Tail], Data, Counts,DynVars,Tr) ->
-    ?DebugF("Matching Data size ~p; apply ~p:~p~n",[size(Data),Module,Fun]),
+    ?DebugF("Matching Data size ~p; apply ~p:~p~n",[ts_utils:size_or_length(Data),Module,Fun]),
     NewData = Module:Fun(Data),
     ?DebugF("Match: apply result =~p~n",[NewData]),
     match([Match|Tail], NewData, Counts, [],DynVars, Tr).

@@ -58,7 +58,7 @@ EBIN = ./ebin
 EBIN_TEST = ./ebin-test
 
 ifeq ($(TYPE),test)
-OPT =+export_all
+OPT =+export_all +debug_info
 EBIN = $(EBIN_TEST)
 endif
 
