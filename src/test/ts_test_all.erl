@@ -13,7 +13,10 @@
 
 
 run() ->
-    eunit:test([ts_test_all], [{report,{eunit_surefire,[{dir,"."}]}}]).
+    case eunit:test([ts_test_all], [{report,{eunit_surefire,[{dir,"."}]}}]) of
+         error -> init:stop(1);
+        Result -> Result
+    end.
 
 test() -> ok.
 
