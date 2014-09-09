@@ -46,6 +46,7 @@ decode(<<FixedHeader:8/big, Rest/binary>>) ->
   {RemainingLength, Rest1} = decode_length(Rest),
   Size = size(Rest1),
   if
+    RemainingLength == 0 andalso Size == 0 -> more;
     Size >= RemainingLength ->
       <<Body:RemainingLength/binary-unit:8, Left/binary>> = Rest1,
       {decode_message(decode_fixed_header(<<FixedHeader>>), Body), Left};
@@ -336,6 +337,8 @@ encode_message(#mqtt{} = Message) ->
 
 decode_length(Data) ->
   decode_length(Data, 1, 0).
+decode_length(<<>>, Multiplier, Value) ->
+  {0, <<>>};
 decode_length(<<0:1, Length:7, Rest/binary>>, Multiplier, Value) ->
   {Value + Multiplier * Length, Rest};
 decode_length(<<1:1, Length:7, Rest/binary>>, Multiplier, Value) ->
