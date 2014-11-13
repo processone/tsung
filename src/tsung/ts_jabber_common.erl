@@ -482,11 +482,22 @@ registration(#jabber{username=Name,passwd=Passwd,resource=Resource})->
 %% Purpose: send message to defined user at the Service (aim, ...)
 %%----------------------------------------------------------------------
 message(Dest, #jabber{size=Size,data=undefined}, Service) when is_integer(Size) ->
+    {Mega, Secs, Micro} = erlang:now(),
+    TS = integer_to_list(Mega) ++ ";"
+         ++ integer_to_list(Secs) ++ ";"
+         ++ integer_to_list(Micro),
+    Stamp = "@@@" ++ integer_to_list(erlang:phash2(node())) ++ "," ++ TS ++ "@@@",
+    PadLen = Size - length(Stamp),
+    Data = case PadLen > 0 of
+               true -> ts_utils:urandomstr_noflat(PadLen);
+               false -> ""
+           end,
+    StampAndData = Stamp ++ Data,
     put(previous, Dest),
     list_to_binary([
                     "<message id='",ts_msg_server:get_id(list), "' to='",
                     Dest, "@", Service,
-                    "' type='chat'><body>",ts_utils:urandomstr_noflat(Size), "</body></message>"]);
+                    "' type='chat'><body>",StampAndData, "</body></message>"]);
 message(Dest, #jabber{data=Data}, Service) when is_list(Data) ->
     put(previous, Dest),
     list_to_binary([
