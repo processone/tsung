@@ -263,6 +263,7 @@ repeat | if | change_type | foreach | set_option | interaction )*>
     size        NMTOKEN "0"
     data        CDATA   #IMPLIED
     type        NMTOKEN #REQUIRED
+    stamped     (true | false) "false"
     show        (away|chat|dnd|xa) "chat"
     status      CDATA   "Available"
     nick        CDATA #IMPLIED

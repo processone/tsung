@@ -192,7 +192,7 @@ message_bidi(RcvdXml, State) ->
             Secs = list_to_integer(SecsS),
             Micro = list_to_integer(MicroS),
             Latency = timer:now_diff(erlang:now(), {Mega, Secs, Micro}),
-            ts_mon:add({ sample, msg_latency, Latency });
+            ts_mon:add({ sample, xmpp_msg_latency, Latency });
         _ ->
             ignore
     end,
