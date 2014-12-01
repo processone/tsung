@@ -173,7 +173,9 @@ init_seed({A,B,C}) ->
 get_node_id() ->
     case string:tokens(atom_to_list(node()),"@") of
         ["tsung_control"++_,_]    -> 123456;
-        ["tsung"++I,_]            -> list_to_integer(I);
+        ["tsung"++Tail,_]         ->
+            {match, [I]} = re:run(Tail, "\\d+$", [{capture, all, list}]),
+            list_to_integer(I);
         _                         -> 654321
     end.
 
