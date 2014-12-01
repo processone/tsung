@@ -109,6 +109,9 @@ start_inets(LogDir) ->
                                   DestName = filename:join(DestDir,CSS),
                                   file:copy(filename:join(Path,CSS),DestName)
                           end,Styles),
+
+            Redirect= << "<meta http-equiv=\"refresh\" content=\"0; url=/es/ts_web:status\">\n" >>,
+            file:write_file(filename:join(LogDir,"index.html"), Redirect),
             Inets = inets:start(httpd, [{port, 8091},
                                         {modules,[mod_esi,
                                                   mod_dir,
@@ -119,6 +122,8 @@ start_inets(LogDir) ->
                                                   mod_disk_log]},
                                         {erl_script_alias, {"/es", [ts_web, ts_api]}},
                                         {error_log, "inets_error.log"},
+                                        %% {transfer_log, "inets_access.log"},
+                                        {directory_index, ["index.html"]},
                                         {mime_types,[ {"html","text/html"},
                                                       {"css","text/css"},
                                                       {"png","image/png"},
@@ -126,7 +131,7 @@ start_inets(LogDir) ->
                                                       {"js","application/x-javascript"}]},
                                         {server_name,"tsung_controller"}, {server_root,LogDir},
                                         {document_root,LogDir}]),
-            ?LOGF("starting inets on port 8091: ~p",[Inets],?INFO);
+            ?LOGF("Starting inets on port 8091: ~p",[Inets],?INFO);
         _ ->
             ?LOG("Web gui disabled, skip inets",?INFO)
     end.
