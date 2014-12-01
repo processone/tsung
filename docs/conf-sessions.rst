@@ -825,11 +825,18 @@ Example with Websocket as a session type:
 
    <request>
      <websocket type="close"></websocket>
-   </request> 
+   </request>
  </session>
 
 You can do substitution on attribute 'path' and message content, match a
 response or define dynamic variables based on the response message.
+
+If you use ``change_type`` to start a websocket, don't forget to set
+``bidi="true"``, like this:
+
+.. code-block:: xml
+
+ <change_type new_type="ts_websocket" host="127.0.0.1" port="8080" server_type="tcp" restore="true" store="true" bidi="true"/>
 
 AMQP
 ^^^^^^^^^
