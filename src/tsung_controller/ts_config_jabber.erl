@@ -237,7 +237,6 @@ initialize_options(Tab) ->
             ets:insert_new(Tab,{{jabber_passwd,value},        ?xmpp_passwd}),
             ets:insert_new(Tab,{{jabber_domain_name,value},   {domain,?xmpp_domain}}),
             ets:insert_new(Tab,{{jabber_initialized,value},   true}),
-            ts_user_server:reset(ts_config:get_default(Tab, jabber_userid_max)),
             ts_timer:config(ts_config:get_default(Tab, jabber_global_number));
         _Else ->
             ok
