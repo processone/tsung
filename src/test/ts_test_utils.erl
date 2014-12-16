@@ -81,10 +81,6 @@ pmapn_big_test()->
     ResP = ts_utils:pmap(F,L,10),
     ?assertEqual(ResP, Res).
 
-release_is_newer_or_eq_test()->
-    ResP = ts_utils:release_is_newer_or_eq("5.9.0"),
-    ?assertEqual(ResP, true or false).
-
 filtermap_test()->
     Fun = fun(X) -> case X > 1 of 
                         true -> {true, X + 1}; 

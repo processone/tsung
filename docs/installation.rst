@@ -12,7 +12,7 @@ On Mac OS X you can install Tsung via Homebrew (http://brew.sh/): :command:`brew
 Dependencies
 ============
 
-* **Erlang/OTP R13B** and up (`download <http://www.erlang.org/download.html>`_). Erlang is now
+* **Erlang/OTP R14B** and up (`download <http://www.erlang.org/download.html>`_). Erlang is now
   part of Fedora and Debian/Ubuntu repositories.
 
 * **pgsql module** made by Christian Sunesson (for the PostgreSQL plugin):

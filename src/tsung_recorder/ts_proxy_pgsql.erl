@@ -273,21 +273,7 @@ get_params_int(N,<<Val:32/integer,Tail/binary>>,Acc) ->
 
 
 split(Bin,Pattern,Options)->
-    %% we should remove this once R13B and older are no longer supported by tsung
-    case ts_utils:release_is_newer_or_eq("5.8") of
-        false ->
-            do_split(Bin,Pattern,<<>>,[]);
-        true->
-            binary:split(Bin,Pattern,Options)
-    end.
-
-%% simple binary split; only works when pattern size is 1
-do_split(<<>>,_,_,L) ->
-    L;
-do_split(<<Pattern:1/binary,Tail/binary>>,Pattern,Head,L) ->
-    do_split(Tail,Pattern,<<>>,L ++ [Head]);
-do_split(<<H:1/binary,Tail/binary>>,Pattern,Head,L) ->
-    do_split(Tail,Pattern,<<Head/binary,H/binary>>,L).
+    binary:split(Bin,Pattern,Options).
 
 %%--------------------------------------------------------------------
 %% Func: record_request/2

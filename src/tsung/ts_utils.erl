@@ -40,7 +40,7 @@
          stop_all/2, stop_all/3, stop_all/4, join/2, split/2, split2/2, split2/3,
          make_dir/1, make_dir_raw/1, is_ip/1, from_https/1, to_https/1, keymax/2,
          check_sum/3, check_sum/5, clean_str/1, file_to_list/1, term_to_list/1,
-         decode_base64/1, encode_base64/1, to_lower/1, release_is_newer_or_eq/1,
+         decode_base64/1, encode_base64/1, to_lower/1,
          randomstr/1,urandomstr/1,urandomstr_noflat/1, eval/1, list_to_number/1,
          time2sec/1, time2sec_hires/1, read_file_raw/1, init_seed/1, jsonpath/2,
          concat_atoms/1, ceiling/1, accept_loop/3, append_to_filename/3, splitchar/2,
@@ -221,10 +221,6 @@ encode_base64(String)->
 
 decode_base64(Base64)->
     base64:decode_to_string(Base64).
-
-% return true if current version of erlang is newer or equal
-release_is_newer_or_eq(Release)->
-    erlang:system_info(version) >= Release.
 
 %%----------------------------------------------------------------------
 %% Func: filtermap/2
