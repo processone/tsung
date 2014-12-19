@@ -664,7 +664,6 @@ recv_response(S, Data) ->
     Timeout = get(req_timeout), % kludge...
     case do_recv(S, Data, 0, Timeout) of
 	{ok, Packet} ->
-	    check_tag(Packet),
 	    case asn1rt:decode('ELDAPv3', 'LDAPMessage', Packet) of
 		{ok,Resp} -> {ok,Resp};
 		Error     -> throw(Error)
@@ -673,17 +672,6 @@ recv_response(S, Data) ->
 	    throw({gen_tcp_error, Reason});
 	Error ->
 	    throw(Error)
-    end.
-
-%%% Sanity check of received packet
-check_tag(Data) ->
-    case asn1rt_ber_bin:decode_tag(b2l(Data)) of
-	{_Tag, Data1, _Rb} ->
-	    case asn1rt_ber_bin:decode_length(b2l(Data1)) of
-		{{_Len, _Data2}, _Rb2} -> ok;
-		_ -> throw({error,decoded_tag_length})
-	    end;
-	_ -> throw({error,decoded_tag})
     end.
 
 %%% Check for expected kind of reply

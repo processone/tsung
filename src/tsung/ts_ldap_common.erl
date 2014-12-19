@@ -55,7 +55,7 @@ bind_msg(Id,User,Password) ->
     Req = {bindRequest,#'BindRequest'{version=?LDAP_VERSION, name=User, authentication = {simple, Password}}},
     Message = #'LDAPMessage'{messageID  = Id,
                              protocolOp = Req},
-    {ok,Bytes} = asn1rt:encode('ELDAPv3', 'LDAPMessage', Message),
+    {ok,Bytes} = 'ELDAPv3':encode('LDAPMessage', Message),
     Bytes.
 
 
@@ -70,7 +70,7 @@ search_msg(Id,Base,Scope,Filter,Attributes) ->
                attributes = Attributes},
     Message = #'LDAPMessage'{messageID  = Id,
                  protocolOp = {searchRequest,Req}},
-    {ok,Bytes} = asn1rt:encode('ELDAPv3', 'LDAPMessage', Message),
+    {ok,Bytes} = 'ELDAPv3':encode('LDAPMessage', Message),
     Bytes.
 
 
@@ -78,14 +78,14 @@ search_msg(Id,Base,Scope,Filter,Attributes) ->
 start_tls_msg(Id) ->
     Req = #'ExtendedRequest'{requestName = ?START_TLS_OID},
     Message = #'LDAPMessage'{messageID  = Id,  protocolOp = {extendedReq,Req}},
-    {ok,Bytes} = asn1rt:encode('ELDAPv3', 'LDAPMessage', Message),
+    {ok,Bytes} = 'ELDAPv3':encode('LDAPMessage', Message),
     Bytes.
 
 
 unbind_msg(Id) ->
     Message = #'LDAPMessage'{messageID  = Id,
                  protocolOp = {unbindRequest,[]}},
-    {ok,Bytes} = asn1rt:encode('ELDAPv3', 'LDAPMessage', Message),
+    {ok,Bytes} = 'ELDAPv3':encode('LDAPMessage', Message),
     Bytes.
 
 
@@ -94,7 +94,7 @@ add_msg(Id,DN,Attrs) ->
             attributes = [ {'AddRequest_attributes',Type, Values}  || {Type,Values} <- Attrs]},
     Message = #'LDAPMessage'{messageID  = Id,
                  protocolOp = {addRequest,Req}},
-    {ok,Bytes} = asn1rt:encode('ELDAPv3', 'LDAPMessage', Message),
+    {ok,Bytes} = 'ELDAPv3':encode('LDAPMessage', Message),
     Bytes.
 
 
@@ -105,7 +105,7 @@ modify_msg(Id,DN,Modifications) ->
                                    || {Operation,Type,Values} <- Modifications],
     Req = #'ModifyRequest'{object = DN,    modification = Mods},
     Message = #'LDAPMessage'{messageID  = Id,  protocolOp = {modifyRequest,Req}},
-    {ok,Bytes} = asn1rt:encode('ELDAPv3', 'LDAPMessage', Message),
+    {ok,Bytes} = 'ELDAPv3':encode('LDAPMessage', Message),
     Bytes.
 
 
@@ -152,7 +152,7 @@ extract_packet(#asn1_packet_state{length=N,buffer=Buffer}) when (size(Buffer) >=
 extract_packet(S) when is_record(S,asn1_packet_state) -> {none,S}.
 
 packet_length(Buffer) ->
-    try asn1rt_ber_bin:decode_tag_and_length(Buffer) of
+    try compat_asn1rt_ber_bin_decode_tag_and_length(Buffer) of
         {_Tag, Len,_Rest,RemovedBytes} ->    {ok,Len+RemovedBytes}
     catch
         _Type:_Error ->
@@ -161,3 +161,39 @@ packet_length(Buffer) ->
                 false -> not_enough_data
             end
     end.
+
+%% -------------------------------------------
+%% old asn1rt_ber_bin compat functions
+%%
+%% -------------------------------------------
+%%
+compat_asn1rt_ber_bin_decode_tag_and_length(Buffer) ->
+    {Tag, Buffer2, RemBytesTag} = compat_asn1rt_ber_bin_decode_tag(Buffer),
+    {{Len, Buffer3}, RemBytesLen} = compat_asn1rt_ber_bin_decode_length(Buffer2),
+    {Tag, Len, Buffer3, RemBytesTag+RemBytesLen}.
+
+%% multiple octet tag
+compat_asn1rt_ber_bin_decode_tag(<<Class:2, Form:1, 31:5, Buffer/binary>>) ->
+    {TagNo, Buffer1, RemovedBytes} = compat_asn1rt_ber_bin_decode_tag(Buffer, 0, 1),
+    {{(Class bsl 6), (Form bsl 5), TagNo}, Buffer1, RemovedBytes};
+%% single tag (< 31 tags)
+compat_asn1rt_ber_bin_decode_tag(<<Class:2,Form:1,TagNo:5, Buffer/binary>>) ->
+    {{(Class bsl 6), (Form bsl 5), TagNo}, Buffer, 1}.
+%% last partial tag
+compat_asn1rt_ber_bin_decode_tag(<<0:1,PartialTag:7, Buffer/binary>>, TagAck, RemovedBytes) ->
+    TagNo = (TagAck bsl 7) bor PartialTag,
+    %%<<TagNo>> = <<TagAck:1, PartialTag:7>>,
+    {TagNo, Buffer, RemovedBytes+1};
+% more tags
+compat_asn1rt_ber_bin_decode_tag(<<_:1,PartialTag:7, Buffer/binary>>, TagAck, RemovedBytes) ->
+    TagAck1 = (TagAck bsl 7) bor PartialTag,
+    %%<<TagAck1:16>> = <<TagAck:1, PartialTag:7,0:8>>,
+    compat_asn1rt_ber_bin_decode_tag(Buffer, TagAck1, RemovedBytes+1).
+
+compat_asn1rt_ber_bin_decode_length(<<1:1,0:7,T/binary>>) ->
+    {{indefinite, T}, 1};
+compat_asn1rt_ber_bin_decode_length(<<0:1,Length:7,T/binary>>) ->
+    {{Length,T},1};
+compat_asn1rt_ber_bin_decode_length(<<1:1,LL:7,T/binary>>) ->
+    <<Length:LL/unit:8,Rest/binary>> = T,
+    {{Length,Rest}, LL+1}.
