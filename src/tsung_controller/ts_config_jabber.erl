@@ -217,7 +217,7 @@ parse_config(Element = #xmlElement{name=option}, Conf = #config{session_tab = Ta
             Conf;
         "fileid_delimiter" ->
             D = ts_config:getAttr(string,Element#xmlElement.attributes, value, ";"),
-            ts_user_server:set_fileid_delimiter(D),
+            ts_user_server:set_fileid_delimiter(list_to_binary(D)),
             Conf
     end,
     lists:foldl( fun(A,B) -> ts_config:parse(A,B) end, NewConf, Element#xmlElement.content);
