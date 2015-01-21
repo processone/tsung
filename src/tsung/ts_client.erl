@@ -166,7 +166,7 @@ wait_ack(next_msg,State=#state_rcv{request=R}) when R#ts_request.ack==global->
                                        page_timestamp=PageTimeStamp});
 wait_ack(timeout,State) ->
     ?LOG("Error: timeout receive in state wait_ack~n", ?ERR),
-    ts_mon:add({ count, timeout }),
+    ts_mon:add({ count, error_timeout }),
     {stop, normal, State}.
 
 %%--------------------------------------------------------------------
