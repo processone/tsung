@@ -862,8 +862,8 @@ handle_next_request(Request, State) ->
                     ?LOGF("EXIT Error: Unable to send data, reason: ~p~n", [Exit], ?ERR),
                     ts_mon:add({ count, error_send }),
                     {stop, normal, State};
-                _ ->
-                    ?LOGF("EXIT Error: Unable to send data, max_retries reached; reason: ~p~n", [Exit], ?ERR),
+                _Exit ->
+                    ?LOGF("EXIT Error: Unable to send data, max_retries reached; reason: ~p~n", [_Exit], ?ERR),
                     ts_mon:add({ count, error_abort_max_send_retries }),
                     {stop, normal, State}
             end;
