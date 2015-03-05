@@ -447,6 +447,8 @@ make_dir_rec(Path, FileMod,[Parent|Childs]) ->
             case FileMod:make_dir(CurrentDir) of
                 ok ->
                     make_dir_rec(CurrentDir, FileMod, Childs);
+                {error, eexist} ->
+                    make_dir_rec(CurrentDir, FileMod, Childs);
                 Error ->
                     Error
             end;
