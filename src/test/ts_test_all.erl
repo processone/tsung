@@ -12,7 +12,30 @@
 -include_lib("eunit/include/eunit.hrl").
 -define(FILE_NAME(MODULE), "cover_report/" ++ atom_to_list(MODULE) ++ ".html").
 
+
+version() ->
+    case re:run(erlang:system_info(otp_release), "R?(\\d+)B?-?(\\d+)?", [{capture, all, list}]) of
+        {match, [_Full, Maj, Min]} ->
+            {list_to_integer(Maj), list_to_integer(Min)};
+        {match, [_Full, Maj]} ->
+            {list_to_integer(Maj), 0}
+    end.
+
 run() ->
+    case version() of
+        {Maj, Min} when (Maj > 16 orelse ((Maj == 16) andalso (Min >= 3)))  ->
+            run_cover();
+        _ ->
+            %% older version of cover removes the export_all option
+            RetVal = case eunit:test([ts_test_all],
+                                     [{report,{eunit_surefire,[{dir,"."}]}}]) of
+                         error  -> 1;
+                         _ -> 0
+                     end,
+            init:stop(RetVal)
+    end.
+
+run_cover() ->
     {ok, Path} = file:get_cwd(),
     Dir = filename:join(Path,"ebin-test"),
     cover:compile_beam_directory(Dir),
