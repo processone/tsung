@@ -95,7 +95,7 @@ can be changed like this:
 .. code-block:: xml
 
  <option name="idle_timeout" value="300000"></option>
- <option name="glocal_ack_timeout" value="6000000"></option>
+ <option name="global_ack_timeout" value="6000000"></option>
 
 
 .. index:: hibernate
