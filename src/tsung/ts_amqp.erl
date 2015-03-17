@@ -312,11 +312,17 @@ parse_config(Element, Conf) ->
 add_dynparams(false, {_DynVars, _Session}, Param, _HostData) ->
     Param;
 add_dynparams(true, {DynVars, _Session},
-              Req = #amqp_request{channel = Channel, payload = Payload},
-              _HostData) ->
+              Req = #amqp_request{channel = Channel, payload = Payload,
+                                  exchange = Exchange, routing_key = RoutingKey,
+                                  queue = Queue}, _HostData) ->
     SubstChannel = ts_search:subst(Channel, DynVars),
     SubstPayload = ts_search:subst(Payload, DynVars),
-    Req#amqp_request{channel = SubstChannel, payload = SubstPayload}.
+    SubstExchange = ts_search:subst(Exchange, DynVars),
+    SubstRoutingKey = ts_search:subst(RoutingKey, DynVars),
+    SubstQueue = ts_search:subst(Queue, DynVars),
+    Req#amqp_request{channel = SubstChannel, payload = SubstPayload,
+                     exchange = SubstExchange, routing_key = SubstRoutingKey,
+                     queue = SubstQueue}.
 
 %%----------------------------------------------------------------------
 plain(none, Username, Password) ->
