@@ -6,12 +6,10 @@
                        ts_launcher,
                        ts_session_cache,
                        ts_client,
-                       ts_client_rcv,
                        ts_client_sup,
                        ts_sup,
                        ts_stats,
-                       ts_utils,
-                       ts_profile
+                       ts_utils
                       ]},
        {registered,   [
                        ts_launcher,
