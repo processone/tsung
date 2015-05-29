@@ -45,8 +45,6 @@ graph(SessionID, Env, Input, File) ->
             Msg = " Fail to generated reports: tsung_stats.pl was not found in the $PATH or in:<br>  "
                   ++script_paths(),
             error(SessionID, Env, Input, Msg);
-        {error, Reason} ->
-            error(SessionID, Env, Input, Reason);
         _ ->
             case file:read_file(GraphFile) of
                 {error, enoent} ->
