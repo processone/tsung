@@ -103,7 +103,7 @@ receiver({connected, Pid}, State=#state{pidlist=List, nclient=1}) ->
 
 %% receive a new connected mes
 receiver({connected, Pid}, State=#state{pidlist=List, nclient=N}) ->
-    ?LOGF("New connected ~p (nclient=~p)",[Pid, N,?DEB),
+    ?LOGF("New connected ~p (nclient=~p)",[Pid, N],?DEB),
     {next_state, receiver, State#state{pidlist=List ++ [Pid], nclient=N-1},
      State#state.timeout};
 
