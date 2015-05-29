@@ -33,6 +33,7 @@
             <li><a href="report.html">Reports</a></li>
             <li><a href="graph.html">Graphs</a></li>
             <li><a href="/es/ts_web:logs">Logs</a></li>
+            <li><a href="/es/ts_web:stop">Stop</a></li>
             <!-- <li><a href="[% conf %]">Config</a></li> -->
           </ul>
         </div>

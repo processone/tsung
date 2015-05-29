@@ -26,7 +26,7 @@
 -include("ts_macros.hrl").
 -include_lib("kernel/include/file.hrl").
 
--export([status/3, logs/3, update/3, graph/3, error/3, report/3]).
+-export([status/3, stop/3, logs/3, update/3, graph/3, error/3, report/3]).
 
 -export([number_to_list/1]).
 
@@ -128,6 +128,17 @@ update(SessionID, _Env, _Input) ->
                                 ++ "<div><em>Time to update reports:"++ number_to_list(Time/1000) ++" sec </em></div>"
                                 ++ foot()
                                ]).
+
+stop(SessionID, _Env, _Input) ->
+    Title ="Tsung Stop",
+    mod_esi:deliver(SessionID, [
+                                "Content-Type: text/html\r\n\r\n",
+                                head(Title)
+                                ++ "<body> "
+                                ++ "<h1 class=\"page-header\">Tsung controller  is stopping now !</h1>"
+
+                               ]),
+    slave:stop(node()).
 
 status(SessionID, _Env, _Input) ->
     Title ="Tsung Status",
@@ -255,6 +266,7 @@ nav() ->
             <li><a href=\"/es/ts_web:report\">Reports</a></li>
             <li><a href=\"/es/ts_web:graph\">Graphs</a></li>
             <li><a href=\"/es/ts_web:logs\">Logs</a></li>
+            <li><a href=\"/es/ts_web:stop\">Stop</a></li>
           </ul>
         </div>
       </div>

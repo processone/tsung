@@ -150,8 +150,12 @@ handle_info(_Info, State) ->
 terminate(_Reason, _State) ->
     ts_mon:stop(),
     timer:sleep(?DIE_DELAY), % useful when using controller vm
-    slave:stop(node()), %% commit suicide. FIXME: what about use_controller_vm ?
-    ok.
+    case ts_utils:is_controller() of
+        false ->
+            slave:stop(node()); %% commit suicide.
+        true ->
+            ok
+    end.
 
 %%--------------------------------------------------------------------
 %% Func: code_change(OldVsn, State, Extra) -> {ok, NewState}

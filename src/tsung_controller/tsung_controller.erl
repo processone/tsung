@@ -56,7 +56,7 @@ start(_Type, _StartArgs) ->
             io:format(standard_error,Msg,[Err]),
             halt(1);
         {ok, {LogDir, _Name}} ->
-            erlang:display("Log directory is: " ++ LogDir),
+            io:format(standard_io,"Log directory is: ~s~n", [LogDir]),
             application:set_env(tsung_controller,log_dir_real,LogDir),
             LogFile = filename:join(LogDir, atom_to_list(node()) ++ ".log"),
             case  error_logger:logfile({open, LogFile }) of

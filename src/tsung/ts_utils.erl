@@ -45,7 +45,8 @@
          time2sec/1, time2sec_hires/1, read_file_raw/1, init_seed/1, jsonpath/2,
          concat_atoms/1, ceiling/1, accept_loop/3, append_to_filename/3, splitchar/2,
          randombinstr/1,urandombinstr/1,log_transaction/1,conv_entities/1, wildcard/2,
-         ensure_all_started/2, pmap/2, pmap/3, get_node_id/0, filtermap/2, new_ets/2]).
+         ensure_all_started/2, pmap/2, pmap/3, get_node_id/0, filtermap/2, new_ets/2,
+         is_controller/0]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -177,6 +178,15 @@ get_node_id() ->
             {match, [I]} = re:run(Tail, "\\d+$", [{capture, all, list}]),
             list_to_integer(I);
         _                         -> 654321
+    end.
+
+%% @spec is_controller() -> true|false
+%% @doc return true if the caller is running on the controller node
+%% @end
+is_controller() ->
+    case string:tokens(atom_to_list(node()),"@") of
+        ["tsung_control"++_,_]    -> true;
+        _ ->false
     end.
 
 %%----------------------------------------------------------------------

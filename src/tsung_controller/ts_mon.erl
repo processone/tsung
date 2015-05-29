@@ -71,7 +71,9 @@
                 laststats,    % values of last printed stats
                 lastdate,     % date of last printed stats
                 type,         % type of logging (none, light, full)
-                launchers=0   % number of launchers started
+                launchers=0,  % number of launchers started
+                timer_ref,    % timer reference (for dumpstats)
+                wait_gui=false% wait gui before stopping
                }).
 
 -record(stats, {
@@ -232,6 +234,8 @@ handle_call(Request, _From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
+handle_cast({add, _}, State=#state{wait_gui=true}) ->
+    {noreply,State};
 handle_cast({add, Data}, State=#state{stats=Stats}) when is_list(Data) ->
     case State#state.backend of
         fullstats -> io:format(State#state.fullstats,"~p~n",[Data]);
@@ -346,9 +350,17 @@ handle_cast({rcvmsg, Who, When, What}, State=#state{type=full,dumpfile=Log}) ->
     io:format(Log, "Recv:~w:~w:~p~n",[ts_utils:time2sec_hires(When),Who,What]),
     {noreply, State};
 
-handle_cast({stop}, State = #state{client = 0, launchers=1}) ->
+handle_cast({stop}, State = #state{client=0, launchers=1, timer_ref=TRef}) ->
     ?LOG("Stop asked, no more users, last launcher stopped, OK to stop~n", ?INFO),
-    {stop, normal, State};
+    case ?config(keep_web_gui) of
+        true ->
+            io:format(standard_io,"All slaves have stopped; keep controller and web dashboard alive. ~nHit CTRL-C or click Stop on the dashboard to stop.~n",[]),
+            timer:cancel(TRef),
+            close_stats(State),
+            {noreply, State#state{wait_gui=true}};
+        _ ->
+            {stop, normal, State}
+    end;
 handle_cast({stop}, State=#state{launchers=L}) -> % we should stop, wait until no more clients are alive
     ?LOG("A launcher has finished, but not all users have finished, wait before stopping~n", ?NOTICE),
     {noreply, State#state{stop = true, launchers=L-1}};
@@ -377,13 +389,8 @@ handle_cast(Msg, State) ->
 handle_info(_Info, State) ->
     {noreply, State}.
 
-%%----------------------------------------------------------------------
-%% Func: terminate/2
-%% Purpose: Shutdown the server
-%% Returns: any (ignored by gen_server)
-%%----------------------------------------------------------------------
-terminate(Reason, State) ->
-    ?LOGF("stopping monitor (~p)~n",[Reason],?NOTICE),
+
+close_stats(State) ->
     export_stats(State),
     % blocking call to all ts_stats_mon; this way, we are
     % sure the last call to dumpstats is finished
@@ -398,9 +405,19 @@ terminate(Reason, State) ->
         standard_io -> ok;
         Dev         -> file:close(Dev)
     end,
-    file:close(State#state.fullstats),
-    slave:stop(node()),
-    ok.
+    file:close(State#state.fullstats).
+
+%%----------------------------------------------------------------------
+%% Func: terminate/2
+%% Purpose: Shutdown the server
+%% Returns: any (ignored by gen_server)
+%%----------------------------------------------------------------------
+terminate(Reason, #state{wait_gui=true}) ->
+    ?LOGF("stopping monitor by gui (~p)~n",[Reason],?NOTICE);
+terminate(Reason, State) ->
+    ?LOGF("stopping monitor (~p)~n",[Reason],?NOTICE),
+    close_stats(State),
+    slave:stop(node()).
 
 %%--------------------------------------------------------------------
 %% Func: code_change/3
@@ -435,9 +452,9 @@ start_logger({Machines, DumpType, Backend}, _From, State=#state{log=Log,fullstat
     ?LOGF("Activate clients with ~p backend~n",[Backend],?NOTICE),
     print_headline(Log,Backend),
     start_launchers(Machines),
-    timer:apply_interval(State#state.dump_interval, ?MODULE, dumpstats, [] ),
+    {ok, TRef} = timer:apply_interval(State#state.dump_interval, ?MODULE, dumpstats, [] ),
     lists:foreach(fun(Name) -> ts_stats_mon:set_output(Backend,{Log,FS}, Name) end, ?STATSPROCS),
-    start_dump(State#state{type=DumpType, backend=Backend}).
+    start_dump(State#state{type=DumpType, backend=Backend, timer_ref=TRef}).
 
 print_headline(Log,json)->
     DateStr = ts_utils:now_sec(),
