@@ -1,0 +1,7 @@
+### .gitignore ---
+
+*~
+
+ebin/*.beam
+ebin/*.app
+examples/*.xml
