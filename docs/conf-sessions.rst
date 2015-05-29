@@ -71,7 +71,10 @@ You can also synchronize all users using the ``wait_global`` value:
 
  <thinktime value='wait_global'>
 
-which means: wait for all (N) users to be connected and waiting for the global lock (the value can be set using the option ``<option type="ts_jabber" name="global_number" value ="XXX"/>`` and by setting `maxnumber=N` in ``<arrivalphase>``)
+which means: wait for all (N) users to be connected and waiting for
+the global lock (the value can be set using the option ``<option
+name="global_number" value ="XXX"/>`` and by setting `maxnumber=N` in
+``<arrivalphase>``).
 
 HTTP
 ^^^^

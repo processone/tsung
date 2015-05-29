@@ -31,6 +31,9 @@
                      {thinktime_override, "false"},
                      {thinktime_random, "false"},
 
+                     {global_number, 100},
+                     {global_ack_timeout, 3600000}, %in msec
+
                      {munin_port, 4949},
 
                      {snmp_port, 161},
