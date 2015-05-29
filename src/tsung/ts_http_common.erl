@@ -224,7 +224,7 @@ headers(Headers) ->
         case lists:member(string:to_lower(Name), HeadersToIgnore) of
             true ->
                 Result;
-            Name ->
+            _ ->
                 [Name, ": ", Value, ?CRLF | Result]
         end
     end, [], lists:reverse(Headers)).
