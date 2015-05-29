@@ -32,9 +32,11 @@
 -include("ts_profile.hrl").
 -include("ts_config.hrl").
 
-protocol_options(#proto_opts{tcp_rcv_size=Rcv, tcp_snd_size=Snd}) ->
+protocol_options(#proto_opts{tcp_rcv_size = Rcv, tcp_snd_size = Snd,
+                             tcp_reuseaddr = Reuseaddr}) ->
     [binary,
      {active, once},
+     {reuseaddr, Reuseaddr},
      {recbuf, Rcv},
      {sndbuf, Snd},
      {keepalive, true} %% FIXME: should be an option

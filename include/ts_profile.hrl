@@ -56,6 +56,7 @@
 -record(proto_opts,
         {ssl_ciphers   = negociate, % for ssl only
          bosh_path = "/http-bind/",  % for bash only
+         tcp_reuseaddr = false,  % for tcp reuseaddr
          websocket_path = "/chat",  % for websocket only
          websocket_frame = "binary",  % for websocket only
          retry_timeout = 10,        % retry sending in milliseconds
