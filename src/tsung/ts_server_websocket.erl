@@ -26,7 +26,7 @@
 
 -module (ts_server_websocket).
 
--export([ connect/3, send/3, close/1, set_opts/2, protocol_options/1,
+-export([ connect/4, send/3, close/1, set_opts/2, protocol_options/1,
           normalize_incomming_data/2 ]).
 
 -behaviour(gen_ts_transport).
@@ -50,7 +50,7 @@ protocol_options(#proto_opts{tcp_rcv_size = Rcv, tcp_snd_size = Snd,
      {keepalive, true} %% FIXME: should be an option
     ].
 
-connect(Host, Port, Opts) ->
+connect(Host, Port, Opts, Timeout) ->
     Parent = self(),
 
     [WSConfig | TcpOpts] = Opts,
@@ -58,7 +58,7 @@ connect(Host, Port, Opts) ->
     Version = WSConfig#ws_config.version,
     Frame = WSConfig#ws_config.frame,
 
-    case gen_tcp:connect(Host, Port, opts_to_tcp_opts(TcpOpts)) of
+    case gen_tcp:connect(Host, Port, opts_to_tcp_opts(TcpOpts),Timeout) of
         {ok, Socket} ->
             Pid = spawn_link(
                     fun() ->

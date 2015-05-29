@@ -25,9 +25,9 @@
 
 -module(ts_bosh).
 
--export([ connect/3, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2 ]).
+-export([ connect/4, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2 ]).
 
--export([connect/4]).  %% used for ts_bosh_ssl sessions.
+-export([connect/5]).  %% used for ts_bosh_ssl sessions.
 
 -behaviour(gen_ts_transport).
 
@@ -40,7 +40,6 @@
 -define(WAIT, 60). %1 minute
 -define(HOLD, 1). %only 1 request pending
 
--define(CONNECT_TIMEOUT, 20 * 1000).
 -define(MAX_QUEUE_SIZE, 5). %% at most 5 messages queued, after that close the connection.
                             %% In practice we never had more than 1 pending packet, as we are blocking
                             %% the client process until we sent the packet.  But I keep this functionality in place,
@@ -63,6 +62,7 @@
           local_port,
           session_state = fresh, %% fresh | normal | closing
           pending_ref,
+          connect_timeout = 20 * 1000,
           type  %% 'tcp' | 'ssl'
          }).
 
@@ -70,13 +70,13 @@ normalize_incomming_data(_Socket, X) ->
     X. %% nothing to do here, ts_bosh uses a special process to handle http requests,
        %% the incoming data is already delivered to ts_client as {gen_ts_transport, ..} instead of gen_tcp | ssl
 
-connect(Host, Port, Opts) ->
-    connect(Host, Port, Opts, tcp).
+connect(Host, Port, Opts, Timeout) ->
+    connect(Host, Port, Opts, Timeout, tcp).
 
-connect(Host, Port, Opts, Type) when Type =:= 'tcp' ; Type =:= 'ssl' ->
+connect(Host, Port, Opts, Timeout, Type) when Type =:= 'tcp' ; Type =:= 'ssl' ->
     Parent = self(),
     [BoshPath | OtherOpts] = Opts,
-    Pid = spawn(fun() -> loop(Host, Port, BoshPath, OtherOpts, Type, Parent) end),
+    Pid = spawn(fun() -> loop(Host, Port, BoshPath, OtherOpts, Type, Parent, Timeout) end),
     ?DebugF("connect ~p ~p ~p ~p ~p",[Host, Port, BoshPath, self(), Pid]),
     {ok, Pid}.
 
@@ -118,7 +118,7 @@ set_opts(Pid, _Opts) ->
 protocol_options(#proto_opts{bosh_path = BoshPath}) ->
     [BoshPath].
 
-loop(Host, Port, Path, Opts, Type, Parent) ->
+loop(Host, Port, Path, Opts, Type, Parent, Timeout) ->
     {A,B,C} = now(),
     random:seed(A,B,C),
     _MonitorRef = erlang:monitor(process,Parent),
@@ -129,7 +129,8 @@ loop(Host, Port, Path, Opts, Type, Parent) ->
                host = Host,
                local_ip = proplists:get_value(ip, Opts, undefined),
                local_port = proplists:get_value(port, Opts, undefined),
-               type = Type
+               type = Type,
+               connect_timeout = Timeout
               }).
 
 loop(#state{parent_pid = ParentPid} = State) ->
@@ -371,7 +372,7 @@ make_request(Type, Socket,Host, Path, Body, OriginalSize) ->
 new_socket(State = #state{free = [Socket | Rest], type = Type}, Active) ->
         socket_setopts(Type, Socket, [{active, Active}, {packet, http}]),
         {State#state{free = Rest}, Socket};
-new_socket(State = #state{type = Type, host = Host, port = Port, local_ip = LocalIp, local_port = LocalPort}, Active) ->
+new_socket(State = #state{type = Type, host = Host, port = Port, local_ip = LocalIp, local_port = LocalPort, connect_timeout=Timeout}, Active) ->
     Options = case LocalIp of
                   undefined -> [{active, Active}, {packet, http}];
                   _ ->  case LocalPort of
@@ -381,7 +382,7 @@ new_socket(State = #state{type = Type, host = Host, port = Port, local_ip = Loca
                                 [{active, Active}, {packet, http},{ip, LocalIp}, {port, LPort}]
                         end
     end,
-    {ok, Socket} = socket_connect(Type, Host, Port,  Options, ?CONNECT_TIMEOUT),
+    {ok, Socket} = socket_connect(Type, Host, Port,  Options, Timeout),
     ts_mon:add({count, bosh_http_conn}),
     {State, Socket}.
 

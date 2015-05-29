@@ -27,7 +27,7 @@
 -export([behaviour_info/1]).
 
 behaviour_info(callbacks) ->
-    [{connect, 3},
+    [{connect, 4},
      {send, 3},
      {close, 1},
      {set_opts, 2},

@@ -26,7 +26,7 @@
 
 -module(ts_udp6).
 
--export([ connect/3, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2 ]).
+-export([ connect/4, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2 ]).
 
 -behaviour(gen_ts_transport).
 
@@ -37,7 +37,7 @@ protocol_options(Opts) ->
     [inet6] ++ ts_udp:protocol_options(Opts).
 
 %% -> {ok, Socket}
-connect(_Host, _Port, Opts) ->
+connect(_Host, _Port, Opts, _Timeout) ->
     gen_udp:open(0, Opts).
 
 %% send/3 -> ok | {error, Reason}

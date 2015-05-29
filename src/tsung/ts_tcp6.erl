@@ -26,7 +26,7 @@
 
 -module(ts_tcp6).
 
--export([ connect/3, connect/4, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2 ]).
+-export([ connect/4, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2 ]).
 
 -behaviour(gen_ts_transport).
 
@@ -35,9 +35,6 @@
 
 protocol_options(Opts) ->
     [inet6]++ts_tcp:protocol_options(Opts).
-
-connect(Host, Port, Opts) ->
-    connect(Host, Port, Opts, infinity).
 
 connect(Host, Port, Opts, ConnectTimeout) ->
     gen_tcp:connect(Host, Port, Opts, ConnectTimeout).
