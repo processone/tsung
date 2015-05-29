@@ -236,7 +236,10 @@ parse(Element = #xmlElement{name=client, attributes=Attrs},
                 DeleteController=fun(A) when A == ControllerHost -> false;
                                     (_) -> true
                                  end,
-                Nodes = lists:filter(DeleteController, NodesTmp),
+                Nodes = case lists:filter(DeleteController, NodesTmp) of
+                            []  -> NodesTmp; %% all nodes are on the controller, don't remove them
+                            Val -> Val
+                        end,
                 Fun = fun(N)->
                               IP = case Scan_Intf of
                                        "" ->
