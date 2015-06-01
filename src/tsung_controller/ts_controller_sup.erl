@@ -127,6 +127,7 @@ start_inets(LogDir) ->
                                         {mime_types,[ {"html","text/html"},
                                                       {"css","text/css"},
                                                       {"png","image/png"},
+                                                      {"xml","text/xml"},
                                                       {"json","application/json"},
                                                       {"js","application/x-javascript"}]},
                                         {server_name,"tsung_controller"}, {server_root,LogDir},
