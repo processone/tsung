@@ -28,7 +28,7 @@
 -vc('$Id: ts_launcher_mgr.erl,v 0.0 2009/12/09 11:54:33 nniclaus Exp $ ').
 -author('nicolas.niclausse@niclux.org').
 
--include("ts_macros.hrl").
+-include("ts_config.hrl").
 -include("ts_profile.hrl").
 
 -behaviour(gen_server).
@@ -148,8 +148,13 @@ handle_info(_Info, State) ->
 %% The return value is ignored.
 %%--------------------------------------------------------------------
 terminate(_Reason, _State) ->
-    ts_mon:stop(),
-    timer:sleep(?DIE_DELAY), % useful when using controller vm
+    case ts_sup:has_cport(node()) of
+        false ->
+            timer:sleep(?CACHE_DUMP_STATS_INTERVAL+10), %% let ts_mon_cache send it's last stats
+            ts_mon:stop();
+        true  ->
+            ok % already done
+    end,
     case ts_utils:is_controller() of
         false ->
             slave:stop(node()); %% commit suicide.
@@ -174,6 +179,7 @@ check_clients(State=#state{check_timeout=CheckTimeout}) ->
             case ts_sup:has_cport(node()) of
                 true ->  %%do not finish this beam
                     ?LOGF("Beam will not be terminated because it has a cport server ~p ~p~n",[node(), os:getpid()], ?NOTICE),
+                    timer:sleep(?CACHE_DUMP_STATS_INTERVAL+10), %% let ts_mon_cache send it's last stats
                     ts_mon:stop(), %% we must warn ts_mon that our clients have finished
                     {noreply, State};
                 false ->

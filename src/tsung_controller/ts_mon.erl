@@ -234,7 +234,7 @@ handle_call(Request, _From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
-handle_cast({add, _}, State=#state{wait_gui=true}) ->
+handle_cast({add, _Data}, State=#state{wait_gui=true}) ->
     {noreply,State};
 handle_cast({add, Data}, State=#state{stats=Stats}) when is_list(Data) ->
     case State#state.backend of
@@ -293,13 +293,7 @@ handle_cast({endclient, Who, When, Elapsed}, State=#state{stats=Stats}) ->
             io:format(State#state.dumpfile,"EndClient:~w:~p~n",[ts_utils:time2sec_hires(When), Who]),
             io:format(State#state.dumpfile,"load:~w~n",[Clients])
     end,
-    case {Clients, State#state.stop} of
-        {0, true} ->
-            ?LOG("No more users and stop is true, stop~n", ?INFO),
-            {stop, normal, State};
-        _ ->
-            {noreply, State#state{client = Clients, stats=NewStats}}
-    end;
+    {noreply, State#state{client = Clients, stats=NewStats}};
 
 handle_cast({dumpstats}, State=#state{stats=Stats}) ->
     export_stats(State),

@@ -39,6 +39,8 @@
 -define(DEF_RE_DYNVAR_BEGIN, "name=[\"']").%'
 -define(DEF_RE_DYNVAR_END, "[\"'] (?:[^>]* )?value=[\"']([^\"']*)[\"']").%'
 
+-define(CACHE_DUMP_STATS_INTERVAL, 500). % in milliseconds
+
 -record(config, {
           name,
           duration,           % max duration of test (by default: end when all clients are done)

@@ -54,9 +54,8 @@
           sum               % cache sum stats msgs
          }).
 
--define(DUMP_STATS_INTERVAL, 500). % in milliseconds
 
--include("ts_macros.hrl").
+-include("ts_config.hrl").
 
 %%====================================================================
 %% External functions
@@ -101,7 +100,7 @@ dump({_Type, Who, What}) ->
 %%          {stop, Reason}
 %%--------------------------------------------------------------------
 init([]) ->
-    erlang:start_timer(?DUMP_STATS_INTERVAL, self(), dump_stats ),
+    erlang:start_timer(?CACHE_DUMP_STATS_INTERVAL, self(), dump_stats ),
     {ok, #state{sum=dict:new()}}.
 
 %%--------------------------------------------------------------------
@@ -161,7 +160,7 @@ handle_info({timeout, _Ref, dump_stats}, State =#state{protocol=ProtocolData, st
     ts_stats_mon:add(State#state.pages,page),
     ts_mon:dump({cached, list_to_binary(lists:reverse(ProtocolData))}),
     ts_match_logger:add(MatchList),
-    erlang:start_timer(?DUMP_STATS_INTERVAL, self(), dump_stats ),
+    erlang:start_timer(?CACHE_DUMP_STATS_INTERVAL, self(), dump_stats ),
     {noreply, State#state{protocol=[],stats=[],match=[],pages=[],requests=[],transactions=[],connections=[],sum=dict:new()}};
 
 handle_info(_Info, State) ->
