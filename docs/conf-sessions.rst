@@ -665,7 +665,7 @@ offline and random users (also used for pubsub):
   <option type="ts_jabber" name="userid_max" value="0" />
   <option type="ts_jabber" name="random_from_fileid" value='userdb'/>
   <option type="ts_jabber" name="offline_from_fileid" value='userdb'/>
-  <option type="ts_jabber" name="delimiter" value=";"/>
+  <option type="ts_jabber" name="fileid_delimiter" value=";"/>
  </options>
 
 
