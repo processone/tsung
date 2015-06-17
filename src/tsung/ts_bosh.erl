@@ -109,8 +109,12 @@ send(Pid, Data, _Opts) ->
             {error, timeout}
     end.
 
+close(Pid) when is_pid(Pid)->
+    Pid ! close;
+close(none) ->
+    ?LOG("close: no pid",?DEB);
 close(Pid) ->
-    Pid ! close.
+    ?LOGF("close: bad argument: ~p, should be a pid",[Pid],?ERR).
 
 set_opts(Pid, _Opts) ->
     Pid.
