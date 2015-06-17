@@ -942,7 +942,7 @@ update_total_pop(UseWeight,Phases, Sessions) ->
     update_total_pop(UseWeight, length(Phases), Sessions, []).
 
 update_total_pop(_UseWeight,0, _, Total) ->
-    ?LOGF("New Total popularities:~p",[Total],?DEB),
+    ?LOGF("New Total popularities:~w",[Total],?DEB),
     Total;
 update_total_pop(UseWeight,N, Sessions, Total)   ->
     Sum = fun(#session{popularity=P},Acc) when is_number(P) ->
