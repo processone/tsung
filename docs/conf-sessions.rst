@@ -309,14 +309,14 @@ To secure a stream with STARTTLS, use:
 
 .. code-block:: xml
 
- <jabber type="starttls" ack="local" />
+ <jabber type="starttls" ack="bidi_ack" />
 
 Client certificate is implemented since **1.5.1**, for example, you can
 use dynamic variables like this:
 
 .. code-block:: xml
 
- <jabber type="starttls" ack="local"
+ <jabber type="starttls" ack="bidi_ack"
             cacertfile="%%_cacert%%"
             certfile="%%_certfile%%"
             keyfile="%%_keyfile%%" />
