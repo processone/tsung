@@ -50,9 +50,10 @@
 
     <thinktime value="5"></thinktime>
 
-    <request> <jabber type="starttls" ack="no_ack" /> </request>
-    <thinktime value="3"></thinktime>
+    <request> <jabber type="starttls" ack="bidi_ack" /> </request>
     <request> <jabber type="connect" ack="local"></jabber> </request>
+    <!-- needed -->
+    <thinktime value="3"></thinktime>
 
    <transaction name="authenticate">
      <request> <jabber type="auth_sasl" ack="local"></jabber></request>

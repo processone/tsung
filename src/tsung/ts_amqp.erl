@@ -263,7 +263,7 @@ parse_bidi(<<>>, State=#state_rcv{acc = [], session = AMQPSession}) ->
     AckBuf = AMQPSession#amqp_session.ack_buf,
     NewAMQPSession = AMQPSession#amqp_session{ack_buf = <<>>},
     ?DebugF("ack buf: ~p~n", [AckBuf]),
-    {confirm_ack_buf(AckBuf), State#state_rcv{session = NewAMQPSession}};
+    {confirm_ack_buf(AckBuf), State#state_rcv{session = NewAMQPSession},think};
 parse_bidi(Data, State=#state_rcv{acc = [], session = AMQPSession}) ->
     ?DebugF("parse bidi data: ~p ~p~n", [size(Data), Data]),
     Protocol = AMQPSession#amqp_session.protocol,
@@ -271,7 +271,7 @@ parse_bidi(Data, State=#state_rcv{acc = [], session = AMQPSession}) ->
     case decode_frame(Protocol, Data) of
         {error, _Reason} ->
             ?DebugF("decode error: ~p~n", [_Reason]),
-            {nodata, State};
+            {nodata, State, think};
         {ok, heartbeat, Left} ->
             ?DebugF("receive bidi: ~p~n", [heartbeat]),
             HB = list_to_binary(rabbit_binary_generator:build_heartbeat_frame()),
@@ -286,7 +286,7 @@ parse_bidi(Data, State=#state_rcv{acc = [], session = AMQPSession}) ->
             parse_bidi(Left, State#state_rcv{session = NewAMQPSession});
         {incomplete, Left} ->
             ?DebugF("incomplete frame: ~p~n", [Left]),
-            {confirm_ack_buf(AckBuf), State#state_rcv{acc = Left}}
+            {confirm_ack_buf(AckBuf), State#state_rcv{acc = Left},think}
     end;
 parse_bidi(Data, State=#state_rcv{acc = Acc, datasize = DataSize,
                                   session = AMQPSession}) ->

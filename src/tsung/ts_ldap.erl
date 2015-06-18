@@ -80,7 +80,7 @@ dump(A,B)->
     ts_plugin:dump(A,B).
 
 parse_bidi(A, B) ->
-    ts_plugin:dump(A,B).
+    ts_plugin:parse_bidi(A,B).
 
 %%----------------------------------------------------------------------
 %% Function: parse/2

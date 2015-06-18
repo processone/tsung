@@ -451,7 +451,7 @@ auth_sasl_bind(#jabber{username=Name,passwd=Passwd,domain=Domain, resource=Resou
 %%----------------------------------------------------------------------
 auth_sasl_bind(_Username, _Passwd, _Domain, Resource) ->
  list_to_binary(["<iq type='set' id='",ts_msg_server:get_id(list),
-                 "' ><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'>",
+                 "'><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'>",
                  "<resource>",Resource,"</resource>",
                  "</bind></iq>"]).
 
@@ -468,7 +468,7 @@ auth_sasl_session(#jabber{username=Name,passwd=Passwd,domain=Domain})->
 %%----------------------------------------------------------------------
 auth_sasl_session(_Username, _Passwd, _Domain) ->
  list_to_binary(["<iq type='set' id='",ts_msg_server:get_id(list),
-"' ><session xmlns='urn:ietf:params:xml:ns:xmpp-session' /></iq>"]).
+"'><session xmlns='urn:ietf:params:xml:ns:xmpp-session'/></iq>"]).
 
 %%----------------------------------------------------------------------
 %% Func: registration/1

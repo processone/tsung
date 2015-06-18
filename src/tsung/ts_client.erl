@@ -297,20 +297,25 @@ handle_info2({gen_ts_transport, Socket, Data}, think,State=#state_rcv{
     ts_mon:add({ sum, size_rcv, size(Data)}),
     Proto = State#state_rcv.protocol,
     ?LOG("Data received from socket (bidi) in state think~n",?INFO),
-    NewState = case Type:parse_bidi(Data, State) of
-                   {nodata, State2} ->
+    {NextAction, NewState} = case Type:parse_bidi(Data, State) of
+                   {nodata, State2, Action} ->
                        ?LOG("Bidi: no data ~n",?DEB),
                        ts_mon:add({count, async_unknown_data_rcv}),
-                       State2;
-                   {Data2, State2} ->
+                       {Action, State2};
+                   {Data2, State2, Action} ->
                        ts_mon:add([{ sum, size_sent, size(Data2)},{count, async_data_sent}]),
                        ts_mon:sendmes({State#state_rcv.dump, self(), Data2}),
                        ?LOG("Bidi: send data back to server~n",?DEB),
                        send(Proto,Socket,Data2,Host,Port), %FIXME: handle errors ?
-                       State2
+                       {Action, State2}
                end,
     NewSocket = (NewState#state_rcv.protocol):set_opts(NewState#state_rcv.socket, [{active, once}]),
-    {next_state, think, NewState#state_rcv{socket=NewSocket}};
+    case NextAction of
+        think ->
+            {next_state, think, NewState#state_rcv{socket=NewSocket}};
+        continue  ->
+            handle_next_action(NewState#state_rcv{socket=NewSocket})
+    end;
 % bidi is false, but parse is also false: continue even if we get data
 handle_info2({gen_ts_transport, Socket, Data}, think, State = #state_rcv{request=Req} )
   when (Req#ts_request.ack /= parse) ->
@@ -823,6 +828,8 @@ handle_next_request(Request, State) ->
                                                send_timestamp= Now,
                                                timestamp= Now },
                     case Request#ts_request.ack of
+                        bidi_ack ->
+                            {next_state, think, NewState};
                         no_ack ->
                             {PTimeStamp, _} = update_stats_noack(NewState),
                             handle_next_action(NewState#state_rcv{ack_done=true, page_timestamp=PTimeStamp});
@@ -1163,8 +1170,7 @@ handle_data_msg(closed,State) ->
     {State,[]};
 
 %% ack = global
-handle_data_msg(Data,State=#state_rcv{request=Req,datasize=OldSize})
-  when Req#ts_request.ack==global ->
+handle_data_msg(Data,State=#state_rcv{request=Req,datasize=OldSize}) when Req#ts_request.ack==global ->
     %% FIXME: we do not report size now (but after receiving the
     %% global ack), the size stats may be not very accurate.
     %% FIXME: should we set buffer and parse for dynvars ?

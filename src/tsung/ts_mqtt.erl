@@ -215,7 +215,7 @@ parse_bidi(<<>>, State=#state_rcv{acc = [], session = MqttSession}) ->
     end,
     NewMqttSession = MqttSession#mqtt_session{ack_buf = <<>>},
     ?DebugF("ack buf: ~p~n", [AckBuf]),
-    {Ack, State#state_rcv{session = NewMqttSession}};
+    {Ack, State#state_rcv{session = NewMqttSession}, think};
 parse_bidi(Data, State=#state_rcv{acc = [], session = MqttSession}) ->
     AckBuf = MqttSession#mqtt_session.ack_buf,
     case mqtt_frame:decode(Data) of
@@ -239,7 +239,7 @@ parse_bidi(Data, State=#state_rcv{acc = [], session = MqttSession}) ->
                     [mqtt_frame:command_for_type(_Type), _MqttMsg]),
             parse_bidi(Left, State);
         more ->
-            {nodata, State#state_rcv{acc = Data}}
+            {nodata, State#state_rcv{acc = Data},think}
     end;
 parse_bidi(Data, State=#state_rcv{acc = Acc, datasize = DataSize}) ->
     NewSize = DataSize + size(Data),

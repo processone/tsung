@@ -926,6 +926,8 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
 parse(Element = #xmlElement{name=thinktime, attributes=Attrs},
       Conf = #config{curid=Id, session_tab = Tab, sessions = [CurS |_]}) ->
     {RT,T} = case getAttr(Attrs, value)  of
+            "wait_bidi" ->
+                {infinity, infinity};
             "wait_global" ->
                 {wait_global,infinity};
             "%%"++Tail -> % dynamic thinktime

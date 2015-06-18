@@ -176,7 +176,7 @@ parse_bidi(Data,  State) ->
         _Else ->
             Acc
         end
-    end, {nodata, State}, BidiElements).
+    end, {nodata, State, think}, BidiElements).
 
 presence_bidi(RcvdXml, State)->
     {match,SubMatches} = re:run(RcvdXml,"<presence[^>]*subscribe[\"\'][^>]*>",[global]),
@@ -191,14 +191,14 @@ message_bidi(RcvdXml, State) ->
             Mega = list_to_integer(MegaS),
             Secs = list_to_integer(SecsS),
             Micro = list_to_integer(MicroS),
-            Latency = timer:now_diff(erlang:now(), {Mega, Secs, Micro}),
+            Latency = timer:now_diff(?NOW, {Mega, Secs, Micro}),
             ts_mon:add({ sample, xmpp_msg_latency, Latency / 1000});
         _ ->
             ignore
     end,
-    {nodata, State}.
+    {nodata, State, think}.
 
-starttls_bidi(_RcvdXml, #state_rcv{socket= Socket}=State)->
+starttls_bidi(_RcvdXml, #state_rcv{socket= Socket, send_timestamp=SendTime}=State)->
     ssl:start(),
     Req = subst(State#state_rcv.request#ts_request.param, State#state_rcv.dynvars),
     Opt = lists:filter(fun({_,V}) -> V /= undefined end, 
@@ -208,7 +208,9 @@ starttls_bidi(_RcvdXml, #state_rcv{socket= Socket}=State)->
                        {cacertfile,Req#jabber.cacertfile}]),
     {ok, SSL} = ts_ssl:connect(Socket, Opt),
     ?LOGF("Upgrading to TLS : ~p",[SSL],?INFO),
-    {nodata, State#state_rcv{socket=SSL,protocol=ts_ssl}}.
+    Latency = ts_utils:elapsed(SendTime, ?NOW),
+    ts_mon:add({ sample, xmpp_starttls, Latency}),
+    {nodata, State#state_rcv{socket=SSL,protocol=ts_ssl}, continue}.
 
 %%----------------------------------------------------------------------
 %% Function: bidi_resp/4
@@ -219,6 +221,7 @@ starttls_bidi(_RcvdXml, #state_rcv{socket= Socket}=State)->
 %%          State (record)
 %% Returns:    Data (binary)
 %%             NewState (record)
+%%             think|continue
 %%----------------------------------------------------------------------
 %% subscribed: Complete a pending subscription request
 bidi_resp(subscribed,RcvdXml,SubMatches,State) ->
@@ -238,10 +241,10 @@ bidi_resp(subscribed,RcvdXml,SubMatches,State) ->
     end,"",SubMatches),
     case lists:flatten(JoinedXml) of
         "" ->
-            {nodata,State};
+            {nodata,State, think};
         _ ->
             ?LOGF("RESPONSE TO SEND : ~s~n",[JoinedXml],?DEB),
-            {list_to_binary(JoinedXml),State}
+            {list_to_binary(JoinedXml),State, think}
     end.
 
 %%
