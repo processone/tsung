@@ -180,7 +180,7 @@ request:
 
 .. code-block:: xml
 
-  <option name="bosh_path" value="/http-bind"/>
+  <option name="bosh_path" value="/http-bind/"/>
 
 .. _jabber-options-label:
 

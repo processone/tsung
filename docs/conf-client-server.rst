@@ -51,6 +51,8 @@ server).
 ``udp6`` ; only available in  version **1.4.2** and newer)
 or ``websocket`` (only available in version **1.5.0** and newer))
 
+There's also a specific type fo BOSH: ``bosh`` for unencrypted BOSH, and ``bosh_ssl`` for encrypted connection
+
 .. index:: cpu
 
 Advanced setup
