@@ -1761,6 +1761,9 @@ encode_tags(TagIn, BytesSoFar, LenSoFar).
 %%================================
 %%  SubstringFilter_substrings
 %%================================
+'enc_SubstringFilter_substrings'({'SubstringFilter_substrings',Val}, TagIn) ->
+   'enc_SubstringFilter_substrings'(Val, TagIn);
+
 'enc_SubstringFilter_substrings'(Val, TagIn) ->
       {EncBytes,EncLen} = 'enc_SubstringFilter_substrings_components'(Val,[],0),
    encode_tags(TagIn, EncBytes, EncLen).
