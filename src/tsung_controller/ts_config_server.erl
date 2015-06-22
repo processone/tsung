@@ -432,13 +432,20 @@ handle_cast({newbeam, Host, _}, State=#state{ hostname=LocalHost,config=Config})
     {noreply, State};
 
 %% start a launcher on a new beam with slave module
-handle_cast({newbeam, Host, Args}, State=#state{last_beam_id = NodeId, config=Config, logdir = LogDir}) ->
+handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId, config=Config, logdir = LogDir}) ->
     Args = set_remote_args(LogDir,Config#config.ports_range),
     Seed = Config#config.seed,
     Node = remote_launcher(Host, NodeId, Args),
-    ts_launcher_static:stop(Node), % no need for static launcher in this case (already have one)
-    ts_launcher:launch({Node, Args, Seed}),
-    {noreply, State#state{last_beam_id = NodeId+1}};
+    case rpc:call(Node,tsung,start,[],?RPC_TIMEOUT) of
+        {badrpc, Reason} ->
+            ?LOGF("Fail to start tsung on beam ~p, reason: ~p",[Node,Reason], ?ERR),
+            slave:stop(Node),
+            {noreply, State};
+        _ ->
+            ts_launcher_static:stop(Node), % no need for static launcher in this case (already have one)
+            ts_launcher:launch({Node, Arrivals, Seed}),
+            {noreply, State#state{last_beam_id = NodeId+1}}
+    end;
 
 handle_cast({end_launching, _Node}, State=#state{ending_beams=Beams}) ->
     {noreply, State#state{ending_beams = Beams+1}};
