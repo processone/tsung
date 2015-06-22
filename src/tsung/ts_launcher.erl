@@ -193,6 +193,8 @@ launcher(timeout, State=#launcher{nusers        = Users,
         {ok, Wait} ->
             case check_max_raised(State) of
                 true ->
+                    %% let the other beam starts and warns ts_mon
+                    timer:sleep(?DIE_DELAY),
                     {stop, normal, State};
                 false->
                     Duration = ts_utils:elapsed(State#launcher.phase_start, BeforeLaunch),
@@ -362,7 +364,7 @@ change_phase(_N, _, _Current, {_Total, _}) ->
 %%%----------------------------------------------------------------------
 check_max_raised(State=#launcher{phases=Phases,maxusers=Max,nusers=Users, phase_id=Id,
                                  started_users=Started, phase_start=Start, phase_duration=Duration,
-                                 intensity=Intensity}) when Started >= Max ->
+                                 intensity=Intensity}) when Started >= Max-1 ->
     PendingDuration = Duration - ts_utils:elapsed(Start, ?NOW),
     ActiveClients =  ts_client_sup:active_clients(),
     ?DebugF("Current active clients on beam: ~p (max is ~p)~n", [ActiveClients, State#launcher.maxusers]),
