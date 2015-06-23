@@ -1,14 +1,36 @@
 %% @author Bob Ippolito <bob@mochimedia.com>
 %% @copyright 2007 Mochi Media, Inc.
+%%
+%% Permission is hereby granted, free of charge, to any person obtaining a
+%% copy of this software and associated documentation files (the "Software"),
+%% to deal in the Software without restriction, including without limitation
+%% the rights to use, copy, modify, merge, publish, distribute, sublicense,
+%% and/or sell copies of the Software, and to permit persons to whom the
+%% Software is furnished to do so, subject to the following conditions:
+%%
+%% The above copyright notice and this permission notice shall be included in
+%% all copies or substantial portions of the Software.
+%%
+%% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+%% IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+%% FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+%% THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+%% LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+%% FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+%% DEALINGS IN THE SOFTWARE.
 
 %% @doc Loosely tokenizes and generates parse trees for HTML 4.
 -module(mochiweb_html).
 -export([tokens/1, parse/1, parse_tokens/1, to_tokens/1, escape/1,
-         escape_attr/1, to_html/1, test/0]).
+         escape_attr/1, to_html/1]).
+-compile([export_all]).
+-ifdef(TEST).
+-export([destack/1, destack/2, is_singleton/1]).
+-endif.
 
-% This is a macro to placate syntax highlighters..
--define(QUOTE, $\").
--define(SQUOTE, $\').
+%% This is a macro to placate syntax highlighters..
+-define(QUOTE, $\"). %% $\"
+-define(SQUOTE, $\'). %% $\'
 -define(ADV_COL(S, N),
         S#decoder{column=N+S#decoder.column,
                   offset=N+S#decoder.offset}).
@@ -35,6 +57,8 @@
 -define(IS_LITERAL_SAFE(C),
         ((C >= $A andalso C =< $Z) orelse (C >= $a andalso C =< $z)
          orelse (C >= $0 andalso C =< $9))).
+-define(PROBABLE_CLOSE(C),
+        (C =:= $> orelse ?IS_WHITESPACE(C))).
 
 -record(decoder, {line=1,
                   column=1,
@@ -61,17 +85,24 @@ parse(Input) ->
 %% @doc Transform the output of tokens(Doc) into a HTML tree.
 parse_tokens(Tokens) when is_list(Tokens) ->
     %% Skip over doctype, processing instructions
-    F = fun (X) ->
-                case X of
-                    {start_tag, _, _, false} ->
-                        false;
-                    _ ->
-                        true
-                end
-        end,
-    [{start_tag, Tag, Attrs, false} | Rest] = lists:dropwhile(F, Tokens),
+    [{start_tag, Tag, Attrs, false} | Rest] = find_document(Tokens, normal),
     {Tree, _} = tree(Rest, [norm({Tag, Attrs})]),
     Tree.
+
+find_document(Tokens=[{start_tag, _Tag, _Attrs, false} | _Rest], Mode) ->
+    maybe_add_html_tag(Tokens, Mode);
+find_document([{doctype, [<<"html">>]} | Rest], _Mode) ->
+    find_document(Rest, html5);
+find_document([_T | Rest], Mode) ->
+    find_document(Rest, Mode);
+find_document([], _Mode) ->
+    [].
+
+maybe_add_html_tag(Tokens=[{start_tag, Tag, _Attrs, false} | _], html5)
+  when Tag =/= <<"html">> ->
+    [{start_tag, <<"html">>, [], false} | Tokens];
+maybe_add_html_tag(Tokens, _Mode) ->
+    Tokens.
 
 %% @spec tokens(StringOrBinary) -> [html_token()]
 %% @doc Transform the input UTF-8 HTML into a token stream.
@@ -89,10 +120,16 @@ to_tokens(T={doctype, _}) ->
 to_tokens(T={comment, _}) ->
     [T];
 to_tokens({Tag0, Acc}) ->
+    %% This is only allowed in sub-tags: {p, [{"class", "foo"}]}
     to_tokens({Tag0, [], Acc});
 to_tokens({Tag0, Attrs, Acc}) ->
     Tag = to_tag(Tag0),
-    to_tokens([{Tag, Acc}], [{start_tag, Tag, Attrs, is_singleton(Tag)}]).
+    case is_singleton(Tag) of
+        true ->
+            to_tokens([], [{start_tag, Tag, Attrs, true}]);
+        false ->
+            to_tokens([{Tag, Acc}], [{start_tag, Tag, Attrs, false}])
+    end.
 
 %% @spec to_html([html_token()] | html_node()) -> iolist()
 %% @doc Convert a list of html_token() to a HTML document.
@@ -124,42 +161,15 @@ escape_attr(I) when is_integer(I) ->
 escape_attr(F) when is_float(F) ->
     escape_attr(mochinum:digits(F), []).
 
-%% @spec test() -> ok
-%% @doc Run tests for mochiweb_html.
-test() ->
-    test_destack(),
-    test_tokens(),
-    test_parse(),
-    test_parse_tokens(),
-    test_escape(),
-    test_escape_attr(),
-    test_to_html(),
-    ok.
-
-
-%% Internal API
-
-test_to_html() ->
-    Expect = <<"<html><head><title>hey!</title></head><body><p class=\"foo\">what's up<br /></p><div>sucka</div><!-- comment! --></body></html>">>,
-    Expect = iolist_to_binary(
-               to_html({html, [],
-                        [{<<"head">>, [],
-                          [{title, <<"hey!">>}]},
-                         {body, [],
-                          [{p, [{class, foo}], [<<"what's">>, <<" up">>, {br}]},
-                           {'div', <<"sucka">>},
-                           {comment, <<" comment! ">>}]}]})),
-    Expect1 = <<"<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">">>,
-    Expect1 = iolist_to_binary(
-                to_html({doctype,
-                         [<<"html">>, <<"PUBLIC">>,
-                          <<"-//W3C//DTD XHTML 1.0 Transitional//EN">>,
-                          <<"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">>]})),
-    ok.
 to_html([], Acc) ->
     lists:reverse(Acc);
 to_html([{'=', Content} | Rest], Acc) ->
     to_html(Rest, [Content | Acc]);
+to_html([{pi, Bin} | Rest], Acc) ->
+    Open = [<<"<?">>,
+            Bin,
+            <<"?>">>],
+    to_html(Rest, [Open | Acc]);
 to_html([{pi, Tag, Attrs} | Rest], Acc) ->
     Open = [<<"<?">>,
             Tag,
@@ -203,16 +213,6 @@ attrs_to_html([{K, V} | Rest], Acc) ->
                   [[<<" ">>, escape(K), <<"=\"">>,
                     escape_attr(V), <<"\"">>] | Acc]).
 
-test_escape() ->
-    <<"&amp;quot;\"word &lt;&lt;up!&amp;quot;">> =
-        escape(<<"&quot;\"word <<up!&quot;">>),
-    ok.
-
-test_escape_attr() ->
-    <<"&amp;quot;&quot;word &lt;&lt;up!&amp;quot;">> =
-        escape_attr(<<"&quot;\"word <<up!&quot;">>),
-    ok.
-
 escape([], Acc) ->
     list_to_binary(lists:reverse(Acc));
 escape("<" ++ Rest, Acc) ->
@@ -255,6 +255,12 @@ to_tokens([{Tag0, [T0={'=', _C0} | R1]} | Rest], Acc) ->
 to_tokens([{Tag0, [T0={comment, _C0} | R1]} | Rest], Acc) ->
     %% Allow {comment, iolist()}
     to_tokens([{Tag0, R1} | Rest], [T0 | Acc]);
+to_tokens([{Tag0, [T0={pi, _S0} | R1]} | Rest], Acc) ->
+    %% Allow {pi, binary()}
+    to_tokens([{Tag0, R1} | Rest], [T0 | Acc]);
+to_tokens([{Tag0, [T0={pi, _S0, _A0} | R1]} | Rest], Acc) ->
+    %% Allow {pi, binary(), list()}
+    to_tokens([{Tag0, R1} | Rest], [T0 | Acc]);
 to_tokens([{Tag0, [{T0, A0=[{_, _} | _]} | R1]} | Rest], Acc) ->
     %% Allow {p, [{"class", "foo"}]}
     to_tokens([{Tag0, [{T0, A0, []} | R1]} | Rest], Acc);
@@ -287,27 +293,6 @@ to_tokens([{Tag0, [B | R1]} | Rest], Acc) when is_binary(B) ->
     %% Binary text
     Tag = to_tag(Tag0),
     to_tokens([{Tag, R1} | Rest], [{data, B, false} | Acc]).
-
-test_tokens() ->
-    [{start_tag, <<"foo">>, [{<<"bar">>, <<"baz">>},
-                             {<<"wibble">>, <<"wibble">>},
-                             {<<"alice">>, <<"bob">>}], true}] =
-        tokens(<<"<foo bar=baz wibble='wibble' alice=\"bob\"/>">>),
-    [{start_tag, <<"foo">>, [{<<"bar">>, <<"baz">>},
-                             {<<"wibble">>, <<"wibble">>},
-                             {<<"alice">>, <<"bob">>}], true}] =
-        tokens(<<"<foo bar=baz wibble='wibble' alice=bob/>">>),
-    [{comment, <<"[if lt IE 7]>\n<style type=\"text/css\">\n.no_ie { display: none; }\n</style>\n<![endif]">>}] =
-        tokens(<<"<!--[if lt IE 7]>\n<style type=\"text/css\">\n.no_ie { display: none; }\n</style>\n<![endif]-->">>),
-    [{start_tag, <<"script">>, [{<<"type">>, <<"text/javascript">>}], false},
-     {data, <<" A= B <= C ">>, false},
-     {end_tag, <<"script">>}] =
-        tokens(<<"<script type=\"text/javascript\"> A= B <= C </script>">>),
-    [{start_tag, <<"textarea">>, [], false},
-     {data, <<"<html></body>">>, false},
-     {end_tag, <<"textarea">>}] =
-        tokens(<<"<textarea><html></body></textarea>">>),
-    ok.
 
 tokens(B, S=#decoder{offset=O}, Acc) ->
     case B of
@@ -343,10 +328,15 @@ tokenize(B, S=#decoder{offset=O}) ->
     case B of
         <<_:O/binary, "<!--", _/binary>> ->
             tokenize_comment(B, ?ADV_COL(S, 4));
+        <<_:O/binary, "<!doctype", _/binary>> ->
+            tokenize_doctype(B, ?ADV_COL(S, 10));
         <<_:O/binary, "<!DOCTYPE", _/binary>> ->
             tokenize_doctype(B, ?ADV_COL(S, 10));
         <<_:O/binary, "<![CDATA[", _/binary>> ->
             tokenize_cdata(B, ?ADV_COL(S, 9));
+        <<_:O/binary, "<?php", _/binary>> ->
+            {Body, S1} = raw_qgt(B, ?ADV_COL(S, 2)),
+            {{pi, Body}, S1};
         <<_:O/binary, "<?", _/binary>> ->
             {Tag, S1} = tokenize_literal(B, ?ADV_COL(S, 2)),
             {Attrs, S2} = tokenize_attributes(B, S1),
@@ -358,133 +348,20 @@ tokenize(B, S=#decoder{offset=O}) ->
             {Tag, S1} = tokenize_literal(B, ?ADV_COL(S, 2)),
             {S2, _} = find_gt(B, S1),
             {{end_tag, Tag}, S2};
-        <<_:O/binary, "<", C, _/binary>> when ?IS_WHITESPACE(C) ->
+        <<_:O/binary, "<", C, _/binary>>
+                when ?IS_WHITESPACE(C); not ?IS_LITERAL_SAFE(C) ->
             %% This isn't really strict HTML
-            tokenize_data(B, ?INC_COL(S));
+            {{data, Data, _Whitespace}, S1} = tokenize_data(B, ?INC_COL(S)),
+            {{data, <<$<, Data/binary>>, false}, S1};
         <<_:O/binary, "<", _/binary>> ->
             {Tag, S1} = tokenize_literal(B, ?INC_COL(S)),
             {Attrs, S2} = tokenize_attributes(B, S1),
             {S3, HasSlash} = find_gt(B, S2),
-            Singleton = HasSlash orelse is_singleton(norm(binary_to_list(Tag))),
+            Singleton = HasSlash orelse is_singleton(Tag),
             {{start_tag, Tag, Attrs, Singleton}, S3};
         _ ->
             tokenize_data(B, S)
     end.
-
-test_parse() ->
-    D0 = <<"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">
-<html>
- <head>
-   <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">
-   <title>Foo</title>
-   <link rel=\"stylesheet\" type=\"text/css\" href=\"/static/rel/dojo/resources/dojo.css\" media=\"screen\">
-   <link rel=\"stylesheet\" type=\"text/css\" href=\"/static/foo.css\" media=\"screen\">
-   <!--[if lt IE 7]>
-   <style type=\"text/css\">
-     .no_ie { display: none; }
-   </style>
-   <![endif]-->
-   <link rel=\"icon\" href=\"/static/images/favicon.ico\" type=\"image/x-icon\">
-   <link rel=\"shortcut icon\" href=\"/static/images/favicon.ico\" type=\"image/x-icon\">
- </head>
- <body id=\"home\" class=\"tundra\"><![CDATA[&lt;<this<!-- is -->CDATA>&gt;]]></body>
-</html>">>,
-    Expect = {<<"html">>, [],
-              [{<<"head">>, [],
-                [{<<"meta">>,
-                  [{<<"http-equiv">>,<<"Content-Type">>},
-                   {<<"content">>,<<"text/html; charset=UTF-8">>}],
-                  []},
-                 {<<"title">>,[],[<<"Foo">>]},
-                 {<<"link">>,
-                  [{<<"rel">>,<<"stylesheet">>},
-                   {<<"type">>,<<"text/css">>},
-                   {<<"href">>,<<"/static/rel/dojo/resources/dojo.css">>},
-                   {<<"media">>,<<"screen">>}],
-                  []},
-                 {<<"link">>,
-                  [{<<"rel">>,<<"stylesheet">>},
-                   {<<"type">>,<<"text/css">>},
-                   {<<"href">>,<<"/static/foo.css">>},
-                   {<<"media">>,<<"screen">>}],
-                  []},
-                 {comment,<<"[if lt IE 7]>\n   <style type=\"text/css\">\n     .no_ie { display: none; }\n   </style>\n   <![endif]">>},
-                 {<<"link">>,
-                  [{<<"rel">>,<<"icon">>},
-                   {<<"href">>,<<"/static/images/favicon.ico">>},
-                   {<<"type">>,<<"image/x-icon">>}],
-                  []},
-                 {<<"link">>,
-                  [{<<"rel">>,<<"shortcut icon">>},
-                   {<<"href">>,<<"/static/images/favicon.ico">>},
-                   {<<"type">>,<<"image/x-icon">>}],
-                  []}]},
-               {<<"body">>,
-                [{<<"id">>,<<"home">>},
-                 {<<"class">>,<<"tundra">>}],
-                [<<"&lt;<this<!-- is -->CDATA>&gt;">>]}]},
-    Expect = parse(D0),
-    ok.
-
-test_parse_tokens() ->
-    D0 = [{doctype,[<<"HTML">>,<<"PUBLIC">>,<<"-//W3C//DTD HTML 4.01 Transitional//EN">>]},
-          {data,<<"\n">>,true},
-          {start_tag,<<"html">>,[],false}],
-    {<<"html">>, [], []} = parse_tokens(D0),
-    D1 = D0 ++ [{end_tag, <<"html">>}],
-    {<<"html">>, [], []} = parse_tokens(D1),
-    D2 = D0 ++ [{start_tag, <<"body">>, [], false}],
-    {<<"html">>, [], [{<<"body">>, [], []}]} = parse_tokens(D2),
-    D3 = D0 ++ [{start_tag, <<"head">>, [], false},
-                {end_tag, <<"head">>},
-                {start_tag, <<"body">>, [], false}],
-    {<<"html">>, [], [{<<"head">>, [], []}, {<<"body">>, [], []}]} = parse_tokens(D3),
-    D4 = D3 ++ [{data,<<"\n">>,true},
-                {start_tag,<<"div">>,[{<<"class">>,<<"a">>}],false},
-                {start_tag,<<"a">>,[{<<"name">>,<<"#anchor">>}],false},
-                {end_tag,<<"a">>},
-                {end_tag,<<"div">>},
-                {start_tag,<<"div">>,[{<<"class">>,<<"b">>}],false},
-                {start_tag,<<"div">>,[{<<"class">>,<<"c">>}],false},
-                {end_tag,<<"div">>},
-                {end_tag,<<"div">>}],
-    {<<"html">>, [],
-     [{<<"head">>, [], []},
-      {<<"body">>, [],
-       [{<<"div">>, [{<<"class">>, <<"a">>}], [{<<"a">>, [{<<"name">>, <<"#anchor">>}], []}]},
-        {<<"div">>, [{<<"class">>, <<"b">>}], [{<<"div">>, [{<<"class">>, <<"c">>}], []}]}
-       ]}]} = parse_tokens(D4),
-    D5 = [{start_tag,<<"html">>,[],false},
-          {data,<<"\n">>,true},
-          {data,<<"boo">>,false},
-          {data,<<"hoo">>,false},
-          {data,<<"\n">>,true},
-          {end_tag,<<"html">>}],
-    {<<"html">>, [], [<<"\nboohoo\n">>]} = parse_tokens(D5),
-    D6 = [{start_tag,<<"html">>,[],false},
-          {data,<<"\n">>,true},
-          {data,<<"\n">>,true},
-          {end_tag,<<"html">>}],
-    {<<"html">>, [], []} = parse_tokens(D6),
-    D7 = [{start_tag,<<"html">>,[],false},
-          {start_tag,<<"ul">>,[],false},
-          {start_tag,<<"li">>,[],false},
-          {data,<<"word">>,false},
-          {start_tag,<<"li">>,[],false},
-          {data,<<"up">>,false},
-          {end_tag,<<"li">>},
-          {start_tag,<<"li">>,[],false},
-          {data,<<"fdsa">>,false},
-          {start_tag,<<"br">>,[],true},
-          {data,<<"asdf">>,false},
-          {end_tag,<<"ul">>},
-          {end_tag,<<"html">>}],
-    {<<"html">>, [],
-     [{<<"ul">>, [],
-       [{<<"li">>, [], [<<"word">>]},
-        {<<"li">>, [], [<<"up">>]},
-        {<<"li">>, [], [<<"fdsa">>,{<<"br">>, [], []}, <<"asdf">>]}]}]} = parse_tokens(D7),
-    ok.
 
 tree_data([{data, Data, Whitespace} | Rest], AllWhitespace, Acc) ->
     tree_data(Rest, (Whitespace andalso AllWhitespace), [Data | Acc]);
@@ -504,17 +381,21 @@ tree([{start_tag, Tag, Attrs, true} | Rest], S) ->
     tree(Rest, append_stack_child(norm({Tag, Attrs}), S));
 tree([{start_tag, Tag, Attrs, false} | Rest], S) ->
     tree(Rest, stack(norm({Tag, Attrs}), S));
+tree([T={pi, _Raw} | Rest], S) ->
+    tree(Rest, append_stack_child(T, S));
 tree([T={pi, _Tag, _Attrs} | Rest], S) ->
     tree(Rest, append_stack_child(T, S));
 tree([T={comment, _Comment} | Rest], S) ->
     tree(Rest, append_stack_child(T, S));
 tree(L=[{data, _Data, _Whitespace} | _], S) ->
     case tree_data(L, true, []) of
-        {_, true, Rest} -> 
+        {_, true, Rest} ->
             tree(Rest, S);
         {Data, false, Rest} ->
             tree(Rest, append_stack_child(Data, S))
-    end.
+    end;
+tree([{doctype, _} | Rest], Stack) ->
+    tree(Rest, Stack).
 
 norm({Tag, Attrs}) ->
     {norm(Tag), [{norm(K), iolist_to_binary(V)} || {K, V} <- Attrs], []};
@@ -522,21 +403,6 @@ norm(Tag) when is_binary(Tag) ->
     Tag;
 norm(Tag) ->
     list_to_binary(string:to_lower(Tag)).
-
-test_destack() ->
-    {<<"a">>, [], []} =
-        destack([{<<"a">>, [], []}]),
-    {<<"a">>, [], [{<<"b">>, [], []}]} =
-        destack([{<<"b">>, [], []}, {<<"a">>, [], []}]),
-    {<<"a">>, [], [{<<"b">>, [], [{<<"c">>, [], []}]}]} =
-     destack([{<<"c">>, [], []}, {<<"b">>, [], []}, {<<"a">>, [], []}]),
-    [{<<"a">>, [], [{<<"b">>, [], [{<<"c">>, [], []}]}]}] =
-     destack(<<"b">>,
-             [{<<"c">>, [], []}, {<<"b">>, [], []}, {<<"a">>, [], []}]),
-    [{<<"b">>, [], [{<<"c">>, [], []}]}, {<<"a">>, [], []}] =
-     destack(<<"c">>,
-             [{<<"c">>, [], []}, {<<"b">>, [], []},{<<"a">>, [], []}]),
-    ok.
 
 stack(T1={TN, _, _}, Stack=[{TN, _, _} | _Rest])
   when TN =:= <<"li">> orelse TN =:= <<"option">> ->
@@ -551,6 +417,10 @@ stack(T1, Stack) ->
 append_stack_child(StartTag, [{Name, Attrs, Acc} | Stack]) ->
     [{Name, Attrs, [StartTag | Acc]} | Stack].
 
+destack(<<"br">>, Stack) ->
+    %% This is an ugly hack to make dumb_br_test() pass,
+    %% this makes it such that br can never have children.
+    Stack;
 destack(TagName, Stack) when is_list(Stack) ->
     F = fun (X) ->
                 case X of
@@ -562,8 +432,23 @@ destack(TagName, Stack) when is_list(Stack) ->
         end,
     case lists:splitwith(F, Stack) of
         {_, []} ->
-            %% No match, no state change
-            Stack;
+            %% If we're parsing something like XML we might find
+            %% a <link>tag</link> that is normally a singleton
+            %% in HTML but isn't here
+            case {is_singleton(TagName), Stack} of
+                {true, [{T0, A0, Acc0} | Post0]} ->
+                    case lists:splitwith(F, Acc0) of
+                        {_, []} ->
+                            %% Actually was a singleton
+                            Stack;
+                        {Pre, [{T1, A1, Acc1} | Post1]} ->
+                            [{T0, A0, [{T1, A1, Acc1 ++ lists:reverse(Pre)} | Post1]}
+                             | Post0]
+                    end;
+                _ ->
+                    %% No match, no state change
+                    Stack
+            end;
         {_Pre, [_T]} ->
             %% Unfurl the whole stack, we're done
             destack(Stack);
@@ -627,9 +512,49 @@ tokenize_attr_value(Attr, B, S) ->
     O = S1#decoder.offset,
     case B of
         <<_:O/binary, "=", _/binary>> ->
-            tokenize_word_or_literal(B, ?INC_COL(S1));
+            S2 = skip_whitespace(B, ?INC_COL(S1)),
+            tokenize_quoted_or_unquoted_attr_value(B, S2);
         _ ->
             {Attr, S1}
+    end.
+
+tokenize_quoted_or_unquoted_attr_value(B, S=#decoder{offset=O}) ->
+    case B of
+        <<_:O/binary>> ->
+            { [], S };
+        <<_:O/binary, Q, _/binary>> when Q =:= ?QUOTE orelse
+                                         Q =:= ?SQUOTE ->
+            tokenize_quoted_attr_value(B, ?INC_COL(S), [], Q);
+        <<_:O/binary, _/binary>> ->
+            tokenize_unquoted_attr_value(B, S, [])
+    end.
+
+tokenize_quoted_attr_value(B, S=#decoder{offset=O}, Acc, Q) ->
+    case B of
+        <<_:O/binary>> ->
+            { iolist_to_binary(lists:reverse(Acc)), S };
+        <<_:O/binary, $&, _/binary>> ->
+            {{data, Data, false}, S1} = tokenize_charref(B, ?INC_COL(S)),
+            tokenize_quoted_attr_value(B, S1, [Data|Acc], Q);
+        <<_:O/binary, Q, _/binary>> ->
+            { iolist_to_binary(lists:reverse(Acc)), ?INC_COL(S) };
+        <<_:O/binary, C, _/binary>> ->
+            tokenize_quoted_attr_value(B, ?INC_COL(S), [C|Acc], Q)
+    end.
+
+tokenize_unquoted_attr_value(B, S=#decoder{offset=O}, Acc) ->
+    case B of
+        <<_:O/binary>> ->
+            { iolist_to_binary(lists:reverse(Acc)), S };
+        <<_:O/binary, $&, _/binary>> ->
+            {{data, Data, false}, S1} = tokenize_charref(B, ?INC_COL(S)),
+            tokenize_unquoted_attr_value(B, S1, [Data|Acc]);
+        <<_:O/binary, $/, $>, _/binary>> ->
+            { iolist_to_binary(lists:reverse(Acc)), S };
+        <<_:O/binary, C, _/binary>> when ?PROBABLE_CLOSE(C) ->
+            { iolist_to_binary(lists:reverse(Acc)), S };
+        <<_:O/binary, C, _/binary>> ->
+            tokenize_unquoted_attr_value(B, ?INC_COL(S), [C|Acc])
     end.
 
 skip_whitespace(B, S=#decoder{offset=O}) ->
@@ -640,8 +565,17 @@ skip_whitespace(B, S=#decoder{offset=O}) ->
             S
     end.
 
-tokenize_literal(Bin, S) ->
-    tokenize_literal(Bin, S, []).
+tokenize_literal(Bin, S=#decoder{offset=O}) ->
+    case Bin of
+        <<_:O/binary, C, _/binary>> when C =:= $>
+                                    orelse C =:= $/
+                                    orelse C =:= $= ->
+            %% Handle case where tokenize_literal would consume
+            %% 0 chars. http://github.com/mochi/mochiweb/pull/13
+            {[C], ?INC_COL(S)};
+        _ ->
+            tokenize_literal(Bin, S, [])
+    end.
 
 tokenize_literal(Bin, S=#decoder{offset=O}, Acc) ->
     case Bin of
@@ -654,16 +588,37 @@ tokenize_literal(Bin, S=#decoder{offset=O}, Acc) ->
                                               orelse C =:= $=) ->
             tokenize_literal(Bin, ?INC_COL(S), [C | Acc]);
         _ ->
-            {iolist_to_binary(lists:reverse(Acc)), S}
+            {iolist_to_binary(string:to_lower(lists:reverse(Acc))), S}
+    end.
+
+raw_qgt(Bin, S=#decoder{offset=O}) ->
+    raw_qgt(Bin, S, O).
+
+raw_qgt(Bin, S=#decoder{offset=O}, Start) ->
+    case Bin of
+        <<_:O/binary, "?>", _/binary>> ->
+            Len = O - Start,
+            <<_:Start/binary, Raw:Len/binary, _/binary>> = Bin,
+            {Raw, ?ADV_COL(S, 2)};
+        <<_:O/binary, C, _/binary>> ->
+            raw_qgt(Bin, ?INC_CHAR(S, C), Start);
+        <<_:O/binary>> ->
+            <<_:Start/binary, Raw/binary>> = Bin,
+            {Raw, S}
     end.
 
 find_qgt(Bin, S=#decoder{offset=O}) ->
     case Bin of
         <<_:O/binary, "?>", _/binary>> ->
             ?ADV_COL(S, 2);
-        <<_:O/binary, C, _/binary>> ->
-            find_qgt(Bin, ?INC_CHAR(S, C));
-        _ ->
+        <<_:O/binary, ">", _/binary>> ->
+                        ?ADV_COL(S, 1);
+        <<_:O/binary, "/>", _/binary>> ->
+                        ?ADV_COL(S, 2);
+        %% tokenize_attributes takes care of this state:
+        %% <<_:O/binary, C, _/binary>> ->
+        %%     find_qgt(Bin, ?INC_CHAR(S, C));
+        <<_:O/binary>> ->
             S
     end.
 
@@ -683,32 +638,33 @@ find_gt(Bin, S=#decoder{offset=O}, HasSlash) ->
     end.
 
 tokenize_charref(Bin, S=#decoder{offset=O}) ->
-    tokenize_charref(Bin, S, O).
+    try
+        tokenize_charref(Bin, S, O)
+    catch
+        throw:invalid_charref ->
+            {{data, <<"&">>, false}, S}
+    end.
 
 tokenize_charref(Bin, S=#decoder{offset=O}, Start) ->
     case Bin of
         <<_:O/binary>> ->
-            <<_:Start/binary, Raw/binary>> = Bin,
-            {{data, Raw, false}, S};
+            throw(invalid_charref);
         <<_:O/binary, C, _/binary>> when ?IS_WHITESPACE(C)
                                          orelse C =:= ?SQUOTE
                                          orelse C =:= ?QUOTE
                                          orelse C =:= $/
                                          orelse C =:= $> ->
-            Len = O - Start,
-            <<_:Start/binary, Raw:Len/binary, _/binary>> = Bin,
-            {{data, Raw, false}, S};
+            throw(invalid_charref);
         <<_:O/binary, $;, _/binary>> ->
             Len = O - Start,
             <<_:Start/binary, Raw:Len/binary, _/binary>> = Bin,
             Data = case mochiweb_charref:charref(Raw) of
                        undefined ->
-                           Start1 = Start - 1,
-                           Len1 = Len + 2,
-                           <<_:Start1/binary, R:Len1/binary, _/binary>> = Bin,
-                           R;
-                       Unichar ->
-                           list_to_binary(xmerl_ucs:to_utf8(Unichar))
+                           throw(invalid_charref);
+                       Unichar when is_integer(Unichar) ->
+                           mochiutf8:codepoint_to_bytes(Unichar);
+                       Unichars when is_list(Unichars) ->
+                           unicode:characters_to_binary(Unichars)
                    end,
             {{data, Data, false}, ?INC_COL(S)};
         _ ->
@@ -733,12 +689,11 @@ tokenize_doctype(Bin, S=#decoder{offset=O}, Acc) ->
 
 tokenize_word_or_literal(Bin, S=#decoder{offset=O}) ->
     case Bin of
-        <<_:O/binary, C, _/binary>> when ?IS_WHITESPACE(C) ->
-            {error, {whitespace, [C], S}};
         <<_:O/binary, C, _/binary>> when C =:= ?QUOTE orelse C =:= ?SQUOTE ->
             tokenize_word(Bin, ?INC_COL(S), C);
-        _ ->
-            tokenize_literal(Bin, S, [])
+        <<_:O/binary, C, _/binary>> when not ?IS_WHITESPACE(C) ->
+            %% Sanity check for whitespace
+            tokenize_literal(Bin, S)
     end.
 
 tokenize_word(Bin, S, Quote) ->
@@ -794,13 +749,14 @@ tokenize_script(Bin, S=#decoder{offset=O}) ->
 tokenize_script(Bin, S=#decoder{offset=O}, Start) ->
     case Bin of
         %% Just a look-ahead, we want the end_tag separately
-        <<_:O/binary, $<, $/, SS, CC, RR, II, PP, TT, _/binary>>
+        <<_:O/binary, $<, $/, SS, CC, RR, II, PP, TT, ZZ, _/binary>>
         when (SS =:= $s orelse SS =:= $S) andalso
              (CC =:= $c orelse CC =:= $C) andalso
              (RR =:= $r orelse RR =:= $R) andalso
              (II =:= $i orelse II =:= $I) andalso
              (PP =:= $p orelse PP =:= $P) andalso
-             (TT=:= $t orelse TT =:= $T) ->
+             (TT=:= $t orelse TT =:= $T) andalso
+             ?PROBABLE_CLOSE(ZZ) ->
             Len = O - Start,
             <<_:Start/binary, Raw:Len/binary, _/binary>> = Bin,
             {{data, Raw, false}, S};
@@ -816,7 +772,7 @@ tokenize_textarea(Bin, S=#decoder{offset=O}) ->
 tokenize_textarea(Bin, S=#decoder{offset=O}, Start) ->
     case Bin of
         %% Just a look-ahead, we want the end_tag separately
-        <<_:O/binary, $<, $/, TT, EE, XX, TT2, AA, RR, EE2, AA2, _/binary>>
+        <<_:O/binary, $<, $/, TT, EE, XX, TT2, AA, RR, EE2, AA2, ZZ, _/binary>>
         when (TT =:= $t orelse TT =:= $T) andalso
              (EE =:= $e orelse EE =:= $E) andalso
              (XX =:= $x orelse XX =:= $X) andalso
@@ -824,7 +780,8 @@ tokenize_textarea(Bin, S=#decoder{offset=O}, Start) ->
              (AA =:= $a orelse AA =:= $A) andalso
              (RR =:= $r orelse RR =:= $R) andalso
              (EE2 =:= $e orelse EE2 =:= $E) andalso
-             (AA2 =:= $a orelse AA2 =:= $A) ->
+             (AA2 =:= $a orelse AA2 =:= $A) andalso
+             ?PROBABLE_CLOSE(ZZ) ->
             Len = O - Start,
             <<_:Start/binary, Raw:Len/binary, _/binary>> = Bin,
             {{data, Raw, false}, S};
