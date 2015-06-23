@@ -39,21 +39,21 @@ bidi_subscribeok_test()->
 </presence>"),
     Resp=list_to_binary("<presence to='tintin@jabber.org' type='subscribed'/>"),
     State=#state_rcv{},
-    ?assertMatch({Resp,State}, ts_jabber:parse_bidi(Req,State)).
+    ?assertMatch({Resp,State,think}, ts_jabber:parse_bidi(Req,State)).
 
 bidi_multisubscribeok_test()->
     myset_env(),
     Req=list_to_binary("<presence type='subscribe' to='toto@im.apinc.org' from='tintin@jabber.org'>  <status>Hi dude.</status></presence><presence type='subscribe' to='toto@im.apinc.org' from='glop@jabber.org'>  <status>Copaing?.</status></presence>"),
     Resp=list_to_binary("<presence to='tintin@jabber.org' type='subscribed'/><presence to='glop@jabber.org' type='subscribed'/>"),
     State=#state_rcv{},
-    ?assertMatch({Resp,State}, ts_jabber:parse_bidi(Req,State)).
+    ?assertMatch({Resp,State,think}, ts_jabber:parse_bidi(Req,State)).
 
 bidi_multisubscribe_nok_test()->
     myset_env(),
     Req=list_to_binary("<presence type='subscribe' to='toto@im.apinc.org' from='tintin@jabber.org'>  <status>Hi dude.</status></presence><presence type='subscribed'  from='glop@jabber.org'>  <status>Copaing?.</status></presence>"),
     Resp=list_to_binary("<presence to='tintin@jabber.org' type='subscribed'/>"),
     State=#state_rcv{},
-    ?assertMatch({Resp,State}, ts_jabber:parse_bidi(Req,State)).
+    ?assertMatch({Resp,State,think}, ts_jabber:parse_bidi(Req,State)).
 
 bidi_subscribe_nok_test()->
     myset_env(),
@@ -61,13 +61,13 @@ bidi_subscribe_nok_test()->
   <status>Hi dude.</status>
 </presence>"),
     State=#state_rcv{},
-    ?assertMatch({nodata,State}, ts_jabber:parse_bidi(Req,State)).
+    ?assertMatch({nodata,State,think}, ts_jabber:parse_bidi(Req,State)).
 
 bidi_nok_test()->
     myset_env(),
     Req=list_to_binary("<presence from='tintin@jabber.org'><status>Alive.</status></presence>"),
     State=#state_rcv{},
-    ?assertMatch({nodata,State}, ts_jabber:parse_bidi(Req,State)).
+    ?assertMatch({nodata,State,think}, ts_jabber:parse_bidi(Req,State)).
 
 auth_sasl_test()->
     myset_env(),
