@@ -9,9 +9,11 @@
 -export([path_split/1]).
 -export([urlsplit/1, urlsplit_path/1, urlunsplit/1, urlunsplit_path/1]).
 -export([guess_mime/1, parse_header/1]).
--export([shell_quote/1, cmd/1, cmd_string/1, cmd_port/2]).
+-export([shell_quote/1, cmd/1, cmd_string/1, cmd_port/2, cmd_status/1, cmd_status/2]).
 -export([record_to_proplist/2, record_to_proplist/3]).
--export([test/0]).
+-export([safe_relative_path/1, partition/2]).
+-export([parse_qvalues/1, pick_accepted_encodings/3]).
+-export([make_io/1]).
 
 -define(PERCENT, 37).  % $\%
 -define(FULLSTOP, 46). % $\.
@@ -30,6 +32,75 @@ hexdigit(C) when C < 16 -> $A + (C - 10).
 unhexdigit(C) when C >= $0, C =< $9 -> C - $0;
 unhexdigit(C) when C >= $a, C =< $f -> C - $a + 10;
 unhexdigit(C) when C >= $A, C =< $F -> C - $A + 10.
+
+%% @spec partition(String, Sep) -> {String, [], []} | {Prefix, Sep, Postfix}
+%% @doc Inspired by Python 2.5's str.partition:
+%%      partition("foo/bar", "/") = {"foo", "/", "bar"},
+%%      partition("foo", "/") = {"foo", "", ""}.
+partition(String, Sep) ->
+    case partition(String, Sep, []) of
+        undefined ->
+            {String, "", ""};
+        Result ->
+            Result
+    end.
+
+partition("", _Sep, _Acc) ->
+    undefined;
+partition(S, Sep, Acc) ->
+    case partition2(S, Sep) of
+        undefined ->
+            [C | Rest] = S,
+            partition(Rest, Sep, [C | Acc]);
+        Rest ->
+            {lists:reverse(Acc), Sep, Rest}
+    end.
+
+partition2(Rest, "") ->
+    Rest;
+partition2([C | R1], [C | R2]) ->
+    partition2(R1, R2);
+partition2(_S, _Sep) ->
+    undefined.
+
+
+
+%% @spec safe_relative_path(string()) -> string() | undefined
+%% @doc Return the reduced version of a relative path or undefined if it
+%%      is not safe. safe relative paths can be joined with an absolute path
+%%      and will result in a subdirectory of the absolute path. Safe paths
+%%      never contain a backslash character.
+safe_relative_path("/" ++ _) ->
+    undefined;
+safe_relative_path(P) ->
+    case string:chr(P, $\\) of
+        0 ->
+           safe_relative_path(P, []);
+        _ ->
+           undefined
+    end.
+
+safe_relative_path("", Acc) ->
+    case Acc of
+        [] ->
+            "";
+        _ ->
+            string:join(lists:reverse(Acc), "/")
+    end;
+safe_relative_path(P, Acc) ->
+    case partition(P, "/") of
+        {"", "/", _} ->
+            %% /foo or foo//bar
+            undefined;
+        {"..", _, _} when Acc =:= [] ->
+            undefined;
+        {"..", _, Rest} ->
+            safe_relative_path(Rest, tl(Acc));
+        {Part, "/", ""} ->
+            safe_relative_path("", ["", Part | Acc]);
+        {Part, _, Rest} ->
+            safe_relative_path(Rest, [Part | Acc])
+    end.
 
 %% @spec shell_quote(string()) -> string()
 %% @doc Quote a string according to UNIX shell quoting rules, returns a string
@@ -50,11 +121,38 @@ cmd(Argv) ->
 %% @spec cmd_string([string()]) -> string()
 %% @doc Create a shell quoted command string from a list of arguments.
 cmd_string(Argv) ->
-    join([shell_quote(X) || X <- Argv], " ").
+    string:join([shell_quote(X) || X <- Argv], " ").
 
-%% @spec join([string()], Separator) -> string()
-%% @doc Join a list of strings together with the given separator
-%%      string or char.
+%% @spec cmd_status([string()]) -> {ExitStatus::integer(), Stdout::binary()}
+%% @doc Accumulate the output and exit status from the given application,
+%%      will be spawned with cmd_port/2.
+cmd_status(Argv) ->
+    cmd_status(Argv, []).
+
+%% @spec cmd_status([string()], [atom()]) -> {ExitStatus::integer(), Stdout::binary()}
+%% @doc Accumulate the output and exit status from the given application,
+%%      will be spawned with cmd_port/2.
+cmd_status(Argv, Options) ->
+    Port = cmd_port(Argv, [exit_status, stderr_to_stdout,
+                           use_stdio, binary | Options]),
+    try cmd_loop(Port, [])
+    after catch port_close(Port)
+    end.
+
+%% @spec cmd_loop(port(), list()) -> {ExitStatus::integer(), Stdout::binary()}
+%% @doc Accumulate the output and exit status from a port.
+cmd_loop(Port, Acc) ->
+    receive
+        {Port, {exit_status, Status}} ->
+            {Status, iolist_to_binary(lists:reverse(Acc))};
+        {Port, {data, Data}} ->
+            cmd_loop(Port, [Data | Acc])
+    end.
+
+%% @spec join([iolist()], iolist()) -> iolist()
+%% @doc Join a list of strings or binaries together with the given separator
+%%      string or char or binary. The output is flattened, but may be an
+%%      iolist() instead of a string() if any of the inputs are binary().
 join([], _Separator) ->
     [];
 join([S], _Separator) ->
@@ -69,12 +167,16 @@ revjoin([S | Rest], Separator, []) ->
 revjoin([S | Rest], Separator, Acc) ->
     revjoin(Rest, Separator, [S, Separator | Acc]).
 
-%% @spec quote_plus(atom() | integer() | string()) -> string()
+%% @spec quote_plus(atom() | integer() | float() | string() | binary()) -> string()
 %% @doc URL safe encoding of the given term.
 quote_plus(Atom) when is_atom(Atom) ->
     quote_plus(atom_to_list(Atom));
 quote_plus(Int) when is_integer(Int) ->
     quote_plus(integer_to_list(Int));
+quote_plus(Binary) when is_binary(Binary) ->
+    quote_plus(binary_to_list(Binary));
+quote_plus(Float) when is_float(Float) ->
+    quote_plus(mochinum:digits(Float));
 quote_plus(String) ->
     quote_plus(String, []).
 
@@ -91,10 +193,11 @@ quote_plus([C | Rest], Acc) ->
 %% @spec urlencode([{Key, Value}]) -> string()
 %% @doc URL encode the property list.
 urlencode(Props) ->
-    RevPairs = lists:foldl(fun ({K, V}, Acc) ->
-                                   [[quote_plus(K), $=, quote_plus(V)] | Acc]
-                           end, [], Props),
-    lists:flatten(revjoin(RevPairs, $&, [])).
+    Pairs = lists:foldr(
+              fun ({K, V}, Acc) ->
+                      [quote_plus(K) ++ "=" ++ quote_plus(V) | Acc]
+              end, [], Props),
+    string:join(Pairs, "&").
 
 %% @spec parse_qs(string() | binary()) -> [{Key, Value}]
 %% @doc Parse a query string or application/x-www-form-urlencoded.
@@ -165,20 +268,31 @@ urlsplit(Url) ->
     {Scheme, Netloc, Path, Query, Fragment}.
 
 urlsplit_scheme(Url) ->
-    urlsplit_scheme(Url, []).
+    case urlsplit_scheme(Url, []) of
+        no_scheme ->
+            {"", Url};
+        Res ->
+            Res
+    end.
 
-urlsplit_scheme([], Acc) ->
-    {"", lists:reverse(Acc)};
-urlsplit_scheme(":" ++ Rest, Acc) ->
+urlsplit_scheme([C | Rest], Acc) when ((C >= $a andalso C =< $z) orelse
+                                       (C >= $A andalso C =< $Z) orelse
+                                       (C >= $0 andalso C =< $9) orelse
+                                       C =:= $+ orelse C =:= $- orelse
+                                       C =:= $.) ->
+    urlsplit_scheme(Rest, [C | Acc]);
+urlsplit_scheme([$: | Rest], Acc=[_ | _]) ->
     {string:to_lower(lists:reverse(Acc)), Rest};
-urlsplit_scheme([C | Rest], Acc) ->
-    urlsplit_scheme(Rest, [C | Acc]).
+urlsplit_scheme(_Rest, _Acc) ->
+    no_scheme.
 
 urlsplit_netloc("//" ++ Rest) ->
     urlsplit_netloc(Rest, []);
 urlsplit_netloc(Path) ->
     {"", Path}.
 
+urlsplit_netloc("", Acc) ->
+    {lists:reverse(Acc), ""};
 urlsplit_netloc(Rest=[C | _], Acc) when C =:= $/; C =:= $?; C =:= $# ->
     {lists:reverse(Acc), Rest};
 urlsplit_netloc([C | Rest], Acc) ->
@@ -243,67 +357,16 @@ urlsplit_query([C | Rest], Acc) ->
 %% @spec guess_mime(string()) -> string()
 %% @doc  Guess the mime type of a file by the extension of its filename.
 guess_mime(File) ->
-    case filename:extension(File) of
-        ".html" ->
-            "text/html";
-        ".xhtml" ->
-            "application/xhtml+xml";
-        ".xml" ->
-            "application/xml";
-        ".css" ->
-            "text/css";
-        ".js" ->
-            "application/x-javascript";
-        ".jpg" ->
-            "image/jpeg";
-        ".gif" ->
-            "image/gif";
-        ".png" ->
-            "image/png";
-        ".swf" ->
-            "application/x-shockwave-flash";
-        ".zip" ->
-            "application/zip";
-        ".bz2" ->
-            "application/x-bzip2";
-        ".gz" ->
-            "application/x-gzip";
-        ".tar" ->
-            "application/x-tar";
-        ".tgz" ->
-            "application/x-gzip";
-        ".txt" ->
-            "text/plain";
-        ".doc" ->
-            "application/msword";
-        ".pdf" ->
-            "application/pdf";
-        ".xls" ->
-            "application/vnd.ms-excel";
-        ".rtf" ->
-            "application/rtf";
-        ".mov" ->
-            "video/quicktime";
-        ".mp3" ->
-            "audio/mpeg";
-        ".z" ->
-            "application/x-compress";
-        ".wav" ->
-            "audio/x-wav";
-        ".ico" ->
-            "image/x-icon";
-        ".bmp" ->
-            "image/bmp";
-        ".m4a" ->
-            "audio/mpeg";
-        ".m3u" ->
-            "audio/x-mpegurl";
-        ".exe" ->
-            "application/octet-stream";
-        ".csv" ->
-            "text/csv";
-        _ ->
-            "text/plain"
+    case filename:basename(File) of
+        "crossdomain.xml" ->
+            "text/x-cross-domain-policy";
+        Name ->
+            case mochiweb_mime:from_extension(filename:extension(Name)) of
+                undefined ->
+                    "text/plain";
+                Mime ->
+                    Mime
+            end
     end.
 
 %% @spec parse_header(string()) -> {Type, [{K, V}]}
@@ -349,15 +412,13 @@ record_to_proplist(Record, Fields) ->
     record_to_proplist(Record, Fields, '__record').
 
 %% @spec record_to_proplist(Record, Fields, TypeKey) -> proplist()
-%% @doc Return a proplist of the given Record with each field in the 
+%% @doc Return a proplist of the given Record with each field in the
 %%      Fields list set as a key with the corresponding value in the Record.
 %%      TypeKey is the key that is used to store the record type
 %%      Fields should be obtained by calling record_info(fields, record_type)
 %%      where record_type is the record type of Record
 record_to_proplist(Record, Fields, TypeKey)
-  when is_tuple(Record),
-       is_list(Fields),
-       size(Record) - 1 =:= length(Fields) ->
+  when tuple_size(Record) - 1 =:= length(Fields) ->
     lists:zip([TypeKey | Fields], tuple_to_list(Record)).
 
 
@@ -369,63 +430,293 @@ shell_quote([C | Rest], Acc) when C =:= $\" orelse C =:= $\` orelse
 shell_quote([C | Rest], Acc) ->
     shell_quote(Rest, [C | Acc]).
 
-test() ->
-    test_join(),
-    test_quote_plus(),
-    test_unquote(),
-    test_urlencode(),
-    test_parse_qs(),
-    test_urlsplit_path(),
-    test_urlunsplit_path(),
-    test_urlsplit(),
-    test_urlunsplit(),
-    test_path_split(),
-    test_guess_mime(),
-    test_parse_header(),
-    test_shell_quote(),
-    test_cmd(),
-    test_cmd_string(),
+%% @spec parse_qvalues(string()) -> [qvalue()] | invalid_qvalue_string
+%% @type qvalue() = {media_type() | encoding() , float()}.
+%% @type media_type() = string().
+%% @type encoding() = string().
+%%
+%% @doc Parses a list (given as a string) of elements with Q values associated
+%%      to them. Elements are separated by commas and each element is separated
+%%      from its Q value by a semicolon. Q values are optional but when missing
+%%      the value of an element is considered as 1.0. A Q value is always in the
+%%      range [0.0, 1.0]. A Q value list is used for example as the value of the
+%%      HTTP "Accept" and "Accept-Encoding" headers.
+%%
+%%      Q values are described in section 2.9 of the RFC 2616 (HTTP 1.1).
+%%
+%%      Example:
+%%
+%%      parse_qvalues("gzip; q=0.5, deflate, identity;q=0.0") ->
+%%          [{"gzip", 0.5}, {"deflate", 1.0}, {"identity", 0.0}]
+%%
+parse_qvalues(QValuesStr) ->
+    try
+        lists:map(
+            fun(Pair) ->
+                [Type | Params] = string:tokens(Pair, ";"),
+                NormParams = normalize_media_params(Params),
+                {Q, NonQParams} = extract_q(NormParams),
+                {string:join([string:strip(Type) | NonQParams], ";"), Q}
+            end,
+            string:tokens(string:to_lower(QValuesStr), ",")
+        )
+    catch
+        _Type:_Error ->
+            invalid_qvalue_string
+    end.
+
+normalize_media_params(Params) ->
+    {ok, Re} = re:compile("\\s"),
+    normalize_media_params(Re, Params, []).
+
+normalize_media_params(_Re, [], Acc) ->
+    lists:reverse(Acc);
+normalize_media_params(Re, [Param | Rest], Acc) ->
+    NormParam = re:replace(Param, Re, "", [global, {return, list}]),
+    normalize_media_params(Re, Rest, [NormParam | Acc]).
+
+extract_q(NormParams) ->
+    {ok, KVRe} = re:compile("^([^=]+)=([^=]+)$"),
+    {ok, QRe} = re:compile("^((?:0|1)(?:\\.\\d{1,3})?)$"),
+    extract_q(KVRe, QRe, NormParams, []).
+
+extract_q(_KVRe, _QRe, [], Acc) ->
+    {1.0, lists:reverse(Acc)};
+extract_q(KVRe, QRe, [Param | Rest], Acc) ->
+    case re:run(Param, KVRe, [{capture, [1, 2], list}]) of
+        {match, [Name, Value]} ->
+            case Name of
+            "q" ->
+                {match, [Q]} = re:run(Value, QRe, [{capture, [1], list}]),
+                QVal = case Q of
+                    "0" ->
+                        0.0;
+                    "1" ->
+                        1.0;
+                    Else ->
+                        list_to_float(Else)
+                end,
+                case QVal < 0.0 orelse QVal > 1.0 of
+                false ->
+                    {QVal, lists:reverse(Acc) ++ Rest}
+                end;
+            _ ->
+                extract_q(KVRe, QRe, Rest, [Param | Acc])
+            end
+    end.
+
+%% @spec pick_accepted_encodings([qvalue()], [encoding()], encoding()) ->
+%%    [encoding()]
+%%
+%% @doc Determines which encodings specified in the given Q values list are
+%%      valid according to a list of supported encodings and a default encoding.
+%%
+%%      The returned list of encodings is sorted, descendingly, according to the
+%%      Q values of the given list. The last element of this list is the given
+%%      default encoding unless this encoding is explicitily or implicitily
+%%      marked with a Q value of 0.0 in the given Q values list.
+%%      Note: encodings with the same Q value are kept in the same order as
+%%            found in the input Q values list.
+%%
+%%      This encoding picking process is described in section 14.3 of the
+%%      RFC 2616 (HTTP 1.1).
+%%
+%%      Example:
+%%
+%%      pick_accepted_encodings(
+%%          [{"gzip", 0.5}, {"deflate", 1.0}],
+%%          ["gzip", "identity"],
+%%          "identity"
+%%      ) ->
+%%          ["gzip", "identity"]
+%%
+pick_accepted_encodings(AcceptedEncs, SupportedEncs, DefaultEnc) ->
+    SortedQList = lists:reverse(
+        lists:sort(fun({_, Q1}, {_, Q2}) -> Q1 < Q2 end, AcceptedEncs)
+    ),
+    {Accepted, Refused} = lists:foldr(
+        fun({E, Q}, {A, R}) ->
+            case Q > 0.0 of
+                true ->
+                    {[E | A], R};
+                false ->
+                    {A, [E | R]}
+            end
+        end,
+        {[], []},
+        SortedQList
+    ),
+    Refused1 = lists:foldr(
+        fun(Enc, Acc) ->
+            case Enc of
+                "*" ->
+                    lists:subtract(SupportedEncs, Accepted) ++ Acc;
+                _ ->
+                    [Enc | Acc]
+            end
+        end,
+        [],
+        Refused
+    ),
+    Accepted1 = lists:foldr(
+        fun(Enc, Acc) ->
+            case Enc of
+                "*" ->
+                    lists:subtract(SupportedEncs, Accepted ++ Refused1) ++ Acc;
+                _ ->
+                    [Enc | Acc]
+            end
+        end,
+        [],
+        Accepted
+    ),
+    Accepted2 = case lists:member(DefaultEnc, Accepted1) of
+        true ->
+            Accepted1;
+        false ->
+            Accepted1 ++ [DefaultEnc]
+    end,
+    [E || E <- Accepted2, lists:member(E, SupportedEncs),
+        not lists:member(E, Refused1)].
+
+make_io(Atom) when is_atom(Atom) ->
+    atom_to_list(Atom);
+make_io(Integer) when is_integer(Integer) ->
+    integer_to_list(Integer);
+make_io(Io) when is_list(Io); is_binary(Io) ->
+    Io.
+
+%%
+%% Tests
+%%
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+make_io_test() ->
+    ?assertEqual(
+       <<"atom">>,
+       iolist_to_binary(make_io(atom))),
+    ?assertEqual(
+       <<"20">>,
+       iolist_to_binary(make_io(20))),
+    ?assertEqual(
+       <<"list">>,
+       iolist_to_binary(make_io("list"))),
+    ?assertEqual(
+       <<"binary">>,
+       iolist_to_binary(make_io(<<"binary">>))),
     ok.
 
-test_shell_quote() ->
-    "\"foo \\$bar\\\"\\`' baz\"" = shell_quote("foo $bar\"`' baz"),
+-record(test_record, {field1=f1, field2=f2}).
+record_to_proplist_test() ->
+    ?assertEqual(
+       [{'__record', test_record},
+        {field1, f1},
+        {field2, f2}],
+       record_to_proplist(#test_record{}, record_info(fields, test_record))),
+    ?assertEqual(
+       [{'typekey', test_record},
+        {field1, f1},
+        {field2, f2}],
+       record_to_proplist(#test_record{},
+                          record_info(fields, test_record),
+                          typekey)),
     ok.
 
-test_cmd() ->
-    "$bling$ `word`!\n" = cmd(["echo", "$bling$ `word`!"]),
+shell_quote_test() ->
+    ?assertEqual(
+       "\"foo \\$bar\\\"\\`' baz\"",
+       shell_quote("foo $bar\"`' baz")),
     ok.
 
-test_cmd_string() ->
-    "\"echo\" \"\\$bling\\$ \\`word\\`!\"" = cmd_string(["echo", "$bling$ `word`!"]),
+cmd_port_test_spool(Port, Acc) ->
+    receive
+        {Port, eof} ->
+            Acc;
+        {Port, {data, {eol, Data}}} ->
+            cmd_port_test_spool(Port, ["\n", Data | Acc]);
+        {Port, Unknown} ->
+            throw({unknown, Unknown})
+    after 1000 ->
+            throw(timeout)
+    end.
+
+cmd_port_test() ->
+    Port = cmd_port(["echo", "$bling$ `word`!"],
+                    [eof, stream, {line, 4096}]),
+    Res = try lists:append(lists:reverse(cmd_port_test_spool(Port, [])))
+          after catch port_close(Port)
+          end,
+    self() ! {Port, wtf},
+    try cmd_port_test_spool(Port, [])
+    catch throw:{unknown, wtf} -> ok
+    end,
+    try cmd_port_test_spool(Port, [])
+    catch throw:timeout -> ok
+    end,
+    ?assertEqual(
+       "$bling$ `word`!\n",
+       Res).
+
+cmd_test() ->
+    ?assertEqual(
+       "$bling$ `word`!\n",
+       cmd(["echo", "$bling$ `word`!"])),
     ok.
 
-test_parse_header() ->
-    {"multipart/form-data", [{"boundary", "AaB03x"}]} =
-        parse_header("multipart/form-data; boundary=AaB03x"),
+cmd_string_test() ->
+    ?assertEqual(
+       "\"echo\" \"\\$bling\\$ \\`word\\`!\"",
+       cmd_string(["echo", "$bling$ `word`!"])),
     ok.
 
-test_guess_mime() ->
-    "text/plain" = guess_mime(""),
-    "text/plain" = guess_mime(".text"),
-    "application/zip" = guess_mime(".zip"),
-    "application/zip" = guess_mime("x.zip"),
-    "text/html" = guess_mime("x.html"),
-    "application/xhtml+xml" = guess_mime("x.xhtml"),
+cmd_status_test() ->
+    ?assertEqual(
+       {0, <<"$bling$ `word`!\n">>},
+       cmd_status(["echo", "$bling$ `word`!"])),
     ok.
 
-test_path_split() ->
+
+parse_header_test() ->
+    ?assertEqual(
+       {"multipart/form-data", [{"boundary", "AaB03x"}]},
+       parse_header("multipart/form-data; boundary=AaB03x")),
+    %% This tests (currently) intentionally broken behavior
+    ?assertEqual(
+       {"multipart/form-data",
+        [{"b", ""},
+         {"cgi", "is"},
+         {"broken", "true\"e"}]},
+       parse_header("multipart/form-data;b=;cgi=\"i\\s;broken=true\"e;=z;z")),
+    ok.
+
+guess_mime_test() ->
+    ?assertEqual("text/plain", guess_mime("")),
+    ?assertEqual("text/plain", guess_mime(".text")),
+    ?assertEqual("application/zip", guess_mime(".zip")),
+    ?assertEqual("application/zip", guess_mime("x.zip")),
+    ?assertEqual("text/html", guess_mime("x.html")),
+    ?assertEqual("application/xhtml+xml", guess_mime("x.xhtml")),
+    ?assertEqual("text/x-cross-domain-policy", guess_mime("crossdomain.xml")),
+    ?assertEqual("text/x-cross-domain-policy", guess_mime("www/crossdomain.xml")),
+    ok.
+
+path_split_test() ->
     {"", "foo/bar"} = path_split("/foo/bar"),
     {"foo", "bar"} = path_split("foo/bar"),
     {"bar", ""} = path_split("bar"),
     ok.
 
-test_urlsplit() ->
+urlsplit_test() ->
     {"", "", "/foo", "", "bar?baz"} = urlsplit("/foo#bar?baz"),
     {"http", "host:port", "/foo", "", "bar?baz"} =
         urlsplit("http://host:port/foo#bar?baz"),
+    {"http", "host", "", "", ""} = urlsplit("http://host"),
+    {"", "", "/wiki/Category:Fruit", "", ""} =
+        urlsplit("/wiki/Category:Fruit"),
     ok.
 
-test_urlsplit_path() ->
+urlsplit_path_test() ->
     {"/foo/bar", "", ""} = urlsplit_path("/foo/bar"),
     {"/foo", "baz", ""} = urlsplit_path("/foo?baz"),
     {"/foo", "", "bar?baz"} = urlsplit_path("/foo#bar?baz"),
@@ -434,13 +725,13 @@ test_urlsplit_path() ->
     {"/foo", "bar?baz", "baz"} = urlsplit_path("/foo?bar?baz#baz"),
     ok.
 
-test_urlunsplit() ->
+urlunsplit_test() ->
     "/foo#bar?baz" = urlunsplit({"", "", "/foo", "", "bar?baz"}),
     "http://host:port/foo#bar?baz" =
         urlunsplit({"http", "host:port", "/foo", "", "bar?baz"}),
     ok.
 
-test_urlunsplit_path() ->
+urlunsplit_path_test() ->
     "/foo/bar" = urlunsplit_path({"/foo/bar", "", ""}),
     "/foo?baz" = urlunsplit_path({"/foo", "baz", ""}),
     "/foo#bar?baz" = urlunsplit_path({"/foo", "", "bar?baz"}),
@@ -449,38 +740,254 @@ test_urlunsplit_path() ->
     "/foo?bar?baz#baz" = urlunsplit_path({"/foo", "bar?baz", "baz"}),
     ok.
 
-test_join() ->
-    "foo,bar,baz" = join(["foo", "bar", "baz"], $,),
-    "foo,bar,baz" = join(["foo", "bar", "baz"], ","),
-    "foo bar" = join([["foo", " bar"]], ","),
-    "foo bar,baz" = join([["foo", " bar"], "baz"], ","),
-    "foo" = join(["foo"], ","),
-    "foobarbaz" = join(["foo", "bar", "baz"], ""),
+join_test() ->
+    ?assertEqual("foo,bar,baz",
+                  join(["foo", "bar", "baz"], $,)),
+    ?assertEqual("foo,bar,baz",
+                  join(["foo", "bar", "baz"], ",")),
+    ?assertEqual("foo bar",
+                  join([["foo", " bar"]], ",")),
+    ?assertEqual("foo bar,baz",
+                  join([["foo", " bar"], "baz"], ",")),
+    ?assertEqual("foo",
+                  join(["foo"], ",")),
+    ?assertEqual("foobarbaz",
+                  join(["foo", "bar", "baz"], "")),
+    ?assertEqual("foo" ++ [<<>>] ++ "bar" ++ [<<>>] ++ "baz",
+                 join(["foo", "bar", "baz"], <<>>)),
+    ?assertEqual("foobar" ++ [<<"baz">>],
+                 join(["foo", "bar", <<"baz">>], "")),
+    ?assertEqual("",
+                 join([], "any")),
     ok.
 
-test_quote_plus() ->
+quote_plus_test() ->
     "foo" = quote_plus(foo),
     "1" = quote_plus(1),
+    "1.1" = quote_plus(1.1),
     "foo" = quote_plus("foo"),
     "foo+bar" = quote_plus("foo bar"),
     "foo%0A" = quote_plus("foo\n"),
     "foo%0A" = quote_plus("foo\n"),
     "foo%3B%26%3D" = quote_plus("foo;&="),
+    "foo%3B%26%3D" = quote_plus(<<"foo;&=">>),
     ok.
 
-test_unquote() ->
-    "foo bar" = unquote("foo+bar"),
-    "foo bar" = unquote("foo%20bar"),
-    "foo\r\n" = unquote("foo%0D%0A"),
+unquote_test() ->
+    ?assertEqual("foo bar",
+                 unquote("foo+bar")),
+    ?assertEqual("foo bar",
+                 unquote("foo%20bar")),
+    ?assertEqual("foo\r\n",
+                 unquote("foo%0D%0A")),
+    ?assertEqual("foo\r\n",
+                 unquote(<<"foo%0D%0A">>)),
     ok.
 
-test_urlencode() ->
+urlencode_test() ->
     "foo=bar&baz=wibble+%0D%0A&z=1" = urlencode([{foo, "bar"},
                                                  {"baz", "wibble \r\n"},
                                                  {z, 1}]),
     ok.
 
-test_parse_qs() ->
-    [{"foo", "bar"}, {"baz", "wibble \r\n"}, {"z", "1"}] =
-        parse_qs("foo=bar&baz=wibble+%0D%0A&z=1"),
+parse_qs_test() ->
+    ?assertEqual(
+       [{"foo", "bar"}, {"baz", "wibble \r\n"}, {"z", "1"}],
+       parse_qs("foo=bar&baz=wibble+%0D%0a&z=1")),
+    ?assertEqual(
+       [{"", "bar"}, {"baz", "wibble \r\n"}, {"z", ""}],
+       parse_qs("=bar&baz=wibble+%0D%0a&z=")),
+    ?assertEqual(
+       [{"foo", "bar"}, {"baz", "wibble \r\n"}, {"z", "1"}],
+       parse_qs(<<"foo=bar&baz=wibble+%0D%0a&z=1">>)),
+    ?assertEqual(
+       [],
+       parse_qs("")),
+    ?assertEqual(
+       [{"foo", ""}, {"bar", ""}, {"baz", ""}],
+       parse_qs("foo;bar&baz")),
     ok.
+
+partition_test() ->
+    {"foo", "", ""} = partition("foo", "/"),
+    {"foo", "/", "bar"} = partition("foo/bar", "/"),
+    {"foo", "/", ""} = partition("foo/", "/"),
+    {"", "/", "bar"} = partition("/bar", "/"),
+    {"f", "oo/ba", "r"} = partition("foo/bar", "oo/ba"),
+    ok.
+
+safe_relative_path_test() ->
+    "foo" = safe_relative_path("foo"),
+    "foo/" = safe_relative_path("foo/"),
+    "foo" = safe_relative_path("foo/bar/.."),
+    "bar" = safe_relative_path("foo/../bar"),
+    "bar/" = safe_relative_path("foo/../bar/"),
+    "" = safe_relative_path("foo/.."),
+    "" = safe_relative_path("foo/../"),
+    undefined = safe_relative_path("/foo"),
+    undefined = safe_relative_path("../foo"),
+    undefined = safe_relative_path("foo/../.."),
+    undefined = safe_relative_path("foo//"),
+    undefined = safe_relative_path("foo\\bar"),
+    ok.
+
+parse_qvalues_test() ->
+    [] = parse_qvalues(""),
+    [{"identity", 0.0}] = parse_qvalues("identity;q=0"),
+    [{"identity", 0.0}] = parse_qvalues("identity ;q=0"),
+    [{"identity", 0.0}] = parse_qvalues(" identity; q =0 "),
+    [{"identity", 0.0}] = parse_qvalues("identity ; q = 0"),
+    [{"identity", 0.0}] = parse_qvalues("identity ; q= 0.0"),
+    [{"gzip", 1.0}, {"deflate", 1.0}, {"identity", 0.0}] = parse_qvalues(
+        "gzip,deflate,identity;q=0.0"
+    ),
+    [{"deflate", 1.0}, {"gzip", 1.0}, {"identity", 0.0}] = parse_qvalues(
+        "deflate,gzip,identity;q=0.0"
+    ),
+    [{"gzip", 1.0}, {"deflate", 1.0}, {"gzip", 1.0}, {"identity", 0.0}] =
+        parse_qvalues("gzip,deflate,gzip,identity;q=0"),
+    [{"gzip", 1.0}, {"deflate", 1.0}, {"identity", 0.0}] = parse_qvalues(
+        "gzip, deflate , identity; q=0.0"
+    ),
+    [{"gzip", 1.0}, {"deflate", 1.0}, {"identity", 0.0}] = parse_qvalues(
+        "gzip; q=1, deflate;q=1.0, identity;q=0.0"
+    ),
+    [{"gzip", 0.5}, {"deflate", 1.0}, {"identity", 0.0}] = parse_qvalues(
+        "gzip; q=0.5, deflate;q=1.0, identity;q=0"
+    ),
+    [{"gzip", 0.5}, {"deflate", 1.0}, {"identity", 0.0}] = parse_qvalues(
+        "gzip; q=0.5, deflate , identity;q=0.0"
+    ),
+    [{"gzip", 0.5}, {"deflate", 0.8}, {"identity", 0.0}] = parse_qvalues(
+        "gzip; q=0.5, deflate;q=0.8, identity;q=0.0"
+    ),
+    [{"gzip", 0.5}, {"deflate", 1.0}, {"identity", 1.0}] = parse_qvalues(
+        "gzip; q=0.5,deflate,identity"
+    ),
+    [{"gzip", 0.5}, {"deflate", 1.0}, {"identity", 1.0}, {"identity", 1.0}] =
+        parse_qvalues("gzip; q=0.5,deflate,identity, identity "),
+    [{"text/html;level=1", 1.0}, {"text/plain", 0.5}] =
+        parse_qvalues("text/html;level=1, text/plain;q=0.5"),
+    [{"text/html;level=1", 0.3}, {"text/plain", 1.0}] =
+        parse_qvalues("text/html;level=1;q=0.3, text/plain"),
+    [{"text/html;level=1", 0.3}, {"text/plain", 1.0}] =
+        parse_qvalues("text/html; level = 1; q = 0.3, text/plain"),
+    [{"text/html;level=1", 0.3}, {"text/plain", 1.0}] =
+        parse_qvalues("text/html;q=0.3;level=1, text/plain"),
+    invalid_qvalue_string = parse_qvalues("gzip; q=1.1, deflate"),
+    invalid_qvalue_string = parse_qvalues("gzip; q=0.5, deflate;q=2"),
+    invalid_qvalue_string = parse_qvalues("gzip, deflate;q=AB"),
+    invalid_qvalue_string = parse_qvalues("gzip; q=2.1, deflate"),
+    invalid_qvalue_string = parse_qvalues("gzip; q=0.1234, deflate"),
+    invalid_qvalue_string = parse_qvalues("text/html;level=1;q=0.3, text/html;level"),
+    ok.
+
+pick_accepted_encodings_test() ->
+    ["identity"] = pick_accepted_encodings(
+        [],
+        ["gzip", "identity"],
+        "identity"
+    ),
+    ["gzip", "identity"] = pick_accepted_encodings(
+        [{"gzip", 1.0}],
+        ["gzip", "identity"],
+        "identity"
+    ),
+    ["identity"] = pick_accepted_encodings(
+        [{"gzip", 0.0}],
+        ["gzip", "identity"],
+        "identity"
+    ),
+    ["gzip", "identity"] = pick_accepted_encodings(
+        [{"gzip", 1.0}, {"deflate", 1.0}],
+        ["gzip", "identity"],
+        "identity"
+    ),
+    ["gzip", "identity"] = pick_accepted_encodings(
+        [{"gzip", 0.5}, {"deflate", 1.0}],
+        ["gzip", "identity"],
+        "identity"
+    ),
+    ["identity"] = pick_accepted_encodings(
+        [{"gzip", 0.0}, {"deflate", 0.0}],
+        ["gzip", "identity"],
+        "identity"
+    ),
+    ["gzip"] = pick_accepted_encodings(
+        [{"gzip", 1.0}, {"deflate", 1.0}, {"identity", 0.0}],
+        ["gzip", "identity"],
+        "identity"
+    ),
+    ["gzip", "deflate", "identity"] = pick_accepted_encodings(
+        [{"gzip", 1.0}, {"deflate", 1.0}],
+        ["gzip", "deflate", "identity"],
+        "identity"
+    ),
+    ["gzip", "deflate"] = pick_accepted_encodings(
+        [{"gzip", 1.0}, {"deflate", 1.0}, {"identity", 0.0}],
+        ["gzip", "deflate", "identity"],
+        "identity"
+    ),
+    ["deflate", "gzip", "identity"] = pick_accepted_encodings(
+        [{"gzip", 0.2}, {"deflate", 1.0}],
+        ["gzip", "deflate", "identity"],
+        "identity"
+    ),
+    ["deflate", "deflate", "gzip", "identity"] = pick_accepted_encodings(
+        [{"gzip", 0.2}, {"deflate", 1.0}, {"deflate", 1.0}],
+        ["gzip", "deflate", "identity"],
+        "identity"
+    ),
+    ["deflate", "gzip", "gzip", "identity"] = pick_accepted_encodings(
+        [{"gzip", 0.2}, {"deflate", 1.0}, {"gzip", 1.0}],
+        ["gzip", "deflate", "identity"],
+        "identity"
+    ),
+    ["gzip", "deflate", "gzip", "identity"] = pick_accepted_encodings(
+        [{"gzip", 0.2}, {"deflate", 0.9}, {"gzip", 1.0}],
+        ["gzip", "deflate", "identity"],
+        "identity"
+    ),
+    [] = pick_accepted_encodings(
+        [{"*", 0.0}],
+        ["gzip", "deflate", "identity"],
+        "identity"
+    ),
+    ["gzip", "deflate", "identity"] = pick_accepted_encodings(
+        [{"*", 1.0}],
+        ["gzip", "deflate", "identity"],
+        "identity"
+    ),
+    ["gzip", "deflate", "identity"] = pick_accepted_encodings(
+        [{"*", 0.6}],
+        ["gzip", "deflate", "identity"],
+        "identity"
+    ),
+    ["gzip"] = pick_accepted_encodings(
+        [{"gzip", 1.0}, {"*", 0.0}],
+        ["gzip", "deflate", "identity"],
+        "identity"
+    ),
+    ["gzip", "deflate"] = pick_accepted_encodings(
+        [{"gzip", 1.0}, {"deflate", 0.6}, {"*", 0.0}],
+        ["gzip", "deflate", "identity"],
+        "identity"
+    ),
+    ["deflate", "gzip"] = pick_accepted_encodings(
+        [{"gzip", 0.5}, {"deflate", 1.0}, {"*", 0.0}],
+        ["gzip", "deflate", "identity"],
+        "identity"
+    ),
+    ["gzip", "identity"] = pick_accepted_encodings(
+        [{"deflate", 0.0}, {"*", 1.0}],
+        ["gzip", "deflate", "identity"],
+        "identity"
+    ),
+    ["gzip", "identity"] = pick_accepted_encodings(
+        [{"*", 1.0}, {"deflate", 0.0}],
+        ["gzip", "deflate", "identity"],
+        "identity"
+    ),
+    ok.
+
+-endif.
