@@ -137,12 +137,16 @@ write_report(Modules) ->
 
 percentage([Module | Modules], TotCovered, TotLines, Percentages) ->
     {ok, Analasys} = cover:analyse(Module, coverage, line),
-    {Covered, Lines} = lists:foldl(fun({_, {C, _}}, {Covered, Lines}) ->
-                {C + Covered, Lines + 1}
-        end, {0, 0}, Analasys),
-    Percent = (Covered * 100) div Lines,
-    NewPercentages = [{Module, Percent} | Percentages],
-    percentage(Modules, Covered + TotCovered, Lines + TotLines, NewPercentages);
+    case lists:foldl(fun({_, {C, _}}, {Covered, Lines}) ->
+                             {C + Covered, Lines + 1}
+                     end, {0, 0}, Analasys)  of
+        {_,0} ->
+            percentage(Modules, TotCovered, TotLines, Percentages);
+        {Covered, Lines} ->
+            Percent = (Covered * 100) div Lines,
+            NewPercentages = [{Module, Percent} | Percentages],
+            percentage(Modules, Covered + TotCovered, Lines + TotLines, NewPercentages)
+    end;
 percentage([], Covered, Lines, Percentages) ->
     {(Covered * 100) div Lines, Percentages}.
 
