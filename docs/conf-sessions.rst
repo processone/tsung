@@ -1200,3 +1200,46 @@ A dynamic variable set in the first part of the session will be
 available after a **<change_type>**. There is currently one caveat: you have
 to use a full URL in the first http request after a **<change_type>** (a
 relative URL will fail).
+
+
+Raw
+^^^^^^^^^
+.. _sec-session-raw-label:
+
+The **ts_raw** plugin allows you to send traffic to any kind of
+TCP/UDP server without any knowledge of the underlying protocol. You can set the data
+by attribute ``data``, or just set a data size by attribute
+``datasize`` (in this situation, Tsung send ``datasize`` bits of
+zeros). ``data`` and ``datasize`` can be a dynamic values.
+
+The only way to control the response from the server is to use the
+``ack`` attribute (also used by the **jabber** plugin):
+
+* ``ack="local"`` as soon as a packet is received from the server, the
+  request is considered as completed. Hence if you use a local ack with a request
+  that do not require a response from the server, it
+  will wait forever (or until a timeout is reached).
+
+* ``ack="no_ack"`` as soon as the request is send, it is considered as completed (do
+  not wait for incoming data).
+
+* ``ack="global"`` synchronized users. its main use is for waiting for all
+  users to connect before sending messages. To do that, set a request
+  with global ack  (the value can be set using the option ``<option
+  name="global_number" value ="XXX"/>`` and by setting `maxnumber=N` in
+  ``<arrivalphase>``).
+
+.. code-block:: xml
+
+ <session probability="100" name="raw" type="ts_raw">
+    <transaction name="open">
+      <request> <raw data="HELLO" ack="local"></raw> </request>
+    </transaction>
+
+    <thinktime value="4"/>
+    <request> <raw datasize="2048" ack="local"></raw> </request>
+
+    <transaction name="bye">
+      <request> <raw data="BYEBYE" ack="local"></raw> </request>
+    </transaction>
+ </session>
