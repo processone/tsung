@@ -22,7 +22,7 @@ A User's manual is available :
 Join the mailing-list:
   https://lists.process-one.net/mailman/listinfo/tsung-users
 
-or use the tracker https://support.process-one.net/browse/TSUN
+or use the tracker https://github.com/processone/tsung/issues
 
 
 

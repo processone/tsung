@@ -3,15 +3,20 @@ Usage: tsung <options> start|stop|debug|status
 Options:
     -f <file>     set configuration file (default is ~/.tsung/tsung.xml)
                    (use - for standard input)
-    -l <logdir>   set log directory (default is ~/.tsung/log/YYYYMMDD-HHMM/)
+    -l <logdir>   set log directory where YYYYMMDD-HHMM dirs are created (default is ~/.tsung/log/) 
     -i <id>       set controller id (default is empty)
     -r <command>  set remote connector (default is ssh)
     -s            enable erlang smp on client nodes
     -p <max>      set maximum erlang processes per vm (default is 250000)
+    -X <dir>      add additional erlang load paths (multiple -X arguments allowed)
     -m <file>     write monitoring output on this file (default is tsung.log)
                    (use - for standard output)
     -F            use long names (FQDN) for erlang nodes
-    -w            warmup delay (default is 10 sec)
+    -L <lifetime> SSL session lifetime (600sec by default)
+    -w            warmup delay (default is 1 sec)
+    -n            disable web GUI
+    -k            keep web GUI (and controller) alive after the test has finished
     -v            print version information and exit
     -6            use IPv6 for Tsung internal communications
+    -x <tags>     list of requests tag to be excluded from the run (separated by comma)
     -h            display this help and exit

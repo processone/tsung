@@ -31,7 +31,7 @@ configuration tags if override is true.
  <option name="udp_snd_buffer" value="16384"></option>
  <option name="udp_rcv_buffer" value="16384"></option>
 
-.. versionadded:: 1.5.2
+.. versionadded:: 1.6.0
 
 You can disable the SSL session cache (it is enabled by default)
 
@@ -48,7 +48,7 @@ session liefetime in the cache (10mn by default); value must be in seconds.
 Timeout for TCP connections
 ---------------------------------------
 
-.. versionadded:: 1.5.2
+.. versionadded:: 1.6.0
 
 You can specify a timeout in milliseconds for establishing a TCP connection. The default is ``infinity``.
 
@@ -71,7 +71,7 @@ You can also enable the TCP REUSEADDR option globally:
 Retry Attempts and Timeouts
 ---------------------------------------
 
-.. versionadded:: 1.5.2
+.. versionadded:: 1.6.0
 
 You can specify the amound of retry attempts made by tsung. The default is ``3``.
 

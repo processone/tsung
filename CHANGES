@@ -1,3 +1,33 @@
+1.5.1 -> 1.6.0 Major enhancements and bugfixes (20 Jul 2015)
+Bugfix:
+  *  [TSUN-225] - SSL Session Caching Issues
+  *  [TSUN-292] - Indecipherable error with no arrivalphase elements
+  *  [TSUN-294] - Logging(?) of unmatched dyn vars puts lot of pressure on controller
+  *  [TSUN-295] - tsung status crashes test run
+  *  [TSUN-296] - Reported response size in dumpfile seems to be way too low
+  *  [TSUN-297] - Float values in thinktimes substitution
+  *  [TSUN-305] - Can't connect with +TLS to ejabberd/XMPP
+  *  [TSUN-308] - Handle ssl_closed in ts_client
+  *  [TSUN-309] - RNG Seeding is too weak and causes collisions
+  *  [TSUN-312] - Handle cast new beam failed
+  *  [TSUN-316] - LDAP scenarios fail when compiled with R16A/B due to asn1rt_ber_bin
+  *  [TSUN-320] - get_os_data(freemem, {unix, linux}) crashes on Linux 3.10.0
+  *  [PR #91]   - [MQTT] Last Will and Testament should not be included if will_topic is not set.
+  *  [PR #104]  - Fix problem with MQTT SUBACK packages
+  *  [PR #107]  - Fix crash when use_controller_vm="false" and controller id is not empty
+  *  [PR #109]  - Fix race condition in ts_utils:make_dir/1
+Improvements:
+  *  [TSUN-307] - Allow all HTTP headers to be overridden by <http_header>
+  *  [PR #111]  - Add subst for amqp exchange, routingKey and queue name
+  *  [PR #79]   - added support for mqtt user and password
+  *  [PR #81]   - Allow setting of dynamic vars for MQTT's username and password
+  *  [PR #93]   - Add two config option
+New features:
+  *  [TSUN-290] - Add a web dashboard embedded in tsung controller
+  *  [TSUN-293] - Enable node local dumptraffic log
+  *  [TSUN-304] - Add command line option to add additional erlang module load paths
+  *  [TSUN-306] - Add connection_timeout option
+  *  [PR #106]  - XMPP message latency measurement
 1.5.0 -> 1.5.1 Major enhancements and bugfixes (7 Apr 2014)
 Bugfix:
   * [TSUN-250] - BOSH Crash

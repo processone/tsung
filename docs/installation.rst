@@ -89,8 +89,10 @@ Two commands are installed in the directory :file:`$PREFIX/bin`:
 
 A typical way of using tsung is to run: :command:`tsung -f myconfigfile.xml start`.
 
-The command will print the current log directory created for the test, and wait until the test is
-over.
+The command will print the current log directory created for the test,
+and wait until the test is over. By default an embedded web server
+will be started on the controller node and will listen on the 8090
+port (this can be disabled with the `-n` option.
 
 
 Feedback
@@ -98,6 +100,6 @@ Feedback
 
 Use the `Tsung mailing list <https://lists.process-one.net/mailman/listinfo/tsung-users>`_ if you have
 suggestions or questions about Tsung. You can also use the
-bug tracker available at https://support.process-one.net/browse/TSUN.
+bug tracker available at https://github.com/processone/tsung/issues
 
 You can also try the #tsung IRC channel on Freenode.

@@ -76,7 +76,7 @@ the global lock (the value can be set using the option ``<option
 name="global_number" value ="XXX"/>`` and by setting `maxnumber=N` in
 ``<arrivalphase>``).
 
-**Since version 1.5.2**, you can wait for a 'bidi' ack. If your protocol is bidirectionnal (e.g. xmpp, websocket, ...), you can wait until the server sends some data, and the code that handle this data exits the ``think`` state.
+**Since version 1.6.0**, you can wait for a 'bidi' ack. If your protocol is bidirectionnal (e.g. xmpp, websocket, ...), you can wait until the server sends some data, and the code that handle this data exits the ``think`` state.
 
 .. code-block:: xml
 
