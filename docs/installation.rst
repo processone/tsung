@@ -91,7 +91,7 @@ A typical way of using tsung is to run: :command:`tsung -f myconfigfile.xml star
 
 The command will print the current log directory created for the test,
 and wait until the test is over. By default an embedded web server
-will be started on the controller node and will listen on the 8090
+will be started on the controller node and will listen on the 8091
 port (this can be disabled with the `-n` option.
 
 

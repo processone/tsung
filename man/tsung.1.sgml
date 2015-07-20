@@ -184,6 +184,18 @@ A distributed multi-protocol load testing tool.
         </listitem>
       </varlistentry>
       <varlistentry>
+        <term><option>-n</option></term>
+        <listitem>
+          <para>disable web GUI </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><option>-k</option></term>
+        <listitem>
+          <para>keep web GUI (and controller) alive after the test has finished</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
         <term><option>-6</option></term>
         <listitem>
           <para> Use IPv6 for tsung internal communications</para>

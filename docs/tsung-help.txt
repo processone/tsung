@@ -3,7 +3,7 @@ Usage: tsung <options> start|stop|debug|status
 Options:
     -f <file>     set configuration file (default is ~/.tsung/tsung.xml)
                    (use - for standard input)
-    -l <logdir>   set log directory where YYYYMMDD-HHMM dirs are created (default is ~/.tsung/log/) 
+    -l <logdir>   set log directory where YYYYMMDD-HHMM dirs are created (default is ~/.tsung/log/)
     -i <id>       set controller id (default is empty)
     -r <command>  set remote connector (default is ssh)
     -s            enable erlang smp on client nodes
@@ -13,8 +13,8 @@ Options:
                    (use - for standard output)
     -F            use long names (FQDN) for erlang nodes
     -L <lifetime> SSL session lifetime (600sec by default)
-    -w            warmup delay (default is 1 sec)
-    -n            disable web GUI
+    -w <delay>    warmup delay (default is 1 sec)
+    -n            disable web GUI (started by default on port 8091)
     -k            keep web GUI (and controller) alive after the test has finished
     -v            print version information and exit
     -6            use IPv6 for Tsung internal communications
