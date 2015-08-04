@@ -106,10 +106,7 @@ http_body(Method,#http_request{url=URL, version=Version,
                                user_agent=UA, soap_action=SOAPAction,
                                content_type=ContentType,
                                body=Content, host_header=Host}=Req) ->
-    
-	?LOGF("Request here is~n-------------~n~s~n",[Req],?INFO),
-	
-	ContentLength=integer_to_list(size(Content)),
+    ContentLength=integer_to_list(size(Content)),
     ?DebugF("Content Length of POST: ~p~n.", [ContentLength]),
     H = [Method, " ", URL," ", "HTTP/", Version, ?CRLF,
                set_header("Host",Host,Headers, ""),
@@ -191,7 +188,7 @@ oauth_sign(Method, #http_request{url=URL,
     [_He|Ta] = string:tokens(URL,"?"),
     UrlParams = oauth_uri:params_from_string(lists:flatten(Ta)),
 	
-	if
+    if
       ContentType =:= ?BODY_PARAM ->
         BodyParams = oauth_uri:params_from_string(lists:flatten(binary_to_list(Body))),
         AllParams = UrlParams ++ BodyParams;
@@ -199,7 +196,6 @@ oauth_sign(Method, #http_request{url=URL,
         AllParams = UrlParams
     end,
 	
-    ?LOGF("OauthSign.AllParams~n-------------~n~s~n",[AllParams],?INFO),
     Params = oauth:signed_params(Method, ServerURL, AllParams, Consumer, AccessToken, AccessSecret),
     ["Authorization: OAuth ", oauth_uri:params_to_header_string(Params),?CRLF].
 
