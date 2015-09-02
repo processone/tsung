@@ -5,3 +5,8 @@
 ebin/*.beam
 ebin/*.app
 examples/*.xml
+
+aclocal.m4
+configure
+install-sh
+stamp-*
