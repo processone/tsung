@@ -392,7 +392,7 @@ do_launch({Intensity, MyHostName, PhaseId})->
     %%Get one client
     %%set the profile of the client
     case catch ts_config_server:get_next_session({MyHostName, PhaseId} ) of
-        [{'EXIT', {timeout, _ }}] ->
+        {'EXIT', {timeout, _ }} ->
             ?LOG("get_next_session failed (timeout), skip this session !~n", ?ERR),
             ts_mon:add({ count, error_next_session }),
             error;
