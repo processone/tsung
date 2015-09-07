@@ -221,38 +221,38 @@ install: tsung doc install_recorder install_controller $(CONFFILE)
 	install -d $(DESTDIR)$(TOOLS_BINDIR)/
 	install -d $(DESTDIR)$(BINDIR)/
 
-	install -m 0644 $(INC_FILES) $(DESTDIR)$(TARGETDIR)/include/
-	install -m 0644 $(TARGET) $(DESTDIR)$(TARGETDIR)/ebin/
-	install -m 0644 $(LIB_TARGET) $(DESTDIR)$(TARGETDIR)/ebin/
+	install -pm 0644 $(INC_FILES) $(DESTDIR)$(TARGETDIR)/include/
+	install -pm 0644 $(TARGET) $(DESTDIR)$(TARGETDIR)/ebin/
+	install -pm 0644 $(LIB_TARGET) $(DESTDIR)$(TARGETDIR)/ebin/
 
 
-	install -m 0644 $(APPFILES) $(DESTDIR)$(TARGETDIR)/ebin/
+	install -pm 0644 $(APPFILES) $(DESTDIR)$(TARGETDIR)/ebin/
 
-	install -m 0644 $(SRC) $(DESTDIR)$(TARGETDIR)/src/
+	install -pm 0644 $(SRC) $(DESTDIR)$(TARGETDIR)/src/
 
 # install the man page
 	install -d $(DESTDIR)$(MAN_DIR)
-	install -m 0644 $(MANPAGES) $(DESTDIR)$(MAN_DIR)
+	install -pm 0644 $(MANPAGES) $(DESTDIR)$(MAN_DIR)
 
 # create startup script
-	install -m 0755 tsung.sh $(DESTDIR)$(SCRIPT)
-	install -m 0755 tsung-recorder.sh $(DESTDIR)$(REC_SCRIPT)
-	install -m 0755 $(PERL_SCRIPTS) $(DESTDIR)$(TOOLS_BINDIR)
+	install -pm 0755 tsung.sh $(DESTDIR)$(SCRIPT)
+	install -pm 0755 tsung-recorder.sh $(DESTDIR)$(REC_SCRIPT)
+	install -pm 0755 $(PERL_SCRIPTS) $(DESTDIR)$(TOOLS_BINDIR)
 # tsung-plotter
-	install -m 0755 $(TSPLOT) $(DESTDIR)$(BINDIR)/tsplot
+	install -pm 0755 $(TSPLOT) $(DESTDIR)$(BINDIR)/tsplot
 	install -d $(DESTDIR)$(LIBDIR)/tsung_plotter
 	install -d $(DESTDIR)$(SHARE_DIR)/tsung_plotter
-	install -m 0644 $(TSUNG_PLOTTER_LIB) $(DESTDIR)$(LIBDIR)/tsung_plotter
-	install -m 0644 $(TSUNG_PLOTTER_CONF) $(DESTDIR)$(SHARE_DIR)/tsung_plotter
+	install -pm 0644 $(TSUNG_PLOTTER_LIB) $(DESTDIR)$(LIBDIR)/tsung_plotter
+	install -pm 0644 $(TSUNG_PLOTTER_CONF) $(DESTDIR)$(SHARE_DIR)/tsung_plotter
 
 	install -d $(DESTDIR)$(CONFDIR)
-	install -m 0644 $(CONFFILE) $(DESTDIR)$(CONFDIR)/
+	install -pm 0644 $(CONFFILE) $(DESTDIR)$(CONFDIR)/
 
 	install -d $(DESTDIR)$(TEMPLATES_DIR)
 	install -d $(DESTDIR)$(TEMPLATES_DIR)/style
-	install -m 0644 $(TEMPLATES) $(DESTDIR)$(TEMPLATES_DIR)/
-	install -m 0644 $(TEMPLATES_STYLE) $(DESTDIR)$(TEMPLATES_DIR)/style
-	install -m 0644 $(DTD) $(DESTDIR)$(SHARE_DIR)/
+	install -pm 0644 $(TEMPLATES) $(DESTDIR)$(TEMPLATES_DIR)/
+	install -pm 0644 $(TEMPLATES_STYLE) $(DESTDIR)$(TEMPLATES_DIR)/style
+	install -pm 0644 $(DTD) $(DESTDIR)$(SHARE_DIR)/
 
 install_recorder:
 	install -d $(DESTDIR)$(RECORDER_TARGETDIR)/priv
@@ -260,24 +260,24 @@ install_recorder:
 	install -d $(DESTDIR)$(RECORDER_TARGETDIR)/src
 	install -d $(DESTDIR)$(RECORDER_TARGETDIR)/include
 
-	install -m 0644 $(INC_FILES) $(DESTDIR)$(RECORDER_TARGETDIR)/include
-	install -m 0644 $(RECORDER_TARGET) $(DESTDIR)$(RECORDER_TARGETDIR)/ebin
+	install -pm 0644 $(INC_FILES) $(DESTDIR)$(RECORDER_TARGETDIR)/include
+	install -pm 0644 $(RECORDER_TARGET) $(DESTDIR)$(RECORDER_TARGETDIR)/ebin
 
-	install -m 0644 $(RECORDER_APPFILES) $(DESTDIR)$(RECORDER_TARGETDIR)/ebin
+	install -pm 0644 $(RECORDER_APPFILES) $(DESTDIR)$(RECORDER_TARGETDIR)/ebin
 
-	install -m 0644 $(RECORDER_SRC) $(DESTDIR)$(RECORDER_TARGETDIR)/src
+	install -pm 0644 $(RECORDER_SRC) $(DESTDIR)$(RECORDER_TARGETDIR)/src
 
 install_controller:
 	install -d $(DESTDIR)$(CONTROLLER_TARGETDIR)/priv
 	install -d $(DESTDIR)$(CONTROLLER_TARGETDIR)/ebin
 	install -d $(DESTDIR)$(CONTROLLER_TARGETDIR)/src
 	install -d $(DESTDIR)$(CONTROLLER_TARGETDIR)/include
-	install -m 0644 $(INC_FILES) $(DESTDIR)$(CONTROLLER_TARGETDIR)/include
-	install -m 0644 $(CONTROLLER_TARGET) $(DESTDIR)$(CONTROLLER_TARGETDIR)/ebin
+	install -pm 0644 $(INC_FILES) $(DESTDIR)$(CONTROLLER_TARGETDIR)/include
+	install -pm 0644 $(CONTROLLER_TARGET) $(DESTDIR)$(CONTROLLER_TARGETDIR)/ebin
 
-	install -m 0644 $(CONTROLLER_APPFILES) $(DESTDIR)$(CONTROLLER_TARGETDIR)/ebin
+	install -pm 0644 $(CONTROLLER_APPFILES) $(DESTDIR)$(CONTROLLER_TARGETDIR)/ebin
 
-	install -m 0644 $(CONTROLLER_SRC) $(DESTDIR)$(CONTROLLER_TARGETDIR)/src
+	install -pm 0644 $(CONTROLLER_SRC) $(DESTDIR)$(CONTROLLER_TARGETDIR)/src
 
 uninstall:
 	rm -rf $(TARGETDIR) $(SCRIPT)
@@ -313,7 +313,7 @@ config.status: configure $(CONFIG_STATUS_DEPENDENCIES)
 	$(SHELL) ./config.status --recheck
 
 
-configure: configure.in $(CONFIGURE_DEPENDENCIES)
+configure: configure.ac $(CONFIGURE_DEPENDENCIES)
 	@echo "running autoconf"
 	@autoconf
 
@@ -338,7 +338,7 @@ release: Makefile tsung.spec doc user_guide
 		src/test/*.out \
 		$(DEBIAN)  $(PERL_SCRIPTS_SRC) CONTRIBUTORS CHANGES \
 		$(TSPLOT_SRC) $(TSUNG_PLOTTER_CONF) $(TSUNG_PLOTTER_LIB)\
-		configure configure.in config.guess *.m4 config.sub Makefile.in \
+		configure configure.ac config.guess *.m4 config.sub Makefile.in \
 		install-sh tsung.spec.in tsung.spec tsung-recorder.sh.in
 	tar -C $(distdir) -zxf tmp.tgz
 	mkdir $(distdir)/ebin
