@@ -354,6 +354,8 @@ handle_info2({tcp, Socket, _Data}, StateName, State ) ->
                     _ -> ok
                 end, Acc end, unused, DictList),
     {next_state, StateName, State};
+handle_info2({tcp_closed, Socket}, StateName, State ) ->
+    handle_info2({tcp_closed, Socket, ""}, StateName, State );
 handle_info2({tcp_closed, Socket, _Data}, StateName, State ) ->
     ?LOGF("tcp_closed received in state ~p~n",[StateName],?NOTICE),
 
