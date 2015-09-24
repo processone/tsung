@@ -76,8 +76,8 @@ init( {Host, Options, Interval,  MonServer} ) ->
             ?LOG("Running os_mon on the same host as the controller, use the same beam~n",?INFO),
             application:start(sasl),
             application:start(os_mon),
-            Pid = spawn_link(?MODULE, updatestats, [Options, Interval, MonServer]),
-            {ok, #state{node=node(),mon=MonServer, host=Host, interval=Interval, pid=Pid, options=Options}};
+            erlang:start_timer(?INIT_WAIT, self(), spawn),
+            {ok, #state{node=node(),mon=MonServer, host=Host, interval=Interval, options=Options}};
         _ ->
             erlang:start_timer(?INIT_WAIT, self(), start_beam),
             {ok, #state{host=Host, mon=MonServer, interval=Interval, options=Options}}
@@ -117,6 +117,10 @@ handle_cast(Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
+handle_info({timeout,_Ref,spawn},State=#state{mon=MonServer, options=Options, interval=Interval})->
+    Pid = spawn_link(?MODULE, updatestats, [Options, Interval, MonServer]),
+    ?LOGF("Spawn monitoring process on localhost (~p)~n",[Pid],?INFO),
+    {noreply, State#state{pid=Pid}};
 handle_info({timeout,_Ref,start_beam},State=#state{host=Host})->
     case start_beam(Host) of
         {ok, Node} ->
