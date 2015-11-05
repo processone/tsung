@@ -47,7 +47,7 @@ CONF_OPT_FILE="$HOME/.tsung/tsung.xml"
 DEBUG_LEVEL=5
 ERL_RSH=" -rsh ssh "
 ERL_DIST_PORTS=" -kernel inet_dist_listen_min 64000 -kernel inet_dist_listen_max 65500 "
-ERL_OPTS=" $ERL_DIST_PORTS -smp auto +P $MAX_PROCESS +A 8 +K true @ERL_OPTS@ "
+ERL_OPTS=" $ERL_DIST_PORTS -smp auto +A 8 +K true @ERL_OPTS@ "
 COOKIE='tsung'
 SSL_CACHE="ts_ssl_session_cache"
 # 10 mn ssl session lifetime instead of 24h
@@ -60,6 +60,7 @@ stop() {
 start() {
     echo "Starting Tsung"
     $ERL $ERL_OPTS $ERL_RSH -noshell $PROTO_DIST $NAMETYPE $CONTROLLER -setcookie $COOKIE \
+    +P $MAX_PROCESS \
     -s tsung_controller \
     $EXTRA_LOAD_PATHS \
     -pa $TSUNGPATH -pa $CONTROLLERPATH \
@@ -77,6 +78,7 @@ start() {
 
 debug() {
     $ERL $ERL_OPTS $ERL_RSH $NAMETYPE $CONTROLLER $PROTO_DIST -setcookie $COOKIE  \
+     +P $MAX_PROCESS \
      -s tsung_controller \
      $EXTRA_LOAD_PATHS \
      -pa $TSUNGPATH -pa $CONTROLLERPATH \
