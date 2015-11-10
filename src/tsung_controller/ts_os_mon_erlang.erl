@@ -48,6 +48,7 @@
           node,       % name of node to monitor
           host,       % hostname of server to monitor
           pid,        % remote pid
+          retry=false,% have we retried to connect ?
           options     % updatestats options
          }).
 
@@ -121,6 +122,12 @@ handle_info({timeout,_Ref,spawn},State=#state{mon=MonServer, options=Options, in
     Pid = spawn_link(?MODULE, updatestats, [Options, Interval, MonServer]),
     ?LOGF("Spawn monitoring process on localhost (~p)~n",[Pid],?INFO),
     {noreply, State#state{pid=Pid}};
+handle_info({'EXIT',_Pid,noconnection},State=#state{retry=true, host=Host})->
+    ?LOGF("Fail to start beam on host ~p (try 2)~n", [Host],?ERR),
+    {stop, normal, State};
+handle_info({'EXIT',Pid,noconnection},State=#state{host=Host})->
+    ?LOGF("Fail to start beam on host ~p , retry ~n", [Host],?ERR),
+    handle_info({timeout,Pid,start_beam},State#state{retry=true});
 handle_info({timeout,_Ref,start_beam},State=#state{host=Host})->
     case start_beam(Host) of
         {ok, Node} ->
@@ -137,7 +144,7 @@ handle_info({timeout,_Ref,start_beam},State=#state{host=Host})->
             {noreply, State#state{node=Node,pid=Pid}};
        Error ->
             ?LOGF("Fail to start beam on host ~p (~p)~n", [Host, Error],?ERR),
-            {stop, Error, State}
+            {stop, normal, State}
     end.
 
 %%--------------------------------------------------------------------
