@@ -46,7 +46,7 @@
          concat_atoms/1, ceiling/1, accept_loop/3, append_to_filename/3, splitchar/2,
          randombinstr/1,urandombinstr/1,log_transaction/1,conv_entities/1, wildcard/2,
          ensure_all_started/2, pmap/2, pmap/3, get_node_id/0, filtermap/2, new_ets/2,
-         is_controller/0]).
+         is_controller/0, spread_list/1, pack/1]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -1009,4 +1009,32 @@ size_or_length(Data) when is_binary(Data) ->
     size(Data);
 size_or_length(Data) when is_list(Data) ->
     length(Data).
-    
+
+%% given a list with successives duplicates, try to spread duplicates
+%% all over the list. e.g. [a,a,a,b,b,c,c] -> [a,b,c,a,b,c,a]
+spread_list(List) ->
+    spread_list2(pack(List),[]).
+
+spread_list2([], Res) ->
+    Res;
+spread_list2(PackedList, OldRes) ->
+    Fun = fun([A], {Res, ResTail})       -> {[A|Res], ResTail};
+             ([A|ATail], {Res, ResTail}) -> {[A|Res], [ATail|ResTail]}
+          end,
+    {Res, Tail} = lists:foldl(Fun, {[],[]}, PackedList),
+    spread_list2(lists:reverse(Tail), OldRes ++ lists:reverse(Res)).
+
+%pack duplicates into sublists
+%taken from : https://erlang99.wordpress.com/
+pack([])    ->  [];
+pack([H|[]])-> [H];
+pack([[H|T1] | [H|T2]])->
+    pack([[H | [H|T1]] | T2]);
+pack([[H1|T1] | [H2|[]]])->
+    [[H1|T1], [H2]];
+pack([[H1 | T1] | [H2|T2]])->
+    [[H1|T1] | pack([H2|T2])];
+pack([H | [H|T]])->
+    pack([[H,H] | T]);
+pack([H1 | [H2|T]])->
+    [[H1] | pack([H2|T])].

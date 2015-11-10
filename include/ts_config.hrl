@@ -79,6 +79,7 @@
           use_weights      , % true if we use weights instead of probabilities
           total_server_weights=0,
           job_notify_port,
+          max_ssh_startup = 20,
           tag
          }).
 

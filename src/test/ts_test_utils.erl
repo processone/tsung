@@ -82,12 +82,17 @@ pmapn_big_test()->
     ?assertEqual(ResP, Res).
 
 filtermap_test()->
-    Fun = fun(X) -> case X > 1 of 
-                        true -> {true, X + 1}; 
-                        _ -> false 
-                    end 
+    Fun = fun(X) -> case X > 1 of
+                        true -> {true, X + 1};
+                        _ -> false
+                    end
           end,
     ResP = ts_utils:filtermap(Fun, [1,2,3]),
     Res = [3, 4],
     ?assertEqual(ResP, Res).
+
+spread_list_test()->
+    A=[a,a,a,a,b,c,c,d],
+    Res=[a,b,c,d,a,c, a,a],
+    ?assertEqual(Res, ts_utils:spread_list(A)).
 

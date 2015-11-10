@@ -901,6 +901,10 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     GlobalNumber = getAttr(integer, Attrs, value, ?config(global_number)),
                     ts_timer:config(GlobalNumber),
                     lists:foldl( fun parse/2, Conf, Element#xmlElement.content);
+                "max_ssh_startup_per_core" ->
+                    MaxStartup =  getAttr(integer,Attrs, value, 20),
+                    lists:foldl( fun parse/2, Conf#config{max_ssh_startup=MaxStartup},
+                                 Element#xmlElement.content);
                 "tcp_reuseaddr" ->
                     Reuseaddr = getAttr(atom, Attrs, value, false),
                     case Reuseaddr of

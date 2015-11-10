@@ -12,6 +12,7 @@ Setting options
 .. index:: tcp_rcv_buffer
 .. index:: udp_snd_buffer
 .. index:: udp_rcv_buffer
+.. index:: max_ssh_startup
 
 Thinktimes, SSL, Buffers
 ------------------------
@@ -41,6 +42,16 @@ You can disable the SSL session cache (it is enabled by default)
 
 You can also use the command line option ``-L <value>`` to change the
 session liefetime in the cache (10mn by default); value must be in seconds.
+
+You can also change the way Tsung starts remote beams. By default,
+Tsung will start at most 20 ssh process per core of the controller. If
+you manage hundreds of clients, you may want to raise this value with
+``max_ssh_startup_per_core`` (or decrease it if you wish)
+
+.. code-block:: xml
+
+ <option name="max_ssh_startup_per_core" value="100"/>
+
 
 .. index:: idle_timeout
 .. index:: global_ack_timeout
