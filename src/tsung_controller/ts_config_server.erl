@@ -379,14 +379,15 @@ handle_cast({newbeams, HostList}, State=#state{logdir   = LogDir,
             Args = set_remote_args(LogDir, Config#config.ports_range),
             Packed=ts_utils:pack(RemoteBeams),
             NNodes=length(Packed),
-            MinBeamPerNode = lists:min(lists:map(fun(A)->length(A) end, Packed)),
+            MaxStartup = 9, % not 10 because os mon can also start a ssh connection
+            MinBeamPerNode = min(MaxStartup, lists:min(lists:map(fun(A)->length(A) end, Packed))),
             SpreadedBeams = spread_nodelist(RemoteBeams),
             {BeamsIds, LastId} = lists:mapfoldl(fun(A,Acc) -> {{A, Acc}, Acc+1} end, Id0, SpreadedBeams),
             Fun = fun({Host,Id}) -> remote_launcher(Host, Id, Args) end,
             %% start beams in parallel, at most 10 in parallel per node
             %% (because sshd MaxSessions = 10, in case we have to
             %% start more than 10 beams on a single host)
-            MaxParalRemote=  NNodes * MinBeamPerNode + max(0,(9 - MinBeamPerNode)),
+            MaxParalRemote=  NNodes * MinBeamPerNode + MaxStartup - MinBeamPerNode,
             %% now try to not overload the controller:
             MaxLaunchPerCore = Config#config.max_ssh_startup,
             Ncores = erlang:system_info(logical_processors_available),
