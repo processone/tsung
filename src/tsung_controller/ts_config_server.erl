@@ -370,11 +370,13 @@ handle_cast({newbeams, HostList}, State=#state{logdir   = LogDir,
     LocalVM  = Config#config.use_controller_vm,
     GetLocal = fun(Host)-> is_vm_local(Host,LocalHost,LocalVM) end,
     {LocalBeams, RemoteBeams} = lists:partition(GetLocal,HostList),
-    case local_launcher(LocalBeams, LogDir, Config) of
-        {error, _Reason} ->
+    case  { local_launcher(LocalBeams, LogDir, Config), RemoteBeams} of
+        { {error, _Reason}, _ } ->
             ts_mon:abort(),
             {stop, normal,State};
-        Id0 ->
+        {Id0, [] } -> % no remote beams
+            {noreply, State#state{last_beam_id = Id0}};
+        {Id0, _ } ->
             Seed = Config#config.seed,
             Args = set_remote_args(LogDir, Config#config.ports_range),
             Packed=ts_utils:pack(RemoteBeams),
