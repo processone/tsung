@@ -90,6 +90,7 @@ XSL=$(HOME)/cvs/web/idealx3.org/xhtml.xsl
 TEXINPUTS = :.:$(STYLE):$(LOGO_DIR):$(IMAGES_DIR):$(FIGURES_DIR):$(PLOT_DIR):
 BSTINPUTS = :.:$(STYLE)
 VPATH = $(TEXINPUTS)
+DOCBOOK2MAN_VERSION := $(shell docbook2man --version 2>/dev/null)
 
 # pour exporter TEXINPUTS
 .EXPORT_ALL_VARIABLES:
@@ -104,8 +105,11 @@ all: man
 man: $(MANPAGE)
 
 %.1: %.1.sgml
+ifdef DOCBOOK2MAN_VERSION
 	docbook2man $< >/dev/null 2>&1
-
+else
+	@echo "No docbook2man in PATH, man pages may be not uptodate. Consider installing docbook-utils. "
+endif
 
 psimages: $(FIGURES_EPS) $(IMAGES_EPS) $(LOGOS_EPS)
 
