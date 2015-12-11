@@ -1,4 +1,5 @@
-<!doctype refentry PUBLIC "-//OASIS//DTD DocBook V4.1//EN">
+<!doctype refentry PUBLIC "-//OASIS//DTD DocBook V4.1//EN"
+  "http://www.oasis-open.org/docbook/sgml/4.1/docbook.dtd">
 <refentry>
   <refentryinfo>
     <address>
@@ -111,7 +112,7 @@ A distributed multi-protocol load testing tool.
         <term><option>-f filename</option></term>
         <listitem>
           <para>specifies the configuration file to use. The default
-          file name is <filename>~/.tsung/tsung.xml</filename>. Use - for standard input</para></para>
+          file name is <filename>~/.tsung/tsung.xml</filename>. Use - for standard input</para>
         </listitem>
       </varlistentry>
       <varlistentry>
