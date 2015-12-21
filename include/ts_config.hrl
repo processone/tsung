@@ -88,7 +88,8 @@
         {host,
          weight   = 1,
          maxusers,
-         ip       = []
+         ip       = [],
+         iprange  = undefined
         }).
 
 -record(server,

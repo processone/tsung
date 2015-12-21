@@ -529,12 +529,22 @@ get_user_param(Client,Config)->
 
 %%----------------------------------------------------------------------
 %% Func: choose_client_ip/1
-%% Args: #client, Dict
+%% Args: #client
 %% Purpose: choose an IP for a client
-%% Returns: {ok, IP, NewDict} IP=IP address
+%% Returns: {ok, IP} IP=IP address
 %%----------------------------------------------------------------------
+choose_client_ip(#client{ip = [IPList], host=Host, iprange = undefined}) ->
+    choose_rr(IPList, Host, {0,0,0,0});
 choose_client_ip(#client{ip = IPList, host=Host}) ->
-    choose_rr(IPList, Host, {0,0,0,0}).
+    choose_rr(IPList, Host, {0,0,0,0});
+choose_client_ip(#client{iprange = {A,B,C,D}}) ->
+    RangeToValue = fun(I) when is_integer(I) ->
+                           I;
+                      ({Min,Max}) ->
+                           ts_stats:uniform(Min,Max)
+                   end,
+    IPs = lists:map(RangeToValue, [A,B,C,D]),
+    {ok, list_to_tuple(IPs)}.
 
 %%----------------------------------------------------------------------
 %% Func: choose_server/1

@@ -24,7 +24,7 @@
      type (ssl | tcp | udp | erlang | ssl6 | tcp6 | udp6 |bosh | bosh_ssl | websocket) #REQUIRED>
 
 <!ELEMENT clients (client+)>
-<!ELEMENT client (ip*) >
+<!ELEMENT client (ip*| iprange) >
 <!ATTLIST client
      cpu      NMTOKEN "1"
      type     (machine | batch)  "machine"
@@ -39,6 +39,11 @@
 <!ATTLIST ip
           value NMTOKEN #REQUIRED
           scan (true| false)  "false"
+>
+<!ELEMENT iprange EMPTY>
+<!ATTLIST iprange
+          value NMTOKEN #REQUIRED
+          version NMTOKEN  "v4"
 >
 
 <!ELEMENT monitoring ( monitor+ )>
