@@ -533,9 +533,7 @@ get_user_param(Client,Config)->
 %% Purpose: choose an IP for a client
 %% Returns: {ok, IP} IP=IP address
 %%----------------------------------------------------------------------
-choose_client_ip(#client{ip = [IPList], host=Host, iprange = undefined}) ->
-    choose_rr(IPList, Host, {0,0,0,0});
-choose_client_ip(#client{ip = IPList, host=Host}) ->
+choose_client_ip(#client{ip = IPList, host=Host, iprange = undefined}) ->
     choose_rr(IPList, Host, {0,0,0,0});
 choose_client_ip(#client{iprange = {A,B,C,D}}) ->
     RangeToValue = fun(I) when is_integer(I) ->
