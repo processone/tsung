@@ -763,9 +763,15 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     ets:insert(Tab,{{thinktime, override}, Override}),
                     lists:foldl( fun parse/2, Conf, Element#xmlElement.content);
                 "ssl_ciphers" ->
-                    Cipher = getAttr(string,Attrs, value, negociate),
+                    Cipher = getAttr(string,Attrs, value, negotiate),
                     OldProto =  Conf#config.proto_opts,
                     NewProto =  OldProto#proto_opts{ssl_ciphers=Cipher},
+                    lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                 Element#xmlElement.content);
+                "ssl_versions" ->
+                    Protocol = getAttr(string,Attrs, value, negotiate),
+                    OldProto =  Conf#config.proto_opts,
+                    NewProto =  OldProto#proto_opts{ssl_versions=NewProto},
                     lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
                                  Element#xmlElement.content);
                 "ssl_reuse_sessions" ->

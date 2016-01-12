@@ -54,7 +54,7 @@
 
 % protocol options
 -record(proto_opts,
-        {ssl_ciphers   = negociate, % for ssl only
+        {ssl_ciphers   = negotiate, % for ssl only
          bosh_path = "/http-bind/",  % for bash only
          tcp_reuseaddr = false,  % for tcp reuseaddr
          websocket_path = "/chat",  % for websocket only

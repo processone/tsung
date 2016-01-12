@@ -8,14 +8,18 @@
 -include("ts_config.hrl").
 
 
-protocol_options(#proto_opts{ssl_ciphers=Ciphers, certificate = Cert,
+protocol_options(#proto_opts{ssl_versions=Versions, ssl_ciphers=Ciphers, certificate = Cert,
                              is_first_connect = First, reuse_sessions =Reuse}) when First or not Reuse->
-    [binary, {active, once}, {reuse_sessions, false} ] ++ Cert ++ set_ciphers(Ciphers);
-protocol_options(#proto_opts{ssl_ciphers=Ciphers, certificate = Cert}) ->
-    [binary, {active, once}] ++ Cert ++ set_ciphers(Ciphers).
+    [binary, {active, once}, {reuse_sessions, false} ] ++ Cert ++ set_ciphers(Ciphers) ++ set_versions(Versions);
+protocol_options(#proto_opts{ssl_versions=Versions, ssl_ciphers=Ciphers, certificate = Cert}) ->
+    [binary, {active, once}] ++ Cert ++ set_ciphers(Ciphers) ++ set_versions(Versions).
 
-set_ciphers(negociate)-> [];
+set_ciphers(negotiate)-> [];
 set_ciphers(Ciphers)  -> [{ciphers, Ciphers}].
+
+set_versions(negotiate)-> [];
+set_versions(Versions)  -> [{versions, Versions}].
+
 
 %% -> {ok, Socket}
 connect(Host, Port, Opts) when is_list(Host) ->
