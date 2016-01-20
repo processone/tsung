@@ -323,7 +323,7 @@ parse(Element = #xmlElement{name=iprange, attributes=Attrs},
                                     {Min, Max}
                             end
                     end, SubList),
-    ?LOGF("IP range: ~p~n",[[A,B,C,D]],?INFO),
+    ?LOGF("IP range: ~p~n",[ { A,B,C,D }],?INFO),
     lists:foldl(fun parse/2,
         Conf#config{clients = [CurClient#client{iprange = {A,B,C,D} } | CList]},
                 Element#xmlElement.content);
@@ -924,6 +924,16 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     MaxStartup =  getAttr(integer,Attrs, value, 20),
                     lists:foldl( fun parse/2, Conf#config{max_ssh_startup=MaxStartup},
                                  Element#xmlElement.content);
+                "ip_transparent" ->
+                    case getAttr(atom, Attrs, value, false) of
+                        true ->
+                            OldProto =  Conf#config.proto_opts,
+                            NewProto =  OldProto#proto_opts{ip_transparent = true},
+                            lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                         Element#xmlElement.content);
+                        false ->
+                            lists:foldl( fun parse/2, Conf, Element#xmlElement.content)
+                    end;
                 "tcp_reuseaddr" ->
                     Reuseaddr = getAttr(atom, Attrs, value, false),
                     case Reuseaddr of
