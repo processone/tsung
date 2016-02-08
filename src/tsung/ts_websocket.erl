@@ -106,7 +106,7 @@ get_message(#websocket_request{type = close},
 %% Returns: {NewState, Options for socket (list), Close = true|false}
 %%----------------------------------------------------------------------
 parse(closed, State) ->
-    {State#state_rcv{ack_done = true, datasize=0}, [], true};
+    {State#state_rcv{ack_done = true, acc = [], datasize=0}, [], true};
 %% new response, compute data size (for stats)
 parse(Data, State=#state_rcv{acc = [], datasize= 0}) ->
     parse(Data, State#state_rcv{datasize= size(Data)});
