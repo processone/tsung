@@ -111,6 +111,25 @@ first (the proportions will be 1/3 and 2/3). In the earlier example
 where for the second client has 2 CPU and weight=3, the weight is
 equal to 1.5 for each CPU.
 
+
+.. index:: iprange
+
+.. _iprange-label:
+
+iprange
+^^^^^^^
+
+If you have many IPs (thousands of IPs), the ``ip scan`` option can be
+slow ; in this case you can use the ``iprange`` tag to generate a
+random IP in a given range:
+
+.. code-block:: xml
+
+ <iprange version="v4" value="172.28.1-20.0-254"/>
+
+In the given example, the third and last part of the IPv4 address will
+be random in the given range.
+
 .. index:: maxusers
 
 .. _maxusers-label:

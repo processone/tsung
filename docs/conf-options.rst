@@ -79,6 +79,19 @@ You can also enable the TCP REUSEADDR option globally:
  <option name="tcp_reuseaddr" value="true" />
 
 
+IP transparent
+---------------------------------------
+
+.. versionadded:: 1.6.1
+
+This option is used to set the IP_TRANSPARENT option on the TCP socket
+
+.. code-block:: xml
+
+ <option name="ip_transparent" value="true" />
+
+This can be useful to use when IPs are not configured on the client host (see also :ref:`iprange-label`)
+
 Retry Attempts and Timeouts
 ---------------------------------------
 
