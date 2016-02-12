@@ -19,4 +19,6 @@ Options:
     -v            print version information and exit
     -6            use IPv6 for Tsung internal communications
     -x <tags>     list of requests tag to be excluded from the run (separated by comma)
+    -t <min>      erlang inet listening TCP port min (default: 64000)
+    -T <max>      erlang inet listening TCP port max (default: 65500)
     -h            display this help and exit
