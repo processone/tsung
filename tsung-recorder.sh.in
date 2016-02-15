@@ -7,7 +7,7 @@ case $UNAME in
         *) HOST=`hostname -s`;;
 esac
 
-INSTALL_DIR=@EXPANDED_LIBDIR@/erlang/
+INSTALL_DIR=@EXPANDED_LIBDIR@/tsung/
 ERL=@ERL@
 MAIN_DIR=$HOME/.tsung
 LOG_DIR=$MAIN_DIR/log
@@ -22,9 +22,9 @@ PGSQL_SERVER_PORT=5432
 NAME=tsung
 RECORDER=tsung_recorder
 
-TSUNGPATH=$INSTALL_DIR/lib/tsung-$VERSION/ebin
-RECORDERPATH=$INSTALL_DIR/lib/tsung_recorder-$VERSION/ebin
-CONTROLLERPATH=$INSTALL_DIR/lib/tsung_controller-$VERSION/ebin
+TSUNGPATH=$INSTALL_DIR/tsung-$VERSION/ebin
+RECORDERPATH=$INSTALL_DIR/tsung_recorder-$VERSION/ebin
+CONTROLLERPATH=$INSTALL_DIR/tsung_controller-$VERSION/ebin
 
 CONF_OPT_FILE="$HOME/.tsung/tsung.xml"
 DEBUG_LEVEL=5

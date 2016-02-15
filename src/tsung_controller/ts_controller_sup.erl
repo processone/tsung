@@ -101,7 +101,7 @@ start_inets(LogDir) ->
     case application:get_env(tsung_controller,web_gui) of
         {ok, true} ->
             inets:start(),
-            Path = filename:join(filename:dirname(code:which(tsung_controller)),"../../../../../share/tsung/templates/style"),
+            Path = filename:join(filename:dirname(code:which(tsung_controller)),"../../../../share/tsung/templates/style"),
             {ok,Styles} = file:list_dir(Path),
             DestDir = filename:join(LogDir,"style"),
             file:make_dir(DestDir),
