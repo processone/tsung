@@ -399,7 +399,7 @@ sub parse_stats_file {
                 $category->{$type} = "http_status";
             } elsif ($type eq "request" or $type eq "page" or $type eq "session" or  $type eq "connect" or $type eq "async_rcv") {
                 $category->{$type} = "stats";
-            } elsif ($type =~ /^tr_/ or $type eq "page") {
+            } elsif ($type =~ /^tr_/ or $type eq "page" or $type eq "xmpp_msg_latency") {
                 $category->{$type} = "transaction";
             } elsif ($type =~ "^size") {
                 $category->{$type} = "network";
@@ -510,7 +510,7 @@ sub parse_stats_file {
         } elsif ($key eq "bosh_http_conn" or $key eq "bosh_http_req") {
 	    $bosh = 1;
             push @bosh_tps, "$key.txt";
-        } elsif ($key =~ /^tr_/ or $key eq "page") {
+        } elsif ($key =~ /^tr_/ or $key eq "page" or $key eq "xmpp_msg_latency") {
             push @transactions, "$key.txt";
         } elsif ($key =~ /^\d+$/) {
             $http = 1;
@@ -592,7 +592,7 @@ sub html_report {
                 $maxval->{$type}->{$data} = sprintf "%.2f",$maxval->{$type}->{$data};
                 next;
             }
-            next if not ($data eq "session" or $data eq "connect" or $data eq "request" or $data eq "page" or $data =~ m/^tr_/);
+            next if not ($data eq "session" or $data eq "connect" or $data eq "request" or $data eq "page" or $data =~ m/^tr_/ or $data eq "xmpp_msg_latency")
             $maxval->{$type}->{$data} = &formattime($maxval->{$type}->{$data});
         }
     }
