@@ -251,16 +251,16 @@ get_message(#jabber{type = 'pubsub:unsubscribe', username=UserFrom,
 
 %% For node publication, data contain the pubsub nodename (relative to user
 %% hierarchy or absolute)
-get_message(#jabber{type = 'pubsub:publish', size=Size, username=Username,
+get_message(#jabber{type = 'pubsub:publish', size=Size, username=Username, stamped=Stamped,
                     node=Node, pubsub_service=PubSubComponent, domain=Domain}) ->
-    publish_pubsub_node(Domain, PubSubComponent, Username, Node, Size);
+    publish_pubsub_node(Domain, PubSubComponent, Username, Node, Size, Stamped);
 
 
 %% MUC benchmark support
 get_message(#jabber{type = 'muc:join', room = Room, nick = Nick, muc_service = Service }) ->
     muc_join(Room,Nick, Service);
-get_message(#jabber{type = 'muc:chat', room = Room, muc_service = Service, size = Size}) ->
-    muc_chat(Room, Service, Size);
+get_message(#jabber{type = 'muc:chat', room = Room, muc_service = Service, size = Size, stamped = Stamped}) ->
+    muc_chat(Room, Service, Size, Stamped);
 get_message(#jabber{type = 'muc:nick', room = Room, muc_service = Service, nick = Nick}) ->
     muc_nick(Room, Nick, Service);
 get_message(#jabber{type = 'muc:exit', room = Room, muc_service = Service, nick = Nick}) ->
@@ -482,33 +482,17 @@ registration(#jabber{username=Name,passwd=Passwd,resource=Resource})->
 %% Purpose: send message to defined user at the Service (aim, ...)
 %%----------------------------------------------------------------------
 message(Dest, #jabber{size=Size,data=undefined,stamped=Stamped}, Service) when is_integer(Size) ->
-    Stamp = generate_stamp(Stamped),
-    PadLen = Size - length(Stamp),
-    Data = case PadLen > 0 of
-               true -> ts_utils:urandomstr_noflat(PadLen);
-               false -> ""
-           end,
-    StampAndData = Stamp ++ Data,
     put(previous, Dest),
     list_to_binary([
                     "<message id='",ts_msg_server:get_id(list), "' to='",
                     Dest, "@", Service,
-                    "' type='chat'><body>",StampAndData, "</body></message>"]);
+                    "' type='chat'><body>",maybe_stamp(Stamped, Size), "</body></message>"]);
 message(Dest, #jabber{data=Data}, Service) when is_list(Data) ->
     put(previous, Dest),
     list_to_binary([
                     "<message id='",ts_msg_server:get_id(list), "' to='",
                     Dest, "@", Service,
                     "' type='chat'><body>",Data, "</body></message>"]).
-
-generate_stamp(false) ->
-    "";
-generate_stamp(true) ->
-    {Mega, Secs, Micro} = erlang:now(),
-    TS = integer_to_list(Mega) ++ ";"
-    ++ integer_to_list(Secs) ++ ";"
-    ++ integer_to_list(Micro),
-    "@@@" ++ integer_to_list(erlang:phash2(node())) ++ "," ++ TS ++ "@@@".
 
 %%----------------------------------------------------------------------
 %% Func: presence/0
@@ -700,12 +684,12 @@ unsubscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node, SubId) 
 %%% Nodenames are relative to the User pubsub hierarchy (ejabberd); they are
 %%% absolute with leading slash.
 %%%----------------------------------------------------------------------
-publish_pubsub_node(Domain, PubSubComponent, Username, Node, Size) ->
+publish_pubsub_node(Domain, PubSubComponent, Username, Node, Size, Stamped) ->
     Result = list_to_binary(["<iq to='", PubSubComponent, "' type='set' id='",
             ts_msg_server:get_id(list),"'>"
             "<pubsub xmlns='http://jabber.org/protocol/pubsub'>"
             "<publish", pubsub_node_attr(Node, Domain, Username),">"
-            "<item><entry>", ts_utils:urandomstr_noflat(Size),"</entry></item></publish>"
+            "<item><entry>", maybe_stamp(Stamped, Size),"</entry></item></publish>"
             "</pubsub></iq>"]),
     Result.
 
@@ -714,9 +698,9 @@ muc_join(Room,Nick, Service) ->
                              " </presence>"]),
     Result.
 
-muc_chat(Room, Service, Size) ->
+muc_chat(Room, Service, Size, Stamped) ->
     Result = list_to_binary(["<message type='groupchat' to ='", Room,"@", Service,"'>",
-                                "<body>", ts_utils:urandomstr_noflat(Size), "</body>",
+                                "<body>",  maybe_stamp(Stamped, Size), "</body>",
                                 "</message>"]),
     Result.
 muc_nick(Room, Nick, Service) ->
@@ -762,3 +746,21 @@ set_id(user_defined,User,Passwd) ->
     {User,Passwd};
 set_id(Id,_User,_Passwd) ->
     Id.
+
+maybe_stamp(Stamped, Size)->
+    Stamp = generate_stamp(Stamped),
+    PadLen = Size - length(Stamp),
+    Data = case PadLen > 0 of
+               true -> ts_utils:urandomstr_noflat(PadLen);
+               false -> ""
+           end,
+    Stamp ++ Data.
+
+generate_stamp(false) ->
+    "";
+generate_stamp(true) ->
+    {Mega, Secs, Micro} = erlang:now(),
+    TS = integer_to_list(Mega) ++ ";"
+    ++ integer_to_list(Secs) ++ ";"
+    ++ integer_to_list(Micro),
+    "@@@" ++ integer_to_list(erlang:phash2(node())) ++ "," ++ TS ++ "@@@".
