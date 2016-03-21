@@ -28,7 +28,7 @@
 -include("ts_macros.hrl").
 
 -export([init/1, terminate/1, lookup/2, update/3, delete/2, foldl/3,
-         select_session/2]).
+         select_session/2, size/1]).
 
 %%--------------------------------------------------------------------
 %% Description: Return table reference. Called by ssl_manager process.
@@ -68,6 +68,9 @@ select_session(Cache, PartialKey) ->
     Res= ets:select(Cache,
                     [{{{PartialKey,'$1'}, '$2'},[],['$$']}]),
     Res.
+
+size(Cache) ->
+    ets:info(Cache, size).
 
 %%--------------------------------------------------------------------
 %%% Internal functions
