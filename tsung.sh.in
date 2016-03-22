@@ -221,7 +221,6 @@ shift $(($OPTIND - 1))
 
 case $1 in
     view)
-        checkconfig
         maindir
         logdir
         view
