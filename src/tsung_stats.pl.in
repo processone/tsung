@@ -592,7 +592,7 @@ sub html_report {
                 $maxval->{$type}->{$data} = sprintf "%.2f",$maxval->{$type}->{$data};
                 next;
             }
-            next if not ($data eq "session" or $data eq "connect" or $data eq "request" or $data eq "page" or $data =~ m/^tr_/ or $data eq "xmpp_msg_latency")
+            next if not ($data eq "session" or $data eq "connect" or $data eq "request" or $data eq "page" or $data =~ m/^tr_/ or $data eq "xmpp_msg_latency");
             $maxval->{$type}->{$data} = &formattime($maxval->{$type}->{$data});
         }
     }
