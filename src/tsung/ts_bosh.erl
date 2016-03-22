@@ -123,8 +123,7 @@ protocol_options(#proto_opts{bosh_path = BoshPath}) ->
     [BoshPath].
 
 loop(Host, Port, Path, Opts, Type, Parent, Timeout) ->
-    {A,B,C} = now(),
-    random:seed(A,B,C),
+    ts_utils:init_seed(now),
     _MonitorRef = erlang:monitor(process,Parent),
     loop(#state{session_state = fresh,
                port = Port,

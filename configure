@@ -599,7 +599,7 @@ TEMPLATES_SUBDIR
 DTD
 ERLANG_APPLICATIONS
 ERL_OPTS
-erlang_cv_orelse
+erlang_cv_new_time_api
 ERLANG_LIB_VER_public_key
 ERLANG_LIB_DIR_public_key
 ERLANG_LIB_VER_crypto
@@ -2889,12 +2889,12 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $erlang_cv_crypto_runnable" >&5
 $as_echo "$erlang_cv_crypto_runnable" >&6; }
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if orelse is allowed in guards" >&5
-$as_echo_n "checking if orelse is allowed in guards... " >&6; }
-if ${erlang_cv_orelse+:} false; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking new time API" >&5
+$as_echo_n "checking new time API... " >&6; }
+if ${erlang_cv_new_time_api+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  erlang_cv_orelse=no
+  erlang_cv_new_time_api=no
      if test "$cross_compiling" = yes; then :
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -2906,19 +2906,19 @@ else
 -export([start/0]).
 
 start() ->
-         case 3 of
-           A when A > 3 orelse A < 2 -> ok;
-           _ -> bad
+         R=case catch erlang:timestamp() of
+           {A,B,C}  -> 0;
+           _        -> 1
          end,
-         halt(0)
+         halt(R)
 .
 
 _ACEOF
 if ac_fn_erl_try_run "$LINENO"; then :
-  erlang_cv_orelse=yes
+  erlang_cv_new_time_api=yes
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: WARNING: orelse/andalso not allowed in guards: XPATH parsing will be disabled !!!" >&5
-$as_echo "WARNING: orelse/andalso not allowed in guards: XPATH parsing will be disabled !!!" >&6; }
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: WARNING: new time API not available. use old now() instead" >&5
+$as_echo "WARNING: new time API not available. use old now() instead" >&6; }
 fi
 rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
   conftest.$ac_objext conftest.beam conftest.$ac_ext
@@ -2926,8 +2926,8 @@ fi
 
 
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $erlang_cv_orelse" >&5
-$as_echo "$erlang_cv_orelse" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $erlang_cv_new_time_api" >&5
+$as_echo "$erlang_cv_new_time_api" >&6; }
 
 
 

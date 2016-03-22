@@ -759,7 +759,7 @@ maybe_stamp(Stamped, Size)->
 generate_stamp(false) ->
     "";
 generate_stamp(true) ->
-    {Mega, Secs, Micro} = erlang:now(),
+    {Mega, Secs, Micro} = ?TIMESTAMP,
     TS = integer_to_list(Mega) ++ ";"
     ++ integer_to_list(Secs) ++ ";"
     ++ integer_to_list(Micro),

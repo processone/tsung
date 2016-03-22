@@ -127,7 +127,11 @@ elapsed({Before1, Before2, Before3}, {After1, After2, After3}) ->
         Neg when Neg < 0 -> % time duration must not be negative
              0;
         Val -> Val
-    end.
+    end;
+elapsed(Before, After)->
+    Elapsed=After-Before,
+    MicroSec = erlang:convert_time_unit(Elapsed, native, micro_seconds),
+    MicroSec / 1000.
 
 %%----------------------------------------------------------------------
 %% Func: chop/1
@@ -193,14 +197,15 @@ is_controller() ->
 %% Func: init_seed/0
 %%----------------------------------------------------------------------
 init_seed()->
-    init_seed(now()).
+    init_seed(?TIMESTAMP).
 
 %%----------------------------------------------------------------------
 %% Func: now_sec/0
 %% Purpose: returns unix like elapsed time in sec
+%% TODO: we should use erlang:system_time(seconds) when we drop < R18 compat
 %%----------------------------------------------------------------------
 now_sec() ->
-    time2sec(now()).
+    time2sec(?TIMESTAMP).
 
 time2sec({MSec, Seconds, _}) ->
     Seconds+1000000*MSec.
@@ -217,7 +222,10 @@ add_time({MSec, Seconds, MicroSec}, SecToAdd) when is_integer(SecToAdd)->
     case NewSec < 1000000 of
         true -> {MSec, NewSec, MicroSec};
         false ->{MSec+ (NewSec div 1000000), NewSec-1000000, MicroSec}
-    end.
+    end;
+add_time(Time, SecToAdd) when is_integer(SecToAdd)->
+	MicroSec = erlang:convert_time_unit(Time, native, micro_seconds)+SecToAdd*1000000,
+	erlang:convert_time_unit(MicroSec, micro_seconds, native).
 
 node_to_hostname(Node) ->
     [_Nodename, Hostname] = string:tokens( atom_to_list(Node), "@"),

@@ -10,6 +10,7 @@
 -compile(export_all).
 
 -include_lib("eunit/include/eunit.hrl").
+-include_lib("ts_macros.hrl").
 
 test()->
     ok.
@@ -20,6 +21,11 @@ add_time_test() ->
     Old = {1382,999999,875287},
     New = ts_utils:add_time(Old,3),
     ?assertEqual(3*1000*1000, timer:now_diff(New, Old)).
+
+add_elapsed_test() ->
+    T1=?NOW,
+    T2=?NOW,
+    ?assert(ts_utils:elapsed(T1,T2) >= 0).
 
 node_to_hostname_test() ->
     ?assertEqual({ok, "foo"}, ts_utils:node_to_hostname('bar@foo')).

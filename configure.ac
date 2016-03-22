@@ -84,23 +84,23 @@ AC_CACHE_CHECK([if Erlang/OTP crypto application is running fine],
           ERLANG_APPLICATIONS="$ERLANG_APPLICATIONS,crypto" ],
         [ AC_MSG_RESULT([WARNING: crypto application is not working properly !!!])]) ])
 
-dnl check if orelse is allowed in guards
-AC_CACHE_CHECK([if orelse is allowed in guards],
-    [erlang_cv_orelse],
-    [erlang_cv_orelse=no
+dnl check if new time API is available (R18 and up)
+AC_CACHE_CHECK([new time API],
+    [erlang_cv_new_time_api],
+    [erlang_cv_new_time_api=no
      AC_RUN_IFELSE(
         [AC_LANG_PROGRAM([], [dnl
-         case 3 of
-           A when A > 3 orelse A < 2 -> ok;
-           _ -> bad
+         R=case catch erlang:timestamp() of
+           {A,B,C}  -> 0;
+           _        -> 1
          end,
-         halt(0)])],
-        [erlang_cv_orelse=yes],
-        [AC_MSG_RESULT(WARNING: orelse/andalso not allowed in guards: XPATH parsing will be disabled !!!)])
+         halt(R)])],
+        [erlang_cv_new_time_api=yes],
+        [AC_MSG_RESULT(WARNING: new time API not available. use old now() instead)])
     ])
 
 
-AC_SUBST(erlang_cv_orelse)
+AC_SUBST(erlang_cv_new_time_api)
 AC_SUBST(ERL_OPTS)
 AC_SUBST(ERLANG_APPLICATIONS)
 AC_SUBST(DTD,[tsung-1.0.dtd])

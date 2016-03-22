@@ -408,7 +408,7 @@ do_launch({Intensity, MyHostName, PhaseId})->
     end.
 
 set_warm_timeout(StartDate)->
-    case ts_utils:elapsed(?NOW, StartDate) of
+    case ts_utils:elapsed(?TIMESTAMP, StartDate) of
         WaitBeforeStart when WaitBeforeStart>0 ->
             round(WaitBeforeStart);
         _Neg ->

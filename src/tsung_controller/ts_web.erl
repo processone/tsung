@@ -37,7 +37,7 @@ report(SessionID, Env, Input) ->
     graph(SessionID, Env, Input,"report.html").
 
 graph(SessionID, Env, Input, File) ->
-    Begin=now(),
+    Begin=?NOW,
     {ok,Path} = application:get_env(tsung_controller,log_dir_real),
     GraphFile = filename:join(Path,File),
     case update_reports() of
@@ -50,7 +50,7 @@ graph(SessionID, Env, Input, File) ->
                 {error, enoent} ->
                     update(SessionID, Env, Input);
                 {ok, Data} ->
-                    Time=ts_utils:elapsed(Begin,now()),
+                    Time=ts_utils:elapsed(Begin,?NOW),
                     Text="<div class=\"alert alert-success alert-dismissable\">
   <button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-hidden=\"true\">\\\&times;</button>
  "++ ts_utils:datestr() ++ ": Report and graphs generated in "++ number_to_list(Time/1000) ++" sec
@@ -114,10 +114,10 @@ update_reports() ->
     end.
 
 update(SessionID, _Env, _Input) ->
-    Begin=now(),
+    Begin=?NOW,
     Title ="Tsung Update stats",
     update_reports(),
-    Time=ts_utils:elapsed(Begin,now()),
+    Time=ts_utils:elapsed(Begin,?NOW),
     mod_esi:deliver(SessionID, [
                                 "Content-Type: text/html\r\n\r\n",
                                 head(Title)

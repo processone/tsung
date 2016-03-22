@@ -13,7 +13,7 @@ DIALYZER=@DIALYZER@
 ERLDIR=@ERLANG_ROOT_DIR@
 export ERLDIR
 
-USEMOCHIWEBLIBS=@erlang_cv_orelse@
+USENEWTIMEAPI=@erlang_cv_new_time_api@
 
 ERLANG_XMERL_DIR=@ERLANG_LIB_DIR_xmerl@/include
 
@@ -62,6 +62,10 @@ OPT =+export_all +debug_info
 EBIN = $(EBIN_TEST)
 endif
 
+ifeq ($(USENEWTIMEAPI),yes)
+OPT  += -Dnew_time_api
+endif
+
 
 INC = ./include
 CC  = $(ERLC)
@@ -102,11 +106,7 @@ TEMPLATES_STYLE = $(wildcard $(ESRC)/templates/style/*.js)
 TEMPLATES_STYLE += $(wildcard $(ESRC)/templates/style/*.css)
 TMP       = $(wildcard *~) $(wildcard src/*~) $(wildcard inc/*~)
 INC_FILES = $(wildcard $(INC)/*.hrl)
-MOCHI    = $(wildcard $(ESRC)/lib/mochi*.erl)
-LIBSRC    =  $(filter-out $(MOCHI), $(wildcard $(ESRC)/lib/*.erl))
-ifeq ($(USEMOCHIWEBLIBS),yes)
-LIBSRC  += $(MOCHI)
-endif
+LIBSRC    = $(wildcard $(ESRC)/lib/*.erl)
 TESTSRC    = $(wildcard $(ESRC)/test/*.erl)
 SRC       = $(wildcard $(ESRC)/$(APPLICATION)/*.erl)
 CONTROLLER_SRC  = $(wildcard $(ESRC)/$(CONTROLLER_APPLICATION)/*.erl)

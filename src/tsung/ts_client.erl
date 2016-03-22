@@ -92,7 +92,7 @@ init(#session{ id           = SessionId,
     ?DebugF("Init ... started with count = ~p~n",[Count]),
     case Seed of
         now ->
-            {A, B, C} = now(),
+            {A, B, C} = ?TIMESTAMP,
             ts_utils:init_seed({A * Id, B, C});
         SeedVal when is_integer(SeedVal) ->
             %% use a different but fixed seed for each client.
@@ -923,7 +923,7 @@ finish_session(State) ->
                           end,
                           TrList)
     end,
-    ts_mon:endclient({State#state_rcv.id, Now, Elapsed}).
+    ts_mon:endclient({State#state_rcv.id, ?TIMESTAMP, Elapsed}).
 
 
 %%----------------------------------------------------------------------

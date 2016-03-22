@@ -269,7 +269,7 @@ handle_call({get_user_param, HostName}, _From, State=#state{users=UserId}) ->
     Config = State#state.config,
     {value, Client} = lists:keysearch(HostName, #client.host, Config#config.clients),
     {IPParam, Server} = get_user_param(Client,Config),
-    ts_mon:newclient({static,?NOW}),
+    ts_mon:newclient({static,?TIMESTAMP}),
     {reply, {ok, { IPParam, Server, UserId,Config#config.dump,Config#config.seed}}, State#state{users=UserId+1}};
 
 %% get  user port. This is needed by bosh, as there are more than one socket per bosh connection.
@@ -286,7 +286,7 @@ handle_call({get_next_session, HostName, PhaseId}, _From, State=#state{users=Use
     case choose_session(Config#config.sessions, Config#config.total_popularity, PhaseId) of
         {ok, Session=#session{id=Id}} ->
             ?LOGF("Session ~p chosen~n",[Id],?INFO),
-            ts_mon:newclient({Id,?NOW}),
+            ts_mon:newclient({Id,?TIMESTAMP}),
             {IPParam, Server} = get_user_param(Client,Config),
             {reply, {ok, Session#session{client_ip= IPParam, server=Server,userid=Users,
                                          dump=Config#config.dump, seed=Config#config.seed}},
@@ -518,7 +518,7 @@ is_vm_local('localhost',_,true) -> true;
 is_vm_local(_,_,_)              -> false.
 
 set_start_date(undefined)->
-     ts_utils:add_time(?NOW, ?config(warm_time));
+     ts_utils:add_time(?TIMESTAMP, ?config(warm_time));
 set_start_date(Date) -> Date.
 
 get_user_param(Client,Config)->
