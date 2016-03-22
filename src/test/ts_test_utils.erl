@@ -63,6 +63,13 @@ export_text_escape_test()->
     ?assertEqual("&quot;B&quot;",ts_utils:export_text("\"B\"")),
     ?assertEqual("&lt; A",ts_utils:export_text(<<"< A">>)).
 
+pack_test()->
+    Res = ts_utils:pack([node1,node1,node1,node3]),
+    ?assertEqual([[node1,node1,node1],[node3]], Res).
+
+pack_single_test()->
+    Res = ts_utils:pack([node1]),
+    ?assertEqual([[node1]], Res).
 
 pmap_test()->
     F = fun(X) ->X + 1 end,

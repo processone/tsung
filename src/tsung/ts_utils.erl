@@ -1035,7 +1035,7 @@ spread_list2(PackedList, OldRes) ->
 %pack duplicates into sublists
 %taken from : https://erlang99.wordpress.com/
 pack([])    ->  [];
-pack([H|[]])-> [H];
+pack([H|[]])-> [[H]];
 pack([[H|T1] | [H|T2]])->
     pack([[H | [H|T1]] | T2]);
 pack([[H1|T1] | [H2|[]]])->
