@@ -58,6 +58,18 @@ stop() {
     $ERL $ERL_OPTS $ERL_RSH -noshell $PROTO_DIST $NAMETYPE killer -setcookie $COOKIE $EXTRA_LOAD_PATHS -pa $TSUNGPATH -pa $CONTROLLERPATH -s tsung_controller stop_all $HOST -s init stop
 }
 
+view() {
+    echo "Starting Tsung web only on port 8091"
+    $ERL $ERL_OPTS $ERL_RSH -noshell $PROTO_DIST $NAMETYPE $CONTROLLER -setcookie $COOKIE \
+    +P $MAX_PROCESS \
+    -kernel inet_dist_listen_min $ERL_DIST_PORTS_MIN -kernel inet_dist_listen_max $ERL_DIST_PORTS_MAX \
+    -s ts_web \
+    $EXTRA_LOAD_PATHS \
+    -pa $TSUNGPATH -pa $CONTROLLERPATH \
+    -sasl sasl_error_logger false \
+    -stdlib $LOG_OPT
+}
+
 start() {
     echo "Starting Tsung"
     $ERL $ERL_OPTS $ERL_RSH -noshell $PROTO_DIST $NAMETYPE $CONTROLLER -setcookie $COOKIE \
@@ -140,7 +152,7 @@ checkrunning_controller() {
 
 usage() {
     prog=`basename $0`
-    echo "Usage: $prog <options> start|stop|debug|status"
+    echo "Usage: $prog <options> start|stop|debug|status|view"
     echo "Options:"
     echo "    -f <file>     set configuration file (default is ~/.tsung/tsung.xml)"
     echo "                   (use - for standard input)"
@@ -208,6 +220,12 @@ done
 shift $(($OPTIND - 1))
 
 case $1 in
+    view)
+        checkconfig
+        maindir
+        logdir
+        view
+        ;;
     start)
         checkconfig
         maindir

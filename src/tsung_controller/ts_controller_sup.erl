@@ -31,7 +31,7 @@
 -behaviour(supervisor).
 
 %% External exports
--export([start_link/1]).
+-export([start_link/1, start_inets/2]).
 
 %% supervisor callbacks
 -export([init/1]).
@@ -88,7 +88,13 @@ init([LogDir]) ->
                worker, [ts_job_notify]},
     Interaction = {ts_interaction_server, {ts_interaction_server, start, []}, transient, 2000,
                    worker, [ts_interaction_server]},
-    start_inets(LogDir),
+    case application:get_env(tsung_controller,web_gui) of
+        {ok, true} ->
+            Redirect= << "<meta http-equiv=\"refresh\" content=\"0; url=/es/ts_web:status\">\n" >>,
+            start_inets(LogDir, Redirect);
+        _ ->
+            ?LOG("Web gui disabled, skip inets",?INFO)
+    end,
     {ok,{{one_for_one,?retries,10},
          [Config, Mon, Stats_Mon, Request_Mon, Page_Mon, Connect_Mon, Transaction_Mon,
           Match_Log, Timer, Msg, Notify, Interaction, UserSup, ErlangSup, MuninSup,SNMPSup]}}.
@@ -97,42 +103,40 @@ init([LogDir]) ->
 %%% Internal functions
 %%%----------------------------------------------------------------------
 
-start_inets(LogDir) ->
-    case application:get_env(tsung_controller,web_gui) of
-        {ok, true} ->
-            inets:start(),
-            Path = filename:join(filename:dirname(code:which(tsung_controller)),"../../../../share/tsung/templates/style"),
-            {ok,Styles} = file:list_dir(Path),
-            DestDir = filename:join(LogDir,"style"),
-            file:make_dir(DestDir),
-            lists:foreach(fun(CSS) ->
-                                  DestName = filename:join(DestDir,CSS),
-                                  file:copy(filename:join(Path,CSS),DestName)
-                          end,Styles),
+start_inets(LogDir,Redirect) ->
+    inets:start(),
+    Path = filename:join(filename:dirname(code:which(tsung_controller)),"../../../../share/tsung/templates/style"),
+    {ok,Styles} = file:list_dir(Path),
+    DestDir = filename:join(LogDir,"style"),
+    file:make_dir(DestDir),
+    lists:foreach(fun(CSS) ->
+                          DestName = filename:join(DestDir,CSS),
+                          file:copy(filename:join(Path,CSS),DestName)
+                  end,Styles),
 
-            Redirect= << "<meta http-equiv=\"refresh\" content=\"0; url=/es/ts_web:status\">\n" >>,
-            file:write_file(filename:join(LogDir,"index.html"), Redirect),
-            Inets = inets:start(httpd, [{port, 8091},
-                                        {modules,[mod_esi,
-                                                  mod_dir,
-                                                  mod_alias,
-                                                  mod_get,
-                                                  mod_head,
-                                                  mod_log,
-                                                  mod_disk_log]},
-                                        {erl_script_alias, {"/es", [ts_web, ts_api]}},
-                                        {error_log, "inets_error.log"},
-                                        %% {transfer_log, "inets_access.log"},
-                                        {directory_index, ["index.html"]},
-                                        {mime_types,[ {"html","text/html"},
-                                                      {"css","text/css"},
-                                                      {"png","image/png"},
-                                                      {"xml","text/xml"},
-                                                      {"json","application/json"},
-                                                      {"js","application/x-javascript"}]},
-                                        {server_name,"tsung_controller"}, {server_root,LogDir},
-                                        {document_root,LogDir}]),
-            ?LOGF("Starting inets on port 8091: ~p",[Inets],?INFO);
-        _ ->
-            ?LOG("Web gui disabled, skip inets",?INFO)
+    file:write_file(filename:join(LogDir,"index.html"), Redirect),
+    case inets:start(httpd, [{port, 8091},
+                                {modules,[mod_esi,
+                                          mod_dir,
+                                          mod_alias,
+                                          mod_get,
+                                          mod_head,
+                                          mod_log,
+                                          mod_disk_log]},
+                                {erl_script_alias, {"/es", [ts_web, ts_api]}},
+                                {error_log, "inets_error.log"},
+                                %% {transfer_log, "inets_access.log"},
+                                {directory_index, ["index.html"]},
+                                {mime_types,[ {"html","text/html"},
+                                              {"css","text/css"},
+                                              {"png","image/png"},
+                                              {"xml","text/xml"},
+                                              {"json","application/json"},
+                                              {"js","application/x-javascript"}]},
+                                {server_name,"tsung_controller"}, {server_root,LogDir},
+                                {document_root,LogDir}]) of
+        {ok, _Pid} ->
+            ?LOG("Starting inets on port 8091",?INFO);
+        Error ->
+            ?LOGF("Error while starting inets on port 8091: ~p",[Error],?ERR)
     end.

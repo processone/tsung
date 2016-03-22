@@ -26,9 +26,15 @@
 -include("ts_macros.hrl").
 -include_lib("kernel/include/file.hrl").
 
--export([status/3, stop/3, logs/3, update/3, graph/3, error/3, report/3]).
+-export([start/0, status/3, stop/3, logs/3, update/3, graph/3, error/3, report/3]).
 
 -export([number_to_list/1]).
+
+
+start() ->
+    error_logger:tty(false),
+    Redirect= << "<meta http-equiv=\"refresh\" content=\"0; url=/es/ts_web:logs\">\n" >>,
+    ts_controller_sup:start_inets(?config(log_dir), Redirect).
 
 graph(SessionID, Env, Input) ->
     graph(SessionID, Env, Input,"graph.html").
@@ -175,9 +181,13 @@ status(SessionID, _Env, _Input) ->
 
 logs(SessionID, _Env, _Input) ->
     Title ="Tsung Logs",
-    {ok,Path} = application:get_env(tsung_controller,log_dir_real),
-    {ok,Files} = file:list_dir(Path),
-    FilesHTML = lists:map(fun(F)->format(Path,F,"") end,Files),
+    RealPath = case application:get_env(tsung_controller,log_dir_real) of
+                   {ok,Path} -> Path;
+                   _         -> ?config(log_dir)
+               end,
+
+    {ok,Files} = file:list_dir(RealPath),
+    FilesHTML = lists:map(fun(F)->format(RealPath,F,"") end,Files),
     mod_esi:deliver(SessionID, [
                                 "Content-Type: text/html\r\n\r\n",
                                 head(Title)
@@ -243,7 +253,11 @@ head(Title) ->
   </head>".
 
 nav() ->
-    {ok,Path} = application:get_env(tsung_controller,log_dir_real),
+    Path = case application:get_env(tsung_controller,log_dir_real) of
+               {ok,P} -> P;
+               _      -> ?config(log_dir)
+           end,
+
     WorkingDir=filename:basename(Path),
     Subtitle = "Dashboard - " ++ WorkingDir,
     "
