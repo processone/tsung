@@ -790,7 +790,7 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                 "ssl_versions" ->
                     Protocol = getAttr(string,Attrs, value, negotiate),
                     OldProto =  Conf#config.proto_opts,
-                    NewProto =  OldProto#proto_opts{ssl_versions=NewProto},
+                    NewProto =  OldProto#proto_opts{ssl_versions=Protocol},
                     lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
                                  Element#xmlElement.content);
                 "ssl_reuse_sessions" ->
