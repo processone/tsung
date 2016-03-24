@@ -7,6 +7,7 @@ Setting options
 .. index:: override
 .. index:: thinktime
 .. index:: ssl_ciphers
+.. index:: ssl_versions
 .. index:: ssl_reuse_sessions
 .. index:: tcp_snd_buffer
 .. index:: tcp_rcv_buffer
@@ -18,9 +19,9 @@ Thinktimes, SSL, Buffers
 ------------------------
 
 Default values can be set-up globally: ``thinktime`` between requests
-in the scenario, SSL cipher algorithms, TCP/UDP buffer sizes (the
-default value is 32KB). These values overrides those set in session
-configuration tags if override is true.
+in the scenario, SSL cipher algorithms (use ssl:cipher_suites(openssl). to get a
+list of avaliable ciphers), TCP/UDP buffer sizes (the default value is 32KB).
+These values overrides those set in session configuration tags if override is true.
 
 .. code-block:: xml
 
@@ -39,6 +40,13 @@ You can disable the SSL session cache (it is enabled by default)
 .. code-block:: xml
 
  <option name="ssl_reuse_sessions" value="false"/>
+
+You can specify which SSL protocol you want use. Use ssl:versions(). to get
+a list of avaliable ssl protocols.
+
+.. code-block:: xml
+
+ <option name="ssl_versions" value="tlsv1.2"/>
 
 You can also use the command line option ``-L <value>`` to change the
 session liefetime in the cache (10mn by default); value must be in seconds.

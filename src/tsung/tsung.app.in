@@ -104,7 +104,8 @@
                      {http_modified_since_date, "Fri, 14 Nov 2003 02:43:31 GMT"},
                      {client_retry_timeout, 10}, % retry sending (in microsec.)
                      {max_retries, 3},        % number of max retries
-                     {ssl_ciphers, negociate},
+                     {ssl_ciphers, negotiate},
+                     {ssl_versions, negotiate},
 
 %%% -------- JABBER OPTIONS
                      {jabber_users, 2000000},
