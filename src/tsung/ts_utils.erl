@@ -1000,6 +1000,8 @@ wildcard(Wildcard,Names) ->
     Pattern = re:replace(PatternTmp,"\\?",".{1}",[{return,list}]) ++ "$" ,
     lists:filter(fun(N) -> re:run(N, Pattern) =/= nomatch end, Names).
 
+%% dummy comment with a " "to circumvent an  erlang-mode bug in emacs"
+
 %%--------------------------------------------------------------------
 %% Func: new_ets/1
 %% Purpose: Wrapper for ets:new/1 used in external modules
@@ -1033,16 +1035,19 @@ spread_list2(PackedList, OldRes) ->
     spread_list2(lists:reverse(Tail), OldRes ++ lists:reverse(Res)).
 
 %pack duplicates into sublists
-%taken from : https://erlang99.wordpress.com/
-pack([])    ->  [];
-pack([H|[]])-> [[H]];
-pack([[H|T1] | [H|T2]])->
-    pack([[H | [H|T1]] | T2]);
-pack([[H1|T1] | [H2|[]]])->
+%taken and adapted from : https://erlang99.wordpress.com/
+pack([])  ->  [];
+pack([A]) ->  [[A]];
+pack(L)   ->  pack2(L).
+
+pack2([H|[]])-> [H];
+pack2([[H|T1] | [H|T2]])->
+    pack2([[H | [H|T1]] | T2]);
+pack2([[H1|T1] | [H2|[]]])->
     [[H1|T1], [H2]];
-pack([[H1 | T1] | [H2|T2]])->
-    [[H1|T1] | pack([H2|T2])];
-pack([H | [H|T]])->
-    pack([[H,H] | T]);
-pack([H1 | [H2|T]])->
-    [[H1] | pack([H2|T])].
+pack2([[H1 | T1] | [H2|T2]])->
+    [[H1|T1] | pack2([H2|T2])];
+pack2([H | [H|T]])->
+    pack2([[H,H] | T]);
+pack2([H1 | [H2|T]])->
+    [[H1] | pack2([H2|T])].

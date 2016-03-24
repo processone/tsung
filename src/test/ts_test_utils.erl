@@ -71,6 +71,11 @@ pack_single_test()->
     Res = ts_utils:pack([node1]),
     ?assertEqual([[node1]], Res).
 
+pack_list_test()->
+    A=[a,a,a,a,b,c,c,d,d],
+    Res=[[a,a,a,a],[b],[c,c],[d,d]],
+    ?assertEqual(Res, ts_utils:pack(A)).
+
 pmap_test()->
     F = fun(X) ->X + 1 end,
     L = [1,2,4,12,6,2,7,9,2,10],
@@ -109,3 +114,15 @@ spread_list_test()->
     Res=[a,b,c,d,a,c, a,a],
     ?assertEqual(Res, ts_utils:spread_list(A)).
 
+spread_list2_test()->
+    A=[a,a,a,a,b,c,c,d,d],
+    Res=[a,b,c,d,a,c,d, a,a],
+    ?assertEqual(Res, ts_utils:spread_list(A)).
+
+spread_ids_test()->
+    A = [a,a,a,a,b,c,c,d],
+    SpreadedBeams = ts_utils:spread_list(A),
+    Id0 = 1,
+    {Res,LastId} = lists:mapfoldl(fun(A,Acc) -> {{A, Acc}, Acc+1} end, Id0, SpreadedBeams),
+    Expected = [{a,1},{b,2},{c,3},{d,4},{a,5},{c,6},{a,7},{a,8}],
+    ?assertEqual(Expected, Res).
