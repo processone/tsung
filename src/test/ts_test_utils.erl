@@ -76,6 +76,26 @@ pack_list_test()->
     Res=[[a,a,a,a],[b],[c,c],[d,d]],
     ?assertEqual(Res, ts_utils:pack(A)).
 
+pack_list2_test()->
+    A=[a,a,a,a,b,c,c,d,d,d],
+    Res=[[a,a,a,a],[b],[c,c],[d,d,d]],
+    ?assertEqual(Res, ts_utils:pack(A)).
+
+pack_list3_test()->
+    A=[a,a,a,a,b,c,c,d,d,d,d,d],
+    Res=[[a,a,a,a],[b],[c,c],[d,d,d,d,d]],
+    ?assertEqual(Res, ts_utils:pack(A)).
+
+pack_dual_test()->
+    A=[a,b],
+    Res=[[a],[b]],
+    ?assertEqual(Res, ts_utils:pack(A)).
+
+ pack_singles_test()->
+    A=[a,b,c,d],
+    Res=[[a],[b],[c],[d]],
+    ?assertEqual(Res, ts_utils:pack(A)).
+
 pmap_test()->
     F = fun(X) ->X + 1 end,
     L = [1,2,4,12,6,2,7,9,2,10],
@@ -126,3 +146,8 @@ spread_ids_test()->
     {Res,LastId} = lists:mapfoldl(fun(A,Acc) -> {{A, Acc}, Acc+1} end, Id0, SpreadedBeams),
     Expected = [{a,1},{b,2},{c,3},{d,4},{a,5},{c,6},{a,7},{a,8}],
     ?assertEqual(Expected, Res).
+
+myset_env()->
+    myset_env(0).
+myset_env(N)->
+    application:set_env(stdlib, debug_level, N).

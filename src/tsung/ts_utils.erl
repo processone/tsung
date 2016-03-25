@@ -1036,18 +1036,24 @@ spread_list2(PackedList, OldRes) ->
 
 %pack duplicates into sublists
 %taken and adapted from : https://erlang99.wordpress.com/
-pack([])  ->  [];
-pack([A]) ->  [[A]];
-pack(L)   ->  pack2(L).
+pack([]) ->  [];
+pack(L)  ->
+    %%workaround: in some cases, pack2 doesn't handle well singleton as a sublist.
+    lists:map(fun(A) when is_list(A) -> A;
+                 (B) -> [B]
+              end, pack2(L)).
 
-pack2([H|[]])-> [H];
-pack2([[H|T1] | [H|T2]])->
-    pack2([[H | [H|T1]] | T2]);
-pack2([[H1|T1] | [H2|[]]])->
-    [[H1|T1], [H2]];
-pack2([[H1 | T1] | [H2|T2]])->
-    [[H1|T1] | pack2([H2|T2])];
-pack2([H | [H|T]])->
-    pack2([[H,H] | T]);
-pack2([H1 | [H2|T]])->
-    [[H1] | pack2([H2|T])].
+pack2([])->
+    [];
+pack2([H|[]])->
+    [H];
+pack2([[H|T1]|[H|T2]])->
+    pack2([[H|[H|T1]]|T2]);
+pack2([[H1|T1]|[H2|[]]])->
+    [[H1|T1],[H2]];
+pack2([[H1|T1]|[H2|T2]])->
+    [[H1|T1]|pack2([H2|T2])];
+pack2([H|[H|T]])->
+    pack2([[H,H]|T]);
+pack2([H1|[H2|T]])->
+    [[H1]|pack2([H2|T])].
