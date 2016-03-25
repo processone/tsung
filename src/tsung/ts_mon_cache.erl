@@ -85,7 +85,7 @@ add_match(Data,{UserId,SessionId,RequestId,TimeStamp,Bin,Tr,Name}) ->
 %% @spec dump({Type, Who, What}) -> ok @end
 dump({none, _, _})       ->  skip;
 dump({_Type, Who, What}) ->
-    gen_server:cast(?MODULE, {dump, Who, ?NOW, What}).
+    gen_server:cast(?MODULE, {dump, Who, ?TIMESTAMP, What}).
 
 %%====================================================================
 %% Server functions

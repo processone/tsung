@@ -68,7 +68,7 @@ start() ->
 %%              to ts_mon
 %%--------------------------------------------------------------------
 dump({_Type, Who, What})  ->
-    gen_server:cast(?MODULE, {dump, Who, ?NOW, What}).
+    gen_server:cast(?MODULE, {dump, Who, ?TIMESTAMP, What}).
 
 %%====================================================================
 %% Server functions
