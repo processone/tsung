@@ -114,7 +114,7 @@ add(Data) ->
 add_match(Data,{UserId,SessionId,RequestId,Tr,Name}) ->
     add_match(Data,{UserId,SessionId,RequestId,[],Tr,Name});
 add_match(Data=[Head|_],{UserId,SessionId,RequestId,Bin,Tr,Name}) ->
-    TimeStamp=?NOW,
+    TimeStamp=?TIMESTAMP,
     put(last_match,Head),
     ts_mon_cache:add_match(Data,{UserId,SessionId,RequestId,TimeStamp, Bin,Tr,Name}).
 
