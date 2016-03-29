@@ -144,7 +144,7 @@ parse(Data, State=#state_rcv{acc = [], session = WebsocketSession})
             {State#state_rcv{ack_done = true, acc = Left}, [], false};
         more ->
             ?DebugF("receive incomplete frame from server: ~p~n", [Data]),
-            {State#state_rcv{ack_done = true, acc = Data}, [], false}
+            {State#state_rcv{ack_done = false, acc = Data}, [], false}
     end;
 %% more data, add this to accumulator and parse, update datasize
 parse(Data, State=#state_rcv{acc = Acc, datasize = DataSize}) ->
