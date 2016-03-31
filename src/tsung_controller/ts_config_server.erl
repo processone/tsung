@@ -375,6 +375,7 @@ handle_cast({newbeams, HostList}, State=#state{logdir   = LogDir,
             ts_mon:abort(),
             {stop, normal,State};
         {Id0, [] } -> % no remote beams
+            set_max_duration(Config#config.duration),
             {noreply, State#state{last_beam_id = Id0}};
         {Id0, _ } ->
             Seed = Config#config.seed,
