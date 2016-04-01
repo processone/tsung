@@ -86,6 +86,11 @@ pack_list3_test()->
     Res=[[a,a,a,a],[b],[c,c],[d,d,d,d,d]],
     ?assertEqual(Res, ts_utils:pack(A)).
 
+pack_string_test()->
+    A=["a","a","a","a","b","c","c","d","d"],
+    Res=[["a","a","a","a"],["b"],["c","c"],["d","d"]],
+    ?assertEqual(Res, ts_utils:pack(A)).
+
 pack_dual_test()->
     A=[a,b],
     Res=[[a],[b]],

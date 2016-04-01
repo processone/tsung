@@ -1034,26 +1034,17 @@ spread_list2(PackedList, OldRes) ->
     {Res, Tail} = lists:foldl(Fun, {[],[]}, PackedList),
     spread_list2(lists:reverse(Tail), OldRes ++ lists:reverse(Res)).
 
-%pack duplicates into sublists
-%taken and adapted from : https://erlang99.wordpress.com/
-pack([]) ->  [];
-pack(L)  ->
-    %%workaround: in some cases, pack2 doesn't handle well singleton as a sublist.
-    lists:map(fun(A) when is_list(A) -> A;
-                 (B) -> [B]
-              end, pack2(L)).
-
-pack2([])->
+%% pack duplicates into sublists
+%% http://lambdafoo.com/blog/2008/02/26/99-erlang-problems-1-15/
+pack([]) ->
     [];
-pack2([H|[]])->
-    [H];
-pack2([[H|T1]|[H|T2]])->
-    pack2([[H|[H|T1]]|T2]);
-pack2([[H1|T1]|[H2|[]]])->
-    [[H1|T1],[H2]];
-pack2([[H1|T1]|[H2|T2]])->
-    [[H1|T1]|pack2([H2|T2])];
-pack2([H|[H|T]])->
-    pack2([[H,H]|T]);
-pack2([H1|[H2|T]])->
-    [[H1]|pack2([H2|T])].
+pack([H|[]]) ->
+    [[H]];
+pack([H,H|C]) ->
+    [Head|Tail] = pack([H|C]),
+    X = lists:append([H],Head),
+    [X|Tail];
+pack([H,H2|C]) ->
+    if H =/= H2 ->
+      [[H]|pack([H2|C])]
+    end.
