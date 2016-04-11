@@ -26,7 +26,7 @@
 # given a (set of) log file(s)  from the tsung tool.
 
 # dygraphs fonctionnality added by Bearstech (http://bearstech.com)
-# using dygraphs JavaScript Visualization Library (http://danvk.org/dygraphs/)
+# using dygraphs JavaScript Visualization Library (http://dygraphs.com)
 
 use strict;
 use Getopt::Long;
@@ -670,7 +670,7 @@ type `tsung_stats.pl --version` for details.\n\n";
     "[--help] (this help text)\n\t",
     "[--verbose] (print all messages)\n\t",
     "[--debug] (print receive without send messages)\n\t",
-    "[--dygraph] use dygraphs (http://danvk.org/dygraphs/) to render graphs\n\t",
+    "[--dygraph] use dygraphs (http://dygraphs.com) to render graphs\n\t",
     "[--noplot]  (don't make graphics)\n\t",
     "[--gnuplot <command>]  (path to the gnuplot binary)\n\t",
     "[--nohtml]  (don't create HTML reports)\n\t",
