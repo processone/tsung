@@ -163,7 +163,7 @@ use **--help** to view all available options::
         [--help] (this help text)
         [--verbose] (print all messages)
         [--debug] (print receive without send messages)
-        [--dygraph] use dygraphs (http://danvk.org/dygraphs/) to render graphs
+        [--dygraph] use dygraphs (http://dygraphs.com) to render graphs
         [--noplot]  (don't make graphics)
         [--gnuplot <command>]  (path to the gnuplot binary)
         [--nohtml]  (don't create HTML reports)
@@ -177,7 +177,7 @@ use **--help** to view all available options::
 
 
 Version **1.4.0** adds a new graphical output based on
-http://danvk.org/dygraphs/.
+http://dygraphs.com.
 
 Tsung summary
 =============
