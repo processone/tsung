@@ -233,7 +233,7 @@ handle_info({tcp, Socket, Data}, State=#state{jobs=Jobs}) ->
                     Now=?NOW,
                     Duration=ts_utils:elapsed(Job#job_session.start_time,Now),
                     ts_mon:add([{sample,tr_job_duration,Duration},{sum,job_running,-1}, {sum,ok_job ,1}]),
-                    ts_job:dump(Job#job_session.dump,{none,Job#job_session{end_time=Now,status="ok"},Name,undefined,undefined}),
+                    ts_job:dump(Job#job_session.dump,{none,Job#job_session{end_time=Now,status="ok"},Name}),
                     ets:delete_object(Jobs,Job),
                     check_jobs(Jobs,Job#job_session.owner)
             end;
@@ -250,7 +250,7 @@ handle_info({tcp, Socket, Data}, State=#state{jobs=Jobs}) ->
                     Now=?NOW,
                     Duration=ts_utils:elapsed(Job#job_session.start_time,Now),
                     ts_mon:add([{sample,tr_job_duration,Duration},{sum,job_running,-1}, {sum,error_job,1}]),
-                    ts_job:dump(Job#job_session.dump,{none,Job#job_session{end_time=Now,status="error"},Name,undefined,undefined}),
+                    ts_job:dump(Job#job_session.dump,{none,Job#job_session{end_time=Now,status="error"},Name}),
                     ets:delete_object(Jobs,Job),
                     check_jobs(Jobs,Job#job_session.owner)
                 end;
