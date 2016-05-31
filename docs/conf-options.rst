@@ -20,7 +20,7 @@ Thinktimes, SSL, Buffers
 
 Default values can be set-up globally: ``thinktime`` between requests
 in the scenario, SSL cipher algorithms (use ssl:cipher_suites(openssl). to get a
-list of avaliable ciphers), TCP/UDP buffer sizes (the default value is 32KB).
+list of available ciphers), TCP/UDP buffer sizes (the default value is 32KB).
 These values overrides those set in session configuration tags if override is true.
 
 .. code-block:: xml
@@ -42,14 +42,14 @@ You can disable the SSL session cache (it is enabled by default)
  <option name="ssl_reuse_sessions" value="false"/>
 
 You can specify which SSL protocol you want use. Use ssl:versions(). to get
-a list of avaliable ssl protocols.
+a list of available ssl protocols.
 
 .. code-block:: xml
 
- <option name="ssl_versions" value="tlsv1.2"/>
+ <option name="ssl_versions" value="'tlsv1.2'"/>
 
 You can also use the command line option ``-L <value>`` to change the
-session liefetime in the cache (10mn by default); value must be in seconds.
+session lifetime in the cache (10mn by default); value must be in seconds.
 
 You can also change the way Tsung starts remote beams. By default,
 Tsung will start at most 20 ssh process per core of the controller. If
@@ -84,7 +84,9 @@ You can also change the timeout on a per-session basis using ``set_option``.
 
 You can also enable the TCP REUSEADDR option globally:
 
- <option name="tcp_reuseaddr" value="true" />
+.. code-block:: xml
+
+   <option name="tcp_reuseaddr" value="true" />
 
 
 IP transparent
@@ -105,7 +107,7 @@ Retry Attempts and Timeouts
 
 .. versionadded:: 1.6.0
 
-You can specify the amound of retry attempts made by tsung. The default is ``3``.
+You can specify the amount of retry attempts made by Tsung. The default is ``3``.
 
 .. code-block:: xml
 
@@ -114,7 +116,7 @@ You can specify the amound of retry attempts made by tsung. The default is ``3``
 To disable retries entirely, set the value to ``0``.
 
 In addition, the option ``retry_timeout`` (in milliseconds; defaults to ``10``) is used to implement a
-simple backoff algorithm (``retry * retry_timeout``).
+simple back-off algorithm (``retry * retry_timeout``).
 
 .. code-block:: xml
 
@@ -195,7 +197,7 @@ Setting the seed for random numbers
 ------------------------------------
 
 If you want to use a fixed seed for the random generator, you can use
-the ``seed`` option, like this (by default, tsung will use the
+the ``seed`` option, like this (by default, Tsung will use the
 current time to set the seed, therefore random numbers should be
 different for every test).
 

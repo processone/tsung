@@ -76,7 +76,7 @@ the global lock (the value can be set using the option ``<option
 name="global_number" value ="XXX"/>`` and by setting `maxnumber=N` in
 ``<arrivalphase>``).
 
-**Since version 1.6.0**, you can wait for a 'bidi' ack. If your protocol is bidirectionnal (e.g. xmpp, websocket, ...), you can wait until the server sends some data, and the code that handle this data exits the ``think`` state.
+**Since version 1.6.0**, you can wait for a 'bidi' ack. If your protocol is bidirectional (e.g. xmpp, websocket, ...), you can wait until the server sends some data, and the code that handle this data exits the ``think`` state.
 
 .. code-block:: xml
 
@@ -286,7 +286,7 @@ Message stamping
 
 It is possible to stamp chat message by setting ``stamped`` attribute of
 ``<jabber>`` element inside request to ``true``. The stamp will include current
-timestamp and ID of the sender node. If the recipient will recognise the node ID,
+timestamp and ID of the sender node. If the recipient will recognize the node ID,
 it will compare the timestamp inside message with the current one. The difference
 will be reported as ``xmpp_msg_latency`` metric (in milliseconds).
 The aim of node ID comparison is to avoid slight inconsistencies
@@ -833,7 +833,7 @@ For Websocket, 3 types of requests are available:
 
 * connect (to a given path)
 * message (send message to server, add a attribute 'ack' to specify whether
-  tsung should wait for a response)
+  Tsung should wait for a response)
 * close
 
 
