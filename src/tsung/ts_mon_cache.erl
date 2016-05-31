@@ -137,7 +137,7 @@ handle_cast({add_match, Data=[First|_Tail],{UserId,SessionId,RequestId,TimeStamp
     {noreply, State#state{stats = lists:append(Data, List), match = NewMatchList}};
 
 handle_cast({dump, Who, When, What}, State=#state{protocol=Cache}) ->
-    Log = io_lib:format("~w;~w;~s~n",[ts_utils:time2sec_hires(When),Who,What]),
+    Log = io_lib:format("~w,~w,~s~n",[ts_utils:time2sec_hires(When),Who,What]),
     {noreply, State#state{protocol=[Log|Cache]}};
 
 handle_cast(_Msg, State) ->

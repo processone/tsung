@@ -22,7 +22,7 @@ Scenarios are enclosed into **tsung** tags:
 .. index:: dumptraffic
 
 If you add the attribute **dumptraffic="true"**, all the
-traffic will be logged to a file. 
+traffic will be logged to a file.
 
 .. warning::
 
@@ -32,31 +32,40 @@ traffic will be logged to a file.
 
 Since version **1.4.0**, you have also a specific logging per
 protocol, using **dumptraffic="protocol"**. It's currently
-only implemented for HTTP: this will log all requests in a CSV file,
+only implemented for HTTP: this will log all requests in a CSV (RFC4180) file,
 with the following data:
 
 .. code-block:: text
 
-   #date;pid;id;http method;host;URL;HTTP status;size;duration;transaction;match;error;tag
+   date,pid,id,start,connect,request_duration,time_to_first_byte,duration,host,http_method,relative_url,http_status,request_size,response_size,transaction,match,error,tag
 
 Where:
 
-=========== =====================================================================================
-field       description
-=========== =====================================================================================
-date        timestamp at the end of the request (seconds since 1970-01-01 00:00:00 UTC)
-pid         erlang process id
-id          tsung user id
-host        server hostname
-url         URL (relative)
-HTTP        status HTTP reponse status (200, 304, etc.)
-size        reponse size (in bytes)
-duration    request duration (msec)
-transaction name of the transaction (if any) this request was made in
-match       if a match is defined in the request: match|nomatch (last <match> if several are defined)
-error       name of http error (or empty)
-tag         tag name if the request was tagged; empty otherwise
-=========== =====================================================================================
+==================== ============================================================================================================
+field                description
+==================== ============================================================================================================
+date                 timestamp of log entry
+pid                  erlang process id
+id                   tsung user id
+start                timestamp when request was started
+connect              duration in msec to establish the TCP connection, 0 if the connection was already established
+request_duration     duration in msec to send the request headers and payload if any
+time_to_first_byte   duration in msec it took after request was send, before first response byte was received
+duration             duration in msec for the entire request to complete (connect + sending request + time to first byte + rest of transfer)
+host                 server host name
+http_method          HTTP Method/Verb (GET, POST, PUT, etc.)
+relative_url         Relative URL
+http_status          status HTTP response status (200, 304, etc.)
+request_size         request size, headers and payload, if any (in bytes)
+response_size        response size (in bytes)
+transaction          name of the transaction (if any) this request was made in
+match                if a match is defined in the request: match|nomatch (last <match> if several are defined)
+error                name of http error (or empty)
+tag                  tag name if the request was tagged; empty otherwise
+==================== ============================================================================================================
+
+Timestamps are always in epoch, seconds with fractions since 1970-01-01 00:00:00 UTC. Field values are unquoted unless they
+contain a comma or quote (").
 
 .. warning::
 

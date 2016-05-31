@@ -808,7 +808,8 @@ handle_next_request(Request, State) ->
     %% reconnect if needed
     ProtoOpts = State#state_rcv.proto_opts,
     case reconnect(Socket,Host,Port,{Protocol,ProtoOpts},State#state_rcv.ip) of
-        {ok, NewSocket} ->
+        {ok, NewSocket, DurationToConnect} ->
+            ConnectTime = ?NOW,
             case catch send(Protocol, NewSocket, Message, Host, Port) of
                 ok ->
                     PageTimeStamp = case State#state_rcv.page_timestamp of
@@ -816,7 +817,8 @@ handle_next_request(Request, State) ->
                                         _ -> %page already started
                                             State#state_rcv.page_timestamp
                                     end,
-                    ts_mon:add({ sum, size_sent, size_msg(Message)}),
+                    MessageSize = size_msg(Message),
+                    ts_mon:add({ sum, size_sent, MessageSize}),
                     ts_mon:sendmes({State#state_rcv.dump, self(), Message}),
                     NewState = State#state_rcv{socket   = NewSocket,
                                                protocol = Protocol,
@@ -828,6 +830,9 @@ handle_next_request(Request, State) ->
                                                proto_opts = ProtoOpts#proto_opts{is_first_connect = false},
                                                page_timestamp= PageTimeStamp,
                                                send_timestamp= Now,
+                                               send_completed_duration= ts_utils:elapsed(ConnectTime, ?NOW),
+                                               request_size= MessageSize,
+                                               duration_to_connect= DurationToConnect,
                                                timestamp= Now },
                     case Request#ts_request.ack of
                         bidi_ack ->
@@ -1005,10 +1010,10 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort, Try}) when 
             ts_mon:add({ sample, connect, Elapsed }),
             set_connected_status(true),
             ?Debug("(Re)connected~n"),
-            {ok, Socket};
+            {ok, Socket, Elapsed};
         {error, timeout} ->
             % don't handle connect timeouts at this level
-            {error, timeout};
+            {error, timeout, 0};
         {error, Reason} ->
             {A,B,C,D} = IP,
             %% LOG only at INFO level since we report also an error to ts_mon
@@ -1033,7 +1038,7 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort, Try}) when 
                     CountName="error_connect_"++atom_to_list(Reason),
                     ts_mon:add({ count, list_to_atom(CountName) })
             end,
-            {error, Reason}
+            {error, Reason, 0}
     end;
 reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPortServer}) ->
     CPort = case catch ts_cport:get_port(CPortServer,IP) of
@@ -1045,7 +1050,7 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPortServer}) ->
                end,
     reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort,CPortServer});
 reconnect(Socket, _Server, _Port, _Protocol, _IP) ->
-    {ok, Socket}.
+    {ok, Socket, 0}.
 
 
 %% set options for local socket ip/ports
@@ -1124,8 +1129,20 @@ handle_data_msg(Data,State=#state_rcv{dump=Dump,request=Req,id=Id,clienttype=Typ
                        NewState#state_rcv.session_id, Id},
             NewDynVars=ts_dynvars:merge(DynVars,NewState#state_rcv.dynvars),
             NewCount  =ts_search:match(Req#ts_request.match,NewBuffer,MatchArgs,NewDynVars,Transactions),
-            Type:dump(Dump,{Req,NewState#state_rcv.session,Id,
-                            NewState#state_rcv.host,NewState#state_rcv.datasize,Elapsed,Transactions}),
+            Type:dump(Dump, {
+                Req,                                        % http_request
+                NewState#state_rcv.session,                 % session
+                Id,                                         % client id
+                NewState#state_rcv.host,                    % target host
+                NewState#state_rcv.request_size,            % request size
+                NewState#state_rcv.datasize,                % response size
+                NewState#state_rcv.send_timestamp,          % time when request was started
+                NewState#state_rcv.duration_to_connect,     % time required to establish the TCP connection or 0
+                NewState#state_rcv.send_completed_duration, % duration to send the request
+                NewState#state_rcv.completed_timestamp,     % time when request was finished
+                Elapsed,                                    % duration of total request-response duration, excluding connect time
+                Transactions
+            }),
 
             case Close of
                 true ->
@@ -1261,9 +1278,9 @@ update_stats_noack(#state_rcv{page_timestamp=PageTime,request=Request}) ->
 %% Purpose: update the statistics
 %%----------------------------------------------------------------------
 update_stats(S=#state_rcv{size_mon_thresh=T,page_timestamp=PageTime,
-                          send_timestamp=SendTime,datasize=Datasize})->
+                          send_timestamp=SendTime,completed_timestamp=CompletedTime,datasize=Datasize})->
     Now = ?NOW,
-    Elapsed = ts_utils:elapsed(SendTime, Now),
+    Elapsed = ts_utils:elapsed(SendTime, CompletedTime),
 
     Stats = case S#state_rcv.size_mon > T of
                 true ->

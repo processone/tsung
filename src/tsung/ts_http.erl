@@ -92,7 +92,7 @@ dump(protocol_local, Args)->
 dump(_,_) ->
     ok.
 
-dump2str({#ts_request{param=HttpReq},HttpResp,UserId,Server,Size,Duration,Transactions})->
+dump2str({#ts_request{param=HttpReq},HttpResp,UserId,Server,RequestSize,ResponseSize,StartTime,DurationToConnect,RequestDuration,_EndTime,Duration,Transactions})->
     Status = case element(2,HttpResp#http.status) of
                  none -> "error_no_http_status"; % something is really wrong here ... http 0.9 response ?
                  Int when is_integer(Int) ->
@@ -111,12 +111,30 @@ dump2str({#ts_request{param=HttpReq},HttpResp,UserId,Server,Size,Duration,Transa
                     atom_to_list(Err)
             end,
     Tr=ts_utils:log_transaction(Transactions),
-    ts_utils:join(";",[integer_to_list(UserId),
-                            atom_to_list(HttpReq#http_request.method), Server,
-                            get(last_url), Status,integer_to_list(Size),
-                            Duration,Tr,Match,Error,
-                            HttpReq#http_request.tag]
-                      ).
+    TimeToFirstByte = case HttpResp#http.time_to_first_byte of
+        {0,0} ->
+            "";
+        {_,Time} ->
+            ts_utils:elapsed(StartTime, Time)
+    end,
+    ts_utils:join(",", [
+        integer_to_list(UserId),
+        ts_utils:time2sec_hires(StartTime) - DurationToConnect/1000,
+        DurationToConnect,
+        RequestDuration,
+        TimeToFirstByte,
+        Duration + DurationToConnect,
+        Server,
+        atom_to_list(HttpReq#http_request.method),
+        erlang:iolist_to_binary([<<"\"">>, get(last_url), <<"\"">>]),
+        Status,
+        integer_to_list(RequestSize),
+        integer_to_list(ResponseSize),
+        Tr,
+        Match,
+        Error,
+        HttpReq#http_request.tag
+    ]).
 
 
 %%----------------------------------------------------------------------

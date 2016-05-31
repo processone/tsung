@@ -319,7 +319,7 @@ handle_cast({sendmsg, Who, When, What}, State=#state{type=full,dumpfile=Log}) ->
     {noreply, State};
 
 handle_cast({dump, Who, When, What}, State=#state{type=protocol,dumpfile=Log}) ->
-    io:format(Log,"~w;~w;~s~n",[ts_utils:time2sec_hires(When),Who,What]),
+    io:format(Log,"~w,~w,~s~n",[ts_utils:time2sec_hires(When),Who,What]),
     {noreply, State};
 
 handle_cast({dump, cached, Data}, State=#state{type=protocol,dumpfile=Log}) ->
@@ -467,7 +467,7 @@ start_dump(State=#state{type=Type}) ->
             ?LOG("dump file opened, starting monitor~n",?INFO),
             case Type of
                 protocol ->
-                    io:format(Stream,"#date;pid;id;http method;host;URL;HTTP status;size;duration;transaction;match;error;tag~n",[]);
+                    io:format(Stream,"date,pid,id,start,connect,request_duration,time_to_first_byte,duration,host,http_method,relative_url,http_status,request_size,response_size,transaction,match,error,tag~n",[]);
                 _ ->
                     ok
             end,

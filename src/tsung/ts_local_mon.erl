@@ -91,6 +91,8 @@ init([]) ->
     ok = ts_utils:make_dir_raw(LogDir),
     case file:open(FileName,[write,raw, delayed_write]) of
         {ok, IODev} ->
+            Header = io_lib:format("date,pid,id,start,connect,request_duration,time_to_first_byte,duration,host,http_method,relative_url,http_status,request_size,response_size,transaction,match,error,tag~n",[]),
+            file:write(IODev, Header),
             {ok, #state{dump_iodev=IODev}};
         {error, Reason} ->
             ?LOGF("Can't open dump file ~p on node ~p: ~p",[FileName, node(), Reason],?ERR),
@@ -122,7 +124,7 @@ handle_cast(_, State=#state{dump_iodev=undefined}) ->
     {noreply, State};
 
 handle_cast({dump, Who, When, What}, State=#state{dump_iodev=IODev}) ->
-    Data = io_lib:format("~w;~w;~s~n",[ts_utils:time2sec_hires(When),Who,What]),
+    Data = io_lib:format("~w,~w,~s~n",[ts_utils:time2sec_hires(When),Who,What]),
     file:write(IODev,Data),
     {noreply, State};
 
