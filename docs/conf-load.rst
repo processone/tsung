@@ -114,7 +114,7 @@ it is possible since version **1.3.1**:
    <session name="foo" probability="100" type="ts_http">
      <request> <http url="/" method="GET"></http> </request>
    </session>
- <sessions>
+ </sessions>
 
 
 In this example, we have two sessions, one has a "0" probability (and
