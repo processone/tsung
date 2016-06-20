@@ -374,6 +374,7 @@ repeat | if | change_type | foreach | set_option | interaction )*>
     type (connect | message | close) #REQUIRED
     ack  (no_ack | parse) #IMPLIED
     frame (binary | text) #IMPLIED
+    subprotocols CDATA ""
     path CDATA "/" >
 
 <!ELEMENT amqp (#PCDATA) >

@@ -868,6 +868,12 @@ Example with Websocket as a session type:
 You can do substitution on attribute 'path' and message content, match a
 response or define dynamic variables based on the response message.
 
+You can also set the subprotocols in a connect message:
+
+.. code-block:: xml
+
+  <websocket type="connect" path="/path/to/ws" subprotocols="chat"></websocket>
+
 If you use ``change_type`` to start a websocket, don't forget to set
 ``bidi="true"``, like this:
 

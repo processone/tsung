@@ -231,10 +231,11 @@ for Websocket:
 
   <!-- send websocket data with text frame, default binary-->
   <option name="websocket_frame" value="text"/>
+  <option name="websocket_subprotocols" value="chat, superchat"/>
 
 Use ``websocket_path`` for setting the path of the websocket request; use
 ``websocket_frame`` for setting the frame type(option type: binary and text,
-and binary as default) of the sending websocket data.
+and binary as default) of the sending websocket data. Use ``websocket_subprotocols`` for setting the ``Sec-WebSocket-Protocol`` header.
 
 
 XMPP/Jabber options

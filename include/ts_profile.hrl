@@ -61,6 +61,7 @@
          ip_transparent = false,  % set IP_TRANSPARENT option on the socket
          websocket_path = "/chat",  % for websocket only
          websocket_frame = "binary",  % for websocket only
+         websocket_subprotocols = [],     % for websocket only
          retry_timeout = 10,        % retry sending in milliseconds
          max_retries = 3,           % maximum number of retries
          idle_timeout  = 600000,    % timeout for local ack
