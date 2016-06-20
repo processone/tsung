@@ -88,12 +88,17 @@ init([]) ->
     LogFileEnc = ts_config_server:decode_filename(?config(log_file)),
     FileName = filename:join(LogFileEnc, "tsung-"++Id ++ ".dump"),
     LogDir = filename:dirname(FileName),
-    ok = ts_utils:make_dir_raw(LogDir),
-    case file:open(FileName,[write,raw, delayed_write]) of
-        {ok, IODev} ->
-            {ok, #state{dump_iodev=IODev}};
+    case ts_utils:make_dir_raw(LogDir) of
+        ok ->
+            case file:open(FileName,[write,raw, delayed_write]) of
+                {ok, IODev} ->
+                    {ok, #state{dump_iodev=IODev}};
+                {error, Reason} ->
+                    ?LOGF("Can't open dump file ~p on node ~p: ~p",[FileName, node(), Reason],?ERR),
+                    {ok,#state{}}
+            end;
         {error, Reason} ->
-            ?LOGF("Can't open dump file ~p on node ~p: ~p",[FileName, node(), Reason],?ERR),
+            ?LOGF("Can't create directory ~p in node ~p: protocol_local won't work. Reason: ~p",[LogDir, node(), Reason],?WARN),
             {ok,#state{}}
     end.
 
