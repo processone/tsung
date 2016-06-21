@@ -146,6 +146,23 @@ those):
 Generating the report
 =====================
 
+**Since version 1.6.0**, you can use the embedded web server started
+by the controller on port 8091. So for example if your controller is
+running on ``node0``, use the URL http://node0:8091/ in your
+browser. It will display the current status of Tsung (see
+:ref:`fig-dashboard` ) and generate on the fly the report and
+graphs. There's also an option when you start Tsung to keep the
+controller alive, even when the test if finished, in order to use the
+embedded web server (see ``-k`` option). By default the web server
+will stop when the test is finished.
+
+.. _fig-dashboard:
+.. figure:: ./images/tsung-dashboard.png
+
+            Dashboard
+
+You can still generate the reports by manually during or after the tests:
+
 cd to the log directory of your test (say
 :file:`~/.tsung/log/20040325-16:33/`) and use the script
 :command:`tsung_stats.pl`::
