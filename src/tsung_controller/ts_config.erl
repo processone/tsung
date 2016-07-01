@@ -1238,6 +1238,9 @@ set_net_type("udp6")  -> ts_udp6;
 set_net_type("ssl")   -> ts_ssl;
 set_net_type("ssl6")  -> ts_ssl6;
 set_net_type("websocket")  -> ts_server_websocket;
+set_net_type("websocket_ssl")  -> ts_server_websocket_ssl;
+set_net_type("ws")  -> ts_server_websocket;
+set_net_type("wss")  -> ts_server_websocket_ssl;
 set_net_type("bosh")  -> ts_bosh;
 set_net_type("bosh_ssl") -> ts_bosh_ssl;
 set_net_type("erlang") -> ts_erlang.
