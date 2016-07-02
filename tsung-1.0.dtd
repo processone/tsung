@@ -21,7 +21,7 @@
      host   NMTOKEN #REQUIRED
      port   NMTOKEN #REQUIRED
      weight NMTOKEN "1"
-     type (ssl | tcp | udp | erlang | ssl6 | tcp6 | udp6 |bosh | bosh_ssl | websocket) #REQUIRED>
+     type (ssl | tcp | udp | erlang | ssl6 | tcp6 | udp6 |bosh | bosh_ssl | websocket | websocket_ssl ) #REQUIRED>
 
 <!ELEMENT clients (client+)>
 <!ELEMENT client (ip*| iprange) >
