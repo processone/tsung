@@ -68,7 +68,7 @@ connect(Host, Port, Opts, Timeout) ->
                                         frame = Frame, socket = Socket})
                     end),
             ssl:controlling_process(Socket, Pid),
-            inet:setopts(Socket, [{active, once}]),
+            ssl:setopts(Socket, [{active, once}]),
             {ok, Pid};
         Ret ->
             Ret
@@ -90,7 +90,7 @@ loop(#state{parent = Parent, socket = Socket, accept = Accept,
             case CheckResult of
                 ok ->
                     ?Debug("handshake success: ~n"),
-                    inet:setopts(Socket, [{active, once}]),
+                    ssl:setopts(Socket, [{active, once}]),
                     loop(State#state{state = connected});
                 {error, Reason} ->
                     ?DebugF("handshake fail: ~p~n", [Reason]),
@@ -120,7 +120,7 @@ loop(#state{parent = Parent, socket = Socket, state = connected,
             ssl:send(Socket, EncodedData),
             ssl:close(Socket);
         {set_opts, Opts} ->
-            inet:setopts(Socket, Opts),
+            ssl:setopts(Socket, Opts),
             loop(State);
         {tcp, Socket, Data}->
             case websocket:decode(<<Buffer/binary, Data/binary>>) of
