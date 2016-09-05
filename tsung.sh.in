@@ -165,7 +165,8 @@ usage() {
     echo "    -X <dir>      add additional erlang load paths (multiple -X arguments allowed)"
     echo "    -m <file>     write monitoring output on this file (default is tsung.log)"
     echo "                   (use - for standard output)"
-    echo "    -F <ip>       use long names (FQDN) for erlang nodes; you can assign local bind available IP (not assign? default is the host's name)"
+    echo "    -F            use long names (FQDN) for erlang nodes"
+    echo "    -I <ip>       use IP (FQDN) for erlang nodes; you can assign local bind available IP (not assign? default is the host's name)"
     echo "    -L <lifetime> SSL session lifetime (600sec by default)"
     echo "    -w <delay>    warmup delay (default is 1 sec)"
     echo "    -n            disable web GUI (started by default on port 8091)"
@@ -179,7 +180,7 @@ usage() {
     exit
 }
 
-while getopts "6vhknf:l:d:r:i:F:sw:m:p:x:X:t:T:" Option
+while getopts "6vhknf:l:d:r:i:Fsw:m:p:x:X:t:T:I:" Option
 do
     case $Option in
         f) CONF_OPT_FILE=$OPTARG;;
@@ -202,12 +203,7 @@ do
         X) EXTRA_LOAD_PATHS="$EXTRA_LOAD_PATHS -pa $OPTARG";;
         r) ERL_RSH=" -rsh $OPTARG ";;
         6) PROTO_DIST=" -proto_dist inet6_tcp ";;
-        F) NAMETYPE="-name"
-            SERVER_IP=$OPTARG
-            if [ "$SERVER_IP" != "" ]; then
-                CONTROLLER_EXTENDS="@$SERVER_IP"
-            fi
-            ;;
+        F) NAMETYPE="-name";;
         L) SSL_SESSION_LIFETIME=$OPTARG;;
         w) WARM_TIME=$OPTARG;;
         t) ERL_DIST_PORTS_MIN=$OPTARG;;
@@ -219,6 +215,12 @@ do
            CONTROLLER=$CONTROLLER"_"$ID
            ;;
         x) EXCLUDE_TAG_LIST=$OPTARG;;
+        I) NAMETYPE="-name"
+            SERVER_IP=$OPTARG
+            if [ "$SERVER_IP" != "" ]; then
+                CONTROLLER_EXTENDS="@$SERVER_IP"
+            fi
+            ;;
         h) usage;;
         *) usage ;;
     esac
