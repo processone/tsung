@@ -974,7 +974,7 @@ MQTT
 It supports publish messages, subscribe and unsubscribe topics,
 Available request types:
 
-* connect (with options like clean_start, will_topic etc)
+* connect (with options like clean_start, will_topic, username, password, etc.)
 * disconnect
 * publish (with topic name, qos level and retain flag)
 * subscribe (with topic name and qos level)
