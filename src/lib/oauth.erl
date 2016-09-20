@@ -35,6 +35,7 @@
   , token_secret/1
   , uri/2
   , verify/6
+  , getRndString/2
   ]).
 
 -spec get(string(), [proplists:property()], oauth_client:consumer(), string(), string()) -> {ok, {Status::tuple(), Headers::[{string(), string()}], Body::string()}} | {error, term()}.
@@ -85,8 +86,8 @@ verify(Signature, HttpMethod, URL, Params, Consumer, TokenSecret) ->
 
 -spec signed_params(string(), string(), [proplists:property()], oauth_client:consumer(), string(), string()) -> [{string(), string()}].
 signed_params(HttpMethod, URL, ExtraParams, Consumer, Token, TokenSecret) ->
-  Params = token_param(Token, params(Consumer, ExtraParams)),
-  [{"oauth_signature", signature(HttpMethod, URL, Params, Consumer, TokenSecret)}|Params].
+  OauthParams = token_param(Token, params(Consumer)),
+  [{"oauth_signature", signature(HttpMethod, URL, OauthParams ++ ExtraParams, Consumer, TokenSecret)} | OauthParams].
 
 -spec signature(string(), string(), [proplists:property()], oauth_client:consumer(), string()) -> string().
 signature(HttpMethod, URL, Params, Consumer, TokenSecret) ->
@@ -112,17 +113,22 @@ token_param("", Params) ->
 token_param(Token, Params) ->
   [{"oauth_token", Token}|Params].
 
-params(Consumer, Params) ->
-  Nonce = base64:encode_to_string(crypto:rand_bytes(32)), % cf. ruby-oauth
-  params(Consumer, oauth_unix:timestamp(), Nonce, Params).
+params(Consumer) ->
+  Nonce = getRndString(10,"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"), % cf. ruby-oauth
+  params(Consumer, oauth_unix:timestamp(), Nonce).
 
-params(Consumer, Timestamp, Nonce, Params) ->
+getRndString(Length, AllowedChars) ->
+  lists:foldl(fun(_, Acc) ->
+    [lists:nth(random:uniform(length(AllowedChars)),
+      AllowedChars) | Acc]
+              end, [], lists:seq(1, Length)).
+
+params(Consumer, Timestamp, Nonce) ->
   [ {"oauth_version", "1.0"}
   , {"oauth_nonce", Nonce}
   , {"oauth_timestamp", integer_to_list(Timestamp)}
   , {"oauth_signature_method", signature_method_string(Consumer)}
   , {"oauth_consumer_key", consumer_key(Consumer)}
-  | Params
   ].
 
 signature_method_string(Consumer) ->
