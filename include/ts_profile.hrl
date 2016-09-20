@@ -125,23 +125,25 @@
          dump        % type of dump (full, light, none)
         }).
 
+-record(phase,
+        {
+          id ,
+          intensity,
+          nusers,      % total number of users to start in the current phase
+          duration,    % expected phase duration
+          start,       % timestamp.
+          wait_all_sessions_end = false % wait for all users to finish before launching next session
+        }).
 
 -record(launcher,
         {nusers,
-         phases =[],
+         phases = [],
+         current_phase = #phase{},
          myhostname,
-         intensity,
          static_done = false,
          started_users = 0,
-         phase_nusers,   % total number of users to start in the current phase
-         phase_duration, % expected phase duration
-         phase_start,    % timestamp
-         phase_id      = 1,
          start_date,
          short_timeout = ?short_timeout,
          maxusers %% if maxusers are currently active, launch a
                   %% new beam to handle the new users
         }).
-
-
-

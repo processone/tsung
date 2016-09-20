@@ -638,7 +638,7 @@ get_client_cfg(Arrival=#arrivalphase{duration = Duration,
                    end),
     ?LOGF("New arrival phase ~p for client ~p (last ? ~p): will start ~p users~n",
           [Arrival#arrivalphase.phase,Client#client.host, IsLast,NUsers],?NOTICE),
-    {Arrival#arrivalphase{curnumber=CurNumber+NUsers}, {ClientIntensity, NUsers, Duration}}.
+    {Arrival#arrivalphase{curnumber=CurNumber+NUsers}, #phase{intensity=ClientIntensity, nusers=NUsers, duration= Duration}}.
 
 %%----------------------------------------------------------------------
 %% Func: encode_filename/1

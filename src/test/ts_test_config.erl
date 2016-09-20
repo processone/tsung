@@ -166,9 +166,9 @@ config_arrivalrate_test() ->
     RealDur = 10 * 60 * 1000,
     RealNU  = 1200,
     RealIntensity  = 2 / 1000,
-    ?assertEqual({RealIntensity,RealNU,RealDur}, Phase1),
-    ?assertEqual({RealIntensity/60, RealNU div 60,RealDur}, Phase2),
-    ?assertEqual({RealIntensity/3600,12,RealDur*36}, Phase3).
+    ?assertEqual(#phase{intensity=RealIntensity,nusers      = RealNU,duration = RealDur}, Phase1),
+    ?assertEqual(#phase{intensity=RealIntensity/60, nusers  = RealNU div 60, duration = RealDur}, Phase2),
+    ?assertEqual(#phase{intensity=RealIntensity/3600,nusers = 12, duration = RealDur*36}, Phase3).
 
 config_interarrival_test() ->
     myset_env(),
@@ -177,9 +177,9 @@ config_interarrival_test() ->
     RealDur = 10 * 60 * 1000,
     RealNU  = 1200,
     RealIntensity  = 2 / 1000,
-    ?assertEqual({RealIntensity,RealNU,RealDur}, Phase1),
-    ?assertEqual({RealIntensity/60,RealNU div 60,RealDur}, Phase2),
-    ?assertEqual({RealIntensity/3600,12,RealDur*36}, Phase3).
+    ?assertEqual(#phase{intensity=RealIntensity,      nusers = RealNU, duration=RealDur}, Phase1),
+    ?assertEqual(#phase{intensity=RealIntensity/60,   nusers = RealNU div 60, duration = RealDur}, Phase2),
+    ?assertEqual(#phase{intensity=RealIntensity/3600, nusers = 12, duration = RealDur*36}, Phase3).
 
 read_config_maxusers_test() ->
     read_config_maxusers({5,15},10,"./src/test/thinkfirst.xml").
@@ -189,7 +189,7 @@ read_config_maxusers({MaxNumber1,MaxNumber2},Clients,File) ->
     C=lists:map(fun(A)->"client"++integer_to_list(A) end, lists:seq(1,Clients)),
     ts_config_server:read_config("./src/test/thinkfirst.xml"),
     {M1,M2} = lists:unzip(lists:map(fun(X)->
-                          {ok,{[{_,Max,_},{_,Max2,_}],_,_}} = ts_config_server:get_client_config(X),
+                          {ok,{[#phase{nusers = Max},#phase{nusers = Max2} ],_,_}} = ts_config_server:get_client_config(X),
                           {Max,Max2}
                   end,  C)),
     [Head1|_]=M1,
@@ -263,14 +263,13 @@ launcher_empty_test() ->
     Intensity=10,
     Users=2,
     Duration=25,
-    Res=ts_launcher:wait_static({static,0},#launcher{nusers=0,phase_duration=300,phases=[{Intensity,Users,Duration}]}),
+    Phase=#phase{intensity=0,nusers=Users,duration=300, id=1},
+    NextPhase=#phase{intensity=Intensity,nusers=Users,duration=Duration, id=2},
+    Res=ts_launcher:wait_static({static,0},#launcher{nusers=0,phases=[NextPhase],current_phase=Phase}),
+    ?LOGF("~p",[Res],?WARN),
     ?assertMatch({next_state,launcher,#launcher{phases = [],
                                                 nusers = Users,
-                                                phase_nusers = Users,
-                                                phase_duration=Duration,
-                                                phase_start = _,
-                                                intensity = Intensity},_},Res).
-
+                                                current_phase = #phase{nusers=Users,duration=Duration,intensity=Intensity}},_},Res).
 
 wildcard_test() ->
     Names = ["foo1", "foo2", "bar", "barfoo", "foobar", "foo", "fof","glop"],
