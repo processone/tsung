@@ -35,6 +35,7 @@
   , token_secret/1
   , uri/2
   , verify/6
+  , getRndString/2
   ]).
 
 -spec get(string(), [proplists:property()], oauth_client:consumer(), string(), string()) -> {ok, {Status::tuple(), Headers::[{string(), string()}], Body::string()}} | {error, term()}.
@@ -113,8 +114,14 @@ token_param(Token, Params) ->
   [{"oauth_token", Token}|Params].
 
 params(Consumer) ->
-  Nonce = base64:encode_to_string(crypto:rand_bytes(32)), % cf. ruby-oauth
+  Nonce = getRndString(10,"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"), % cf. ruby-oauth
   params(Consumer, oauth_unix:timestamp(), Nonce).
+
+getRndString(Length, AllowedChars) ->
+  lists:foldl(fun(_, Acc) ->
+    [lists:nth(random:uniform(length(AllowedChars)),
+      AllowedChars) | Acc]
+              end, [], lists:seq(1, Length)).
 
 params(Consumer, Timestamp, Nonce) ->
   [ {"oauth_version", "1.0"}
