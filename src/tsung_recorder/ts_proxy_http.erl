@@ -328,6 +328,24 @@ record_request(State=#state_rec{prev_host=Host, prev_port=Port, prev_scheme=Sche
                   "~n  <soap action='~s'></soap>~n",
                   fun(A) -> string:strip(A,both,$") end ), %"
 
+    %% Content auto-negotiation headers
+    record_header(Fd,ParsedHeader,"accept",
+                  "~n  <http_header name='Accept' value='~s' />"),
+    record_header(Fd,ParsedHeader,"accept-encoding",
+                  "~n  <http_header name='Accept-Encoding' value='~s' />"),
+    record_header(Fd,ParsedHeader,"accept-charset",
+                  "~n  <http_header name='Accept-Charset' value='~s' />"),
+    record_header(Fd,ParsedHeader,"accept-language",
+                  "~n  <http_header name='Accept-Language' value='~s' />"),
+    record_header(Fd,ParsedHeader,"x-requested-with",
+                  "~n  <http_header name='X-Requested-With' value='~s' />"),
+
+    %% Caching headers
+    record_header(Fd,ParsedHeader,"cache-control",
+                  "~n  <http_header name='Cache-Control' value='~s' />"),
+    record_header(Fd,ParsedHeader,"pragma",
+                  "~n  <http_header name='Pragma' value='~s' />"),
+
     io:format(Fd,"</http></request>~n",[]),
     {ok,State#state_rec{prev_port=NewPort,ext_file_id=NewId,prev_host=NewHost,prev_scheme=NewScheme}}.
 
