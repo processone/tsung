@@ -124,5 +124,6 @@
          maxnumber,
          curnumber = 0,
          popularities = [],
+         wait_all_sessions_end = false,
          id
         }).

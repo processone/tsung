@@ -618,6 +618,7 @@ choose_session([S=#session{popularity=PopList} | SList],Rand,Cur,PhaseId) ->
 get_client_cfg(Arrival=#arrivalphase{duration = Duration,
                                      intensity= PhaseIntensity,
                                      curnumber= CurNumber,
+                                     wait_all_sessions_end = WaitSessionsEnd,
                                      maxnumber= MaxNumber },
                {TotalWeight,Client,IsLast} ) ->
     Weight = Client#client.weight,
@@ -638,7 +639,8 @@ get_client_cfg(Arrival=#arrivalphase{duration = Duration,
                    end),
     ?LOGF("New arrival phase ~p for client ~p (last ? ~p): will start ~p users~n",
           [Arrival#arrivalphase.phase,Client#client.host, IsLast,NUsers],?NOTICE),
-    {Arrival#arrivalphase{curnumber=CurNumber+NUsers}, #phase{intensity=ClientIntensity, nusers=NUsers, duration= Duration}}.
+    Phase = #phase{intensity=ClientIntensity, nusers=NUsers, duration= Duration, wait_all_sessions_end = WaitSessionsEnd },
+    {Arrival#arrivalphase{curnumber=CurNumber+NUsers}, Phase}.
 
 %%----------------------------------------------------------------------
 %% Func: encode_filename/1

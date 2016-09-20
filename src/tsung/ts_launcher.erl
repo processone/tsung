@@ -314,19 +314,21 @@ skip_empty_phase(State=#launcher{phases=Phases,current_phase=Phase})->
 %%% Purpose: decide if we need to change phase (if current users is
 %%%          reached or if max duration is reached)
 %%% ----------------------------------------------------------------------
-change_phase(N, [Phase|Rest], Duration, #phase{duration=PhaseDuration})  when N < 1 andalso Duration >= PhaseDuration ->
+change_phase(N, [Phase|Rest], Duration, CurrentPhase = #phase{duration=PhaseDuration})  when N < 1 andalso Duration >= PhaseDuration ->
+    check_sessions_end(CurrentPhase),
     {change, Phase, Rest};
-change_phase(N, [Phase|Rest], Duration, #phase{duration=PhaseDuration})  when N < 1 ->
+change_phase(N, [Phase|Rest], Duration, CurrentPhase = #phase{duration=PhaseDuration})  when N < 1 ->
     %% no more users, check if we need to wait before changing phase (this can happen if maxnumber is set)
     ToWait=round(PhaseDuration-Duration),
     ?LOGF("Need to wait ~p sec before changing phase, going to sleep~n", [ToWait/1000], ?WARN),
     timer:sleep(ToWait),
     ?LOG("Waking up~n", ?NOTICE),
+    check_sessions_end(CurrentPhase),
     {change, Phase, Rest};
 change_phase(N, [], _, _) when N < 1 ->
     ?LOG("This was the last phase, wait for connected users to finish their session~n",?NOTICE),
     {stop};
-change_phase(N,NewPhases,Duration,#phase{duration=PhaseDuration, nusers=Users}) when Duration>PhaseDuration ->
+change_phase(N,NewPhases,Duration, CurrentPhase=#phase{duration=PhaseDuration, nusers=Users}) when Duration>PhaseDuration ->
     ?LOGF("Check phase: ~p ~p~n",[N,Users],?DEB),
     Percent = 100*N/Users,
     case {Percent > ?MAX_PHASE_EXCEED_PERCENT, N > ?MAX_PHASE_EXCEED_NUSERS} of
@@ -339,6 +341,7 @@ change_phase(N,NewPhases,Duration,#phase{duration=PhaseDuration, nusers=Users}) 
     end,
     case NewPhases of
         [NextPhase|Rest] ->
+            check_sessions_end(CurrentPhase),
             {change, NextPhase,Rest};
         [] ->
             ?LOG("This was the last phase, wait for connected users to finish their session~n",?NOTICE),
@@ -346,6 +349,24 @@ change_phase(N,NewPhases,Duration,#phase{duration=PhaseDuration, nusers=Users}) 
     end;
 change_phase(_N, _, _, _) ->
     {continue}.
+
+
+check_sessions_end(Phase= #phase{wait_all_sessions_end = true}) ->
+    case ts_client_sup:active_clients() of
+        0 ->
+            ok;
+        ActiveClients when ActiveClients > 1000 ->
+            ?LOGF("Wait for all sessions to finish before starting next phase (still ~p sessions active)", [ActiveClients], ?NOTICE),
+            timer:sleep(?check_noclient_timeout),
+            check_sessions_end(Phase);
+        ActiveClients ->
+            ?LOGF("Wait for all sessions to finish before starting next phase (still ~p sessions active)", [ActiveClients], ?NOTICE),
+            timer:sleep(?fast_check_noclient_timeout),
+            check_sessions_end(Phase)
+    end;
+check_sessions_end(_) ->
+    ok.
+
 
 %%%----------------------------------------------------------------------
 %%% Func: check_max_raised/1

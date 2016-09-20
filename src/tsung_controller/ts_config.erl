@@ -332,14 +332,16 @@ parse(Element = #xmlElement{name=iprange, attributes=Attrs},
 parse(Element = #xmlElement{name=arrivalphase, attributes=Attrs},
       Conf = #config{arrivalphases=AList}) ->
 
-    Phase      = getAttr(integer,Attrs, phase),
-    IDuration  = getAttr(integer, Attrs, duration),
-    Unit  = getAttr(string,Attrs, unit, "second"),
+    Phase      = getAttr(integer, Attrs,   phase),
+    IDuration  = getAttr(integer, Attrs,   duration),
+    Unit       = getAttr(string,  Attrs,   unit, "second"),
+    WaitSessionsEnd  = getAttr(atom,Attrs, wait_all_sessions_end, false),
     D = to_milliseconds(Unit, IDuration),
     case lists:keysearch(Phase,#arrivalphase.phase,AList) of
         false ->
             lists:foldl(fun parse/2,
                         Conf#config{arrivalphases = [#arrivalphase{phase=Phase,
+                                                                   wait_all_sessions_end=WaitSessionsEnd,
                                                                    duration=D
                                                                   }
                                                      |AList]},

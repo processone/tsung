@@ -87,6 +87,7 @@
 <!ATTLIST arrivalphase
      duration NMTOKEN #REQUIRED
      phase    NMTOKEN #REQUIRED
+     wait_all_sessions_end NMTOKEN "false"
      unit     (hour | minute | second | millisecond) #REQUIRED>
 
 <!ELEMENT users EMPTY>
