@@ -32,7 +32,7 @@ use strict;
 use Getopt::Long;
 use vars qw ($help @files $dygraph $verbose $debug $noplot $noextra $version $stats
              $template_dir $nohtml $template_dir $gnuplot $logy $rotate_xtics
-             $imgfmt $oldgnuplot $report_title );
+             $imgfmt $newgnuplot $report_title );
 use File::Spec::Functions qw(rel2abs);
 use File::Basename;
 use File::Copy;
@@ -116,25 +116,25 @@ foreach my $dir (@dirs) {
 }
 
 $gnuplot = "gnuplot" unless $gnuplot;
-my $oldgnuplot = is_oldgnuplot($gnuplot);
+my $newgnuplot = is_newgnuplot($gnuplot);
 $gnuplot .= " >> gnuplot.log 2>&1";
 
 &parse_stats_file($stats);
 &html_report() unless $nohtml;
 
 # returns 1 (=true) if gnuplot doesn't support the "set terminal png size x,y" specifications
-sub is_oldgnuplot {
+sub is_newgnuplot {
     # args
     my $gnuplot    = shift;
     my $version = `$gnuplot -V`;
     if ($version =~ m /gnuplot (\d+).(\d+) patchlevel (\d+)/) {
         my ($major, $minor,$patchlevel) = ($1,$2,$3);
-        return 0 if $major >= 5;
-        return 1 if $major < 3;
-        return 1 if $minor <2; # does it work with gnuplot 4.1 or 4.0 ? we assume no.
-        return 0;
-    } else {
+        return 2 if $major >= 5;
+        return 0 if $major < 3;
+        return 0 if $minor <2; # does it work with gnuplot 4.1 or 4.0 ? we assume no.
         return 1;
+    } else {
+        return 0;
     }
 }
 
@@ -192,14 +192,14 @@ sub plot_stats {
             $output_ext = "svg";
         }
         # gnuplot styles and options
-        print "set size $thumbnail_size,$thumbnail_size\n" if (($output_fmt eq "tn.png") and $oldgnuplot);
+        print "set size $thumbnail_size,$thumbnail_size\n" if (($output_fmt eq "tn.png") and !$newgnuplot);
         print "set xtics rotate\n"  if (($output_ext eq "png") and ($rotate_xtics));
         print "set style data  $style\n";
-        if (($output_fmt eq "tn.png") and not $oldgnuplot  and ($output_type !~ /pngcairo/)) {
+        if (($output_fmt eq "tn.png") and $newgnuplot  and ($output_type !~ /pngcairo/)) {
             print "set terminal $output_type tiny size 320,240\n";
-        } elsif (($output_fmt eq "tn.png") and not $oldgnuplot) {
+        } elsif (($output_fmt eq "tn.png") and $newgnuplot) {
             print "set terminal $output_type size 320,240 font 'Verdana,7'\n";
-        } elsif ((($output_ext eq "svg") or (($output_ext eq "png")) ) and not $oldgnuplot) {
+        } elsif ((($output_ext eq "svg") or (($output_ext eq "png")) ) and $newgnuplot) {
             print "set terminal $output_type size 1024,768 \n";
         } else {
             print "set terminal $output_type\n";
@@ -245,7 +245,7 @@ sub plot_stats {
                 my $cur_title = $filename;
                 $cur_title =~ s/\.txt$//;
                 $cur_title =~ s/:os_mon//;
-                $cur_title =~ s/(_|@)/\\$1/g;
+                $cur_title =~ s/(_|@)/\\$1/g if ($newgnuplot > 1);
                 print " title '$cur_title' ls $lineindex" ;
                 print "," unless ($filename eq @{$files}[$#{$files}]); # unless last occurence
             }
