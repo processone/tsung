@@ -695,6 +695,7 @@ publish_pubsub_node(Domain, PubSubComponent, Username, Node, Size, Stamped) ->
 
 muc_join(Room,Nick, Service) ->
     Result = list_to_binary(["<presence to='", Room,"@", Service,"/", Nick, "'>",
+                             "<x xmlns='http://jabber.org/protocol/muc'/>",
                              " </presence>"]),
     Result.
 
