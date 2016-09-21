@@ -129,7 +129,7 @@ sub is_oldgnuplot {
     my $version = `$gnuplot -V`;
     if ($version =~ m /gnuplot (\d+).(\d+) patchlevel (\d+)/) {
         my ($major, $minor,$patchlevel) = ($1,$2,$3);
-        return 0 if $major > 5;
+        return 0 if $major >= 5;
         return 1 if $major < 3;
         return 1 if $minor <2; # does it work with gnuplot 4.1 or 4.0 ? we assume no.
         return 0;
@@ -198,9 +198,9 @@ sub plot_stats {
         if (($output_fmt eq "tn.png") and not $oldgnuplot  and ($output_type !~ /pngcairo/)) {
             print "set terminal $output_type tiny size 320,240\n";
         } elsif (($output_fmt eq "tn.png") and not $oldgnuplot) {
-            print "set terminal $output_type size 320,240 font 'Verdana,7' \n";
+            print "set terminal $output_type size 320,240 font 'Verdana,7'\n";
         } elsif ((($output_ext eq "svg") or (($output_ext eq "png")) ) and not $oldgnuplot) {
-            print "set terminal $output_type size 1024,768\n";
+            print "set terminal $output_type size 1024,768 \n";
         } else {
             print "set terminal $output_type\n";
         }
@@ -245,7 +245,8 @@ sub plot_stats {
                 my $cur_title = $filename;
                 $cur_title =~ s/\.txt$//;
                 $cur_title =~ s/:os_mon//;
-                print " title \"$cur_title\" ls $lineindex" ;
+                $cur_title =~ s/(_|@)/\\$1/g;
+                print " title '$cur_title' ls $lineindex" ;
                 print "," unless ($filename eq @{$files}[$#{$files}]); # unless last occurence
             }
             print "\n"; # plot done
