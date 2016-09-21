@@ -32,9 +32,12 @@
 -include("ts_profile.hrl").
 -include("ts_config.hrl").
 
-
-protocol_options(Proto=#proto_opts{ip_transparent = true }) ->
-    Opts= [{raw,0,19,<<1:32/native>>} ] ++ protocol_options(Proto#proto_opts{ip_transparent=false}),
+protocol_options(Proto=#proto_opts{tcp_reuseport = true}) ->
+    Opts= [{raw, 1, 15, <<1:32/native>>}] ++ protocol_options(Proto#proto_opts{tcp_reuseport = false}),
+    ?DebugF("TCP Real opts: ~p ~n", [Opts]),
+    Opts;
+protocol_options(Proto=#proto_opts{ip_transparent = true}) ->
+    Opts= [{raw, 0, 19, <<1:32/native>>} ] ++ protocol_options(Proto#proto_opts{ip_transparent = false}),
     ?DebugF("TCP Real opts: ~p ~n", [Opts]),
     Opts;
 protocol_options(#proto_opts{tcp_rcv_size = Rcv, tcp_snd_size = Snd,

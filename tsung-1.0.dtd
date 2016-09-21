@@ -29,6 +29,7 @@
      cpu      NMTOKEN "1"
      type     (machine | batch)  "machine"
      host     NMTOKEN #IMPLIED
+     hostip   CDATA ""
      batch    (torque | pbs | lsf | oar) #IMPLIED
      scan_intf NMTOKEN #IMPLIED
      maxusers NMTOKEN "800"
