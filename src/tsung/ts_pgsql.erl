@@ -165,14 +165,14 @@ parse(Data, State=#state_rcv{acc = [], session=S}) ->
 
         {ok, {ready_for_query, failed_transaction}, _ } ->
             ?LOG("PGSQL: Failed Transaction ~n",?NOTICE),
-            ts_mon:add({ count, pgsql_failed_transaction }),
+            ts_mon_cache:add({ count, pgsql_failed_transaction }),
             {State#state_rcv{ack_done = true},[],false};
 
         {ok, {authenticate, {0, _Salt}}, Tail } -> % auth OK, continue to parse resp.
             parse(Tail, State);
 
         {ok, {error_message, ErrMsg}, Tail } ->
-            ts_mon:add({ count, error_pgsql }),
+            ts_mon_cache:add({ count, error_pgsql }),
             ?LOGF("PGSQL: Got Error Msg from postgresql [~p] ~n",[ErrMsg],?NOTICE),
             case Tail of
                 << >> ->

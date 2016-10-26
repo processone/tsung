@@ -133,10 +133,10 @@ parse_ldap_response( #'LDAPMessage'{protocolOp = {bindResponse,Result}},State)->
     case Result#'BindResponse'.resultCode of
         success ->
             ?Debug("Bind successful~n"),
-            ts_mon:add({ count, ldap_bind_ok}),
+            ts_mon_cache:add({ count, ldap_bind_ok}),
             {State#state_rcv{ack_done=true},[],false};
         _Error   ->
-            ts_mon:add({ count, ldap_bind_error}), %FIXME: retry,fail,etc. should be configurable
+            ts_mon_cache:add({ count, ldap_bind_error}), %FIXME: retry,fail,etc. should be configurable
             ?LOG("Bind fail~n",?INFO),
             {State#state_rcv{ack_done=true},[],true}
     end;
@@ -166,7 +166,7 @@ parse_ldap_response(#'LDAPMessage'{protocolOp = {'extendedResp',ExtResponse }},S
                                                                  ]),
             {State#state_rcv{socket=Ssl_socket,protocol=ssl,ack_done=true},[],false};
         _Error ->
-            ts_mon:add({ count, ldap_starttls_error}),
+            ts_mon_cache:add({ count, ldap_starttls_error}),
             ?LOG("StartTLS fail",?INFO),
             {State#state_rcv{ack_done=true},[],false}
     end;
@@ -177,7 +177,7 @@ parse_ldap_response(#'LDAPMessage'{protocolOp = {'addResponse',Result}},State)  
         success ->
             {State#state_rcv{ack_done=true},[],false};
         _Error   ->
-            ts_mon:add({ count, ldap_add_error}),
+            ts_mon_cache:add({ count, ldap_add_error}),
             ?LOG("Add fail",?INFO),
             {State#state_rcv{ack_done=true},[],true}
     end;
@@ -187,14 +187,14 @@ parse_ldap_response(#'LDAPMessage'{protocolOp = {'modifyResponse',Result}},State
         success ->
             {State#state_rcv{ack_done=true},[],false};
         _Error   ->
-            ts_mon:add({ count, ldap_modify_error}),
+            ts_mon_cache:add({ count, ldap_modify_error}),
             ?LOG("Modify fail",?INFO),
             {State#state_rcv{ack_done=true},[],true}
 end;
 
 parse_ldap_response(Resp,State) ->
     ?LOGF("Got unexpected response: ~p~n",[Resp],?INFO),
-    ts_mon:add({ count, ldap_unexpected_msg_resp}),
+    ts_mon_cache:add({ count, ldap_unexpected_msg_resp}),
     {State#state_rcv{ack_done=true},[],false}.
 
 acumulate_result(R,State = #state_rcv{request = #ts_request{param=#ldap_request{result_var = ResultVar}},

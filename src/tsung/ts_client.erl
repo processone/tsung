@@ -166,7 +166,7 @@ wait_ack(next_msg,State=#state_rcv{request=R}) when R#ts_request.ack==global->
                                        page_timestamp=PageTimeStamp});
 wait_ack(timeout,State) ->
     ?LOG("Error: timeout receive in state wait_ack~n", ?ERR),
-    ts_mon:add({ count, error_timeout }),
+    ts_mon_cache:add({ count, error_timeout }),
     {stop, normal, State}.
 
 %%--------------------------------------------------------------------
@@ -264,7 +264,7 @@ handle_info2({gen_ts_transport, _Socket, closed}, think,
 handle_info2({gen_ts_transport, _Socket, closed}, _StateName, State) ->
     ?LOG("connection closed, abort", ?WARN),
     %% the connexion was closed after the last msg was sent, stop quietly
-    ts_mon:add({ count, error_closed }),
+    ts_mon_cache:add({ count, error_closed }),
     set_connected_status(false),
     catch (State#state_rcv.protocol):close(State#state_rcv.socket), % mandatory for ssl
     {stop, normal, State#state_rcv{socket = none}};
@@ -273,7 +273,7 @@ handle_info2({gen_ts_transport, _Socket, closed}, _StateName, State) ->
 handle_info2({gen_ts_transport, _Socket, error, Reason}, _StateName, State)  ->
     ?LOGF("Net error: ~p~n",[Reason], ?WARN),
     CountName="error_inet_"++atom_to_list(Reason),
-    ts_mon:add({ count, list_to_atom(CountName) }),
+    ts_mon_cache:add({ count, list_to_atom(CountName) }),
     set_connected_status(false),
     {stop, normal, State};
 
@@ -288,22 +288,22 @@ handle_info2({timeout, _Ref, end_thinktime}, think, State ) ->
 
 handle_info2(timeout, StateName, State ) ->
     ?LOGF("Error: timeout receive in state ~p~n",[StateName], ?ERR),
-    ts_mon:add({ count, timeout }),
+    ts_mon_cache:add({ count, timeout }),
     {stop, normal, State};
 % bidirectional protocol
 handle_info2({gen_ts_transport, Socket, Data}, think,State=#state_rcv{
   clienttype=Type, bidi=true,host=Host,port=Port})  ->
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
-    ts_mon:add({ sum, size_rcv, size(Data)}),
+    ts_mon_cache:add({ sum, size_rcv, size(Data)}),
     Proto = State#state_rcv.protocol,
     ?LOG("Data received from socket (bidi) in state think~n",?INFO),
     {NextAction, NewState} = case Type:parse_bidi(Data, State) of
                    {nodata, State2, Action} ->
                        ?LOG("Bidi: no data ~n",?DEB),
-                       ts_mon:add({count, async_unknown_data_rcv}),
+                       ts_mon_cache:add({count, async_unknown_data_rcv}),
                        {Action, State2};
                    {Data2, State2, Action} ->
-                       ts_mon:add([{ sum, size_sent, size(Data2)},{count, async_data_sent}]),
+                       ts_mon_cache:add([{ sum, size_sent, size(Data2)},{count, async_data_sent}]),
                        ts_mon:sendmes({State#state_rcv.dump, self(), Data2}),
                        ?LOG("Bidi: send data back to server~n",?DEB),
                        send(Proto,Socket,Data2,Host,Port), %FIXME: handle errors ?
@@ -320,7 +320,7 @@ handle_info2({gen_ts_transport, Socket, Data}, think,State=#state_rcv{
 handle_info2({gen_ts_transport, Socket, Data}, think, State = #state_rcv{request=Req} )
   when (Req#ts_request.ack /= parse) ->
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
-    ts_mon:add({ sum, size_rcv, size(Data)}),
+    ts_mon_cache:add({ sum, size_rcv, size(Data)}),
     ?LOGF("Data receive from socket in state think, ack=~p, skip~n",
           [Req#ts_request.ack],?NOTICE),
     ?DebugF("Data was ~p~n",[Data]),
@@ -328,7 +328,7 @@ handle_info2({gen_ts_transport, Socket, Data}, think, State = #state_rcv{request
     {next_state, think, State#state_rcv{socket=NewSocket}};
 handle_info2({gen_ts_transport, _Socket, Data}, think, State) ->
     ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
-    ts_mon:add({ count, error_unknown_data }),
+    ts_mon_cache:add({ count, error_unknown_data }),
     ?LOG("Data receive from socket in state think, stop~n", ?ERR),
     ?DebugF("Data was ~p~n",[Data]),
     {stop, normal, State};
@@ -386,7 +386,7 @@ handle_info2({ssl_closed, Socket}, StateName, State) ->
 
 handle_info2(Msg, StateName, State ) ->
     ?LOGF("Error: Unknown msg ~p receive in state ~p, stop~n", [Msg,StateName], ?ERR),
-    ts_mon:add({ count, error_unknown_msg }),
+    ts_mon_cache:add({ count, error_unknown_msg }),
     {stop, normal, State}.
 
 %%--------------------------------------------------------------------
@@ -398,7 +398,7 @@ terminate(normal, _StateName,State) ->
     finish_session(State);
 terminate(Reason, StateName, State) ->
     ?LOGF("Stop in state ~p, reason= ~p~n",[StateName,Reason],?NOTICE),
-    ts_mon:add({ count, error_unknown }),
+    ts_mon_cache:add({ count, error_unknown }),
     finish_session(State).
 
 %%--------------------------------------------------------------------
@@ -452,7 +452,7 @@ handle_next_action(State=#state_rcv{dynvars = DynVars}) ->
             TrList = State#state_rcv.transactions,
             {value, {_, Tr}} = lists:keysearch(Tname, 1, TrList),
             Elapsed = ts_utils:elapsed(Tr, Now),
-            ts_mon:add({sample, Tname, Elapsed}),
+            ts_mon_cache:add({sample, Tname, Elapsed}),
             NewState = State#state_rcv{transactions=lists:keydelete(Tname,1,TrList),
                                    count=Count},
             handle_next_action(NewState);
@@ -640,13 +640,13 @@ ctrl_struct_impl({if_start,Rel, VarName, Value, Target},DynVars) ->
             Jump = need_jump('if',rel(Rel,Value,VarValue)),
             jump_if(Jump,Target,DynVars);
         false ->
-            ts_mon:add({ count, 'error_if_undef'}),
+            ts_mon_cache:add({ count, 'error_if_undef'}),
             {next,DynVars}
     end;
 
 ctrl_struct_impl({repeat,RepeatName, _,_,_,_,_,_},[]) ->
     Msg= list_to_atom("error_repeat_"++atom_to_list(RepeatName)++"_undef"),
-    ts_mon:add({ count, Msg}),
+    ts_mon_cache:add({ count, Msg}),
     {next,[]};
 ctrl_struct_impl({repeat,RepeatName, While,Rel,VarName,Value,Target,Max},DynVars) ->
     Iteration = case ts_dynvars:lookup(RepeatName,DynVars) of
@@ -657,7 +657,7 @@ ctrl_struct_impl({repeat,RepeatName, While,Rel,VarName,Value,Target,Max},DynVars
     case Iteration > Max of
         true ->
             ?LOGF("Max repeat (name=~p) reached ~p~n",[VarName,Iteration],?NOTICE),
-            ts_mon:add({ count, max_repeat}),
+            ts_mon_cache:add({ count, max_repeat}),
             {next,DynVars};
         false ->
             case ts_dynvars:lookup(VarName,DynVars) of
@@ -670,7 +670,7 @@ ctrl_struct_impl({repeat,RepeatName, While,Rel,VarName,Value,Target,Max},DynVars
                     jump_if(Jump,Target,NewDynVars);
                 false ->
                     Msg= list_to_atom("error_repeat_"++atom_to_list(RepeatName)++"undef"),
-                    ts_mon:add({ count, Msg}),
+                    ts_mon_cache:add({ count, Msg}),
                     {next,DynVars}
             end
     end;
@@ -679,7 +679,7 @@ ctrl_struct_impl({foreach_start,ForEachName,VarName,Filter}, DynVars) ->
     case filter(ts_dynvars:lookup(VarName,DynVars),Filter) of
         false ->
             Msg= list_to_atom("error_foreach_"++atom_to_list(VarName)++"undef"),
-            ts_mon:add({ count, Msg}),
+            ts_mon_cache:add({ count, Msg}),
             {next,DynVars};
         [First|_Tail] ->
             TmpDynVars = ts_dynvars:set(ForEachName,First,DynVars),
@@ -702,7 +702,7 @@ ctrl_struct_impl({foreach_end,ForEachName,VarName,Filter,Target}, DynVars) ->
     case filter(ts_dynvars:lookup(VarName,DynVars),Filter) of
         false ->
             Msg= list_to_atom("error_foreach_"++atom_to_list(VarName)++"undef"),
-            ts_mon:add({ count, Msg}),
+            ts_mon_cache:add({ count, Msg}),
             {next,DynVars};
         VarValue when is_list(VarValue)->
             ?DebugF("Foreach list found; value is ~p~n",[VarValue]),
@@ -816,7 +816,7 @@ handle_next_request(Request, State) ->
                                         _ -> %page already started
                                             State#state_rcv.page_timestamp
                                     end,
-                    ts_mon:add({ sum, size_sent, size_msg(Message)}),
+                    ts_mon_cache:add({ sum, size_sent, size_msg(Message)}),
                     ts_mon:sendmes({State#state_rcv.dump, self(), Message}),
                     NewState = State#state_rcv{socket   = NewSocket,
                                                protocol = Protocol,
@@ -843,7 +843,7 @@ handle_next_request(Request, State) ->
                         end;
                 {error, closed} when State#state_rcv.retries < ProtoOpts#proto_opts.max_retries ->
                     ?LOG("connection close while sending message!~n", ?NOTICE),
-                    ts_mon:add({ count, error_connection_closed }),
+                    ts_mon_cache:add({ count, error_connection_closed }),
                     Retries = State#state_rcv.retries +1,
                     handle_close_while_sending(State#state_rcv{socket=NewSocket,
                                                                protocol=Protocol,
@@ -855,7 +855,7 @@ handle_next_request(Request, State) ->
                     %% LOG only at INFO level since we report also an error to ts_mon
                     ?LOGF("Error: Unable to send data, reason: ~p~n",[Reason],?INFO),
                     CountName="error_send_"++atom_to_list(Reason),
-                    ts_mon:add({ count, list_to_atom(CountName) }),
+                    ts_mon_cache:add({ count, list_to_atom(CountName) }),
                     Retries = State#state_rcv.retries +1,
                     handle_timeout_while_sending(State#state_rcv{session=NewSession,retries=Retries});
                 {'EXIT', {noproc, _Rest}}  when State#state_rcv.retries < ProtoOpts#proto_opts.max_retries ->
@@ -869,16 +869,16 @@ handle_next_request(Request, State) ->
                                                                port=Port});
                 Exit when State#state_rcv.retries < ProtoOpts#proto_opts.max_retries ->
                     ?LOGF("EXIT Error: Unable to send data, reason: ~p~n", [Exit], ?ERR),
-                    ts_mon:add({ count, error_send }),
+                    ts_mon_cache:add({ count, error_send }),
                     {stop, normal, State};
                 _Exit ->
                     ?LOGF("EXIT Error: Unable to send data, max_retries reached; reason: ~p~n", [_Exit], ?ERR),
-                    ts_mon:add({ count, error_abort_max_send_retries }),
+                    ts_mon_cache:add({ count, error_abort_max_send_retries }),
                     {stop, normal, State}
             end;
 
         {error, timeout} when State#state_rcv.retries < ProtoOpts#proto_opts.max_retries ->
-            ts_mon:add({count, error_connect_timeout}),
+            ts_mon_cache:add({count, error_connect_timeout}),
 
             handle_reconnect_issue(State#state_rcv{session=NewSession});
 
@@ -888,13 +888,13 @@ handle_next_request(Request, State) ->
         {error, Reason} ->
             case Reason of
                 timeout ->
-                    ts_mon:add({count, error_connect_timeout});
+                    ts_mon_cache:add({count, error_connect_timeout});
                 closed ->
-                    ts_mon:add({count, error_connect_closed});
+                    ts_mon_cache:add({count, error_connect_closed});
                 _ ->
                     ok
             end,
-            ts_mon:add({ count, error_abort_max_conn_retries }),
+            ts_mon_cache:add({ count, error_abort_max_conn_retries }),
             {stop, normal, State}
     end.
 
@@ -919,7 +919,7 @@ finish_session(State) ->
         TrList -> % pending transactions (an error has probably occured)
             ?LOGF("Pending transactions: ~p, compute transaction time~n",[TrList],?NOTICE),
             lists:foreach(fun({Tname,StartTime}) ->
-                                  ts_mon:add({sample,Tname,ts_utils:elapsed(StartTime,Now)})
+                                  ts_mon_cache:add({sample,Tname,ts_utils:elapsed(StartTime,Now)})
                           end,
                           TrList)
     end,
@@ -1002,7 +1002,7 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort, Try}) when 
     case connect(Protocol, ServerName, Port, Opts, Proto_opts#proto_opts.connect_timeout) of
         {ok, Socket} ->
             Elapsed = ts_utils:elapsed(Before, ?NOW),
-            ts_mon:add({ sample, connect, Elapsed }),
+            ts_mon_cache:add({ sample, connect, Elapsed }),
             set_connected_status(true),
             ?Debug("(Re)connected~n"),
             {ok, Socket};
@@ -1017,7 +1017,7 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort, Try}) when 
             case {Reason,CPort,Try}  of
                 {eaddrinuse, Val,CPortServer} when Val == 0; CPortServer == undefined ->
                     %% already retry once, don't try again.
-                    ts_mon:add({ count, error_connect_eaddrinuse });
+                    ts_mon_cache:add({ count, error_connect_eaddrinuse });
                 {eaddrinuse, Val,CPortServer} when Val > 0 ->
                     %% retry once when tsung allocates port number
                     NewCPort = case catch ts_cport:get_port(CPortServer,IP) of
@@ -1031,7 +1031,7 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort, Try}) when 
                     reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,NewCPort, undefined});
                 _ ->
                     CountName="error_connect_"++atom_to_list(Reason),
-                    ts_mon:add({ count, list_to_atom(CountName) })
+                    ts_mon_cache:add({ count, list_to_atom(CountName) })
             end,
             {error, Reason}
     end;
@@ -1160,7 +1160,7 @@ handle_data_msg(Data,State=#state_rcv{dump=Dump,request=Req,id=Id,clienttype=Typ
             case NewState#state_rcv.datasize > NewState#state_rcv.size_mon of
                 true ->
                     ?Debug("Threshold raised, update size_rcv stats~n"),
-                    ts_mon:add({ sum, size_rcv, NewState#state_rcv.size_mon_thresh}),
+                    ts_mon_cache:add({ sum, size_rcv, NewState#state_rcv.size_mon_thresh}),
                     NewThresh=NewState#state_rcv.size_mon+ NewState#state_rcv.size_mon_thresh,
                     {NewState#state_rcv{buffer=NewBuffer,size_mon=NewThresh}, Opts};
                 false->
@@ -1227,10 +1227,10 @@ set_connected_status(true, true) ->
     ok;
 set_connected_status(true, Old) when Old==undefined; Old==false ->
     put(connected,true),
-    ts_mon:add({sum, connected, 1});
+    ts_mon_cache:add({sum, connected, 1});
 set_connected_status(false, true) ->
     put(connected,false),
-    ts_mon:add({sum, connected, -1});
+    ts_mon_cache:add({sum, connected, -1});
 set_connected_status(false, Old) when Old==undefined; Old==false ->
     ok.
 
@@ -1247,10 +1247,10 @@ update_stats_noack(#state_rcv{page_timestamp=PageTime,request=Request}) ->
     case Request#ts_request.endpage of
         true -> % end of a page, compute page reponse time
             PageElapsed = ts_utils:elapsed(PageTime, Now),
-            ts_mon:add(lists:append([Stats,[{sample, page, PageElapsed}]])),
+            ts_mon_cache:add(lists:append([Stats,[{sample, page, PageElapsed}]])),
             {0, []};
         _ ->
-            ts_mon:add(Stats),
+            ts_mon_cache:add(Stats),
             {PageTime, []}
     end.
 
@@ -1280,10 +1280,10 @@ update_stats(S=#state_rcv{size_mon_thresh=T,page_timestamp=PageTime,
     case Request#ts_request.endpage of
         true -> % end of a page, compute page reponse time
             PageElapsed = ts_utils:elapsed(PageTime, Now),
-            ts_mon:add(lists:append([Stats,[{sample, page, PageElapsed}]])),
+            ts_mon_cache:add(lists:append([Stats,[{sample, page, PageElapsed}]])),
             {0, DynVars, Elapsed};
         _ ->
-            ts_mon:add(Stats),
+            ts_mon_cache:add(Stats),
             {PageTime, DynVars, Elapsed}
     end.
 

@@ -211,7 +211,7 @@ do_launch({ Session, MyHostName})->
             ok;
         Error ->
             ?LOGF("get_next_session failed [~p], skip this session !~n", [Error],?ERR),
-            ts_mon:add({ count, error_next_session }),
+            ts_mon_cache:add({ count, error_next_session }),
             error
     end.
 

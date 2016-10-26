@@ -147,7 +147,7 @@ match([Match=#match{'apply_to_content'={Module,Fun}}|Tail], Data, Counts,DynVars
 %%             Stats::list(), DynVars::term(), Transaction::atom()) -> Count::integer()
 match([], _Data, {Count,_, _,_}, Stats, _, _) ->
     %% all matches done, add stats, and return Count unchanged (continue)
-    ts_mon:add(Stats),
+    ts_mon_cache:add(Stats),
     Count;
 match([Match=#match{regexp=RawRegExp,subst=Subst, do=Action, 'when'=When}
        |Tail], Data,Counts,Stats,DynVars, Tr)->
@@ -200,13 +200,13 @@ match([Match=#match{regexp=RawRegExp,subst=Subst, do=Action, 'when'=When}
 %%   - if stop is true, set count to 0
 %%----------------------------------------------------------------------
 setcount(#match{do=continue}, {Count, _MaxC, _SessionId, _UserId}, Stats,_,_)->
-    ts_mon:add(Stats),
+    ts_mon_cache:add(Stats),
     Count;
 setcount(#match{do=log, name=Name}, {Count, MaxC, SessionId, UserId}, Stats,_,Tr)->
-    ts_mon:add_match(Stats,{UserId,SessionId,MaxC-Count,Tr, Name}),
+    ts_mon_cache:add_match(Stats,{UserId,SessionId,MaxC-Count,Tr, Name}),
     Count;
 setcount(#match{do=dump, name=Name}, {Count, MaxC, SessionId, UserId}, Stats, Data, Tr)->
-    ts_mon:add_match(Stats,{UserId,SessionId,MaxC-Count, Data, Tr, Name}),
+    ts_mon_cache:add_match(Stats,{UserId,SessionId,MaxC-Count, Data, Tr, Name}),
     Count;
 setcount(#match{do=restart, max_restart=MaxRestart, name=Name}, {Count, MaxC,SessionId,UserId}, Stats,_, Tr)->
     CurRestart = get(restart_count),
@@ -215,21 +215,21 @@ setcount(#match{do=restart, max_restart=MaxRestart, name=Name}, {Count, MaxC,Ses
     case CurRestart of
         undefined ->
             put(restart_count,1),
-            ts_mon:add_match([{count, match_restart} | Stats],Ids),
+            ts_mon_cache:add_match([{count, match_restart} | Stats],Ids),
             MaxC ;
         Val when Val >= MaxRestart ->
             ?LOG("Max restart reached, abort ! ~n", ?WARN),
-            ts_mon:add_match([{count, match_restart_abort} | Stats],Ids),
+            ts_mon_cache:add_match([{count, match_restart_abort} | Stats],Ids),
             0;
         Val ->
             put(restart_count, Val +1),
-            ts_mon:add_match([{count, match_restart} | Stats],Ids),
+            ts_mon_cache:add_match([{count, match_restart} | Stats],Ids),
             MaxC
     end;
 setcount(#match{do=loop,loop_back=Back,max_loop=MaxLoop,sleep_loop=Sleep},{Count,_MaxC,_SessionId,_UserId},Stats,_,_)->
     CurLoop = get(loop_count),
     ?LOGF("Loop on (no)match ~p~n",[CurLoop], ?INFO),
-    ts_mon:add([{count, match_loop} | Stats]),
+    ts_mon_cache:add([{count, match_loop} | Stats]),
     case CurLoop of
         undefined ->
             put(loop_count,1),
@@ -245,7 +245,7 @@ setcount(#match{do=loop,loop_back=Back,max_loop=MaxLoop,sleep_loop=Sleep},{Count
             Count + 1 + Back
     end;
 setcount(#match{do=abort,name=Name}, {Count,MaxC,SessionId,UserId}, Stats,_, Tr) ->
-    ts_mon:add_match([{count, match_stop} | Stats],{UserId,SessionId,MaxC-Count,Tr, Name}),
+    ts_mon_cache:add_match([{count, match_stop} | Stats],{UserId,SessionId,MaxC-Count,Tr, Name}),
     0.
 
 %%----------------------------------------------------------------------
@@ -369,7 +369,7 @@ parse_dynvar(D=[{jsonpath,_VarName, _Expr}| _DynVarsSpecs],
         Type:Exp ->
             ?LOGF("JSON couldn't be parsed:(~p:~p) ~n Page:~p~n",
                     [Type,Exp,Binary],?NOTICE),
-            ts_mon:add({ count, error_json_unparsable }),
+            ts_mon_cache:add({ count, error_json_unparsable }),
             parse_dynvar(D,Binary,String,json_error,DynVars)
     end;
 
@@ -387,7 +387,7 @@ parse_dynvar([{xpath,VarName,_Expr}|DynVarsSpecs],Binary,String,xpath_error,DynV
 parse_dynvar([{jsonpath,VarName,_Expr}|DynVarsSpecs],Binary,String,json_error,DynVars)->
     ?LOGF("Couldn't execute JSONPath: page not parsed (varname=~p)~n",
           [VarName],?NOTICE),
-    ts_mon:add({ count, error_json_not_parsed }),
+    ts_mon_cache:add({ count, error_json_not_parsed }),
     parse_dynvar(DynVarsSpecs, Binary,String,json_error,DynVars);
 
 parse_dynvar([{pgsql_expr,VarName,_Expr}|DynVarsSpecs],Binary,String,pgsql_error,DynVars)->

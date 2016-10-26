@@ -77,8 +77,16 @@ add(Data) ->
     gen_server:cast(?MODULE, {add, Data}).
 
 %% @spec add_match(Data::list(),{UserId::integer(),SessionId::integer(),RequestId::integer(),
-%%                  TimeStamp::tuple(), Transactions::list()}) -> ok
-add_match(Data,{UserId,SessionId,RequestId,TimeStamp,Bin,Tr,Name}) ->
+%%                  TimeStamp::tuple(),Transactions::list(),Name::atom()}) -> ok;
+%%                (Data::list(),{UserId::integer(),SessionId::integer(),RequestId::integer(),
+%%                  TimeStamp::tuple(),Bin::list(),Transactions::list(),Name::atom()}) -> ok.
+add_match(Data,{UserId,SessionId,RequestId,Tr,Name}) ->
+    add_match(Data,{UserId,SessionId,RequestId,[],Tr,Name});
+add_match(Data,{UserId,SessionId,RequestId,Bin,Tr,Name}) ->
+    TimeStamp=?TIMESTAMP,
+    add_match(Data,{UserId,SessionId,RequestId,TimeStamp,Bin,Tr,Name});
+add_match(Data=[Head|_],{UserId,SessionId,RequestId,TimeStamp,Bin,Tr,Name}) ->
+    put(last_match,Head),
     gen_server:cast(?MODULE, {add_match, Data, {UserId,SessionId,RequestId,TimeStamp,Bin,Tr,Name}}).
 
 

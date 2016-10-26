@@ -122,13 +122,13 @@ parse(Data, State=#state_rcv{acc = [],
     case websocket:check_handshake(Header, Accept) of
         ok ->
             ?Debug("handshake success:~n"),
-            ts_mon:add({count, websocket_succ}),
+            ts_mon_cache:add({count, websocket_succ}),
             {State#state_rcv{ack_done = true,
                              session = WebsocketSession#websocket_session{
                                          status = connected}}, [], false};
         {error, _Reason} ->
             ?DebugF("handshake fail: ~p~n", [_Reason]),
-            ts_mon:add({count, websocket_fail}),
+            ts_mon_cache:add({count, websocket_fail}),
             {State#state_rcv{ack_done = true}, [], true}
     end;
 

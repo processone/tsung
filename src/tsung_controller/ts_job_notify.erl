@@ -155,7 +155,7 @@ handle_cast({monitor, {JobID, OwnerPid, SubmitTS, QueuedTS,Dump}}, State=#state{
     ?LOGF("monitoring job ~p from pid ~p~n",[JobID,OwnerPid],?DEB),
     ets:insert(Jobs,#job_session{jobid=JobID,owner=OwnerPid, submission_time=SubmitTS, queue_time=QueuedTS,dump=Dump}),
     SubmitTime=ts_utils:elapsed(SubmitTS,QueuedTS),
-    ts_mon:add([{sum,job_queued,1},{sample,tr_job_submit,SubmitTime}]),
+    ts_mon_cache:add([{sum,job_queued,1},{sample,tr_job_submit,SubmitTime}]),
     {noreply, State};
 handle_cast({demonitor, {JobID}}, State=#state{jobs=Jobs}) ->
     ets:delete(Jobs,JobID),
@@ -217,7 +217,7 @@ handle_info({tcp, Socket, Data}, State=#state{jobs=Jobs}) ->
                 [Job] ->
                     Now=?NOW,
                     Queued=ts_utils:elapsed(Job#job_session.queue_time,Now),
-                    ts_mon:add([{sample,tr_job_wait,Queued},{sum,job_running,1}, {sum,job_queued,-1}]),
+                    ts_mon_cache:add([{sample,tr_job_wait,Queued},{sum,job_running,1}, {sum,job_queued,-1}]),
                     ets:update_element(Jobs,Id,{#job_session.start_time,Now})
             end;
         [Id, Name, "END"|_] ->
@@ -226,13 +226,13 @@ handle_info({tcp, Socket, Data}, State=#state{jobs=Jobs}) ->
                     ?LOGF("Job owner of ~p is unknown",[Id],?NOTICE);
                 [Job=#job_session{start_time=undefined}] ->
                     ?LOGF("ERROR: Start time of job ~p is unknown",[Id],?ERR),
-                    ts_mon:add([{sum,job_running,-1}, {sum,ok_job ,1}]),
+                    ts_mon_cache:add([{sum,job_running,-1}, {sum,ok_job ,1}]),
                     ets:delete_object(Jobs,Job),
                     check_jobs(Jobs,Job#job_session.owner);
                 [Job]->
                     Now=?NOW,
                     Duration=ts_utils:elapsed(Job#job_session.start_time,Now),
-                    ts_mon:add([{sample,tr_job_duration,Duration},{sum,job_running,-1}, {sum,ok_job ,1}]),
+                    ts_mon_cache:add([{sample,tr_job_duration,Duration},{sum,job_running,-1}, {sum,ok_job ,1}]),
                     ts_job:dump(Job#job_session.dump,{none,Job#job_session{end_time=Now,status="ok"},Name}),
                     ets:delete_object(Jobs,Job),
                     check_jobs(Jobs,Job#job_session.owner)
@@ -243,13 +243,13 @@ handle_info({tcp, Socket, Data}, State=#state{jobs=Jobs}) ->
                     ?LOGF("Job owner of ~p is unknown",[Id],?NOTICE);
                 [Job=#job_session{start_time=undefined}] ->
                     ?LOGF("ERROR: start time of job ~p is unknown",[Id],?ERR),
-                    ts_mon:add([{sum,job_running,-1}, {sum,error_job,1}]),
+                    ts_mon_cache:add([{sum,job_running,-1}, {sum,error_job,1}]),
                     ets:delete_object(Jobs,Job),
                     check_jobs(Jobs,Job#job_session.owner);
                 [Job]->
                     Now=?NOW,
                     Duration=ts_utils:elapsed(Job#job_session.start_time,Now),
-                    ts_mon:add([{sample,tr_job_duration,Duration},{sum,job_running,-1}, {sum,error_job,1}]),
+                    ts_mon_cache:add([{sample,tr_job_duration,Duration},{sum,job_running,-1}, {sum,error_job,1}]),
                     ts_job:dump(Job#job_session.dump,{none,Job#job_session{end_time=Now,status="error"},Name}),
                     ets:delete_object(Jobs,Job),
                     check_jobs(Jobs,Job#job_session.owner)

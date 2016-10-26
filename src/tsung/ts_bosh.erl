@@ -155,7 +155,7 @@ loop(#state{parent_pid = ParentPid} = State) ->
                 {queued, NewState} -> %% we reach the max allowed queued messages.. close the connection.
                     ?LOGF("Client reached max bosh requests queue size: ~p. Closing session",
                           [length(NewState#state.queue)], ?ERR),
-                    ts_mon:add({count, error_bosh_maxqueued}),
+                    ts_mon_cache:add({count, error_bosh_maxqueued}),
                     ParentPid ! {ok, Ref},
                     ParentPid ! {gen_ts_transport, self(), closed}
             end;
@@ -185,7 +185,7 @@ loop(#state{parent_pid = ParentPid} = State) ->
                 terminate ->
                     if
                         State#state.session_state  /= 'closing' ->
-                            ts_mon:add({count, error_bosh_terminated}),
+                            ts_mon_cache:add({count, error_bosh_terminated}),
                             ?LOG("Session terminated by server", ?INFO);
                         true ->
                             ok
@@ -198,7 +198,7 @@ loop(#state{parent_pid = ParentPid} = State) ->
                 true ->
                     %%ERROR, a current request is closed
                     ?LOG("Open request closed by server", ?ERR),
-                    ts_mon:add({count, error_bosh_socket_closed}),
+                    ts_mon_cache:add({count, error_bosh_socket_closed}),
                     State#state.parent_pid ! {gen_ts_transport, self(), closed};
                 false ->
                     %% A HTTP persistent connection, currently not in use, is closed by the server.
@@ -222,7 +222,7 @@ do_receive_http_response(State, Socket, Vsn) ->
            type = Type,
            parent_pid = ParentPid} = State,
     {ok, {{200, "OK"}, Hdrs, Resp}} = read_response(Type, Socket, Vsn, {200, "OK"}, [], <<>>, httph),
-    ts_mon:add({ sum, size_rcv, iolist_size([ [if is_atom(H) -> atom_to_list(H); true -> H end, V] ||
+    ts_mon_cache:add({ sum, size_rcv, iolist_size([ [if is_atom(H) -> atom_to_list(H); true -> H end, V] ||
                                                 {H,V} <- Hdrs])}), %% count header size
 
     {_El = #xmlElement{name = body,
@@ -267,7 +267,7 @@ do_receive_http_response(State, Socket, Vsn) ->
                     %%empty response, do not bother the ts_client process with this
                     %% (so Noack/Bidi won't count this bosh specific thing, only async stanzas)
                     %% since ts_client don't see this, we need to count the size received
-                    ts_mon:add({ sum, size_rcv, iolist_size(Resp)});
+                    ts_mon_cache:add({ sum, size_rcv, iolist_size(Resp)});
                 _ ->
                     ParentPid ! {gen_ts_transport, self(), Resp}
             end,
@@ -288,7 +288,7 @@ do_connect(#state{type = Type, host = Host, path = Path, parent_pid = ParentPid}
     {NewState2, Socket} = new_socket(NewState, false),
     ok = make_raw_request(Type, Socket, Host, Path, create_session_msg(Rid, Domain, ?WAIT, ?HOLD)),
     {ok, {{200, "OK"}, Hdrs, Resp}} = read_response(Type, Socket, nil, nil, [], <<>>, http),
-    ts_mon:add({ sum, size_rcv, iolist_size([ [if is_atom(H) -> atom_to_list(H); true -> H end, V] ||
+    ts_mon_cache:add({ sum, size_rcv, iolist_size([ [if is_atom(H) -> atom_to_list(H); true -> H end, V] ||
                     {H,V} <- Hdrs])}), %% count header size
 
     NewState3 = return_socket(NewState2, Socket),
@@ -364,11 +364,11 @@ make_request(Type, Socket, Sid, Rid, Queue, Host, Path, Packet) ->
     Body = stanzas_msg(Sid, Rid, StanzasText),
     make_request(Type, Socket, Host, Path, Body, iolist_size(StanzasText)).
 make_request(Type, Socket,Host, Path, Body, OriginalSize) ->
-     ts_mon:add({count, bosh_http_req}),
+     ts_mon_cache:add({count, bosh_http_req}),
      Hdrs = [{"Content-Type", ?CONTENT_TYPE}, {"keep-alive", "true"}],
      Request = format_request(Path, "POST", Hdrs, Host, Body),
      ok = socket_send(Type, Socket, Request),
-     ts_mon:add({ sum, size_sent, iolist_size(Request) - OriginalSize}).
+     ts_mon_cache:add({ sum, size_sent, iolist_size(Request) - OriginalSize}).
      %% add the http overhead. The size of the stanzas are already counted by ts_client code.
 
 
@@ -386,7 +386,7 @@ new_socket(State = #state{type = Type, host = Host, port = Port, local_ip = Loca
                         end
     end,
     {ok, Socket} = socket_connect(Type, Host, Port,  Options, Timeout),
-    ts_mon:add({count, bosh_http_conn}),
+    ts_mon_cache:add({count, bosh_http_conn}),
     {State, Socket}.
 
 return_socket(State, Socket) ->
