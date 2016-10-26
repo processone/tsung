@@ -41,7 +41,7 @@
 -include("ts_config.hrl").
 
 %% External exports
--export([start/1, stop/0, newclient/1, endclient/1, sendmes/1, add/2,
+-export([start/1, stop/0, newclient/1, endclient/1, sendmes/1,
          start_clients/1, abort/0, status/0, rcvmes/1, add/1, dumpstats/0,
          add_match/2, dump/1, launcher_is_alive/0
         ]).
@@ -103,10 +103,6 @@ start_clients({Machines, Dump, BackEnd}) ->
                     infinity).
 stop() ->
     gen_server:cast({global, ?MODULE}, {stop}).
-
-add(nocache,Data) ->
-    gen_server:cast({global, ?MODULE}, {add, Data}).
-
 
 add(Data) ->
     ts_mon_cache:add(Data).
