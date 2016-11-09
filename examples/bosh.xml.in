@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!DOCTYPE tsung SYSTEM "/home/nniclaus/share/tsung/tsung-1.0.dtd" [] >
+<!DOCTYPE tsung SYSTEM "@prefix@/share/@PACKAGE_NAME@/@DTD@">
 <tsung loglevel="notice" dumptraffic="false" version="1.0">
 
   <clients>
