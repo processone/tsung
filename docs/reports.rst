@@ -97,7 +97,7 @@ Jabber specific stats:
   response time is meaningless with ``no_ack``
   requests, we keep a separate stats for this. **new in 1.2.2**.
 * ``async_unknown_data_rcv`` Only if bidi is true for a
-  session. counter the number of messages received from the server
+  session. Count the number of messages received from the server
   without doing anything.  **new in 1.2.2**.
 * ``async_data_sent`` Only if bidi is true for a
   session. Count the number of messages sent to the server in response
@@ -221,7 +221,7 @@ Tsung Plotter
 
 Tsung-Plotter (:command:`tsplot`} command) is an optional tool recently
 added in the Tsung distribution (it is written in Python), useful to
-compare different tests runned by Tsung. :command:`tsplot` is able to
+compare different tests ran by Tsung. :command:`tsplot` is able to
 plot data from several :file:`tsung.log` files onto the same charts,
 for further comparisons and analyzes. You can easily customize the
 plots you want to generate by editing simple configuration files. You

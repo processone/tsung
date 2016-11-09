@@ -192,7 +192,7 @@ get_offline_user_defined_test()->
     Res = "<message id='2' to='tsung3@domain.org' type='chat'><body>hello</body></message>",
     ?assertEqual(Res, binary_to_list(Msg) ).
 
-get_unique_user_defined_test()-> % this test must be runned just after get_offline_user_defined_test
+get_unique_user_defined_test()-> % this test must be run just after get_offline_user_defined_test
     Msg = ts_jabber_common:get_message(#jabber{type = 'chat', prefix="prefix", data="hello", dest = unique, user_server=default, domain="domain.org"}),
     Res = "<message id='3' to='tsung1@domain.org' type='chat'><body>hello</body></message>",
     ?assertEqual(Res, binary_to_list(Msg) ).

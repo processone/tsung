@@ -27,7 +27,7 @@ Tsung resides.
 
 
 Erlang is a *concurrency-oriented* programming language.
-Tsung is based on the Erlang OTP (Open Transaction Platform) and
+Tsung is based on the Erlang OTP (Open Telecom Platform) and
 inherits several characteristics from Erlang:
 
 
@@ -101,5 +101,5 @@ Tsung has been used at:
 
 * *LibertySurf*
 
-* *Sun* (TM) for their Mooddlerooms platform on Niagara processors: https://blogs.oracle.com/kevinr/resource/Moodle-Sun-RA.pdf
+* *Sun* (TM) for their Moodlerooms platform on Niagara processors: https://blogs.oracle.com/kevinr/resource/Moodle-Sun-RA.pdf
 
