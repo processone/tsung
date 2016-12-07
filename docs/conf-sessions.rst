@@ -1223,10 +1223,10 @@ The only way to control the response from the server is to use the
 
 * ``ack="local"`` as soon as a packet is received from the server, the
   request is considered as completed. Hence if you use a local ack with a request
-  that do not require a response from the server, it
+  that does not require a response from the server, it
   will wait forever (or until a timeout is reached).
 
-* ``ack="no_ack"`` as soon as the request is send, it is considered as completed (do
+* ``ack="no_ack"`` as soon as the request is sent, it is considered as completed (do
   not wait for incoming data).
 
 * ``ack="global"`` synchronized users. its main use is for waiting for all
