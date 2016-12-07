@@ -191,7 +191,7 @@ message_bidi(RcvdXml, State) ->
             Mega = list_to_integer(MegaS),
             Secs = list_to_integer(SecsS),
             Micro = list_to_integer(MicroS),
-            Latency = timer:now_diff(?NOW, {Mega, Secs, Micro}),
+            Latency = timer:now_diff(?TIMESTAMP, {Mega, Secs, Micro}),
             ts_mon:add({ sample, xmpp_msg_latency, Latency / 1000});
         _ ->
             ignore
