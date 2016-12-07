@@ -8,6 +8,10 @@
 -include("ts_config.hrl").
 
 
+protocol_options(Proto=#proto_opts{ip_transparent = true }) ->
+    Opts= [{raw,0,19,<<1:32/native>>} ] ++ protocol_options(Proto#proto_opts{ip_transparent=false}),
+    ?DebugF("SSL Real opts: ~p ~n", [Opts]),
+    Opts;
 protocol_options(#proto_opts{ssl_versions=Versions, ssl_ciphers=Ciphers, certificate = Cert,
                              is_first_connect = First, reuse_sessions =Reuse}) when First or not Reuse->
     [binary, {active, once}, {reuse_sessions, false} ] ++ Cert ++ set_ciphers(Ciphers) ++ set_versions(Versions);
