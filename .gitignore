@@ -10,3 +10,19 @@ aclocal.m4
 configure
 install-sh
 stamp-*
+
+# build artifacts
+Makefile
+config.log
+config.status
+src/log2tsung.pl
+src/tsung-plotter/tsplot.py
+src/tsung-rrd.pl
+src/tsung/tsung.app
+src/tsung_controller/tsung_controller.app
+src/tsung_percentile.pl
+src/tsung_recorder/tsung_recorder.app
+src/tsung_stats.pl
+tsung-recorder.sh
+tsung.sh
+tsung.spec
