@@ -105,7 +105,7 @@ init([LogDir]) ->
 
 start_inets(LogDir,Redirect) ->
     inets:start(),
-    Path = filename:join(filename:dirname(code:which(tsung_controller)),"../../../../share/tsung/templates/style"),
+    Path = filename:join(template_path(), "style"),
     {ok,Styles} = file:list_dir(Path),
     DestDir = filename:join(LogDir,"style"),
     file:make_dir(DestDir),
@@ -139,4 +139,11 @@ start_inets(LogDir,Redirect) ->
             ?LOG("Starting inets on port 8091",?INFO);
         Error ->
             ?LOGF("Error while starting inets on port 8091: ~p",[Error],?ERR)
+    end.
+
+template_path() ->
+    case ?config(template_path) of
+        beam_relative ->
+            filename:join(filename:dirname(code:which(tsung_controller)),"../../../../share/tsung/templates");
+        Other -> Other
     end.

@@ -88,7 +88,8 @@
                      {config_file, "./tsung.xml"},
                      {log_file, "./tsung.log"},
                      {match_log_file, "./match.log"},
-                     {exclude_tag, ""}
+                     {exclude_tag, ""},
+                     {template_path, beam_relative}
                     ]},
        {applications, [ @ERLANG_APPLICATIONS@ ]},
        {start_phases, [{load_config, []},{start_os_monitoring,[{timeout,30000}]},
