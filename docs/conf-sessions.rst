@@ -165,9 +165,9 @@ cookie is not persistent: you must add it in every ``<requests>``:
 
 .. code-block:: xml
 
- <http url="/">
+ <http url="/" method="GET" version="1.1">
    <add_cookie key="foo" value="bar"/>
-   <add_cookie key="id"  value="123"/>
+   <add_cookie key="id" value="123"/>
  </http>
 
 
