@@ -1131,7 +1131,7 @@ getText(_Other) -> "".
 to_seconds("second", Val)-> Val;
 to_seconds("minute", Val)-> Val*60;
 to_seconds("hour",   Val)-> Val*3600;
-to_seconds("millisecond", Val)-> Val/1000.
+to_seconds("millisecond", Val)-> Val div 1000.
 
 to_milliseconds("second", Val)-> Val*1000;
 to_milliseconds("minute", Val)-> Val*60000;
