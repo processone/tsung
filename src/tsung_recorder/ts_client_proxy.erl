@@ -143,16 +143,16 @@ handle_info({Type, ServerSock, Data}, State=#proxy{plugin=Plugin})
 %%%%%%%%%%%% Errors and termination %%%%%%%%%%%%%%%%%%%
 
 % Log who did close the connection, and exit.
-handle_info({Msg, Socket}, #proxy{ serversock = Socket, close = true }) when Msg==tcp_close; Msg==ssl_closed ->
+handle_info({Msg, Socket}, State = #proxy{ serversock = Socket, close = true }) when Msg==tcp_close; Msg==ssl_closed ->
     ?LOG("socket closed by server, close client socket also~n",?INFO),
-    {stop, normal, ?lifetime};% close ask by server in previous request
+    {stop, normal, State};% close ask by server in previous request
 handle_info({Msg,Socket},State=#proxy{http_version = HTTPVersion,
                                       serversock = Socket
                                      }) when Msg==tcp_close; Msg==ssl_closed ->
     ?LOG("socket closed by server~n",?INFO),
     case HTTPVersion of
         "HTTP/1.0" ->
-            {stop, normal, ?lifetime};%Disconnect client if it requires HTTP/1.0
+            {stop, normal, State};%Disconnect client if it requires HTTP/1.0
         _ ->
             {noreply, State#proxy{serversock=undefined}, ?lifetime}
     end;
