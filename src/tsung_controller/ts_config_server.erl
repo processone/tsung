@@ -393,7 +393,10 @@ handle_cast({newbeams, HostList}, State=#state{logdir   = LogDir,
             MaxParalRemote=  NNodes * MinBeamPerNode + MaxStartup - MinBeamPerNode,
             %% now try to not overload the controller:
             MaxLaunchPerCore = Config#config.max_ssh_startup,
-            Ncores = erlang:system_info(logical_processors_available),
+            Ncores = case erlang:system_info(logical_processors_available) of
+                         unknown -> erlang:system_info(logical_processors);
+                         N -> N
+                     end,
             MaxParal = min(Ncores * MaxLaunchPerCore, MaxParalRemote),
             ?LOGF("Try to start at most ~p remote nodes in parallel (cores: ~p, Max remote: ~p)",
                   [MaxParal, Ncores, MaxParalRemote], ?INFO),
