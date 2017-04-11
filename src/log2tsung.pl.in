@@ -169,9 +169,7 @@ print '<?xml version="1.0"?>
 ';
 print '<tsung loglevel="notice" dumptraffic="false" version="1.0">
 <clients>
-    <client host="myhostname" weight="2" maxusers="950">
-      <ip value="192.168.0.2"></ip>
-    </client>
+    <client host="localhost" maxusers="950" />
 </clients>
 <servers>
  <server host="myservername" port="80" type="tcp"></server>
@@ -212,7 +210,7 @@ foreach my $key (sort {$visite->{$a}->{'id'} cmp $visite->{$b}->{'id'}} keys %$v
         next unless $hit > $session_threshold;
         my $pop=sprintf "%.3f",100/$real_visit;
         my $tsung = $visite->{$key}->{$id}->{'tsung'};
-        $tsung =~ s/\<session/<session popularity=\"$pop\"/;
+        $tsung =~ s/\<session/<session probability=\"$pop\"/;
         print "$tsung</session>\n";
     }
 }
