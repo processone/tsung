@@ -457,9 +457,30 @@ read_body(Type, _Vsn, Hdrs, Socket) ->
     %   closed (AFAIK, this was common in versions before 1.1).
     case proplists:get_value('Content-Length', Hdrs, undefined) of
         undefined ->
-                throw({no_content_length, Hdrs});
+            case proplists:get_value('Transfer-Encoding', Hdrs, undefined) of
+                undefined ->
+                    throw({no_content_length, Hdrs});
+                "chunked" ->
+                    read_chunked_body(Type, Hdrs, Socket, [])
+            end;
         ContentLength ->
             read_length(Type, Hdrs, Socket, list_to_integer(ContentLength))
+    end.
+
+read_chunked_body(Type, Hdrs, Socket, Acc) ->
+    socket_setopts(Type, Socket, [{packet, line}, binary]),
+    {ok, HexLen} = socket_recv(Type, Socket, 0),
+    socket_setopts(Type, Socket, [{packet, raw}]),
+
+    Len = binary_to_integer(binary_part(HexLen, 0, byte_size(HexLen) - 2), 16),
+    case Len of
+        0 ->
+            {ok, _} = socket_recv(Type, Socket, 2),
+            {iolist_to_binary(lists:reverse(Acc)), Hdrs};
+        _ ->
+            {ok, Data} = socket_recv(Type, Socket, Len),
+            {ok, _} = socket_recv(Type, Socket, 2),
+            read_chunked_body(Type, [], Socket, [Data|Acc])
     end.
 
 read_length(Type, Hdrs, Socket, Length) ->
