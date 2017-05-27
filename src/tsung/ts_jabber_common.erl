@@ -297,6 +297,8 @@ get_message2(Jabber=#jabber{type = 'auth_sasl'}) ->
     auth_sasl(Jabber,"PLAIN");
 get_message2(Jabber=#jabber{type = 'auth_sasl_anonymous'}) ->
     auth_sasl(Jabber,"ANONYMOUS");
+get_message2(Jabber=#jabber{type = 'auth_sasl_external'}) ->
+    auth_sasl(Jabber,"EXTERNAL");
 get_message2(Jabber=#jabber{type = 'auth_sasl_bind'}) ->
     auth_sasl_bind(Jabber);
 get_message2(Jabber=#jabber{type = 'auth_sasl_session'}) ->
@@ -424,6 +426,8 @@ auth_set_sip(Username, Passwd, Domain, Type, Nonce, Realm,Resource) ->
 %%----------------------------------------------------------------------
 auth_sasl(_,"ANONYMOUS")->
     list_to_binary(["<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='ANONYMOUS'/>"]);
+auth_sasl(_,"EXTERNAL")->
+    list_to_binary(["<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='EXTERNAL'>=</auth>"]);
 auth_sasl(#jabber{username=Name,passwd=Passwd},Mechanism)->
         auth_sasl(Name, Passwd, Mechanism).
 
