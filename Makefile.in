@@ -211,6 +211,12 @@ clean:
 	-rm -f $(EBIN)/*.beam tsung.sh tsung.spec tsung.xml tsung.sh tsung-recorder.sh
 	-rm -f *.xml config.log src/test/*.xml src/test/usersdb.csv
 
+install_doc: tsung doc install_recorder install_controller $(CONFFILE)
+	install -d $(DESTDIR)$(MAN_DIR)
+	install -pm 0644 $(MANPAGES) $(DESTDIR)$(MAN_DIR)
+	install -d $(DESTDIR)$(CONFDIR)
+	install -pm 0644 $(CONFFILE) $(DESTDIR)$(CONFDIR)/
+
 install: tsung doc install_recorder install_controller $(CONFFILE)
 	-rm -f $(TMP)
 
@@ -230,10 +236,6 @@ install: tsung doc install_recorder install_controller $(CONFFILE)
 
 	install -pm 0644 $(SRC) $(DESTDIR)$(TARGETDIR)/src/
 
-# install the man page
-	install -d $(DESTDIR)$(MAN_DIR)
-	install -pm 0644 $(MANPAGES) $(DESTDIR)$(MAN_DIR)
-
 # create startup script
 	install -pm 0755 tsung.sh $(DESTDIR)$(SCRIPT)
 	install -pm 0755 tsung-recorder.sh $(DESTDIR)$(REC_SCRIPT)
@@ -244,9 +246,6 @@ install: tsung doc install_recorder install_controller $(CONFFILE)
 	install -d $(DESTDIR)$(SHARE_DIR)/tsung_plotter
 	install -pm 0644 $(TSUNG_PLOTTER_LIB) $(DESTDIR)$(LIBDIR)/tsung_plotter
 	install -pm 0644 $(TSUNG_PLOTTER_CONF) $(DESTDIR)$(SHARE_DIR)/tsung_plotter
-
-	install -d $(DESTDIR)$(CONFDIR)
-	install -pm 0644 $(CONFFILE) $(DESTDIR)$(CONFDIR)/
 
 	install -d $(DESTDIR)$(TEMPLATES_DIR)
 	install -d $(DESTDIR)$(TEMPLATES_DIR)/style
