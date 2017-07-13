@@ -110,7 +110,7 @@ encode_close(Reason) ->
     encode(Data, ?OP_CLOSE).
 
 encode(Data, Opcode) ->
-    Key = crypto:rand_bytes(4),
+    Key = crypto:strong_rand_bytes(4),
     PayloadLen = erlang:size(Data),
     MaskedData = mask(Data, Key),
     Length = if
@@ -128,10 +128,10 @@ decode(Data) ->
 %%%===================================================================
 gen_accept_key() ->
     random:seed(erlang:now()),
-    Key = crypto:rand_bytes(16),
+    Key = crypto:strong_rand_bytes(16),
     KeyStr = base64:encode_to_string(Key),
     Accept = binary:list_to_bin(KeyStr ++ "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"),
-    AcceptStr = base64:encode_to_string(crypto:sha(Accept)),
+    AcceptStr = base64:encode_to_string(crypto:hash(sha, Accept)),
     {KeyStr, AcceptStr}.
 
 %%%===================================================================

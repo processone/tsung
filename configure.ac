@@ -70,7 +70,7 @@ AC_CACHE_CHECK([if Erlang/OTP crypto application is running fine],
         [AC_LANG_PROGRAM([], [dnl
          case application:start(crypto) of
            ok ->
-                 case catch crypto:md5("toto") of
+                 case catch crypto:hash(md5, "toto") of
                    <<247,29,190,82,98,138,63,131,167,122,180,148,129,117,37, 198>> -> ok;
                    _ ->
                     halt(1)
