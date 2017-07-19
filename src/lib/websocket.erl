@@ -27,7 +27,7 @@
 -vc('$Id$ ').
 -author('jzhihui521@gmail.com').
 
--export([get_handshake/4, check_handshake/2, encode_binary/1, encode_text/1,
+-export([get_handshake/5, check_handshake/2, encode_binary/1, encode_text/1,
          encode_close/1, encode/2, decode/1]).
 
 -include("ts_profile.hrl").
@@ -37,14 +37,17 @@
 %%%===================================================================
 %%% API functions
 %%%===================================================================
-get_handshake(Host, Path, SubProtocol, Version) ->
+get_handshake(Host, Path, SubProtocol, Version, Origin) ->
     {Key, Accept} = gen_accept_key(),
     Req = list_to_binary(["GET ", Path, " HTTP/1.1\r\n",
                           "Host: ", Host ,"\r\n",
                           "Upgrade: websocket\r\n",
                           "Connection: Upgrade\r\n",
+                          "Origin: ",
+                          case Origin of "" -> Host;
+                                         _  -> Origin
+                          end, "\r\n",
                           "Sec-WebSocket-Key: ", Key, "\r\n",
-                          "Origin: http://", Host, "\r\n",
                           "Sec-WebSocket-Version: ", Version, "\r\n"]),
     SubProHeader = case SubProtocol of
         [] -> [];
