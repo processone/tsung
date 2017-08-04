@@ -2,13 +2,27 @@ Source: tsung
 Section: net
 Priority: optional
 Maintainer: Nicolas Niclausse <nicolas.niclausse@niclux.org>
-Build-Depends: debhelper (>= 4.0.0), erlang-nox (>= 10.b.5-1) , python-sphinx, erlang-src, erlang-dev, autoconf
-Standards-Version: 3.6.0
+Build-Depends: autoconf,
+               autotools-dev,
+               debhelper (>= 10),
+               erlang-nox (>= 10),
+               erlang-src,
+               erlang-dev,
+               python-sphinx
+Standards-Version: 4.0.0
+Homepage: https://github.com/processone/tsung
+Vcs-Browser: https://github.com/processone/tsung
+Vcs-Git: https://github.com/processone/tsung.git
 
 Package: tsung
 Architecture: all
-Depends: erlang-nox (>= 10.b.5-1)
-Recommends: gnuplot, perl, ssh, libtemplate-perl, python-matplotlib
+Depends: erlang-nox (>= 10),
+         ${misc:Depends}
+Recommends: gnuplot,
+            libtemplate-perl,
+            perl,
+            python-matplotlib,
+            ssh
 Description: A distributed multi-protocol load testing tool.
  Tsung is a distributed load testing tool.
  It is protocol-independent and can currently be used to stress and
@@ -20,4 +34,4 @@ Description: A distributed multi-protocol load testing tool.
  sessions, supports GET and POST methods, Cookies, and Basic
  WWW-authentication. It also has support for SSL.
  .
- More information is available at http://tsung.erlang-projects.org/ .
+ More information is available at http://tsung.erlang-projects.org/.

@@ -1,0 +1,4 @@
+version=3
+opts=\
+filenamemangle=s/.+\/v?(\d\S*)\.tar\.gz/tdc-v$1\.tar\.gz/\
+ https://github.com/processone/tsung/releases .*/v?(\d\S*)\.tar\.gz
