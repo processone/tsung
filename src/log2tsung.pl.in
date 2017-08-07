@@ -189,6 +189,7 @@ foreach my $key (keys %$visite) {
         $real_visit ++ if $hit > $session_threshold;
     }
 }
+my $first = 1;
 foreach my $key (sort {$visite->{$a}->{'id'} cmp $visite->{$b}->{'id'}} keys %$visite) {
     my $tot_id = $visite->{$key}->{'id'};
     print STDERR "number of visit for $key is $tot_id\n" if $verbose;
@@ -208,7 +209,8 @@ foreach my $key (sort {$visite->{$a}->{'id'} cmp $visite->{$b}->{'id'}} keys %$v
 
         }
         next unless $hit > $session_threshold;
-        my $pop=sprintf "%.3f",100/$real_visit;
+        my $pop=sprintf "%.3f",($first ? 100-(($real_visit-1) * int(100000/$real_visit)/1000) : int(100000/$real_visit)/1000 );
+        $first = undef;
         my $tsung = $visite->{$key}->{$id}->{'tsung'};
         $tsung =~ s/\<session/<session probability=\"$pop\"/;
         print "$tsung</session>\n";
