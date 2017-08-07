@@ -32,6 +32,23 @@
 
 test()->ok.
 
+bidi_pingok_test()->
+    myset_env(),
+    Req=list_to_binary("<iq from='capulet.lit' to='juliet@capulet.lit/balcony' id='s2c1' type='get'>
+                          <ping xmlns='urn:xmpp:ping'/> </iq>"),
+    Resp=list_to_binary("<iq id='s2c1' to='capulet.lit' type='result'></iq>"),
+    State=#state_rcv{},
+    ?assertEqual({Resp,State,think}, ts_jabber:parse_bidi(Req,State)).
+
+bidi_ping_nok_test()->
+    myset_env(0),
+    Req=list_to_binary("<iq froom='capulet.lit' to='juliet@capulet.lit/balcony' id='s2c1' type='get'>
+                          <ping xmlns='urn:xmpp:ping'/> </iq>"),
+    Resp=list_to_binary("<iq id='s2c1' to='capulet.lit' type='result'></iq>"),
+    State=#state_rcv{},
+    ?assertEqual({nodata,State,think}, ts_jabber:parse_bidi(Req,State)).
+
+
 bidi_subscribeok_test()->
     myset_env(),
     Req=list_to_binary("<presence type='subscribe' to='toto@im.apinc.org' from='tintin@jabber.org'>
