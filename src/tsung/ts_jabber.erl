@@ -188,14 +188,19 @@ ping_bidi(RcvdXml, State)->
                           Data2 = string:substr(Data,Sind+1,Len),
                           string:substr(Data2,string:len(Identifier)+3);
                       _->
-                          {err}
+                          nomatch
                   end
           end,
     Host = Fun(RcvdXml,"from"),
     Id = Fun(RcvdXml, "id"),
-    Res1 = re:replace("<iq id='idv' to='hostv' type='result'></iq>", "idv", Id),
-    Res = re:replace(Res1, "hostv", Host),
-    {list_to_binary(Res),State, think}.
+    case {Host, Id} of
+        {A, B} when (A =:= nomatch orelse B =:= nomatch) ->
+            ?LOGF("can't find host or id in ping request: ~p",[RcvdXml],?WARN),
+            {nodata, State, think};
+        {_,_} ->
+            Res = lists:flatten(["<iq id='",Id,"' to='",Host,"' type='result'></iq>"]),
+            {list_to_binary(Res),State, think}
+    end.
 
 presence_bidi(RcvdXml, State)->
     {match,SubMatches} = re:run(RcvdXml,"<presence[^>]*subscribe[\"\'][^>]*>",[global]),
