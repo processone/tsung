@@ -1,3 +1,15 @@
+tsung (1.7.0-1) UNRELEASED; urgency=medium
+
+  [ Michael Lustfield ]
+  * Updated d/compat to 10; Standards-Version to 4.0.0.
+  * Removed obsolete complexity from d/rules.
+  * Replaced d/copyright with machine-readable version.
+    + Added complete information about copyright holders.
+  * Updated build and install dependencies.
+  * Added d/watch and d/upstream/metadata.
+
+ -- Michael Lustfield <michael@lustfield.net>  Fri, 04 Aug 2017 11:22:15 -0500
+
 tsung (1.6.0-1) unstable; urgency=low
 
   * 1.6.0
