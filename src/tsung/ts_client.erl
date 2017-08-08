@@ -515,7 +515,10 @@ handle_next_action(State=#state_rcv{dynvars = DynVars}) ->
             ?LOGF("SSL options for certificate: ~p~n",[Opts],?DEB),
             OldOpts = State#state_rcv.proto_opts,
             NewOpts = OldOpts#proto_opts{certificate = Opts},
-            handle_next_action(State#state_rcv{proto_opts=NewOpts,count=Count});
+            %% close connection if necessary
+            (State#state_rcv.protocol):close(State#state_rcv.socket),
+            set_connected_status(false),
+            handle_next_action(State#state_rcv{proto_opts=NewOpts,count=Count, socket=none});
         {set_option, undefined, connect_timeout, {ConnectTimeout}} ->
             ?LOGF("Set connect timeout: ~p~n", [ConnectTimeout], ?DEB),
             OldOpts = State#state_rcv.proto_opts,
