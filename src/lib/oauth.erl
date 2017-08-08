@@ -113,7 +113,7 @@ token_param(Token, Params) ->
   [{"oauth_token", Token}|Params].
 
 params(Consumer, Params) ->
-  Nonce = base64:encode_to_string(crypto:rand_bytes(32)), % cf. ruby-oauth
+  Nonce = base64:encode_to_string(crypto:strong_rand_bytes(32)), % cf. ruby-oauth
   params(Consumer, oauth_unix:timestamp(), Nonce, Params).
 
 params(Consumer, Timestamp, Nonce, Params) ->
