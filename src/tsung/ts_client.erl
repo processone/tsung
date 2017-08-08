@@ -840,9 +840,9 @@ handle_next_request(Request, State) ->
                             handle_next_action(NewState#state_rcv{ack_done=true, page_timestamp=PTimeStamp});
                         global ->
                             ts_timer:connected(self()),
-                            {next_state, wait_ack, NewState};
+                            {next_state, wait_ack, NewState, (NewState#state_rcv.proto_opts)#proto_opts.global_ack_timeout};
                         _ ->
-                            {next_state, wait_ack, NewState}
+                            {next_state, wait_ack, NewState, (NewState#state_rcv.proto_opts)#proto_opts.idle_timeout}
                         end;
                 {error, closed} when State#state_rcv.retries < ProtoOpts#proto_opts.max_retries ->
                     ?LOG("connection close while sending message!~n", ?NOTICE),
