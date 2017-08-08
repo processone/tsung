@@ -179,7 +179,7 @@ get_node_id() ->
     case string:tokens(atom_to_list(node()),"@") of
         ["tsung_control"++_,_]    -> 123456;
         ["tsung"++Tail,_]         ->
-            {match, [I]} = re:run(Tail, "\\d+$", [{capture, all, list}]),
+            {match, [I]} = re:run(Tail, "\\d+$", [{capture, all, list}]), %" add comment for erlang-mode bug
             list_to_integer(I);
         _                         -> 654321
     end.
@@ -318,9 +318,15 @@ erl_system_args(extended)->
              end,
     Shared = SetArg(shared),
     Hybrid = SetArg(hybrid),
-    case  ?config(smp_disable) of
-        true ->   Smp = " -smp disable ";
-        _    ->   Smp = SetArg(smp)
+    case  {?config(smp_disable), erlang:system_info(otp_release)} of
+        {true,"R"++_} ->
+            Smp = " -smp disable ";
+        {true,V} when (V =:= "17" orelse V =:= "18" orelse V =:= "19") ->
+            Smp = " -smp disable ";
+        {true,_} ->
+            Smp = " +S 1  ";
+        _    ->
+            Smp = SetArg(smp)
     end,
     Inet = case init:get_argument(kernel) of
                {ok,[["inetrc",InetRcFile]]} ->
