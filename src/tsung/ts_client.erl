@@ -539,7 +539,7 @@ handle_next_action(State=#state_rcv{dynvars = DynVars}) ->
             {stop, normal, State};
         {abort, session} ->
             ?LOGF("Aborting session by request (id is ~p)~n", [State#state_rcv.session_id],?NOTICE),
-            ts_mon:add({ count, abort_session }),
+            ts_mon_cache:add({ count, abort_session }),
             {stop, normal, State};
         Other ->
             ?LOGF("Error: set profile return value is ~p (count=~p)~n",[Other,Count],?ERR),
