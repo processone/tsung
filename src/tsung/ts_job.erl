@@ -154,7 +154,7 @@ dump(_P,_Args) ->
 %% @end
 parse({os, cmd, _Args, "Admission Rule ERROR" ++ Tail},State=#state_rcv{session=_S})->
     ?LOGF("ERROR, admission rule: ~p",[Tail],?WARN),
-    ts_mon:add([{sum,error_job_admission_rule,1}]),
+    ts_mon_cache:add([{sum,error_job_admission_rule,1}]),
     {State#state_rcv{ack_done=true,datasize=length(Tail)+21}, [], false};
 parse({os, cmd, _Args, Res},State=#state_rcv{session=S,dump=Dump}) when is_list(Res)->
     ?LOGF("os:cmd result: ~p",[Res],?DEB),

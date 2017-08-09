@@ -199,7 +199,7 @@ launcher(timeout, State=#launcher{nusers        = Users,
                             %% no users in the next phase
                             skip_empty_phase(State#launcher{phases=Rest,current_phase=NextPhase});
                         {change, NextPhase, Rest} ->
-                            ts_mon:add({ count, newphase }),
+                            ts_mon_cache:add({ count, newphase }),
                             ?LOGF("Start a new arrival phase (~p users, ~p); expected duration=~p sec~n",
                                   [NextPhase#phase.nusers, NextPhase#phase.intensity, NextPhase#phase.duration / 1000], ?NOTICE),
                             {next_state,launcher,State#launcher{phases = Rest,
@@ -402,7 +402,7 @@ do_launch({Intensity, MyHostName, PhaseId})->
     case catch ts_config_server:get_next_session({MyHostName, PhaseId} ) of
         {'EXIT', {timeout, _ }} ->
             ?LOG("get_next_session failed (timeout), skip this session !~n", ?ERR),
-            ts_mon:add({ count, error_next_session }),
+            ts_mon_cache:add({ count, error_next_session }),
             error;
         {ok, Session} ->
             ts_client_sup:start_child(Session),
@@ -411,7 +411,7 @@ do_launch({Intensity, MyHostName, PhaseId})->
             {ok, X};
         Error ->
             ?LOGF("get_next_session failed for unexpected reason [~p], abort !~n", [Error],?ERR),
-            ts_mon:add({ count, error_next_session }),
+            ts_mon_cache:add({ count, error_next_session }),
             exit(shutdown)
     end.
 

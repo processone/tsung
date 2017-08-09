@@ -75,7 +75,7 @@ get_message(Jabber=#jabber{type = 'presence:directed', id=Id,username=User,passw
         {ok, Dest} ->
             presence(directed, ts_jabber:username(Prefix,Dest), Jabber, Show, Status);
         {error, no_online} ->
-            ts_mon:add({ count, error_no_online }),
+            ts_mon_cache:add({ count, error_no_online }),
             << >>
     end;
 
@@ -102,7 +102,7 @@ get_message(Jabber=#jabber{type = 'chat', id=Id, dest=online,username=User,passw
         {ok, Dest} ->
             message(ts_jabber:username(Prefix,Dest), Jabber, Domain);
         {error, no_online} ->
-            ts_mon:add({ count, error_no_online }),
+            ts_mon_cache:add({ count, error_no_online }),
             << >>
     end;
 
@@ -113,7 +113,7 @@ get_message(Jabber=#jabber{type = 'chat',domain=Domain,prefix=Prefix,dest=offlin
         {ok, Dest} ->
             message(ts_jabber:username(Prefix,Dest), Jabber, Domain);
         {error, no_offline} ->
-            ts_mon:add({ count, error_no_offline }),
+            ts_mon_cache:add({ count, error_no_offline }),
             << >>
     end;
 get_message(Jabber=#jabber{type = 'chat', dest=random, prefix=Prefix, domain=Domain,user_server=UserServer}) ->
@@ -136,7 +136,7 @@ get_message(Jabber=#jabber{type = 'chat', dest=unique, prefix=Prefix, domain=Dom
     end;
 get_message(_Jabber=#jabber{type = 'chat', id=_Id, dest = undefined, domain=_Domain}) ->
     %% this can happen if previous is set but undefined, skip
-    ts_mon:add({ count, error_no_previous }),
+    ts_mon_cache:add({ count, error_no_previous }),
     << >>;
 get_message(Jabber=#jabber{type = 'chat', id=_Id, dest = Dest, domain=Domain}) ->
     ?DebugF("~w -> ~w ~n", [_Id,  Dest]),
@@ -149,7 +149,7 @@ get_message(#jabber{type = 'iq:roster:add', id=Id, dest = online, username=User,
         {ok, DestId} ->
             request(roster_add, Domain, ts_jabber:username(Prefix,DestId), Group);
         {error, no_online} ->
-            ts_mon:add({ count, error_no_online }),
+            ts_mon_cache:add({ count, error_no_online }),
             << >>
     end;
 get_message(#jabber{type = 'iq:roster:add',dest = offline, prefix=Prefix,
@@ -160,7 +160,7 @@ get_message(#jabber{type = 'iq:roster:add',dest = offline, prefix=Prefix,
         {ok, Dest} ->
             request(roster_add, Domain, ts_jabber:username(Prefix,Dest), Group);
         {error, no_offline} ->
-            ts_mon:add({ count, error_no_offline }),
+            ts_mon_cache:add({ count, error_no_offline }),
             << >>
     end;
 get_message(#jabber{type = 'iq:roster:rename', group=Group})-> %% must be called AFTER iq:roster:add
@@ -203,7 +203,7 @@ get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=UserFrom, user_se
             UserTo = ts_jabber:username(Prefix, Dest), %%FIXME: we need the username prefix here
             subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node);
         {error, no_online} ->
-            ts_mon:add({ count, error_no_online }),
+            ts_mon_cache:add({ count, error_no_online }),
             << >>
     end;
 get_message(#jabber{type = 'pubsub:subscribe', username=UserFrom, user_server=UserServer, prefix=Prefix,
@@ -215,7 +215,7 @@ get_message(#jabber{type = 'pubsub:subscribe', username=UserFrom, user_server=Us
             UserTo = ts_jabber:username(Prefix,DestId),
             subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node);
         {error, no_offline} ->
-            ts_mon:add({ count, error_no_offline }),
+            ts_mon_cache:add({ count, error_no_offline }),
             << >>
     end;
 get_message(#jabber{type = 'pubsub:subscribe', username=UserFrom, user_server=UserServer, prefix=Prefix,

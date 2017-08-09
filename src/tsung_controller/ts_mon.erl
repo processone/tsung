@@ -42,8 +42,8 @@
 
 %% External exports
 -export([start/1, stop/0, newclient/1, endclient/1, sendmes/1,
-         start_clients/1, abort/0, status/0, rcvmes/1, add/1, dumpstats/0,
-         add_match/2, dump/1, launcher_is_alive/0
+         start_clients/1, abort/0, status/0, rcvmes/1, dumpstats/0,
+         dump/1, launcher_is_alive/0
         ]).
 
 %% gen_server callbacks
@@ -103,16 +103,6 @@ start_clients({Machines, Dump, BackEnd}) ->
                     infinity).
 stop() ->
     gen_server:cast({global, ?MODULE}, {stop}).
-
-add(Data) ->
-    ts_mon_cache:add(Data).
-
-add_match(Data,{UserId,SessionId,RequestId,Tr,Name}) ->
-    add_match(Data,{UserId,SessionId,RequestId,[],Tr,Name});
-add_match(Data=[Head|_],{UserId,SessionId,RequestId,Bin,Tr,Name}) ->
-    TimeStamp=?TIMESTAMP,
-    put(last_match,Head),
-    ts_mon_cache:add_match(Data,{UserId,SessionId,RequestId,TimeStamp, Bin,Tr,Name}).
 
 status() ->
     gen_server:call({global, ?MODULE}, {status}).

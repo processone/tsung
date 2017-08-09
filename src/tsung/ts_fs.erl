@@ -144,14 +144,14 @@ parse({file, open, _Args, {ok,IODevice}},State=#state_rcv{session=S}) ->
     {State#state_rcv{ack_done=true,datasize=0,session=NewDyn}, [], false};
 parse({file, open, [Path,_], {error,Reason}},State) ->
     ?LOGF("error while opening file: ~p(~p)~n",[Path, Reason],?ERR),
-    ts_mon:add({count,error_fs_open}),
+    ts_mon_cache:add({count,error_fs_open}),
     {State#state_rcv{ack_done=true,datasize=0}, [], false};
 parse({file, close, [_IODevice], ok},State=#state_rcv{session=S}) ->
     NewDyn=S#fs_session{iodev=undefined,position=0},
     {State#state_rcv{ack_done=true,datasize=0,session=NewDyn}, [], false};
 parse({file, close, [_IODevice], {error,Reason}}, State) ->
     ?LOGF("error while closing file: ~p~n",[Reason],?ERR),
-    ts_mon:add({count,error_fs_close}),
+    ts_mon_cache:add({count,error_fs_close}),
     {State#state_rcv{ack_done=true,datasize=0}, [], false};
 
 parse({file, pread, [_IODev,Pos,Size], {ok,_Data}},State=#state_rcv{session=S,datasize=DataSize}) ->
@@ -162,28 +162,28 @@ parse({file, pread, [_IODev,_Pos,Size], eof},State=#state_rcv{session=S,datasize
     {State#state_rcv{ack_done=true,datasize=DataSize+Size,session=NewDyn}, [], false};
 parse({file, pread, [_IODev,_Pos,_Size], {error,Reason}},State) ->
     ?LOGF("error while reading file: ~p~n",[Reason],?ERR),
-    ts_mon:add({count,error_fs_pread}),
+    ts_mon_cache:add({count,error_fs_pread}),
     {State#state_rcv{ack_done=true,datasize=0}, [], false};
 
 parse({file, write_file, _Args, ok},State) ->
     {State#state_rcv{ack_done=true,datasize=0}, [], false};
 parse({file, write_file, [Path,_], {error,Reason}},State) ->
     ?LOGF("error while writing file: ~p (~p)~n",[Path, Reason],?ERR),
-    ts_mon:add({count,error_fs_write}),
+    ts_mon_cache:add({count,error_fs_write}),
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
 parse({file, pwrite, [_IODev,Pos,Data], ok},State=#state_rcv{session=S}) ->
     NewDyn=S#fs_session{position=Pos+length(Data)},
     {State#state_rcv{ack_done=true,datasize=0,session=NewDyn}, [], false};
 parse({file, pwrite, Args, {error,Reason}},State) ->
     ?LOGF("error while writing file: ~p (~p)~n",[Args, Reason],?ERR),
-    ts_mon:add({count,error_fs_pwrite}),
+    ts_mon_cache:add({count,error_fs_pwrite}),
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
 
 parse({file, del_dir, [_Path], ok},State) ->
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
 parse({file, del_dir, [Path], {error,Reason}},State) ->
     ?LOGF("error while delete directory: ~p (~p)~n",[Path, Reason],?ERR),
-    ts_mon:add({count,error_fs_del_dir}),
+    ts_mon_cache:add({count,error_fs_del_dir}),
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
 
 parse({file, make_dir, [_Path], ok},State) ->
@@ -193,7 +193,7 @@ parse({file, make_dir, [Path], {error, eexist} },State) ->
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
 parse({file, make_dir, [Path], {error,Reason}},State) ->
     ?LOGF("error while creating diretory: ~p (~p)~n",[Path, Reason],?ERR),
-    ts_mon:add({count,error_fs_mkdir}),
+    ts_mon_cache:add({count,error_fs_mkdir}),
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
 
 parse({file, make_symlink, _Args, ok},State) ->
@@ -203,7 +203,7 @@ parse({file, make_symlink, [_Existing, New], {error, eexist} },State) ->
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
 parse({file, make_symlink, [Existing, New], {error,Reason}},State) ->
     ?LOGF("error while creating symlink: ~p to ~p (~p)~n",[Existing, New, Reason],?ERR),
-    ts_mon:add({count,error_fs_mksymlink}),
+    ts_mon_cache:add({count,error_fs_mksymlink}),
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
 
 parse({file, delete, [_Path], ok},State) ->
@@ -217,14 +217,14 @@ parse({file, read_file_info, [_Path], {ok, _FileInfo}},State) ->
     {State#state_rcv{ack_done=true,datasize=0}, [], false};
 parse({file, read_file_info, [Path], {error,Reason}},State) ->
     ?LOGF("error while running stat file: ~p (~p)~n",[Path,Reason],?ERR),
-    ts_mon:add({count,error_fs_stat}),
+    ts_mon_cache:add({count,error_fs_stat}),
     {State#state_rcv{ack_done=true,datasize=0}, [], false};
 
 parse({ts_utils, read_file_raw, [_Path], {ok,_Res,Size}},State) ->
     {State#state_rcv{ack_done=true,datasize=Size}, [], false};
 parse({ts_utils, read_file_raw, [Path], {error,Reason}},State) ->
     ?LOGF("error while reading file: ~p(~p)~n",[Path,Reason],?ERR),
-    ts_mon:add({count,error_fs_read}),
+    ts_mon_cache:add({count,error_fs_read}),
     {State#state_rcv{ack_done=true,datasize=0}, [], false}.
 
 %% @spec parse_bidi(Data, State) -> {nodata, NewState} | {Data, NewState}

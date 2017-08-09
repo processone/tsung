@@ -612,7 +612,7 @@ http_method(Method) ->
 parse_status([A,B,C|_], Http=#http{status={Prev,_}}) ->
     Status=list_to_integer([A,B,C]),
     ?DebugF("HTTP Status ~p~n",[Status]),
-    ts_mon:add({ count, Status }),
+    ts_mon_cache:add({ count, Status }),
     Http#http{status={Status,Prev}}.
 
 %%--------------------------------------------------------------------
@@ -703,4 +703,4 @@ log_error(protocol,Error) ->
 log_error(Type,Error) ->
     log_error2(Type,Error).
 log_error2(_,Error)->
-    ts_mon:add({count, Error}).
+    ts_mon_cache:add({count, Error}).

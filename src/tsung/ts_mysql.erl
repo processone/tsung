@@ -152,7 +152,7 @@ parse_result(Data,State)->
                             <<Errno:16/little, _Marker:8, SQLState:5/binary, Message/binary>>  = Rest2,
                             ?LOGF("Error: ~p ~s ~s ~n", [Errno,SQLState, Message], ?WARN),
                             %% FIXME: should we stop if an error occurs ?
-                            ts_mon:add({ count, list_to_atom("error_mysql_"++integer_to_list(Errno))});
+                            ts_mon_cache:add({ count, list_to_atom("error_mysql_"++integer_to_list(Errno))});
                         254 when size(Rest2) < 9 ->
                             ?LOGF("EOF: (~p) ~n", [Rest2], ?DEB);
                         _ ->
@@ -161,7 +161,7 @@ parse_result(Data,State)->
                     {State#state_rcv{ack_done = true,datasize=size(Data)},[],false};
                 _ ->
                    ?LOG("Bad packet ", ?ERR),
-                   ts_mon:add({ count, error_mysql_badpacket}),
+                   ts_mon_cache:add({ count, error_mysql_badpacket}),
                    {State#state_rcv{ack_done = true,datasize=size(Data)},[],false}
            end.
 

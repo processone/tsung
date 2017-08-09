@@ -107,7 +107,7 @@ get_message(Req=#jabber{id=user_defined, username=User, passwd=Passwd}, State=#s
 get_message(Req=#jabber{prefix=Prefix, passwd=Passwd}, State=#state_rcv{session=S}) when S#jabber_session.id == undefined  ->
    Id = case ts_user_server:get_idle(S#jabber_session.user_server) of
              {error, no_free_userid} ->
-                 ts_mon:add({ count, error_no_free_userid }),
+                 ts_mon_cache:add({ count, error_no_free_userid }),
                  exit(no_free_userid);
              Val->
                 Val
@@ -216,7 +216,7 @@ message_bidi(RcvdXml, State) ->
             Secs = list_to_integer(SecsS),
             Micro = list_to_integer(MicroS),
             Latency = timer:now_diff(?TIMESTAMP, {Mega, Secs, Micro}),
-            ts_mon:add({ sample, xmpp_msg_latency, Latency / 1000});
+            ts_mon_cache:add({ sample, xmpp_msg_latency, Latency / 1000});
         _ ->
             ignore
     end,
@@ -233,7 +233,7 @@ starttls_bidi(_RcvdXml, #state_rcv{socket= Socket, send_timestamp=SendTime}=Stat
     {ok, SSL} = ts_ssl:connect(Socket, Opt),
     ?LOGF("Upgrading to TLS : ~p",[SSL],?INFO),
     Latency = ts_utils:elapsed(SendTime, ?NOW),
-    ts_mon:add({ sample, xmpp_starttls, Latency}),
+    ts_mon_cache:add({ sample, xmpp_starttls, Latency}),
     {nodata, State#state_rcv{socket=SSL,protocol=ts_ssl}, continue}.
 
 %%----------------------------------------------------------------------
