@@ -70,6 +70,7 @@
 -define(MAX_PHASE_EXCEED_PERCENT, 20).
 -define(MAX_PHASE_EXCEED_NUSERS, 10).
 
+-define(CACHE_DUMP_STATS_INTERVAL, 500). % in milliseconds
 
 -define(restart_sleep, 2000).
 -define(infinity_timeout, 15000).

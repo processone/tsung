@@ -533,6 +533,10 @@ handle_next_action(State=#state_rcv{dynvars = DynVars}) ->
         {interaction, 'receive', Id} ->
             ts_interaction_server:rcv({ts_search:subst(Id, DynVars),?NOW}),
             handle_next_action(State#state_rcv{count=Count});
+        {abort} ->
+            ?LOGF("Aborting the whole test by request (id is ~p) !!!~n", [State#state_rcv.session_id],?EMERG),
+            ts_config_server:stop(),
+            {stop, normal, State};
         Other ->
             ?LOGF("Error: set profile return value is ~p (count=~p)~n",[Other,Count],?ERR),
             {stop, set_profile_error, State}

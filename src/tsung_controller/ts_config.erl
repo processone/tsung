@@ -683,6 +683,11 @@ parse( #xmlElement{name=interaction, attributes=Attrs},
     ?LOGF("Parse  interaction  ~p:~p ~n",[Action,Id],?NOTICE),
     Conf#config{curid=Id+1 };
 
+parse( #xmlElement{name=abort},
+      Conf = #config{sessions=[CurS|_Other], curid=Id,session_tab = Tab}) ->
+    ets:insert(Tab,{{CurS#session.id, Id+1}, {abort}}),
+    Conf#config{curid=Id+1 };
+
 parse( Element = #xmlElement{name=set_option, attributes=Attrs},
       Conf = #config{sessions=[CurS|_Other], curid=Id,session_tab = Tab}) ->
 

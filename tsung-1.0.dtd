@@ -134,7 +134,7 @@
 
 <!ELEMENT sessions (session+)>
 <!ELEMENT session ( request | thinktime | transaction | setdynvars | for |
-repeat | if | change_type | foreach | set_option | interaction )*>
+repeat | if | change_type | foreach | set_option | interaction | abort )*>
 <!ATTLIST session
     name         CDATA #REQUIRED
     bidi         CDATA #IMPLIED
@@ -149,6 +149,8 @@ repeat | if | change_type | foreach | set_option | interaction )*>
     probability  NMTOKEN #IMPLIED
     weight       NMTOKEN #IMPLIED
 >
+
+<!ELEMENT abort EMPTY>
 
 <!ELEMENT interaction EMPTY>
 <!ATTLIST interaction
@@ -175,7 +177,7 @@ repeat | if | change_type | foreach | set_option | interaction )*>
 
 <!ELEMENT match (#PCDATA)>
 <!ATTLIST match
-    do (continue|loop|abort|restart|log|dump) "continue"
+    do (continue|loop|abort|restart|log|dump|abort_test) "continue"
     when (match|nomatch) "match"
     subst (true|false) "false"
     loop_back   NMTOKEN "0"
@@ -201,7 +203,7 @@ repeat | if | change_type | foreach | set_option | interaction )*>
     >
 
 <!ELEMENT transaction (request | setdynvars | thinktime | for | repeat
-          | if | foreach | interaction )+>
+          | if | foreach | interaction | abort )+>
 <!ATTLIST transaction name NMTOKEN #REQUIRED>
 
 <!ELEMENT http (oauth?, www_authenticate?, soap?, http_header*, add_cookie*)>
@@ -443,7 +445,7 @@ repeat | if | change_type | foreach | set_option | interaction )*>
     name CDATA #REQUIRED>
 
 <!ELEMENT for (request | thinktime | transaction | setdynvars | for |
-          if | repeat | change_type | foreach | interaction )+>
+          if | repeat | change_type | foreach | interaction | abort )+>
 <!ATTLIST for
     var      CDATA      #REQUIRED
     from     CDATA      #REQUIRED
@@ -451,7 +453,7 @@ repeat | if | change_type | foreach | set_option | interaction )*>
     incr     NMTOKEN   "1">
 
 <!ELEMENT foreach (request | thinktime | transaction | setdynvars | foreach |
-          if | repeat | change_type | for  | interaction)+>
+          if | repeat | change_type | for  | interaction | abort )+>
 <!ATTLIST foreach
     name     NMTOKEN    #REQUIRED
     in       NMTOKEN    #REQUIRED
@@ -460,13 +462,13 @@ repeat | if | change_type | foreach | set_option | interaction )*>
 >
 
 <!ELEMENT repeat (request | thinktime | transaction | setdynvars | for | repeat
-| while | if | until | change_type | foreach  | interaction)+>
+| while | if | until | change_type | foreach  | interaction | abort )+>
 <!ATTLIST repeat
     name      NMTOKEN    #REQUIRED
     max_repeat  NMTOKEN   "20">
 
 <!ELEMENT if (request | thinktime | transaction | setdynvars | for | repeat
-| while | if | until | change_type | foreach | interaction)+>
+| while | if | until | change_type | foreach | interaction | abort )+>
 <!ATTLIST if
     var       CDATA #REQUIRED
     eq        CDATA #IMPLIED

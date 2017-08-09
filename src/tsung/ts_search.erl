@@ -163,7 +163,8 @@ match([Match=#match{regexp=RawRegExp,subst=Subst, do=Action, 'when'=When}
                 Act when Act =:= 'continue'; Act =:= 'log'; Act =:= 'dump' ->
                     setcount(Match, Counts, [{count, match}| Stats], Data, Tr),
                     match(Tail, Data, Counts, Stats,DynVars, Tr);
-                _       -> setcount(Match, Counts, [{count, match}| Stats], Data, Tr)
+                _       ->
+                    setcount(Match, Counts, [{count, match}| Stats], Data, Tr)
             end;
         When -> % nomatch
             ?LOGF("Bad Match (regexp=~p) do=~p~n",[RegExp, Action], ?INFO),
@@ -171,7 +172,8 @@ match([Match=#match{regexp=RawRegExp,subst=Subst, do=Action, 'when'=When}
                 Act when Act =:= 'continue'; Act =:= 'log'; Act =:= 'dump' ->
                     setcount(Match, Counts, [{count, nomatch}| Stats], Data, Tr),
                     match(Tail, Data, Counts, Stats,DynVars, Tr);
-                _       -> setcount(Match, Counts, [{count, nomatch}| Stats], Data, Tr)
+                _       ->
+                    setcount(Match, Counts, [{count, nomatch}| Stats], Data, Tr)
             end;
         {match,_} -> % match but when=nomatch
             ?LOGF("Ok Match (regexp=~p)~n",[RegExp], ?INFO),
@@ -246,6 +248,12 @@ setcount(#match{do=loop,loop_back=Back,max_loop=MaxLoop,sleep_loop=Sleep},{Count
     end;
 setcount(#match{do=abort,name=Name}, {Count,MaxC,SessionId,UserId}, Stats,_, Tr) ->
     ts_mon:add_match([{count, match_stop} | Stats],{UserId,SessionId,MaxC-Count,Tr, Name}),
+    0;
+setcount(#match{do=abort_test,name=Name}, {Count,MaxC,SessionId,UserId}, Stats,_, Tr) ->
+    ?LOG("OK match, aborting the whole test by request !!!~n", ?EMERG),
+    ts_mon:add_match([{count, match_stop_test} | Stats],{UserId,SessionId,MaxC-Count,Tr, Name}),
+    timer:sleep(?CACHE_DUMP_STATS_INTERVAL),
+    ts_config_server:stop(),
     0.
 
 %%----------------------------------------------------------------------
