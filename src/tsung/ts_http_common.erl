@@ -192,15 +192,13 @@ oauth_sign(Method, #http_request{url=URL,
     %%UrlParams = oauth_uri:params_from_string(URL),
     [_He|Ta] = string:tokens(URL,"?"),
     UrlParams = oauth_uri:params_from_string(lists:flatten(Ta)),
-	
-    if
-      ContentType =:= ?BODY_PARAM ->
-        BodyParams = oauth_uri:params_from_string(lists:flatten(binary_to_list(Body))),
-        AllParams = UrlParams ++ BodyParams;
-      true ->
-        AllParams = UrlParams
-    end,
-	
+    AllParams = case ContentType of
+                    ?BODY_PARAM ->
+                        BodyParams = oauth_uri:params_from_string(lists:flatten(binary_to_list(Body))),
+                        UrlParams ++ BodyParams;
+                    _ ->
+                        UrlParams
+                end,
     Params = oauth:signed_params(Method, ServerURL, AllParams, Consumer, AccessToken, AccessSecret),
     ["Authorization: OAuth ", oauth_uri:params_to_header_string(Params),?CRLF].
 
