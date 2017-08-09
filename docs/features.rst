@@ -51,7 +51,7 @@ HTTP related features
 
 * HTTP/1.0 and HTTP/1.1 support
 
-* GET, POST, PUT, DELETE, HEAD, OPTIONS and PATCH requests
+* GET, POST, PUT, DELETE, HEAD, OPTIONS, PATCH, and PURGE requests
 
 * Cookies: Automatic cookies management (but you can also manually add
   more cookies)
