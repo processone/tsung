@@ -127,11 +127,10 @@ statistics definition, conditional request (IF MODIFIED SINCE):
     </request>
   </session>
 
-  <session name="backoffice" probability="30" ...>
-  ... 
+  <session name="backoffice" probability="30" >
+   <!--  -->
   </session>
  </sessions>
-
 
 
 If you use an absolute URL, the server used in the URL will override
@@ -543,7 +542,7 @@ Here's an example:
 
 .. code-block:: xml
 
- <-- First, choose an random room and random nickname: -->
+ <!-- First, choose an random room and random nickname: -->
  <setdynvars sourcetype="random_number" start="1" end="100">
    <var name="room"/>
  </setdynvars>

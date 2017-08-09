@@ -151,6 +151,8 @@ repeat | if | change_type | foreach | set_option | interaction | abort )*>
 >
 
 <!ELEMENT abort EMPTY>
+<!ATTLIST abort
+          type (session|all) "session" >
 
 <!ELEMENT interaction EMPTY>
 <!ATTLIST interaction
