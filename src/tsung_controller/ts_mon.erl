@@ -168,7 +168,7 @@ init([LogDir]) ->
             {ok, State#state{log=standard_io}};
         Name ->
             Filename = filename:join(LogDir, Name),
-            case file:open(Filename,[write]) of
+            case file:open(Filename,[append]) of
                 {ok, Stream} ->
                     ?LOG("starting monitor~n",?INFO),
                     {ok, State#state{log=Stream}};
