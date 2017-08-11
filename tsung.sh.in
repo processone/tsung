@@ -166,7 +166,7 @@ usage() {
     echo "    -m <file>     write monitoring output on this file (default is tsung.log)"
     echo "                   (use - for standard output)"
     echo "    -F            use long names (FQDN) for erlang nodes"
-    echo "    -I <ip>       use IP (FQDN) for erlang nodes; you can assign local bind available IP (not assign? default is the host's name)"
+    echo "    -I <ip>       use IP (FQDN) for erlang nodes; you can assign local bind available IP (not assigned; default is the host's name)"
     echo "    -L <lifetime> SSL session lifetime (600sec by default)"
     echo "    -w <delay>    warmup delay (default is 1 sec)"
     echo "    -n            disable web GUI (started by default on port 8091)"

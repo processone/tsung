@@ -111,6 +111,34 @@ first (the proportions will be 1/3 and 2/3). In the earlier example
 where for the second client has 2 CPU and weight=3, the weight is
 equal to 1.5 for each CPU.
 
+.. index:: direct ip
+
+direct ip
+^^^^^^^^^
+
+
+Sometimes, it can be a problem to use hostnames for all tsung clients
+(if you don't have a DNS, you must edit /etc/hosts on all
+nodes). Since **version in 1.7.0**, you can use direct IP instead of
+hostnames.
+
+To do this, you should use the -I parameter when starting Tsung,
+
+:command:`tsung -I Your_Server_IP -f tsung.xml start`
+
+eg:
+
+:command:`tsung -I 10.10.10.10 -f tsung.xml start`
+
+You controller node name is therefore: ``tsung_controller@10.10.10.10``.
+For clients, put the IP like this:
+
+.. code-block:: xml
+
+ <clients>
+  <client host="10.10.10.11" maxusers="120000" cpu="7" weight="4"/>
+  <client host="10.10.10.12" maxusers="120000" cpu="7" weight="4"/>
+ <clients>
 
 .. index:: iprange
 
