@@ -263,12 +263,19 @@ parse(Element = #xmlElement{name=client, attributes=Attrs},
                               1;
                           {Val, _} -> Val
                       end,
-                %% must be hostname and not ip:
-                case ts_utils:is_ip(Host) of
-                    true ->
-                        io:format(standard_error,"ERROR: client config: 'host' attribute must be a hostname, "++ "not an IP ! (was ~p)~n",[Host]),
+                %% if the node()'s hostname is ip, then all host should be IP
+                {ok, MasterHostname} = ts_utils:node_to_hostname(node()),
+                case {ts_utils:is_ip(MasterHostname), ts_utils:is_ip(Host)} of
+                   %% must be hostname and not ip:
+                    {false, true} ->
+                        io:format(standard_error,"ERROR: client config: 'host' attribute must be a hostname, "++ "not an IP ! (was ~p). You can use -I <> option.~n",[Host]),
                         exit({error, badhostname});
-                    false ->
+                    {true, true} ->
+                        %% add a new client for each CPU
+                        lists:duplicate(CPU,#client{host     = Host,
+                                                    weight   = Weight/CPU,
+                                                    maxusers = MaxUsers});
+                    {_, _} ->
                         %% add a new client for each CPU
                         lists:duplicate(CPU,#client{host     = Host,
                                                     weight   = Weight/CPU,
@@ -965,6 +972,18 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                         false ->
                             lists:foldl( fun parse/2, Conf, Element#xmlElement.content)
                     end;
+                "tcp_reuseport" ->
+                    Reuseport = getAttr(atom, Attrs, value, false),
+                    case Reuseport of
+                        true ->
+                            OldProto =  Conf#config.proto_opts,
+                            NewProto =  OldProto#proto_opts{tcp_reuseport = Reuseport},
+                            lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                         Element#xmlElement.content);
+                        false ->
+                            lists:foldl( fun parse/2, Conf, Element#xmlElement.content)
+                    end;
+
                 Other ->
                     ?LOGF("Unknown option ~p !~n",[Other], ?WARN),
                     lists:foldl( fun parse/2, Conf, Element#xmlElement.content)

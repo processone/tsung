@@ -30,6 +30,7 @@ PGSQL_SERVER_IP=127.0.0.1
 PGSQL_SERVER_PORT=5432
 NAME=tsung
 CONTROLLER=tsung_controller
+CONTROLLER_EXTENDS=""
 SMP_DISABLE=true
 WARM_TIME=1
 MAX_PROCESS=250000
@@ -60,7 +61,7 @@ stop() {
 
 view() {
     echo "Starting Tsung web only on port 8091"
-    $ERL $ERL_OPTS $ERL_RSH -noshell $PROTO_DIST $NAMETYPE $CONTROLLER -setcookie $COOKIE \
+    $ERL $ERL_OPTS $ERL_RSH -noshell $PROTO_DIST $NAMETYPE $CONTROLLER$CONTROLLER_EXTENDS -setcookie $COOKIE \
     +P $MAX_PROCESS \
     -kernel inet_dist_listen_min $ERL_DIST_PORTS_MIN -kernel inet_dist_listen_max $ERL_DIST_PORTS_MAX \
     -s ts_web \
@@ -72,7 +73,7 @@ view() {
 
 start() {
     echo "Starting Tsung"
-    $ERL $ERL_OPTS $ERL_RSH -noshell $PROTO_DIST $NAMETYPE $CONTROLLER -setcookie $COOKIE \
+    $ERL $ERL_OPTS $ERL_RSH -noshell $PROTO_DIST $NAMETYPE $CONTROLLER$CONTROLLER_EXTENDS -setcookie $COOKIE \
     +P $MAX_PROCESS \
     -kernel inet_dist_listen_min $ERL_DIST_PORTS_MIN -kernel inet_dist_listen_max $ERL_DIST_PORTS_MAX \
     -s tsung_controller \
@@ -91,7 +92,7 @@ start() {
 }
 
 debug() {
-    $ERL $ERL_OPTS $ERL_RSH $NAMETYPE $CONTROLLER $PROTO_DIST -setcookie $COOKIE  \
+    $ERL $ERL_OPTS $ERL_RSH $NAMETYPE $CONTROLLER$CONTROLLER_EXTENDS $PROTO_DIST -setcookie $COOKIE  \
      +P $MAX_PROCESS \
      -kernel inet_dist_listen_min $ERL_DIST_PORTS_MIN -kernel inet_dist_listen_max $ERL_DIST_PORTS_MAX \
      -s tsung_controller \
@@ -165,6 +166,7 @@ usage() {
     echo "    -m <file>     write monitoring output on this file (default is tsung.log)"
     echo "                   (use - for standard output)"
     echo "    -F            use long names (FQDN) for erlang nodes"
+    echo "    -I <ip>       use IP (FQDN) for erlang nodes; you can assign local bind available IP (not assigned; default is the host's name)"
     echo "    -L <lifetime> SSL session lifetime (600sec by default)"
     echo "    -w <delay>    warmup delay (default is 1 sec)"
     echo "    -n            disable web GUI (started by default on port 8091)"
@@ -178,7 +180,7 @@ usage() {
     exit
 }
 
-while getopts "6vhknf:l:d:r:i:Fsw:m:p:x:X:t:T:" Option
+while getopts "6vhknf:l:d:r:i:Fsw:m:p:x:X:t:T:I:" Option
 do
     case $Option in
         f) CONF_OPT_FILE=$OPTARG;;
@@ -213,6 +215,12 @@ do
            CONTROLLER=$CONTROLLER"_"$ID
            ;;
         x) EXCLUDE_TAG_LIST=$OPTARG;;
+        I) NAMETYPE="-name"
+            SERVER_IP=$OPTARG
+            if [ "$SERVER_IP" != "" ]; then
+                CONTROLLER_EXTENDS="@$SERVER_IP"
+            fi
+            ;;
         h) usage;;
         *) usage ;;
     esac
