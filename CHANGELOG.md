@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [Unreleased]
 ### Fixed
 ### Changed
 ### Added
@@ -613,3 +613,24 @@
 - switch to R8B
 
 ## [0.1.0] - 2001-05-30 - Initial release
+
+[Unreleased]: https://github.com/processone/tsung/compare/v1.6.0...HEAD
+[v1.6.0]: https://github.com/processone/tsung/compare/v1.5.1...v1.6.0
+[v1.5.1]: https://github.com/processone/tsung/compare/v1.5.0...v1.5.1
+[v1.5.0]: https://github.com/processone/tsung/compare/v1.4.2...v1.5.0
+[v1.4.2]: https://github.com/processone/tsung/compare/v1.4.1...v1.4.2
+[v1.4.1]: https://github.com/processone/tsung/compare/v1.4.0...v1.4.1
+[v1.4.0]: https://github.com/processone/tsung/compare/v1.3.3...v1.4.0
+[v1.3.3]: https://github.com/processone/tsung/compare/v1.3.2...v1.3.3
+[v1.3.2]: https://github.com/processone/tsung/compare/v1.3.1...v1.3.2
+[v1.3.1]: https://github.com/processone/tsung/compare/v1.3.0...v1.3.1
+[v1.3.0]: https://github.com/processone/tsung/compare/v1.2.2...v1.3.0
+[v1.2.2]: https://github.com/processone/tsung/compare/v1.2.1...v1.2.2
+[v1.2.1]: https://github.com/processone/tsung/compare/v1.2.0...v1.2.1
+[v1.2.0]: https://github.com/processone/tsung/compare/v1.1.0...v1.2.0
+[v1.1.0]: https://github.com/processone/tsung/compare/v1.0.2...v1.1.0
+[v1.0.2]: https://github.com/processone/tsung/compare/v1.0.1...v1.0.2
+[v1.0.1]: https://github.com/processone/tsung/compare/v0.2.1...v1.0.1
+[v0.2.1]: https://github.com/processone/tsung/compare/v0.2.0...v0.2.1
+[v0.2.0]: https://github.com/processone/tsung/compare/v0.1.1...v0.2.0
+[v0.1.1]: https://github.com/processone/tsung/compare/v0.1.0...v0.1.1
