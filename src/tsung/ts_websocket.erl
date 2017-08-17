@@ -79,10 +79,11 @@ dump(A,B) ->
 %% Returns: binary
 %%----------------------------------------------------------------------
 get_message(#websocket_request{type = connect, path = Path,
-                               subprotos = SubProtocol, version = Version},
+                               subprotos = SubProtocol, version = Version,
+                               origin = Origin},
             State=#state_rcv{session = WebsocketSession}) ->
     {Request, Accept} = websocket:get_handshake(State#state_rcv.host, Path,
-                                                SubProtocol, Version),
+                                                SubProtocol, Version, Origin),
     {Request, WebsocketSession#websocket_session{status = waiting_handshake,
                                                  accept = Accept}};
 get_message(#websocket_request{type = message, data = Data, frame = Frame},

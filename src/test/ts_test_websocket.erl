@@ -29,7 +29,7 @@
 test()->ok.
 
 handshake_test() ->
-    {_, Accept} = websocket:get_handshake("127.0.0.1", "/chat", [], 13),
+    {_, Accept} = websocket:get_handshake("127.0.0.1", "/chat", [], 13, ""),
     Response1 = ["HTTP/1.1 101 Switching Protocols\r\n",
                  "Upgrade: websocket\r\n",
                  "Connection: Upgrade\r\n",

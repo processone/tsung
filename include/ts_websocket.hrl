@@ -31,6 +31,7 @@
           type, % connect or message
           path, % connection path
           frame = "binary",
+          origin, % origin of websocket request
           subprotos = [], % subprotocols
           data % websocket data
          }).

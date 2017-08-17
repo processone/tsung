@@ -878,7 +878,16 @@ If you use ``change_type`` to start a websocket, don't forget to set
 
 .. code-block:: xml
 
- <change_type new_type="ts_websocket" host="127.0.0.1" port="8080" server_type="tcp" restore="true" store="true" bidi="true"/>
+ <change_type new_type="ts_websocket" host="127.0.0.1" port="8080" server_type="tcp" restore="true" store="true" bidi="true"/>i
+
+When connecting to a websocket server you can set the ``origin``, which can be
+checked by a websocket as a security measure, see
+https://tools.ietf.org/html/rfc6455#section-10.2 for more details.
+If not set this defaults to the ``host`` value.
+
+.. code-block:: xml
+
+  <websocket type="connect" origin="https://example.com"></websocket>
 
 AMQP
 ^^^^^^^^^

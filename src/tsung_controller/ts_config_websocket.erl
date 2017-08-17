@@ -51,12 +51,13 @@ parse_config(Element = #xmlElement{name = websocket},
     Type = ts_config:getAttr(atom, Element#xmlElement.attributes, type),
     ValRaw = ts_config:getText(Element#xmlElement.content),
     Path = ts_config:getAttr(string, Element#xmlElement.attributes, path, "/"),
+    Origin = ts_config:getAttr(string, Element#xmlElement.attributes, origin, ""),
     SubProtocols = ts_config:getAttr(string, Element#xmlElement.attributes, subprotocols, ""),
     Frame = ts_config:getAttr(string, Element#xmlElement.attributes, frame,
                               "binary"),
 
     Request = #websocket_request{data = ValRaw, type = Type, subprotos = SubProtocols,
-                                 path = Path, frame = Frame},
+                                 origin = Origin, path = Path, frame = Frame},
 
     Ack = case Type of
               message ->
