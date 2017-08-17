@@ -4,6 +4,8 @@
 ### Fixed
 ### Changed
 ### Added
+- [#189] Add direct-ip support for tsung nodes interconnection
+- #201 add option to start a phase after all generated users in the previous phase have finished their session
 
 ## [1.6.0] - 2015-07-20 - Major enhancements and bugfixes
 ### Fixed
