@@ -38,7 +38,7 @@
 - [TSUN-306] - Add connection_timeout option
 - [PR #106]  - XMPP message latency measurement
 
-## [1.5.1] 2014-04-07 - Major enhancements and bugfixes
+## [1.5.1] - 2014-04-07 - Major enhancements and bugfixes
 ### Fixed
 - [TSUN-250] - BOSH Crash
 - [TSUN-252] - Too many requests when using max_restart
