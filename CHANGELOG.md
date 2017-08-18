@@ -699,21 +699,21 @@
 [PR #74]: https://github.com/processone/tsung/pull/74
 [PR #42]: https://github.com/processone/tsung/pull/42
 [PR #75]: https://github.com/processone/tsung/pull/75
-[#117]: https://github.com/processone/tsung/issue/117
-[#121]: https://github.com/processone/tsung/issue/121
-[#126]: https://github.com/processone/tsung/issue/126
-[#136]: https://github.com/processone/tsung/issue/136
-[#161]: https://github.com/processone/tsung/issue/161
-[#162]: https://github.com/processone/tsung/issue/162
-[#204]: https://github.com/processone/tsung/issue/204
-[#218]: https://github.com/processone/tsung/issue/218
-[#136]: https://github.com/processone/tsung/issue/136
-[#145]: https://github.com/processone/tsung/issue/145
-[#150]: https://github.com/processone/tsung/issue/150
-[#159]: https://github.com/processone/tsung/issue/159
-[#132]: https://github.com/processone/tsung/issue/132
-[#182]: https://github.com/processone/tsung/issue/182
-[#189]: https://github.com/processone/tsung/issue/189
-[#201]: https://github.com/processone/tsung/issue/201
-[#225]: https://github.com/processone/tsung/issue/225
-[#242]: https://github.com/processone/tsung/issue/242
+[#117]: https://github.com/processone/tsung/issues/117
+[#121]: https://github.com/processone/tsung/issues/121
+[#126]: https://github.com/processone/tsung/issues/126
+[#136]: https://github.com/processone/tsung/issues/136
+[#161]: https://github.com/processone/tsung/issues/161
+[#162]: https://github.com/processone/tsung/issues/162
+[#204]: https://github.com/processone/tsung/issues/204
+[#218]: https://github.com/processone/tsung/issues/218
+[#136]: https://github.com/processone/tsung/issues/136
+[#145]: https://github.com/processone/tsung/issues/145
+[#150]: https://github.com/processone/tsung/issues/150
+[#159]: https://github.com/processone/tsung/issues/159
+[#132]: https://github.com/processone/tsung/issues/132
+[#182]: https://github.com/processone/tsung/issues/182
+[#189]: https://github.com/processone/tsung/issues/189
+[#201]: https://github.com/processone/tsung/issues/201
+[#225]: https://github.com/processone/tsung/issues/225
+[#242]: https://github.com/processone/tsung/issues/242
