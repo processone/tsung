@@ -2,10 +2,42 @@
 
 ## [Unreleased]
 ### Fixed
+- [#117] Closing TCP connection in think state considered an error?
+- [#121] Unable to send a line feed in websoscket request
+- [#126] Timeouts for get_next_session not reported correctly
+- [#136] MAX_PROC not actually changeable
+- [#161] Websocket match randomly fail
+- [#162] <load duration> not working along with <session><for>?
+- [#204] Timeout won't apply unless something happen to socket
+- [#218] Certificates are not getting set/sent correctly
+- [PR #148] clear accumulated data when websocket closed
+- [PR #183] fix formula for load average
+- [PR #202] fixing oauth 1.0 authorization header creation, signature with body, alphanumerical nonce
+- [PR #228]  Where IQ PING was enabled from XMPP server. Tsung cannot reply
+
 ### Changed
+- [#136] Speedup Tsung starting when using hundreds of clients
+- [#145] Update or remove eldap in favor of OTP's eldap
+- [#150] Distributed Erlang Port Range Hard-Coded
+- [#159] Use new time API when building Tsung with otp R18
+- [PR #124] Rename configure.in to configure.ac
+- [PR #125] Work around compiler warning and provide backward compatibility
+- [PR #198] Record extra headers in the HTTP proxy recorder
+- minimum erlang version is R16B
+
 ### Added
+- [#132] WSS connections
+- [#182] add option to set websocket subprotocols
 - [#189] Add direct-ip support for tsung nodes interconnection
-- #201 add option to start a phase after all generated users in the previous phase have finished their session
+- [#201] add option to start a phase after all generated users in the previous phase have finished their session
+- [#225] stop entire test execution in do
+- [#242] tsung to support Linux client to using a range of secondary IP addresses
+- [PR #151] Add option to specify SSL protocol
+- [PR #153] Add latency measurement to XMPP MUC and PubSub
+- [PR #233] BOSH support for chunked transfer encoding.
+- [PR #235] Provide regex to use with varnish log
+- [PR #240] Added Jabber support for SASL EXTERNAL
+- add option to start tsung with only the web view (to view old runs stats)
 
 ## [1.6.0] - 2015-07-20 - Major enhancements and bugfixes
 ### Fixed
@@ -165,7 +197,7 @@
  - [TSUN-54] - tsung is very slow when a lot of dynamic variables are set
  - [TSUN-96] - generating more than 64k connections from a single machine
  - [TSUN-106] - Add content-encoding support for dynvar extraction
- - [TSUN-123] - add option to read usernames from an external file for jabber
+ - [TSUN-123] - add option to read usernames from an exteraln file for jabber
  - [TSUN-125] - use the new re module everywhere instead of regexp/gregexp
  - [TSUN-152] - Add "state_rcv" record as parameter to "get_message" function.
  - [TSUN-153] - dynvar used in match may contain regexp special characters
@@ -636,3 +668,52 @@
 [0.2.1]: https://github.com/processone/tsung/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/processone/tsung/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/processone/tsung/compare/v0.1.0...v0.1.1
+[PR #148]: https://github.com/processone/tsung/pull/148
+[PR #183]: https://github.com/processone/tsung/pull/183
+[PR #202]: https://github.com/processone/tsung/pull/202
+[PR #228]: https://github.com/processone/tsung/pull/228
+[PR #124]: https://github.com/processone/tsung/pull/124
+[PR #125]: https://github.com/processone/tsung/pull/125
+[PR #198]: https://github.com/processone/tsung/pull/198
+[PR #151]: https://github.com/processone/tsung/pull/151
+[PR #153]: https://github.com/processone/tsung/pull/153
+[PR #233]: https://github.com/processone/tsung/pull/233
+[PR #235]: https://github.com/processone/tsung/pull/235
+[PR #240]: https://github.com/processone/tsung/pull/240
+[PR #91]: https://github.com/processone/tsung/pull/91
+[PR #104]: https://github.com/processone/tsung/pull/104
+[PR #107]: https://github.com/processone/tsung/pull/107
+[PR #109]: https://github.com/processone/tsung/pull/109
+[PR #111]: https://github.com/processone/tsung/pull/111
+[PR #79]: https://github.com/processone/tsung/pull/79
+[PR #81]: https://github.com/processone/tsung/pull/81
+[PR #93]: https://github.com/processone/tsung/pull/93
+[PR #106]: https://github.com/processone/tsung/pull/106
+[PR #71]: https://github.com/processone/tsung/pull/71
+[PR #41]: https://github.com/processone/tsung/pull/41
+[PR #44]: https://github.com/processone/tsung/pull/44
+[PR #49]: https://github.com/processone/tsung/pull/49
+[PR #51]: https://github.com/processone/tsung/pull/51
+[PR #65]: https://github.com/processone/tsung/pull/65
+[PR #70]: https://github.com/processone/tsung/pull/70
+[PR #74]: https://github.com/processone/tsung/pull/74
+[PR #42]: https://github.com/processone/tsung/pull/42
+[PR #75]: https://github.com/processone/tsung/pull/75
+[#117]: https://github.com/processone/tsung/issue/117
+[#121]: https://github.com/processone/tsung/issue/121
+[#126]: https://github.com/processone/tsung/issue/126
+[#136]: https://github.com/processone/tsung/issue/136
+[#161]: https://github.com/processone/tsung/issue/161
+[#162]: https://github.com/processone/tsung/issue/162
+[#204]: https://github.com/processone/tsung/issue/204
+[#218]: https://github.com/processone/tsung/issue/218
+[#136]: https://github.com/processone/tsung/issue/136
+[#145]: https://github.com/processone/tsung/issue/145
+[#150]: https://github.com/processone/tsung/issue/150
+[#159]: https://github.com/processone/tsung/issue/159
+[#132]: https://github.com/processone/tsung/issue/132
+[#182]: https://github.com/processone/tsung/issue/182
+[#189]: https://github.com/processone/tsung/issue/189
+[#201]: https://github.com/processone/tsung/issue/201
+[#225]: https://github.com/processone/tsung/issue/225
+[#242]: https://github.com/processone/tsung/issue/242
