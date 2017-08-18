@@ -1,5 +1,7 @@
 # Tsung README
 
+[![Build Status](https://travis-ci.org/processone/tsung.svg?branch=master)](https://travis-ci.org/processone/tsung)
+
 ##  Introduction
 
 This document gives pointers for information on this package which is
