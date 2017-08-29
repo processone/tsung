@@ -1,6 +1,6 @@
 # Changelog #
 
-## [Unreleased] ##
+## [1.7.0] - 2017-08-28 - Major enhancements and bugfixes ##
 ### Fixed ###
 - [#117] Closing TCP connection in think state considered an error?
 - [#121] Unable to send a line feed in websoscket request
