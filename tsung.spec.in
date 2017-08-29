@@ -45,7 +45,7 @@ make %{?_smp_mflags}
 rm -rf $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
 
-install -p -m 644 CHANGES CONTRIBUTORS COPYING README.md TODO \
+install -p -m 644 CHANGELOG.md CONTRIBUTORS COPYING README.md TODO \
     $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/
 
 %clean
@@ -73,8 +73,8 @@ rm -rf $RPM_BUILD_ROOT
 * Mon Aug  9 2004 Nicolas Niclausse <nicolas.niclausse@IDEALX.com> 1.0-1
 - new release
 * Mon Aug  9 2004 Nicolas Niclausse <nicolas.niclausse@IDEALX.com> 1.0.beta7-2
-- fix doc 
+- fix doc
 * Mon Aug  9 2004 Nicolas Niclausse <nicolas.niclausse@IDEALX.com> 1.0.beta7-1
-- initial rpm 
+- initial rpm
 
 # end of file

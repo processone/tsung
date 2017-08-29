@@ -336,7 +336,7 @@ release: Makefile tsung.spec doc user_guide
 		COPYING README.md LISEZMOI TODO $(CONFFILE_SRC) $(TEST_CONFFILE_SRC) \
 		tsung.sh.in vsn.mk  src/test/*.csv src/test/*.txt \
 		src/test/*.out \
-		$(DEBIAN)  $(PERL_SCRIPTS_SRC) CONTRIBUTORS CHANGES \
+		$(DEBIAN)  $(PERL_SCRIPTS_SRC) CONTRIBUTORS CHANGELOG.md \
 		$(TSPLOT_SRC) $(TSUNG_PLOTTER_CONF) $(TSUNG_PLOTTER_LIB)\
 		configure configure.ac config.guess *.m4 config.sub Makefile.in \
 		install-sh tsung.spec.in tsung.spec tsung-recorder.sh.in
