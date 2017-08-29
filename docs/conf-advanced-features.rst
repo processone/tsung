@@ -698,7 +698,7 @@ Here we compare the first element of the list to 3.
 
 <abort>
 """"""""
-**Since 1.6.1** you can abort the session or the whole test by using an ``<abort/>`` element in a session (can be used inside an <if> statement for example). By default it will abort the current user session, but you can abort the whole test by setting the `type` attribute to `all`  ``<abort type='all'/>``
+**Since 1.7.0** you can abort the session or the whole test by using an ``<abort/>`` element in a session (can be used inside an <if> statement for example). By default it will abort the current user session, but you can abort the whole test by setting the `type` attribute to `all`  ``<abort type='all'/>``
 
 .. index:: foreach
 

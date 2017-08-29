@@ -109,10 +109,11 @@
 - [TSUN-269] - Logging of request tags to dumpfile
 - [TSUN-275] - Add MQTT support
 - [TSUN-280] - Tsung to support pkcs#12 certificates or at least cacerts, clientcerts and keys
-- [PR #42]   - Adding *all_except_body* option to *ts_http request* subst.
-.. - Adding mysqladmin monitoring options to erlang monitors.
-.. - Adding mean rate calculation to tsung_stats reports.
-.. - Adding *--title option* to set header of report
+- [PR #42]
+             - Adding *all_except_body* option to *ts_http request* subst.
+             - Adding mysqladmin monitoring options to erlang monitors.
+             - Adding mean rate calculation to tsung_stats reports.
+             - Adding *--title option* to set header of report
 - [PR #75]   - Support SSL/TLS client certificate file attributes for jabber starttls
 
 ## [1.5.0] - 2013-05-24 - Major enhancements and bugfixes ##

@@ -92,7 +92,7 @@ You can also enable the TCP REUSEADDR option globally:
 IP transparent
 ---------------------------------------
 
-.. versionadded:: 1.6.1
+.. versionadded:: 1.7.0
 
 This option is used to set the IP_TRANSPARENT option on the TCP socket
 

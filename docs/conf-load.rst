@@ -86,7 +86,7 @@ specific phase, using ``session_setup``:
     </arrivalphase>
 
 
-.. versionadded:: 1.6.1
+.. versionadded:: 1.7.0
 
 Be default, a phase ends when it's duration has been reached, even if
 all started sessions during the phase are not finished. You can
