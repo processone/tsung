@@ -141,7 +141,7 @@ repeat | if | change_type | foreach | set_option | interaction | abort )*>
     persistent   (true | false) #IMPLIED
     probability   NMTOKEN #IMPLIED
     weight        NMTOKEN #IMPLIED
-    type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs | ts_shell | ts_job | ts_websocket | ts_amqp | ts_mqtt) #REQUIRED>
+    type         (ts_jabber | ts_http | ts_raw| ts_probe | ts_pgsql | ts_ldap | ts_webdav |ts_mysql| ts_fs | ts_shell | ts_job | ts_websocket | ts_amqp | ts_mqtt) #REQUIRED>
 
 <!ELEMENT session_setup EMPTY>
 <!ATTLIST session_setup
@@ -161,7 +161,7 @@ repeat | if | change_type | foreach | set_option | interaction | abort )*>
 
 <!ELEMENT change_type EMPTY>
 <!ATTLIST change_type
-     new_type         (ts_jabber | ts_http | ts_raw | ts_pgsql | ts_ldap | ts_webdav | ts_mysql | ts_fs | ts_shell | ts_job | ts_websocket | ts_amqp | ts_mqtt) #REQUIRED
+     new_type         (ts_jabber | ts_http | ts_raw |ts_probe | ts_pgsql | ts_ldap | ts_webdav | ts_mysql | ts_fs | ts_shell | ts_job | ts_websocket | ts_amqp | ts_mqtt) #REQUIRED
      host CDATA #REQUIRED
      port CDATA #REQUIRED
      server_type NMTOKEN #REQUIRED
@@ -170,7 +170,7 @@ repeat | if | change_type | foreach | set_option | interaction | abort )*>
      bidi ( true | false ) "false"
     >
 
-<!ELEMENT request ( match*, dyn_variable*, ( http | jabber | raw |
+<!ELEMENT request ( match*, dyn_variable*, ( http | jabber | probe | raw |
           pgsql | ldap | mysql |fs | shell | job | websocket | amqp | mqtt) )>
 <!ATTLIST request
     subst (true|false|all_except_body) "false"
@@ -358,6 +358,12 @@ repeat | if | change_type | foreach | set_option | interaction | abort )*>
 <!ATTLIST raw
     ack         (global | local | no_ack) #REQUIRED
     datasize CDATA #IMPLIED
+    data     CDATA #IMPLIED>
+
+<!ELEMENT probe EMPTY >
+<!ATTLIST probe
+    ack         (global | local | no_ack) #REQUIRED
+    interval CDATA #IMPLIED
     data     CDATA #IMPLIED>
 
 <!ELEMENT ldap (attr* | modification*) >
