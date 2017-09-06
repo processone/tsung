@@ -339,8 +339,14 @@ handle_info2({inet_reply, _Socket,ok}, StateName, State ) ->
 %% TODO this would happen in mixed session when previous session was saved and
 %% there are data send from the server, and handle_info will NOT normalize
 %% these data as {gen_ts_transport, Socket, Data}. Ignore it currently.
+handle_info2({udp, Socket, _,_,_}, StateName, State ) ->
+    ?LOGF("UDP data received in state ~p~n",[StateName],?NOTICE),
+    (State#state_rcv.protocol):set_opts(Socket, [{active, once}]),
+    ts_mon_cache:add({ count, error_other_socket_data }),
+    {next_state, StateName, State};
 handle_info2({tcp, Socket, _Data}, StateName, State ) ->
-    ?LOGF("tcp data received in state ~p~n",[StateName],?NOTICE),
+    ?LOGF("TCP data received in state ~p~n",[StateName],?NOTICE),
+    ts_mon_cache:add({ count, error_other_socket_data }),
 
     %% we need a set_opts call and update the old socket to the new one,
     %% or if we switch back to the saved session, we can't receive data
@@ -383,11 +389,6 @@ handle_info2({ssl_closed, Socket}, StateName, State) ->
                     _ -> ok
                 end, Acc end, unused, DictList),
     {next_state, StateName, State};
-
-handle_info2({gen_ts_transport, Socket, _Data}, wait_ack, State=#state_rcv{socket=CurrentSocket} ) when  Socket /= CurrentSocket ->
-    ?LOGF("Warn: Data received in wait_ack from other socket ~p, skip data ~p~n", [Socket], ?WARN),
-    ts_mon_cache:add({ count, error_data_from_other_socket }),
-    {next_state, wait_ack, State};
 
 handle_info2(Msg, StateName, State ) ->
     ?LOGF("Error: Unknown msg ~p receive in state ~p, stop~n", [Msg,StateName], ?ERR),
