@@ -384,6 +384,11 @@ handle_info2({ssl_closed, Socket}, StateName, State) ->
                 end, Acc end, unused, DictList),
     {next_state, StateName, State};
 
+handle_info2({gen_ts_transport, Socket, _Data}, wait_ack, State=#state_rcv{socket=CurrentSocket} ) when  Socket /= CurrentSocket ->
+    ?LOGF("Warn: Data received in wait_ack from other socket ~p, skip data ~p~n", [Socket], ?WARN),
+    ts_mon_cache:add({ count, error_data_from_other_socket }),
+    {next_state, wait_ack, State};
+
 handle_info2(Msg, StateName, State ) ->
     ?LOGF("Error: Unknown msg ~p receive in state ~p, stop~n", [Msg,StateName], ?ERR),
     ts_mon_cache:add({ count, error_unknown_msg }),
@@ -1023,8 +1028,8 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort, Try}) when 
         {error, Reason} ->
             {A,B,C,D} = IP,
             %% LOG only at INFO level since we report also an error to ts_mon
-            ?LOGF("(Re)connect from ~p.~p.~p.~p:~p to ~s:~p, Error: ~p~n",
-                  [A,B,C,D, CPort, ServerName, Port , Reason],?INFO),
+            ?LOGF("(Re)connect from ~p.~p.~p.~p:~p to ~s:~p (~p), Error: ~p~n",
+                  [A,B,C,D, CPort, ServerName, Port , Protocol, Reason],?INFO),
             case {Reason,CPort,Try}  of
                 {eaddrinuse, Val,CPortServer} when Val == 0; CPortServer == undefined ->
                     %% already retry once, don't try again.
