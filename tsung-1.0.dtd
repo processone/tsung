@@ -430,7 +430,7 @@ repeat | if | change_type | foreach | set_option | interaction | abort )*>
 <!ELEMENT setdynvars (var*) >
 <!ATTLIST setdynvars
     sourcetype   (random_string | urandom_string | random_number |
-          file | erlang | eval| jsonpath | value | server)  #REQUIRED
+          local_file | file | erlang | eval| jsonpath | value | server)  #REQUIRED
     callback     CDATA   #IMPLIED
     code         CDATA   #IMPLIED
     fileid       CDATA   #IMPLIED

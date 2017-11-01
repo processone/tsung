@@ -943,6 +943,18 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     lists:foldl( fun parse/2,
                                  Conf#config{file_server=[{Id, FileName} | Conf#config.file_server]},
                                  Element#xmlElement.content);
+                "local_file_server" ->
+                    FileName = getAttr(Attrs, value),
+                    case file:read_file_info(FileName) of
+                        {ok, _} ->
+                            ok;
+                        {error, _Reason} ->
+                            exit({error, bad_filename, FileName})
+                    end,
+                    Id       = getAttr(atom, Attrs, id,default),
+                    lists:foldl( fun parse/2,
+                                 Conf#config{local_file_server=[{Id, FileName} | Conf#config.local_file_server]},
+                                 Element#xmlElement.content);
                 "global_number" ->
                     GlobalNumber = getAttr(integer, Attrs, value, ?config(global_number)),
                     ts_timer:config(GlobalNumber),
@@ -1066,6 +1078,16 @@ parse(Element = #xmlElement{name=setdynvars, attributes=Attrs},
                              {setdynvars,file,{Order,FileId,Delimiter},Vars};
                          false ->
                              io:format(standard_error, "Unknown_file_id ~p in file setdynvars declaration: you forgot to add a file_server option~n",[FileId]),
+                             exit({error, unknown_file_id})
+                     end;
+                  "local_file" ->
+                     FileId = getAttr(atom,Attrs,fileid,none),
+                     case lists:keysearch(FileId,1,Conf#config.local_file_server) of
+                         {value,_Val} ->
+                             Delimiter = list_to_binary(getAttr(string,Attrs,delimiter,";")),
+                             {setdynvars,local_file,{FileId,Delimiter},Vars};
+                         false ->
+                             io:format(standard_error, "Unknown_file_id ~p in file setdynvars declaration: you forgot to add a local_file_server option~n",[FileId]),
                              exit({error, unknown_file_id})
                      end;
                  "random_string" ->
