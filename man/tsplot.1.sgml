@@ -45,7 +45,7 @@ Plot several tsung logs on the same charts, for comparison purpose.
       <filename>tsung.log</filename> file data.
 
       <command>tsplot</command> is able to plot data from several
-      <filename>tsung.log</filename> files onto the same charts serie,
+      <filename>tsung.log</filename> files onto the same charts series,
       for further comparison and analyze.
     </para>
   </refsect1>
@@ -298,7 +298,7 @@ Plot several tsung logs on the same charts, for comparison purpose.
 	    scales. <command>matplotlib</command> is able to define
 	    some more complex drawings, but <command>tsplot</command>
 	    is not yet able to benefit from this.
-	  </para>	  
+	  </para>
         </listitem>
       </varlistentry>
 
@@ -313,7 +313,7 @@ Plot several tsung logs on the same charts, for comparison purpose.
 	    Each plot on a chart has a legend entry, you configure
 	    here the meaning of the plot (say 'concurrent users') and
 	    <command>tsplot</command> will add it the name of the data
-	    serie being plotted (say 'scenario x'). You'd obtain this
+	    series being plotted (say 'scenario x'). You'd obtain this
 	    legend: 'concurrent users scenario x'.
 	  </para>
         </listitem>
