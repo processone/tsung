@@ -674,7 +674,7 @@ parse( #xmlElement{name=change_type, attributes=Attrs},
                  true  -> CType % back to the main type
              end,
     ets:insert(Tab,{{CurS#session.id, Id+1}, {change_type, CType, Server, Port, PType, Store, Restore, Bidi}}),
-    ?LOGF("Parse change_type (~p) ~p:~p:~p:~p ~n",[CType, Server,Port,PType,Id],?NOTICE),
+    ?LOGF("Parse change_type (~p) ~p:~p:~p:~p (store/restore: ~p:~p)~n",[CType, Server,Port,PType,Id, Store, Restore],?NOTICE),
     Conf#config{main_sess_type=SessType, curid=Id+1,
                 sessions=[CurS#session{type=CType}|Other] };
 
