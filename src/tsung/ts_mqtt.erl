@@ -127,7 +127,7 @@ get_message(#mqtt_request{type = subscribe, topic = Topic, qos = Qos},
     NewMqttSession = MqttSession#mqtt_session{curr_id = Id + 1},
     Arg = [#sub{topic = Topic, qos = Qos}],
     MsgId = NewMqttSession#mqtt_session.curr_id,
-    Message = #mqtt{id = MsgId, type = ?SUBSCRIBE, arg = Arg},
+    Message = #mqtt{id = MsgId, type = ?SUBSCRIBE, arg = Arg, qos = 1},
     {mqtt_frame:encode(Message), NewMqttSession#mqtt_session{wait = ?SUBACK}};
 get_message(#mqtt_request{type = unsubscribe, topic = Topic},
             #state_rcv{session = MqttSession = #mqtt_session{curr_id = Id}}) ->
