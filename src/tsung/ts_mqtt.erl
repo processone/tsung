@@ -269,9 +269,11 @@ add_dynparams(true, {DynVars, _S},
               _HostData) ->
     NewUserName = ts_search:subst(UserName, DynVars),
     NewPassword = ts_search:subst(Password, DynVars),
+    NewWillTopic = ts_search:subst(WillTopic, DynVars),
+
     Param#mqtt_request{ type = connect,
 			clean_start = CleanStart,
-			keepalive = KeepAlive, will_topic = WillTopic,
+			keepalive = KeepAlive, will_topic = NewWillTopic,
 			will_qos = WillQos, will_msg = WillMsg,
 			will_retain = WillRetain,
 			username = NewUserName,
