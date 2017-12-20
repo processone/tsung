@@ -205,7 +205,7 @@ repeat | if | change_type | foreach | set_option | interaction | abort )*>
     >
 
 <!ELEMENT transaction (request | setdynvars | thinktime | for | repeat
-          | if | foreach | interaction | abort | change_type )+>
+          | if | foreach | interaction | abort | change_type| transaction )+>
 <!ATTLIST transaction name NMTOKEN #REQUIRED>
 
 <!ELEMENT http (oauth?, www_authenticate?, soap?, http_header*, add_cookie*)>
