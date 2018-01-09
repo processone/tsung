@@ -738,7 +738,7 @@ rel(R,A,B) when is_integer(A) and not is_integer(B)->
     rel(R,list_to_binary(integer_to_list(A)),B);
 rel(R,A,B) when is_list(B) ->
     rel(R,A,list_to_binary(B));
-rel(R,A,B) when is_list(A) ->
+rel(R,A,B) when is_list(A), R /= 'in' ->
     rel(R,list_to_binary(A),B);
 rel(R,A,B) when is_atom(A) ->
     rel(R,atom_to_binary(A,utf8),B);
@@ -755,7 +755,20 @@ rel('lt',A,B) ->
 rel('gte',A,B) ->
     binary_to_num(B) >= binary_to_num(A);
 rel('lte',A,B) ->
-    binary_to_num(B) =< binary_to_num(A).
+    binary_to_num(B) =< binary_to_num(A);
+
+rel('in',[A|_T] = C,B) when is_integer(B) and not is_integer(A)->
+    rel('in',C,list_to_binary(integer_to_list(B)));
+rel('in',[A|_T] = C,B) when is_integer(A) and not is_integer(B)->
+    rel('in',[list_to_binary(integer_to_list(A2)) || A2 <- C],B);
+rel('in',[A|_T] = C,B) when is_list(A) ->
+    rel('in',[list_to_binary(A2) || A2 <- C], B);
+rel('in',[A|_T] = C,B) when is_atom(A) ->
+    rel('in',[atom_to_binary(A2,utf8) || A2 <- C], B);
+rel('in',A,B) when is_binary(A) ->
+    rel('in', binary:split(A,<<",">>), B);
+rel('in',A,B) when is_list(A) ->
+    lists:member(B, A).
 
 need_jump('while',F) -> F;
 need_jump('until',F) -> not F;

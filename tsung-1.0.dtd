@@ -497,6 +497,7 @@ repeat | if | change_type | foreach | set_option | interaction | abort )*>
     eq        CDATA #IMPLIED
     neq       CDATA #IMPLIED
     gt        CDATA #IMPLIED
+    in        CDATA #IMPLIED
     gte       CDATA #IMPLIED
     lt        CDATA #IMPLIED
     lte       CDATA #IMPLIED >

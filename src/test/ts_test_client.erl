@@ -125,3 +125,41 @@ lte_float_test()->
     ?assertEqual(true, ts_client:rel('lte',<<"2.0">>,<<"2.0">>)),
     ?assertEqual(true, ts_client:rel('lte',<<"-2.0">>,<<"-2.0">>)),
     ?assertEqual(true, ts_client:rel('lte',<<"22.1">>,<<"3.0">>)).
+
+in_test() ->
+    ?assertEqual(false, ts_client:rel('in',[5],4)),
+    ?assertEqual(true, ts_client:rel('in',[4],4)).
+
+in_float_test() ->
+    ?assertEqual(false, ts_client:rel('in',[5.0],4.0)),
+    ?assertEqual(true, ts_client:rel('in',[4.0],4.0)).
+
+in_alist_test() ->
+    ?assertEqual(false, ts_client:rel('in',["5"],4)),
+    ?assertEqual(true, ts_client:rel('in',["4"],4)).
+
+in_blist_test() ->
+    ?assertEqual(false, ts_client:rel('in',[<<"5">>],"4")),
+    ?assertEqual(true, ts_client:rel('in',[<<"4">>],"4")).
+
+in_binary_test() ->
+    ?assertEqual(true, ts_client:rel('in',<<"foobar">>,<<"foobar">>)),
+    ?assertEqual(true, ts_client:rel('in',<<"yada,foobar">>,<<"foobar">>)),
+    ?assertEqual(true, ts_client:rel('in',<<"foobar,yada">>,<<"foobar">>)),
+    ?assertEqual(false, ts_client:rel('in',<<"boofar,yada">>,<<"foobar">>)),
+    ?assertEqual(false, ts_client:rel('in',<<"foobar">>,<<"boofar">>)),
+    ?assertEqual(true, ts_client:rel('in',[<<"foobar">>],<<"foobar">>)).
+
+in_list_test() ->
+    ?assertEqual(true, ts_client:rel('in', ["foobar"],<<"foobar">>)),
+    ?assertEqual(true, ts_client:rel('in', ["foobar"],"foobar")),
+    ?assertEqual(true, ts_client:rel('in', [<<"foobar">>],<<"foobar">>)).
+
+in_aatom_test() ->
+    ?assertEqual(false, ts_client:rel('in', [foo], <<"foobar">>)),
+    ?assertEqual(true, ts_client:rel('in', [foobar], <<"foobar">>)),
+    ?assertEqual(true, ts_client:rel('in', [foobar], <<"foobar">>)).
+
+in_batom_test() ->
+    ?assertEqual(false, ts_client:rel('in', [<<"barfoo">>], foobar)),
+    ?assertEqual(true, ts_client:rel('in', [<<"foobar">>], foobar)).
