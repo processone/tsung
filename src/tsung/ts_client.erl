@@ -339,9 +339,10 @@ handle_info2({inet_reply, _Socket,ok}, StateName, State ) ->
 %% TODO this would happen in mixed session when previous session was saved and
 %% there are data send from the server, and handle_info will NOT normalize
 %% these data as {gen_ts_transport, Socket, Data}. Ignore it currently.
-handle_info2({udp, Socket, _,_,_}, StateName, State ) ->
+handle_info2({udp, Socket, _, _, Data}, StateName, State ) ->
     ?LOGF("UDP data received in state ~p~n",[StateName],?NOTICE),
     (State#state_rcv.protocol):set_opts(Socket, [{active, once}]),
+    ts_mon:rcvmes({State#state_rcv.dump, self(), Data}),
     ts_mon_cache:add({ count, error_other_socket_data }),
     {next_state, StateName, State};
 handle_info2({tcp, Socket, _Data}, StateName, State ) ->
