@@ -575,21 +575,24 @@ parse(_Element = #xmlElement{name=repeat,attributes=Attrs,content=Content},
         when (While == 'while') or (While == 'until')->
             {Rel,Value} = case {getAttr(string,WhileAttrs,eq,none),
                                 getAttr(string,WhileAttrs,neq,none),
+                                getAttr(string,WhileAttrs,in,none),
                                 getAttr(string,WhileAttrs,gt,none),
                                 getAttr(string,WhileAttrs,lt,none),
                                 getAttr(string,WhileAttrs,gte,none),
                                 getAttr(string,WhileAttrs,lte,none)} of
-                              {none, Neq, none, none, none, none} ->
+                              {none, Neq, none, none, none, none, none} ->
                                   {neq,Neq};
-                              {Eq, none, none, none, none, none} ->
+                              {Eq, none, none, none, none, none, none} ->
                                   {eq,Eq};
-                              {none, none, Gt, none, none, none} ->
+                              {none, none, In, none, none, none, none} ->
+                                  {in,In};
+                              {none, none, none, Gt, none, none, none} ->
                                   {gt,Gt};
-                              {none, none, none, Lt, none, none} ->
+                              {none, none, none, none, Lt, none, none} ->
                                   {lt,Lt};
-                              {none, none, none, none, Gte, none} ->
+                              {none, none, none, none, none, Gte, none} ->
                                   {gt,Gte};
-                              {none, none, none, none, none, Lte} ->
+                              {none, none, none, none, none, none, Lte} ->
                                   {lt,Lte}
                           end,
                           %either <while .. eq=".."/> , <while ..neq=".."/>

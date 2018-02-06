@@ -685,6 +685,13 @@ You can use ``eq`` or ``neq`` to check the variable.
 ``gte``, ``lt`` and ``lte`` to do respectively ``greater than``,
 ``greater than or equal to``, ``less than`` and ``less than or equal to``.
 
+**Since version X.X.X** you can use the comparison operator ``in`` to
+qualify based on list membership.
+
+.. code-block:: xml
+
+ <if var="myvar" eq="SLEEP,WAIT">
+
 If the dynamic variable is a list (output from XPath for example), you
 can access to the n-th element of a list like this:
 
@@ -696,6 +703,8 @@ Here we compare the first element of the list to 3.
 
 .. index:: abort
 
+
+	   
 <abort>
 """"""""
 **Since 1.7.0** you can abort the session or the whole test by using an ``<abort/>`` element in a session (can be used inside an <if> statement for example). By default it will abort the current user session, but you can abort the whole test by setting the `type` attribute to `all`  ``<abort type='all'/>``
