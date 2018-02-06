@@ -223,7 +223,11 @@ cport_list_node_test() ->
 
 
 ifalias_test() ->
-    Res=ts_ip_scan:get_intf_aliases("lo"),
+    Interface = case os:type() of
+		    {unix,darwin} -> "lo0";
+		    _ -> "lo"
+		end,
+    Res=ts_ip_scan:get_intf_aliases(Interface),
     ?assertEqual([{127,0,0,1}],Res).
 
 ifalias2_test() ->

@@ -157,16 +157,26 @@ code_change(_OldVsn, State, _Extra) ->
 
 %%
 get_intf_aliases(Interface) ->
-    case file:read_file_info("/sbin/ip") of
-        {ok,_} ->
-            Res=os:cmd("LC_ALL=C /sbin/ip -o -f inet addr show dev "++Interface),
-            get_ip_aliases(string:tokens(Res,"\n"), []);
-        {error,Reason} ->
-            ?LOGF("ip command not found (~p), using ifconfig instead~n",[Reason],?NOTICE),
-            Res=os:cmd("LC_ALL=C /sbin/ifconfig "),
-            get_intf_aliases(string:tokens(Res,"\n"), Interface,[],[])
+    case os:type() of
+	{unix,darwin} ->
+	    {ok, Ifs} = inet:getifaddrs(),
+	    {_, Attrs} = proplists:lookup(Interface,Ifs),
+	    Addrs = proplists:get_all_values(addr, Attrs),
+	    lists:filter(fun(Tuple) when erlang:size(Tuple) =:= 4 -> true;
+			    (_) -> false
+			 end,
+			 Addrs);
+	_ ->
+	    case file:read_file_info("/sbin/ip") of
+		{ok,_} ->
+		    Res=os:cmd("LC_ALL=C /sbin/ip -o -f inet addr show dev "++Interface),
+		    get_ip_aliases(string:tokens(Res,"\n"), []);
+		{error,Reason} ->
+		    ?LOGF("ip command not found (~p), using ifconfig instead~n",[Reason],?NOTICE),
+		    Res=os:cmd("LC_ALL=C /sbin/ifconfig "),
+		    get_intf_aliases(string:tokens(Res,"\n"), Interface,[],[])
+	    end
     end.
-
 
 get_ip_aliases([], Res) ->
     Res;
