@@ -266,6 +266,17 @@ get_message(#jabber{type = 'muc:nick', room = Room, muc_service = Service, nick 
 get_message(#jabber{type = 'muc:exit', room = Room, muc_service = Service, nick = Nick}) ->
     muc_exit(Room, Nick, Service);
 
+get_message(#jabber{type = 'ping', data=Data, id=Id, dest=online, username=Username, passwd=Pwd, resource=Resource,
+                    domain=Domain, user_server=UserServer, prefix=Prefix}) ->
+    case ts_user_server:get_online(UserServer,set_id(Id,Username,Pwd)) of
+        {ok, {Dest,_}} ->
+            ping(Domain, Username, Resource, Data, Dest);
+        {ok, DestId} ->
+            ping(Domain, Username, Resource, Data, ts_jabber:username(Prefix,DestId));
+        {error, no_online} ->
+            ts_mon_cache:add({ count, error_no_online }),
+            << >>
+    end;
 get_message(#jabber{type = 'ping', data=Data, username = Username, domain = Domain, resource=Resource}) ->
     ping(Domain, Username, Resource, Data, undefined);
 
