@@ -115,7 +115,7 @@ update_reports() ->
                     os:cmd(Cmd)
             end;
         File ->
-            Cmd ="cd "++ Path ++ "; "++ File,
+            Cmd ="cd "++ Path ++ "; "++ File ++ " --dygraph",
             os:cmd(Cmd)
     end.
 
