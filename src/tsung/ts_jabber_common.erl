@@ -191,6 +191,9 @@ get_message(Jabber=#jabber{type = 'raw'}) ->
 get_message(#jabber{type = 'pubsub:create', username=Username, node=Node, node_type=NodeType,
                     data = Data, pubsub_service = PubSubComponent, domain = Domain}) ->
     create_pubsub_node(Domain, PubSubComponent, Username, Node, NodeType, Data);
+get_message(#jabber{type = 'pubsub:delete', username=Username, node=Node,
+                    pubsub_service = PubSubComponent, domain = Domain}) ->
+    delete_pubsub_node(Domain, PubSubComponent, Username, Node);
 %% For node subscription, data contain the pubsub nodename (relative to user
 %% hierarchy or absolute)
 get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=UserFrom, user_server=UserServer,
@@ -645,6 +648,23 @@ pubsub_node_type(undefined) ->
 pubsub_node_type(Type) when is_list(Type) ->
     [" type='", Type, "' "].
 
+pubsub_subid(undefined) -> "";
+pubsub_subid(SubId) when is_list(SubId) ->
+    [" subid='", SubId, "' "].
+
+%%%----------------------------------------------------------------------
+%%% Func: delete_pubsub_node/4
+%%% Delete a pubsub node: Generate XML packet
+%%% Nodenames are relative to the User pubsub hierarchy (ejabberd); they are
+%%% absolute with leading slash.
+%%%----------------------------------------------------------------------
+delete_pubsub_node(Domain, PubSubComponent,Username, Node) ->
+    list_to_binary(["<iq to='", PubSubComponent, "' type='set' id='",
+            ts_msg_server:get_id(list),"'>"
+            "<pubsub xmlns='http://jabber.org/protocol/pubsub#owner'>"
+            "<delete", pubsub_node_attr(Node, Domain, Username),
+            "/></pubsub></iq>"]).
+
 %%%----------------------------------------------------------------------
 %%% Func: subscribe_pubsub_node/4
 %%% Subscribe to a pubsub node: Generate XML packet
@@ -677,7 +697,7 @@ unsubscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node, SubId) 
                     "<unsubscribe",
                     pubsub_node_attr(Node, Domain, UserTo),
                     " jid='", UserFrom, "@", Domain, "'",
-                    " subid='", SubId, "'",
+                    pubsub_subid(SubId),
                     "/>",
                     "</pubsub>",
                     "</iq>"]).
