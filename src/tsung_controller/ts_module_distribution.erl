@@ -76,7 +76,7 @@ distribute_modules_to_nodes(Nodes, Modules) ->
     Fun = fun(Module) -> distribute_module(Nodes, Module) end,
     DistributionResult = ts_utils:pmap(Fun, Modules, 10),
 
-    case lists:foreach(fun(Status) -> Status == ok end, DistributionResult) of
+    case lists:all(fun(Status) -> Status == ok end, DistributionResult) of
         true ->
             ok;
         false ->
