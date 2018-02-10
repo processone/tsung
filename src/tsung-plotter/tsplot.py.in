@@ -42,6 +42,11 @@ sys.path.append(LIBDIR)
 
 from tsung_plotter.tsung import TsungLog
 from ConfigParser import ConfigParser
+
+# Prevents pylab from requiring a X Server to run
+import matplotlib
+matplotlib.use("Agg")
+
 from pylab import *
 
 

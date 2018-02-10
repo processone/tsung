@@ -29,7 +29,7 @@
 test()->ok.
 
 handshake_test() ->
-    {_, Accept} = websocket:get_handshake("127.0.0.1", "/chat", [], 13),
+    {_, Accept} = websocket:get_handshake("127.0.0.1", "/chat", [], 13, ""),
     Response1 = ["HTTP/1.1 101 Switching Protocols\r\n",
                  "Upgrade: websocket\r\n",
                  "Connection: Upgrade\r\n",
@@ -99,6 +99,15 @@ decode_test() ->
     Data2 = <<16#81,16#05,16#48,16#65,16#6c,16#6c>>,
     Result = websocket:decode(Data2),
     ?assertEqual(more, Result).
+
+parse_partial_test() ->
+    Data  = <<16#81,16#05,16#48,16#65,16#6c,16#6c >>,
+    Data2  = <<16#6f >>,
+    State  = #state_rcv{session=#websocket_session{status=connected}},
+    {State2,_,_} = ts_websocket:parse(Data, State),
+    ?assertEqual(State#state_rcv{ack_done=false,acc= Data, datasize=size(Data)}, State2),
+    {State3,_,_} = ts_websocket:parse(Data2, State2),
+    ?assertEqual(State#state_rcv{ack_done=true, acc= <<  >>, datasize=size(Data)+size(Data2)}, State3).
 
 myset_env()->
     myset_env(0).

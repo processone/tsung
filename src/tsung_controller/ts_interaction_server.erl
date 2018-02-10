@@ -166,7 +166,7 @@ handle_cast({'receive',StatsName, EndDate}, State=#state{to=To, notify=Notify}) 
         [{_Key, StartDate}] ->
             ?LOGF("to/from ended, logging ~p ~n",[StatsName],?DEB),
             handle_notification(Notify,{'receive',StatsName}),
-            ts_mon:add({sample,StatsName, ts_utils:elapsed(StartDate,EndDate)}),
+            ts_mon_cache:add({sample,StatsName, ts_utils:elapsed(StartDate,EndDate)}),
             {noreply, State}
     end;
 

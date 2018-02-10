@@ -27,7 +27,7 @@
 -vc('$Id$ ').
 -author('jzhihui521@gmail.com').
 
--export([get_handshake/4, check_handshake/2, encode_binary/1, encode_text/1,
+-export([get_handshake/5, check_handshake/2, encode_binary/1, encode_text/1,
          encode_close/1, encode/2, decode/1]).
 
 -include("ts_profile.hrl").
@@ -37,14 +37,17 @@
 %%%===================================================================
 %%% API functions
 %%%===================================================================
-get_handshake(Host, Path, SubProtocol, Version) ->
+get_handshake(Host, Path, SubProtocol, Version, Origin) ->
     {Key, Accept} = gen_accept_key(),
     Req = list_to_binary(["GET ", Path, " HTTP/1.1\r\n",
                           "Host: ", Host ,"\r\n",
                           "Upgrade: websocket\r\n",
                           "Connection: Upgrade\r\n",
+                          "Origin: ",
+                          case Origin of "" -> Host;
+                                         _  -> Origin
+                          end, "\r\n",
                           "Sec-WebSocket-Key: ", Key, "\r\n",
-                          "Origin: http://", Host, "\r\n",
                           "Sec-WebSocket-Version: ", Version, "\r\n"]),
     SubProHeader = case SubProtocol of
         [] -> [];
@@ -110,7 +113,7 @@ encode_close(Reason) ->
     encode(Data, ?OP_CLOSE).
 
 encode(Data, Opcode) ->
-    Key = crypto:rand_bytes(4),
+    Key = crypto:strong_rand_bytes(4),
     PayloadLen = erlang:size(Data),
     MaskedData = mask(Data, Key),
     Length = if
@@ -128,10 +131,10 @@ decode(Data) ->
 %%%===================================================================
 gen_accept_key() ->
     random:seed(erlang:now()),
-    Key = crypto:rand_bytes(16),
+    Key = crypto:strong_rand_bytes(16),
     KeyStr = base64:encode_to_string(Key),
     Accept = binary:list_to_bin(KeyStr ++ "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"),
-    AcceptStr = base64:encode_to_string(crypto:sha(Accept)),
+    AcceptStr = base64:encode_to_string(crypto:hash(sha, Accept)),
     {KeyStr, AcceptStr}.
 
 %%%===================================================================

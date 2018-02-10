@@ -26,13 +26,13 @@
 # given a (set of) log file(s)  from the tsung tool.
 
 # dygraphs fonctionnality added by Bearstech (http://bearstech.com)
-# using dygraphs JavaScript Visualization Library (http://danvk.org/dygraphs/)
+# using dygraphs JavaScript Visualization Library (http://dygraphs.com)
 
 use strict;
 use Getopt::Long;
 use vars qw ($help @files $dygraph $verbose $debug $noplot $noextra $version $stats
              $template_dir $nohtml $template_dir $gnuplot $logy $rotate_xtics
-             $imgfmt $oldgnuplot $report_title );
+             $imgfmt $newgnuplot $report_title );
 use File::Spec::Functions qw(rel2abs);
 use File::Basename;
 use File::Copy;
@@ -116,25 +116,25 @@ foreach my $dir (@dirs) {
 }
 
 $gnuplot = "gnuplot" unless $gnuplot;
-my $oldgnuplot = is_oldgnuplot($gnuplot);
+my $newgnuplot = is_newgnuplot($gnuplot);
 $gnuplot .= " >> gnuplot.log 2>&1";
 
 &parse_stats_file($stats);
 &html_report() unless $nohtml;
 
 # returns 1 (=true) if gnuplot doesn't support the "set terminal png size x,y" specifications
-sub is_oldgnuplot {
+sub is_newgnuplot {
     # args
     my $gnuplot    = shift;
     my $version = `$gnuplot -V`;
     if ($version =~ m /gnuplot (\d+).(\d+) patchlevel (\d+)/) {
         my ($major, $minor,$patchlevel) = ($1,$2,$3);
-        return 0 if $major > 5;
-        return 1 if $major < 3;
-        return 1 if $minor <2; # does it work with gnuplot 4.1 or 4.0 ? we assume no.
-        return 0;
-    } else {
+        return 2 if $major >= 5;
+        return 0 if $major < 3;
+        return 0 if $minor <2; # does it work with gnuplot 4.1 or 4.0 ? we assume no.
         return 1;
+    } else {
+        return 0;
     }
 }
 
@@ -192,15 +192,15 @@ sub plot_stats {
             $output_ext = "svg";
         }
         # gnuplot styles and options
-        print "set size $thumbnail_size,$thumbnail_size\n" if (($output_fmt eq "tn.png") and $oldgnuplot);
+        print "set size $thumbnail_size,$thumbnail_size\n" if (($output_fmt eq "tn.png") and !$newgnuplot);
         print "set xtics rotate\n"  if (($output_ext eq "png") and ($rotate_xtics));
         print "set style data  $style\n";
-        if (($output_fmt eq "tn.png") and not $oldgnuplot  and ($output_type !~ /pngcairo/)) {
+        if (($output_fmt eq "tn.png") and $newgnuplot  and ($output_type !~ /pngcairo/)) {
             print "set terminal $output_type tiny size 320,240\n";
-        } elsif (($output_fmt eq "tn.png") and not $oldgnuplot) {
-            print "set terminal $output_type size 320,240 font 'Verdana,7' \n";
-        } elsif ((($output_ext eq "svg") or (($output_ext eq "png")) ) and not $oldgnuplot) {
-            print "set terminal $output_type size 1024,768\n";
+        } elsif (($output_fmt eq "tn.png") and $newgnuplot) {
+            print "set terminal $output_type size 320,240 font 'Verdana,7'\n";
+        } elsif ((($output_ext eq "svg") or (($output_ext eq "png")) ) and $newgnuplot) {
+            print "set terminal $output_type size 1024,768 \n";
         } else {
             print "set terminal $output_type\n";
         }
@@ -245,7 +245,8 @@ sub plot_stats {
                 my $cur_title = $filename;
                 $cur_title =~ s/\.txt$//;
                 $cur_title =~ s/:os_mon//;
-                print " title \"$cur_title\" ls $lineindex" ;
+                $cur_title =~ s/(_|@)/\\$1/g if ($newgnuplot > 1);
+                print " title '$cur_title' ls $lineindex" ;
                 print "," unless ($filename eq @{$files}[$#{$files}]); # unless last occurence
             }
             print "\n"; # plot done
@@ -399,7 +400,7 @@ sub parse_stats_file {
                 $category->{$type} = "http_status";
             } elsif ($type eq "request" or $type eq "page" or $type eq "session" or  $type eq "connect" or $type eq "async_rcv") {
                 $category->{$type} = "stats";
-            } elsif ($type =~ /^tr_/ or $type eq "page") {
+            } elsif ($type =~ /^tr_/ or $type eq "page" or $type eq "xmpp_msg_latency") {
                 $category->{$type} = "transaction";
             } elsif ($type =~ "^size") {
                 $category->{$type} = "network";
@@ -481,7 +482,7 @@ sub parse_stats_file {
                 ($time, $data, @tmp) = split(/\s/,$data);
                 $data /= $interval;
                 $data = "$time $data @tmp";
-            } elsif ($key =~ /^size/) { # bits instead of bytes
+            } elsif ($key =~ /^size/ and $interval) { # bits instead of bytes
                 my ($time, @tmp) = split(/\s/,$data);
                 @tmp = map {$_*8/(1024*$interval) } @tmp; # kb/s instead of Bytes/s
                 $data = "$time @tmp";
@@ -510,7 +511,7 @@ sub parse_stats_file {
         } elsif ($key eq "bosh_http_conn" or $key eq "bosh_http_req") {
 	    $bosh = 1;
             push @bosh_tps, "$key.txt";
-        } elsif ($key =~ /^tr_/ or $key eq "page") {
+        } elsif ($key =~ /^tr_/ or $key eq "page" or $key eq "xmpp_msg_latency") {
             push @transactions, "$key.txt";
         } elsif ($key =~ /^\d+$/) {
             $http = 1;
@@ -592,7 +593,7 @@ sub html_report {
                 $maxval->{$type}->{$data} = sprintf "%.2f",$maxval->{$type}->{$data};
                 next;
             }
-            next if not ($data eq "session" or $data eq "connect" or $data eq "request" or $data eq "page" or $data =~ m/^tr_/);
+            next if not ($data eq "session" or $data eq "connect" or $data eq "request" or $data eq "page" or $data =~ m/^tr_/ or $data eq "xmpp_msg_latency");
             $maxval->{$type}->{$data} = &formattime($maxval->{$type}->{$data});
         }
     }
@@ -670,7 +671,7 @@ type `tsung_stats.pl --version` for details.\n\n";
     "[--help] (this help text)\n\t",
     "[--verbose] (print all messages)\n\t",
     "[--debug] (print receive without send messages)\n\t",
-    "[--dygraph] use dygraphs (http://danvk.org/dygraphs/) to render graphs\n\t",
+    "[--dygraph] use dygraphs (http://dygraphs.com) to render graphs\n\t",
     "[--noplot]  (don't make graphics)\n\t",
     "[--gnuplot <command>]  (path to the gnuplot binary)\n\t",
     "[--nohtml]  (don't create HTML reports)\n\t",

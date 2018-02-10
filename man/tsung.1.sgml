@@ -1,4 +1,5 @@
-<!doctype refentry PUBLIC "-//OASIS//DTD DocBook V4.1//EN">
+<!doctype refentry PUBLIC "-//OASIS//DTD DocBook V4.1//EN"
+  "http://www.oasis-open.org/docbook/sgml/4.1/docbook.dtd">
 <refentry>
   <refentryinfo>
     <address>
@@ -34,6 +35,12 @@ A distributed multi-protocol load testing tool.
       <arg><option>-l</option> log dir</arg>
       <arg><option>-m</option> filename</arg>
       <arg><option>-r</option> command</arg>
+      <arg><option>-X</option> directory</arg>
+      <arg><option>-w</option> delay</arg>
+      <arg><option>-L</option> lifetime</arg>
+      <arg><option>-s</option></arg>
+      <arg><option>-n</option></arg>
+      <arg><option>-k</option></arg>
       <arg><option>-v</option></arg>
       <arg><option>-6</option></arg>
       <arg><option>-h</option></arg>
@@ -105,7 +112,7 @@ A distributed multi-protocol load testing tool.
         <term><option>-f filename</option></term>
         <listitem>
           <para>specifies the configuration file to use. The default
-          file name is <filename>~/.tsung/tsung.xml</filename>. Use - for standard input</para></para>
+          file name is <filename>~/.tsung/tsung.xml</filename>. Use - for standard input</para>
         </listitem>
       </varlistentry>
       <varlistentry>
@@ -142,15 +149,51 @@ A distributed multi-protocol load testing tool.
         </listitem>
       </varlistentry>
       <varlistentry>
-        <term><option>-m</option></term>
+        <term><option>-s</option></term>
         <listitem>
           <para>Enable erlang smp on client nodes</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><option>-p</option></term>
+        <listitem>
+          <para>set maximum erlang processes per vm (default is 250000)</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><option>-X directory</option></term>
+        <listitem>
+          <para> add additional erlang load paths (multiple -X arguments allowed)</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><option>-L lifetime</option></term>
+        <listitem>
+          <para>SSL session lifetime in seconds (600 sec by default)</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><option>-w delay</option></term>
+        <listitem>
+          <para>warmup delay in seconds (1 sec by default)</para>
         </listitem>
       </varlistentry>
       <varlistentry>
         <term><option>-v</option></term>
         <listitem>
           <para> Show version</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><option>-n</option></term>
+        <listitem>
+          <para>disable web GUI </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><option>-k</option></term>
+        <listitem>
+          <para>keep web GUI (and controller) alive after the test has finished</para>
         </listitem>
       </varlistentry>
       <varlistentry>
@@ -172,7 +215,7 @@ A distributed multi-protocol load testing tool.
     <title>Bugs</title> <para> Please reports bugs to the mailing list
       <email>tsung-users@process-one.net</email>, see
       <address>https://lists.process-one.net/mailman/listinfo/tsung-users</address> for
-      archives.
+      archives. You can also use the issue tracker <address>https://github.com/processone/tsung/issues</address>
     </para>
   </refsect1>
 

@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<!DOCTYPE tsung SYSTEM "@prefix@/share/@PACKAGE_NAME@/@DTD@">
+<tsung loglevel="debug" dumptraffic="true" version="1.0">
+
+  <clients>
+    <client host="localhost" weight="2" maxusers="10000" use_controller_vm="true"/>
+  </clients>
+
+  <servers>
+    <server host="localhost" port="7" type="tcp"></server>
+  </servers>
+
+  <load>
+    <arrivalphase phase="1" duration="10" unit="minute">
+      <users arrivalrate="2" unit="second"></users>
+    </arrivalphase>
+  </load>
+
+
+ <sessions>
+ <session probability="100" name="raw" type="ts_raw">
+    <transaction name="open">
+      <request> <raw data="HELO" ack="local"></raw> </request>
+    </transaction>
+
+    <thinktime value="4"/>
+
+    <transaction name="data">
+    <request> <raw data="foo bar" ack="local"></raw> </request>
+    </transaction>
+
+    <thinktime value="4"/>
+
+    <transaction name="close">
+    <request> <raw data="stopstopstop" ack="local"></raw> </request>
+    </transaction>
+
+  </session>
+ </sessions>
+</tsung>

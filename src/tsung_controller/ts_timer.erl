@@ -36,13 +36,16 @@
 %%  External events: connected
 
 %% External exports
--export([start/1, connected/1, config/1]).
+-export([start/1, connected/1, config/1, set_timeout/1]).
 
 %% gen_fsm callbacks
 -export([init/1, initialize/2, receiver/2, ack/2, handle_event/3,
          handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
 
--record(state, {nclient=0, pidlist = []}).
+-record(state, {nclient    = 0, % number of unacked clients
+                maxclients = 0, % total number of clients to ack
+                pidlist = [],
+                timeout=?config(global_ack_timeout)}).
 
 %%%----------------------------------------------------------------------
 %%% API
@@ -54,6 +57,10 @@ start(NClients) ->
 config(NClients) ->
     ?LOGF("Configure fsm timer with ~p",[NClients],?INFO),
     gen_fsm:send_event({global, ?MODULE}, {config, NClients}).
+
+set_timeout(Timeout) ->
+    ?LOGF("Configure fsm timer timeout to with ~p",[Timeout],?INFO),
+    gen_fsm:send_event({global, ?MODULE}, {set_timeout, Timeout}).
 
 connected(Pid) ->
     gen_fsm:send_event({global, ?MODULE}, {connected, Pid}).
@@ -70,8 +77,9 @@ connected(Pid) ->
 %%          {stop, StopReason}
 %%----------------------------------------------------------------------
 init(_Args) ->
-    ?LOG("starting timer",?INFO),
-    {ok, initialize, #state{}}.
+    State= #state{},
+    ?LOGF("starting timer with timeout ~p",[State#state.timeout],?INFO),
+    {ok, initialize, State}.
 
 %%----------------------------------------------------------------------
 %% Func: StateName/2
@@ -80,19 +88,24 @@ init(_Args) ->
 %%          {stop, Reason, NewStateData}
 %%----------------------------------------------------------------------
 initialize({config, Val}, State) ->
-    {next_state, receiver, State#state{nclient=Val}}.
+    {next_state, receiver, State#state{nclient=Val, maxclients=Val}};
 
+initialize({set_timeout, Val}, State) ->
+    {next_state, initialize, State#state{timeout=Val}}.
+
+receiver({set_timeout, Val}, State) ->
+    {next_state, receiver, State#state{timeout=Val}};
 
 %% now all the clients are connected, let's start to ack them
-receiver({connected, Pid}, #state{pidlist=List, nclient=1}) ->
+receiver({connected, Pid}, State=#state{pidlist=List, nclient=1}) ->
     ?LOG("All connected, global ack!",?NOTICE),
-    {next_state, ack, #state{pidlist=[Pid|List],nclient=0}, 1};
+    {next_state, ack, State#state{pidlist=[Pid|List],nclient=0}, 1};
 
 %% receive a new connected mes
-receiver({connected, Pid}, #state{pidlist=List, nclient=N}) ->
+receiver({connected, Pid}, State=#state{pidlist=List, nclient=N}) ->
     ?LOGF("New connected ~p (nclient=~p)",[Pid, N],?DEB),
-    {next_state, receiver, #state{pidlist=List ++ [Pid], nclient=N-1},
-     ?config(clients_timeout)};
+    {next_state, receiver, State#state{pidlist=List ++ [Pid], nclient=N-1},
+     State#state.timeout};
 
 %% timeout event, now we start to send ack, by sending a timeout event immediatly
 receiver(timeout, StateData) ->
@@ -103,9 +116,9 @@ ack(timeout, #state{pidlist=[]}) ->
     {stop, normal, #state{}};
 
 %% ack all pids
-ack(timeout, #state{pidlist=L}) ->
+ack(timeout, State=#state{pidlist=L, maxclients = Max}) ->
     lists:foreach(fun(A)->ts_client:next({A}) end, L),
-    {next_state, receiver, #state{pidlist=[]}}.
+    {next_state, receiver, State#state{pidlist=[], nclient = Max}}.
 
 %%----------------------------------------------------------------------
 %% Func: StateName/3

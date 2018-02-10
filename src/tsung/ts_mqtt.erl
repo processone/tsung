@@ -102,7 +102,7 @@ get_message(#mqtt_request{type = disconnect},
     PingPid = MqttSession#mqtt_session.ping_pid,
     PingPid ! stop,
     Message = #mqtt{type = ?DISCONNECT},
-    ts_mon:add({count, mqtt_disconnected}),
+    ts_mon_cache:add({count, mqtt_disconnected}),
     {mqtt_frame:encode(Message),
      MqttSession#mqtt_session{wait = none, status = disconnect}};
 get_message(#mqtt_request{type = publish, topic = Topic, qos = Qos,
@@ -120,7 +120,7 @@ get_message(#mqtt_request{type = publish, topic = Topic, qos = Qos,
         1 -> ?PUBACK;
         _ -> none
     end,
-    ts_mon:add({count, mqtt_published}),
+    ts_mon_cache:add({count, mqtt_published}),
     {mqtt_frame:encode(Message), NewMqttSession#mqtt_session{wait = Wait}};
 get_message(#mqtt_request{type = subscribe, topic = Topic, qos = Qos},
             #state_rcv{session = MqttSession = #mqtt_session{curr_id = Id}}) ->
@@ -163,8 +163,8 @@ parse(Data, State=#state_rcv{acc = [], session = MqttSession, socket = Socket}) 
                 _ -> Left
             end,
             case Wait of
-                ?CONNACK -> ts_mon:add({count, mqtt_connected});
-                ?PUBACK -> ts_mon:add({count, mqtt_server_pubacked});
+                ?CONNACK -> ts_mon_cache:add({count, mqtt_connected});
+                ?PUBACK -> ts_mon_cache:add({count, mqtt_server_pubacked});
                 ?SUBACK ->
                     case {AckBuf, Left} of
                         {<<>>, <<>>} -> ok;
@@ -190,7 +190,7 @@ parse(Data, State=#state_rcv{acc = [], session = MqttSession, socket = Socket}) 
                 {?SUBACK, ?PUBLISH, 1} ->
                     Message = #mqtt{type = ?PUBACK, arg = MessageId},
                     EncodedData = mqtt_frame:encode(Message),
-                    ts_mon:add({count, mqtt_server_published}),
+                    ts_mon_cache:add({count, mqtt_server_published}),
                     NewAckBuf =  <<AckBuf/binary, EncodedData/binary>>,
                     MqttSession#mqtt_session{ack_buf = NewAckBuf};
                 _ -> MqttSession
@@ -215,7 +215,7 @@ parse_bidi(<<>>, State=#state_rcv{acc = [], session = MqttSession}) ->
     end,
     NewMqttSession = MqttSession#mqtt_session{ack_buf = <<>>},
     ?DebugF("ack buf: ~p~n", [AckBuf]),
-    {Ack, State#state_rcv{session = NewMqttSession}};
+    {Ack, State#state_rcv{session = NewMqttSession}, think};
 parse_bidi(Data, State=#state_rcv{acc = [], session = MqttSession}) ->
     AckBuf = MqttSession#mqtt_session.ack_buf,
     case mqtt_frame:decode(Data) of
@@ -223,8 +223,8 @@ parse_bidi(Data, State=#state_rcv{acc = [], session = MqttSession}) ->
             ?DebugF("receive bidi mqtt_msg: ~p ~p~n",
                     [mqtt_frame:command_for_type(?PUBLISH), _MqttMsg]),
 
-            ts_mon:add({count, mqtt_server_published}),
-            ts_mon:add({count, mqtt_pubacked}),
+            ts_mon_cache:add({count, mqtt_server_published}),
+            ts_mon_cache:add({count, mqtt_pubacked}),
             Ack = case Qos of
                 1 ->
                     Message = #mqtt{type = ?PUBACK, arg = MessageId},
@@ -239,7 +239,7 @@ parse_bidi(Data, State=#state_rcv{acc = [], session = MqttSession}) ->
                     [mqtt_frame:command_for_type(_Type), _MqttMsg]),
             parse_bidi(Left, State);
         more ->
-            {nodata, State#state_rcv{acc = Data}}
+            {nodata, State#state_rcv{acc = Data},think}
     end;
 parse_bidi(Data, State=#state_rcv{acc = Acc, datasize = DataSize}) ->
     NewSize = DataSize + size(Data),

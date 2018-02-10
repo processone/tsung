@@ -48,6 +48,7 @@
           node,       % name of node to monitor
           host,       % hostname of server to monitor
           pid,        % remote pid
+          retry=false,% have we retried to connect ?
           options     % updatestats options
          }).
 
@@ -76,8 +77,8 @@ init( {Host, Options, Interval,  MonServer} ) ->
             ?LOG("Running os_mon on the same host as the controller, use the same beam~n",?INFO),
             application:start(sasl),
             application:start(os_mon),
-            Pid = spawn_link(?MODULE, updatestats, [Options, Interval, MonServer]),
-            {ok, #state{node=node(),mon=MonServer, host=Host, interval=Interval, pid=Pid, options=Options}};
+            erlang:start_timer(?INIT_WAIT, self(), spawn),
+            {ok, #state{node=node(),mon=MonServer, host=Host, interval=Interval, options=Options}};
         _ ->
             erlang:start_timer(?INIT_WAIT, self(), start_beam),
             {ok, #state{host=Host, mon=MonServer, interval=Interval, options=Options}}
@@ -117,6 +118,16 @@ handle_cast(Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%--------------------------------------------------------------------
+handle_info({timeout,_Ref,spawn},State=#state{mon=MonServer, options=Options, interval=Interval})->
+    Pid = spawn_link(?MODULE, updatestats, [Options, Interval, MonServer]),
+    ?LOGF("Spawn monitoring process on localhost (~p)~n",[Pid],?INFO),
+    {noreply, State#state{pid=Pid}};
+handle_info({'EXIT',_Pid,noconnection},State=#state{retry=true, host=Host})->
+    ?LOGF("Fail to start beam on host ~p (try 2)~n", [Host],?ERR),
+    {stop, normal, State};
+handle_info({'EXIT',Pid,noconnection},State=#state{host=Host})->
+    ?LOGF("Fail to start beam on host ~p , retry ~n", [Host],?ERR),
+    handle_info({timeout,Pid,start_beam},State#state{retry=true});
 handle_info({timeout,_Ref,start_beam},State=#state{host=Host})->
     case start_beam(Host) of
         {ok, Node} ->
@@ -133,7 +144,7 @@ handle_info({timeout,_Ref,start_beam},State=#state{host=Host})->
             {noreply, State#state{node=Node,pid=Pid}};
        Error ->
             ?LOGF("Fail to start beam on host ~p (~p)~n", [Host, Error],?ERR),
-            {stop, Error, State}
+            {stop, normal, State}
     end.
 
 %%--------------------------------------------------------------------
@@ -251,9 +262,26 @@ get_os_data(DataName) -> get_os_data(DataName,os:type()).
 %% Use the result of the free commands on Linux and os_mon on all
 %% other platforms
 get_os_data(freemem, {unix, linux}) ->
-    Result = os:cmd("free | grep '\\-/\\+'"),
-    [_, _, _, Free] = string:tokens(Result, " \n"),
-    list_to_integer(Free)/1024;
+    case file:open("/proc/meminfo",[raw,read]) of
+        {ok, FD} ->
+            file:read_line(FD), % skip  MemTotal
+            {ok, Data} = file:read_line(FD),
+            ["MemFree:",RawFree,_] = string:tokens(Data," \n"),
+            case file:read_line(FD) of
+                {ok, "MemAvailable:" ++Tail} ->
+                    [Avail,_] = string:tokens(Tail," \n"),
+                    file:close(FD),
+                    list_to_integer(Avail)/1024;
+                {ok, NextLine} ->
+                    ["Buffers:",Buf,_] = string:tokens(NextLine," \n"),
+                    {ok, LastLine} = file:read_line(FD),
+                    ["Cached:",Cached,_] = string:tokens(LastLine," \n"),
+                    file:close(FD),
+                    (list_to_integer(RawFree)+list_to_integer(Buf) + list_to_integer(Cached)) / 1024
+            end;
+        _ ->
+            0
+    end;
 get_os_data(freemem, {unix, sunos}) ->
     Result = os:cmd("vmstat 1 2 | tail -1"),
     [_, _, _, _, Free | _] = string:tokens(Result, " "),

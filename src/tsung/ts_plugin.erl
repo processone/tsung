@@ -50,10 +50,12 @@ dump(_Type,_Data) ->
     ok.
 
 %% @spec parse_bidi(Data::binary(),State::record(state_rcv)) ->
-%%   {NewData::binary()|nodata, NewState::record(state_rcv)}
+%%   {NewData::binary()|nodata, NewState::record(state_rcv), think|continue}
 %% @doc Parse a block of data from the server. No reply will be sent
 %% if the return value is nodata, otherwise the Data binary will be
-%% sent back to the server immediately.
+%% sent back to the server immediately. If the last argument is
+%% 'think', it will continue to wait; if it's 'continue', it will
+%% handle the next action (request, thinktime, ...)
 %% @end
 parse_bidi(_Data, State) ->
-    {nodata, State}.
+    {nodata, State, think}.

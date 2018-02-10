@@ -131,13 +131,12 @@ subst(Job=#job{duration=D,req=Req,walltime=WT,resources=Res,options=Opts,jobid=I
 
 
 dump(protocol,{none,#job_session{jobid=JobId,owner=Owner,submission_time=Sub,queue_time=Q,
-                                 start_time=Start,end_time=E,status=Status},Name,_,_,_,Transactions})->
+                                 start_time=Start,end_time=E,status=Status},Name})->
     {R,_}=lists:mapfoldl(fun(A,Acc) ->
                                  {integer_to_list(round(ts_utils:elapsed(Acc,A))),A}
                          end,Sub,[Q,Start,E]),
     Date=integer_to_list(round(ts_utils:time2sec_hires(Sub))),
-    Tr=ts_utils:log_transaction(Transactions),
-    Data=ts_utils:join(";",[JobId,Name,Tr,Date]++R++[Status]),
+    Data=ts_utils:join(";",[JobId,Name,Date]++R++[Status]),
     ts_mon:dump({protocol, Owner, Data });
 dump(_P,_Args) ->
     ok.
@@ -153,6 +152,10 @@ dump(_P,_Args) ->
 %% Setting Close to true will cause tsung to close the connection to
 %% the server.
 %% @end
+parse({os, cmd, _Args, "Admission Rule ERROR" ++ Tail},State=#state_rcv{session=_S})->
+    ?LOGF("ERROR, admission rule: ~p",[Tail],?WARN),
+    ts_mon_cache:add([{sum,error_job_admission_rule,1}]),
+    {State#state_rcv{ack_done=true,datasize=length(Tail)+21}, [], false};
 parse({os, cmd, _Args, Res},State=#state_rcv{session=S,dump=Dump}) when is_list(Res)->
     ?LOGF("os:cmd result: ~p",[Res],?DEB),
   %% oarsub output:

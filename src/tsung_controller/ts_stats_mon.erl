@@ -279,7 +279,10 @@ print_stats({_,_}, [0,0,0,0,0,0,0|_], {Backend,LastRes,Logfile})->
 print_stats({_,_,_}, 0, {Backend,0, Logfile})-> % no data yet
     {Backend,0, Logfile};
 print_stats({{Name,Node},Type},Value,{json,Res,Log}) when (Type =:= sample) orelse (Type =:= sample_counter) ->
-    [_,Host] = string:tokens(Node,"@"),
+    Host = case string:tokens(Node,"@") of
+               [_,HostName] -> HostName;
+               [HostName]   -> HostName
+           end,
     print_stats_txt({Name,Type,", {\"name\": \"~p\", \"hostname\": \"" ++ Host
                      ++"\", \"value\": ~p, \"mean\": ~p,\"stddev\": ~p,\"max\": ~p,\"min\": ~p ,\"global_mean\": ~p ,\"global_count\": ~p}"},Value,{json,Res,Log});
 

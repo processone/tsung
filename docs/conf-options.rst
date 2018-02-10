@@ -7,19 +7,21 @@ Setting options
 .. index:: override
 .. index:: thinktime
 .. index:: ssl_ciphers
+.. index:: ssl_versions
 .. index:: ssl_reuse_sessions
 .. index:: tcp_snd_buffer
 .. index:: tcp_rcv_buffer
 .. index:: udp_snd_buffer
 .. index:: udp_rcv_buffer
+.. index:: max_ssh_startup
 
 Thinktimes, SSL, Buffers
 ------------------------
 
 Default values can be set-up globally: ``thinktime`` between requests
-in the scenario, SSL cipher algorithms, TCP/UDP buffer sizes (the
-default value is 32KB). These values overrides those set in session
-configuration tags if override is true.
+in the scenario, SSL cipher algorithms (use ssl:cipher_suites(openssl). to get a
+list of available ciphers), TCP/UDP buffer sizes (the default value is 32KB).
+These values overrides those set in session configuration tags if override is true.
 
 .. code-block:: xml
 
@@ -31,7 +33,7 @@ configuration tags if override is true.
  <option name="udp_snd_buffer" value="16384"></option>
  <option name="udp_rcv_buffer" value="16384"></option>
 
-.. versionadded:: 1.5.2
+.. versionadded:: 1.6.0
 
 You can disable the SSL session cache (it is enabled by default)
 
@@ -39,8 +41,25 @@ You can disable the SSL session cache (it is enabled by default)
 
  <option name="ssl_reuse_sessions" value="false"/>
 
+You can specify which SSL protocol you want use. Use ssl:versions(). to get
+a list of available ssl protocols.
+
+.. code-block:: xml
+
+ <option name="ssl_versions" value="'tlsv1.2'"/>
+
 You can also use the command line option ``-L <value>`` to change the
-session liefetime in the cache (10mn by default); value must be in seconds.
+session lifetime in the cache (10mn by default); value must be in seconds.
+
+You can also change the way Tsung starts remote beams. By default,
+Tsung will start at most 20 ssh process per core of the controller. If
+you manage hundreds of clients, you may want to raise this value with
+``max_ssh_startup_per_core`` (or decrease it if you wish)
+
+.. code-block:: xml
+
+ <option name="max_ssh_startup_per_core" value="100"/>
+
 
 .. index:: idle_timeout
 .. index:: global_ack_timeout
@@ -48,7 +67,7 @@ session liefetime in the cache (10mn by default); value must be in seconds.
 Timeout for TCP connections
 ---------------------------------------
 
-.. versionadded:: 1.5.2
+.. versionadded:: 1.6.0
 
 You can specify a timeout in milliseconds for establishing a TCP connection. The default is ``infinity``.
 
@@ -56,18 +75,39 @@ You can specify a timeout in milliseconds for establishing a TCP connection. The
 
  <option name="connect_timeout" value="5000" />
 
+
 You can also change the timeout on a per-session basis using ``set_option``.
 
 .. code-block:: xml
 
  <set_option name="connect_timeout" value="1000" />
 
+You can also enable the TCP REUSEADDR option globally:
+
+.. code-block:: xml
+
+   <option name="tcp_reuseaddr" value="true" />
+
+
+IP transparent
+---------------------------------------
+
+.. versionadded:: 1.7.0
+
+This option is used to set the IP_TRANSPARENT option on the TCP socket
+
+.. code-block:: xml
+
+ <option name="ip_transparent" value="true" />
+
+This can be useful to use when IPs are not configured on the client host (see also :ref:`iprange-label`)
+
 Retry Attempts and Timeouts
 ---------------------------------------
 
-.. versionadded:: 1.5.2
+.. versionadded:: 1.6.0
 
-You can specify the amound of retry attempts made by tsung. The default is ``3``.
+You can specify the amount of retry attempts made by Tsung. The default is ``3``.
 
 .. code-block:: xml
 
@@ -76,7 +116,7 @@ You can specify the amound of retry attempts made by tsung. The default is ``3``
 To disable retries entirely, set the value to ``0``.
 
 In addition, the option ``retry_timeout`` (in milliseconds; defaults to ``10``) is used to implement a
-simple backoff algorithm (``retry * retry_timeout``).
+simple back-off algorithm (``retry * retry_timeout``).
 
 .. code-block:: xml
 
@@ -95,7 +135,7 @@ can be changed like this:
 .. code-block:: xml
 
  <option name="idle_timeout" value="300000"></option>
- <option name="glocal_ack_timeout" value="6000000"></option>
+ <option name="global_ack_timeout" value="6000000"></option>
 
 
 .. index:: hibernate
@@ -157,7 +197,7 @@ Setting the seed for random numbers
 ------------------------------------
 
 If you want to use a fixed seed for the random generator, you can use
-the ``seed`` option, like this (by default, tsung will use the
+the ``seed`` option, like this (by default, Tsung will use the
 current time to set the seed, therefore random numbers should be
 different for every test).
 
@@ -174,7 +214,7 @@ request:
 
 .. code-block:: xml
 
-  <option name="bosh_path" value="/http-bind"/>
+  <option name="bosh_path" value="/http-bind/"/>
 
 .. _jabber-options-label:
 
@@ -191,10 +231,11 @@ for Websocket:
 
   <!-- send websocket data with text frame, default binary-->
   <option name="websocket_frame" value="text"/>
+  <option name="websocket_subprotocols" value="chat, superchat"/>
 
 Use ``websocket_path`` for setting the path of the websocket request; use
 ``websocket_frame`` for setting the frame type(option type: binary and text,
-and binary as default) of the sending websocket data.
+and binary as default) of the sending websocket data. Use ``websocket_subprotocols`` for setting the ``Sec-WebSocket-Protocol`` header.
 
 
 XMPP/Jabber options

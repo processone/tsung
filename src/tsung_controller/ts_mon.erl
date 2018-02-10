@@ -41,9 +41,9 @@
 -include("ts_config.hrl").
 
 %% External exports
--export([start/1, stop/0, newclient/1, endclient/1, sendmes/1, add/2,
-         start_clients/1, abort/0, status/0, rcvmes/1, add/1, dumpstats/0,
-         add_match/2, dump/1, launcher_is_alive/0
+-export([start/1, stop/0, newclient/1, endclient/1, sendmes/1,
+         start_clients/1, abort/0, status/0, rcvmes/1, dumpstats/0,
+         dump/1, launcher_is_alive/0
         ]).
 
 %% gen_server callbacks
@@ -71,7 +71,9 @@
                 laststats,    % values of last printed stats
                 lastdate,     % date of last printed stats
                 type,         % type of logging (none, light, full)
-                launchers=0   % number of launchers started
+                launchers=0,  % number of launchers started
+                timer_ref,    % timer reference (for dumpstats)
+                wait_gui=false% wait gui before stopping
                }).
 
 -record(stats, {
@@ -102,20 +104,6 @@ start_clients({Machines, Dump, BackEnd}) ->
 stop() ->
     gen_server:cast({global, ?MODULE}, {stop}).
 
-add(nocache,Data) ->
-    gen_server:cast({global, ?MODULE}, {add, Data}).
-
-
-add(Data) ->
-    ts_mon_cache:add(Data).
-
-add_match(Data,{UserId,SessionId,RequestId,Tr,Name}) ->
-    add_match(Data,{UserId,SessionId,RequestId,[],Tr,Name});
-add_match(Data=[Head|_],{UserId,SessionId,RequestId,Bin,Tr,Name}) ->
-    TimeStamp=?NOW,
-    put(last_match,Head),
-    ts_mon_cache:add_match(Data,{UserId,SessionId,RequestId,TimeStamp, Bin,Tr,Name}).
-
 status() ->
     gen_server:call({global, ?MODULE}, {status}).
 
@@ -135,19 +123,19 @@ sendmes({none, _, _})       -> skip;
 sendmes({protocol, _, _})   -> skip;
 sendmes({protocol_local, _, _})   -> skip;
 sendmes({_Type, Who, What}) ->
-    gen_server:cast({global, ?MODULE}, {sendmsg, Who, ?NOW, What}).
+    gen_server:cast({global, ?MODULE}, {sendmsg, Who, ?TIMESTAMP, What}).
 
 rcvmes({none, _, _})    -> skip;
 rcvmes({protocol, _, _})-> skip;
 rcvmes({protocol_local, _, _})-> skip;
 rcvmes({_, _, closed})  -> skip;
 rcvmes({_Type, Who, What})  ->
-    gen_server:cast({global, ?MODULE}, {rcvmsg, Who, ?NOW, What}).
+    gen_server:cast({global, ?MODULE}, {rcvmsg, Who, ?TIMESTAMP, What}).
 
 dump({none, _, _})-> skip;
 dump({cached, << >> })-> skip;
 dump({_Type, Who, What})  ->
-    gen_server:cast({global, ?MODULE}, {dump, Who, ?NOW, What});
+    gen_server:cast({global, ?MODULE}, {dump, Who, ?TIMESTAMP, What});
 dump({cached, Data})->
     gen_server:cast({global, ?MODULE}, {dump, cached, Data}).
 
@@ -180,7 +168,7 @@ init([LogDir]) ->
             {ok, State#state{log=standard_io}};
         Name ->
             Filename = filename:join(LogDir, Name),
-            case file:open(Filename,[write]) of
+            case file:open(Filename,[append]) of
                 {ok, Stream} ->
                     ?LOG("starting monitor~n",?INFO),
                     {ok, State#state{log=Stream}};
@@ -232,6 +220,8 @@ handle_call(Request, _From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
+handle_cast({add, _Data}, State=#state{wait_gui=true}) ->
+    {noreply,State};
 handle_cast({add, Data}, State=#state{stats=Stats}) when is_list(Data) ->
     case State#state.backend of
         fullstats -> io:format(State#state.fullstats,"~p~n",[Data]);
@@ -289,13 +279,7 @@ handle_cast({endclient, Who, When, Elapsed}, State=#state{stats=Stats}) ->
             io:format(State#state.dumpfile,"EndClient:~w:~p~n",[ts_utils:time2sec_hires(When), Who]),
             io:format(State#state.dumpfile,"load:~w~n",[Clients])
     end,
-    case {Clients, State#state.stop} of
-        {0, true} ->
-            ?LOG("No more users and stop is true, stop~n", ?INFO),
-            {stop, normal, State};
-        _ ->
-            {noreply, State#state{client = Clients, stats=NewStats}}
-    end;
+    {noreply, State#state{client = Clients, stats=NewStats}};
 
 handle_cast({dumpstats}, State=#state{stats=Stats}) ->
     export_stats(State),
@@ -346,9 +330,17 @@ handle_cast({rcvmsg, Who, When, What}, State=#state{type=full,dumpfile=Log}) ->
     io:format(Log, "Recv:~w:~w:~p~n",[ts_utils:time2sec_hires(When),Who,What]),
     {noreply, State};
 
-handle_cast({stop}, State = #state{client = 0, launchers=1}) ->
+handle_cast({stop}, State = #state{client=0, launchers=1, timer_ref=TRef}) ->
     ?LOG("Stop asked, no more users, last launcher stopped, OK to stop~n", ?INFO),
-    {stop, normal, State};
+    case ?config(keep_web_gui) of
+        true ->
+            io:format(standard_io,"All slaves have stopped; keep controller and web dashboard alive. ~nHit CTRL-C or click Stop on the dashboard to stop.~n",[]),
+            timer:cancel(TRef),
+            close_stats(State),
+            {noreply, State#state{wait_gui=true}};
+        _ ->
+            {stop, normal, State}
+    end;
 handle_cast({stop}, State=#state{launchers=L}) -> % we should stop, wait until no more clients are alive
     ?LOG("A launcher has finished, but not all users have finished, wait before stopping~n", ?NOTICE),
     {noreply, State#state{stop = true, launchers=L-1}};
@@ -377,13 +369,8 @@ handle_cast(Msg, State) ->
 handle_info(_Info, State) ->
     {noreply, State}.
 
-%%----------------------------------------------------------------------
-%% Func: terminate/2
-%% Purpose: Shutdown the server
-%% Returns: any (ignored by gen_server)
-%%----------------------------------------------------------------------
-terminate(Reason, State) ->
-    ?LOGF("stopping monitor (~p)~n",[Reason],?NOTICE),
+
+close_stats(State) ->
     export_stats(State),
     % blocking call to all ts_stats_mon; this way, we are
     % sure the last call to dumpstats is finished
@@ -392,15 +379,25 @@ terminate(Reason, State) ->
         json ->
             io:format(State#state.log,"]}]}~n",[]);
         _ ->
-            io:format(State#state.log,"EndMonitor:~w~n",[?NOW])
+            io:format(State#state.log,"EndMonitor:~w~n",[?TIMESTAMP])
         end,
     case State#state.log of
         standard_io -> ok;
         Dev         -> file:close(Dev)
     end,
-    file:close(State#state.fullstats),
-    slave:stop(node()),
-    ok.
+    file:close(State#state.fullstats).
+
+%%----------------------------------------------------------------------
+%% Func: terminate/2
+%% Purpose: Shutdown the server
+%% Returns: any (ignored by gen_server)
+%%----------------------------------------------------------------------
+terminate(Reason, #state{wait_gui=true}) ->
+    ?LOGF("stopping monitor by gui (~p)~n",[Reason],?NOTICE);
+terminate(Reason, State) ->
+    ?LOGF("stopping monitor (~p)~n",[Reason],?NOTICE),
+    close_stats(State),
+    slave:stop(node()).
 
 %%--------------------------------------------------------------------
 %% Func: code_change/3
@@ -435,9 +432,9 @@ start_logger({Machines, DumpType, Backend}, _From, State=#state{log=Log,fullstat
     ?LOGF("Activate clients with ~p backend~n",[Backend],?NOTICE),
     print_headline(Log,Backend),
     start_launchers(Machines),
-    timer:apply_interval(State#state.dump_interval, ?MODULE, dumpstats, [] ),
+    {ok, TRef} = timer:apply_interval(State#state.dump_interval, ?MODULE, dumpstats, [] ),
     lists:foreach(fun(Name) -> ts_stats_mon:set_output(Backend,{Log,FS}, Name) end, ?STATSPROCS),
-    start_dump(State#state{type=DumpType, backend=Backend}).
+    start_dump(State#state{type=DumpType, backend=Backend, timer_ref=TRef}).
 
 print_headline(Log,json)->
     DateStr = ts_utils:now_sec(),

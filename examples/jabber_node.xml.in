@@ -71,6 +71,7 @@
      <request> <jabber type="auth_sasl_bind" ack="local" ></jabber></request>
      <thinktime value="2" random="true"/>
      <request> <jabber type="auth_sasl_session" ack="local" ></jabber></request>
+     <request> <jabber type="presence:initial" ack="no_ack"/> </request>
      <thinktime value="5" random="true"/>
 
      <request>

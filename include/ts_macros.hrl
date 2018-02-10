@@ -22,7 +22,13 @@
 -vc('$Id: ts_macros.hrl,v 0.0 2012/08/22 09:07:50 nniclaus Exp $ ').
 -author('nniclaus@sophia.inria.fr').
 
--define(NOW, now()).
+-ifndef(new_time_api).
+-define(NOW, erlang:now()).
+-define(TIMESTAMP, erlang:now()).
+-else.
+-define(NOW, erlang:monotonic_time()).
+-define(TIMESTAMP, erlang:timestamp()).
+-endif.
 
 -define(CRLF, "\r\n").
 -define(CR,13).
@@ -64,6 +70,7 @@
 -define(MAX_PHASE_EXCEED_PERCENT, 20).
 -define(MAX_PHASE_EXCEED_NUSERS, 10).
 
+-define(CACHE_DUMP_STATS_INTERVAL, 500). % in milliseconds
 
 -define(restart_sleep, 2000).
 -define(infinity_timeout, 15000).

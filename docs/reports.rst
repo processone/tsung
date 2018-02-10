@@ -97,7 +97,7 @@ Jabber specific stats:
   response time is meaningless with ``no_ack``
   requests, we keep a separate stats for this. **new in 1.2.2**.
 * ``async_unknown_data_rcv`` Only if bidi is true for a
-  session. counter the number of messages received from the server
+  session. Count the number of messages received from the server
   without doing anything.  **new in 1.2.2**.
 * ``async_data_sent`` Only if bidi is true for a
   session. Count the number of messages sent to the server in response
@@ -146,6 +146,23 @@ those):
 Generating the report
 =====================
 
+**Since version 1.6.0**, you can use the embedded web server started
+by the controller on port 8091. So for example if your controller is
+running on ``node0``, use the URL http://node0:8091/ in your
+browser. It will display the current status of Tsung (see
+:ref:`fig-dashboard` ) and generate on the fly the report and
+graphs. There's also an option when you start Tsung to keep the
+controller alive, even when the test if finished, in order to use the
+embedded web server (see ``-k`` option). By default the web server
+will stop when the test is finished.
+
+.. _fig-dashboard:
+.. figure:: ./images/tsung-dashboard.png
+
+            Dashboard
+
+You can still generate the reports by manually during or after the tests:
+
 cd to the log directory of your test (say
 :file:`~/.tsung/log/20040325-16:33/`) and use the script
 :command:`tsung_stats.pl`::
@@ -163,7 +180,7 @@ use **--help** to view all available options::
         [--help] (this help text)
         [--verbose] (print all messages)
         [--debug] (print receive without send messages)
-        [--dygraph] use dygraphs (http://danvk.org/dygraphs/) to render graphs
+        [--dygraph] use dygraphs (http://dygraphs.com) to render graphs
         [--noplot]  (don't make graphics)
         [--gnuplot <command>]  (path to the gnuplot binary)
         [--nohtml]  (don't create HTML reports)
@@ -177,7 +194,7 @@ use **--help** to view all available options::
 
 
 Version **1.4.0** adds a new graphical output based on
-http://danvk.org/dygraphs/.
+http://dygraphs.com.
 
 Tsung summary
 =============
@@ -204,7 +221,7 @@ Tsung Plotter
 
 Tsung-Plotter (:command:`tsplot`} command) is an optional tool recently
 added in the Tsung distribution (it is written in Python), useful to
-compare different tests runned by Tsung. :command:`tsplot` is able to
+compare different tests ran by Tsung. :command:`tsplot` is able to
 plot data from several :file:`tsung.log` files onto the same charts,
 for further comparisons and analyzes. You can easily customize the
 plots you want to generate by editing simple configuration files. You

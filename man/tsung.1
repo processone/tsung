@@ -4,7 +4,7 @@
 tsung \- A distributed multi-protocol load testing tool.
 .SH SYNOPSIS
 .sp
-\fBtsung\fR [ \fB-f configuration file\fR ]  [ \fB-l log dir\fR ]  [ \fB-m filename\fR ]  [ \fB-r command\fR ]  [ \fB-v\fR ]  [ \fB-6\fR ]  [ \fB-h\fR ]  [ \fBstart|stop|debug|status\fR ] 
+\fBtsung\fR [ \fB-f configuration file\fR ]  [ \fB-l log dir\fR ]  [ \fB-m filename\fR ]  [ \fB-r command\fR ]  [ \fB-X directory\fR ]  [ \fB-w delay\fR ]  [ \fB-L lifetime\fR ]  [ \fB-s\fR ]  [ \fB-n\fR ]  [ \fB-k\fR ]  [ \fB-v\fR ]  [ \fB-6\fR ]  [ \fB-h\fR ]  [ \fBstart|stop|debug|status\fR ] 
 .SH "DESCRIPTION"
 .PP
 \fBtsung\fR is a distributed load testing
@@ -72,11 +72,29 @@ several controllers on the same host.
 \fB-F\fR
 Use long names for erlang nodes (FQDN)
 .TP
-\fB-m\fR
+\fB-s\fR
 Enable erlang smp on client nodes
+.TP
+\fB-p\fR
+set maximum erlang processes per vm (default is 250000)
+.TP
+\fB-X directory\fR
+add additional erlang load paths (multiple -X arguments allowed)
+.TP
+\fB-L lifetime\fR
+SSL session lifetime in seconds (600 sec by default)
+.TP
+\fB-w delay\fR
+warmup delay in seconds (1 sec by default)
 .TP
 \fB-v\fR
 Show version
+.TP
+\fB-n\fR
+disable web GUI 
+.TP
+\fB-k\fR
+keep web GUI (and controller) alive after the test has finished
 .TP
 \fB-6\fR
 Use IPv6 for tsung internal communications
@@ -97,7 +115,16 @@ https://lists.process-one.net/mailman/listinfo/tsung-users
 .RE
 .sp
 for
-archives.
+archives. You can also use the issue tracker 
+.sp
+.RS
+.sp
+.nf
+https://github.com/processone/tsung/issues
+.sp
+.fi
+.RE
+.sp
 .SH "SEE ALSO"
 .PP
 \fBerlang\fR(3)

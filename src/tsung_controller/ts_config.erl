@@ -236,7 +236,10 @@ parse(Element = #xmlElement{name=client, attributes=Attrs},
                 DeleteController=fun(A) when A == ControllerHost -> false;
                                     (_) -> true
                                  end,
-                Nodes = lists:filter(DeleteController, NodesTmp),
+                Nodes = case lists:filter(DeleteController, NodesTmp) of
+                            []  -> NodesTmp; %% all nodes are on the controller, don't remove them
+                            Val -> Val
+                        end,
                 Fun = fun(N)->
                               IP = case Scan_Intf of
                                        "" ->
@@ -260,12 +263,19 @@ parse(Element = #xmlElement{name=client, attributes=Attrs},
                               1;
                           {Val, _} -> Val
                       end,
-                %% must be hostname and not ip:
-                case ts_utils:is_ip(Host) of
-                    true ->
-                        io:format(standard_error,"ERROR: client config: 'host' attribute must be a hostname, "++ "not an IP ! (was ~p)~n",[Host]),
+                %% if the node()'s hostname is ip, then all host should be IP
+                {ok, MasterHostname} = ts_utils:node_to_hostname(node()),
+                case {ts_utils:is_ip(MasterHostname), ts_utils:is_ip(Host)} of
+                   %% must be hostname and not ip:
+                    {false, true} ->
+                        io:format(standard_error,"ERROR: client config: 'host' attribute must be a hostname, "++ "not an IP ! (was ~p). You can use -I <> option.~n",[Host]),
                         exit({error, badhostname});
-                    false ->
+                    {true, true} ->
+                        %% add a new client for each CPU
+                        lists:duplicate(CPU,#client{host     = Host,
+                                                    weight   = Weight/CPU,
+                                                    maxusers = MaxUsers});
+                    {_, _} ->
                         %% add a new client for each CPU
                         lists:duplicate(CPU,#client{host     = Host,
                                                     weight   = Weight/CPU,
@@ -306,18 +316,39 @@ parse(Element = #xmlElement{name=ip, attributes=Attrs},
                                |CList]},
                 Element#xmlElement.content);
 
+%% Parsing the iprange
+parse(Element = #xmlElement{name=iprange, attributes=Attrs},
+      Conf = #config{clients=[CurClient|CList]}) ->
+    %% only ipv4 currently
+    IP = getAttr(Attrs, value),
+    SubList = string:tokens(IP, "."),
+    [A,B,C,D] = lists:map(fun(A) ->
+                            case getTypeAttr(integer_or_string, A) of
+                                I when is_integer(I) -> I;
+                                S when is_list(S) ->
+                                    [Min, Max] = lists:map(fun(X)-> list_to_integer(X) end, string:tokens(S,"-")),
+                                    {Min, Max}
+                            end
+                    end, SubList),
+    ?LOGF("IP range: ~p~n",[ { A,B,C,D }],?INFO),
+    lists:foldl(fun parse/2,
+        Conf#config{clients = [CurClient#client{iprange = {A,B,C,D} } | CList]},
+                Element#xmlElement.content);
+
 %% Parsing the arrivalphase element
 parse(Element = #xmlElement{name=arrivalphase, attributes=Attrs},
       Conf = #config{arrivalphases=AList}) ->
 
-    Phase      = getAttr(integer,Attrs, phase),
-    IDuration  = getAttr(integer, Attrs, duration),
-    Unit  = getAttr(string,Attrs, unit, "second"),
+    Phase      = getAttr(integer, Attrs,   phase),
+    IDuration  = getAttr(integer, Attrs,   duration),
+    Unit       = getAttr(string,  Attrs,   unit, "second"),
+    WaitSessionsEnd  = getAttr(atom,Attrs, wait_all_sessions_end, false),
     D = to_milliseconds(Unit, IDuration),
     case lists:keysearch(Phase,#arrivalphase.phase,AList) of
         false ->
             lists:foldl(fun parse/2,
                         Conf#config{arrivalphases = [#arrivalphase{phase=Phase,
+                                                                   wait_all_sessions_end=WaitSessionsEnd,
                                                                    duration=D
                                                                   }
                                                      |AList]},
@@ -430,7 +461,7 @@ parse(Element = #xmlElement{name=transaction, attributes=Attrs},
       Conf = #config{session_tab = Tab, sessions=[CurS|_], curid=Id}) ->
 
     RawName = getAttr(Attrs, name),
-    {ok, [{atom,1,Name}],1} = erl_scan:string("tr_"++RawName),
+    {ok, [{atom,_,Name}],_} = erl_scan:string("tr_"++RawName),
     ?LOGF("Add start transaction ~p in session ~p as id ~p",
          [Name,CurS#session.id,Id+1],?INFO),
     ets:insert(Tab, {{CurS#session.id, Id+1}, {transaction,start,Name}}),
@@ -581,7 +612,7 @@ parse(_Element = #xmlElement{name=repeat,attributes=Attrs,content=Content},
 parse(#xmlElement{name=dyn_variable, attributes=Attrs},
       Conf=#config{sessions=[CurS|_],dynvar=DynVars}) ->
     StrName  = ts_utils:clean_str(getAttr(Attrs, name)),
-    {ok, [{atom,1,Name}],1} = erl_scan:string("'"++StrName++"'"),
+    {ok, [{atom,_,Name}],_} = erl_scan:string("'"++StrName++"'"),
     {Type,Expr} = case {getAttr(string,Attrs,re,none),
                         getAttr(string,Attrs,pgsql_expr,none),
                         getAttr(string,Attrs,xpath,none),
@@ -643,7 +674,7 @@ parse( #xmlElement{name=change_type, attributes=Attrs},
                  true  -> CType % back to the main type
              end,
     ets:insert(Tab,{{CurS#session.id, Id+1}, {change_type, CType, Server, Port, PType, Store, Restore, Bidi}}),
-    ?LOGF("Parse change_type (~p) ~p:~p:~p:~p ~n",[CType, Server,Port,PType,Id],?NOTICE),
+    ?LOGF("Parse change_type (~p) ~p:~p:~p:~p (store/restore: ~p:~p)~n",[CType, Server,Port,PType,Id, Store, Restore],?NOTICE),
     Conf#config{main_sess_type=SessType, curid=Id+1,
                 sessions=[CurS#session{type=CType}|Other] };
 
@@ -653,10 +684,16 @@ parse( #xmlElement{name=interaction, attributes=Attrs},
 
     Action   = list_to_atom(getAttr(string, Attrs, action, "send")),
     RawId = getAttr(Attrs, id),
-    {ok, [{atom,1,IdInteraction}],1} = erl_scan:string("tr_"++RawId),
+    {ok, [{atom,_,IdInteraction}],_} = erl_scan:string("tr_"++RawId),
 
     ets:insert(Tab,{{CurS#session.id, Id+1}, {interaction, Action, IdInteraction}}),
     ?LOGF("Parse  interaction  ~p:~p ~n",[Action,Id],?NOTICE),
+    Conf#config{curid=Id+1 };
+
+parse( #xmlElement{name=abort, attributes=Attrs},
+      Conf = #config{sessions=[CurS|_Other], curid=Id,session_tab = Tab}) ->
+    Type = getAttr(atom, Attrs, type, session),
+    ets:insert(Tab,{{CurS#session.id, Id+1}, {abort, Type}}),
     Conf#config{curid=Id+1 };
 
 parse( Element = #xmlElement{name=set_option, attributes=Attrs},
@@ -769,9 +806,15 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     ets:insert(Tab,{{thinktime, override}, Override}),
                     lists:foldl( fun parse/2, Conf, Element#xmlElement.content);
                 "ssl_ciphers" ->
-                    Cipher = getAttr(string,Attrs, value, negociate),
+                    Cipher = getAttr(string,Attrs, value, negotiate),
                     OldProto =  Conf#config.proto_opts,
                     NewProto =  OldProto#proto_opts{ssl_ciphers=Cipher},
+                    lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                 Element#xmlElement.content);
+                "ssl_versions" ->
+                    Protocol = getAttr(atom,Attrs, value, negotiate),
+                    OldProto =  Conf#config.proto_opts,
+                    NewProto =  OldProto#proto_opts{ssl_versions=[Protocol]},
                     lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
                                  Element#xmlElement.content);
                 "ssl_reuse_sessions" ->
@@ -858,6 +901,7 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     Timeout = getAttr(integer,Attrs, value, ?config(global_ack_timeout)),
                     OldProto =  Conf#config.proto_opts,
                     NewProto =  OldProto#proto_opts{global_ack_timeout=Timeout},
+                    ts_timer:set_timeout(Timeout),
                     lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
                                  Element#xmlElement.content);
                 "max_retries" ->
@@ -884,6 +928,12 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     NewProto =  OldProto#proto_opts{websocket_frame=Frame},
                     lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
                                  Element#xmlElement.content);
+                "websocket_subprotocols" ->
+                    SubProtocols = getAttr(string,Attrs, value, ?config(websocket_subprotocols)),
+                    OldProto =  Conf#config.proto_opts,
+                    NewProto =  OldProto#proto_opts{websocket_subprotocols=SubProtocols},
+                    lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                 Element#xmlElement.content);
                 "bosh_path" ->
                     Path = getAttr(string,Attrs, value, ?config(bosh_path)),
                     OldProto =  Conf#config.proto_opts,
@@ -902,6 +952,47 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     lists:foldl( fun parse/2,
                                  Conf#config{file_server=[{Id, FileName} | Conf#config.file_server]},
                                  Element#xmlElement.content);
+                "global_number" ->
+                    GlobalNumber = getAttr(integer, Attrs, value, ?config(global_number)),
+                    ts_timer:config(GlobalNumber),
+                    lists:foldl( fun parse/2, Conf, Element#xmlElement.content);
+                "max_ssh_startup_per_core" ->
+                    MaxStartup =  getAttr(integer,Attrs, value, 20),
+                    lists:foldl( fun parse/2, Conf#config{max_ssh_startup=MaxStartup},
+                                 Element#xmlElement.content);
+                "ip_transparent" ->
+                    case getAttr(atom, Attrs, value, false) of
+                        true ->
+                            OldProto =  Conf#config.proto_opts,
+                            NewProto =  OldProto#proto_opts{ip_transparent = true},
+                            lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                         Element#xmlElement.content);
+                        false ->
+                            lists:foldl( fun parse/2, Conf, Element#xmlElement.content)
+                    end;
+                "tcp_reuseaddr" ->
+                    Reuseaddr = getAttr(atom, Attrs, value, false),
+                    case Reuseaddr of
+                        true ->
+                            OldProto =  Conf#config.proto_opts,
+                            NewProto =  OldProto#proto_opts{tcp_reuseaddr = Reuseaddr},
+                            lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                         Element#xmlElement.content);
+                        false ->
+                            lists:foldl( fun parse/2, Conf, Element#xmlElement.content)
+                    end;
+                "tcp_reuseport" ->
+                    Reuseport = getAttr(atom, Attrs, value, false),
+                    case Reuseport of
+                        true ->
+                            OldProto =  Conf#config.proto_opts,
+                            NewProto =  OldProto#proto_opts{tcp_reuseport = Reuseport},
+                            lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                         Element#xmlElement.content);
+                        false ->
+                            lists:foldl( fun parse/2, Conf, Element#xmlElement.content)
+                    end;
+
                 Other ->
                     ?LOGF("Unknown option ~p !~n",[Other], ?WARN),
                     lists:foldl( fun parse/2, Conf, Element#xmlElement.content)
@@ -916,6 +1007,8 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
 parse(Element = #xmlElement{name=thinktime, attributes=Attrs},
       Conf = #config{curid=Id, session_tab = Tab, sessions = [CurS |_]}) ->
     {RT,T} = case getAttr(Attrs, value)  of
+            "wait_bidi" ->
+                {infinity, infinity};
             "wait_global" ->
                 {wait_global,infinity};
             "%%"++Tail -> % dynamic thinktime
@@ -1045,16 +1138,16 @@ getTypeAttr(string, String)-> String;
 getTypeAttr(list, String)-> String;
 getTypeAttr(float_or_integer, String)->
     case erl_scan:string(String) of
-        {ok, [{integer,1,I}],1} -> I;
-        {ok, [{float,1,F}],1} -> F
+        {ok, [{integer,_,I}],_} -> I;
+        {ok, [{float,_,F}],_} -> F
     end;
 getTypeAttr(integer_or_string, String)->
     case erl_scan:string(String) of
-        {ok, [{integer,1,I}],1} -> I;
+        {ok, [{integer,_,I}],_} -> I;
         _ -> String
     end;
 getTypeAttr(Type, String) ->
-    {ok, [{Type,1,Val}],1} = erl_scan:string(String),
+    {ok, [{Type,_,Val}],_} = erl_scan:string(String),
     Val.
 
 
@@ -1181,6 +1274,9 @@ set_net_type("udp6")  -> ts_udp6;
 set_net_type("ssl")   -> ts_ssl;
 set_net_type("ssl6")  -> ts_ssl6;
 set_net_type("websocket")  -> ts_server_websocket;
+set_net_type("websocket_ssl")  -> ts_server_websocket_ssl;
+set_net_type("ws")  -> ts_server_websocket;
+set_net_type("wss")  -> ts_server_websocket_ssl;
 set_net_type("bosh")  -> ts_bosh;
 set_net_type("bosh_ssl") -> ts_bosh_ssl;
 set_net_type("erlang") -> ts_erlang.

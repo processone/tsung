@@ -34,7 +34,7 @@
 
 -include("ts_profile.hrl").
 
--export([ connect/3, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2,
+-export([ connect/4, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2,
           client/4]).
 
 client(MasterPid,Server,Port,Opts)->
@@ -52,7 +52,7 @@ protocol_options(_Opts) ->
    [].
 
 %% -> {ok, Socket}
-connect(Host, Port, Opts) ->
+connect(Host, Port, Opts, _Timeout) ->
     Pid=spawn_link(ts_erlang,client,[self(),Host,Port,Opts]),
     {ok, Pid}.
 

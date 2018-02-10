@@ -25,23 +25,31 @@
 
 -module(ts_tcp).
 
--export([ connect/3, connect/4, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2 ]).
+-export([ connect/4, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2 ]).
 
 -behaviour(gen_ts_transport).
 
 -include("ts_profile.hrl").
 -include("ts_config.hrl").
 
-protocol_options(#proto_opts{tcp_rcv_size=Rcv, tcp_snd_size=Snd}) ->
+protocol_options(Proto=#proto_opts{tcp_reuseport = true}) ->
+    Opts= [{raw, 1, 15, <<1:32/native>>}] ++ protocol_options(Proto#proto_opts{tcp_reuseport = false}),
+    ?DebugF("TCP Real opts: ~p ~n", [Opts]),
+    Opts;
+protocol_options(Proto=#proto_opts{ip_transparent = true}) ->
+    Opts= [{raw, 0, 19, <<1:32/native>>} ] ++ protocol_options(Proto#proto_opts{ip_transparent = false}),
+    ?DebugF("TCP Real opts: ~p ~n", [Opts]),
+    Opts;
+protocol_options(#proto_opts{tcp_rcv_size = Rcv, tcp_snd_size = Snd,
+                             tcp_reuseaddr = Reuseaddr}) ->
     [binary,
      {active, once},
+     {reuseaddr, Reuseaddr},
      {recbuf, Rcv},
      {sndbuf, Snd},
      {keepalive, true} %% FIXME: should be an option
     ].
 %% -> {ok, Socket}
-connect(Host, Port, Opts) ->
-    connect(Host, Port, Opts, infinity).
 
 connect(Host, Port, Opts, ConnectTimeout) ->
     gen_tcp:connect(Host, Port, opts_to_tcp_opts(Opts), ConnectTimeout).

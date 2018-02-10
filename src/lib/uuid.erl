@@ -74,14 +74,14 @@ srandom() ->
 %%      Namespace = dns | url | oid | x500 | uuid()
 %%      Name = list() | binary()
 %% @doc
-%% Generates a UUID based on a crypto:sha() hash
+%% Generates a UUID based on a crypto:hash(sha) hash
 %%
 sha(Namespace, Name) when is_list(Name) ->
     sha(Namespace, list_to_binary(Name));
 
 sha(Namespace, Name) ->
-    Context = crypto:sha_update(crypto:sha_update(crypto:sha_init(), namespace(Namespace)), Name),
-    U = crypto:sha_final(Context),
+    Context = crypto:hash_update(crypto:hash_update(crypto:hash_init(sha), namespace(Namespace)), Name),
+    U = crypto:hash_final(Context),
     format_uuid(U, 5).
 
 %% @spec md5(Namespace, Name) -> uuid()
@@ -89,14 +89,14 @@ sha(Namespace, Name) ->
 %%      Namespace = dns | url | oid | x500 | uuid()
 %%      Name = list() | binary()
 %% @doc
-%% Generates a UUID based on a crypto:md5() hash
+%% Generates a UUID based on a crypto:hash(md5) hash
 %%
 md5(Namespace, Name) when is_list(Name) ->
     md5(Namespace, list_to_binary(Name));
 
 md5(Namespace, Name) ->
-    Context = crypto:md5_update(crypto:md5_update(crypto:md5_init(), namespace(Namespace)), Name),
-    U = crypto:md5_final(Context),
+    Context = crypto:hash_update(crypto:hash_update(crypto:hash_init(md5), namespace(Namespace)), Name),
+    U = crypto:hash_final(Context),
     format_uuid(U, 3).
 
 %% @spec timestamp() -> uuid()

@@ -34,18 +34,19 @@
 %% user interface
 -export([debug/3, debug/4, get_val/1, init_seed/0, chop/1, elapsed/2,
          now_sec/0, node_to_hostname/1, add_time/2, keyumerge/3, key1search/2,
-         level2int/1, mkey1search/2, datestr/0, datestr/1,
+         level2int/1, mkey1search/2, datestr/0, datestr/1, size_or_length/1,
          erl_system_args/0, erl_system_args/1, setsubdir/1, export_text/1,
          foreach_parallel/2, spawn_par/3, inet_setopts/3, resolve/2,
          stop_all/2, stop_all/3, stop_all/4, join/2, split/2, split2/2, split2/3,
          make_dir/1, make_dir_raw/1, is_ip/1, from_https/1, to_https/1, keymax/2,
          check_sum/3, check_sum/5, clean_str/1, file_to_list/1, term_to_list/1,
-         decode_base64/1, encode_base64/1, to_lower/1, release_is_newer_or_eq/1,
+         decode_base64/1, encode_base64/1, to_lower/1,
          randomstr/1,urandomstr/1,urandomstr_noflat/1, eval/1, list_to_number/1,
          time2sec/1, time2sec_hires/1, read_file_raw/1, init_seed/1, jsonpath/2,
          concat_atoms/1, ceiling/1, accept_loop/3, append_to_filename/3, splitchar/2,
          randombinstr/1,urandombinstr/1,log_transaction/1,conv_entities/1, wildcard/2,
-         ensure_all_started/2, pmap/2, pmap/3, get_node_id/0, filtermap/2, new_ets/2]).
+         ensure_all_started/2, pmap/2, pmap/3, get_node_id/0, filtermap/2, new_ets/2,
+         is_controller/0, spread_list/1, pack/1, random_alphanumstr/1]).
 
 level2int("debug")     -> ?DEB;
 level2int("info")      -> ?INFO;
@@ -126,7 +127,11 @@ elapsed({Before1, Before2, Before3}, {After1, After2, After3}) ->
         Neg when Neg < 0 -> % time duration must not be negative
              0;
         Val -> Val
-    end.
+    end;
+elapsed(Before, After)->
+    Elapsed=After-Before,
+    MicroSec = erlang:convert_time_unit(Elapsed, native, micro_seconds),
+    MicroSec / 1000.
 
 %%----------------------------------------------------------------------
 %% Func: chop/1
@@ -166,29 +171,41 @@ init_seed({A,B}) when is_integer(A) and is_integer(B)->
     %% initial pseudo random values will be quite closed to each
     %% other. Trying to avoid this by using a multiplier big enough
     %% (because the algorithm use mod 30XXX , see random.erl).
-    random:seed(1000*A*A,-1000*B*B,1000*Id*Id);
+    random:seed(4000*A*B*Id,-4000*B*A*Id,4000*Id*Id*A);
 init_seed({A,B,C}) ->
     random:seed(A,B,C).
 
 get_node_id() ->
     case string:tokens(atom_to_list(node()),"@") of
         ["tsung_control"++_,_]    -> 123456;
-        ["tsung"++I,_]            -> list_to_integer(I);
+        ["tsung"++Tail,_]         ->
+            {match, [I]} = re:run(Tail, "\\d+$", [{capture, all, list}]), %" add comment for erlang-mode bug
+            list_to_integer(I);
         _                         -> 654321
+    end.
+
+%% @spec is_controller() -> true|false
+%% @doc return true if the caller is running on the controller node
+%% @end
+is_controller() ->
+    case string:tokens(atom_to_list(node()),"@") of
+        ["tsung_control"++_,_]    -> true;
+        _ ->false
     end.
 
 %%----------------------------------------------------------------------
 %% Func: init_seed/0
 %%----------------------------------------------------------------------
 init_seed()->
-    init_seed(now()).
+    init_seed(?TIMESTAMP).
 
 %%----------------------------------------------------------------------
 %% Func: now_sec/0
 %% Purpose: returns unix like elapsed time in sec
+%% TODO: we should use erlang:system_time(seconds) when we drop < R18 compat
 %%----------------------------------------------------------------------
 now_sec() ->
-    time2sec(now()).
+    time2sec(?TIMESTAMP).
 
 time2sec({MSec, Seconds, _}) ->
     Seconds+1000000*MSec.
@@ -205,7 +222,10 @@ add_time({MSec, Seconds, MicroSec}, SecToAdd) when is_integer(SecToAdd)->
     case NewSec < 1000000 of
         true -> {MSec, NewSec, MicroSec};
         false ->{MSec+ (NewSec div 1000000), NewSec-1000000, MicroSec}
-    end.
+    end;
+add_time(Time, SecToAdd) when is_integer(SecToAdd)->
+	MicroSec = erlang:convert_time_unit(Time, native, micro_seconds)+SecToAdd*1000000,
+	erlang:convert_time_unit(MicroSec, micro_seconds, native).
 
 node_to_hostname(Node) ->
     [_Nodename, Hostname] = string:tokens( atom_to_list(Node), "@"),
@@ -219,10 +239,6 @@ encode_base64(String)->
 
 decode_base64(Base64)->
     base64:decode_to_string(Base64).
-
-% return true if current version of erlang is newer or equal
-release_is_newer_or_eq(Release)->
-    erlang:system_info(version) >= Release.
 
 %%----------------------------------------------------------------------
 %% Func: filtermap/2
@@ -302,9 +318,15 @@ erl_system_args(extended)->
              end,
     Shared = SetArg(shared),
     Hybrid = SetArg(hybrid),
-    case  ?config(smp_disable) of
-        true ->   Smp = " -smp disable ";
-        _    ->   Smp = SetArg(smp)
+    case  {?config(smp_disable), erlang:system_info(otp_release)} of
+        {true,"R"++_} ->
+            Smp = " -smp disable ";
+        {true,V} when (V =:= "17" orelse V =:= "18" orelse V =:= "19") ->
+            Smp = " -smp disable ";
+        {true,_} ->
+            Smp = " +S 1  ";
+        _    ->
+            Smp = SetArg(smp)
     end,
     Inet = case init:get_argument(kernel) of
                {ok,[["inetrc",InetRcFile]]} ->
@@ -448,6 +470,8 @@ make_dir_rec(Path, FileMod,[Parent|Childs]) ->
         {error,enoent} ->
             case FileMod:make_dir(CurrentDir) of
                 ok ->
+                    make_dir_rec(CurrentDir, FileMod, Childs);
+                {error, eexist} ->
                     make_dir_rec(CurrentDir, FileMod, Childs);
                 Error ->
                     Error
@@ -740,6 +764,11 @@ urandomstr(Size) when is_integer(Size), Size >= 0 ->
 randomstr(Size) when is_integer(Size), Size >= 0 ->
      lists:map(fun (_) -> random:uniform(25) + $a  end, lists:seq(1,Size)).
 
+random_alphanumstr(Size) when is_integer(Size), Size >= 0 ->
+    AllowedChars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+    S = length(AllowedChars),
+    lists:map(fun (_) -> lists:nth(random:uniform(S), AllowedChars) end, lists:seq(1,Size)).
+
 %%----------------------------------------------------------------------
 %% @spec randombinstr(Size::integer()) ->binary()
 %% @doc returns a random binary string. slow if Size is high.
@@ -982,6 +1011,8 @@ wildcard(Wildcard,Names) ->
     Pattern = re:replace(PatternTmp,"\\?",".{1}",[{return,list}]) ++ "$" ,
     lists:filter(fun(N) -> re:run(N, Pattern) =/= nomatch end, Names).
 
+%% dummy comment with a " "to circumvent an  erlang-mode bug in emacs"
+
 %%--------------------------------------------------------------------
 %% Func: new_ets/1
 %% Purpose: Wrapper for ets:new/1 used in external modules
@@ -993,3 +1024,38 @@ new_ets(Prefix, UserId)->
     EtsName = binary_to_list(Prefix) ++ "_" ++ integer_to_list(UserId),
     ?LOGF("create ets:table ~p ~n", [EtsName], ?INFO),
     ets:new(list_to_atom(EtsName), []).
+
+
+size_or_length(Data) when is_binary(Data) ->
+    size(Data);
+size_or_length(Data) when is_list(Data) ->
+    length(Data).
+
+%% given a list with successives duplicates, try to spread duplicates
+%% all over the list. e.g. [a,a,a,b,b,c,c] -> [a,b,c,a,b,c,a]
+spread_list(List) ->
+    spread_list2(pack(List),[]).
+
+spread_list2([], Res) ->
+    Res;
+spread_list2(PackedList, OldRes) ->
+    Fun = fun([A], {Res, ResTail})       -> {[A|Res], ResTail};
+             ([A|ATail], {Res, ResTail}) -> {[A|Res], [ATail|ResTail]}
+          end,
+    {Res, Tail} = lists:foldl(Fun, {[],[]}, PackedList),
+    spread_list2(lists:reverse(Tail), OldRes ++ lists:reverse(Res)).
+
+%% pack duplicates into sublists
+%% http://lambdafoo.com/blog/2008/02/26/99-erlang-problems-1-15/
+pack([]) ->
+    [];
+pack([H|[]]) ->
+    [[H]];
+pack([H,H|C]) ->
+    [Head|Tail] = pack([H|C]),
+    X = lists:append([H],Head),
+    [X|Tail];
+pack([H,H2|C]) ->
+    if H =/= H2 ->
+      [[H]|pack([H2|C])]
+    end.

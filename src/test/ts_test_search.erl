@@ -62,6 +62,27 @@ parse_dyn_var_jsonpath6_test() ->
     JSONPath = "titi[*].val",
     ?assertEqual([{'myvar',[123,42]}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
 
+parse_dyn_var_jsonpath7_test() ->
+    myset_env(),
+    Data = "\r\n\r\n {
+    \"menu\": {
+        \"id\": \"file\",
+        \"value\": \"File\",
+        \"popup\": {
+            \"name\": \"glop\",
+            \"menuitem\": [
+                { \"value\": \"New\", \"onclick\": \"CreateNewDoc()\" },
+                { \"value\": \"Open\", \"onclick\": \"OpenDoc()\" },
+                { \"value\": \"Close\", \"onclick\": \"CloseDoc()\" }
+            ]
+                }
+                }
+        }",
+    JSONPath = "menu.popup.name",
+    ?assertEqual([{'myvar', << "glop" >>}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))),
+    JSONPathTab = "menu.popup.menuitem[0].value",
+    ?assertEqual([{'myvar', << "New" >>}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPathTab} ],list_to_binary(Data))).
+
 parse_dyn_var_jsonpath_int_test() ->
     myset_env(),
     Data="\r\n\r\n{\"titi\": [{\"val\": 123, \"name\": \"foo\"}, {\"val\": 42, \"name\": \"bar\"}]}",

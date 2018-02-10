@@ -203,7 +203,7 @@ get_message1(#amqp_request{type = 'basic.publish', channel = Channel,
                                      next_pub_seqno = SeqNo + 1}
     end,
     put({chstate, Channel}, NewChState),
-    ts_mon:add({count, amqp_published}),
+    ts_mon_cache:add({count, amqp_published}),
     {Frame, AMQPSession};
 
 get_message1(#amqp_request{type = 'basic.consume', channel = Channel,
@@ -263,7 +263,7 @@ parse_bidi(<<>>, State=#state_rcv{acc = [], session = AMQPSession}) ->
     AckBuf = AMQPSession#amqp_session.ack_buf,
     NewAMQPSession = AMQPSession#amqp_session{ack_buf = <<>>},
     ?DebugF("ack buf: ~p~n", [AckBuf]),
-    {confirm_ack_buf(AckBuf), State#state_rcv{session = NewAMQPSession}};
+    {confirm_ack_buf(AckBuf), State#state_rcv{session = NewAMQPSession},think};
 parse_bidi(Data, State=#state_rcv{acc = [], session = AMQPSession}) ->
     ?DebugF("parse bidi data: ~p ~p~n", [size(Data), Data]),
     Protocol = AMQPSession#amqp_session.protocol,
@@ -271,7 +271,7 @@ parse_bidi(Data, State=#state_rcv{acc = [], session = AMQPSession}) ->
     case decode_frame(Protocol, Data) of
         {error, _Reason} ->
             ?DebugF("decode error: ~p~n", [_Reason]),
-            {nodata, State};
+            {nodata, State, think};
         {ok, heartbeat, Left} ->
             ?DebugF("receive bidi: ~p~n", [heartbeat]),
             HB = list_to_binary(rabbit_binary_generator:build_heartbeat_frame()),
@@ -286,7 +286,7 @@ parse_bidi(Data, State=#state_rcv{acc = [], session = AMQPSession}) ->
             parse_bidi(Left, State#state_rcv{session = NewAMQPSession});
         {incomplete, Left} ->
             ?DebugF("incomplete frame: ~p~n", [Left]),
-            {confirm_ack_buf(AckBuf), State#state_rcv{acc = Left}}
+            {confirm_ack_buf(AckBuf), State#state_rcv{acc = Left},think}
     end;
 parse_bidi(Data, State=#state_rcv{acc = Acc, datasize = DataSize,
                                   session = AMQPSession}) ->
@@ -312,11 +312,17 @@ parse_config(Element, Conf) ->
 add_dynparams(false, {_DynVars, _Session}, Param, _HostData) ->
     Param;
 add_dynparams(true, {DynVars, _Session},
-              Req = #amqp_request{channel = Channel, payload = Payload},
-              _HostData) ->
+              Req = #amqp_request{channel = Channel, payload = Payload,
+                                  exchange = Exchange, routing_key = RoutingKey,
+                                  queue = Queue}, _HostData) ->
     SubstChannel = ts_search:subst(Channel, DynVars),
     SubstPayload = ts_search:subst(Payload, DynVars),
-    Req#amqp_request{channel = SubstChannel, payload = SubstPayload}.
+    SubstExchange = ts_search:subst(Exchange, DynVars),
+    SubstRoutingKey = ts_search:subst(RoutingKey, DynVars),
+    SubstQueue = ts_search:subst(Queue, DynVars),
+    Req#amqp_request{channel = SubstChannel, payload = SubstPayload,
+                     exchange = SubstExchange, routing_key = SubstRoutingKey,
+                     queue = SubstQueue}.
 
 %%----------------------------------------------------------------------
 plain(none, Username, Password) ->
@@ -338,19 +344,19 @@ get_post_fun(_Channel, 'connection.open_ok') ->
             AMQPSession = NewState#state_rcv.session,
             NewAMQPSession = AMQPSession#amqp_session{status = connected},
             NewState1 = NewState#state_rcv{session = NewAMQPSession},
-            ts_mon:add({count, amqp_connected}),
+            ts_mon_cache:add({count, amqp_connected}),
             {NewState1, Options, Close}
     end;
 
 get_post_fun(_Channel, 'channel.open_ok') ->
     fun({NewState, Options, Close}) ->
-            ts_mon:add({count, amqp_channel_opened}),
+            ts_mon_cache:add({count, amqp_channel_opened}),
             {NewState, Options, Close}
     end;
 
 get_post_fun(_Channel, 'channel.close_ok') ->
     fun({NewState, Options, Close}) ->
-            ts_mon:add({count, amqp_channel_closed}),
+            ts_mon_cache:add({count, amqp_channel_closed}),
             {NewState, Options, Close}
     end;
 
@@ -367,7 +373,7 @@ get_post_fun(_Channel, 'basic.consume_ok') ->
     fun({NewState, Options, Close}) ->
             AMQPSession = NewState#state_rcv.session,
             Socket = NewState#state_rcv.socket,
-            ts_mon:add({count, amqp_consumer}),
+            ts_mon_cache:add({count, amqp_consumer}),
             LeftData = NewState#state_rcv.acc,
             NewAMQPSession = AMQPSession#amqp_session{waiting = none},
             NewState1 = NewState#state_rcv{acc = [], session = NewAMQPSession},
@@ -381,7 +387,7 @@ get_post_fun(_Channel, 'basic.consume_ok') ->
 
 get_post_fun(_Channel, 'connection.close_ok') ->
     fun({NewState, Options, _Close}) ->
-            ts_mon:add({count, amqp_closed}),
+            ts_mon_cache:add({count, amqp_closed}),
             {NewState, Options, true}
     end;
 
@@ -442,7 +448,7 @@ should_ack(Channel, AckBuf, #'basic.deliver'{delivery_tag = DeliveryTag},
             ?DebugF("delivered: ~p ~n", [ack]),
             Ack = #'basic.ack'{delivery_tag = DeliveryTag},
             Frame = assemble_frame(Channel, Ack, Protocol),
-            ts_mon:add({count, amqp_delivered}),
+            ts_mon_cache:add({count, amqp_delivered}),
             NewAckBuf = case AckBuf of
                 nodata -> Frame;
                 _ -> <<AckBuf/binary, Frame/binary>>
@@ -450,7 +456,7 @@ should_ack(Channel, AckBuf, #'basic.deliver'{delivery_tag = DeliveryTag},
             AMQPSession#amqp_session{ack_buf = NewAckBuf};
         false ->
             ?DebugF("delivered: ~p ~n", [noack]),
-            ts_mon:add({count, amqp_delivered}),
+            ts_mon_cache:add({count, amqp_delivered}),
             AMQPSession#amqp_session{ack_buf = AckBuf}
     end;
 should_ack(Channel, AckBuf, Method = #'basic.ack'{}, AMQPSession) ->
@@ -492,9 +498,9 @@ update_unconfirmed(AckType, SeqNo, true, USet) ->
     end.
 
 add_ack_stat(ack) ->
-    ts_mon:add({count, amqp_confirmed});
+    ts_mon_cache:add({count, amqp_confirmed});
 add_ack_stat(nack) ->
-    ts_mon:add({count, amqp_unconfirmed}).
+    ts_mon_cache:add({count, amqp_unconfirmed}).
 
 client_properties(UserProperties) ->
     Default = [{<<"product">>,   longstr, <<"Tsung">>},
@@ -535,7 +541,7 @@ decode_and_check(Data, Waiting, State, Protocol) ->
     case decode_frame(Protocol, Data) of
         {error, _Reason} ->
             ?DebugF("decode error: ~p~n", [_Reason]),
-            ts_mon:add({count, amqp_error}),
+            ts_mon_cache:add({count, amqp_error}),
             {fail, {State#state_rcv{ack_done = true}, [], true}};
         {ok, heartbeat, Left} ->
             {ok, heartbeat, {State#state_rcv{ack_done = false, acc = Left},
@@ -555,7 +561,7 @@ check(Channel, {Channel, Expecting}, Method, State, Left) ->
             {ok, Method,
              PostFun({State#state_rcv{ack_done = true, acc = Left}, [], false})};
         _ ->
-            ts_mon:add({count, amqp_unexpected}),
+            ts_mon_cache:add({count, amqp_unexpected}),
             ?DebugF("unexpected_method: ~p, expecting ~p~n",
                     [Method, Expecting]),
             {fail, {State#state_rcv{ack_done = true}, [], true}}

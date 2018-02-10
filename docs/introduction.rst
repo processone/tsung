@@ -8,7 +8,7 @@ What is Tsung?
 
 Tsung (formerly IDX-Tsunami) is a distributed load testing
 tool. It is protocol-independent and can currently be used to stress
-HTTP, WebDAV, SOAP, PostgreSQL, MySQL, LDAP and Jabber/XMPP servers.
+HTTP, WebDAV, SOAP, PostgreSQL, MySQL, AMQP, MQTT, LDAP and Jabber/XMPP servers.
 
 It is distributed under the GNU General Public License version 2.
 
@@ -17,7 +17,8 @@ What is Erlang and why is it important for Tsung?
 ==================================================
 
 Tsung's main strength is its ability to simulate a huge number of
-simultaneous user from a single machine. When used on cluster, you can
+simultaneous user from a single machine; moreover, you can distribute
+the users on cluster for machines. When used on cluster, you can
 generate a really impressive load on a server with a modest cluster,
 easy to set-up and to maintain. You can also use Tsung on a cloud like
 EC2.
@@ -27,7 +28,7 @@ Tsung resides.
 
 
 Erlang is a *concurrency-oriented* programming language.
-Tsung is based on the Erlang OTP (Open Transaction Platform) and
+Tsung is based on the Erlang OTP (Open Telecom Platform) and
 inherits several characteristics from Erlang:
 
 
@@ -58,9 +59,9 @@ History:
   http://IDEALX.com/ (now OpenTrust).  It has evolved as an open-source
   multi-protocol load testing tool several months later. The HTTP
   support was added in 2003, and this tool has been used for several
-  industrial projects.  It is now hosted by Erlang-projects, and
-  supported by http://process-one.net/. The list of contributors
-  is available in the source archive at https://github.com/processone/tsung/blob/master/CONTRIBUTORS and at https://github.com/processone/tsung/graphs/contributors.
+  industrial projects.  It is now hosted on github, and
+  several companies provide profesionnal support. The list of contributors
+  is available in the source archive at https://github.com/processone/tsung/blob/master/CONTRIBUTORS.
 
 * It is an industrial strength implementation of a *stochastic model*
   for real users simulation. User events distribution is based on a Poisson Process. More information on this topic in:
@@ -80,11 +81,12 @@ Tsung has been used for very high load tests:
 
   * 90,000 simultaneous Jabber users on a 4-node Tsung cluster (3xSun V240 + 1 Sun V440).
   * 10,000 simultaneous users. Tsung was running on a 3-computers cluster (CPU 800MHz).
+  * 2,000,000 concurrent users on a single m4.10xlarge instance on EC2 to tests ejabberd scalability
 
 * *HTTP and HTTPS* protocol:
 
   * 12,000 simultaneous users. Tsung were running on a 4-computers cluster (in 2003).
-    The tested platform reached 3,000 requests per second.
+    The tested platform reached 3,000 https requests per second.
   * 10 million simultaneous users running on a 75-computers cluster, generating more
     than one million requests per second.
 
@@ -101,5 +103,6 @@ Tsung has been used at:
 
 * *LibertySurf*
 
-* *Sun* (TM) for their Mooddlerooms platform on Niagara processors: https://blogs.oracle.com/kevinr/resource/Moodle-Sun-RA.pdf
+* *Sun* (TM) for their Moodlerooms platform on Niagara processors: https://blogs.oracle.com/kevinr/resource/Moodle-Sun-RA.pdf
 
+* and many other companies

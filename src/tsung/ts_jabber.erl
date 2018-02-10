@@ -50,7 +50,9 @@
          userid/1]).
 
 -export ([starttls_bidi/2,
-          presence_bidi/2]).
+          message_bidi/2,
+          presence_bidi/2,
+          ping_bidi/2]).
 
 %%----------------------------------------------------------------------
 %% Function: session_default/0
@@ -105,7 +107,7 @@ get_message(Req=#jabber{id=user_defined, username=User, passwd=Passwd}, State=#s
 get_message(Req=#jabber{prefix=Prefix, passwd=Passwd}, State=#state_rcv{session=S}) when S#jabber_session.id == undefined  ->
    Id = case ts_user_server:get_idle(S#jabber_session.user_server) of
              {error, no_free_userid} ->
-                 ts_mon:add({ count, error_no_free_userid }),
+                 ts_mon_cache:add({ count, error_no_free_userid }),
                  exit(no_free_userid);
              Val->
                 Val
@@ -165,7 +167,9 @@ parse_bidi(Data,  State) ->
     RcvdXml = binary_to_list(Data),
     BidiElements =
         [{"<presence[^>]*subscribe[\"\']", presence_bidi},
-         {"<proceed", starttls_bidi}],
+         {"@@@([^@]+)@@@", message_bidi},
+         {"<proceed", starttls_bidi},
+         {"<ping", ping_bidi}],
     lists:foldl(fun({Regex, Handler}, Acc)->
        case re:run(RcvdXml,Regex) of
         {match,_} ->
@@ -174,13 +178,51 @@ parse_bidi(Data,  State) ->
         _Else ->
             Acc
         end
-    end, {nodata, State}, BidiElements).
+    end, {nodata, State, think}, BidiElements).
+
+ping_bidi(RcvdXml, State)->
+    Fun = fun(Data, Identifier)->
+                  Query = string:concat(Identifier,"='[^']*"),
+                  case re:run(Data,Query) of
+                      {match,[{Sind, Len}]}->
+                          Data2 = string:substr(Data,Sind+1,Len),
+                          string:substr(Data2,string:len(Identifier)+3);
+                      _->
+                          nomatch
+                  end
+          end,
+    Host = Fun(RcvdXml,"from"),
+    Id = Fun(RcvdXml, "id"),
+    case {Host, Id} of
+        {A, B} when (A =:= nomatch orelse B =:= nomatch) ->
+            ?LOGF("can't find host or id in ping request: ~p",[RcvdXml],?WARN),
+            {nodata, State, think};
+        {_,_} ->
+            Res = lists:flatten(["<iq id='",Id,"' to='",Host,"' type='result'></iq>"]),
+            {list_to_binary(Res),State, think}
+    end.
 
 presence_bidi(RcvdXml, State)->
     {match,SubMatches} = re:run(RcvdXml,"<presence[^>]*subscribe[\"\'][^>]*>",[global]),
     bidi_resp(subscribed,RcvdXml,SubMatches,State).
 
-starttls_bidi(_RcvdXml, #state_rcv{socket= Socket}=State)->
+message_bidi(RcvdXml, State) ->
+    {match, [NodeStamp]} = re:run(RcvdXml, "@@@([^@]+)@@@", [{capture, all_but_first, list}]),
+    [NodeS, StampS] = string:tokens(NodeStamp, ","),
+    case integer_to_list(erlang:phash2(node())) of
+        NodeS ->
+            [MegaS, SecsS, MicroS] = string:tokens(StampS, ";"),
+            Mega = list_to_integer(MegaS),
+            Secs = list_to_integer(SecsS),
+            Micro = list_to_integer(MicroS),
+            Latency = timer:now_diff(?TIMESTAMP, {Mega, Secs, Micro}),
+            ts_mon_cache:add({ sample, xmpp_msg_latency, Latency / 1000});
+        _ ->
+            ignore
+    end,
+    {nodata, State, think}.
+
+starttls_bidi(_RcvdXml, #state_rcv{socket= Socket, send_timestamp=SendTime}=State)->
     ssl:start(),
     Req = subst(State#state_rcv.request#ts_request.param, State#state_rcv.dynvars),
     Opt = lists:filter(fun({_,V}) -> V /= undefined end, 
@@ -190,7 +232,9 @@ starttls_bidi(_RcvdXml, #state_rcv{socket= Socket}=State)->
                        {cacertfile,Req#jabber.cacertfile}]),
     {ok, SSL} = ts_ssl:connect(Socket, Opt),
     ?LOGF("Upgrading to TLS : ~p",[SSL],?INFO),
-    {nodata, State#state_rcv{socket=SSL,protocol=ts_ssl}}.
+    Latency = ts_utils:elapsed(SendTime, ?NOW),
+    ts_mon_cache:add({ sample, xmpp_starttls, Latency}),
+    {nodata, State#state_rcv{socket=SSL,protocol=ts_ssl}, continue}.
 
 %%----------------------------------------------------------------------
 %% Function: bidi_resp/4
@@ -201,6 +245,7 @@ starttls_bidi(_RcvdXml, #state_rcv{socket= Socket}=State)->
 %%          State (record)
 %% Returns:    Data (binary)
 %%             NewState (record)
+%%             think|continue
 %%----------------------------------------------------------------------
 %% subscribed: Complete a pending subscription request
 bidi_resp(subscribed,RcvdXml,SubMatches,State) ->
@@ -220,10 +265,10 @@ bidi_resp(subscribed,RcvdXml,SubMatches,State) ->
     end,"",SubMatches),
     case lists:flatten(JoinedXml) of
         "" ->
-            {nodata,State};
+            {nodata,State, think};
         _ ->
             ?LOGF("RESPONSE TO SEND : ~s~n",[JoinedXml],?DEB),
-            {list_to_binary(JoinedXml),State}
+            {list_to_binary(JoinedXml),State, think}
     end.
 
 %%

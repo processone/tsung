@@ -101,7 +101,7 @@ init({HostStr, {Port, Community, Version, DynOIDS}, Interval, MonServer}) ->
     FunsL= [{?SNMP_CPU_RAW_SYSTEM,cpu_system,sample_counter,fun(X)-> X/(Interval/1000) end},
            {?SNMP_CPU_RAW_USER,cpu_user,sample_counter,fun(X)-> X/(Interval/1000) end},
            {?SNMP_MEM_AVAIL,freemem,sample,fun(X)-> X/1000 end},
-           {?SNMP_CPU_LOAD1,load,sample,fun(X)-> X*100 end}] ++ DynOIDS,
+           {?SNMP_CPU_LOAD1,load,sample,fun(X)-> X/100 end}] ++ DynOIDS,
     OIDS=lists:map(fun({Oid,_Name,_Type,_Fun})-> Oid end,FunsL),
     Funs=lists:foldl(fun({Oid,Name,Type,Fun},Acc)->dict:store(Oid,{Name,Type,Fun},Acc) end,dict:new(),FunsL),
     ?LOGF("Starting SNMP mgr on ~p~n", [IP], ?DEB),

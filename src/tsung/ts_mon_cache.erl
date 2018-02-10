@@ -54,9 +54,8 @@
           sum               % cache sum stats msgs
          }).
 
--define(DUMP_STATS_INTERVAL, 500). % in milliseconds
 
--include("ts_macros.hrl").
+-include("ts_config.hrl").
 
 %%====================================================================
 %% External functions
@@ -78,15 +77,23 @@ add(Data) ->
     gen_server:cast(?MODULE, {add, Data}).
 
 %% @spec add_match(Data::list(),{UserId::integer(),SessionId::integer(),RequestId::integer(),
-%%                  TimeStamp::tuple(), Transactions::list()}) -> ok
-add_match(Data,{UserId,SessionId,RequestId,TimeStamp,Bin,Tr,Name}) ->
+%%                  TimeStamp::tuple(),Transactions::list(),Name::atom()}) -> ok;
+%%                (Data::list(),{UserId::integer(),SessionId::integer(),RequestId::integer(),
+%%                  TimeStamp::tuple(),Bin::list(),Transactions::list(),Name::atom()}) -> ok.
+add_match(Data,{UserId,SessionId,RequestId,Tr,Name}) ->
+    add_match(Data,{UserId,SessionId,RequestId,[],Tr,Name});
+add_match(Data,{UserId,SessionId,RequestId,Bin,Tr,Name}) ->
+    TimeStamp=?TIMESTAMP,
+    add_match(Data,{UserId,SessionId,RequestId,TimeStamp,Bin,Tr,Name});
+add_match(Data=[Head|_],{UserId,SessionId,RequestId,TimeStamp,Bin,Tr,Name}) ->
+    put(last_match,Head),
     gen_server:cast(?MODULE, {add_match, Data, {UserId,SessionId,RequestId,TimeStamp,Bin,Tr,Name}}).
 
 
 %% @spec dump({Type, Who, What}) -> ok @end
 dump({none, _, _})       ->  skip;
 dump({_Type, Who, What}) ->
-    gen_server:cast(?MODULE, {dump, Who, ?NOW, What}).
+    gen_server:cast(?MODULE, {dump, Who, ?TIMESTAMP, What}).
 
 %%====================================================================
 %% Server functions
@@ -101,7 +108,7 @@ dump({_Type, Who, What}) ->
 %%          {stop, Reason}
 %%--------------------------------------------------------------------
 init([]) ->
-    erlang:start_timer(?DUMP_STATS_INTERVAL, self(), dump_stats ),
+    erlang:start_timer(?CACHE_DUMP_STATS_INTERVAL, self(), dump_stats ),
     {ok, #state{sum=dict:new()}}.
 
 %%--------------------------------------------------------------------
@@ -161,7 +168,7 @@ handle_info({timeout, _Ref, dump_stats}, State =#state{protocol=ProtocolData, st
     ts_stats_mon:add(State#state.pages,page),
     ts_mon:dump({cached, list_to_binary(lists:reverse(ProtocolData))}),
     ts_match_logger:add(MatchList),
-    erlang:start_timer(?DUMP_STATS_INTERVAL, self(), dump_stats ),
+    erlang:start_timer(?CACHE_DUMP_STATS_INTERVAL, self(), dump_stats ),
     {noreply, State#state{protocol=[],stats=[],match=[],pages=[],requests=[],transactions=[],connections=[],sum=dict:new()}};
 
 handle_info(_Info, State) ->

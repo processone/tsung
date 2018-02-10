@@ -57,6 +57,7 @@ parse_config(Element = #xmlElement{name=jabber},
     TypeStr  = ts_config:getAttr(string,Element#xmlElement.attributes, type, "chat"),
     Ack  = ts_config:getAttr(atom,Element#xmlElement.attributes, ack, no_ack),
     Dest= ts_config:getAttr(atom,Element#xmlElement.attributes, destination,random),
+    Stamped = ts_config:getAttr(atom,Element#xmlElement.attributes, stamped, false),
 
     Size= ts_config:getAttr(integer,Element#xmlElement.attributes, size,0),
     Data= ts_config:getAttr(string,Element#xmlElement.attributes, data,undefined),
@@ -137,6 +138,7 @@ parse_config(Element = #xmlElement{name=jabber},
                                     id     = XMPPId,
                                     data   = Data,
                                     type   = Type,
+                                    stamped = Stamped,
                                     regexp = RE,
                                     dest   = Dest,
                                     size   = Size,
@@ -215,7 +217,7 @@ parse_config(Element = #xmlElement{name=option}, Conf = #config{session_tab = Ta
             Conf;
         "fileid_delimiter" ->
             D = ts_config:getAttr(string,Element#xmlElement.attributes, value, ";"),
-            ts_user_server:set_fileid_delimiter(D),
+            ts_user_server:set_fileid_delimiter(list_to_binary(D)),
             Conf
     end,
     lists:foldl( fun(A,B) -> ts_config:parse(A,B) end, NewConf, Element#xmlElement.content);
@@ -235,7 +237,6 @@ initialize_options(Tab) ->
             ets:insert_new(Tab,{{jabber_passwd,value},        ?xmpp_passwd}),
             ets:insert_new(Tab,{{jabber_domain_name,value},   {domain,?xmpp_domain}}),
             ets:insert_new(Tab,{{jabber_initialized,value},   true}),
-            ts_user_server:reset(ts_config:get_default(Tab, jabber_userid_max)),
             ts_timer:config(ts_config:get_default(Tab, jabber_global_number));
         _Else ->
             ok

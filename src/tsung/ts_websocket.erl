@@ -79,10 +79,11 @@ dump(A,B) ->
 %% Returns: binary
 %%----------------------------------------------------------------------
 get_message(#websocket_request{type = connect, path = Path,
-                               subprotos = SubProtocol, version = Version},
+                               subprotos = SubProtocol, version = Version,
+                               origin = Origin},
             State=#state_rcv{session = WebsocketSession}) ->
     {Request, Accept} = websocket:get_handshake(State#state_rcv.host, Path,
-                                                SubProtocol, Version),
+                                                SubProtocol, Version, Origin),
     {Request, WebsocketSession#websocket_session{status = waiting_handshake,
                                                  accept = Accept}};
 get_message(#websocket_request{type = message, data = Data, frame = Frame},
@@ -106,7 +107,7 @@ get_message(#websocket_request{type = close},
 %% Returns: {NewState, Options for socket (list), Close = true|false}
 %%----------------------------------------------------------------------
 parse(closed, State) ->
-    {State#state_rcv{ack_done = true, datasize=0}, [], true};
+    {State#state_rcv{ack_done = true, acc = [], datasize=0}, [], true};
 %% new response, compute data size (for stats)
 parse(Data, State=#state_rcv{acc = [], datasize= 0}) ->
     parse(Data, State#state_rcv{datasize= size(Data)});
@@ -122,13 +123,13 @@ parse(Data, State=#state_rcv{acc = [],
     case websocket:check_handshake(Header, Accept) of
         ok ->
             ?Debug("handshake success:~n"),
-            ts_mon:add({count, websocket_succ}),
+            ts_mon_cache:add({count, websocket_succ}),
             {State#state_rcv{ack_done = true,
                              session = WebsocketSession#websocket_session{
                                          status = connected}}, [], false};
         {error, _Reason} ->
             ?DebugF("handshake fail: ~p~n", [_Reason]),
-            ts_mon:add({count, websocket_fail}),
+            ts_mon_cache:add({count, websocket_fail}),
             {State#state_rcv{ack_done = true}, [], true}
     end;
 
@@ -144,7 +145,7 @@ parse(Data, State=#state_rcv{acc = [], session = WebsocketSession})
             {State#state_rcv{ack_done = true, acc = Left}, [], false};
         more ->
             ?DebugF("receive incomplete frame from server: ~p~n", [Data]),
-            {State#state_rcv{ack_done = true, acc = Data}, [], false}
+            {State#state_rcv{ack_done = false, acc = Data}, [], false}
     end;
 %% more data, add this to accumulator and parse, update datasize
 parse(Data, State=#state_rcv{acc = Acc, datasize = DataSize}) ->

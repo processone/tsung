@@ -28,7 +28,15 @@
 -include("ts_macros.hrl").
 
 -export([init/1, terminate/1, lookup/2, update/3, delete/2, foldl/3,
-         select_session/2]).
+         select_session/2, size/1]).
+
+-ifndef(new_time_api). % otp < R18
+-define(SELECT(Cache,PartialKey),
+        ets:select(Cache, [{{{PartialKey,'$1'}, '$2'},[],['$$']}])).
+-else.
+-define(SELECT(Cache,PartialKey),
+        ets:select(Cache, [{{{PartialKey,'_'}, '$1'},[],['$1']}])).
+-endif.
 
 %%--------------------------------------------------------------------
 %% Description: Return table reference. Called by ssl_manager process.
@@ -65,9 +73,10 @@ foldl(Fun, Acc0, Cache) ->
 
 select_session(Cache, PartialKey) ->
     ?DebugF("SSL cache select ~p",[PartialKey]),
-    Res= ets:select(Cache,
-                    [{{{PartialKey,'$1'}, '$2'},[],['$$']}]),
-    Res.
+    ?SELECT(Cache,PartialKey).
+
+size(Cache) ->
+    ets:info(Cache, size).
 
 %%--------------------------------------------------------------------
 %%% Internal functions

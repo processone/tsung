@@ -14,7 +14,7 @@ case $UNAME in
         *) HOST=`hostname -s`;;
 esac
 
-INSTALL_DIR=@EXPANDED_LIBDIR@/erlang/
+INSTALL_DIR=@EXPANDED_LIBDIR@/tsung
 ERL=@ERL@
 MAIN_DIR=$HOME/.tsung
 LOG_DIR=$MAIN_DIR/log
@@ -30,21 +30,26 @@ PGSQL_SERVER_IP=127.0.0.1
 PGSQL_SERVER_PORT=5432
 NAME=tsung
 CONTROLLER=tsung_controller
+CONTROLLER_EXTENDS=""
 SMP_DISABLE=true
 WARM_TIME=1
 MAX_PROCESS=250000
+# start an embedded web dashboard (on port 8091)
 WEB_GUI=true
+# don't stop controller: let the GUI alive after the load is finished:
+KEEP_WEB_GUI=false
 EXCLUDE_TAG_LIST=""
 
-TSUNGPATH=$INSTALL_DIR/lib/tsung-$VERSION/ebin
-CONTROLLERPATH=$INSTALL_DIR/lib/tsung_controller-$VERSION/ebin
+TSUNGPATH=$INSTALL_DIR/tsung-$VERSION/ebin
+CONTROLLERPATH=$INSTALL_DIR/tsung_controller-$VERSION/ebin
 EXTRA_LOAD_PATHS=""
 
 CONF_OPT_FILE="$HOME/.tsung/tsung.xml"
 DEBUG_LEVEL=5
 ERL_RSH=" -rsh ssh "
-ERL_DIST_PORTS=" -kernel inet_dist_listen_min 64000 -kernel inet_dist_listen_max 65500 "
-ERL_OPTS=" $ERL_DIST_PORTS -smp auto +P $MAX_PROCESS +A 8 +K true @ERL_OPTS@ "
+ERL_DIST_PORTS_MIN=64000
+ERL_DIST_PORTS_MAX=65500
+ERL_OPTS=" -smp auto +A 8 +K true @ERL_OPTS@ "
 COOKIE='tsung'
 SSL_CACHE="ts_ssl_session_cache"
 # 10 mn ssl session lifetime instead of 24h
@@ -54,9 +59,23 @@ stop() {
     $ERL $ERL_OPTS $ERL_RSH -noshell $PROTO_DIST $NAMETYPE killer -setcookie $COOKIE $EXTRA_LOAD_PATHS -pa $TSUNGPATH -pa $CONTROLLERPATH -s tsung_controller stop_all $HOST -s init stop
 }
 
+view() {
+    echo "Starting Tsung web only on port 8091"
+    $ERL $ERL_OPTS $ERL_RSH -noshell $PROTO_DIST $NAMETYPE $CONTROLLER$CONTROLLER_EXTENDS -setcookie $COOKIE \
+    +P $MAX_PROCESS \
+    -kernel inet_dist_listen_min $ERL_DIST_PORTS_MIN -kernel inet_dist_listen_max $ERL_DIST_PORTS_MAX \
+    -s ts_web \
+    $EXTRA_LOAD_PATHS \
+    -pa $TSUNGPATH -pa $CONTROLLERPATH \
+    -sasl sasl_error_logger false \
+    -stdlib $LOG_OPT
+}
+
 start() {
     echo "Starting Tsung"
-    $ERL $ERL_OPTS $ERL_RSH -noshell $PROTO_DIST $NAMETYPE $CONTROLLER -setcookie $COOKIE \
+    $ERL $ERL_OPTS $ERL_RSH -noshell $PROTO_DIST $NAMETYPE $CONTROLLER$CONTROLLER_EXTENDS -setcookie $COOKIE \
+    +P $MAX_PROCESS \
+    -kernel inet_dist_listen_min $ERL_DIST_PORTS_MIN -kernel inet_dist_listen_max $ERL_DIST_PORTS_MAX \
     -s tsung_controller \
     $EXTRA_LOAD_PATHS \
     -pa $TSUNGPATH -pa $CONTROLLERPATH \
@@ -64,6 +83,7 @@ start() {
     -ssl session_lifetime $SSL_SESSION_LIFETIME \
     -sasl sasl_error_logger false \
     -tsung_controller web_gui $WEB_GUI \
+    -tsung_controller keep_web_gui $KEEP_WEB_GUI \
     -tsung_controller smp_disable $SMP_DISABLE \
     -tsung_controller debug_level $DEBUG_LEVEL \
     -tsung_controller warm_time $WARM_TIME \
@@ -72,7 +92,9 @@ start() {
 }
 
 debug() {
-    $ERL $ERL_OPTS $ERL_RSH $NAMETYPE $CONTROLLER $PROTO_DIST -setcookie $COOKIE  \
+    $ERL $ERL_OPTS $ERL_RSH $NAMETYPE $CONTROLLER$CONTROLLER_EXTENDS $PROTO_DIST -setcookie $COOKIE  \
+     +P $MAX_PROCESS \
+     -kernel inet_dist_listen_min $ERL_DIST_PORTS_MIN -kernel inet_dist_listen_max $ERL_DIST_PORTS_MAX \
      -s tsung_controller \
      $EXTRA_LOAD_PATHS \
      -pa $TSUNGPATH -pa $CONTROLLERPATH \
@@ -80,6 +102,7 @@ debug() {
      -ssl session_lifetime $SSL_SESSION_LIFETIME \
      -sasl sasl_error_logger \{file\,\"$LOG_DIR/tsung-sasl.log\"\} \
      -tsung_controller web_gui $WEB_GUI \
+     -tsung_controller keep_web_gui $KEEP_WEB_GUI \
      -tsung_controller warm_time $WARM_TIME \
      -tsung_controller config_file \"$CONF_OPT_FILE\" \
      -tsung_controller exclude_tag \"$EXCLUDE_TAG_LIST\" \
@@ -130,11 +153,11 @@ checkrunning_controller() {
 
 usage() {
     prog=`basename $0`
-    echo "Usage: $prog <options> start|stop|debug|status"
+    echo "Usage: $prog <options> start|stop|debug|status|view"
     echo "Options:"
     echo "    -f <file>     set configuration file (default is ~/.tsung/tsung.xml)"
     echo "                   (use - for standard input)"
-    echo "    -l <logdir>   set log directory where YYYYMMDD-HHMM dirs are created (default is ~/.tsung/log/) "
+    echo "    -l <logdir>   set log directory where YYYYMMDD-HHMM dirs are created (default is ~/.tsung/log/)"
     echo "    -i <id>       set controller id (default is empty)"
     echo "    -r <command>  set remote connector (default is ssh)"
     echo "    -s            enable erlang smp on client nodes"
@@ -143,17 +166,21 @@ usage() {
     echo "    -m <file>     write monitoring output on this file (default is tsung.log)"
     echo "                   (use - for standard output)"
     echo "    -F            use long names (FQDN) for erlang nodes"
+    echo "    -I <ip>       use IP (FQDN) for erlang nodes; you can assign local bind available IP (not assigned; default is the host's name)"
     echo "    -L <lifetime> SSL session lifetime (600sec by default)"
-    echo "    -w            warmup delay (default is 1 sec)"
-    echo "    -n            disable web GUI"
+    echo "    -w <delay>    warmup delay (default is 1 sec)"
+    echo "    -n            disable web GUI (started by default on port 8091)"
+    echo "    -k            keep web GUI (and controller) alive after the test has finished"
     echo "    -v            print version information and exit"
     echo "    -6            use IPv6 for Tsung internal communications"
     echo "    -x <tags>     list of requests tag to be excluded from the run (separated by comma)"
+    echo "    -t <min>      erlang inet listening TCP port min (default: 64000)"
+    echo "    -T <max>      erlang inet listening TCP port max (default: 65500)"
     echo "    -h            display this help and exit"
     exit
 }
 
-while getopts "6vhnf:l:d:r:i:Fsw:m:p:x:X:" Option
+while getopts "6vhknf:l:d:r:i:Fsw:m:p:x:X:t:T:I:" Option
 do
     case $Option in
         f) CONF_OPT_FILE=$OPTARG;;
@@ -170,6 +197,7 @@ do
             ;;
         m) MON_FILE="mon_file \"$OPTARG\"";;
         n) WEB_GUI="false";;
+        k) KEEP_WEB_GUI="true";;
         d) DEBUG_LEVEL=$OPTARG;;
         p) MAX_PROCESS=$OPTARG;;
         X) EXTRA_LOAD_PATHS="$EXTRA_LOAD_PATHS -pa $OPTARG";;
@@ -178,6 +206,8 @@ do
         F) NAMETYPE="-name";;
         L) SSL_SESSION_LIFETIME=$OPTARG;;
         w) WARM_TIME=$OPTARG;;
+        t) ERL_DIST_PORTS_MIN=$OPTARG;;
+        T) ERL_DIST_PORTS_MAX=$OPTARG;;
         s) SMP_DISABLE="false";;
         v) version;;
         i) ID=$OPTARG
@@ -185,6 +215,12 @@ do
            CONTROLLER=$CONTROLLER"_"$ID
            ;;
         x) EXCLUDE_TAG_LIST=$OPTARG;;
+        I) NAMETYPE="-name"
+            SERVER_IP=$OPTARG
+            if [ "$SERVER_IP" != "" ]; then
+                CONTROLLER_EXTENDS="@$SERVER_IP"
+            fi
+            ;;
         h) usage;;
         *) usage ;;
     esac
@@ -192,6 +228,11 @@ done
 shift $(($OPTIND - 1))
 
 case $1 in
+    view)
+        maindir
+        logdir
+        view
+        ;;
     start)
         checkconfig
         maindir

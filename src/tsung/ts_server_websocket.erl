@@ -26,7 +26,7 @@
 
 -module (ts_server_websocket).
 
--export([ connect/3, send/3, close/1, set_opts/2, protocol_options/1,
+-export([ connect/4, send/3, close/1, set_opts/2, protocol_options/1,
           normalize_incomming_data/2 ]).
 
 -behaviour(gen_ts_transport).
@@ -38,11 +38,11 @@
 -record(state, {parent, socket = none, accept, host, port, path, opts, version,
                 frame, buffer = <<>>, state = not_connected, subprotos = []}).
 
--record(ws_config, {path, version = "13", frame}).
+-record(ws_config, {path, version = "13", frame, subprotos}).
 
 protocol_options(#proto_opts{tcp_rcv_size = Rcv, tcp_snd_size = Snd,
-                             websocket_path = Path, websocket_frame = Frame}) ->
-    [#ws_config{path = Path, frame = Frame},
+                             websocket_path = Path, websocket_frame = Frame, websocket_subprotocols = SubProtocols}) ->
+    [#ws_config{path = Path, frame = Frame, subprotos = SubProtocols},
      binary,
      {active, once},
      {recbuf, Rcv},
@@ -50,19 +50,20 @@ protocol_options(#proto_opts{tcp_rcv_size = Rcv, tcp_snd_size = Snd,
      {keepalive, true} %% FIXME: should be an option
     ].
 
-connect(Host, Port, Opts) ->
+connect(Host, Port, Opts, Timeout) ->
     Parent = self(),
 
     [WSConfig | TcpOpts] = Opts,
     Path = WSConfig#ws_config.path,
     Version = WSConfig#ws_config.version,
     Frame = WSConfig#ws_config.frame,
+    Protocol = WSConfig#ws_config.subprotos,
 
-    case gen_tcp:connect(Host, Port, opts_to_tcp_opts(TcpOpts)) of
+    case gen_tcp:connect(Host, Port, opts_to_tcp_opts(TcpOpts),Timeout) of
         {ok, Socket} ->
             Pid = spawn_link(
                     fun() ->
-                            loop(#state{parent = Parent, host = Host, port = Port,
+                            loop(#state{parent = Parent, host = Host, port = Port, subprotos = Protocol,
                                         opts = TcpOpts, path = Path, version = Version,
                                         frame = Frame, socket = Socket})
                     end),
@@ -76,7 +77,8 @@ connect(Host, Port, Opts) ->
 loop(#state{socket = Socket, host = Host, path = Path,
             version = Version, subprotos = SubProtocol,
             state = not_connected} = State)->
-    {Handshake, Accept} = websocket:get_handshake(Host, Path, SubProtocol, Version),
+    Origin = "", % FIXME: can we make it configurable ?
+    {Handshake, Accept} = websocket:get_handshake(Host, Path, SubProtocol, Version, Origin),
     gen_tcp:send(Socket, Handshake),
     loop(State#state{socket = Socket, accept = Accept,
                      state = waiting_handshake});

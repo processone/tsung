@@ -77,6 +77,7 @@
           use_weights      , % true if we use weights instead of probabilities
           total_server_weights=0,
           job_notify_port,
+          max_ssh_startup = 20,
           tag,
           modules_source = [],   % list of paths of modules to be compiled and distributed
           modules_beam = []      % list of module names (atoms) to be distributed
@@ -87,7 +88,8 @@
         {host,
          weight   = 1,
          maxusers,
-         ip       = []
+         ip       = [],
+         iprange  = undefined
         }).
 
 -record(server,
@@ -122,5 +124,6 @@
          maxnumber,
          curnumber = 0,
          popularities = [],
+         wait_all_sessions_end = false,
          id
         }).

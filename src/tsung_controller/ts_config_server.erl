@@ -49,7 +49,7 @@
 %%--------------------------------------------------------------------
 %% External exports
 -export([start_link/1, read_config/1, read_config/2, get_req/2, get_next_session/1,
-         get_client_config/1, newbeams/1, newbeam/2,
+         get_client_config/1, newbeams/1, newbeam/2, stop/0,
          get_monitor_hosts/0, encode_filename/1, decode_filename/1,
          endlaunching/1, status/0, start_file_server/1, get_user_agents/0,
          get_client_config/2, get_user_param/1, get_user_port/1, get_jobs_state/0 ]).
@@ -87,6 +87,9 @@
 %%--------------------------------------------------------------------
 start_link(LogDir) ->
     gen_server:start_link({global, ?MODULE}, ?MODULE, [LogDir], []).
+
+stop() ->
+    gen_server:cast({global, ?MODULE}, {abort}).
 
 status() ->
     gen_server:call({global, ?MODULE}, {status}).
@@ -270,7 +273,7 @@ handle_call({get_user_param, HostName}, _From, State=#state{users=UserId}) ->
     Config = State#state.config,
     {value, Client} = lists:keysearch(HostName, #client.host, Config#config.clients),
     {IPParam, Server} = get_user_param(Client,Config),
-    ts_mon:newclient({static,?NOW}),
+    ts_mon:newclient({static,?TIMESTAMP}),
     {reply, {ok, { IPParam, Server, UserId,Config#config.dump,Config#config.seed}}, State#state{users=UserId+1}};
 
 %% get  user port. This is needed by bosh, as there are more than one socket per bosh connection.
@@ -287,7 +290,7 @@ handle_call({get_next_session, HostName, PhaseId}, _From, State=#state{users=Use
     case choose_session(Config#config.sessions, Config#config.total_popularity, PhaseId) of
         {ok, Session=#session{id=Id}} ->
             ?LOGF("Session ~p chosen~n",[Id],?INFO),
-            ts_mon:newclient({Id,?NOW}),
+            ts_mon:newclient({Id,?TIMESTAMP}),
             {IPParam, Server} = get_user_param(Client,Config),
             {reply, {ok, Session#session{client_ip= IPParam, server=Server,userid=Users,
                                          dump=Config#config.dump, seed=Config#config.seed}},
@@ -371,19 +374,37 @@ handle_cast({newbeams, HostList}, State=#state{logdir   = LogDir,
     LocalVM  = Config#config.use_controller_vm,
     GetLocal = fun(Host)-> is_vm_local(Host,LocalHost,LocalVM) end,
     {LocalBeams, RemoteBeams} = lists:partition(GetLocal,HostList),
-    case local_launcher(LocalBeams, LogDir, Config) of
-        {error, _Reason} ->
+    case  { local_launcher(LocalBeams, LogDir, Config), RemoteBeams} of
+        { {error, _Reason}, _ } ->
             ts_mon:abort(),
             {stop, normal,State};
-        Id0 ->
+        {Id0, [] } -> % no remote beams
+            set_max_duration(Config#config.duration),
+            {noreply, State#state{last_beam_id = Id0}};
+        {Id0, _ } ->
             Seed = Config#config.seed,
             Args = set_remote_args(LogDir, Config#config.ports_range),
-            {BeamsIds, LastId} = lists:mapfoldl(fun(A,Acc) -> {{A, Acc}, Acc+1} end, Id0, RemoteBeams),
+            Packed=ts_utils:pack(RemoteBeams),
+            NNodes=length(Packed),
+            MaxStartup = 9, % not 10 because os mon can also start a ssh connection
+            MinBeamPerNode = min(MaxStartup, lists:min(lists:map(fun(A)->length(A) end, Packed))),
+            SpreadedBeams = spread_nodelist(RemoteBeams),
+            {BeamsIds, LastId} = lists:mapfoldl(fun(A,Acc) -> {{A, Acc}, Acc+1} end, Id0, SpreadedBeams),
             Fun = fun({Host,Id}) -> remote_launcher(Host, Id, Args) end,
-            %% start beams in parallel, at most 10 in parallel
+            %% start beams in parallel, at most 10 in parallel per node
             %% (because sshd MaxSessions = 10, in case we have to
             %% start more than 10 beams on a single host)
-            RemoteNodes = ts_utils:pmap(Fun, BeamsIds,9),
+            MaxParalRemote=  NNodes * MinBeamPerNode + MaxStartup - MinBeamPerNode,
+            %% now try to not overload the controller:
+            MaxLaunchPerCore = Config#config.max_ssh_startup,
+            Ncores = case erlang:system_info(logical_processors_available) of
+                         unknown -> erlang:system_info(logical_processors);
+                         N -> N
+                     end,
+            MaxParal = min(Ncores * MaxLaunchPerCore, MaxParalRemote),
+            ?LOGF("Try to start at most ~p remote nodes in parallel (cores: ~p, Max remote: ~p)",
+                  [MaxParal, Ncores, MaxParalRemote], ?INFO),
+            RemoteNodes = ts_utils:pmap(Fun, BeamsIds, MaxParal),
             check_remotes_ok(RemoteNodes),
             ?LOG("All remote beams started, syncing ~n",?NOTICE),
             global:sync(),
@@ -395,7 +416,7 @@ handle_cast({newbeams, HostList}, State=#state{logdir   = LogDir,
                     ?LOG("Preparing custom erlang modules for distribution~n", ?NOTICE),
                     ts_module_distribution:distribute_modules(RemoteNodes, Config)
             end,
-            ?LOG("Start remote tsung application ~n", ?DEB),
+            ?LOG("Syncing done, start remote tsung application ~n", ?INFO),
             {Resl, BadNodes} = rpc:multicall(RemoteNodes,tsung,start,[],?RPC_TIMEOUT),
             ?LOGF("RPC result: ~p ~p ~n",[Resl,BadNodes],?DEB),
             case BadNodes of
@@ -441,16 +462,28 @@ handle_cast({newbeam, Host, _}, State=#state{ hostname=LocalHost,config=Config})
     {noreply, State};
 
 %% start a launcher on a new beam with slave module
-handle_cast({newbeam, Host, Args}, State=#state{last_beam_id = NodeId, config=Config, logdir = LogDir}) ->
+handle_cast({newbeam, Host, Arrivals}, State=#state{last_beam_id = NodeId, config=Config, logdir = LogDir}) ->
     Args = set_remote_args(LogDir,Config#config.ports_range),
     Seed = Config#config.seed,
     Node = remote_launcher(Host, NodeId, Args),
-    ts_launcher_static:stop(Node), % no need for static launcher in this case (already have one)
-    ts_launcher:launch({Node, Args, Seed}),
-    {noreply, State#state{last_beam_id = NodeId+1}};
+    case rpc:call(Node,tsung,start,[],?RPC_TIMEOUT) of
+        {badrpc, Reason} ->
+            ?LOGF("Fail to start tsung on beam ~p, reason: ~p",[Node,Reason], ?ERR),
+            slave:stop(Node),
+            {noreply, State};
+        _ ->
+            ts_launcher_static:stop(Node), % no need for static launcher in this case (already have one)
+            ts_launcher:launch({Node, Arrivals, Seed}),
+            {noreply, State#state{last_beam_id = NodeId+1}}
+    end;
 
 handle_cast({end_launching, _Node}, State=#state{ending_beams=Beams}) ->
     {noreply, State#state{ending_beams = Beams+1}};
+
+handle_cast({abort}, State) ->
+    ts_mon:abort(),
+    ?LOG("Tsung test aborted by request !~n",?EMERG),
+    {stop, normal, State};
 
 handle_cast(Msg, State) ->
     ?LOGF("Unknown cast ~p ! ~n",[Msg],?WARN),
@@ -506,7 +539,7 @@ is_vm_local('localhost',_,true) -> true;
 is_vm_local(_,_,_)              -> false.
 
 set_start_date(undefined)->
-     ts_utils:add_time(?NOW, ?config(warm_time));
+     ts_utils:add_time(?TIMESTAMP, ?config(warm_time));
 set_start_date(Date) -> Date.
 
 get_user_param(Client,Config)->
@@ -517,12 +550,20 @@ get_user_param(Client,Config)->
 
 %%----------------------------------------------------------------------
 %% Func: choose_client_ip/1
-%% Args: #client, Dict
+%% Args: #client
 %% Purpose: choose an IP for a client
-%% Returns: {ok, IP, NewDict} IP=IP address
+%% Returns: {ok, IP} IP=IP address
 %%----------------------------------------------------------------------
-choose_client_ip(#client{ip = IPList, host=Host}) ->
-    choose_rr(IPList, Host, {0,0,0,0}).
+choose_client_ip(#client{ip = IPList, host=Host, iprange = undefined}) ->
+    choose_rr(IPList, Host, {0,0,0,0});
+choose_client_ip(#client{iprange = {A,B,C,D}}) ->
+    RangeToValue = fun(I) when is_integer(I) ->
+                           I;
+                      ({Min,Max}) ->
+                           ts_stats:uniform(Min,Max)
+                   end,
+    IPs = lists:map(RangeToValue, [A,B,C,D]),
+    {ok, list_to_tuple(IPs)}.
 
 %%----------------------------------------------------------------------
 %% Func: choose_server/1
@@ -597,6 +638,7 @@ choose_session([S=#session{popularity=PopList} | SList],Rand,Cur,PhaseId) ->
 get_client_cfg(Arrival=#arrivalphase{duration = Duration,
                                      intensity= PhaseIntensity,
                                      curnumber= CurNumber,
+                                     wait_all_sessions_end = WaitSessionsEnd,
                                      maxnumber= MaxNumber },
                {TotalWeight,Client,IsLast} ) ->
     Weight = Client#client.weight,
@@ -617,7 +659,8 @@ get_client_cfg(Arrival=#arrivalphase{duration = Duration,
                    end),
     ?LOGF("New arrival phase ~p for client ~p (last ? ~p): will start ~p users~n",
           [Arrival#arrivalphase.phase,Client#client.host, IsLast,NUsers],?NOTICE),
-    {Arrival#arrivalphase{curnumber=CurNumber+NUsers}, {ClientIntensity, NUsers, Duration}}.
+    Phase = #phase{intensity=ClientIntensity, nusers=NUsers, duration= Duration, wait_all_sessions_end = WaitSessionsEnd },
+    {Arrival#arrivalphase{curnumber=CurNumber+NUsers}, Phase}.
 
 %%----------------------------------------------------------------------
 %% Func: encode_filename/1
@@ -951,7 +994,7 @@ update_total_pop(UseWeight,Phases, Sessions) ->
     update_total_pop(UseWeight, length(Phases), Sessions, []).
 
 update_total_pop(_UseWeight,0, _, Total) ->
-    ?LOGF("New Total popularities:~p",[Total],?DEB),
+    ?LOGF("New Total popularities:~w",[Total],?DEB),
     Total;
 update_total_pop(UseWeight,N, Sessions, Total)   ->
     Sum = fun(#session{popularity=P},Acc) when is_number(P) ->
@@ -984,3 +1027,14 @@ set_pop(Name,Popularity,[#arrivalphase{popularities=Pop}|Tail], Acc) ->
           end,
     set_pop(Name,Popularity,Tail, [New|Acc]).
 
+%% Given a list of hostname with duplicates (e.g. when cpu is > 1 or
+%% batch), try to spread the duplicates in the list, in order to start
+%% remote beams (with pmap) on different hosts, otherwize we will
+%% start several beam on the same hosts, increasing the load, and
+%% slowing down the remote nodes starting phase.
+
+spread_nodelist(L)  when length(L) < 10 ->
+    %% small list, don't bother spreading anything
+    L;
+spread_nodelist(List) ->
+    ts_utils:spread_list(List).

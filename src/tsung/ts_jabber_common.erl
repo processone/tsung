@@ -75,7 +75,7 @@ get_message(Jabber=#jabber{type = 'presence:directed', id=Id,username=User,passw
         {ok, Dest} ->
             presence(directed, ts_jabber:username(Prefix,Dest), Jabber, Show, Status);
         {error, no_online} ->
-            ts_mon:add({ count, error_no_online }),
+            ts_mon_cache:add({ count, error_no_online }),
             << >>
     end;
 
@@ -102,7 +102,7 @@ get_message(Jabber=#jabber{type = 'chat', id=Id, dest=online,username=User,passw
         {ok, Dest} ->
             message(ts_jabber:username(Prefix,Dest), Jabber, Domain);
         {error, no_online} ->
-            ts_mon:add({ count, error_no_online }),
+            ts_mon_cache:add({ count, error_no_online }),
             << >>
     end;
 
@@ -113,7 +113,7 @@ get_message(Jabber=#jabber{type = 'chat',domain=Domain,prefix=Prefix,dest=offlin
         {ok, Dest} ->
             message(ts_jabber:username(Prefix,Dest), Jabber, Domain);
         {error, no_offline} ->
-            ts_mon:add({ count, error_no_offline }),
+            ts_mon_cache:add({ count, error_no_offline }),
             << >>
     end;
 get_message(Jabber=#jabber{type = 'chat', dest=random, prefix=Prefix, domain=Domain,user_server=UserServer}) ->
@@ -136,7 +136,7 @@ get_message(Jabber=#jabber{type = 'chat', dest=unique, prefix=Prefix, domain=Dom
     end;
 get_message(_Jabber=#jabber{type = 'chat', id=_Id, dest = undefined, domain=_Domain}) ->
     %% this can happen if previous is set but undefined, skip
-    ts_mon:add({ count, error_no_previous }),
+    ts_mon_cache:add({ count, error_no_previous }),
     << >>;
 get_message(Jabber=#jabber{type = 'chat', id=_Id, dest = Dest, domain=Domain}) ->
     ?DebugF("~w -> ~w ~n", [_Id,  Dest]),
@@ -149,7 +149,7 @@ get_message(#jabber{type = 'iq:roster:add', id=Id, dest = online, username=User,
         {ok, DestId} ->
             request(roster_add, Domain, ts_jabber:username(Prefix,DestId), Group);
         {error, no_online} ->
-            ts_mon:add({ count, error_no_online }),
+            ts_mon_cache:add({ count, error_no_online }),
             << >>
     end;
 get_message(#jabber{type = 'iq:roster:add',dest = offline, prefix=Prefix,
@@ -160,7 +160,7 @@ get_message(#jabber{type = 'iq:roster:add',dest = offline, prefix=Prefix,
         {ok, Dest} ->
             request(roster_add, Domain, ts_jabber:username(Prefix,Dest), Group);
         {error, no_offline} ->
-            ts_mon:add({ count, error_no_offline }),
+            ts_mon_cache:add({ count, error_no_offline }),
             << >>
     end;
 get_message(#jabber{type = 'iq:roster:rename', group=Group})-> %% must be called AFTER iq:roster:add
@@ -203,7 +203,7 @@ get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=UserFrom, user_se
             UserTo = ts_jabber:username(Prefix, Dest), %%FIXME: we need the username prefix here
             subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node);
         {error, no_online} ->
-            ts_mon:add({ count, error_no_online }),
+            ts_mon_cache:add({ count, error_no_online }),
             << >>
     end;
 get_message(#jabber{type = 'pubsub:subscribe', username=UserFrom, user_server=UserServer, prefix=Prefix,
@@ -215,7 +215,7 @@ get_message(#jabber{type = 'pubsub:subscribe', username=UserFrom, user_server=Us
             UserTo = ts_jabber:username(Prefix,DestId),
             subscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node);
         {error, no_offline} ->
-            ts_mon:add({ count, error_no_offline }),
+            ts_mon_cache:add({ count, error_no_offline }),
             << >>
     end;
 get_message(#jabber{type = 'pubsub:subscribe', username=UserFrom, user_server=UserServer, prefix=Prefix,
@@ -251,16 +251,16 @@ get_message(#jabber{type = 'pubsub:unsubscribe', username=UserFrom,
 
 %% For node publication, data contain the pubsub nodename (relative to user
 %% hierarchy or absolute)
-get_message(#jabber{type = 'pubsub:publish', size=Size, username=Username,
+get_message(#jabber{type = 'pubsub:publish', size=Size, username=Username, stamped=Stamped,
                     node=Node, pubsub_service=PubSubComponent, domain=Domain}) ->
-    publish_pubsub_node(Domain, PubSubComponent, Username, Node, Size);
+    publish_pubsub_node(Domain, PubSubComponent, Username, Node, Size, Stamped);
 
 
 %% MUC benchmark support
 get_message(#jabber{type = 'muc:join', room = Room, nick = Nick, muc_service = Service }) ->
     muc_join(Room,Nick, Service);
-get_message(#jabber{type = 'muc:chat', room = Room, muc_service = Service, size = Size}) ->
-    muc_chat(Room, Service, Size);
+get_message(#jabber{type = 'muc:chat', room = Room, muc_service = Service, size = Size, stamped = Stamped}) ->
+    muc_chat(Room, Service, Size, Stamped);
 get_message(#jabber{type = 'muc:nick', room = Room, muc_service = Service, nick = Nick}) ->
     muc_nick(Room, Nick, Service);
 get_message(#jabber{type = 'muc:exit', room = Room, muc_service = Service, nick = Nick}) ->
@@ -297,6 +297,8 @@ get_message2(Jabber=#jabber{type = 'auth_sasl'}) ->
     auth_sasl(Jabber,"PLAIN");
 get_message2(Jabber=#jabber{type = 'auth_sasl_anonymous'}) ->
     auth_sasl(Jabber,"ANONYMOUS");
+get_message2(Jabber=#jabber{type = 'auth_sasl_external'}) ->
+    auth_sasl(Jabber,"EXTERNAL");
 get_message2(Jabber=#jabber{type = 'auth_sasl_bind'}) ->
     auth_sasl_bind(Jabber);
 get_message2(Jabber=#jabber{type = 'auth_sasl_session'}) ->
@@ -424,6 +426,8 @@ auth_set_sip(Username, Passwd, Domain, Type, Nonce, Realm,Resource) ->
 %%----------------------------------------------------------------------
 auth_sasl(_,"ANONYMOUS")->
     list_to_binary(["<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='ANONYMOUS'/>"]);
+auth_sasl(_,"EXTERNAL")->
+    list_to_binary(["<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='EXTERNAL'>=</auth>"]);
 auth_sasl(#jabber{username=Name,passwd=Passwd},Mechanism)->
         auth_sasl(Name, Passwd, Mechanism).
 
@@ -451,7 +455,7 @@ auth_sasl_bind(#jabber{username=Name,passwd=Passwd,domain=Domain, resource=Resou
 %%----------------------------------------------------------------------
 auth_sasl_bind(_Username, _Passwd, _Domain, Resource) ->
  list_to_binary(["<iq type='set' id='",ts_msg_server:get_id(list),
-                 "' ><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'>",
+                 "'><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'>",
                  "<resource>",Resource,"</resource>",
                  "</bind></iq>"]).
 
@@ -468,7 +472,7 @@ auth_sasl_session(#jabber{username=Name,passwd=Passwd,domain=Domain})->
 %%----------------------------------------------------------------------
 auth_sasl_session(_Username, _Passwd, _Domain) ->
  list_to_binary(["<iq type='set' id='",ts_msg_server:get_id(list),
-"' ><session xmlns='urn:ietf:params:xml:ns:xmpp-session' /></iq>"]).
+"'><session xmlns='urn:ietf:params:xml:ns:xmpp-session'/></iq>"]).
 
 %%----------------------------------------------------------------------
 %% Func: registration/1
@@ -481,12 +485,12 @@ registration(#jabber{username=Name,passwd=Passwd,resource=Resource})->
 %% Func: message/3
 %% Purpose: send message to defined user at the Service (aim, ...)
 %%----------------------------------------------------------------------
-message(Dest, #jabber{size=Size,data=undefined}, Service) when is_integer(Size) ->
+message(Dest, #jabber{size=Size,data=undefined,stamped=Stamped}, Service) when is_integer(Size) ->
     put(previous, Dest),
     list_to_binary([
                     "<message id='",ts_msg_server:get_id(list), "' to='",
                     Dest, "@", Service,
-                    "' type='chat'><body>",ts_utils:urandomstr_noflat(Size), "</body></message>"]);
+                    "' type='chat'><body>",maybe_stamp(Stamped, Size), "</body></message>"]);
 message(Dest, #jabber{data=Data}, Service) when is_list(Data) ->
     put(previous, Dest),
     list_to_binary([
@@ -684,23 +688,24 @@ unsubscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node, SubId) 
 %%% Nodenames are relative to the User pubsub hierarchy (ejabberd); they are
 %%% absolute with leading slash.
 %%%----------------------------------------------------------------------
-publish_pubsub_node(Domain, PubSubComponent, Username, Node, Size) ->
+publish_pubsub_node(Domain, PubSubComponent, Username, Node, Size, Stamped) ->
     Result = list_to_binary(["<iq to='", PubSubComponent, "' type='set' id='",
             ts_msg_server:get_id(list),"'>"
             "<pubsub xmlns='http://jabber.org/protocol/pubsub'>"
             "<publish", pubsub_node_attr(Node, Domain, Username),">"
-            "<item><entry>", ts_utils:urandomstr_noflat(Size),"</entry></item></publish>"
+            "<item><entry>", maybe_stamp(Stamped, Size),"</entry></item></publish>"
             "</pubsub></iq>"]),
     Result.
 
 muc_join(Room,Nick, Service) ->
     Result = list_to_binary(["<presence to='", Room,"@", Service,"/", Nick, "'>",
+                             "<x xmlns='http://jabber.org/protocol/muc'/>",
                              " </presence>"]),
     Result.
 
-muc_chat(Room, Service, Size) ->
+muc_chat(Room, Service, Size, Stamped) ->
     Result = list_to_binary(["<message type='groupchat' to ='", Room,"@", Service,"'>",
-                                "<body>", ts_utils:urandomstr_noflat(Size), "</body>",
+                                "<body>",  maybe_stamp(Stamped, Size), "</body>",
                                 "</message>"]),
     Result.
 muc_nick(Room, Nick, Service) ->
@@ -746,3 +751,21 @@ set_id(user_defined,User,Passwd) ->
     {User,Passwd};
 set_id(Id,_User,_Passwd) ->
     Id.
+
+maybe_stamp(Stamped, Size)->
+    Stamp = generate_stamp(Stamped),
+    PadLen = Size - length(Stamp),
+    Data = case PadLen > 0 of
+               true -> ts_utils:urandomstr_noflat(PadLen);
+               false -> ""
+           end,
+    Stamp ++ Data.
+
+generate_stamp(false) ->
+    "";
+generate_stamp(true) ->
+    {Mega, Secs, Micro} = ?TIMESTAMP,
+    TS = integer_to_list(Mega) ++ ";"
+    ++ integer_to_list(Secs) ++ ";"
+    ++ integer_to_list(Micro),
+    "@@@" ++ integer_to_list(erlang:phash2(node())) ++ "," ++ TS ++ "@@@".

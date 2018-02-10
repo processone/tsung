@@ -65,6 +65,22 @@ the thinktime value:
 
  <thinktime value="%%_rndthink%%" random="true"></thinktime>
 
+You can also synchronize all users using the ``wait_global`` value:
+
+.. code-block:: xml
+
+ <thinktime value='wait_global'>
+
+which means: wait for all (N) users to be connected and waiting for
+the global lock (the value can be set using the option ``<option
+name="global_number" value ="XXX"/>`` and by setting `maxnumber=N` in
+``<arrivalphase>``).
+
+**Since version 1.6.0**, you can wait for a 'bidi' ack. If your protocol is bidirectional (e.g. xmpp, websocket, ...), you can wait until the server sends some data, and the code that handle this data exits the ``think`` state.
+
+.. code-block:: xml
+
+   <thinktime value="wait_bidi"></thinktime> -
 
 HTTP
 ^^^^
@@ -111,11 +127,10 @@ statistics definition, conditional request (IF MODIFIED SINCE):
     </request>
   </session>
 
-  <session name="backoffice" probability="30" ...>
-  ... 
+  <session name="backoffice" probability="30" >
+   <!--  -->
   </session>
  </sessions>
-
 
 
 If you use an absolute URL, the server used in the URL will override
@@ -265,6 +280,27 @@ Here is an example of a session definition for the Jabber/XMPP protocol:
      </session>
    </sessions>
 
+Message stamping
+""""""""""""""""
+
+It is possible to stamp chat message by setting ``stamped`` attribute of
+``<jabber>`` element inside request to ``true``. The stamp will include current
+timestamp and ID of the sender node. If the recipient will recognize the node ID,
+it will compare the timestamp inside message with the current one. The difference
+will be reported as ``xmpp_msg_latency`` metric (in milliseconds).
+The aim of node ID comparison is to avoid slight inconsistencies
+of timestamps on different Tsung nodes.
+
+Only a fraction of requests will hit the same node they originated from,
+but with request rate high enough this fraction should be sufficient.
+
+``stamped`` is allowed only with ``size`` attribute. ``data`` will cause
+``stamped`` to be ignored. There is a minimal length of the stamp,
+roughly 30 bytes. When ``size`` is greater than stamp length, random
+padding will be added to the stamp. If the stamp length is higher than
+``size``, then only stamp will be used as messagecontent, effectively
+exceeding specified length.
+
 StartTLS
 """"""""
 
@@ -272,14 +308,14 @@ To secure a stream with STARTTLS, use:
 
 .. code-block:: xml
 
- <jabber type="starttls" ack="local" />
+ <jabber type="starttls" ack="bidi_ack" />
 
 Client certificate is implemented since **1.5.1**, for example, you can
 use dynamic variables like this:
 
 .. code-block:: xml
 
- <jabber type="starttls" ack="local"
+ <jabber type="starttls" ack="bidi_ack"
             cacertfile="%%_cacert%%"
             certfile="%%_certfile%%"
             keyfile="%%_keyfile%%" />
@@ -506,7 +542,7 @@ Here's an example:
 
 .. code-block:: xml
 
- <-- First, choose an random room and random nickname: -->
+ <!-- First, choose an random room and random nickname: -->
  <setdynvars sourcetype="random_number" start="1" end="100">
    <var name="room"/>
  </setdynvars>
@@ -634,7 +670,7 @@ offline and random users (also used for pubsub):
   <option type="ts_jabber" name="userid_max" value="0" />
   <option type="ts_jabber" name="random_from_fileid" value='userdb'/>
   <option type="ts_jabber" name="offline_from_fileid" value='userdb'/>
-  <option type="ts_jabber" name="delimiter" value=";"/>
+  <option type="ts_jabber" name="fileid_delimiter" value=";"/>
  </options>
 
 
@@ -796,7 +832,7 @@ For Websocket, 3 types of requests are available:
 
 * connect (to a given path)
 * message (send message to server, add a attribute 'ack' to specify whether
-  tsung should wait for a response)
+  Tsung should wait for a response)
 * close
 
 
@@ -825,11 +861,33 @@ Example with Websocket as a session type:
 
    <request>
      <websocket type="close"></websocket>
-   </request> 
+   </request>
  </session>
 
 You can do substitution on attribute 'path' and message content, match a
 response or define dynamic variables based on the response message.
+
+You can also set the subprotocols in a connect message:
+
+.. code-block:: xml
+
+  <websocket type="connect" path="/path/to/ws" subprotocols="chat"></websocket>
+
+If you use ``change_type`` to start a websocket, don't forget to set
+``bidi="true"``, like this:
+
+.. code-block:: xml
+
+ <change_type new_type="ts_websocket" host="127.0.0.1" port="8080" server_type="tcp" restore="true" store="true" bidi="true"/>i
+
+When connecting to a websocket server you can set the ``origin``, which can be
+checked by a websocket as a security measure, see
+https://tools.ietf.org/html/rfc6455#section-10.2 for more details.
+If not set this defaults to the ``host`` value.
+
+.. code-block:: xml
+
+  <websocket type="connect" origin="https://example.com"></websocket>
 
 AMQP
 ^^^^^^^^^
@@ -924,7 +982,7 @@ MQTT
 It supports publish messages, subscribe and unsubscribe topics,
 Available request types:
 
-* connect (with options like clean_start, will_topic etc)
+* connect (with options like clean_start, will_topic, username, password, etc.)
 * disconnect
 * publish (with topic name, qos level and retain flag)
 * subscribe (with topic name and qos level)
@@ -1156,3 +1214,46 @@ A dynamic variable set in the first part of the session will be
 available after a **<change_type>**. There is currently one caveat: you have
 to use a full URL in the first http request after a **<change_type>** (a
 relative URL will fail).
+
+
+Raw
+^^^^^^^^^
+.. _sec-session-raw-label:
+
+The **ts_raw** plugin allows you to send traffic to any kind of
+TCP/UDP server without any knowledge of the underlying protocol. You can set the data
+by attribute ``data``, or just set a data size by attribute
+``datasize`` (in this situation, Tsung send ``datasize`` bits of
+zeros). ``data`` and ``datasize`` can be a dynamic values.
+
+The only way to control the response from the server is to use the
+``ack`` attribute (also used by the **jabber** plugin):
+
+* ``ack="local"`` as soon as a packet is received from the server, the
+  request is considered as completed. Hence if you use a local ack with a request
+  that does not require a response from the server, it
+  will wait forever (or until a timeout is reached).
+
+* ``ack="no_ack"`` as soon as the request is sent, it is considered as completed (do
+  not wait for incoming data).
+
+* ``ack="global"`` synchronized users. its main use is for waiting for all
+  users to connect before sending messages. To do that, set a request
+  with global ack  (the value can be set using the option ``<option
+  name="global_number" value ="XXX"/>`` and by setting `maxnumber=N` in
+  ``<arrivalphase>``).
+
+.. code-block:: xml
+
+ <session probability="100" name="raw" type="ts_raw">
+    <transaction name="open">
+      <request> <raw data="HELLO" ack="local"></raw> </request>
+    </transaction>
+
+    <thinktime value="4"/>
+    <request> <raw datasize="2048" ack="local"></raw> </request>
+
+    <transaction name="bye">
+      <request> <raw data="BYEBYE" ack="local"></raw> </request>
+    </transaction>
+ </session>

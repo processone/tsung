@@ -451,10 +451,10 @@ fill_offline(0, _, {undefined,_})->
     ?LOG("no offline user defined",?DEB),
     ok;
 fill_offline(0, Offline, {FileId, Delimiter})->
-    %% fill offline from file id
+    ?LOGF("fill offline from file id ~p",[FileId],?DEB),
     case ts_file_server:get_all_lines(FileId) of
         {ok, Data} ->
-            ?LOGF("offline user from csv ~p",[Data],?DEB),
+            ?DebugF("offline user from csv ~p",[Data]),
             Fun = fun(Line) ->
                           [User,Pwd| _]= ts_utils:split(Line,Delimiter),
                           ets:insert(Offline,{{binary_to_list(User),binary_to_list(Pwd)},1})

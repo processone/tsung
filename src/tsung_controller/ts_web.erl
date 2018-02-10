@@ -26,9 +26,15 @@
 -include("ts_macros.hrl").
 -include_lib("kernel/include/file.hrl").
 
--export([status/3, logs/3, update/3, graph/3, error/3, report/3]).
+-export([start/0, status/3, stop/3, logs/3, update/3, graph/3, error/3, report/3]).
 
 -export([number_to_list/1]).
+
+
+start() ->
+    error_logger:tty(false),
+    Redirect= << "<meta http-equiv=\"refresh\" content=\"0; url=/es/ts_web:logs\">\n" >>,
+    ts_controller_sup:start_inets(?config(log_dir), Redirect).
 
 graph(SessionID, Env, Input) ->
     graph(SessionID, Env, Input,"graph.html").
@@ -37,7 +43,7 @@ report(SessionID, Env, Input) ->
     graph(SessionID, Env, Input,"report.html").
 
 graph(SessionID, Env, Input, File) ->
-    Begin=now(),
+    Begin=?NOW,
     {ok,Path} = application:get_env(tsung_controller,log_dir_real),
     GraphFile = filename:join(Path,File),
     case update_reports() of
@@ -45,14 +51,12 @@ graph(SessionID, Env, Input, File) ->
             Msg = " Fail to generated reports: tsung_stats.pl was not found in the $PATH or in:<br>  "
                   ++script_paths(),
             error(SessionID, Env, Input, Msg);
-        {error, Reason} ->
-            error(SessionID, Env, Input, Reason);
         _ ->
             case file:read_file(GraphFile) of
                 {error, enoent} ->
                     update(SessionID, Env, Input);
                 {ok, Data} ->
-                    Time=ts_utils:elapsed(Begin,now()),
+                    Time=ts_utils:elapsed(Begin,?NOW),
                     Text="<div class=\"alert alert-success alert-dismissable\">
   <button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-hidden=\"true\">\\\&times;</button>
  "++ ts_utils:datestr() ++ ": Report and graphs generated in "++ number_to_list(Time/1000) ++" sec
@@ -116,10 +120,10 @@ update_reports() ->
     end.
 
 update(SessionID, _Env, _Input) ->
-    Begin=now(),
+    Begin=?NOW,
     Title ="Tsung Update stats",
     update_reports(),
-    Time=ts_utils:elapsed(Begin,now()),
+    Time=ts_utils:elapsed(Begin,?NOW),
     mod_esi:deliver(SessionID, [
                                 "Content-Type: text/html\r\n\r\n",
                                 head(Title)
@@ -130,6 +134,17 @@ update(SessionID, _Env, _Input) ->
                                 ++ "<div><em>Time to update reports:"++ number_to_list(Time/1000) ++" sec </em></div>"
                                 ++ foot()
                                ]).
+
+stop(SessionID, _Env, _Input) ->
+    Title ="Tsung Stop",
+    mod_esi:deliver(SessionID, [
+                                "Content-Type: text/html\r\n\r\n",
+                                head(Title)
+                                ++ "<body> "
+                                ++ "<h1 class=\"page-header\">Tsung controller  is stopping now !</h1>"
+
+                               ]),
+    slave:stop(node()).
 
 status(SessionID, _Env, _Input) ->
     Title ="Tsung Status",
@@ -166,9 +181,13 @@ status(SessionID, _Env, _Input) ->
 
 logs(SessionID, _Env, _Input) ->
     Title ="Tsung Logs",
-    {ok,Path} = application:get_env(tsung_controller,log_dir_real),
-    {ok,Files} = file:list_dir(Path),
-    FilesHTML = lists:map(fun(F)->format(Path,F,"") end,Files),
+    RealPath = case application:get_env(tsung_controller,log_dir_real) of
+                   {ok,Path} -> Path;
+                   _         -> ?config(log_dir)
+               end,
+
+    {ok,Files} = file:list_dir(RealPath),
+    FilesHTML = lists:map(fun(F)->format(RealPath,F,"") end,Files),
     mod_esi:deliver(SessionID, [
                                 "Content-Type: text/html\r\n\r\n",
                                 head(Title)
@@ -234,7 +253,11 @@ head(Title) ->
   </head>".
 
 nav() ->
-    {ok,Path} = application:get_env(tsung_controller,log_dir_real),
+    Path = case application:get_env(tsung_controller,log_dir_real) of
+               {ok,P} -> P;
+               _      -> ?config(log_dir)
+           end,
+
     WorkingDir=filename:basename(Path),
     Subtitle = "Dashboard - " ++ WorkingDir,
     "
@@ -257,6 +280,7 @@ nav() ->
             <li><a href=\"/es/ts_web:report\">Reports</a></li>
             <li><a href=\"/es/ts_web:graph\">Graphs</a></li>
             <li><a href=\"/es/ts_web:logs\">Logs</a></li>
+            <li><a href=\"/es/ts_web:stop\">Stop</a></li>
           </ul>
         </div>
       </div>

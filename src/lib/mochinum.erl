@@ -1,5 +1,23 @@
 %% @copyright 2007 Mochi Media, Inc.
 %% @author Bob Ippolito <bob@mochimedia.com>
+%%
+%% Permission is hereby granted, free of charge, to any person obtaining a
+%% copy of this software and associated documentation files (the "Software"),
+%% to deal in the Software without restriction, including without limitation
+%% the rights to use, copy, modify, merge, publish, distribute, sublicense,
+%% and/or sell copies of the Software, and to permit persons to whom the
+%% Software is furnished to do so, subject to the following conditions:
+%%
+%% The above copyright notice and this permission notice shall be included in
+%% all copies or substantial portions of the Software.
+%%
+%% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+%% IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+%% FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+%% THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+%% LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+%% FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+%% DEALINGS IN THE SOFTWARE.
 
 %% @doc Useful numeric algorithms for floats that cover some deficiencies
 %% in the math module. More interesting is digits/1, which implements
@@ -11,7 +29,7 @@
 
 -module(mochinum).
 -author("Bob Ippolito <bob@mochimedia.com>").
--export([digits/1, frexp/1, int_pow/2, int_ceil/1, test/0]).
+-export([digits/1, frexp/1, int_pow/2, int_ceil/1]).
 
 %% IEEE 754 Float exponent bias
 -define(FLOAT_BIAS, 1022).
@@ -29,18 +47,17 @@ digits(N) when is_integer(N) ->
 digits(0.0) ->
     "0.0";
 digits(Float) ->
-    {Frac, Exp} = frexp(Float),
-    Exp1 = Exp - 53,
-    Frac1 = trunc(abs(Frac) * (1 bsl 53)),
-    [Place | Digits] = digits1(Float, Exp1, Frac1),
-    R = insert_decimal(Place, [$0 + D || D <- Digits]),
+    {Frac1, Exp1} = frexp_int(Float),
+    [Place0 | Digits0] = digits1(Float, Exp1, Frac1),
+    {Place, Digits} = transform_digits(Place0, Digits0),
+    R = insert_decimal(Place, Digits),
     case Float < 0 of
         true ->
             [$- | R];
         _ ->
             R
     end.
-    
+
 %% @spec frexp(F::float()) -> {Frac::float(), Exp::float()}
 %% @doc  Return the fractional and exponent part of an IEEE 754 double,
 %%       equivalent to the libc function of the same name.
@@ -64,7 +81,6 @@ int_pow(X, N) when N > 0 ->
 int_ceil(X) ->
     T = trunc(X),
     case (X - T) of
-        Neg when Neg < 0 -> T;
         Pos when Pos > 0 -> T + 1;
         _ -> T
     end.
@@ -120,7 +136,7 @@ digits1(Float, Exp, Frac) ->
     case Exp >= 0 of
         true ->
             BExp = 1 bsl Exp,
-            case (Frac /= ?BIG_POW) of
+            case (Frac =/= ?BIG_POW) of
                 true ->
                     scale((Frac * BExp * 2), 2, BExp, BExp,
                           Round, Round, Float);
@@ -129,7 +145,7 @@ digits1(Float, Exp, Frac) ->
                           Round, Round, Float)
             end;
         false ->
-            case (Exp == ?MIN_EXP) orelse (Frac /= ?BIG_POW) of
+            case (Exp =:= ?MIN_EXP) orelse (Frac =/= ?BIG_POW) of
                 true ->
                     scale((Frac * 2), 1 bsl (1 - Exp), 1, 1,
                           Round, Round, Float);
@@ -205,7 +221,7 @@ generate(R0, S, MPlus, MMinus, LowOk, HighOk) ->
             end
     end.
 
-unpack(Float) ->    
+unpack(Float) ->
     <<Sign:1, Exp:11, Frac:52>> = <<Float:64/float>>,
     {Sign, Exp, Frac}.
 
@@ -228,62 +244,129 @@ log2floor(Int, N) ->
     log2floor(Int bsr 1, 1 + N).
 
 
-test() ->
-    ok = test_frexp(),
-    ok = test_int_ceil(),
-    ok = test_int_pow(),
-    ok = test_digits(),
+transform_digits(Place, [0 | Rest]) ->
+    transform_digits(Place, Rest);
+transform_digits(Place, Digits) ->
+    {Place, [$0 + D || D <- Digits]}.
+
+
+frexp_int(F) ->
+    case unpack(F) of
+        {_Sign, 0, Frac} ->
+            {Frac, ?MIN_EXP};
+        {_Sign, Exp, Frac} ->
+            {Frac + (1 bsl 52), Exp - 53 - ?FLOAT_BIAS}
+    end.
+
+%%
+%% Tests
+%%
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+int_ceil_test() ->
+    ?assertEqual(1, int_ceil(0.0001)),
+    ?assertEqual(0, int_ceil(0.0)),
+    ?assertEqual(1, int_ceil(0.99)),
+    ?assertEqual(1, int_ceil(1.0)),
+    ?assertEqual(-1, int_ceil(-1.5)),
+    ?assertEqual(-2, int_ceil(-2.0)),
     ok.
 
-test_int_ceil() ->
-    1 = int_ceil(0.0001),
-    0 = int_ceil(0.0),
-    1 = int_ceil(0.99),
-    1 = int_ceil(1.0),
-    -1 = int_ceil(-1.5),
-    -2 = int_ceil(-2.0),
-    ok.
-    
-test_int_pow() ->
-    1 = int_pow(1, 1),
-    1 = int_pow(1, 0),
-    1 = int_pow(10, 0),
-    10 = int_pow(10, 1),
-    100 = int_pow(10, 2),
-    1000 = int_pow(10, 3),
-    ok.
-    
-test_digits() ->
-    "0" = digits(0),
-    "0.0" = digits(0.0),
-    "1.0" = digits(1.0),
-    "-1.0" = digits(-1.0),
-    "0.1" = digits(0.1),
-    "0.01" = digits(0.01),
-    "0.001" = digits(0.001),
+int_pow_test() ->
+    ?assertEqual(1, int_pow(1, 1)),
+    ?assertEqual(1, int_pow(1, 0)),
+    ?assertEqual(1, int_pow(10, 0)),
+    ?assertEqual(10, int_pow(10, 1)),
+    ?assertEqual(100, int_pow(10, 2)),
+    ?assertEqual(1000, int_pow(10, 3)),
     ok.
 
-test_frexp() ->
-    %% zero
-    {0.0, 0} = frexp(0.0),
-    %% one
-    {0.5, 1} = frexp(1.0),
-    %% negative one
-    {-0.5, 1} = frexp(-1.0),
+digits_test() ->
+    ?assertEqual("0",
+                 digits(0)),
+    ?assertEqual("0.0",
+                 digits(0.0)),
+    ?assertEqual("1.0",
+                 digits(1.0)),
+    ?assertEqual("-1.0",
+                 digits(-1.0)),
+    ?assertEqual("0.1",
+                 digits(0.1)),
+    ?assertEqual("0.01",
+                 digits(0.01)),
+    ?assertEqual("0.001",
+                 digits(0.001)),
+    ?assertEqual("1.0e+6",
+                 digits(1000000.0)),
+    ?assertEqual("0.5",
+                 digits(0.5)),
+    ?assertEqual("4503599627370496.0",
+                 digits(4503599627370496.0)),
     %% small denormalized number
-    %% 4.94065645841246544177e-324
+    %% 4.94065645841246544177e-324 =:= 5.0e-324
     <<SmallDenorm/float>> = <<0,0,0,0,0,0,0,1>>,
-    {0.5, -1073} = frexp(SmallDenorm),
+    ?assertEqual("5.0e-324",
+                 digits(SmallDenorm)),
+    ?assertEqual(SmallDenorm,
+                 list_to_float(digits(SmallDenorm))),
     %% large denormalized number
     %% 2.22507385850720088902e-308
     <<BigDenorm/float>> = <<0,15,255,255,255,255,255,255>>,
-    {0.99999999999999978, -1022} = frexp(BigDenorm),
+    ?assertEqual("2.225073858507201e-308",
+                 digits(BigDenorm)),
+    ?assertEqual(BigDenorm,
+                 list_to_float(digits(BigDenorm))),
     %% small normalized number
     %% 2.22507385850720138309e-308
     <<SmallNorm/float>> = <<0,16,0,0,0,0,0,0>>,
-    {0.5, -1021} = frexp(SmallNorm),
+    ?assertEqual("2.2250738585072014e-308",
+                 digits(SmallNorm)),
+    ?assertEqual(SmallNorm,
+                 list_to_float(digits(SmallNorm))),
     %% large normalized number
     %% 1.79769313486231570815e+308
     <<LargeNorm/float>> = <<127,239,255,255,255,255,255,255>>,
-    {0.99999999999999989, 1024} = frexp(LargeNorm),
+    ?assertEqual("1.7976931348623157e+308",
+                 digits(LargeNorm)),
+    ?assertEqual(LargeNorm,
+                 list_to_float(digits(LargeNorm))),
+    %% issue #10 - mochinum:frexp(math:pow(2, -1074)).
+    ?assertEqual("5.0e-324",
+                 digits(math:pow(2, -1074))),
     ok.
+
+frexp_test() ->
+    %% zero
+    ?assertEqual({0.0, 0}, frexp(0.0)),
+    %% one
+    ?assertEqual({0.5, 1}, frexp(1.0)),
+    %% negative one
+    ?assertEqual({-0.5, 1}, frexp(-1.0)),
+    %% small denormalized number
+    %% 4.94065645841246544177e-324
+    <<SmallDenorm/float>> = <<0,0,0,0,0,0,0,1>>,
+    ?assertEqual({0.5, -1073}, frexp(SmallDenorm)),
+    %% large denormalized number
+    %% 2.22507385850720088902e-308
+    <<BigDenorm/float>> = <<0,15,255,255,255,255,255,255>>,
+    ?assertEqual(
+       {0.99999999999999978, -1022},
+       frexp(BigDenorm)),
+    %% small normalized number
+    %% 2.22507385850720138309e-308
+    <<SmallNorm/float>> = <<0,16,0,0,0,0,0,0>>,
+    ?assertEqual({0.5, -1021}, frexp(SmallNorm)),
+    %% large normalized number
+    %% 1.79769313486231570815e+308
+    <<LargeNorm/float>> = <<127,239,255,255,255,255,255,255>>,
+    ?assertEqual(
+        {0.99999999999999989, 1024},
+        frexp(LargeNorm)),
+    %% issue #10 - mochinum:frexp(math:pow(2, -1074)).
+    ?assertEqual(
+       {0.5, -1073},
+       frexp(math:pow(2, -1074))),
+    ok.
+
+-endif.

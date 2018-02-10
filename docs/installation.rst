@@ -12,8 +12,7 @@ On Mac OS X you can install Tsung via Homebrew (http://brew.sh/): :command:`brew
 Dependencies
 ============
 
-* **Erlang/OTP R13B** and up (`download <http://www.erlang.org/download.html>`_). Erlang is now
-  part of Fedora and Debian/Ubuntu repositories.
+* **Erlang/OTP R16B03** and up (`download <http://www.erlang.org/download.html>`_).
 
 * **pgsql module** made by Christian Sunesson (for the PostgreSQL plugin):
   sources available at http://jungerl.sourceforge.net/ . The module is
@@ -25,11 +24,6 @@ Dependencies
   http://www.stacken.kth.se/projekt/yxa/. The modified module is
   included in the source and binary distribution of Tsung. It
   is released under the three-clause BSD License.
-
-* **eldap module** (for the LDAP plugin):
-  sources available at http://jungerl.sourceforge.net/. The module is
-  included in the source and binary distribution of Tsung. It
-  is released under the GPL License.
 
 * **mochiweb** libs (for XPath parsing, optionally used for dynamic variables in the HTTP plugin):
   sources available at https://github.com/mochi/mochiweb. The module
@@ -89,8 +83,10 @@ Two commands are installed in the directory :file:`$PREFIX/bin`:
 
 A typical way of using tsung is to run: :command:`tsung -f myconfigfile.xml start`.
 
-The command will print the current log directory created for the test, and wait until the test is
-over.
+The command will print the current log directory created for the test,
+and wait until the test is over. By default an embedded web server
+will be started on the controller node and will listen on the 8091
+port (this can be disabled with the `-n` option.
 
 
 Feedback
@@ -98,6 +94,6 @@ Feedback
 
 Use the `Tsung mailing list <https://lists.process-one.net/mailman/listinfo/tsung-users>`_ if you have
 suggestions or questions about Tsung. You can also use the
-bug tracker available at https://support.process-one.net/browse/TSUN.
+bug tracker available at https://github.com/processone/tsung/issues
 
 You can also try the #tsung IRC channel on Freenode.

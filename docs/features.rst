@@ -178,6 +178,16 @@ LDAP related features
 
 * Starttls
 
+Raw plugin related features
+===========================
+
+* TCP / UDP / SSL compatible
+
+* raw messages
+
+* no_ack, local or global ack for messages
+
+
 Complete reports set
 ====================
 

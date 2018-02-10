@@ -14,7 +14,7 @@ o Mickaël Rémond <mickael.remond@erlang-fr.org>: erlang server monitoring;
   various patches for HTTP; configure support; SOAP support; initial
   dynamic substitution implementation.
 
-o Jérome Sautret: Multiple file patch for file_server, costum header
+o Jérome Sautret: Multiple file patch for file_server, custom header
   for HTTP, bug reports
 
 o Jason Tucker: Solaris testing and fixes, jabber patches (sip_digest,

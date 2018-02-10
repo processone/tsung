@@ -540,6 +540,8 @@ The list of available actions to do is:
 
 * **abort**: abort the session
 
+* **abort_test**: abort the whole test
+
 * **restart**: restart the session. The maximum number of
   restarts is 3 by default.
 
@@ -691,6 +693,12 @@ can access to the n-th element of a list like this:
  <if var="myvar[1]" eq="3">
 
 Here we compare the first element of the list to 3.
+
+.. index:: abort
+
+<abort>
+""""""""
+**Since 1.7.0** you can abort the session or the whole test by using an ``<abort/>`` element in a session (can be used inside an <if> statement for example). By default it will abort the current user session, but you can abort the whole test by setting the `type` attribute to `all`  ``<abort type='all'/>``
 
 .. index:: foreach
 

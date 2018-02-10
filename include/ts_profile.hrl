@@ -54,19 +54,24 @@
 
 % protocol options
 -record(proto_opts,
-        {ssl_ciphers   = negociate, % for ssl only
+        {ssl_ciphers   = negotiate, % for ssl only
+         ssl_versions  = negotiate, % for ssl only
          bosh_path = "/http-bind/",  % for bash only
+         tcp_reuseaddr  = false,  % for tcp reuseaddr
+         tcp_reuseport  = false,  % for tcp reuseport
+         ip_transparent = false,  % set IP_TRANSPARENT option on the socket
          websocket_path = "/chat",  % for websocket only
          websocket_frame = "binary",  % for websocket only
+         websocket_subprotocols = [],     % for websocket only
          retry_timeout = 10,        % retry sending in milliseconds
-         max_retries = 0,           % maximum number of retries
+         max_retries = 3,           % maximum number of retries
          idle_timeout  = 600000,    % timeout for local ack
          connect_timeout  = infinity,   % timeout for gen_tcp:connect/4 (infinity OR time in milliseconds)
          global_ack_timeout = infinity, % timeout for global ack
          tcp_rcv_size  = 32768,     % tcp buffers size
          tcp_snd_size  = 32768,
-         udp_rcv_size,              % udp buffers size
-         udp_snd_size,
+         udp_rcv_size  = 32768,     % udp buffers size
+         udp_snd_size  = 32768,
          certificate = [],          % for ssl
          reuse_sessions = true,     % for ssl
          is_first_connect = true   % whether it's the first connection
@@ -96,7 +101,7 @@
 
          session_id,
          request,     % current request specs
-         persistent,  % if true, don't exit when connexion is closed
+         persistent,  % if true, don't exit when connection is closed
          timestamp,   % previous message date
          starttime,   % date of the beginning of the session
          count,       % number of requests waiting to be sent
@@ -108,8 +113,9 @@
                      % (Waiting for more data)
          buffer = <<>>, % buffer when we have to keep the response (we need
                      % all the response to do pattern matching)
-         session,    % record of session status; depends on 'clienttype' (cas be used to store data dynamically generated during the
-                     % session (Cookies for examples))
+         session,    % record of session status; depends on 'clienttype' (can be
+                     % used to store data dynamically generated during the
+                     % session (e.g. cookies))
          datasize=0,
          id,         % user id
          size_mon_thresh=?size_mon_thresh, % if rcv data is > to this, update stats
@@ -121,23 +127,25 @@
          dump        % type of dump (full, light, none)
         }).
 
+-record(phase,
+        {
+          id ,
+          intensity,
+          nusers,      % total number of users to start in the current phase
+          duration,    % expected phase duration
+          start,       % timestamp.
+          wait_all_sessions_end = false % wait for all users to finish before launching next session
+        }).
 
 -record(launcher,
         {nusers,
-         phases =[],
+         phases = [],
+         current_phase = #phase{},
          myhostname,
-         intensity,
          static_done = false,
          started_users = 0,
-         phase_nusers,   % total number of users to start in the current phase
-         phase_duration, % expected phase duration
-         phase_start,    % timestamp
-         phase_id      = 1,
          start_date,
          short_timeout = ?short_timeout,
          maxusers %% if maxusers are currently active, launch a
                   %% new beam to handle the new users
         }).
-
-
-

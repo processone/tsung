@@ -15,7 +15,7 @@ Welcome to Tsung's documentation!
     
    * **Website**: `tsung.erlang-projects.org <http://tsung.erlang-projects.org/>`_
    * **Source code**: `github.com/processone/tsung <https://github.com/processone/tsung/>`_
-   * **Bugtracker**: `Jira <https://support.process-one.net/browse/TSUN>`_
+   * **Bugtracker**: ` <https://github.com/processone/tsung/issues>`
 
 .. toctree::
    :maxdepth: 2

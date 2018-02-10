@@ -28,15 +28,13 @@
 -vc('$Id: ts_launcher_mgr.erl,v 0.0 2009/12/09 11:54:33 nniclaus Exp $ ').
 -author('nicolas.niclausse@niclux.org').
 
--include("ts_macros.hrl").
+-include("ts_config.hrl").
 -include("ts_profile.hrl").
 
 -behaviour(gen_server).
 
 %% API
 -export([start/0, alive/1, die/1, check_registered/0]).
-
--define(DIE_DELAY, 5000).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -148,10 +146,12 @@ handle_info(_Info, State) ->
 %% The return value is ignored.
 %%--------------------------------------------------------------------
 terminate(_Reason, _State) ->
-    ts_mon:stop(),
-    timer:sleep(?DIE_DELAY), % useful when using controller vm
-    slave:stop(node()), %% commit suicide. FIXME: what about use_controller_vm ?
-    ok.
+    case ts_utils:is_controller() of
+        false ->
+            slave:stop(node()); %% commit suicide.
+        true ->
+            ok
+    end.
 
 %%--------------------------------------------------------------------
 %% Func: code_change(OldVsn, State, Extra) -> {ok, NewState}
@@ -167,13 +167,14 @@ code_change(_OldVsn, State, _Extra) ->
 check_clients(State=#state{check_timeout=CheckTimeout}) ->
     case ts_client_sup:active_clients() of
         0 -> % no users left, and no more launchers, stop
+            ?LOGF("No more active users ~p ~p~n",[node(), os:getpid()], ?NOTICE),
+            timer:sleep(?CACHE_DUMP_STATS_INTERVAL+10), %% let ts_mon_cache send it's last stats
+            ts_mon:stop(), %% we must warn ts_mon that our clients have finished
             case ts_sup:has_cport(node()) of
                 true ->  %%do not finish this beam
                     ?LOGF("Beam will not be terminated because it has a cport server ~p ~p~n",[node(), os:getpid()], ?NOTICE),
-                    ts_mon:stop(), %% we must warn ts_mon that our clients have finished
                     {noreply, State};
                 false ->
-                    ?LOGF("No more active users ~p ~p~n",[node(), os:getpid()], ?NOTICE),
                     {stop, normal, State}
             end;
         ActiveClients when ActiveClients > 1000 ->

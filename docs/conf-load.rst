@@ -18,11 +18,11 @@ The load progression is set-up by defining several arrival phases:
      <arrivalphase phase="1" duration="10" unit="minute">
        <users interarrival="2" unit="second"></users>
      </arrivalphase>
-   
+
      <arrivalphase phase="2" duration="10" unit="minute">
        <users interarrival="1" unit="second"></users>
      </arrivalphase>
-   
+
      <arrivalphase phase="3" duration="10" unit="minute">
        <users interarrival="0.1" unit="second"></users>
      </arrivalphase>
@@ -86,6 +86,25 @@ specific phase, using ``session_setup``:
     </arrivalphase>
 
 
+.. versionadded:: 1.7.0
+
+Be default, a phase ends when it's duration has been reached, even if
+all started sessions during the phase are not finished. You can
+override this behavior  If you want to start a new phase only after
+all generated users in the previous phase have finished their
+sessions, use the ``wait_all_sessions_end`` attribute, like this:
+
+.. code-block:: xml
+
+    <arrivalphase phase="1" duration="10" unit="minute" wait_all_sessions_end="true">
+      <users  interarrival="1" unit="second"/>
+    </arrivalphase>
+    <arrivalphase phase="2" duration="10" unit="minute">
+      <users  interarrival="5" unit="second"/>
+    </arrivalphase>
+
+(In this case, the real duration of the phase 1 will probably be higher than it's configured one.)
+
 .. index:: start_time
 
 Statically generated users
@@ -114,7 +133,7 @@ it is possible since version **1.3.1**:
    <session name="foo" probability="100" type="ts_http">
      <request> <http url="/" method="GET"></http> </request>
    </session>
- <sessions>
+ </sessions>
 
 
 In this example, we have two sessions, one has a "0" probability (and

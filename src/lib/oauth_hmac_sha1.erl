@@ -1,4 +1,5 @@
 %% Copyright (c) 2008-2009 Tim Fletcher <http://tfletcher.com/>
+%% Copyright (c) 2015      Christoher Meng <http://cicku.me/>
 %% 
 %% Permission is hereby granted, free of charge, to any person
 %% obtaining a copy of this software and associated documentation
@@ -28,7 +29,15 @@
 -spec signature(string(), string(), string()) -> string().
 signature(BaseString, CS, TS) ->
   Key = oauth_uri:calate("&", [CS, TS]),
-  base64:encode_to_string(crypto:sha_mac(Key, BaseString)).
+  base64:encode_to_string(sha2hmac(Key, BaseString)).
+
+sha2hmac(Key, Data) ->
+  case erlang:function_exported(crypto, hmac, 3) of
+    true ->
+      crypto:hmac(sha, Key, Data);
+    false ->
+      crypto:sha_mac(Key, Data)
+  end.
 
 -spec verify(string(), string(), string(), string()) -> boolean().
 verify(Signature, BaseString, CS, TS) ->

@@ -43,13 +43,17 @@ encode(#mqtt{} = Message) ->
   <<FixedHeader/binary, EncodedLength/binary, VariableHeader/binary, Payload/binary>>.
 
 decode(<<FixedHeader:8/big, Rest/binary>>) ->
-  {RemainingLength, Rest1} = decode_length(Rest),
-  Size = size(Rest1),
-  if
-    Size >= RemainingLength ->
-      <<Body:RemainingLength/binary-unit:8, Left/binary>> = Rest1,
-      {decode_message(decode_fixed_header(<<FixedHeader>>), Body), Left};
-    true -> more
+  case decode_length(Rest) of
+    more ->
+      more;
+    {RemainingLength, Rest1} ->
+      Size = size(Rest1),
+      if
+        Size >= RemainingLength ->
+          <<Body:RemainingLength/binary-unit:8, Left/binary>> = Rest1,
+          {decode_message(decode_fixed_header(<<FixedHeader>>), Body), Left};
+        true -> more
+      end
   end;
 decode(_Data) ->
   more.
@@ -251,15 +255,23 @@ encode_message(#mqtt{type = ?CONNECT, arg = Options}) ->
     Password ->
       {1, Password}
   end,
-  {WillFlag, WillQoS, WillRetain, PayloadList} = case Options#connect_options.will of
-    {will, WillTopic, WillMessage, WillOptions} ->
-      {
-        1, WillOptions#publish_options.qos, WillOptions#publish_options.retain,
-        [encode_string(Options#connect_options.client_id), encode_string(WillTopic), encode_string(WillMessage)]
-      };
-    undefined ->
-      {0, 0, 0, [encode_string(Options#connect_options.client_id)]}
-  end,
+  {WillFlag, WillQoS, WillRetain, PayloadList} =
+        case Options#connect_options.will of
+            #will{ topic = undefined } ->
+                {0, 0, 0, [encode_string(Options#connect_options.client_id)]};
+            #will{ topic = "" } ->
+                {0, 0, 0, [encode_string(Options#connect_options.client_id)]};
+            undefined ->
+                {0, 0, 0, [encode_string(Options#connect_options.client_id)]};
+            #will{ topic = WillTopic, message = WillMessage, publish_options = WillOptions } ->
+                {1,
+                 WillOptions#publish_options.qos,
+                 WillOptions#publish_options.retain,
+                 [encode_string(Options#connect_options.client_id),
+                  encode_string(WillTopic),
+                  encode_string(WillMessage)]
+                }
+        end,
   Payload1 = case UserNameValue of
     undefined -> list_to_binary(PayloadList);
     _ ->
@@ -326,8 +338,11 @@ encode_message(#mqtt{type = ?DISCONNECT}) ->
 encode_message(#mqtt{} = Message) ->
   exit({encode_message, unknown_type, Message}).
 
+decode_length(<<>>) -> more;
 decode_length(Data) ->
   decode_length(Data, 1, 0).
+decode_length(<<>>, Multiplier, Value) ->
+  {0, <<>>};
 decode_length(<<0:1, Length:7, Rest/binary>>, Multiplier, Value) ->
   {Value + Multiplier * Length, Rest};
 decode_length(<<1:1, Length:7, Rest/binary>>, Multiplier, Value) ->

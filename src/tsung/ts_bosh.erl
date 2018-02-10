@@ -25,9 +25,9 @@
 
 -module(ts_bosh).
 
--export([ connect/3, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2 ]).
+-export([ connect/4, send/3, close/1, set_opts/2, protocol_options/1, normalize_incomming_data/2 ]).
 
--export([connect/4]).  %% used for ts_bosh_ssl sessions.
+-export([connect/5]).  %% used for ts_bosh_ssl sessions.
 
 -behaviour(gen_ts_transport).
 
@@ -40,7 +40,6 @@
 -define(WAIT, 60). %1 minute
 -define(HOLD, 1). %only 1 request pending
 
--define(CONNECT_TIMEOUT, 20 * 1000).
 -define(MAX_QUEUE_SIZE, 5). %% at most 5 messages queued, after that close the connection.
                             %% In practice we never had more than 1 pending packet, as we are blocking
                             %% the client process until we sent the packet.  But I keep this functionality in place,
@@ -63,6 +62,7 @@
           local_port,
           session_state = fresh, %% fresh | normal | closing
           pending_ref,
+          connect_timeout = 20 * 1000,
           type  %% 'tcp' | 'ssl'
          }).
 
@@ -70,13 +70,13 @@ normalize_incomming_data(_Socket, X) ->
     X. %% nothing to do here, ts_bosh uses a special process to handle http requests,
        %% the incoming data is already delivered to ts_client as {gen_ts_transport, ..} instead of gen_tcp | ssl
 
-connect(Host, Port, Opts) ->
-    connect(Host, Port, Opts, tcp).
+connect(Host, Port, Opts, Timeout) ->
+    connect(Host, Port, Opts, Timeout, tcp).
 
-connect(Host, Port, Opts, Type) when Type =:= 'tcp' ; Type =:= 'ssl' ->
+connect(Host, Port, Opts, Timeout, Type) when Type =:= 'tcp' ; Type =:= 'ssl' ->
     Parent = self(),
     [BoshPath | OtherOpts] = Opts,
-    Pid = spawn(fun() -> loop(Host, Port, BoshPath, OtherOpts, Type, Parent) end),
+    Pid = spawn(fun() -> loop(Host, Port, BoshPath, OtherOpts, Type, Parent, Timeout) end),
     ?DebugF("connect ~p ~p ~p ~p ~p",[Host, Port, BoshPath, self(), Pid]),
     {ok, Pid}.
 
@@ -109,8 +109,12 @@ send(Pid, Data, _Opts) ->
             {error, timeout}
     end.
 
+close(Pid) when is_pid(Pid)->
+    Pid ! close;
+close(none) ->
+    ?LOG("close: no pid",?DEB);
 close(Pid) ->
-    Pid ! close.
+    ?LOGF("close: bad argument: ~p, should be a pid",[Pid],?ERR).
 
 set_opts(Pid, _Opts) ->
     Pid.
@@ -118,9 +122,8 @@ set_opts(Pid, _Opts) ->
 protocol_options(#proto_opts{bosh_path = BoshPath}) ->
     [BoshPath].
 
-loop(Host, Port, Path, Opts, Type, Parent) ->
-    {A,B,C} = now(),
-    random:seed(A,B,C),
+loop(Host, Port, Path, Opts, Type, Parent, Timeout) ->
+    ts_utils:init_seed(now),
     _MonitorRef = erlang:monitor(process,Parent),
     loop(#state{session_state = fresh,
                port = Port,
@@ -129,7 +132,8 @@ loop(Host, Port, Path, Opts, Type, Parent) ->
                host = Host,
                local_ip = proplists:get_value(ip, Opts, undefined),
                local_port = proplists:get_value(port, Opts, undefined),
-               type = Type
+               type = Type,
+               connect_timeout = Timeout
               }).
 
 loop(#state{parent_pid = ParentPid} = State) ->
@@ -151,7 +155,7 @@ loop(#state{parent_pid = ParentPid} = State) ->
                 {queued, NewState} -> %% we reach the max allowed queued messages.. close the connection.
                     ?LOGF("Client reached max bosh requests queue size: ~p. Closing session",
                           [length(NewState#state.queue)], ?ERR),
-                    ts_mon:add({count, error_bosh_maxqueued}),
+                    ts_mon_cache:add({count, error_bosh_maxqueued}),
                     ParentPid ! {ok, Ref},
                     ParentPid ! {gen_ts_transport, self(), closed}
             end;
@@ -181,7 +185,7 @@ loop(#state{parent_pid = ParentPid} = State) ->
                 terminate ->
                     if
                         State#state.session_state  /= 'closing' ->
-                            ts_mon:add({count, error_bosh_terminated}),
+                            ts_mon_cache:add({count, error_bosh_terminated}),
                             ?LOG("Session terminated by server", ?INFO);
                         true ->
                             ok
@@ -194,7 +198,7 @@ loop(#state{parent_pid = ParentPid} = State) ->
                 true ->
                     %%ERROR, a current request is closed
                     ?LOG("Open request closed by server", ?ERR),
-                    ts_mon:add({count, error_bosh_socket_closed}),
+                    ts_mon_cache:add({count, error_bosh_socket_closed}),
                     State#state.parent_pid ! {gen_ts_transport, self(), closed};
                 false ->
                     %% A HTTP persistent connection, currently not in use, is closed by the server.
@@ -218,7 +222,7 @@ do_receive_http_response(State, Socket, Vsn) ->
            type = Type,
            parent_pid = ParentPid} = State,
     {ok, {{200, "OK"}, Hdrs, Resp}} = read_response(Type, Socket, Vsn, {200, "OK"}, [], <<>>, httph),
-    ts_mon:add({ sum, size_rcv, iolist_size([ [if is_atom(H) -> atom_to_list(H); true -> H end, V] ||
+    ts_mon_cache:add({ sum, size_rcv, iolist_size([ [if is_atom(H) -> atom_to_list(H); true -> H end, V] ||
                                                 {H,V} <- Hdrs])}), %% count header size
 
     {_El = #xmlElement{name = body,
@@ -263,7 +267,7 @@ do_receive_http_response(State, Socket, Vsn) ->
                     %%empty response, do not bother the ts_client process with this
                     %% (so Noack/Bidi won't count this bosh specific thing, only async stanzas)
                     %% since ts_client don't see this, we need to count the size received
-                    ts_mon:add({ sum, size_rcv, iolist_size(Resp)});
+                    ts_mon_cache:add({ sum, size_rcv, iolist_size(Resp)});
                 _ ->
                     ParentPid ! {gen_ts_transport, self(), Resp}
             end,
@@ -284,7 +288,7 @@ do_connect(#state{type = Type, host = Host, path = Path, parent_pid = ParentPid}
     {NewState2, Socket} = new_socket(NewState, false),
     ok = make_raw_request(Type, Socket, Host, Path, create_session_msg(Rid, Domain, ?WAIT, ?HOLD)),
     {ok, {{200, "OK"}, Hdrs, Resp}} = read_response(Type, Socket, nil, nil, [], <<>>, http),
-    ts_mon:add({ sum, size_rcv, iolist_size([ [if is_atom(H) -> atom_to_list(H); true -> H end, V] ||
+    ts_mon_cache:add({ sum, size_rcv, iolist_size([ [if is_atom(H) -> atom_to_list(H); true -> H end, V] ||
                     {H,V} <- Hdrs])}), %% count header size
 
     NewState3 = return_socket(NewState2, Socket),
@@ -360,18 +364,18 @@ make_request(Type, Socket, Sid, Rid, Queue, Host, Path, Packet) ->
     Body = stanzas_msg(Sid, Rid, StanzasText),
     make_request(Type, Socket, Host, Path, Body, iolist_size(StanzasText)).
 make_request(Type, Socket,Host, Path, Body, OriginalSize) ->
-     ts_mon:add({count, bosh_http_req}),
+     ts_mon_cache:add({count, bosh_http_req}),
      Hdrs = [{"Content-Type", ?CONTENT_TYPE}, {"keep-alive", "true"}],
      Request = format_request(Path, "POST", Hdrs, Host, Body),
      ok = socket_send(Type, Socket, Request),
-     ts_mon:add({ sum, size_sent, iolist_size(Request) - OriginalSize}).
+     ts_mon_cache:add({ sum, size_sent, iolist_size(Request) - OriginalSize}).
      %% add the http overhead. The size of the stanzas are already counted by ts_client code.
 
 
 new_socket(State = #state{free = [Socket | Rest], type = Type}, Active) ->
         socket_setopts(Type, Socket, [{active, Active}, {packet, http}]),
         {State#state{free = Rest}, Socket};
-new_socket(State = #state{type = Type, host = Host, port = Port, local_ip = LocalIp, local_port = LocalPort}, Active) ->
+new_socket(State = #state{type = Type, host = Host, port = Port, local_ip = LocalIp, local_port = LocalPort, connect_timeout=Timeout}, Active) ->
     Options = case LocalIp of
                   undefined -> [{active, Active}, {packet, http}];
                   _ ->  case LocalPort of
@@ -381,8 +385,8 @@ new_socket(State = #state{type = Type, host = Host, port = Port, local_ip = Loca
                                 [{active, Active}, {packet, http},{ip, LocalIp}, {port, LPort}]
                         end
     end,
-    {ok, Socket} = socket_connect(Type, Host, Port,  Options, ?CONNECT_TIMEOUT),
-    ts_mon:add({count, bosh_http_conn}),
+    {ok, Socket} = socket_connect(Type, Host, Port,  Options, Timeout),
+    ts_mon_cache:add({count, bosh_http_conn}),
     {State, Socket}.
 
 return_socket(State, Socket) ->
@@ -453,9 +457,30 @@ read_body(Type, _Vsn, Hdrs, Socket) ->
     %   closed (AFAIK, this was common in versions before 1.1).
     case proplists:get_value('Content-Length', Hdrs, undefined) of
         undefined ->
-                throw({no_content_length, Hdrs});
+            case proplists:get_value('Transfer-Encoding', Hdrs, undefined) of
+                undefined ->
+                    throw({no_content_length, Hdrs});
+                "chunked" ->
+                    read_chunked_body(Type, Hdrs, Socket, [])
+            end;
         ContentLength ->
             read_length(Type, Hdrs, Socket, list_to_integer(ContentLength))
+    end.
+
+read_chunked_body(Type, Hdrs, Socket, Acc) ->
+    socket_setopts(Type, Socket, [{packet, line}, binary]),
+    {ok, HexLen} = socket_recv(Type, Socket, 0),
+    socket_setopts(Type, Socket, [{packet, raw}]),
+
+    Len = binary_to_integer(binary_part(HexLen, 0, byte_size(HexLen) - 2), 16),
+    case Len of
+        0 ->
+            {ok, _} = socket_recv(Type, Socket, 2),
+            {iolist_to_binary(lists:reverse(Acc)), Hdrs};
+        _ ->
+            {ok, Data} = socket_recv(Type, Socket, Len),
+            {ok, _} = socket_recv(Type, Socket, 2),
+            read_chunked_body(Type, [], Socket, [Data|Acc])
     end.
 
 read_length(Type, Hdrs, Socket, Length) ->
