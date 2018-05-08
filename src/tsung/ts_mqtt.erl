@@ -77,6 +77,10 @@ dump(A, B) ->
 %% Args:	record
 %% Returns: binary
 %%----------------------------------------------------------------------
+get_message(Req0 = #mqtt_request{type = connect, client_id = undefined}, StateRcv) ->
+    ClientId = ["tsung-", ts_utils:randombinstr(10)],
+    Req1 = Req0#mqtt_request{client_id = ClientId},
+    get_message(Req1, StateRcv);
 get_message(#mqtt_request{type = connect, clean_start = CleanStart,
                           keepalive = KeepAlive, will_topic = WillTopic,
                           will_qos = WillQos, will_msg = WillMsg,
@@ -85,12 +89,6 @@ get_message(#mqtt_request{type = connect, clean_start = CleanStart,
             #state_rcv{session = MqttSession}) ->
     PublishOptions = mqtt_frame:set_publish_options([{qos, WillQos},
                                                      {retain, WillRetain}]),
-    ClientId = case ClientId of
-      undefined ->
-        ["tsung-", ts_utils:randombinstr(10)];
-      _ ->
-        ClientId
-    end,
     Will = #will{topic = WillTopic, message = WillMsg,
                  publish_options = PublishOptions},
 
