@@ -80,9 +80,9 @@ dump(A, B) ->
 get_message(#mqtt_request{type = connect, clean_start = CleanStart,
                           keepalive = KeepAlive, will_topic = WillTopic,
                           will_qos = WillQos, will_msg = WillMsg,
-                          will_retain = WillRetain, username = UserName, password = Password},
+                          will_retain = WillRetain, username = UserName,
+                          password = Password, client_id = ClientId},
             #state_rcv{session = MqttSession}) ->
-    ClientId = ["tsung-", ts_utils:randombinstr(10)],
     PublishOptions = mqtt_frame:set_publish_options([{qos, WillQos},
                                                      {retain, WillRetain}]),
     Will = #will{topic = WillTopic, message = WillMsg,

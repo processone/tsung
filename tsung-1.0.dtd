@@ -413,7 +413,8 @@ repeat | if | change_type | foreach | set_option | interaction | abort )*>
     retained CDATA "false"
     timeout CDATA "1"
     username CDATA ""
-    password CDATA "">
+    password CDATA ""
+    client_id CDATA "">
 
 <!ELEMENT modification (attr*) >
 <!ATTLIST modification
