@@ -85,6 +85,12 @@ get_message(#mqtt_request{type = connect, clean_start = CleanStart,
             #state_rcv{session = MqttSession}) ->
     PublishOptions = mqtt_frame:set_publish_options([{qos, WillQos},
                                                      {retain, WillRetain}]),
+    ClientId = case ClientId of
+      undefined ->
+        ["tsung-", ts_utils:randombinstr(10)];
+      _ ->
+        ClientId
+    end,
     Will = #will{topic = WillTopic, message = WillMsg,
                  publish_options = PublishOptions},
 
