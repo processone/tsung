@@ -58,7 +58,7 @@
 -record(connect_options, {
   protocol_name = ?PROTOCOL_NAME,
   protocol_version = ?PROTOCOL_VERSION,
-  client_id,
+  client_id = undefined,
   clean_start = true,
   will,
   keepalive = ?DEFAULT_KEEPALIVE,
