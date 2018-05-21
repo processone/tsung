@@ -29,6 +29,7 @@
 -compile(export_all).
 
 -include("ts_profile.hrl").
+-include("ts_mqtt.hrl").
 -include("mqtt.hrl").
 -include("ts_config.hrl").
 -include_lib("eunit/include/eunit.hrl").
@@ -50,6 +51,33 @@ encode_connect_test() ->
                    103,45,116,101,115,116,45,105,100,0,10,119,105,108,108,95,
                    116,111,112,105,99,0,12,119,105,108,108,95,109,101,115,115,
                    97,103,101>>, EncodedData).
+
+get_message_with_default_client_id_test() ->
+  Session = #mqtt_session{},
+  State = #state_rcv{session = Session},
+  Req = #mqtt_request{type = connect,
+                      will_qos = 0,
+                      will_retain = true,
+                      keepalive = 10},
+  {Encoded,_} = ts_mqtt:get_message(Req,State),
+  {#mqtt{type = Type, arg = Args}, _} = mqtt_frame:decode(Encoded),
+  #connect_options{client_id = ClientId} = Args,
+  ?assertEqual(?CONNECT, Type),
+  ?assertMatch({match,_}, re:run(ClientId, "tsung-")).
+
+get_message_with_custom_client_id_test() ->
+  Session = #mqtt_session{},
+  State = #state_rcv{session = Session},
+  Req = #mqtt_request{type = connect,
+                      will_qos = 0,
+                      will_retain = true,
+                      keepalive = 10,
+                      client_id = "custom-client-id"},
+  {Encoded,_} = ts_mqtt:get_message(Req,State),
+  {#mqtt{type = Type, arg = Args}, _} = mqtt_frame:decode(Encoded),
+  #connect_options{client_id = ClientId} = Args,
+  ?assertEqual(?CONNECT, Type),
+  ?assertEqual("custom-client-id", ClientId).
 
 decode_connect_test() ->
     Data = <<16,53,0,6,77,81,73,115,100,112,3,6,0,10,0,13,116,115,117,110,
