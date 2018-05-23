@@ -325,9 +325,8 @@ decode_chunk_size(<<Digit:1/binary, Data/binary >>, Headers, Body, PrevDigit) ->
     decode_chunk_size(Data, Headers, Body, <<PrevDigit/binary, Digit/binary>>).
 
 split_body(Data) ->
-    case re:run(Data,"(.*)\r\n\r\n(.*)$",[{capture,all_but_first,binary},ungreedy,dotall]) of
+    case re:run(Data,"(.*?)\r\n\r\n(.*)",[{capture,all_but_first,binary},dotall]) of
         nomatch        -> Data;
-        {match, [Header,Body]} -> {Header,<< Body/binary,"\n" >>};
+        {match, [Header,Body]} -> {Header, Body};
         _              -> Data
     end.
-
