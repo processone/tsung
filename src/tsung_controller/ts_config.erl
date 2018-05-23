@@ -494,9 +494,9 @@ parse(_Element = #xmlElement{name='if', attributes=Attrs,content=Content},
                       {none, none, none, Lt, none, none} ->
                           {lt,Lt};
                       {none, none, none, none, Gte, none} ->
-                          {gt,Gte};
+                          {gte,Gte};
                       {none, none, none, none, none, Lte} ->
-                          {lt,Lte}
+                          {lte,Lte}
                   end,
     ?LOGF("Add if_start action in session ~p as id ~p",
           [CurS#session.id,Id+1],?INFO),
@@ -588,9 +588,9 @@ parse(_Element = #xmlElement{name=repeat,attributes=Attrs,content=Content},
                               {none, none, none, Lt, none, none} ->
                                   {lt,Lt};
                               {none, none, none, none, Gte, none} ->
-                                  {gt,Gte};
+                                  {gte,Gte};
                               {none, none, none, none, none, Lte} ->
-                                  {lt,Lte}
+                                  {lte,Lte}
                           end,
                           %either <while .. eq=".."/> , <while ..neq=".."/>
                           %either <while .. gt=".."/> , <while ..gte=".."/>
