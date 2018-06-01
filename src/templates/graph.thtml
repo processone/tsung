@@ -6,8 +6,8 @@
 <tr><th>Transactions and Pages</th><th>Requests and connection establishment</th></tr>
 <tr>
  <td>
- <a href="images/graphes-Transactions-mean.[% ext %]">
-  <img class="graph" src="images/graphes-Transactions-mean_tn.png" alt="transaction response time"/>
+ <a href="/images/graphes-Transactions-mean.[% ext %]">
+  <img class="graph" src="/images/graphes-Transactions-mean_tn.png" alt="transaction response time"/>
 </a>
 <br/>
 <p class="collapse alert-info" id="detailrequest"> Response time in
@@ -16,8 +16,8 @@ is a group of requests not separated by a thinktime).</p>
 <a class="btn btn-info" data-toggle="collapse" data-target="#detailrequest"> <i class="icon-ok icon-white"></i>Info &raquo;</a>
  </td>
  <td>
-  <a href="images/graphes-Perfs-mean.[% ext %]">
-   <img class="graph" src="images/graphes-Perfs-mean_tn.png" alt="mean request response time"/>
+  <a href="/images/graphes-Perfs-mean.[% ext %]">
+   <img class="graph" src="/images/graphes-Perfs-mean_tn.png" alt="mean request response time"/>
   </a>
 <br/>
 <dl class="collapse alert-info" id="detailconnection">
@@ -38,13 +38,13 @@ requests (in msec).</dd></dl>
 </tr>
 <tr>
  <td>
- <a href="images/graphes-Transactions-rate.[% ext %]">
-  <img class="graph" src="images/graphes-Transactions-rate_tn.png" alt="transaction rate"/> 
+ <a href="/images/graphes-Transactions-rate.[% ext %]">
+  <img class="graph" src="/images/graphes-Transactions-rate_tn.png" alt="transaction rate"/> 
  </a>
  </td>
  <td>
-  <a href="images/graphes-Perfs-rate.[% ext %]">
-   <img class="graph" src="images/graphes-Perfs-rate_tn.png" alt="req/sec"/>
+  <a href="/images/graphes-Perfs-rate.[% ext %]">
+   <img class="graph" src="/images/graphes-Perfs-rate_tn.png" alt="req/sec"/>
   </a>
  </td>
  </tr>
@@ -55,14 +55,14 @@ requests (in msec).</dd></dl>
 </tr>
 <tr>
  <td>
-  <a href="images/graphes-Async-rate.[% ext %]">
-   <img class="graph" src="images/graphes-Async-rate_tn.png" alt="req/sec"/>
+  <a href="/images/graphes-Async-rate.[% ext %]">
+   <img class="graph" src="/images/graphes-Async-rate_tn.png" alt="req/sec"/>
   </a>
  </td>
 [% IF bosh %]
  <td>
-  <a href="images/graphes-Bosh-rate.ps">
-   <img class="graph" src="images/graphes-Bosh-rate.png" alt="req/sec"/>
+  <a href="/images/graphes-Bosh-rate.ps">
+   <img class="graph" src="/images/graphes-Bosh-rate.png" alt="req/sec"/>
   </a>
  </td>
 [% END %]
@@ -71,13 +71,13 @@ requests (in msec).</dd></dl>
 <tr><th>Network traffic</th><th>New Users</th></tr>
 <tr>
  <td>
- <a href="images/graphes-Size-rate.[% ext %]">
-  <img class="graph" src="images/graphes-Size-rate_tn.png" alt="Kb/sec"/>
+ <a href="/images/graphes-Size-rate.[% ext %]">
+  <img class="graph" src="/images/graphes-Size-rate_tn.png" alt="Kb/sec"/>
  </a>
  </td>
  <td>
-  <a href="images/graphes-Users_Arrival-rate.[% ext %]">
-   <img class="graph" src="images/graphes-Users_Arrival-rate_tn.png" alt="visit/sec"/>
+  <a href="/images/graphes-Users_Arrival-rate.[% ext %]">
+   <img class="graph" src="/images/graphes-Users_Arrival-rate_tn.png" alt="visit/sec"/>
   </a>
  </td>
  </tr>
@@ -93,8 +93,8 @@ requests (in msec).</dd></dl>
 [% END %]
 </tr>
 <tr>
- <td> <a href="images/graphes-Users-simultaneous.[% ext %]">
-  <img class="graph" src="images/graphes-Users-simultaneous_tn.png"
+ <td> <a href="/images/graphes-Users-simultaneous.[% ext %]">
+  <img class="graph" src="/images/graphes-Users-simultaneous_tn.png"
   alt="Users"/>
  </a>
 <br/>
@@ -103,8 +103,8 @@ requests (in msec).</dd></dl>
 <a class="btn btn-info" data-toggle="collapse" data-target="#detailsimul"> <i class="icon-ok icon-white"></i>Info &raquo;</a>
  </td>
 [% IF match %]
- <td> <a href="images/graphes-Match-rate.[% ext %]">
-  <img class="graph" src="images/graphes-Match-rate_tn.png" alt="Match"/>
+ <td> <a href="/images/graphes-Match-rate.[% ext %]">
+  <img class="graph" src="/images/graphes-Match-rate_tn.png" alt="Match"/>
  </a>
  </td>
 [% END %]
@@ -119,13 +119,13 @@ requests (in msec).</dd></dl>
 <tr><th>CPU%</th><th>Free Memory</th></tr>
 <tr>
  <td>
- <a href="images/graphes-cpu-mean.[% ext %]">
-  <img class="graph" src="images/graphes-cpu-mean_tn.png" alt="cpu"/>
+ <a href="/images/graphes-cpu-mean.[% ext %]">
+  <img class="graph" src="/images/graphes-cpu-mean_tn.png" alt="cpu"/>
  </a>
  </td>
  <td>
-  <a href="images/graphes-freemem-mean.[% ext %]">
-   <img class="graph" src="images/graphes-freemem-mean_tn.png" alt="free memory"/>
+  <a href="/images/graphes-freemem-mean.[% ext %]">
+   <img class="graph" src="/images/graphes-freemem-mean_tn.png" alt="free memory"/>
   </a>
  </td>
  </tr>
@@ -133,8 +133,8 @@ requests (in msec).</dd></dl>
 <tr><th>CPU Load</th></tr>
 <tr>
  <td>
- <a href="images/graphes-load-mean.[% ext %]">
-  <img class="graph" src="images/graphes-load-mean_tn.png" alt="load"/>
+ <a href="/images/graphes-load-mean.[% ext %]">
+  <img class="graph" src="/images/graphes-load-mean_tn.png" alt="load"/>
  </a>
  </td>
  </tr>
@@ -153,8 +153,8 @@ requests (in msec).</dd></dl>
           [% FOREACH key = row %]
            <td>
             [% IF key %]
-              <a href="images/graphes-$key-mean.[% ext %]">
-              <img class="graph" src="images/graphes-$key-mean_tn.png" alt="other"/>
+              <a href="/images/graphes-$key-mean.[% ext %]">
+              <img class="graph" src="/images/graphes-$key-mean_tn.png" alt="other"/>
                </a>
             [% END %]
            </td>
@@ -170,8 +170,8 @@ requests (in msec).</dd></dl>
 [% IF http %]
 <div id="http_status">
 <h3>HTTP return code Status (rate)</h3> 
- <a href="images/graphes-HTTP_CODE-rate.[% ext %]">
-  <img class="graph" src="images/graphes-HTTP_CODE-rate_tn.png" alt="HTTP_CODE-rate"/> 
+ <a href="/images/graphes-HTTP_CODE-rate.[% ext %]">
+  <img class="graph" src="/images/graphes-HTTP_CODE-rate_tn.png" alt="HTTP_CODE-rate"/> 
  </a>
 </div>
 [% END %]
@@ -179,8 +179,8 @@ requests (in msec).</dd></dl>
 [% IF errors %]
 <div id="errors">
 <h3>Errors (rate)</h3> 
- <a href="images/graphes-Errors-rate.[% ext %]">
-  <img class="graph" src="images/graphes-Errors-rate_tn.png" alt="Errors-rate"/> 
+ <a href="/images/graphes-Errors-rate.[% ext %]">
+  <img class="graph" src="/images/graphes-Errors-rate_tn.png" alt="Errors-rate"/> 
  </a>
 </div>
 [% END %]
