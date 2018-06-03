@@ -889,6 +889,16 @@ If not set this defaults to the ``host`` value.
 
   <websocket type="connect" origin="https://example.com"></websocket>
 
+**New in 1.7.1**: You can also add any HTTP header now, as in:
+
+.. code-block:: xml
+
+  <request subst="true">
+    <websocket type="connect" path="/path/to/ws">
+      <http_header name="Cookie" value="sessionid=%%_sessionid%%"/>
+    </websocket>
+  </request>
+
 AMQP
 ^^^^^^^^^
 .. _sec-session-amqp-label:
