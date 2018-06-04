@@ -32,7 +32,8 @@
 -author('nicolas.niclausse@niclux.org').
 
 -export([parse_config/2, parse_URL/1, set_port/1, set_scheme/1,
-         check_user_agent_sum/1, set_query/1, encode_ipv6_address/1]).
+         check_user_agent_sum/1, set_query/1, encode_ipv6_address/1,
+         parse_headers/2]).
 
 -include("ts_profile.hrl").
 -include("ts_http.hrl").
@@ -209,6 +210,12 @@ get_previous_http_server(Ets, Id) ->
         [{_Key,PrevServ}] -> PrevServ
     end.
 
+%%----------------------------------------------------------------------
+%% Func: parse_headers/2
+%% Args: Elements (list), Headers (list)
+%% Returns: List
+%% Purpose: parse http_header elements
+%%----------------------------------------------------------------------
 parse_headers([], Headers) ->
     Headers;
 parse_headers([Element = #xmlElement{name=http_header} | Tail], Headers) ->

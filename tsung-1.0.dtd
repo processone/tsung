@@ -374,7 +374,7 @@ repeat | if | change_type | foreach | set_option | interaction | abort )*>
     certfile    CDATA   #IMPLIED
     dn          CDATA   #IMPLIED
     >
-<!ELEMENT websocket (#PCDATA) >
+<!ELEMENT websocket (#PCDATA | http_header)* >
 <!ATTLIST websocket
     type (connect | message | close) #REQUIRED
     ack  (no_ack | parse) #IMPLIED
