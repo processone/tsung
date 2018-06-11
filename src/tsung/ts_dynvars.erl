@@ -119,4 +119,6 @@ do_map(Fun,Key,Default,[H|Rest], Acc) ->
 %% @spec merge(DynVars::dynvars(),DynVars::dynvars()) -> dynvars()
 %% @doc merge two set of dynamic variables
 merge(DynVars1, DynVars2) when ?IS_DYNVARS(DynVars1),?IS_DYNVARS(DynVars2) ->
-    ts_utils:keyumerge(1,DynVars1,DynVars2).
+    ts_utils:keyumerge(1,DynVars1,DynVars2);
+merge(_, DynVars2) -> DynVars2.
+
