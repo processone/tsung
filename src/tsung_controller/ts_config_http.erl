@@ -398,6 +398,8 @@ parse_URL(host, [], Acc, URL) -> % no path or port
     URL#url{host=lists:reverse(Acc), path= "/"};
 parse_URL(host, [$/|Tail], Acc, URL) -> % path starts here
     parse_URL(path, Tail, "/", URL#url{host=lists:reverse(Acc)});
+parse_URL(host, [$?|Tail], Acc, URL) -> % path/query starts here
+    parse_URL(path, "?" ++ Tail, "/", URL#url{host=lists:reverse(Acc)});
 parse_URL(host, [$:|Tail], Acc, URL) -> % port starts here
     parse_URL(port, Tail, [], URL#url{host=lists:reverse(Acc)});
 parse_URL(host, [H|Tail], Acc, URL) ->
