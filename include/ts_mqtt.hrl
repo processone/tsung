@@ -40,7 +40,8 @@
           retained = false,
           payload,
           username,
-          password
+          password,
+          client_id
          }).
 
 -record(mqtt_dyndata, {

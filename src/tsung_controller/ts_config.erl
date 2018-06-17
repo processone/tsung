@@ -494,9 +494,9 @@ parse(_Element = #xmlElement{name='if', attributes=Attrs,content=Content},
                       {none, none, none, Lt, none, none} ->
                           {lt,Lt};
                       {none, none, none, none, Gte, none} ->
-                          {gt,Gte};
+                          {gte,Gte};
                       {none, none, none, none, none, Lte} ->
-                          {lt,Lte}
+                          {lte,Lte}
                   end,
     ?LOGF("Add if_start action in session ~p as id ~p",
           [CurS#session.id,Id+1],?INFO),
@@ -588,9 +588,9 @@ parse(_Element = #xmlElement{name=repeat,attributes=Attrs,content=Content},
                               {none, none, none, Lt, none, none} ->
                                   {lt,Lt};
                               {none, none, none, none, Gte, none} ->
-                                  {gt,Gte};
+                                  {gte,Gte};
                               {none, none, none, none, none, Lte} ->
-                                  {lt,Lte}
+                                  {lte,Lte}
                           end,
                           %either <while .. eq=".."/> , <while ..neq=".."/>
                           %either <while .. gt=".."/> , <while ..gte=".."/>
@@ -674,7 +674,7 @@ parse( #xmlElement{name=change_type, attributes=Attrs},
                  true  -> CType % back to the main type
              end,
     ets:insert(Tab,{{CurS#session.id, Id+1}, {change_type, CType, Server, Port, PType, Store, Restore, Bidi}}),
-    ?LOGF("Parse change_type (~p) ~p:~p:~p:~p ~n",[CType, Server,Port,PType,Id],?NOTICE),
+    ?LOGF("Parse change_type (~p) ~p:~p:~p:~p (store/restore: ~p:~p)~n",[CType, Server,Port,PType,Id, Store, Restore],?NOTICE),
     Conf#config{main_sess_type=SessType, curid=Id+1,
                 sessions=[CurS#session{type=CType}|Other] };
 

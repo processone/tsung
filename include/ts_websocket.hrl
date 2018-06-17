@@ -33,6 +33,7 @@
           frame = "binary",
           origin, % origin of websocket request
           subprotos = [], % subprotocols
+          headers = [], % additional headers
           data % websocket data
          }).
 

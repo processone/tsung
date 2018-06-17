@@ -5,10 +5,6 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
-# This is the debhelper compatibility version to use.
-export DH_COMPAT=4
-
-
 configure: configure-stamp
 configure-stamp:
 	dh_testdir

@@ -80,10 +80,11 @@ dump(A,B) ->
 %%----------------------------------------------------------------------
 get_message(#websocket_request{type = connect, path = Path,
                                subprotos = SubProtocol, version = Version,
-                               origin = Origin},
+                               headers = Headers, origin = Origin},
             State=#state_rcv{session = WebsocketSession}) ->
     {Request, Accept} = websocket:get_handshake(State#state_rcv.host, Path,
-                                                SubProtocol, Version, Origin),
+                                                SubProtocol, Version, Origin,
+                                                Headers),
     {Request, WebsocketSession#websocket_session{status = waiting_handshake,
                                                  accept = Accept}};
 get_message(#websocket_request{type = message, data = Data, frame = Frame},
@@ -175,9 +176,13 @@ add_dynparams(true, {DynVars, _S},
     NewData = ts_search:subst(Data, DynVars),
     Param#websocket_request{data = NewData};
 add_dynparams(true, {DynVars, _S},
-              Param = #websocket_request{type = connect, path = Path},
+              Param = #websocket_request{type = connect, path = Path,
+                                         headers = Headers},
               _HostData) ->
     NewPath = ts_search:subst(Path, DynVars),
-    Param#websocket_request{path = NewPath};
+    NewHeaders = lists:foldl(fun ({Name, Value}, Result) ->
+                                     [{Name, ts_search:subst(Value, DynVars)} | Result]
+                             end, [], Headers),
+    Param#websocket_request{path = NewPath, headers = NewHeaders};
 add_dynparams(_Bool, _DynData, Param, _HostData) ->
     Param#websocket_request{}.
