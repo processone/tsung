@@ -52,6 +52,10 @@ ipv4_url_test() ->
     URL=ts_config_http:parse_URL("http://127.0.0.1:8080/"),
     ?assertMatch(#url{path="/",port=8080,host="127.0.0.1",scheme=http}, URL).
 
+emptypath_url_test() ->
+    URL=ts_config_http:parse_URL("http://example.com?foo=bar"),
+    ?assertMatch(#url{path="/",host="example.com",scheme=http, querypart="foo=bar"}, URL).
+
 subst_url_test() ->
     DynVars=ts_dynvars:new('image', "/images/my image with spaces.png"),
     Req=ts_http:subst(true,#http_request{url="%%_image%%"}, DynVars),
