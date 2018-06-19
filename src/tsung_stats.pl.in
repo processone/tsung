@@ -158,12 +158,14 @@ sub plot_stats {
     my $legend_loc  = "key left top"; # TODO: can be override in option
     my $output_type;
     my $filename; # temporary var
+    my @sorted_files; # temporary var
     my $thumbnail_size = 0.5;
 
     if  (scalar @{$files} == 0 ) {
         warn "No data for $datatype\n";
         return;
     }
+    @sorted_files = sort @{$files};
 
     my $has_pngcairo = &gnuplot_has_cairo();
     print STDERR "Using pngcairo support in gnuplot\n" if $verbose and $has_pngcairo;
@@ -233,7 +235,7 @@ sub plot_stats {
 
             print "plot ";
             my $lineindex=0;
-            foreach $filename (@{$files}) {
+            foreach $filename (@sorted_files) {
                 $lineindex++;
                 print " \"$datadir/$filename\" using ";
                 # if $timestamp isn't defined, use the first column as timestamp
@@ -247,7 +249,7 @@ sub plot_stats {
                 $cur_title =~ s/:os_mon//;
                 $cur_title =~ s/(_|@)/\\$1/g if ($newgnuplot > 1);
                 print " title '$cur_title' ls $lineindex" ;
-                print "," unless ($filename eq @{$files}[$#{$files}]); # unless last occurence
+                print "," unless ($filename eq $sorted_files[$#sorted_files]); # unless last occurence
             }
             print "\n"; # plot done
         }
@@ -295,7 +297,7 @@ sub plot_stats_dygraph {
     #  print "set xlabel \"unit = sec \"\n";
     #}
     #print "set ylabel \"".$ylabel->[$d]."\"\n" if $ylabel->[$d];
-    foreach $filename (@{$files}) {
+    foreach $filename (sort @{$files}) {
       $cur_title = $filename;
       $cur_title =~ s/\.txt$//;
       $cur_title =~ s/:os_mon//;

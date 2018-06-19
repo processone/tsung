@@ -32,7 +32,8 @@
 -author('nicolas.niclausse@niclux.org').
 
 -export([parse_config/2, parse_URL/1, set_port/1, set_scheme/1,
-         check_user_agent_sum/1, set_query/1, encode_ipv6_address/1]).
+         check_user_agent_sum/1, set_query/1, encode_ipv6_address/1,
+         parse_headers/2]).
 
 -include("ts_profile.hrl").
 -include("ts_http.hrl").
@@ -119,7 +120,7 @@ parse_config(Element = #xmlElement{name=http},
                                               realm, undefined),
                   QOP = ts_config:getAttr(string,AuthEl#xmlElement.attributes,
                                               qop, undefined),
-                  ?LOGF("DIGEST ? : ~p ~p ~p", [Type, Nonce, Realm], ?WARN),
+                  ?DebugF("DIGEST ? : ~p ~p ~p", [Type, Nonce, Realm]),
                   Request3#http_request{userid=UserId, passwd=Passwd,
                                         auth_type=Type, digest_nonce=Nonce,
                                         digest_cnonce=Cnonce, digest_nc=Nc,
@@ -209,6 +210,12 @@ get_previous_http_server(Ets, Id) ->
         [{_Key,PrevServ}] -> PrevServ
     end.
 
+%%----------------------------------------------------------------------
+%% Func: parse_headers/2
+%% Args: Elements (list), Headers (list)
+%% Returns: List
+%% Purpose: parse http_header elements
+%%----------------------------------------------------------------------
 parse_headers([], Headers) ->
     Headers;
 parse_headers([Element = #xmlElement{name=http_header} | Tail], Headers) ->

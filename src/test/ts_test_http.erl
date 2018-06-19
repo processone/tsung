@@ -252,6 +252,10 @@ split_body2_test() ->
     Data = << "HTTP header\r\nHeader: value\r\n\r\nbody\r\n\r\nnewline in body\r\n" >>,
     ?assertEqual({<< "HTTP header\r\nHeader: value" >>, << "body\r\n\r\nnewline in body\r\n" >>}, ts_http:split_body(Data)).
 
+split_body_no_newline_test() ->
+    Data = << "HTTP header\r\nHeader: value\r\n\r\nbody" >>,
+    ?assertEqual({<< "HTTP header\r\nHeader: value" >>, << "body" >>}, ts_http:split_body(Data)).
+
 split_body3_test() ->
     Data = << "HTTP header\r\nHeader: value\r\nTransfer-Encoding: chunked\r\n\r\n19\r\nbody\r\n\r\nnewline in body\r\n\r\n" >>,
     ?assertEqual({<< "HTTP header\r\nHeader: value\r\nTransfer-Encoding: chunked" >>, << "19\r\nbody\r\n\r\nnewline in body\r\n\r\n" >>}, ts_http:split_body(Data)).

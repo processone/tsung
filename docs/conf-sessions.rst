@@ -889,6 +889,16 @@ If not set this defaults to the ``host`` value.
 
   <websocket type="connect" origin="https://example.com"></websocket>
 
+**New in 1.7.1**: You can also add any HTTP header now, as in:
+
+.. code-block:: xml
+
+  <request subst="true">
+    <websocket type="connect" path="/path/to/ws">
+      <http_header name="Cookie" value="sessionid=%%_sessionid%%"/>
+    </websocket>
+  </request>
+
 AMQP
 ^^^^^^^^^
 .. _sec-session-amqp-label:
@@ -982,7 +992,7 @@ MQTT
 It supports publish messages, subscribe and unsubscribe topics,
 Available request types:
 
-* connect (with options like clean_start, will_topic, username, password, etc.)
+* connect (with options like client_id, clean_start, will_topic, username, password, etc.)
 * disconnect
 * publish (with topic name, qos level and retain flag)
 * subscribe (with topic name and qos level)
@@ -996,7 +1006,7 @@ Example with MQTT as a session type:
 
     <session name="mqtt-example" probability="100" type="ts_mqtt">
         <request>
-            <mqtt type="connect" clean_start="true" keepalive="10" will_topic="will_topic" will_qos="0" will_msg="will_msg" will_retain="false"></mqtt>
+            <mqtt type="connect" client_id="client_id" clean_start="true" keepalive="10" will_topic="will_topic" will_qos="0" will_msg="will_msg" will_retain="false"></mqtt>
         </request>
 
         <for from="1" to="10" incr="1" var="loops">
@@ -1022,6 +1032,8 @@ Example with MQTT as a session type:
             <mqtt type="disconnect"></mqtt>
         </request>
     </session>
+
+Note that if a ``client_id`` is omitted upon connecting Tsung will create a random one, prefixed with ``tsung-``.
 
 LDAP
 ^^^^

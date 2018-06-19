@@ -77,12 +77,16 @@ dump(A, B) ->
 %% Args:	record
 %% Returns: binary
 %%----------------------------------------------------------------------
+get_message(Req0 = #mqtt_request{type = connect, client_id = undefined}, StateRcv) ->
+    ClientId = ["tsung-", ts_utils:randombinstr(10)],
+    Req1 = Req0#mqtt_request{client_id = ClientId},
+    get_message(Req1, StateRcv);
 get_message(#mqtt_request{type = connect, clean_start = CleanStart,
                           keepalive = KeepAlive, will_topic = WillTopic,
                           will_qos = WillQos, will_msg = WillMsg,
-                          will_retain = WillRetain, username = UserName, password = Password},
+                          will_retain = WillRetain, username = UserName,
+                          password = Password, client_id = ClientId},
             #state_rcv{session = MqttSession}) ->
-    ClientId = ["tsung-", ts_utils:randombinstr(10)],
     PublishOptions = mqtt_frame:set_publish_options([{qos, WillQos},
                                                      {retain, WillRetain}]),
     Will = #will{topic = WillTopic, message = WillMsg,
@@ -269,17 +273,20 @@ add_dynparams(true, {DynVars, _S},
 				    keepalive = KeepAlive, will_topic = WillTopic,
 				    will_qos = WillQos, will_msg = WillMsg,
 				    will_retain = WillRetain, username = UserName,
-				    password = Password},
+				    password = Password, client_id = ClientId},
               _HostData) ->
     NewUserName = ts_search:subst(UserName, DynVars),
     NewPassword = ts_search:subst(Password, DynVars),
+    NewWillTopic = ts_search:subst(WillTopic, DynVars),
+    NewClientId = ts_search:subst(ClientId, DynVars),
     Param#mqtt_request{ type = connect,
 			clean_start = CleanStart,
-			keepalive = KeepAlive, will_topic = WillTopic,
+			keepalive = KeepAlive, will_topic = NewWillTopic,
 			will_qos = WillQos, will_msg = WillMsg,
 			will_retain = WillRetain,
 			username = NewUserName,
-			password = NewPassword };
+			password = NewPassword,
+      client_id = NewClientId};
 add_dynparams(true, {DynVars, _S},
               Param = #mqtt_request{type = publish, topic = Topic,
                                     payload = Payload},

@@ -374,7 +374,7 @@ repeat | if | change_type | foreach | set_option | interaction | abort )*>
     certfile    CDATA   #IMPLIED
     dn          CDATA   #IMPLIED
     >
-<!ELEMENT websocket (#PCDATA) >
+<!ELEMENT websocket (#PCDATA | http_header)* >
 <!ATTLIST websocket
     type (connect | message | close) #REQUIRED
     ack  (no_ack | parse) #IMPLIED
@@ -414,7 +414,8 @@ repeat | if | change_type | foreach | set_option | interaction | abort )*>
     timeout CDATA "1"
     username CDATA ""
     password CDATA ""
-    stamped (true | false) "false" >
+    stamped (true | false) "false"
+    client_id CDATA "">
 
 <!ELEMENT modification (attr*) >
 <!ATTLIST modification
