@@ -77,8 +77,9 @@ connect(Host, Port, Opts, Timeout) ->
 loop(#state{socket = Socket, host = Host, path = Path,
             version = Version, subprotos = SubProtocol,
             state = not_connected} = State)->
-    Origin ="",
-    {Handshake, Accept} = websocket:get_handshake(Host, Path, SubProtocol, Version, Origin),
+    Origin = "",
+    Headers = "",
+    {Handshake, Accept} = websocket:get_handshake(Host, Path, SubProtocol, Version, Origin, Headers),
     ssl:send(Socket, Handshake),
     loop(State#state{socket = Socket, accept = Accept,
                      state = waiting_handshake});
@@ -86,7 +87,7 @@ loop(#state{socket = Socket, host = Host, path = Path,
 loop(#state{parent = Parent, socket = Socket, accept = Accept,
             state = waiting_handshake} = State)->
     receive
-        {tcp, Socket, Data}->
+        {ssl, Socket, Data}->
             CheckResult = websocket:check_handshake(Data, Accept),
             case CheckResult of
                 ok ->
@@ -97,10 +98,10 @@ loop(#state{parent = Parent, socket = Socket, accept = Accept,
                     ?DebugF("handshake fail: ~p~n", [Reason]),
                     Parent ! {gen_ts_transport, self(), error, Reason}
             end;
-        {tcp_closed, Socket}->
+        {ssl_closed, Socket}->
             ?LOGF("tcp closed:~p~n", [Socket], ?ERR),
             Parent ! {gen_ts_transport, self(), closed};
-        {tcp_error, Socket, Error}->
+        {ssl_error, Socket, Error}->
             ?LOGF("tcp error:~p~n", [Socket], ?ERR),
             Parent ! {gen_ts_transport, self(), error, Error}
     end;
@@ -123,7 +124,7 @@ loop(#state{parent = Parent, socket = Socket, state = connected,
         {set_opts, Opts} ->
             ssl:setopts(Socket, Opts),
             loop(State);
-        {tcp, Socket, Data}->
+        {ssl, Socket, Data}->
             case websocket:decode(<<Buffer/binary, Data/binary>>) of
                 more ->
                     ?DebugF("receive incomplete from server: ~p~n", [Data]),
@@ -136,9 +137,9 @@ loop(#state{parent = Parent, socket = Socket, state = connected,
                     Parent ! {gen_ts_transport, self(), Payload},
                     loop(State#state{buffer = Left})
             end;
-        {tcp_closed, Socket}->
+        {ssl_closed, Socket}->
             Parent ! {gen_ts_transport, self(), closed};
-        {tcp_error, Socket, Error}->
+        {ssl_error, Socket, Error}->
             Parent ! {gen_ts_transport, self(), error, Error};
         E -> ?LOGF("Message:~p~n", [E], ?WARN)
     end.
