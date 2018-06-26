@@ -647,8 +647,9 @@ ctrl_struct_impl({if_start,Rel, VarName, Value, Target},DynVars) ->
     case ts_dynvars:lookup(VarName,DynVars) of
         {ok,VarValue} ->
             ?DebugF("If found ~p; value is ~p~n",[VarName,VarValue]),
-            ?DebugF("Calling need_jump with args ~p ~p ~p~n",[Rel,Value,VarValue]),
-            Jump = need_jump('if',rel(Rel,Value,VarValue)),
+            NewValue = ts_search:subst(Value, DynVars),
+            ?DebugF("Calling need_jump with args ~p ~p ~p~n",[Rel,NewValue,VarValue]),
+            Jump = need_jump('if',rel(Rel,NewValue,VarValue)),
             jump_if(Jump,Target,DynVars);
         false ->
             ts_mon_cache:add({ count, 'error_if_undef'}),
