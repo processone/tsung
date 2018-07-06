@@ -503,7 +503,13 @@ parse(_Element = #xmlElement{name='if', attributes=Attrs,content=Content},
     NewConf = lists:foldl(fun parse/2, Conf#config{curid=Id+1}, Content),
     NewId = NewConf#config.curid,
     ?LOGF("endif in session ~p as id ~p",[CurS#session.id,NewId+1],?INFO),
-    InitialAction = {ctrl_struct, {if_start, Rel, VarName, list_to_binary(Value) , NewId+1}},
+    SubstitutionFlag = case string:str(Value, "%%") of
+                         Pos when Pos > 0 ->
+                           subst;
+                         Pos when Pos =:= 0 ->
+                           nosubst
+                       end,
+    InitialAction = {ctrl_struct, {if_start, Rel, VarName, list_to_binary(Value), SubstitutionFlag, NewId+1}},
     %%NewId+1 -> id of the first action after the if
     ets:insert(Tab,{{CurS#session.id,Id+1},InitialAction}),
     NewConf;

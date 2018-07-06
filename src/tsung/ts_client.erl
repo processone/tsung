@@ -641,15 +641,24 @@ ctrl_struct_impl({for_end,VarName,EndValue,Increment,Target},DynVars) ->
             NewDynVars = ts_dynvars:set(VarName,NewValue,DynVars),
             {jump,Target,NewDynVars}
     end;
-
-
-ctrl_struct_impl({if_start,Rel, VarName, Value, Target},DynVars) ->
+ctrl_struct_impl({if_start,Rel, VarName, Value, subst, Target},DynVars) ->
+    case ts_dynvars:lookup(VarName,DynVars) of
+        {ok,VarValue} ->
+            NewValue = ts_search:subst(Value, DynVars),
+            ?DebugF("If found ~p; value is ~p; applying substitutions~n",[VarName,VarValue]),
+            ?DebugF("Calling need_jump with args ~p ~p ~p~n",[Rel,NewValue,VarValue]),
+            Jump = need_jump('if',rel(Rel,NewValue,VarValue)),
+            jump_if(Jump,Target,DynVars);
+        false ->
+            ts_mon_cache:add({ count, 'error_if_undef'}),
+            {next,DynVars}
+    end;
+ctrl_struct_impl({if_start,Rel, VarName, Value, nosubst, Target},DynVars) ->
     case ts_dynvars:lookup(VarName,DynVars) of
         {ok,VarValue} ->
             ?DebugF("If found ~p; value is ~p~n",[VarName,VarValue]),
-            NewValue = ts_search:subst(Value, DynVars),
-            ?DebugF("Calling need_jump with args ~p ~p ~p~n",[Rel,NewValue,VarValue]),
-            Jump = need_jump('if',rel(Rel,NewValue,VarValue)),
+            ?DebugF("Calling need_jump with args ~p ~p ~p~n",[Rel,Value,VarValue]),
+            Jump = need_jump('if',rel(Rel,Value,VarValue)),
             jump_if(Jump,Target,DynVars);
         false ->
             ts_mon_cache:add({ count, 'error_if_undef'}),
