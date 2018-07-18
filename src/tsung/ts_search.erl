@@ -32,7 +32,7 @@
 -module(ts_search).
 -vc('$Id$ ').
 
--export([subst/2, match/5, parse_dynvar/2]).
+-export([subst/2, match/5, parse_dynvar/2, parse_dynvar/3]).
 
 -include("ts_macros.hrl").
 -include("ts_profile.hrl").
@@ -261,17 +261,20 @@ setcount(#match{do=abort_test,name=Name}, {Count,MaxC,SessionId,UserId}, Stats,_
 %% @doc Look for dynamic variables in Data
 %% @end
 %%----------------------------------------------------------------------
-parse_dynvar([], _Data) -> ts_dynvars:new();
-parse_dynvar(DynVarSpecs, Data)  when is_binary(Data) ->
+parse_dynvar(Specs, Data) ->
+    parse_dynvar(Specs, Data, ts_dynvars:new()).
+
+parse_dynvar([], _Data, DynVars) -> DynVars;
+parse_dynvar(DynVarSpecs, Data, DynVars)  when is_binary(Data) ->
     ?DebugF("Parsing Dyn Variable (specs=~p); data is ~p~n",[DynVarSpecs,Data]),
-    parse_dynvar(DynVarSpecs,Data, undefined,undefined,[]);
-parse_dynvar(DynVarSpecs, {_,_,_,Data})  when is_binary(Data) ->
+    parse_dynvar(DynVarSpecs,Data, undefined,undefined,DynVars);
+parse_dynvar(DynVarSpecs, {_,_,_,Data}, DynVars)  when is_binary(Data) ->
     ?DebugF("Parsing Dyn Variable (specs=~p); data is ~p~n",[DynVarSpecs,Data]),
-    parse_dynvar(DynVarSpecs,Data, undefined,undefined,[]);
-parse_dynvar(DynVarSpecs, {_,_,_,Data})  when is_list(Data) ->
+    parse_dynvar(DynVarSpecs,Data, undefined,undefined,DynVars);
+parse_dynvar(DynVarSpecs, {_,_,_,Data}, DynVars)  when is_list(Data) ->
     ?DebugF("Parsing Dyn Variable (specs=~p); data is ~p~n",[DynVarSpecs,Data]),
-    parse_dynvar(DynVarSpecs,list_to_binary(Data), undefined,undefined,[]);
-parse_dynvar(DynVarSpecs, _Data)  ->
+    parse_dynvar(DynVarSpecs,list_to_binary(Data), undefined,undefined,DynVars);
+parse_dynvar(DynVarSpecs, _Data, _DynVars)  ->
     ?LOGF("Error while Parsing dyn Variable(~p)~n",[DynVarSpecs],?WARN),
     ts_dynvars:new().
 
