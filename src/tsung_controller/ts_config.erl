@@ -614,7 +614,7 @@ parse(_Element = #xmlElement{name=repeat,attributes=Attrs,content=Content},
 
 %%% Parsing the dyn_variable element
 parse(#xmlElement{name=dyn_variable, attributes=Attrs},
-      Conf=#config{sessions=[CurS|_],dynvar=DynVars}) ->
+      Conf=#config{sessions=[CurS|_],dynvar=DynVars,subst=SubstitutionFlag}) ->
     StrName  = ts_utils:clean_str(getAttr(Attrs, name)),
     {ok, [{atom,_,Name}],_} = erl_scan:string("'"++StrName++"'"),
     {Type,Expr} = case {getAttr(string,Attrs,re,none),
@@ -655,6 +655,9 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
                      ?LOGF("Add new xpath: ~s ~n", [Expr],?INFO),
                      CompiledXPathExp = mochiweb_xpath:compile_xpath(FlattenExpr),
                      {xpath,Name,CompiledXPathExp};
+                 jsonpath ->
+                     ?LOGF("Add new jsonpath: ~s ~n", [Expr],?INFO),
+                     {jsonpath,Name,Expr,SubstitutionFlag};
                  _Other ->
                      ?LOGF("Add ~s ~s ~p ~n", [Type,Name,Expr],?INFO),
                      {Type,Name,Expr}

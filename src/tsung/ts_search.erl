@@ -367,7 +367,7 @@ parse_dynvar(D=[{xpath,_VarName, _Expr}| _DynVarsSpecs],
 
 
 
-parse_dynvar(D=[{jsonpath,_VarName, _Expr}| _DynVarsSpecs],
+parse_dynvar(D=[{jsonpath,_VarName, _Expr, _SubstitutionFlag}| _DynVarsSpecs],
                 Binary,String,undefined,DynVars) ->
     Body = extract_body(Binary),
     try mochijson2:decode(Body) of
@@ -394,7 +394,7 @@ parse_dynvar([{xpath,VarName,_Expr}|DynVarsSpecs],Binary,String,xpath_error,DynV
     ts_mon_cache:add({ count, error_xml_not_parsed }),
     parse_dynvar(DynVarsSpecs, Binary,String,xpath_error,DynVars);
 
-parse_dynvar([{jsonpath,VarName,_Expr}|DynVarsSpecs],Binary,String,json_error,DynVars)->
+parse_dynvar([{jsonpath,VarName,_Expr,_SubstitutionFlag}|DynVarsSpecs],Binary,String,json_error,DynVars)->
     ?LOGF("Couldn't execute JSONPath: page not parsed (varname=~p)~n",
           [VarName],?NOTICE),
     ts_mon_cache:add({ count, error_json_not_parsed }),
@@ -415,8 +415,13 @@ parse_dynvar([{xpath,VarName, Expr}| DynVarsSpecs],Binary,String,Tree,DynVars)->
             end,
     parse_dynvar(DynVarsSpecs, Binary,String,Tree,ts_dynvars:set(VarName,Value,DynVars));
 
-parse_dynvar([{jsonpath,VarName, Expr}| DynVarsSpecs],Binary,String,JSON,DynVars)->
-    Values = case ts_utils:jsonpath(Expr,JSON) of
+parse_dynvar([{jsonpath,VarName, Expr, SubstitutionFlag}| DynVarsSpecs],Binary,String,JSON,DynVars)->
+    NewExpr = case SubstitutionFlag of
+        true -> ts_search:subst(Expr, DynVars);
+        false -> Expr
+    end,
+
+    Values = case ts_utils:jsonpath(NewExpr,JSON) of
                 undefined ->
                     ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?NOTICE),
                      << >>;
