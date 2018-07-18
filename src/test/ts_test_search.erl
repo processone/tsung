@@ -30,37 +30,37 @@ parse_dyn_var_jsonpath_test() ->
     myset_env(),
     Data="\r\n\r\n{\"titi\": [23,45]}",
     JSONPath = "titi[1]",
-    ?assertEqual([{'myvar',45}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
+    ?assertEqual([{'myvar',45}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath, false} ],list_to_binary(Data))).
 
 parse_dyn_var_jsonpath2_test() ->
     myset_env(),
     Data="\r\n\r\n{\"titi\": [23,45]}",
     JSONPath = "titi[3]",
-    ?assertEqual([{'myvar',<< >>}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
+    ?assertEqual([{'myvar',<< >>}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath, false} ],list_to_binary(Data))).
 
 parse_dyn_var_jsonpath3_test() ->
     myset_env(),
     Data="\r\n\r\n{\"titi\": [{\"val\": 123, \"name\": \"foo\"}, {\"val\": 42, \"name\": \"bar\"}]}",
     JSONPath = "titi[?name=bar].val",
-    ?assertEqual([{'myvar',42}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
+    ?assertEqual([{'myvar',42}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath, false} ],list_to_binary(Data))).
 
 parse_dyn_var_jsonpath4_test() ->
     myset_env(),
     Data="\r\n\r\n{\"titi\": [{\"val\": 123, \"name\": \"foo\"}, {\"val\": 42, \"name\": \"bar\"}]}",
     JSONPath = "titi[?name=void].val",
-    ?assertEqual([{'myvar', << >>}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
+    ?assertEqual([{'myvar', << >>}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath, false} ],list_to_binary(Data))).
 
 parse_dyn_var_jsonpath5_test() ->
     myset_env(),
     Data="\r\n\r\n{\"titi\": [{\"val\": 123, \"status\": \"foo\"}, {\"val\": 42, \"status\": \"OK\"}, {\"val\": 48, \"status\": \"OK\"}]}",
     JSONPath = "titi[?status=OK].val",
-    ?assertEqual([{'myvar',[42,48]}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
+    ?assertEqual([{'myvar',[42,48]}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath, false} ],list_to_binary(Data))).
 
 parse_dyn_var_jsonpath6_test() ->
     myset_env(),
     Data="\r\n\r\n{\"titi\": [{\"val\": 123, \"name\": \"foo\"}, {\"val\": 42, \"name\": \"bar\"}]}",
     JSONPath = "titi[*].val",
-    ?assertEqual([{'myvar',[123,42]}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
+    ?assertEqual([{'myvar',[123,42]}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath, false} ],list_to_binary(Data))).
 
 parse_dyn_var_jsonpath7_test() ->
     myset_env(),
@@ -79,27 +79,27 @@ parse_dyn_var_jsonpath7_test() ->
                 }
         }",
     JSONPath = "menu.popup.name",
-    ?assertEqual([{'myvar', << "glop" >>}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))),
+    ?assertEqual([{'myvar', << "glop" >>}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath, false} ],list_to_binary(Data))),
     JSONPathTab = "menu.popup.menuitem[0].value",
-    ?assertEqual([{'myvar', << "New" >>}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPathTab} ],list_to_binary(Data))).
+    ?assertEqual([{'myvar', << "New" >>}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPathTab, false} ],list_to_binary(Data))).
 
 parse_dyn_var_jsonpath_int_test() ->
     myset_env(),
     Data="\r\n\r\n{\"titi\": [{\"val\": 123, \"name\": \"foo\"}, {\"val\": 42, \"name\": \"bar\"}]}",
     JSONPath = "titi[?val=123].name",
-    ?assertEqual([{'myvar',<<"foo">>}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath} ],list_to_binary(Data))).
+    ?assertEqual([{'myvar',<<"foo">>}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath, false} ],list_to_binary(Data))).
 
 parse_dyn_var_jsonpath_xmpp_test() ->
     myset_env(),
     Data="{\n  \"status\": \"terminated\",\n  \"uid\": \"944370dc04adbee1792732e01097e618af97cc27\",\n  \"updated_at\": 1282660758,\n  \"nodes\": [\n    \"suno-12\",\n    \"suno-13\"\n  ],\n  \"created_at\": 1282660398,\n  \"environment\": \"lenny-x64-big\",\n  \"result\": {\n    \"suno-13\": {\n      \"last_cmd_stdout\": \"\",\n      \"last_cmd_stderr\": \"\",\n      \"cluster\": \"suno\",\n      \"ip\": \"192.168.1.113\",\n      \"last_cmd_exit_status\": 0,\n      \"current_step\": null,\n      \"state\": \"OK\"\n    },\n    \"suno-12\": {\n      \"last_cmd_stdout\": \"\",\n      \"last_cmd_stderr\": \"\",\n      \"cluster\": \"suno\",\n      \"ip\": \"192.168.1.112\",\n      \"last_cmd_exit_status\": 0,\n      \"current_step\": null,\n      \"state\": \"OK\"\n    }\n  },\n  \"site_uid\": \"sophia\",\n  \"notifications\": [\n    \"xmpp:joe@foo.bar/tsung\"\n  ],\n  \"user_uid\": \"joe\"\n}",
     JSONPath = "nodes",
-    ?assertMatch([{'nodes',[<<"suno-12">>,<<"suno-13">>]}], ts_search:parse_dynvar([{jsonpath,'nodes', JSONPath} ],list_to_binary(Data))).
+    ?assertMatch([{'nodes',[<<"suno-12">>,<<"suno-13">>]}], ts_search:parse_dynvar([{jsonpath,'nodes', JSONPath, false} ],list_to_binary(Data))).
 
 parse_dyn_var_jsonpath_struct_test() ->
     myset_env(),
     Data="{\"accessToken\":{\"id\":\"78548a96-cadd-48c0-b7d6-4ff3b81f10cc\",\"lists\":[\"testlist1\"],\"token\":\"rTgdC3f7uJ/Smg3s4b9va2KW5GdPkRHtwYNgWbvwhensgOSf2/wan95VPDiXKnAAGilsZlpw/Td4bs/OPeVeYg==\",\"scope\":[\"GET_ME\",\"WRITE_ACCESS\"]},\"accessTokenSignature\":\"gWAL+zvDcQjqLmNdSwcG/TOWyta5g==\"}",
     JSONPath = "accessToken",
-    ?assertMatch([{'nodes',  << "{\"id\":\"78548a96-cadd-48c0-b7d6-4ff3b81f10cc\",\"lists\":[\"testlist1\"],\"token\":\"rTgdC3f7uJ/Smg3s4b9va2KW5GdPkRHtwYNgWbvwhensgOSf2/wan95VPDiXKnAAGilsZlpw/Td4bs/OPeVeYg==\",\"scope\":[\"GET_ME\",\"WRITE_ACCESS\"]}" >> }], ts_search:parse_dynvar([{jsonpath,'nodes', JSONPath} ],list_to_binary(Data))).
+    ?assertMatch([{'nodes',  << "{\"id\":\"78548a96-cadd-48c0-b7d6-4ff3b81f10cc\",\"lists\":[\"testlist1\"],\"token\":\"rTgdC3f7uJ/Smg3s4b9va2KW5GdPkRHtwYNgWbvwhensgOSf2/wan95VPDiXKnAAGilsZlpw/Td4bs/OPeVeYg==\",\"scope\":[\"GET_ME\",\"WRITE_ACCESS\"]}" >> }], ts_search:parse_dynvar([{jsonpath,'nodes', JSONPath, false} ],list_to_binary(Data))).
 
 
 parse_dyn_var_xpath_test() ->
