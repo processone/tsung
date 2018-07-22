@@ -360,7 +360,7 @@ parse_dynvar(D=[{xpath,_VarName, _Expr}| _DynVarsSpecs],
     catch
         Type:Exp ->
             ?LOGF("Page couldn't be parsed:(~p:~p) ~n Page:~p~n",
-                    [Type,Exp,Binary],?ERR),
+                    [Type,Exp,Binary],?NOTICE),
             ts_mon_cache:add({ count, error_xml_unparsable }),
             parse_dynvar(D,Binary,String,xpath_error,DynVars)
     end;
