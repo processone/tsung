@@ -864,7 +864,7 @@ handle_next_request(Request, State) ->
                         end;
                 {error, closed} when State#state_rcv.retries < ProtoOpts#proto_opts.max_retries ->
                     ?LOG("connection close while sending message!~n", ?NOTICE),
-                    ts_mon_cache:add({ count, error_connection_closed }),
+                    ts_mon_cache:add({ count, error_send_connection_closed }),
                     Retries = State#state_rcv.retries +1,
                     handle_close_while_sending(State#state_rcv{socket=NewSocket,
                                                                protocol=Protocol,
