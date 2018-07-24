@@ -391,6 +391,7 @@ parse_dynvar(D=[{pgsql_expr,_VarName, _Expr}| _DynVarsSpecs],
 parse_dynvar([{xpath,VarName,_Expr}|DynVarsSpecs],Binary,String,xpath_error,DynVars)->
     ?LOGF("Couldn't execute XPath: page not parsed (varname=~p)~n",
           [VarName],?ERR),
+    ts_mon_cache:add({ count, error_xml_not_parsed }),
     parse_dynvar(DynVarsSpecs, Binary,String,xpath_error,DynVars);
 
 parse_dynvar([{jsonpath,VarName,_Expr}|DynVarsSpecs],Binary,String,json_error,DynVars)->
