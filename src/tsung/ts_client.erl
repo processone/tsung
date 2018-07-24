@@ -1296,17 +1296,17 @@ update_stats(S=#state_rcv{size_mon_thresh=T,page_timestamp=PageTime,
                      { sum, size_rcv, Datasize}]
             end,
     Request = S#state_rcv.request,
-    NewDynVars = ts_search:parse_dynvar(Request#ts_request.dynvar_specs,
+    DynVars = ts_search:parse_dynvar(Request#ts_request.dynvar_specs,
                                      S#state_rcv.buffer,
                                      S#state_rcv.dynvars),
     case Request#ts_request.endpage of
         true -> % end of a page, compute page reponse time
             PageElapsed = ts_utils:elapsed(PageTime, Now),
             ts_mon_cache:add(lists:append([Stats,[{sample, page, PageElapsed}]])),
-            {0, NewDynVars, Elapsed};
+            {0, DynVars, Elapsed};
         _ ->
             ts_mon_cache:add(Stats),
-            {PageTime, NewDynVars, Elapsed}
+            {PageTime, DynVars, Elapsed}
     end.
 
 filter(false,undefined) ->
