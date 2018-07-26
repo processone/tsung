@@ -878,7 +878,6 @@ json_get_bin([<<"?",Expr/binary>> | Keys],L) when  is_list(L) ->
                                     binary_to_list(Other) =:= Val
                             end
                   end,
-            ?LOG("ok~n",?ERR),
             case lists:filter(Fun,L) of
                 [] ->
                     undefined;

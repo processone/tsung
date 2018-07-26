@@ -323,7 +323,7 @@ only for the HTTP plugin. This feature uses the mochiweb library and
 Tsung implements a (very) limited subset of JSONPath as defined here
 http://goessner.net/articles/JsonPath/
 
-To utilize jsonpath expression, use a **jsonpath** attribute when
+To utilize JSONPath expression, use a **jsonpath** attribute when
 defining the ``<dyn_variable>>``, instead of ``re``, like:
 
 .. code-block:: xml
@@ -336,6 +336,12 @@ You can also use expressions ``Key=Val``, e.g.:
 .. code-block:: xml
 
    <dyn_variable name="myvar" jsonpath="field.array[?name=bar].value"/>
+
+
+Starting with version **1.8.0** you can use variables to be substituted
+in your JSONPath expression. This requires the surrounding ``<request>`` to have
+set ``subst="true"``. Otherwise the JSONPath expression will be taken
+literally.
 
 
 PostgreSQL
