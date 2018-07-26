@@ -657,12 +657,12 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
                      {xpath,Name,CompiledXPathExp};
                  jsonpath ->
                      ?LOGF("Add new jsonpath: ~s ~n", [Expr],?INFO),
-                     EnableSubstition = case {SubstitutionFlag, re:run(Expr, "%%.+%%")} of
+                     EnableSubstitution = case {SubstitutionFlag, re:run(Expr, "%%.+%%")} of
                                             { true, { match, _ } } -> true;
                                             _ -> false
                                         end,
 
-                     {jsonpath,Name,Expr,EnableSubstition};
+                     {jsonpath,Name,Expr,EnableSubstitution};
                  _Other ->
                      ?LOGF("Add ~s ~s ~p ~n", [Type,Name,Expr],?INFO),
                      {Type,Name,Expr}
