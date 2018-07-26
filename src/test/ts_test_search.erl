@@ -101,6 +101,27 @@ parse_dyn_var_jsonpath_struct_test() ->
     JSONPath = "accessToken",
     ?assertMatch([{'nodes',  << "{\"id\":\"78548a96-cadd-48c0-b7d6-4ff3b81f10cc\",\"lists\":[\"testlist1\"],\"token\":\"rTgdC3f7uJ/Smg3s4b9va2KW5GdPkRHtwYNgWbvwhensgOSf2/wan95VPDiXKnAAGilsZlpw/Td4bs/OPeVeYg==\",\"scope\":[\"GET_ME\",\"WRITE_ACCESS\"]}" >> }], ts_search:parse_dynvar([{jsonpath,'nodes', JSONPath, false} ],list_to_binary(Data))).
 
+parse_dyn_var_jsonpath_dynamic_test() ->
+    myset_env(),
+    Data="\r\n\r\n{\"titi\": [{\"val\": 123, \"name\": \"foo\"}, {\"val\": 42, \"name\": \"bar\"}]}",
+    JSONPath = "titi[?name=%%_name%%].val",
+    DynVars = ts_dynvars:new(name, "bar"),
+    ?assertEqual([{'myvar',42}, {'name', "bar"}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath, true} ],list_to_binary(Data), DynVars)).
+
+parse_dyn_var_jsonpath_dynamic_disabled_test() ->
+    myset_env(),
+    Data="\r\n\r\n{\"titi\": [{\"val\": 123, \"name\": \"foo\"}, {\"val\": 42, \"name\": \"bar\"}]}",
+    JSONPath = "titi[?name=%%_name%%].val",
+    DynVars = ts_dynvars:new(name, "bar"),
+    ?assertEqual([{'myvar', <<>>}, {'name', "bar"}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath, false} ],list_to_binary(Data), DynVars)).
+
+parse_dyn_var_jsonpath_dynamic_enabled_nothing_to_subst_test() ->
+    myset_env(),
+    Data="\r\n\r\n{\"titi\": [{\"val\": 123, \"name\": \"foo\"}, {\"val\": 42, \"name\": \"bar\"}]}",
+    JSONPath = "titi[?name=foo].val",
+    DynVars = ts_dynvars:new(),
+    ?assertEqual([{'myvar',123}], ts_search:parse_dynvar([{jsonpath,'myvar', JSONPath, false} ],list_to_binary(Data), DynVars)).
+
 
 parse_dyn_var_xpath_test() ->
     myset_env(),
