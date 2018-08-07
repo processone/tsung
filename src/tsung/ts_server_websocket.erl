@@ -163,6 +163,7 @@ send(Socket, Data, _Opts)  ->
             {error, timeout}
     end.
 
+close(none)   -> ok;
 close(Socket) ->
     Socket ! close.
 
