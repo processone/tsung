@@ -147,7 +147,7 @@ get_message2(Req=#http_request{method=put}) ->
     ts_http_common:http_body(?PUT, Req);
 
 get_message2(Req=#http_request{method=patch}) ->
-    ts_http_common:http_body(?PATCH, Req).
+    ts_http_common:http_body(?PATCH, Req);
 
 get_message2(Req=#http_request{method=purge}) ->
     ts_http_common:http_body(?PURGE, Req).
