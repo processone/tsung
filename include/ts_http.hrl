@@ -104,6 +104,7 @@
 -define(DELETE, "DELETE").
 -define(OPTIONS, "OPTIONS").
 -define(PATCH, "PATCH").
+-define(PURGE, "PURGE").
 -define(BODY_PARAM, "application/x-www-form-urlencoded").
 
 -define(USER_AGENT, "Tsung").

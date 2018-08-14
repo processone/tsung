@@ -149,6 +149,9 @@ get_message2(Req=#http_request{method=put}) ->
 get_message2(Req=#http_request{method=patch}) ->
     ts_http_common:http_body(?PATCH, Req).
 
+get_message2(Req=#http_request{method=purge}) ->
+    ts_http_common:http_body(?PURGE, Req).
+
 %%----------------------------------------------------------------------
 %% Function: parse/2
 %% Purpose: Parse the given data and return a new state
