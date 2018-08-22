@@ -113,9 +113,9 @@ decode_publish_test() ->
 
 encode_subscribe_test() ->
     Arg = [#sub{topic = "test_topic", qos = 0}],
-    Message = #mqtt{id = 1, type = ?SUBSCRIBE, arg = Arg},
+    Message = #mqtt{id = 1, type = ?SUBSCRIBE, arg = Arg, qos = 1},
     EncodedData = mqtt_frame:encode(Message),
-    ?assertEqual(<<128,15,0,1,0,10,116,101,115,116,95,116,111,112,105,99,0>>, EncodedData).
+    ?assertEqual(<<130,15,0,1,0,10,116,101,115,116,95,116,111,112,105,99,0>>, EncodedData).
 
 decode_subscribe_test() ->
     Data = <<128,15,0,1,0,10,116,101,115,116,95,116,111,112,105,99,0>>,
