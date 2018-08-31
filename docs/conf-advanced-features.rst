@@ -632,7 +632,7 @@ requests. List of attributes:
 
  <for from="1" to="10" incr="1" var="counter">
    ...
-   <request> <http url="/page?id=%%_counter%%"></http> </request>
+   <request subst="true"> <http url="/page?id=%%_counter%%"></http> </request>
    ...
  </for>
 
