@@ -59,6 +59,7 @@ session_defaults() ->
 decode_buffer(Buffer,#websocket_session{}) ->
     case websocket:decode(Buffer) of
         more -> <<>>;
+        pong -> <<>>;
         {_Opcode, Payload, _Rest} -> Payload
     end.
 
@@ -98,7 +99,11 @@ get_message(#websocket_request{type = message, data = Data, frame = Frame},
 get_message(#websocket_request{type = close},
             #state_rcv{session = WebsocketSession})
   when WebsocketSession#websocket_session.status == connected ->
-    {websocket:encode_close(<<"close">>), WebsocketSession}.
+    {websocket:encode_close(<<"close">>), WebsocketSession};
+get_message(#websocket_request{type = ping},
+            #state_rcv{session = WebsocketSession})
+  when WebsocketSession#websocket_session.status == connected ->
+    {websocket:encode_ping(<<"">>), WebsocketSession}.
 
 %%----------------------------------------------------------------------
 %% Function: parse/2
@@ -141,6 +146,9 @@ parse(Data, State=#state_rcv{acc = [], session = WebsocketSession})
         {?OP_CLOSE, _Reason, _} ->
             ?DebugF("receive close from server: ~p~n", [_Reason]),
             {State#state_rcv{ack_done = true}, [], true};
+        pong ->
+            ?DebugF("received pong from server: ~n", []),
+            {State#state_rcv{ack_done = false, acc = []}, [], false};
         {_Opcode, _Payload, Left} ->
             ?DebugF("receive from server: ~p ~p~n", [_Opcode, _Payload]),
             {State#state_rcv{ack_done = true, acc = Left}, [], false};
