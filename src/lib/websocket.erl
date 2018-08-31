@@ -28,7 +28,7 @@
 -author('jzhihui521@gmail.com').
 
 -export([get_handshake/6, check_handshake/2, encode_binary/1, encode_text/1,
-         encode_close/1, encode/2, decode/1]).
+         encode_close/1, encode_ping/1, encode/2, decode/1]).
 
 -include("ts_profile.hrl").
 -include("ts_config.hrl").
@@ -113,6 +113,10 @@ encode_close(Reason) ->
     Data = <<StatusCode/binary, Reason/binary>>,
     encode(Data, ?OP_CLOSE).
 
+
+encode_ping(Data) ->
+    encode(Data, ?OP_PING).
+
 encode(Data, Opcode) ->
     Key = crypto:strong_rand_bytes(4),
     PayloadLen = erlang:size(Data),
@@ -161,6 +165,11 @@ mask(Payload, MaskingKey) ->
 % Try to parse out a frame payload from binary data. Gets passed an
 % opcode and returns a tuple of opcode, payload and remaining data. If
 % not enough data is available, return a more atom.
+parse_payload(?OP_PONG, << 0:1, % MASK
+                         Length:7,
+                         Payload:Length/binary,
+                         Rest/bitstring >>)
+  when Length < 126 -> parse_frame(Rest);
 parse_payload(Opcode, << 0:1, % MASK
                          Length:7,
                          Payload:Length/binary,
