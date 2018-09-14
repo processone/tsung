@@ -322,7 +322,11 @@ get_os_data(packets, {unix, _}, Data) ->
 %% Purpose: Start an Erlang node on given host
 %%--------------------------------------------------------------------
 start_beam(Host) ->
-    Args = ts_utils:erl_system_args(),
+    {ok, PAList}    = init:get_argument(pa),
+    PA = lists:flatmap(fun(A) -> [" -pa "] ++A end,PAList),
+    ?LOGF("PA list ~p ~n", [PA], ?DEB),
+    Sys_Args = ts_utils:erl_system_args(),
     ?LOGF("Starting os_mon beam on host ~p ~n", [Host], ?NOTICE),
+    Args = lists:flatten([Sys_Args, PA]),
     ?LOGF("~p Args: ~p~n", [Host, Args], ?DEB),
     slave:start(list_to_atom(Host), ?NODE, Args).
