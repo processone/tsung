@@ -371,6 +371,18 @@ check_resp_size(Http=#http{content_length=CLength, close=Close},
     log_error(Dump, error_http_bad_content_length),
     {State#state_rcv{session= reset_session(Http), ack_done = true,
                      datasize = DataSize }, [], Close};
+
+%% header is complete (partial=false), HTTP Method is HEAD, so we do not
+%% expect any more data
+check_resp_size(Http=#http{partial=false, close=Close},
+    _BodySize,
+    State=#state_rcv{request=#ts_request{param=#http_request{method=head}}},
+    DataSize, _Dump) ->
+
+    {State#state_rcv{session=reset_session(Http), ack_done=true,
+                     datasize=DataSize}, [], Close};
+
+
 check_resp_size(Http=#http{}, BodySize,  State, DataSize,_Dump) ->
     %% need to read more data
     {State#state_rcv{session  = Http#http{body_size = BodySize},
