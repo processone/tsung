@@ -496,8 +496,8 @@ handle_next_action(State=#state_rcv{dynvars = DynVars}) ->
             RateConf=#token_bucket{rate=Rate,burst=Burst,last_packet_date=?NOW},
             Thresh=lists:min([Burst,State#state_rcv.size_mon_thresh]),
             handle_next_action(State#state_rcv{size_mon=Thresh,size_mon_thresh=Thresh,rate_limit=RateConf,count=Count});
-        {set_option, undefined, certificate, {Cacert, KeyFile, KeyPass, CertFile}} ->
-            ?LOGF("Set client certificate: ~p ~p ~p ~p~n",[Cacert, KeyFile, KeyPass, CertFile],?DEB),
+        {set_option, undefined, certificate, {Cacert, KeyFile, TLSKey, KeyPass, CertFile, TLSCert}} ->
+            ?LOGF("Set client certificate: ~p ~p ~p ~p ~p ~p ~n",[Cacert, KeyFile, TLSKey, KeyPass, CertFile, TLSCert],?DEB),
             Opts = ts_utils:filtermap(fun({N,V}) ->
                                            case V of
                                                undefined ->
@@ -509,7 +509,9 @@ handle_next_action(State=#state_rcv{dynvars = DynVars}) ->
                                            end
                                    end ,
                                    [{certfile, CertFile},
+                                    {cert,TLSCert},
                                     {keyfile,KeyFile},
+                                    {key,TLSKey},
                                     {password,KeyPass},
                                     {cacertfile,Cacert}]),
             ?LOGF("SSL options for certificate: ~p~n",[Opts],?DEB),
@@ -1050,6 +1052,9 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort, Try}) when 
                     end,
                     ?LOGF("Connect failed with client port ~p, retry with ~p~n",[CPort, NewCPort],?INFO),
                     reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,NewCPort, undefined});
+                {{options, {Option, _}}, _, _} ->
+                    CountName="error_connect_option_"++atom_to_list(Option),
+                    ts_mon_cache:add({ count, list_to_atom(CountName) });
                 _ ->
                     CountName="error_connect_"++atom_to_list(Reason),
                     ts_mon_cache:add({ count, list_to_atom(CountName) })
