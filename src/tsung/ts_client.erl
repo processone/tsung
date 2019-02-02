@@ -507,16 +507,33 @@ handle_next_action(State=#state_rcv{dynvars = DynVars}) ->
                                                Val ->
                                                    {true, {N,ts_search:subst(Val, DynVars)}}
                                            end
-                                   end ,
+                                   end,
                                    [{certfile, CertFile},
                                     {cert,TLSCert},
                                     {keyfile,KeyFile},
                                     {key,TLSKey},
                                     {password,KeyPass},
                                     {cacertfile,Cacert}]),
-            ?LOGF("SSL options for certificate: ~p~n",[Opts],?DEB),
+
+            Opts2 = ts_utils:filtermap(
+                fun({N,V}) ->
+                    case {N,V} of
+                        {_, undefined} -> false;
+                        {key, _} ->
+                            [{KeyType, KeyData, _} | _] = public_key:pem_decode(list_to_binary(V)),
+                            {true, {key, {KeyType, KeyData}}};
+                        {cert, _} ->
+                            [{'Certificate', CertData, _} | _] = public_key:pem_decode(list_to_binary(V)),
+                            {true, {cert, CertData}};
+                        {_, V} -> {true, {N,V}}
+                    end
+                end,
+                Opts
+            ),
+
+            ?LOGF("SSL options for certificate: ~p~n",[Opts2],?DEB),
             OldOpts = State#state_rcv.proto_opts,
-            NewOpts = OldOpts#proto_opts{certificate = Opts},
+            NewOpts = OldOpts#proto_opts{certificate = Opts2},
             %% close connection if necessary
             (State#state_rcv.protocol):close(State#state_rcv.socket),
             set_connected_status(false),
