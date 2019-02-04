@@ -1072,6 +1072,8 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort, Try}) when 
                 {{options, {Option, _}}, _, _} ->
                     CountName="error_connect_option_"++atom_to_list(Option),
                     ts_mon_cache:add({ count, list_to_atom(CountName) });
+                {tls_alert, "bad certificate"} ->
+                    ts_mon_cache:add({ count, list_to_atom("error_connect_tls_bad_certificate") });
                 _ ->
                     CountName="error_connect_"++atom_to_list(Reason),
                     ts_mon_cache:add({ count, list_to_atom(CountName) })
