@@ -74,6 +74,8 @@
          udp_snd_size  = 32768,
          certificate = [],          % for ssl
          reuse_sessions = true,     % for ssl
+         disable_sni = false,       % for ssl, if set to true, {server_name_indication, disable} will be set
+                                    % for ssl:connect to disable TLS SNI extension and hostname verification
          is_first_connect = true   % whether it's the first connection
         }).
 
