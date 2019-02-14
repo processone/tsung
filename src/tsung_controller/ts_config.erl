@@ -831,6 +831,19 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                         true -> % default value, do nothing
                             lists:foldl( fun parse/2, Conf, Element#xmlElement.content)
                         end;
+                "ssl_disable_sni" ->
+                    case getAttr(atom, Attrs, value, false) of
+                        true ->
+                            OldProto = Conf#config.proto_opts,
+                            NewProto = OldProto#proto_opts{disable_sni = true},
+                            lists:foldl(
+                                fun parse/2,
+                                Conf#config{proto_opts=NewProto},
+                                Element#xmlElement.content
+                            );
+                        false ->
+                            lists:foldl(fun parse/2, Conf, Element#xmlElement.content)
+                    end;
                 "seed" ->
                     Seed =  getAttr(integer,Attrs, value, now),
                     lists:foldl( fun parse/2, Conf#config{seed=Seed},

@@ -9,6 +9,7 @@ Setting options
 .. index:: ssl_ciphers
 .. index:: ssl_versions
 .. index:: ssl_reuse_sessions
+.. index:: ssl_disable_sni
 .. index:: tcp_snd_buffer
 .. index:: tcp_rcv_buffer
 .. index:: udp_snd_buffer
@@ -59,6 +60,15 @@ you manage hundreds of clients, you may want to raise this value with
 .. code-block:: xml
 
  <option name="max_ssh_startup_per_core" value="100"/>
+
+.. versionadded:: 1.8.0
+
+You can disable the Server Name Indication feature of TLS (it is enabled by default).
+
+.. code-block:: xml
+
+ <option name="ssl_disable_sni" value="true"/>
+
 
 
 .. index:: idle_timeout

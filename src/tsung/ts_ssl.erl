@@ -8,6 +8,9 @@
 -include("ts_config.hrl").
 
 
+protocol_options(Proto=#proto_opts{disable_sni=true}) ->
+    [{server_name_indication, disable}] ++ protocol_options(Proto#proto_opts{disable_sni=false});
+
 protocol_options(Proto=#proto_opts{ip_transparent = true }) ->
     Opts= [{raw,0,19,<<1:32/native>>} ] ++ protocol_options(Proto#proto_opts{ip_transparent=false}),
     ?DebugF("SSL Real opts: ~p ~n", [Opts]),
