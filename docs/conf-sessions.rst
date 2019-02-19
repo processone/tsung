@@ -1011,7 +1011,7 @@ Example with MQTT as a session type:
 
         <for from="1" to="10" incr="1" var="loops">
             <request subst="true">
-                <mqtt type="publish" topic="test_topic" qos="1" retained="true">test_message</mqtt>
+                <mqtt type="publish" topic="test_topic" qos="1" retained="true" stamped="false">test_message</mqtt>
             </request>
         </for>
 
