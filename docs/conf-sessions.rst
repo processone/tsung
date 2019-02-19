@@ -1053,7 +1053,7 @@ but with request rate high enough this fraction should be sufficient.
 ``stamped`` to be ignored. There is a minimal length of the stamp,
 roughly 30 bytes. When ``size`` is greater than stamp length, random
 padding will be added to the stamp. If the stamp length is higher than
-``size``, then only stamp will be used as messagecontent, effectively
+``size``, then only stamp will be used as message content, effectively
 exceeding specified length.
 
 LDAP
