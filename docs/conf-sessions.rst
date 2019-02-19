@@ -1044,17 +1044,11 @@ will include current timestamp and ID of the sender node. If the recipient
 will recognize the node ID, it will compare the timestamp inside message
 with the current one. The difference will be reported as ``mqtt_forward_latency``
 metric (in milliseconds). The aim of node ID comparison is to avoid slight
-inconsistencies of timestamps on different Tsung nodes.
+inconsistencies of timestamps on different Tsung nodes. Note that the stamp
+will be add ahead of the publish payload and will increase publish payload size.
 
 Only a fraction of requests will hit the same node they originated from,
 but with request rate high enough this fraction should be sufficient.
-
-``stamped`` is allowed only with ``size`` attribute. ``data`` will cause
-``stamped`` to be ignored. There is a minimal length of the stamp,
-roughly 30 bytes. When ``size`` is greater than stamp length, random
-padding will be added to the stamp. If the stamp length is higher than
-``size``, then only stamp will be used as message content, effectively
-exceeding specified length.
 
 LDAP
 ^^^^
