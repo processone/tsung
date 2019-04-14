@@ -110,16 +110,19 @@ get_message(#mqtt_request{type = disconnect},
     {mqtt_frame:encode(Message),
      MqttSession#mqtt_session{wait = none, status = disconnect}};
 get_message(#mqtt_request{type = publish, topic = Topic, qos = Qos,
-                          retained = Retained, payload = Payload},
+                          retained = Retained, payload = Payload, stamped = Stamped},
             #state_rcv{session = MqttSession = #mqtt_session{curr_id = Id}}) ->
     NewMqttSession = case Qos of
         0 -> MqttSession;
         _ -> MqttSession#mqtt_session{curr_id = Id + 1}
     end,
-
+    NewPayload = case Stamped of
+        true -> generate_stamp() ++ Payload;
+        _ -> Payload
+    end,
     MsgId = NewMqttSession#mqtt_session.curr_id,
     Message = #mqtt{id = MsgId, type = ?PUBLISH, qos = Qos, retain = Retained,
-                    arg = {Topic, Payload}},
+                    arg = {Topic, NewPayload}},
     Wait = case Qos of
         1 -> ?PUBACK;
         _ -> none
@@ -223,12 +226,13 @@ parse_bidi(<<>>, State=#state_rcv{acc = [], session = MqttSession}) ->
 parse_bidi(Data, State=#state_rcv{acc = [], session = MqttSession}) ->
     AckBuf = MqttSession#mqtt_session.ack_buf,
     case mqtt_frame:decode(Data) of
-        {_MqttMsg = #mqtt{type = ?PUBLISH, qos = Qos, id = MessageId}, Left} ->
+        {_MqttMsg = #mqtt{type = ?PUBLISH, qos = Qos, id = MessageId, arg = {_, Payload}}, Left} ->
             ?DebugF("receive bidi mqtt_msg: ~p ~p~n",
                     [mqtt_frame:command_for_type(?PUBLISH), _MqttMsg]),
 
             ts_mon_cache:add({count, mqtt_server_published}),
             ts_mon_cache:add({count, mqtt_pubacked}),
+            parse_stamp(Payload),
             Ack = case Qos of
                 1 ->
                     Message = #mqtt{type = ?PUBACK, arg = MessageId},
@@ -325,4 +329,30 @@ ping_loop(Proto, Socket, KeepAlive) ->
             erlang:send_after(KeepAlive * 1000, self(), ping),
             ping_loop(Proto, Socket, KeepAlive);
         stop -> ok
+    end.
+
+generate_stamp() ->
+    {Mega, Secs, Micro} = ?TIMESTAMP,
+    TS = integer_to_list(Mega) ++ ";"
+    ++ integer_to_list(Secs) ++ ";"
+    ++ integer_to_list(Micro),
+    "@@@" ++ integer_to_list(erlang:phash2(node())) ++ "," ++ TS ++ "@@@".
+
+parse_stamp(Payload) ->
+    case re:run(Payload, "@@@([^@]+)@@@", [{capture, all_but_first, list}]) of
+        {match, [NodeStamp]} ->
+            [NodeS, StampS] = string:tokens(NodeStamp, ","),
+            case integer_to_list(erlang:phash2(node())) of
+                NodeS ->
+                    [MegaS, SecsS, MicroS] = string:tokens(StampS, ";"),
+                    Mega = list_to_integer(MegaS),
+                    Secs = list_to_integer(SecsS),
+                    Micro = list_to_integer(MicroS),
+                    Latency = timer:now_diff(?TIMESTAMP, {Mega, Secs, Micro}),
+                    ts_mon_cache:add({ sample, mqtt_forward_latency, Latency / 1000});
+                _ ->
+                    ignore
+            end;
+        nomatch ->
+            nomatch
     end.

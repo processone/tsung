@@ -414,6 +414,7 @@ repeat | if | change_type | foreach | set_option | interaction | abort )*>
     timeout CDATA "1"
     username CDATA ""
     password CDATA ""
+    stamped (true | false) "false"
     client_id CDATA "">
 
 <!ELEMENT modification (attr*) >

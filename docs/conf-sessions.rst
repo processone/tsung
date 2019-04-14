@@ -1011,7 +1011,7 @@ Example with MQTT as a session type:
 
         <for from="1" to="10" incr="1" var="loops">
             <request subst="true">
-                <mqtt type="publish" topic="test_topic" qos="1" retained="true">test_message</mqtt>
+                <mqtt type="publish" topic="test_topic" qos="1" retained="true" stamped="false">test_message</mqtt>
             </request>
         </for>
 
@@ -1034,6 +1034,21 @@ Example with MQTT as a session type:
     </session>
 
 Note that if a ``client_id`` is omitted upon connecting Tsung will create a random one, prefixed with ``tsung-``.
+
+Message stamping
+""""""""""""""""
+
+It is possible to stamp measure the broker's forwarding latency by setting
+``stamped`` attribute inside ``<publish>`` element to ``true``. The stamp
+will include current timestamp and ID of the sender node. If the recipient
+will recognize the node ID, it will compare the timestamp inside message
+with the current one. The difference will be reported as ``mqtt_forward_latency``
+metric (in milliseconds). The aim of node ID comparison is to avoid slight
+inconsistencies of timestamps on different Tsung nodes. Note that the stamp
+will be add ahead of the publish payload and will increase publish payload size.
+
+Only a fraction of requests will hit the same node they originated from,
+but with request rate high enough this fraction should be sufficient.
 
 LDAP
 ^^^^

@@ -72,6 +72,8 @@ parse_config(Element = #xmlElement{name = mqtt},
                             qos, 0),
     Retained = ts_config:getAttr(atom, Element#xmlElement.attributes,
                                  retained, false),
+    Stamped = ts_config:getAttr(atom, Element#xmlElement.attributes,
+                                 stamped, false),
     RetainValue = case Retained of
         true -> 1;
         false -> 0
@@ -84,8 +86,9 @@ parse_config(Element = #xmlElement{name = mqtt},
                             keepalive = KeepAlive, will_topic = WillTopic,
                             will_qos = WillQos, will_msg = WillMsg,
                             will_retain = WillRetain, topic = Topic, qos = Qos,
-                            retained = RetainValue, payload = Payload, username = UserName,
-                            password = Password, client_id = ClientId},
+                            retained = RetainValue, payload = Payload, username = UserName, 
+                            password = Password, stamped = Stamped, client_id = ClientId},
+
     Ack = case {Type, Qos} of
         {publish, 0} -> no_ack;
         {disconnect, _} -> no_ack;

@@ -41,7 +41,9 @@
           payload,
           username,
           password,
+          stamped = false,
           client_id
+
          }).
 
 -record(mqtt_dyndata, {
