@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- Mode: python -*-
 # -*- coding: utf-8 -*-
 
@@ -204,7 +204,7 @@ def main(conffile, logs, legends, outdir, verbose):
             stats = [x.strip().rsplit('.', 1)
                      for x in config.get(s, 'stats').split(' ')]
         except:
-            print 'error: unable to read plot "%s" stats' % s
+            print('error: unable to read plot "%s" stats' % s)
             continue
 
         if config.has_option(s, 'styles'):
@@ -235,8 +235,8 @@ def main(conffile, logs, legends, outdir, verbose):
             try:
                 p.__dict__['yfactor'] = map(float,config.get(s, 'yfactor').decode(encoding).split(','))
             except ValueError:
-                print 'warning: %s yfactor not a number: %s' \
-                    % (p.name, config.get(s, yfactor))
+                print('warning: %s yfactor not a number: %s' \
+                    % (p.name, config.get(s, yfactor)))
         # Text parameters - to decode into specified encoding
         for attr in ['title', 'xlabel', 'ylabel', 'plottype', 'yscale']:
             if config.has_option(s, attr):
@@ -249,13 +249,13 @@ def main(conffile, logs, legends, outdir, verbose):
                 try:
                     p.__dict__[attr] = config.getfloat(s, attr)
                 except ValueError:
-                    print 'warning: %s %s not a number: %s' \
-                          % (p.name, attr, config.get(s, attr))
+                    print('warning: %s %s not a number: %s' \
+                          % (p.name, attr, config.get(s, attr)))
 
         outfile = p.plot(stats, dataset)
 
         if verbose:
-            print 'Generated plot %s' % outfile
+            print('Generated plot %s' % outfile)
 
 if __name__ == "__main__":
     from optparse import OptionParser
@@ -280,10 +280,10 @@ if __name__ == "__main__":
         config = options.config
 
     if options.verbose:
-        print 'Using %s configuration file' % config
+        print('Using %s configuration file' % config)
 
     if not os.access(config, os.R_OK):
-        print "can't read configuration file: %s" % config
+        print("can't read configuration file: %s" % config)
         sys.exit(1)
 
     # FIXME: error control
@@ -295,7 +295,7 @@ if __name__ == "__main__":
 
     # args are legend then file, any times wanted by user
     if len(args) % 2 != 0:
-        print "error: please provide legend and tsung log filename"
+        print("error: please provide legend and tsung log filename")
         sys.exit(3)
 
     count   = 0
@@ -311,21 +311,21 @@ if __name__ == "__main__":
         count += 1
 
     if options.verbose:
-        print 'Using %s stats configuration file' % SYS_STATS_CONF
+        print('Using %s stats configuration file' % SYS_STATS_CONF)
 
     logs = []
     for logfile in files:
         if not os.access(logfile, os.R_OK):
-            print "error: unable to read file %s" % logfile
+            print("error: unable to read file %s" % logfile)
 
         else:
             if options.verbose:
-                print 'Parsing Tsung log file', logfile
+                print('Parsing Tsung log file', logfile)
             logs.append((logfile, TsungLog(SYS_STATS_CONF, logfile)))
 
     if len(logs) != len(args) / 2:
-        print 'error while parsing files (%d != %d)' % (len(logs),
-                                                        len(args)/2)
+        print('error while parsing files (%d != %d)' % (len(logs),
+                                                        len(args)/2))
         sys.exit(2)
 
     main(config, logs, legends, options.outdir, options.verbose)

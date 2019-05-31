@@ -204,7 +204,7 @@ class TsungLog:
                                 break
 
                     if name not in self.unknown and not is_re:
-                        print 'WARNING: tsung %s data is not configured' % name
+                        print('WARNING: tsung %s data is not configured' % name)
                         self.unknown.append(name)
 
     def stat(self, name, stat):
