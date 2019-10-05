@@ -135,9 +135,10 @@ parse_request(_Element, Type = 'connection.start_ok', Tab) ->
     Request = #amqp_request{type = Type, username = UserName,
                             password = Password},
     {parse, Request};
-parse_request(_Element, Type = 'connection.tune_ok', Tab) ->
+parse_request(Element, Type = 'connection.tune_ok', Tab) ->
     HeartBeat = ts_config:get_default(Tab, amqp_heartbeat),
-    Request = #amqp_request{type = Type, heartbeat = HeartBeat},
+    ChannelMax = ts_config:getAttr(float_or_integer, Element#xmlElement.attributes, channel_max, 0),
+    Request = #amqp_request{type = Type, heartbeat = HeartBeat, channel_max = ChannelMax},
     {no_ack, Request};
 parse_request(Element, Type = 'channel.open', _Tab) ->
     Channel = ts_config:getAttr(string, Element#xmlElement.attributes,

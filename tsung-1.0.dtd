@@ -397,7 +397,8 @@ repeat | if | change_type | foreach | set_option | interaction | abort )*>
     persistent CDATA "false"
     queue CDATA ""
     timeout CDATA "1"
-    ack CDATA "false" >
+    ack CDATA "false"
+    channel_max CDATA "0" >
 
 <!ELEMENT mqtt (#PCDATA) >
 <!ATTLIST mqtt
