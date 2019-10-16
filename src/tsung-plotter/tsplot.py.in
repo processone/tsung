@@ -41,7 +41,7 @@ SYS_STATS_CONF = os.path.join(SHAREDIR, 'tsung_plotter', 'stats.conf')
 sys.path.append(LIBDIR)
 
 from tsung_plotter.tsung import TsungLog
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 
 # Prevents pylab from requiring a X Server to run
 import matplotlib

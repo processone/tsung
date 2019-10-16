@@ -38,7 +38,7 @@ This package has its own configuration file where to associate tsung
 stats names with tsung stat type.
 """
 
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 
 # data are produced every 10 seconds, by default
 # we read real used interval in log file (deduced from timestamps)
