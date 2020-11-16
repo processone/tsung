@@ -13,7 +13,7 @@
  <table class="table table-striped table-bordered">
   <tr><th class="stats">Name</th> <th class="stats">highest 10sec
  mean</th> <th class="stats">lowest 10sec mean </th><th
- class="stats">Highest Rate</th><th class="stats">Mean Rate</stats><th class="stats"> Mean </th><th class="stats">Count</th>
+ class="stats">Highest Rate</th><th class="stats">Mean Rate</th><th class="stats"> Mean </th><th class="stats">Count</th>
   </tr>
  [% FOREACH key = data.rate.keys.sort %]
    [% IF cat_data.$key == "stats" %]
