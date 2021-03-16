@@ -35,14 +35,14 @@
 -include("ts_config.hrl").
 -include("ts_websocket.hrl").
 
--record(state, {parent, socket = none, accept, host, port, path, opts, version,
+-record(state, {parent, socket = none, accept, host, port, path, opts, version, origin,
                 frame, buffer = <<>>, state = not_connected, subprotos = []}).
 
--record(ws_config, {path, version = "13", frame, subprotos}).
+-record(ws_config, {path, version = "13", frame, origin, subprotos}).
 
 protocol_options(#proto_opts{tcp_rcv_size = Rcv, tcp_snd_size = Snd,
-                             websocket_path = Path, websocket_frame = Frame, websocket_subprotocols = SubProtocols}) ->
-    [#ws_config{path = Path, frame = Frame, subprotos = SubProtocols},
+                             websocket_path = Path, websocket_frame = Frame, websocket_origin = Origin, websocket_subprotocols = SubProtocols}) ->
+    [#ws_config{path = Path, frame = Frame, origin = Origin, subprotos = SubProtocols},
      binary,
      {active, once},
      {recbuf, Rcv},
@@ -58,12 +58,13 @@ connect(Host, Port, Opts, Timeout) ->
     Version = WSConfig#ws_config.version,
     Frame = WSConfig#ws_config.frame,
     Protocol = WSConfig#ws_config.subprotos,
+    Origin = WSConfig#ws_config.origin,
 
     case ssl:connect(Host, Port, opts_to_tcp_opts(TcpOpts),Timeout) of
         {ok, Socket} ->
             Pid = spawn_link(
                     fun() ->
-                            loop(#state{parent = Parent, host = Host, port = Port, subprotos = Protocol,
+                            loop(#state{parent = Parent, host = Host, port = Port, subprotos = Protocol, origin = Origin,
                                         opts = TcpOpts, path = Path, version = Version,
                                         frame = Frame, socket = Socket})
                     end),
@@ -75,9 +76,8 @@ connect(Host, Port, Opts, Timeout) ->
     end.
 
 loop(#state{socket = Socket, host = Host, path = Path,
-            version = Version, subprotos = SubProtocol,
+            version = Version, subprotos = SubProtocol, origin = Origin,
             state = not_connected} = State)->
-    Origin = "",
     Headers = "",
     {Handshake, Accept} = websocket:get_handshake(Host, Path, SubProtocol, Version, Origin, Headers),
     ssl:send(Socket, Handshake),
