@@ -1,3 +1,5 @@
+.. _ab: http://httpd.apache.org/docs/current/programs/ab.html
+
 ========
 Features
 ========
@@ -12,7 +14,7 @@ Tsung main features
   active: it can be idle during a ``thinktime``
   period). Traditional injection tools can hardly go further than a 
   few hundreds (Hint: if all you want to do is requesting a single URL
-  in a loop, use :program:`ab`; but if you want to build complex
+  in a loop, use ab_; but if you want to build complex
   scenarios with extended reports, ``Tsung`` is for you).
 
 * *Distributed*: the load can be distributed on a cluster of client machines
