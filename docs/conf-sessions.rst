@@ -25,7 +25,7 @@ sessions of type s1 than s2.
 A transaction is just a way to have customized statistics. Say if you
 want to know the response time of the login page of your website, you
 just have to put all the requests of this page (HTML + embedded
-pictures) within a transaction. In the example above, the transaction
+pictures) within a transaction. In the example below, the transaction
 called ``index_request`` will gives you in the
 statistics/reports the mean response time to get
 ``index.en.html + header.gif``. Be warn that If you have a
