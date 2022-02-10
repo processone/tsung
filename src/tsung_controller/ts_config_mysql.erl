@@ -59,7 +59,7 @@ parse_config(Element = #xmlElement{name=mysql},
                       Database = ts_config:getAttr(Element#xmlElement.attributes, database),
                       User     = ts_config:getAttr(Element#xmlElement.attributes, username),
                       Passwd   = ts_config:getAttr(Element#xmlElement.attributes, password),
-                      ?LOGF("Got Auth datas: database->~p user->~p password->~p~n",[Database,User,Passwd], ?NOTICE),
+                      ?LOGF("Got Auth data: database->~p user->~p password->~p~n",[Database,User,Passwd], ?NOTICE),
                       #mysql_request{username=User, database=Database, passwd=Passwd,  type=authenticate};
                   connect ->
                       ?LOGF("Got Connect ~n",[], ?NOTICE),

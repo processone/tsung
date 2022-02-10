@@ -221,7 +221,7 @@ Plot several tsung logs on the same charts, for comparison purpose.
 	    http://matplotlib.sourceforge.net/matplotlib.pylab.html#-plot.
 	  </para>
 	  <para>
-	    For exemple, set <command>styles = b- g+ r- cx</command>
+	    For example, set <command>styles = b- g+ r- cx</command>
 	    for plotting first dataset (see <command>stats</command>
 	    below) with a blue solid line, second with green plus
 	    symbols, third with a red line and last with cyan cross

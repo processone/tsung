@@ -26,7 +26,7 @@
 
 %%% ---------------------------------------------------------------------
 %%% Purpose: plugin for postgresql
-%%% Dependancies: pgsql modules from jungerl (pgsql_proto and pgsql_util)
+%%% Dependencies: pgsql modules from jungerl (pgsql_proto and pgsql_util)
 %%% ---------------------------------------------------------------------
 
 -module(ts_pgsql).

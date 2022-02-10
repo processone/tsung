@@ -21,7 +21,7 @@
 
 %%% File    : ts_search.erl
 %%% Author  : Mickael Remond <mickael.remond@erlang-fr.org>
-%%% Description : Add dynamic / Differenciated parameters in tsung
+%%% Description : Add dynamic / Differentiated parameters in tsung
 %%%               request and response
 %%%               The function subst is intended to be called for each
 %%%               relevant field in ts_protocol implementation.

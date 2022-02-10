@@ -225,7 +225,7 @@
 - [TSUN-131] - tsung can stop too early when static users are used
 - [TSUN-132] - http cookies: accept domains equals to hostname with a leading "."
 - [TSUN-133] - proxy-recorder with SSL fails on large client packets (multiple TCP packets)
-- [TSUN-138] - when an error occured( for ex a timeout during a request) and a client exits, started transactions are not updated
+- [TSUN-138] - when an error occurred( for ex a timeout during a request) and a client exits, started transactions are not updated
 - [TSUN-140] - tsung does not honor the Proxy-Connection: keep-Alive or Connection: keep-Alive header if the proxy is HTTP/1.0
 - [TSUN-142] - http recorder can fail with https rewriting and chunked encoding
 - [TSUN-147] - UDP & bidi does not seem to work
@@ -307,7 +307,7 @@
 - [TSUN-40] - problem to rewrite url for https with gzip-encoded html.
 - [TSUN-48] - tcp/udp buffer size should be customizable in the XML config file.
 - [TSUN-59] - if a User-Agent header is set in <header>, it should override the global one.
-- [TSUN-62] - add abilty to loop back to a previous request in a session
+- [TSUN-62] - add ability to loop back to a previous request in a session
 - [TSUN-63] - check for ssl and crypto application at compile time
 - [TSUN-65] - enhance dynamic variables.
 - [TSUN-66] - add global mean and counter computation and reporting for samples
@@ -344,7 +344,7 @@
 - [TSUN-28] - Refactoring needed to ease the change of the userid / password generation code
 - [TSUN-29] - Multiple file_server support
 - [TSUN-32] - make snmp server options tunable
-- [TSUN-34] - add costum http headers
+- [TSUN-34] - add custom http headers
 - [TSUN-44] - tsung should ignore whitespace keepalive from xmpp server
 - [TSUN-45] - add kernel-poll support for better performance
 - [TSUN-46] - add number of open connections in statistics
@@ -454,7 +454,7 @@
 - fix: broken 'global', 'local' and 'no_ack' requests and size computation
 - fix: broken ids in jabber messages
 - fix: broken online/offline in user_server
-- default thinktime can now be overriden
+- default thinktime can now be overridden
 
 ### Added ###
 - add script to convert apache log file (combined) to idx-tsunami XML
@@ -520,12 +520,12 @@
 - Extension of XML attribute entity normalisation
 - HTTP: Content-type support in the recorder (needed to handle non-HTML form encoded posts)
 - add autoconf support to detect Erlang installation path
-- Preliminary Windows support: A workaround has been introduced in the code to handle behaviour difference between Erlang Un*x and Erlang Windows on how the command-line is handled. When an assumtion is made on the string type of a parameter, it should be check that this is actually a string and not an atom.
+- Preliminary Windows support: A workaround has been introduced in the code to handle behaviour difference between Erlang Un*x and Erlang Windows on how the command-line is handled. When an assumption is made on the string type of a parameter, it should be check that this is actually a string and not an atom.
 
 ## [1.0.beta4] - 2004-03-16 - Minor bugfixes ##
 ### Fixed ###
 - fix lost cookie when transfer-encoding:chunked is used
-- fix config parsing (the last request of the last page of a sesssion was not marked as endpage)
+- fix config parsing (the last request of the last page of a session was not marked as endpage)
 - don't crash anymore on error during start or stop
 
 ## [1.0.beta3] - 2004-02-24 - Minor feature enhancements ##
@@ -594,7 +594,7 @@
 - switch to R9C
 
 
-## [0.1.1] - 2002-08-13 - Bugfix realease ##
+## [0.1.1] - 2002-08-13 - Bugfix release ##
 
 ### Fixed ###
 - fix config file

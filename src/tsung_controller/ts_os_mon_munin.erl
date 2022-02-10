@@ -139,7 +139,7 @@ handle_info({timeout,_Ref,connect},State=#state{addr=IP,port=Port,host=HostStr})
                                     ?LOG("can't find the number of CPU, assume one~n",?NOTICE),
                                     1
                             end,
-                    ?LOGF("first fetch succesful to ~p~n", [MuninHost], ?INFO),
+                    ?LOGF("first fetch successful to ~p~n", [MuninHost], ?INFO),
                     case (State#state.interval > ?MAX_INTERVAL) of
                         true ->
                             erlang:start_timer(?PING_INTERVAL, self(), ping );
@@ -164,7 +164,7 @@ handle_info({timeout, _Ref, ping},  State=#state{socket=Socket} ) ->
     {noreply, State};
 
 handle_info({timeout, _Ref, send_request},  State=#state{socket=Socket,host=Hostname} ) ->
-    %% Currenly, fetch only cpu and memory
+    %% Currently, fetch only cpu and memory
     %% FIXME: should be customizable in XML config file
     ?LOGF("Fetching munin for cpu on host ~p~n", [Hostname], ?DEB),
     gen_tcp:send(Socket,"fetch cpu\n"),

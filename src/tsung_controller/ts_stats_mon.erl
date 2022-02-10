@@ -241,7 +241,7 @@ code_change(_OldVsn, StateData, _Extra) ->
 
 %%----------------------------------------------------------------------
 %% Func: add_stats_data/2
-%% Purpose: update or add value in dictionnary
+%% Purpose: update or add value in dictionary
 %% Returns: Dict
 %%----------------------------------------------------------------------
 %% continuous incrementing counters

@@ -1,4 +1,4 @@
-%%%  This code was developped by IDEALX (http://IDEALX.org/) and
+%%%  This code was developed by IDEALX (http://IDEALX.org/) and
 %%%  contributors (their names can be found in the CONTRIBUTORS file).
 %%%  Copyright (C) 2000-2001 IDEALX
 %%%
@@ -263,7 +263,7 @@ handle_info2({gen_ts_transport, _Socket, closed}, think,
 %% inet close messages
 handle_info2({gen_ts_transport, _Socket, closed}, _StateName, State) ->
     ?LOG("connection closed, abort", ?WARN),
-    %% the connexion was closed after the last msg was sent, stop quietly
+    %% the connection was closed after the last msg was sent, stop quietly
     ts_mon_cache:add({ count, error_closed }),
     set_connected_status(false),
     catch (State#state_rcv.protocol):close(State#state_rcv.socket), % mandatory for ssl
@@ -937,7 +937,7 @@ finish_session(State) ->
     case State#state_rcv.transactions of
         [] -> % no pending transactions, do nothing
             ok;
-        TrList -> % pending transactions (an error has probably occured)
+        TrList -> % pending transactions (an error has probably occurred)
             ?LOGF("Pending transactions: ~p, compute transaction time~n",[TrList],?NOTICE),
             lists:foreach(fun({Tname,StartTime}) ->
                                   ts_mon_cache:add({sample,Tname,ts_utils:elapsed(StartTime,Now)})
@@ -1266,7 +1266,7 @@ update_stats_noack(#state_rcv{page_timestamp=PageTime,request=Request}) ->
     Now = ?NOW,
     Stats= [{ count, request_noack}], % count and not sample because response time is not defined in this case
     case Request#ts_request.endpage of
-        true -> % end of a page, compute page reponse time
+        true -> % end of a page, compute page response time
             PageElapsed = ts_utils:elapsed(PageTime, Now),
             ts_mon_cache:add(lists:append([Stats,[{sample, page, PageElapsed}]])),
             {0, []};
@@ -1300,7 +1300,7 @@ update_stats(S=#state_rcv{size_mon_thresh=T,page_timestamp=PageTime,
                                      S#state_rcv.buffer,
                                      S#state_rcv.dynvars),
     case Request#ts_request.endpage of
-        true -> % end of a page, compute page reponse time
+        true -> % end of a page, compute page response time
             PageElapsed = ts_utils:elapsed(PageTime, Now),
             ts_mon_cache:add(lists:append([Stats,[{sample, page, PageElapsed}]])),
             {0, DynVars, Elapsed};

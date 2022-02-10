@@ -1,4 +1,4 @@
-%%%  This code was developped by IDEALX (http://IDEALX.org/) and
+%%%  This code was developed by IDEALX (http://IDEALX.org/) and
 %%%  contributors (their names can be found in the CONTRIBUTORS file).
 %%%  Copyright (C) 2000-2004 IDEALX
 %%%
@@ -239,7 +239,7 @@ starttls_bidi(_RcvdXml, #state_rcv{socket= Socket, send_timestamp=SendTime}=Stat
 %%----------------------------------------------------------------------
 %% Function: bidi_resp/4
 %% Purpose: Parse XMPP packet, build client response
-%%          Accomodates single packets w/ multiple requests
+%%          Accommodates single packets w/ multiple requests
 %% Args:    RcvdXml (list)
 %%          Submatches (list)
 %%          State (record)

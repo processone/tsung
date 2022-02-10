@@ -675,7 +675,7 @@ offline and random users (also used for pubsub):
 
 
 The username (resp. passwd) should be the first (resp. second) entry in the each CSV line (the
-delimiter is by default ``";"`` and can be overriden).
+delimiter is by default ``";"`` and can be overridden).
 
 raw XML
 """""""

@@ -1,4 +1,4 @@
-%%%  This code was developped by Zhihui Jiao(jzhihui521@gmail.com).
+%%%  This code was developed by Zhihui Jiao(jzhihui521@gmail.com).
 %%%
 %%%  Copyright (C) 2013 Zhihui Jiao
 %%%
@@ -106,7 +106,7 @@ encode_text(Data) ->
     encode(Data, ?OP_TEXT).
 
 encode_close(Reason) ->
-    %% According RFC6455, we shoud add a status code for close frame,
+    %% According RFC6455, we should add a status code for close frame,
     %% check here: http://tools.ietf.org/html/rfc6455#section-7.4,
     %% we add a normal closure status code 1000 here.
     StatusCode = <<3, 232>>,
