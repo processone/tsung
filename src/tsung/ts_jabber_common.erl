@@ -54,9 +54,9 @@ get_message(Jabber=#jabber{type = 'connect'}) ->
     connect(Jabber);
 get_message(#jabber{type = 'starttls'}) ->
     starttls();
-get_message(#jabber{type = 'close', id=Id,username=User,passwd=Pwd,user_server=UserServer}) ->
+get_message(#jabber{type = 'close', id=Id,username=User,passwd=Pwd,user_server=UserServer,version=Version}) ->
     ts_user_server:remove_connected(UserServer,set_id(Id,User,Pwd)),
-    close();
+    close(Version);
 get_message(#jabber{type = 'presence'}) ->
     presence();
 get_message(#jabber{type = 'presence:initial', id=Id,username=User,passwd=Pwd,user_server=UserServer}) ->
@@ -311,6 +311,10 @@ get_message2(Jabber=#jabber{type = 'auth_sasl_session'}) ->
 %%----------------------------------------------------------------------
 %% Func: connect/1
 %%----------------------------------------------------------------------
+connect(#jabber{domain=Domain, version="websocket"}) ->
+    list_to_binary([
+      "<open xmlns='urn:ietf:params:xml:ns:xmpp-framing' ",
+      "to='", Domain, "' version='1.0'/>"]);
 connect(#jabber{domain=Domain, version = Version}) ->
     VersionStr = case Version of
                      "legacy" ->
@@ -326,10 +330,13 @@ connect(#jabber{domain=Domain, version = Version}) ->
       "' xmlns='jabber:client' ",VersionStr,"xmlns:stream='http://etherx.jabber.org/streams'>"]).
 
 %%----------------------------------------------------------------------
-%% Func: close/0
+%% Func: close/1
 %% Purpose: close jabber session
 %%----------------------------------------------------------------------
-close () -> list_to_binary("</stream:stream>").
+close("websocket") ->
+    <<"<close xmlns='urn:ietf:params:xml:ns:xmpp-framing'/>">>;
+close(_Version) ->
+    <<"</stream:stream>">>.
 
 %%----------------------------------------------------------------------
 %% Func: starttls/0
