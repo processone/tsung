@@ -1,4 +1,4 @@
-%%%  This code was developped by Mickael Remond
+%%%  This code was developed by Mickael Remond
 %%%  <mickael.remond@erlang-fr.org> and contributors (their names can
 %%%  be found in the CONTRIBUTORS file).  Copyright (C) 2003 Mickael
 %%%  Remond

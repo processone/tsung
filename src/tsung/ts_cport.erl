@@ -96,7 +96,7 @@ init([]) ->
 %% Description: Handling call messages
 %%--------------------------------------------------------------------
 handle_call({get, ClientIP}, _From, State) ->
-    %% use the process dictionnary to store the last port of each ip
+    %% use the process dictionary to store the last port of each ip
     %% should we use ets instead ?
     Reply = case get(ClientIP) of
                 ?EPMD_PORT ->

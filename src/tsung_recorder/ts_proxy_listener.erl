@@ -97,7 +97,7 @@ init(_Config) ->
 %% Function: handle_call/3
 %% Description: Handling call messages
 %% Purpose: The companion process does synchronous calls to
-%%          us everytime accept() returns (either as a new socket or an error).
+%%          us every time accept() returns (either as a new socket or an error).
 %%          We get to tell him whether it should continue or stop in the
 %%          return value of the call. We also honor destroy requests from
 %%          , shutting down the whole listener.

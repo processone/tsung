@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 # -*- Mode: CPerl -*-
 #
-#  This code was developped by IDEALX (http://IDEALX.org/) and
+#  This code was developed by IDEALX (http://IDEALX.org/) and
 #  contributors (their names can be found in the CONTRIBUTORS file).
 #  Copyright (C) 2000-2004 IDEALX
 #  Copyright (C) 2005-2011 Nicolas Niclausse
@@ -25,7 +25,7 @@
 # purpose: quick and dirty ugly hack to compute stats and plots graph
 # given a (set of) log file(s)  from the tsung tool.
 
-# dygraphs fonctionnality added by Bearstech (http://bearstech.com)
+# dygraphs functionality added by Bearstech (http://bearstech.com)
 # using dygraphs JavaScript Visualization Library (http://dygraphs.com)
 
 use strict;
@@ -145,11 +145,11 @@ sub gnuplot_has_cairo {
 # plot stats from file with gnuplot
 sub plot_stats {
     # args:
-    my $names     = shift; # arrayref contaning data names
-    my $titles    = shift; # arrayref contaning data titles
+    my $names     = shift; # arrayref containing data names
+    my $titles    = shift; # arrayref containing data titles
     my $datatype  = shift; # type of data (added in filenames)
     my $timestamp = shift;
-    my $files     = shift; # arrayref contaning data files
+    my $files     = shift; # arrayref containing data files
     my $ylabel    = shift;
     my $logy      = shift; # if true use logarithmic scale for Y axis
 
@@ -249,7 +249,7 @@ sub plot_stats {
                 $cur_title =~ s/:os_mon//;
                 $cur_title =~ s/(_|@)/\\$1/g if ($newgnuplot > 1);
                 print " title '$cur_title' ls $lineindex" ;
-                print "," unless ($filename eq $sorted_files[$#sorted_files]); # unless last occurence
+                print "," unless ($filename eq $sorted_files[$#sorted_files]); # unless last occurrence
             }
             print "\n"; # plot done
         }
@@ -262,10 +262,10 @@ sub plot_stats {
 # plot stats from file with dygraph
 sub plot_stats_dygraph {
   # args:
-  my $title     = shift;	# arrayref contaning data titles
+  my $title     = shift;	# arrayref containing data titles
   my $datatype  = shift;	# type of data (added in filenames)
   my $timestamp = shift;
-  my $files     = shift;	# arrayref contaning data files
+  my $files     = shift;	# arrayref containing data files
   my $ylabel    = shift;
   my $logy      = shift;    # if true use logarithmic scale for Y axis
 
@@ -302,7 +302,7 @@ sub plot_stats_dygraph {
       $cur_title =~ s/\.txt$//;
       $cur_title =~ s/:os_mon//;
       open FILE, "$datadir/$filename";
-      #we go throught the file in order to complete row
+      #we go through the file in order to complete row
       $count = 1;
       $rowdata[0] = ["time"] if not defined $rowdata[0];
       push @{$rowdata[0]}, $cur_title;

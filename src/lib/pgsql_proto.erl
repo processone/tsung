@@ -369,7 +369,7 @@ process_squery_cols(Log) ->
 process_equery(Log) ->
     receive 
 	%% Consume parse and bind complete messages when waiting for the first
-	%% first row_description message. What happens if the equery doesnt
+	%% first row_description message. What happens if the equery doesn't
 	%% return a result set?
 	{pgsql, {parse_complete, _}} ->
 	    process_equery(Log);
@@ -475,7 +475,7 @@ process_execute_resultset(Sock, Ref, Pid, Types, Log) ->
 	    exit(Any)
     end.
 
-%% With a message type Code and the payload Packet apropriate 
+%% With a message type Code and the payload Packet appropriate 
 %% decoding procedure can proceed.
 decode_packet(Code, Packet) ->
     Ret = fun(CodeName, Values) -> {ok, {CodeName, Values}} end,

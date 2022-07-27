@@ -59,7 +59,7 @@ mysqladmin. Use it like this:
      <mysqladmin port="3306" username="root" password="sesame" />
     </monitor>
 
-Availabe stats: number of mysql threads and Questions (queries)
+Available stats: number of mysql threads and Questions (queries)
 
 .. index:: snmp
 

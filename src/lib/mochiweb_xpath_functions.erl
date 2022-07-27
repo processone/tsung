@@ -17,7 +17,7 @@
 %% @type WildCardArgSpec = {'*', XPathType}
 %% @type XPathType = node_set | string | number | boolean
 %% 
-%% The engine is responsable of calling the function with
+%% The engine is responsible of calling the function with
 %% the correct arguments, given the function signature. 
 -spec lookup_function(atom()) -> mochiweb_xpath:xpath_fun_spec() | false.
 lookup_function('last') ->

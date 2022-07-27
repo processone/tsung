@@ -13,7 +13,7 @@
     <client host="myhost" weight="2" maxusers="500">
       <!-- Several virtual IP can be used to simulate more
       machines. Very useful when a load-balancer use the client's IP to
-      distribute the traffic amoung a cluster of servers-->
+      distribute the traffic among a cluster of servers-->
       <ip value="192.168.2.223"></ip> 
       <ip value="192.168.2.224"></ip> 
     </client>
@@ -75,7 +75,7 @@
 
   <!-- HTTP parameters -->
   
-  <!-- If you want to benchmark a proxy server instead of a reguler web server-->
+  <!-- If you want to benchmark a proxy server instead of a regular web server-->
 <!--   <default type="ts_http" name="http_use_server_as_proxy" value="true"/> -->
 
    <option type="ts_http" name="user_agent">

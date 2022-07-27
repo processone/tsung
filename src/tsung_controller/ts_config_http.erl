@@ -68,7 +68,7 @@ parse_config(Element = #xmlElement{name=http},
                    [] -> false;
                    _  -> true
                end,
-    %% Apache Tomcat applications need content-type informations to read post forms
+    %% Apache Tomcat applications need content-type information to read post forms
     ContentType = ts_config:getAttr(string,Element#xmlElement.attributes,
                              content_type, "application/x-www-form-urlencoded"),
     Date   = ts_config:getAttr(string, Element#xmlElement.attributes,
@@ -246,11 +246,11 @@ parse_cookie([_| Tail], Cookies) ->
 %% Func: set_msg/2
 %% Returns: #ts_request record
 %% Purpose: build the #ts_request record from an #http_request,
-%%          and Substition def.
+%%          and Substitution def.
 %%----------------------------------------------------------------------
 %% if the URL is full (http://...), we parse it and get server host,
 %% port and scheme from the URL and override the global setup of the
-%% server. These informations are stored in the #ts_request record.
+%% server. These information are stored in the #ts_request record.
 set_msg(HTTP=#http_request{url="http" ++ URL},
         {SubstFlag, MatchRegExp, UseProxy, [Server|_], _PrevHTTPServer, Tab, Id}) ->
     case {SubstFlag, re:run(URL, "%%.+%%")} of
@@ -354,7 +354,7 @@ set_port(#url{port=Port}) -> integer_to_list(Port).
 %% @spec set_scheme({http|https,gen_tcp|gen_tcp6|ssl|ssl6})-> gen_tcp|gen_tcp6|ssl|ssl6
 %% @doc set scheme for given protocol and server setup. If the main
 %% server is configured with IPv6, we assume that the we should also
-%% use IPv6 for the given absolut URL
+%% use IPv6 for the given absolute URL
 %% @end
 set_scheme({http, ts_tcp6})  -> ts_tcp6;
 set_scheme({http, ts_ssl6})  -> ts_tcp6;

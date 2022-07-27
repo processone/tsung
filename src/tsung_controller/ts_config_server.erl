@@ -576,7 +576,7 @@ choose_server([#server{weight=P} | SList], Rand, Cur) ->
 %% Func: choose_rr/3
 %% Args: List, Key, Default
 %% Purpose: choose an value in list in a round robin way. Use last
-%%          value stored in the process dictionnary
+%%          value stored in the process dictionary
 %           Return Default if list is empty
 %% Returns: {ok, Val}
 %%----------------------------------------------------------------------
@@ -656,7 +656,7 @@ get_client_cfg(Arrival=#arrivalphase{duration = Duration,
 %%----------------------------------------------------------------------
 %% Func: encode_filename/1
 %% Purpose: kludge: the command line erl doesn't like special characters
-%%   in strings when setting up environnement variables for application,
+%%   in strings when setting up environment variables for application,
 %%   so we encode these characters !
 %%----------------------------------------------------------------------
 encode_filename(String) when is_list(String)->
@@ -1020,7 +1020,7 @@ set_pop(Name,Popularity,[#arrivalphase{popularities=Pop}|Tail], Acc) ->
 
 %% Given a list of hostname with duplicates (e.g. when cpu is > 1 or
 %% batch), try to spread the duplicates in the list, in order to start
-%% remote beams (with pmap) on different hosts, otherwize we will
+%% remote beams (with pmap) on different hosts, otherwise we will
 %% start several beam on the same hosts, increasing the load, and
 %% slowing down the remote nodes starting phase.
 

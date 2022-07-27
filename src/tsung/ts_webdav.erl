@@ -86,10 +86,10 @@ parse_config(Element, Conf) ->
 add_dynparams(Subst, DynData, Param, HostData) ->
     ts_http:add_dynparams(Subst, DynData, Param, HostData).
 
-%%% methode PROPFIND; entetes: Depth (optionel); body: XML
-%%% methode COPY; entete Destination: URL, If (optionel), Overwrite (Optionel), Depth; Body: XML (Optionel)
-%%% methode MOVE; entete Destination: URL, If (optionel), Overwrite (Optionel), Depth; Body: XML (Optionel)
-%%% methode PROPPATCH body: XML
-%%% methode MKCOL
-%%% methode LOCK; entete: Timeout (optionel ?), If (Optionel),Depth (Optionel); Body: XML (optionel ?)
-%%% methode UNLOCK; entete: Lock-Token; Body: XML (optionel ?)
+%%% method PROPFIND; entetes: Depth (optional); body: XML
+%%% method COPY; entete Destination: URL, If (optional), Overwrite (Optional), Depth; Body: XML (Optional)
+%%% method MOVE; entete Destination: URL, If (optional), Overwrite (Optional), Depth; Body: XML (Optional)
+%%% method PROPPATCH body: XML
+%%% method MKCOL
+%%% method LOCK; entete: Timeout (optional ?), If (Optional),Depth (Optional); Body: XML (optional ?)
+%%% method UNLOCK; entete: Lock-Token; Body: XML (optional ?)

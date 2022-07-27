@@ -76,7 +76,7 @@ WEBDAV related features
 =======================
 
 The WebDAV (:RFC:`4918`) plugin is a superset of the HTTP plugin. It adds the
-following features (some versionning extensions to WebDAV (:RFC:`3253`)
+following features (some versioning extensions to WebDAV (:RFC:`3253`)
 are also supported):
 
 

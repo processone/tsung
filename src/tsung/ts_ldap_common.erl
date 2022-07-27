@@ -113,7 +113,7 @@ modify_msg(Id,DN,Modifications) ->
 %% -------------------------------------------
 %% asn1 packet buffering and delimiting
 %%
-%% Temporary fix until the new ssl module incorporate appropiate
+%% Temporary fix until the new ssl module incorporate appropriate
 %% support for asn1 packets.
 %% -------------------------------------------
 

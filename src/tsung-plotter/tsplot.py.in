@@ -51,7 +51,7 @@ from pylab import *
 
 
 class Plot:
-    """ The ploting class, using matplotlib """
+    """ The plotting class, using matplotlib """
 
     def __init__(self,
                  name    = "",

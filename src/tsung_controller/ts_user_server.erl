@@ -1,4 +1,4 @@
-%%%  This code was developped by IDEALX (http://IDEALX.org/) and
+%%%  This code was developed by IDEALX (http://IDEALX.org/) and
 %%%  contributors (their names can be found in the CONTRIBUTORS file).
 %%%  Copyright (C) 2000-2001 IDEALX
 %%%
@@ -280,7 +280,7 @@ handle_call(get_id, _From, State) ->
     Key = random:uniform( State#state.userid_max ),
     {reply, Key, State};
 
-%%Get one id in the users whos have to be connected
+%%Get one id in the users whose have to be connected
 handle_call(get_idle, _From, State=#state{offline=Offline,connected=Connected}) ->
     case ets_iterator_next(Offline, State#state.last_offline ) of
         {error, empty_ets} ->
@@ -529,7 +529,7 @@ ets_iterator_next(Ets, undefined, Key) ->
 ets_iterator_next(Ets, Iterator, Key) ->
     case ets:next(Ets,Iterator) of
         '$end_of_table' ->
-            %% start again from the beginnig
+            %% start again from the beginning
             ets_iterator_next(Ets, undefined, Key);
         Key -> % not this one, try again
             ets_iterator_next(Ets, Key, Key);
