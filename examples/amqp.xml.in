@@ -29,7 +29,7 @@
 	<sessions>
 		<session probability="100" name="amqp_publisher" type="ts_amqp" bidi="true">
             <request>
-                <amqp type="connection.open" vhost="/"></amqp>
+                <amqp type="connection.open" vhost="/" channel_max="2047"></amqp>
             </request>
 
             <!--  open channel, channel id is from 1 to 10 -->
@@ -78,7 +78,7 @@
 		</session>
 		<session probability="0" name="amqp_consumer" type="ts_amqp" bidi="true">
             <request>
-                <amqp type="connection.open"></amqp>
+                <amqp type="connection.open" channel_max="2047"></amqp>
             </request>
 
             <for from="1" to="10" incr="1" var="loops">

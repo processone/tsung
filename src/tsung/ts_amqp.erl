@@ -103,13 +103,12 @@ get_message1(#amqp_request{type = 'connection.start_ok', username = UserName,
     Waiting = {0, 'connection.tune'},
     {Frame, AMQPSession#amqp_session{waiting = Waiting}};
 
-get_message1(#amqp_request{type = 'connection.tune_ok', heartbeat = HeartBeat},
+get_message1(#amqp_request{type = 'connection.tune_ok', heartbeat = HeartBeat, channel_max = ChannelMax},
             #state_rcv{session = AMQPSession}) ->
     Protocol = AMQPSession#amqp_session.protocol,
-
-    Tune = #'connection.tune_ok'{frame_max = 131072, heartbeat = HeartBeat},
+    Tune = #'connection.tune_ok'{channel_max = ChannelMax, frame_max = 131072, heartbeat = HeartBeat},
     Frame = assemble_frame(0, Tune, Protocol),
-    {Frame, AMQPSession#amqp_session{waiting = none}};
+    {Frame, AMQPSession#amqp_session{waiting = none, channel_max = ChannelMax}};
 
 get_message1(#amqp_request{type = 'connection.open', vhost = VHost},
             #state_rcv{session = AMQPSession}) ->

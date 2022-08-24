@@ -57,7 +57,8 @@
           payload,
           payload_size,
           queue,
-          ack
+          ack,
+          channel_max
          }).
 
 -record(amqp_dyndata, { 
