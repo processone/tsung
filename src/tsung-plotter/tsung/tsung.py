@@ -156,7 +156,7 @@ class TsungLog:
         record_ts  = 0
         import re
 
-        for line in file(self.filename):
+        for line in open(self.filename):
             # chomp \n
             line = line[:-1]
 
@@ -181,10 +181,10 @@ class TsungLog:
                 name   = array[1]
                 values = array[2:]
 
-                if self.types.has_key(name):
+                if self.types.__contains__(name):
                     data = self.types[name].__class__(interval, values)
 
-                    if not self.data.has_key(record_ts):
+                    if not self.data.__contains__(record_ts):
                         self.data[record_ts] = {}
 
                     self.data[record_ts][name] = data
@@ -197,7 +197,7 @@ class TsungLog:
                             y = re.compile(k)
                             if re.match(y, name):
                                 data = self.types[k].__class__(interval, values)
-                                if not self.data.has_key(record_ts):
+                                if not self.data.__contains__(record_ts):
                                     self.data[record_ts] = {}
                                 self.data[record_ts][name] = data
                                 is_re = True
@@ -211,7 +211,7 @@ class TsungLog:
         """ returns a {timestamp: date_type} dict for given named statistic """
         ret = {}
         for ts, stats in self.data.items():
-            if stats.has_key(name) and stats[name].get(stat) is not None:
+            if stats.__contains__(name) and stats[name].get(stat) is not None:
                 ret[ts] = stats[name].get(stat)
 
         return ret

@@ -99,15 +99,15 @@ class Plot:
             ax.set_yscale(self.yscale)
 
             count = 0
+            yfactor_l = list(self.yfactor)
             for data in dataset:
                 # get give type data for plotting
                 nstats = 0
                 for (name, stat) in stats:
                     pdata = data.stat(name, stat)
                     # we want timestamp sorted data to plot
-                    ts = pdata.keys()
-                    ts.sort()
-                    values = [pdata[t] / self.yfactor[nstats%len(self.yfactor)] for t in ts]
+                    ts = sorted(pdata.keys())
+                    values = [pdata[t] / yfactor_l[nstats%len(yfactor_l)] for t in ts]
 
                     if self.xfactor not in [1, "1"]:
                         ts = [x / self.xfactor for x in ts]
@@ -214,7 +214,7 @@ def main(conffile, logs, legends, outdir, verbose):
             # this is the legend prefix$
             l = []
             count    = 0
-            clegends = config.get(s, 'legend').decode(encoding).split(',')
+            clegends = config.get(s, 'legend').split(',')
 
             for f in logs:
                 l     += ['%s %s' % (x.strip(), legends[count]) \
@@ -224,7 +224,7 @@ def main(conffile, logs, legends, outdir, verbose):
         
         if config.has_option(s, 'position'):
             # legend position according to matplotlib standard values (1-10)
-            val = config.get(s, 'position').decode(encoding)
+            val = config.get(s, 'position')
             if val.isdigit():
                 p.position = int(val)
             else:
@@ -233,14 +233,14 @@ def main(conffile, logs, legends, outdir, verbose):
 
         if config.has_option(s, 'yfactor'):
             try:
-                p.__dict__['yfactor'] = map(float,config.get(s, 'yfactor').decode(encoding).split(','))
+                p.__dict__['yfactor'] = map(float,config.get(s, 'yfactor').split(','))
             except ValueError:
                 print('warning: %s yfactor not a number: %s' \
                     % (p.name, config.get(s, yfactor)))
         # Text parameters - to decode into specified encoding
         for attr in ['title', 'xlabel', 'ylabel', 'plottype', 'yscale']:
             if config.has_option(s, attr):
-                cstring = config.get(s, attr).decode(encoding)
+                cstring = config.get(s, attr)
                 p.__dict__[attr] = cstring
 
         # Numerical parameters
