@@ -62,6 +62,7 @@
          ip_transparent = false,  % set IP_TRANSPARENT option on the socket
          websocket_path = "/chat",  % for websocket only
          websocket_frame = "binary",  % for websocket only
+         websocket_origin = "",  % for websocket only
          websocket_subprotocols = [],     % for websocket only
          retry_timeout = 10,        % retry sending in milliseconds
          max_retries = 3,           % maximum number of retries
@@ -96,6 +97,7 @@
          retries=0,   % number of connect retries
          hibernate = 10000, % hibernate if thinktime is >= to this (10sec by default)
          host,        % hostname (or IP) of remote server
+         origin,      % Origin Header
          port,        % server port
          protocol,    % gen_udp, gen_tcp or ssl
          proto_opts = #proto_opts{},  %
