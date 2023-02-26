@@ -65,6 +65,7 @@
           curid = 0, % temporary var (current request id (can be transaction))
           cur_req_id  = 0,   % temporary var (current real request id)
           file_server = [],  % filenames for file_server
+          local_file_server = [],  % filenames for local_file_server
           load_loop,         % loop phases if > 0
           hibernate = 10000, % hibernate timeout (millisec) 10sec by default
           proto_opts,        % tcp/udp buffer sizes

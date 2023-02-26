@@ -575,6 +575,9 @@ set_dynvars(file,{random,FileId,Delimiter},_Vars,_DynVars,_,_) ->
 set_dynvars(file,{iter,FileId,Delimiter},_Vars,_DynVars,_,_) ->
     {ok,Line} = ts_file_server:get_next_line(FileId),
     ts_utils:split(Line,Delimiter);
+set_dynvars(local_file,{FileId,Delimiter},_Vars,_DynVars,_,_) ->
+    {ok,Line} = ts_local_file_server:get_random_line(FileId),
+    ts_utils:split(Line,Delimiter);
 set_dynvars(jsonpath,{JSONPath, From},_Vars,DynVars,_,_) ->
     {ok, Val} = ts_dynvars:lookup(From,DynVars),
     JSON=mochijson2:decode(Val),

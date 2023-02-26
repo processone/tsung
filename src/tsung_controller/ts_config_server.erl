@@ -379,6 +379,23 @@ handle_cast({newbeams, HostList}, State=#state{logdir   = LogDir,
             {stop, normal,State};
         {Id0, [] } -> % no remote beams
             set_max_duration(Config#config.duration),
+
+            % local file servers if required
+            case length(Config#config.local_file_server) of
+                0 ->
+                    ?LOG("Local file servers: None defined~n", ?NOTICE),
+                    ok;
+                _ ->
+                    case ts_local_file_server:start_local(Config#config.local_file_server) of
+                        ok ->
+                            ?LOG("Local file servers: setup complete ~n", ?NOTICE);
+                        {error, Reason} ->
+                            ?LOGF("Local file servers: ~p~n", [Reason], ?ERR),
+                            ts_mon:abort(),
+                            exit({error, Reason})
+                    end
+            end,
+
             {noreply, State#state{last_beam_id = Id0}};
         {Id0, _ } ->
             Seed = Config#config.seed,
@@ -408,6 +425,24 @@ handle_cast({newbeams, HostList}, State=#state{logdir   = LogDir,
             ?LOG("All remote beams started, syncing ~n",?NOTICE),
             global:sync(),
             ?LOG("Syncing done, start remote tsung application ~n", ?INFO),
+
+            % Distributing files for local file servers if required
+            case length(Config#config.local_file_server) of
+                0 ->
+                    ?LOG("Local file servers: None defined~n", ?NOTICE),
+                    ok;
+                _ ->
+                    case ts_local_file_server:distribute_files(RemoteNodes, Config#config.local_file_server) of
+                        ok ->
+                            ?LOG("Local file servers: setup complete ~n", ?NOTICE);
+                        {error, Reason} ->
+                            ?LOGF("Local file servers: ~p~n", [Reason], ?ERR),
+                            ts_mon:abort(),
+                            exit({error, Reason})
+                    end
+            end,
+
+            ?LOG("Start remote tsung application ~n", ?DEB),
             {Resl, BadNodes} = rpc:multicall(RemoteNodes,tsung,start,[],?RPC_TIMEOUT),
             ?LOGF("RPC result: ~p ~p ~n",[Resl,BadNodes],?DEB),
             case BadNodes of
