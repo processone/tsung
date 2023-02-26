@@ -1004,6 +1004,16 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                         false ->
                             lists:foldl( fun parse/2, Conf, Element#xmlElement.content)
                     end;
+                "ip_bind_address_no_port" ->
+                    case getAttr(atom, Attrs, value, false) of
+                        true ->
+                            OldProto =  Conf#config.proto_opts,
+                            NewProto =  OldProto#proto_opts{ip_bind_address_no_port = true},
+                            lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                         Element#xmlElement.content);
+                        false ->
+                            lists:foldl( fun parse/2, Conf, Element#xmlElement.content)
+                    end;
                 "tcp_reuseaddr" ->
                     Reuseaddr = getAttr(atom, Attrs, value, false),
                     case Reuseaddr of
