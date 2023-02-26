@@ -38,7 +38,7 @@ This package has its own configuration file where to associate tsung
 stats names with tsung stat type.
 """
 
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 
 # data are produced every 10 seconds, by default
 # we read real used interval in log file (deduced from timestamps)
@@ -204,7 +204,7 @@ class TsungLog:
                                 break
 
                     if name not in self.unknown and not is_re:
-                        print 'WARNING: tsung %s data is not configured' % name
+                        print('WARNING: tsung %s data is not configured' % name)
                         self.unknown.append(name)
 
     def stat(self, name, stat):
