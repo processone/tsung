@@ -269,6 +269,20 @@ get_message(#jabber{type = 'muc:nick', room = Room, muc_service = Service, nick 
 get_message(#jabber{type = 'muc:exit', room = Room, muc_service = Service, nick = Nick}) ->
     muc_exit(Room, Nick, Service);
 
+get_message(#jabber{type = 'ping', data=Data, id=Id, dest=online, username=Username, passwd=Pwd, resource=Resource,
+                    domain=Domain, user_server=UserServer, prefix=Prefix}) ->
+    case ts_user_server:get_online(UserServer,set_id(Id,Username,Pwd)) of
+        {ok, {Dest,_}} ->
+            ping(Domain, Username, Resource, Data, Dest);
+        {ok, DestId} ->
+            ping(Domain, Username, Resource, Data, ts_jabber:username(Prefix,DestId));
+        {error, no_online} ->
+            ts_mon_cache:add({ count, error_no_online }),
+            << >>
+    end;
+get_message(#jabber{type = 'ping', data=Data, username = Username, domain = Domain, resource=Resource}) ->
+    ping(Domain, Username, Resource, Data, undefined);
+
 get_message(Jabber=#jabber{id=user_defined}) ->
     get_message2(Jabber);
 
@@ -770,6 +784,19 @@ privacy_set_active(User, Domain) ->
            "</iq>"],
     list_to_binary(Req).
 
+% Resource is not reliably tracked by tsung
+ping(Domain, Username, _Resource, Data, Dest) ->
+    %Jid = [Username, "@", Domain, "/", Resource],
+    Jid = [Username, "@", Domain],
+    ToJid = case Dest of
+          undefined -> Domain;
+          _ -> [Dest, "@", Domain]
+        end,
+    Id = case Data of
+          undefined -> ["ping1"];
+          _ -> Data
+        end,
+    list_to_binary(["<iq xml:lang='en' to='",ToJid,"' from='",Jid,"' type='get' id='",Id,"'><ping xmlns='urn:xmpp:ping'/></iq>"]).
 
 
 %% set the real Id; by default use the Id; but it user and passwd is
