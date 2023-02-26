@@ -60,6 +60,7 @@
          tcp_reuseaddr  = false,  % for tcp reuseaddr
          tcp_reuseport  = false,  % for tcp reuseport
          ip_transparent = false,  % set IP_TRANSPARENT option on the socket
+         ip_bind_address_no_port = false,  % set IP_BIND_ADDRESS_NO_PORT option on the socket
          websocket_path = "/chat",  % for websocket only
          websocket_frame = "binary",  % for websocket only
          websocket_origin = "",  % for websocket only

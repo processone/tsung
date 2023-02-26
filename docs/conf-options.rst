@@ -112,6 +112,19 @@ This option is used to set the IP_TRANSPARENT option on the TCP socket
 
 This can be useful to use when IPs are not configured on the client host (see also :ref:`iprange-label`)
 
+IP bind address no port
+---------------------------------------
+
+.. versionadded:: 1.8.0
+
+This option is used to set the IP_BIND_ADDRESS_NO_PORT option on the TCP socket
+
+.. code-block:: xml
+
+ <option name="ip_bind_address_no_port" value="true" />
+
+The kernel will choose the local port at connect time instead of bind time, making it more scalable
+
 Retry Attempts and Timeouts
 ---------------------------------------
 
