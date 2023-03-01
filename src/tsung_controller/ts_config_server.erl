@@ -379,6 +379,23 @@ handle_cast({newbeams, HostList}, State=#state{logdir   = LogDir,
             {stop, normal,State};
         {Id0, [] } -> % no remote beams
             set_max_duration(Config#config.duration),
+
+            % local file servers if required
+            case length(Config#config.local_file_server) of
+                0 ->
+                    ?LOG("Local file servers: None defined~n", ?NOTICE),
+                    ok;
+                _ ->
+                    case ts_local_file_server:start_local(Config#config.local_file_server) of
+                        ok ->
+                            ?LOG("Local file servers: setup complete ~n", ?NOTICE);
+                        {error, Reason} ->
+                            ?LOGF("Local file servers: ~p~n", [Reason], ?ERR),
+                            ts_mon:abort(),
+                            exit({error, Reason})
+                    end
+            end,
+
             {noreply, State#state{last_beam_id = Id0}};
         {Id0, _ } ->
             Seed = Config#config.seed,
@@ -408,6 +425,24 @@ handle_cast({newbeams, HostList}, State=#state{logdir   = LogDir,
             ?LOG("All remote beams started, syncing ~n",?NOTICE),
             global:sync(),
             ?LOG("Syncing done, start remote tsung application ~n", ?INFO),
+
+            % Distributing files for local file servers if required
+            case length(Config#config.local_file_server) of
+                0 ->
+                    ?LOG("Local file servers: None defined~n", ?NOTICE),
+                    ok;
+                _ ->
+                    case ts_local_file_server:distribute_files(RemoteNodes, Config#config.local_file_server) of
+                        ok ->
+                            ?LOG("Local file servers: setup complete ~n", ?NOTICE);
+                        {error, Reason} ->
+                            ?LOGF("Local file servers: ~p~n", [Reason], ?ERR),
+                            ts_mon:abort(),
+                            exit({error, Reason})
+                    end
+            end,
+
+            ?LOG("Start remote tsung application ~n", ?DEB),
             {Resl, BadNodes} = rpc:multicall(RemoteNodes,tsung,start,[],?RPC_TIMEOUT),
             ?LOGF("RPC result: ~p ~p ~n",[Resl,BadNodes],?DEB),
             case BadNodes of
@@ -576,7 +611,7 @@ choose_server([#server{weight=P} | SList], Rand, Cur) ->
 %% Func: choose_rr/3
 %% Args: List, Key, Default
 %% Purpose: choose an value in list in a round robin way. Use last
-%%          value stored in the process dictionnary
+%%          value stored in the process dictionary
 %           Return Default if list is empty
 %% Returns: {ok, Val}
 %%----------------------------------------------------------------------
@@ -656,7 +691,7 @@ get_client_cfg(Arrival=#arrivalphase{duration = Duration,
 %%----------------------------------------------------------------------
 %% Func: encode_filename/1
 %% Purpose: kludge: the command line erl doesn't like special characters
-%%   in strings when setting up environnement variables for application,
+%%   in strings when setting up environment variables for application,
 %%   so we encode these characters !
 %%----------------------------------------------------------------------
 encode_filename(String) when is_list(String)->
@@ -1020,7 +1055,7 @@ set_pop(Name,Popularity,[#arrivalphase{popularities=Pop}|Tail], Acc) ->
 
 %% Given a list of hostname with duplicates (e.g. when cpu is > 1 or
 %% batch), try to spread the duplicates in the list, in order to start
-%% remote beams (with pmap) on different hosts, otherwize we will
+%% remote beams (with pmap) on different hosts, otherwise we will
 %% start several beam on the same hosts, increasing the load, and
 %% slowing down the remote nodes starting phase.
 

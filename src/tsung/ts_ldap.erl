@@ -109,7 +109,7 @@ parse(Data, State=#state_rcv{acc = [], session=Session,datasize=PrevSize}) ->
 %% Can read more than one entire asn1 packet from the network.  Read
 %% packets until either there are no more packets available in the
 %% buffer (ack_done=false), or the ack_done flag was set true by the
-%% appropiate parse_ldap_response
+%% appropriate parse_ldap_response
 parse_packets(State,Asn1St) ->
     case ts_ldap_common:get_packet(Asn1St) of
         {none,NewAsn1St} ->
@@ -154,7 +154,7 @@ parse_ldap_response(#'LDAPMessage'{protocolOp = {'searchResRef',_R}},State)  ->
     {State#state_rcv{ack_done=false},[],false};
 
 
-%% When get a possitive response to a startTLS command, inmediatly start ssl over that socket.
+%% When get a positive response to a startTLS command, immediately start ssl over that socket.
 parse_ldap_response(#'LDAPMessage'{protocolOp = {'extendedResp',ExtResponse }},State)  ->
     case ExtResponse#'ExtendedResponse'.resultCode of
         success ->
@@ -228,9 +228,9 @@ add_dynparams(false, _DynData, Param, _HostData) ->
 add_dynparams(true, {DynVars, _Session}, Param = #ldap_request{type=bind,user=User,password=Password}, _HostData)  ->
     Param#ldap_request{user=ts_search:subst(User,DynVars),password=ts_search:subst(Password,DynVars)};
 
-%% Search message. Only perfom substitutions on the filter of the search requests.
+%% Search message. Only perform substitutions on the filter of the search requests.
 %% The filter text was already parsed into a tree-like struct, substitution
-%% is perfomed in the "leaf" of this tree.
+%% is performed in the "leaf" of this tree.
 add_dynparams(true, {DynVars, _Session}, Param = #ldap_request{type=search, filter = Filter}, _HostData)  ->
     Param#ldap_request{filter = subs_filter(Filter,DynVars)};
 

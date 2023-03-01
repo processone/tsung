@@ -1,4 +1,4 @@
-%%%  This code was developped by IDEALX (http://IDEALX.org/) and
+%%%  This code was developed by IDEALX (http://IDEALX.org/) and
 %%%  contributors (their names can be found in the CONTRIBUTORS file).
 %%%  Copyright (C) 2000-2001 IDEALX
 %%%
@@ -54,9 +54,9 @@ get_message(Jabber=#jabber{type = 'connect'}) ->
     connect(Jabber);
 get_message(#jabber{type = 'starttls'}) ->
     starttls();
-get_message(#jabber{type = 'close', id=Id,username=User,passwd=Pwd,user_server=UserServer}) ->
+get_message(#jabber{type = 'close', id=Id,username=User,passwd=Pwd,user_server=UserServer,version=Version}) ->
     ts_user_server:remove_connected(UserServer,set_id(Id,User,Pwd)),
-    close();
+    close(Version);
 get_message(#jabber{type = 'presence'}) ->
     presence();
 get_message(#jabber{type = 'presence:initial', id=Id,username=User,passwd=Pwd,user_server=UserServer}) ->
@@ -191,6 +191,9 @@ get_message(Jabber=#jabber{type = 'raw'}) ->
 get_message(#jabber{type = 'pubsub:create', username=Username, node=Node, node_type=NodeType,
                     data = Data, pubsub_service = PubSubComponent, domain = Domain}) ->
     create_pubsub_node(Domain, PubSubComponent, Username, Node, NodeType, Data);
+get_message(#jabber{type = 'pubsub:delete', username=Username, node=Node,
+                    pubsub_service = PubSubComponent, domain = Domain}) ->
+    delete_pubsub_node(Domain, PubSubComponent, Username, Node);
 %% For node subscription, data contain the pubsub nodename (relative to user
 %% hierarchy or absolute)
 get_message(#jabber{type = 'pubsub:subscribe', id=Id, username=UserFrom, user_server=UserServer,
@@ -266,6 +269,20 @@ get_message(#jabber{type = 'muc:nick', room = Room, muc_service = Service, nick 
 get_message(#jabber{type = 'muc:exit', room = Room, muc_service = Service, nick = Nick}) ->
     muc_exit(Room, Nick, Service);
 
+get_message(#jabber{type = 'ping', data=Data, id=Id, dest=online, username=Username, passwd=Pwd, resource=Resource,
+                    domain=Domain, user_server=UserServer, prefix=Prefix}) ->
+    case ts_user_server:get_online(UserServer,set_id(Id,Username,Pwd)) of
+        {ok, {Dest,_}} ->
+            ping(Domain, Username, Resource, Data, Dest);
+        {ok, DestId} ->
+            ping(Domain, Username, Resource, Data, ts_jabber:username(Prefix,DestId));
+        {error, no_online} ->
+            ts_mon_cache:add({ count, error_no_online }),
+            << >>
+    end;
+get_message(#jabber{type = 'ping', data=Data, username = Username, domain = Domain, resource=Resource}) ->
+    ping(Domain, Username, Resource, Data, undefined);
+
 get_message(Jabber=#jabber{id=user_defined}) ->
     get_message2(Jabber);
 
@@ -308,6 +325,10 @@ get_message2(Jabber=#jabber{type = 'auth_sasl_session'}) ->
 %%----------------------------------------------------------------------
 %% Func: connect/1
 %%----------------------------------------------------------------------
+connect(#jabber{domain=Domain, version="websocket"}) ->
+    list_to_binary([
+      "<open xmlns='urn:ietf:params:xml:ns:xmpp-framing' ",
+      "to='", Domain, "' version='1.0'/>"]);
 connect(#jabber{domain=Domain, version = Version}) ->
     VersionStr = case Version of
                      "legacy" ->
@@ -323,10 +344,13 @@ connect(#jabber{domain=Domain, version = Version}) ->
       "' xmlns='jabber:client' ",VersionStr,"xmlns:stream='http://etherx.jabber.org/streams'>"]).
 
 %%----------------------------------------------------------------------
-%% Func: close/0
+%% Func: close/1
 %% Purpose: close jabber session
 %%----------------------------------------------------------------------
-close () -> list_to_binary("</stream:stream>").
+close("websocket") ->
+    <<"<close xmlns='urn:ietf:params:xml:ns:xmpp-framing'/>">>;
+close(_Version) ->
+    <<"</stream:stream>">>.
 
 %%----------------------------------------------------------------------
 %% Func: starttls/0
@@ -645,6 +669,23 @@ pubsub_node_type(undefined) ->
 pubsub_node_type(Type) when is_list(Type) ->
     [" type='", Type, "' "].
 
+pubsub_subid(undefined) -> "";
+pubsub_subid(SubId) when is_list(SubId) ->
+    [" subid='", SubId, "' "].
+
+%%%----------------------------------------------------------------------
+%%% Func: delete_pubsub_node/4
+%%% Delete a pubsub node: Generate XML packet
+%%% Nodenames are relative to the User pubsub hierarchy (ejabberd); they are
+%%% absolute with leading slash.
+%%%----------------------------------------------------------------------
+delete_pubsub_node(Domain, PubSubComponent,Username, Node) ->
+    list_to_binary(["<iq to='", PubSubComponent, "' type='set' id='",
+            ts_msg_server:get_id(list),"'>"
+            "<pubsub xmlns='http://jabber.org/protocol/pubsub#owner'>"
+            "<delete", pubsub_node_attr(Node, Domain, Username),
+            "/></pubsub></iq>"]).
+
 %%%----------------------------------------------------------------------
 %%% Func: subscribe_pubsub_node/4
 %%% Subscribe to a pubsub node: Generate XML packet
@@ -677,7 +718,7 @@ unsubscribe_pubsub_node(Domain, PubSubComponent, UserFrom, UserTo, Node, SubId) 
                     "<unsubscribe",
                     pubsub_node_attr(Node, Domain, UserTo),
                     " jid='", UserFrom, "@", Domain, "'",
-                    " subid='", SubId, "'",
+                    pubsub_subid(SubId),
                     "/>",
                     "</pubsub>",
                     "</iq>"]).
@@ -743,6 +784,19 @@ privacy_set_active(User, Domain) ->
            "</iq>"],
     list_to_binary(Req).
 
+% Resource is not reliably tracked by tsung
+ping(Domain, Username, _Resource, Data, Dest) ->
+    %Jid = [Username, "@", Domain, "/", Resource],
+    Jid = [Username, "@", Domain],
+    ToJid = case Dest of
+          undefined -> Domain;
+          _ -> [Dest, "@", Domain]
+        end,
+    Id = case Data of
+          undefined -> ["ping1"];
+          _ -> Data
+        end,
+    list_to_binary(["<iq xml:lang='en' to='",ToJid,"' from='",Jid,"' type='get' id='",Id,"'><ping xmlns='urn:xmpp:ping'/></iq>"]).
 
 
 %% set the real Id; by default use the Id; but it user and passwd is

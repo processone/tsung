@@ -49,8 +49,8 @@ pid         erlang process id
 id          tsung user id
 host        server hostname
 url         URL (relative)
-HTTP        status HTTP reponse status (200, 304, etc.)
-size        reponse size (in bytes)
+HTTP        status HTTP response status (200, 304, etc.)
+size        response size (in bytes)
 duration    request duration (msec)
 transaction name of the transaction (if any) this request was made in
 match       if a match is defined in the request: match|nomatch (last <match> if several are defined)

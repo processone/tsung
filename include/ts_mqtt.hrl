@@ -1,4 +1,4 @@
-%%%  This code was developped by Zhihui Jiao(jzhihui521@gmail.com).
+%%%  This code was developed by Zhihui Jiao(jzhihui521@gmail.com).
 %%%
 %%%  Copyright (C) 2013 Zhihui Jiao
 %%%
@@ -40,7 +40,10 @@
           retained = false,
           payload,
           username,
-          password
+          password,
+          stamped = false,
+          client_id
+
          }).
 
 -record(mqtt_dyndata, {

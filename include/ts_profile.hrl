@@ -1,4 +1,4 @@
-%%%  This code was developped by IDEALX (http://IDEALX.org/) and
+%%%  This code was developed by IDEALX (http://IDEALX.org/) and
 %%%  contributors (their names can be found in the CONTRIBUTORS file).
 %%%  Copyright (C) 2000-2001 IDEALX
 %%%
@@ -60,8 +60,10 @@
          tcp_reuseaddr  = false,  % for tcp reuseaddr
          tcp_reuseport  = false,  % for tcp reuseport
          ip_transparent = false,  % set IP_TRANSPARENT option on the socket
+         ip_bind_address_no_port = false,  % set IP_BIND_ADDRESS_NO_PORT option on the socket
          websocket_path = "/chat",  % for websocket only
          websocket_frame = "binary",  % for websocket only
+         websocket_origin = "",  % for websocket only
          websocket_subprotocols = [],     % for websocket only
          retry_timeout = 10,        % retry sending in milliseconds
          max_retries = 3,           % maximum number of retries
@@ -74,6 +76,8 @@
          udp_snd_size  = 32768,
          certificate = [],          % for ssl
          reuse_sessions = true,     % for ssl
+         disable_sni = false,       % for ssl, if set to true, {server_name_indication, disable} will be set
+                                    % for ssl:connect to disable TLS SNI extension and hostname verification
          is_first_connect = true   % whether it's the first connection
         }).
 
@@ -94,6 +98,7 @@
          retries=0,   % number of connect retries
          hibernate = 10000, % hibernate if thinktime is >= to this (10sec by default)
          host,        % hostname (or IP) of remote server
+         origin,      % Origin Header
          port,        % server port
          protocol,    % gen_udp, gen_tcp or ssl
          proto_opts = #proto_opts{},  %

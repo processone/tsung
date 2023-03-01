@@ -173,7 +173,7 @@ handle_info(timeout, State) ->
     {stop, timeout, State};
 
 handle_info(Info, State) ->
-    ?LOGF("Uknown data  ~p~n",[Info],?ERR),
+    ?LOGF("Unknown data  ~p~n",[Info],?ERR),
     {stop, unknown, State}.
 
 %%--------------------------------------------------------------------

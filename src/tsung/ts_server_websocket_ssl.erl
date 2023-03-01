@@ -35,14 +35,14 @@
 -include("ts_config.hrl").
 -include("ts_websocket.hrl").
 
--record(state, {parent, socket = none, accept, host, port, path, opts, version,
+-record(state, {parent, socket = none, accept, host, port, path, opts, version, origin,
                 frame, buffer = <<>>, state = not_connected, subprotos = []}).
 
--record(ws_config, {path, version = "13", frame, subprotos}).
+-record(ws_config, {path, version = "13", frame, origin, subprotos}).
 
 protocol_options(#proto_opts{tcp_rcv_size = Rcv, tcp_snd_size = Snd,
-                             websocket_path = Path, websocket_frame = Frame, websocket_subprotocols = SubProtocols}) ->
-    [#ws_config{path = Path, frame = Frame, subprotos = SubProtocols},
+                             websocket_path = Path, websocket_frame = Frame, websocket_origin = Origin, websocket_subprotocols = SubProtocols}) ->
+    [#ws_config{path = Path, frame = Frame, origin = Origin, subprotos = SubProtocols},
      binary,
      {active, once},
      {recbuf, Rcv},
@@ -58,12 +58,13 @@ connect(Host, Port, Opts, Timeout) ->
     Version = WSConfig#ws_config.version,
     Frame = WSConfig#ws_config.frame,
     Protocol = WSConfig#ws_config.subprotos,
+    Origin = WSConfig#ws_config.origin,
 
     case ssl:connect(Host, Port, opts_to_tcp_opts(TcpOpts),Timeout) of
         {ok, Socket} ->
             Pid = spawn_link(
                     fun() ->
-                            loop(#state{parent = Parent, host = Host, port = Port, subprotos = Protocol,
+                            loop(#state{parent = Parent, host = Host, port = Port, subprotos = Protocol, origin = Origin,
                                         opts = TcpOpts, path = Path, version = Version,
                                         frame = Frame, socket = Socket})
                     end),
@@ -75,10 +76,10 @@ connect(Host, Port, Opts, Timeout) ->
     end.
 
 loop(#state{socket = Socket, host = Host, path = Path,
-            version = Version, subprotos = SubProtocol,
+            version = Version, subprotos = SubProtocol, origin = Origin,
             state = not_connected} = State)->
-    Origin ="",
-    {Handshake, Accept} = websocket:get_handshake(Host, Path, SubProtocol, Version, Origin),
+    Headers = "",
+    {Handshake, Accept} = websocket:get_handshake(Host, Path, SubProtocol, Version, Origin, Headers),
     ssl:send(Socket, Handshake),
     loop(State#state{socket = Socket, accept = Accept,
                      state = waiting_handshake});
@@ -86,7 +87,7 @@ loop(#state{socket = Socket, host = Host, path = Path,
 loop(#state{parent = Parent, socket = Socket, accept = Accept,
             state = waiting_handshake} = State)->
     receive
-        {tcp, Socket, Data}->
+        {ssl, Socket, Data}->
             CheckResult = websocket:check_handshake(Data, Accept),
             case CheckResult of
                 ok ->
@@ -97,10 +98,10 @@ loop(#state{parent = Parent, socket = Socket, accept = Accept,
                     ?DebugF("handshake fail: ~p~n", [Reason]),
                     Parent ! {gen_ts_transport, self(), error, Reason}
             end;
-        {tcp_closed, Socket}->
+        {ssl_closed, Socket}->
             ?LOGF("tcp closed:~p~n", [Socket], ?ERR),
             Parent ! {gen_ts_transport, self(), closed};
-        {tcp_error, Socket, Error}->
+        {ssl_error, Socket, Error}->
             ?LOGF("tcp error:~p~n", [Socket], ?ERR),
             Parent ! {gen_ts_transport, self(), error, Error}
     end;
@@ -123,7 +124,7 @@ loop(#state{parent = Parent, socket = Socket, state = connected,
         {set_opts, Opts} ->
             ssl:setopts(Socket, Opts),
             loop(State);
-        {tcp, Socket, Data}->
+        {ssl, Socket, Data}->
             case websocket:decode(<<Buffer/binary, Data/binary>>) of
                 more ->
                     ?DebugF("receive incomplete from server: ~p~n", [Data]),
@@ -136,9 +137,9 @@ loop(#state{parent = Parent, socket = Socket, state = connected,
                     Parent ! {gen_ts_transport, self(), Payload},
                     loop(State#state{buffer = Left})
             end;
-        {tcp_closed, Socket}->
+        {ssl_closed, Socket}->
             Parent ! {gen_ts_transport, self(), closed};
-        {tcp_error, Socket, Error}->
+        {ssl_error, Socket, Error}->
             Parent ! {gen_ts_transport, self(), error, Error};
         E -> ?LOGF("Message:~p~n", [E], ?WARN)
     end.
@@ -163,6 +164,7 @@ send(Socket, Data, _Opts)  ->
             {error, timeout}
     end.
 
+close(none)   -> ok;
 close(Socket) ->
     Socket ! close.
 

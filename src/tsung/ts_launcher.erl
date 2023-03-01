@@ -1,4 +1,4 @@
-%%%  This code was developped by IDEALX (http://IDEALX.org/) and
+%%%  This code was developed by IDEALX (http://IDEALX.org/) and
 %%%  contributors (their names can be found in the CONTRIBUTORS file).
 %%%  Copyright (C) 2000-2001 IDEALX
 %%%
@@ -25,7 +25,7 @@
 %%% This module launch clients (ts_client module) given a number of
 %%% clients and the intensity of the arrival process (intensity =
 %%% inverse of the mean of inter arrival). The arrival process is a
-%%% Poisson Process (ie, inter-arrivals are independant and exponential)
+%%% Poisson Process (ie, inter-arrivals are independent and exponential)
 
 
 -module(ts_launcher).
@@ -76,7 +76,7 @@ launch({Node, Host, Arrivals, Seed}) ->
 
 %% Start clients with given interarrival (can be empty list)
 set_static_users({Node,Value}) ->
-    ?LOGF("Substract static users number to max: ~p~n",[Value], ?DEB),
+    ?LOGF("Subtract static users number to max: ~p~n",[Value], ?DEB),
     gen_fsm:send_event({?MODULE, Node}, {static, Value}).
 
 

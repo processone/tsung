@@ -1,4 +1,4 @@
-%%%  This code was developped by IDEALX (http://IDEALX.org/) and
+%%%  This code was developed by IDEALX (http://IDEALX.org/) and
 %%%  contributors (their names can be found in the CONTRIBUTORS file).
 %%%  Copyright (C) 2000-2001 IDEALX
 %%%
@@ -104,6 +104,7 @@
 -define(DELETE, "DELETE").
 -define(OPTIONS, "OPTIONS").
 -define(PATCH, "PATCH").
+-define(PURGE, "PURGE").
 -define(BODY_PARAM, "application/x-www-form-urlencoded").
 
 -define(USER_AGENT, "Tsung").

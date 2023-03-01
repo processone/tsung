@@ -9,6 +9,7 @@ Setting options
 .. index:: ssl_ciphers
 .. index:: ssl_versions
 .. index:: ssl_reuse_sessions
+.. index:: ssl_disable_sni
 .. index:: tcp_snd_buffer
 .. index:: tcp_rcv_buffer
 .. index:: udp_snd_buffer
@@ -60,6 +61,15 @@ you manage hundreds of clients, you may want to raise this value with
 
  <option name="max_ssh_startup_per_core" value="100"/>
 
+.. versionadded:: 1.8.0
+
+You can disable the Server Name Indication feature of TLS (it is enabled by default).
+
+.. code-block:: xml
+
+ <option name="ssl_disable_sni" value="true"/>
+
+
 
 .. index:: idle_timeout
 .. index:: global_ack_timeout
@@ -101,6 +111,19 @@ This option is used to set the IP_TRANSPARENT option on the TCP socket
  <option name="ip_transparent" value="true" />
 
 This can be useful to use when IPs are not configured on the client host (see also :ref:`iprange-label`)
+
+IP bind address no port
+---------------------------------------
+
+.. versionadded:: 1.8.0
+
+This option is used to set the IP_BIND_ADDRESS_NO_PORT option on the TCP socket
+
+.. code-block:: xml
+
+ <option name="ip_bind_address_no_port" value="true" />
+
+The kernel will choose the local port at connect time instead of bind time, making it more scalable
 
 Retry Attempts and Timeouts
 ---------------------------------------

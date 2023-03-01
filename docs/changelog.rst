@@ -1,4 +1,4 @@
 Changelog
 =========
 
-.. literalinclude:: ../CHANGES
+.. literalinclude:: ../CHANGELOG.md

@@ -189,10 +189,10 @@ parse({file, del_dir, [Path], {error,Reason}},State) ->
 parse({file, make_dir, [_Path], ok},State) ->
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
 parse({file, make_dir, [Path], {error, eexist} },State) ->
-    ?LOGF("error while creating diretory: ~p already exists~n",[Path],?NOTICE),
+    ?LOGF("error while creating directory: ~p already exists~n",[Path],?NOTICE),
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
 parse({file, make_dir, [Path], {error,Reason}},State) ->
-    ?LOGF("error while creating diretory: ~p (~p)~n",[Path, Reason],?ERR),
+    ?LOGF("error while creating directory: ~p (~p)~n",[Path, Reason],?ERR),
     ts_mon_cache:add({count,error_fs_mkdir}),
     {State#state_rcv{ack_done=true, datasize=0}, [], false};
 

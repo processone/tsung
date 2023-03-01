@@ -65,6 +65,7 @@
           curid = 0, % temporary var (current request id (can be transaction))
           cur_req_id  = 0,   % temporary var (current real request id)
           file_server = [],  % filenames for file_server
+          local_file_server = [],  % filenames for local_file_server
           load_loop,         % loop phases if > 0
           hibernate = 10000, % hibernate timeout (millisec) 10sec by default
           proto_opts,        % tcp/udp buffer sizes
@@ -73,7 +74,7 @@
           user_server_maxuid = none, % user_id max
           oids=[],
           rate_limit,
-          total_popularity = 0, % should be 100 if we use probabilites; sum of all weights if we use weights
+          total_popularity = 0, % should be 100 if we use probabilities; sum of all weights if we use weights
           use_weights      , % true if we use weights instead of probabilities
           total_server_weights=0,
           job_notify_port,

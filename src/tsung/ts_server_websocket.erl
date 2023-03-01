@@ -78,7 +78,8 @@ loop(#state{socket = Socket, host = Host, path = Path,
             version = Version, subprotos = SubProtocol,
             state = not_connected} = State)->
     Origin = "", % FIXME: can we make it configurable ?
-    {Handshake, Accept} = websocket:get_handshake(Host, Path, SubProtocol, Version, Origin),
+    Headers = "",
+    {Handshake, Accept} = websocket:get_handshake(Host, Path, SubProtocol, Version, Origin, Headers),
     gen_tcp:send(Socket, Handshake),
     loop(State#state{socket = Socket, accept = Accept,
                      state = waiting_handshake});
@@ -163,6 +164,7 @@ send(Socket, Data, _Opts)  ->
             {error, timeout}
     end.
 
+close(none)   -> ok;
 close(Socket) ->
     Socket ! close.
 

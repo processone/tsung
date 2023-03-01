@@ -1,4 +1,4 @@
-%%%  This code was developped by Zhihui Jiao(jzhihui521@gmail.com).
+%%%  This code was developed by Zhihui Jiao(jzhihui521@gmail.com).
 %%%
 %%%  Copyright (C) 2013 Zhihui Jiao
 %%%
@@ -77,12 +77,16 @@ dump(A, B) ->
 %% Args:	record
 %% Returns: binary
 %%----------------------------------------------------------------------
+get_message(Req0 = #mqtt_request{type = connect, client_id = undefined}, StateRcv) ->
+    ClientId = ["tsung-", ts_utils:randombinstr(10)],
+    Req1 = Req0#mqtt_request{client_id = ClientId},
+    get_message(Req1, StateRcv);
 get_message(#mqtt_request{type = connect, clean_start = CleanStart,
                           keepalive = KeepAlive, will_topic = WillTopic,
                           will_qos = WillQos, will_msg = WillMsg,
-                          will_retain = WillRetain, username = UserName, password = Password},
+                          will_retain = WillRetain, username = UserName,
+                          password = Password, client_id = ClientId},
             #state_rcv{session = MqttSession}) ->
-    ClientId = ["tsung-", ts_utils:randombinstr(10)],
     PublishOptions = mqtt_frame:set_publish_options([{qos, WillQos},
                                                      {retain, WillRetain}]),
     Will = #will{topic = WillTopic, message = WillMsg,
@@ -106,16 +110,19 @@ get_message(#mqtt_request{type = disconnect},
     {mqtt_frame:encode(Message),
      MqttSession#mqtt_session{wait = none, status = disconnect}};
 get_message(#mqtt_request{type = publish, topic = Topic, qos = Qos,
-                          retained = Retained, payload = Payload},
+                          retained = Retained, payload = Payload, stamped = Stamped},
             #state_rcv{session = MqttSession = #mqtt_session{curr_id = Id}}) ->
     NewMqttSession = case Qos of
         0 -> MqttSession;
         _ -> MqttSession#mqtt_session{curr_id = Id + 1}
     end,
-
+    NewPayload = case Stamped of
+        true -> generate_stamp() ++ Payload;
+        _ -> Payload
+    end,
     MsgId = NewMqttSession#mqtt_session.curr_id,
     Message = #mqtt{id = MsgId, type = ?PUBLISH, qos = Qos, retain = Retained,
-                    arg = {Topic, Payload}},
+                    arg = {Topic, NewPayload}},
     Wait = case Qos of
         1 -> ?PUBACK;
         _ -> none
@@ -127,7 +134,7 @@ get_message(#mqtt_request{type = subscribe, topic = Topic, qos = Qos},
     NewMqttSession = MqttSession#mqtt_session{curr_id = Id + 1},
     Arg = [#sub{topic = Topic, qos = Qos}],
     MsgId = NewMqttSession#mqtt_session.curr_id,
-    Message = #mqtt{id = MsgId, type = ?SUBSCRIBE, arg = Arg},
+    Message = #mqtt{id = MsgId, type = ?SUBSCRIBE, arg = Arg, qos = 1},
     {mqtt_frame:encode(Message), NewMqttSession#mqtt_session{wait = ?SUBACK}};
 get_message(#mqtt_request{type = unsubscribe, topic = Topic},
             #state_rcv{session = MqttSession = #mqtt_session{curr_id = Id}}) ->
@@ -219,12 +226,13 @@ parse_bidi(<<>>, State=#state_rcv{acc = [], session = MqttSession}) ->
 parse_bidi(Data, State=#state_rcv{acc = [], session = MqttSession}) ->
     AckBuf = MqttSession#mqtt_session.ack_buf,
     case mqtt_frame:decode(Data) of
-        {_MqttMsg = #mqtt{type = ?PUBLISH, qos = Qos, id = MessageId}, Left} ->
+        {_MqttMsg = #mqtt{type = ?PUBLISH, qos = Qos, id = MessageId, arg = {_, Payload}}, Left} ->
             ?DebugF("receive bidi mqtt_msg: ~p ~p~n",
                     [mqtt_frame:command_for_type(?PUBLISH), _MqttMsg]),
 
             ts_mon_cache:add({count, mqtt_server_published}),
             ts_mon_cache:add({count, mqtt_pubacked}),
+            parse_stamp(Payload),
             Ack = case Qos of
                 1 ->
                     Message = #mqtt{type = ?PUBACK, arg = MessageId},
@@ -265,17 +273,20 @@ add_dynparams(true, {DynVars, _S},
 				    keepalive = KeepAlive, will_topic = WillTopic,
 				    will_qos = WillQos, will_msg = WillMsg,
 				    will_retain = WillRetain, username = UserName,
-				    password = Password},
+				    password = Password, client_id = ClientId},
               _HostData) ->
     NewUserName = ts_search:subst(UserName, DynVars),
     NewPassword = ts_search:subst(Password, DynVars),
+    NewWillTopic = ts_search:subst(WillTopic, DynVars),
+    NewClientId = ts_search:subst(ClientId, DynVars),
     Param#mqtt_request{ type = connect,
 			clean_start = CleanStart,
-			keepalive = KeepAlive, will_topic = WillTopic,
+			keepalive = KeepAlive, will_topic = NewWillTopic,
 			will_qos = WillQos, will_msg = WillMsg,
 			will_retain = WillRetain,
 			username = NewUserName,
-			password = NewPassword };
+			password = NewPassword,
+      client_id = NewClientId};
 add_dynparams(true, {DynVars, _S},
               Param = #mqtt_request{type = publish, topic = Topic,
                                     payload = Payload},
@@ -318,4 +329,30 @@ ping_loop(Proto, Socket, KeepAlive) ->
             erlang:send_after(KeepAlive * 1000, self(), ping),
             ping_loop(Proto, Socket, KeepAlive);
         stop -> ok
+    end.
+
+generate_stamp() ->
+    {Mega, Secs, Micro} = ?TIMESTAMP,
+    TS = integer_to_list(Mega) ++ ";"
+    ++ integer_to_list(Secs) ++ ";"
+    ++ integer_to_list(Micro),
+    "@@@" ++ integer_to_list(erlang:phash2(node())) ++ "," ++ TS ++ "@@@".
+
+parse_stamp(Payload) ->
+    case re:run(Payload, "@@@([^@]+)@@@", [{capture, all_but_first, list}]) of
+        {match, [NodeStamp]} ->
+            [NodeS, StampS] = string:tokens(NodeStamp, ","),
+            case integer_to_list(erlang:phash2(node())) of
+                NodeS ->
+                    [MegaS, SecsS, MicroS] = string:tokens(StampS, ";"),
+                    Mega = list_to_integer(MegaS),
+                    Secs = list_to_integer(SecsS),
+                    Micro = list_to_integer(MicroS),
+                    Latency = timer:now_diff(?TIMESTAMP, {Mega, Secs, Micro}),
+                    ts_mon_cache:add({ sample, mqtt_forward_latency, Latency / 1000});
+                _ ->
+                    ignore
+            end;
+        nomatch ->
+            nomatch
     end.

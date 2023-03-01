@@ -119,7 +119,7 @@ get_message2_test()->
 pubsub_unsubscribe_test()->
     ts_user_server:reset(1),
     Req = #jabber{id=0,prefix="foo",username="foo",type='pubsub:unsubscribe',passwd="bar",domain={domain,"localdomain"},dest=random, node="node", pubsub_service="mypubsub", subid="myid",resource="tsung"},
-    RepOK= << "<iq to='mypubsub' type='set' id='5'><pubsub xmlns='http://jabber.org/protocol/pubsub'><unsubscribe node='/home/localdomain/foo1/node' jid='foo1@localdomain' subid='myid'/></pubsub></iq>" >>,
+    RepOK= << "<iq to='mypubsub' type='set' id='5'><pubsub xmlns='http://jabber.org/protocol/pubsub'><unsubscribe node='/home/localdomain/foo1/node' jid='foo1@localdomain' subid='myid' /></pubsub></iq>" >>,
     {Rep,_}=ts_jabber:get_message(Req,#state_rcv{session=#jabber_session{}}),
     ?assertEqual(RepOK,Rep ).
 

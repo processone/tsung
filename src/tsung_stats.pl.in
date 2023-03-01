@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 # -*- Mode: CPerl -*-
 #
-#  This code was developped by IDEALX (http://IDEALX.org/) and
+#  This code was developed by IDEALX (http://IDEALX.org/) and
 #  contributors (their names can be found in the CONTRIBUTORS file).
 #  Copyright (C) 2000-2004 IDEALX
 #  Copyright (C) 2005-2011 Nicolas Niclausse
@@ -25,7 +25,7 @@
 # purpose: quick and dirty ugly hack to compute stats and plots graph
 # given a (set of) log file(s)  from the tsung tool.
 
-# dygraphs fonctionnality added by Bearstech (http://bearstech.com)
+# dygraphs functionality added by Bearstech (http://bearstech.com)
 # using dygraphs JavaScript Visualization Library (http://dygraphs.com)
 
 use strict;
@@ -145,11 +145,11 @@ sub gnuplot_has_cairo {
 # plot stats from file with gnuplot
 sub plot_stats {
     # args:
-    my $names     = shift; # arrayref contaning data names
-    my $titles    = shift; # arrayref contaning data titles
+    my $names     = shift; # arrayref containing data names
+    my $titles    = shift; # arrayref containing data titles
     my $datatype  = shift; # type of data (added in filenames)
     my $timestamp = shift;
-    my $files     = shift; # arrayref contaning data files
+    my $files     = shift; # arrayref containing data files
     my $ylabel    = shift;
     my $logy      = shift; # if true use logarithmic scale for Y axis
 
@@ -158,12 +158,14 @@ sub plot_stats {
     my $legend_loc  = "key left top"; # TODO: can be override in option
     my $output_type;
     my $filename; # temporary var
+    my @sorted_files; # temporary var
     my $thumbnail_size = 0.5;
 
     if  (scalar @{$files} == 0 ) {
         warn "No data for $datatype\n";
         return;
     }
+    @sorted_files = sort @{$files};
 
     my $has_pngcairo = &gnuplot_has_cairo();
     print STDERR "Using pngcairo support in gnuplot\n" if $verbose and $has_pngcairo;
@@ -233,7 +235,7 @@ sub plot_stats {
 
             print "plot ";
             my $lineindex=0;
-            foreach $filename (@{$files}) {
+            foreach $filename (@sorted_files) {
                 $lineindex++;
                 print " \"$datadir/$filename\" using ";
                 # if $timestamp isn't defined, use the first column as timestamp
@@ -247,7 +249,7 @@ sub plot_stats {
                 $cur_title =~ s/:os_mon//;
                 $cur_title =~ s/(_|@)/\\$1/g if ($newgnuplot > 1);
                 print " title '$cur_title' ls $lineindex" ;
-                print "," unless ($filename eq @{$files}[$#{$files}]); # unless last occurence
+                print "," unless ($filename eq $sorted_files[$#sorted_files]); # unless last occurrence
             }
             print "\n"; # plot done
         }
@@ -260,10 +262,10 @@ sub plot_stats {
 # plot stats from file with dygraph
 sub plot_stats_dygraph {
   # args:
-  my $title     = shift;	# arrayref contaning data titles
+  my $title     = shift;	# arrayref containing data titles
   my $datatype  = shift;	# type of data (added in filenames)
   my $timestamp = shift;
-  my $files     = shift;	# arrayref contaning data files
+  my $files     = shift;	# arrayref containing data files
   my $ylabel    = shift;
   my $logy      = shift;    # if true use logarithmic scale for Y axis
 
@@ -295,12 +297,12 @@ sub plot_stats_dygraph {
     #  print "set xlabel \"unit = sec \"\n";
     #}
     #print "set ylabel \"".$ylabel->[$d]."\"\n" if $ylabel->[$d];
-    foreach $filename (@{$files}) {
+    foreach $filename (sort @{$files}) {
       $cur_title = $filename;
       $cur_title =~ s/\.txt$//;
       $cur_title =~ s/:os_mon//;
       open FILE, "$datadir/$filename";
-      #we go throught the file in order to complete row
+      #we go through the file in order to complete row
       $count = 1;
       $rowdata[0] = ["time"] if not defined $rowdata[0];
       push @{$rowdata[0]}, $cur_title;
@@ -400,7 +402,7 @@ sub parse_stats_file {
                 $category->{$type} = "http_status";
             } elsif ($type eq "request" or $type eq "page" or $type eq "session" or  $type eq "connect" or $type eq "async_rcv") {
                 $category->{$type} = "stats";
-            } elsif ($type =~ /^tr_/ or $type eq "page" or $type eq "xmpp_msg_latency") {
+            } elsif ($type =~ /^tr_/ or $type eq "page" or $type eq "xmpp_msg_latency" or $type eq "mqtt_forward_latency") {
                 $category->{$type} = "transaction";
             } elsif ($type =~ "^size") {
                 $category->{$type} = "network";
@@ -511,7 +513,7 @@ sub parse_stats_file {
         } elsif ($key eq "bosh_http_conn" or $key eq "bosh_http_req") {
 	    $bosh = 1;
             push @bosh_tps, "$key.txt";
-        } elsif ($key =~ /^tr_/ or $key eq "page" or $key eq "xmpp_msg_latency") {
+        } elsif ($key =~ /^tr_/ or $key eq "page" or $key eq "xmpp_msg_latency" or $key eq "mqtt_forward_latency") {
             push @transactions, "$key.txt";
         } elsif ($key =~ /^\d+$/) {
             $http = 1;
@@ -593,7 +595,7 @@ sub html_report {
                 $maxval->{$type}->{$data} = sprintf "%.2f",$maxval->{$type}->{$data};
                 next;
             }
-            next if not ($data eq "session" or $data eq "connect" or $data eq "request" or $data eq "page" or $data =~ m/^tr_/ or $data eq "xmpp_msg_latency");
+            next if not ($data eq "session" or $data eq "connect" or $data eq "request" or $data eq "page" or $data =~ m/^tr_/ or $data eq "xmpp_msg_latency" or $data eq "mqtt_forward_latency");
             $maxval->{$type}->{$data} = &formattime($maxval->{$type}->{$data});
         }
     }

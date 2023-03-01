@@ -38,7 +38,7 @@ This package has its own configuration file where to associate tsung
 stats names with tsung stat type.
 """
 
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 
 # data are produced every 10 seconds, by default
 # we read real used interval in log file (deduced from timestamps)
@@ -156,7 +156,7 @@ class TsungLog:
         record_ts  = 0
         import re
 
-        for line in file(self.filename):
+        for line in open(self.filename):
             # chomp \n
             line = line[:-1]
 
@@ -181,10 +181,10 @@ class TsungLog:
                 name   = array[1]
                 values = array[2:]
 
-                if self.types.has_key(name):
+                if self.types.__contains__(name):
                     data = self.types[name].__class__(interval, values)
 
-                    if not self.data.has_key(record_ts):
+                    if not self.data.__contains__(record_ts):
                         self.data[record_ts] = {}
 
                     self.data[record_ts][name] = data
@@ -197,21 +197,21 @@ class TsungLog:
                             y = re.compile(k)
                             if re.match(y, name):
                                 data = self.types[k].__class__(interval, values)
-                                if not self.data.has_key(record_ts):
+                                if not self.data.__contains__(record_ts):
                                     self.data[record_ts] = {}
                                 self.data[record_ts][name] = data
                                 is_re = True
                                 break
 
                     if name not in self.unknown and not is_re:
-                        print 'WARNING: tsung %s data is not configured' % name
+                        print('WARNING: tsung %s data is not configured' % name)
                         self.unknown.append(name)
 
     def stat(self, name, stat):
         """ returns a {timestamp: date_type} dict for given named statistic """
         ret = {}
         for ts, stats in self.data.items():
-            if stats.has_key(name) and stats[name].get(stat) is not None:
+            if stats.__contains__(name) and stats[name].get(stat) is not None:
                 ret[ts] = stats[name].get(stat)
 
         return ret

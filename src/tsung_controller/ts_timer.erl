@@ -1,4 +1,4 @@
-%%%  This code was developped by IDEALX (http://IDEALX.org/) and
+%%%  This code was developed by IDEALX (http://IDEALX.org/) and
 %%%  contributors (their names can be found in the CONTRIBUTORS file).
 %%%  Copyright (C) 2000-2001 IDEALX
 %%%
@@ -107,7 +107,7 @@ receiver({connected, Pid}, State=#state{pidlist=List, nclient=N}) ->
     {next_state, receiver, State#state{pidlist=List ++ [Pid], nclient=N-1},
      State#state.timeout};
 
-%% timeout event, now we start to send ack, by sending a timeout event immediatly
+%% timeout event, now we start to send ack, by sending a timeout event immediately
 receiver(timeout, StateData) ->
     {next_state, ack, StateData,1}.
 

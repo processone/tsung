@@ -1,5 +1,46 @@
 # Changelog #
 
+## [1.8.0] - 2023-03-02 - Major enhancements and bugfixes ##
+### Fixed ###
+- Fix ts_http:split_body for non-chunked responses [#302](https://github.com/processone/tsung/pull/302)
+- Fix: <if> and <repeat> does not work with lte and gte [#300](https://github.com/processone/tsung/pull/300)
+- Fix typos [#394](https://github.com/processone/tsung/pull/394)
+- Pubsub fixes [#290](https://github.com/processone/tsung/pull/290)
+- Change the wrong closing tag </stats> to the correct one </th> [#384](https://github.com/processone/tsung/pull/384)
+- Fix(websocket): can connect now [#349](https://github.com/processone/tsung/pull/349)
+- Fix waiting for response body on HTTP HEAD requests with Content-Length set [#334](https://github.com/processone/tsung/pull/334)
+- Fix docs to substitute for-loop counter variable [#330](https://github.com/processone/tsung/pull/330)
+- MQTT subscribe packet MUST set qos to 1 for the fixed header [#327](https://github.com/processone/tsung/pull/327)
+- Tsung fails in ts_dynvars:merge when arguments are [<<>>, Dynvars] [#258](https://github.com/processone/tsung/pull/258)
+- Fix connection with websocket ssl [#310](https://github.com/processone/tsung/pull/310)
+- Fix ts_config_http:parse_URL/4 to deal with empty paths [#307](https://github.com/processone/tsung/pull/307)
+
+### Changed ###
+- Update conf-sessions.rst [#390](https://github.com/processone/tsung/pull/390)
+- Improve docs: Add links to apache benchmark [#389](https://github.com/processone/tsung/pull/389)
+- Travis: Test against Erlang 21 [#323](https://github.com/processone/tsung/pull/323)
+- Reduce loglevel for xpath page parsing errors [#322](https://github.com/processone/tsung/pull/322)
+- Docs: fixed add_cookie example [#321](https://github.com/processone/tsung/pull/321)
+- Use --dygraph even when tsung_stats.pl is found in the path [#291](https://github.com/processone/tsung/pull/291)
+- Log HTTP Digest configuration on debug level [#299](https://github.com/processone/tsung/pull/299)
+- Make generated graphs more comparable over time and space. [#292](https://github.com/processone/tsung/pull/292)
+- Run <if> value by ts_search:subst/2 [#311](https://github.com/processone/tsung/pull/311)
+- Handle ts_server_websocket_ssl:close/1 when socket is none [#325](https://github.com/processone/tsung/pull/325)
+- Substitution in <dyn_variable> [#317](https://github.com/processone/tsung/pull/317)
+
+### Added ###
+- Add support for IP_BIND_ADDRESS_NO_PORT option [#400](https://github.com/processone/tsung/pull/400)
+- Add ping support [#289](https://github.com/processone/tsung/pull/289)
+- Add websocket_origin parameters to customize Origin header [#388](https://github.com/processone/tsung/pull/388)
+- Add local_file_server [#237](https://github.com/processone/tsung/pull/237)
+- Support RFC 7395 (WebSocket) framing [#397](https://github.com/processone/tsung/pull/397)
+- Add forwarding latency statistic for mqtt [#287](https://github.com/processone/tsung/pull/287)
+- Add option to disable SNI for TLS connections [#344](https://github.com/processone/tsung/pull/344)
+- Add PURGE for Varnish support [#326](https://github.com/processone/tsung/pull/326)
+- Mqtt connect's will topic with dynamic substitution [#273](https://github.com/processone/tsung/pull/273)
+- Add custom headers with websocket request [#296](https://github.com/processone/tsung/pull/296)
+- Add ClientId option on MQTT connect message [#303](https://github.com/processone/tsung/pull/303)
+
 ## [1.7.0] - 2017-08-28 - Major enhancements and bugfixes ##
 ### Fixed ###
 - [#117] Closing TCP connection in think state considered an error?
@@ -225,7 +266,7 @@
 - [TSUN-131] - tsung can stop too early when static users are used
 - [TSUN-132] - http cookies: accept domains equals to hostname with a leading "."
 - [TSUN-133] - proxy-recorder with SSL fails on large client packets (multiple TCP packets)
-- [TSUN-138] - when an error occured( for ex a timeout during a request) and a client exits, started transactions are not updated
+- [TSUN-138] - when an error occurred( for ex a timeout during a request) and a client exits, started transactions are not updated
 - [TSUN-140] - tsung does not honor the Proxy-Connection: keep-Alive or Connection: keep-Alive header if the proxy is HTTP/1.0
 - [TSUN-142] - http recorder can fail with https rewriting and chunked encoding
 - [TSUN-147] - UDP & bidi does not seem to work
@@ -307,7 +348,7 @@
 - [TSUN-40] - problem to rewrite url for https with gzip-encoded html.
 - [TSUN-48] - tcp/udp buffer size should be customizable in the XML config file.
 - [TSUN-59] - if a User-Agent header is set in <header>, it should override the global one.
-- [TSUN-62] - add abilty to loop back to a previous request in a session
+- [TSUN-62] - add ability to loop back to a previous request in a session
 - [TSUN-63] - check for ssl and crypto application at compile time
 - [TSUN-65] - enhance dynamic variables.
 - [TSUN-66] - add global mean and counter computation and reporting for samples
@@ -344,7 +385,7 @@
 - [TSUN-28] - Refactoring needed to ease the change of the userid / password generation code
 - [TSUN-29] - Multiple file_server support
 - [TSUN-32] - make snmp server options tunable
-- [TSUN-34] - add costum http headers
+- [TSUN-34] - add custom http headers
 - [TSUN-44] - tsung should ignore whitespace keepalive from xmpp server
 - [TSUN-45] - add kernel-poll support for better performance
 - [TSUN-46] - add number of open connections in statistics
@@ -454,7 +495,7 @@
 - fix: broken 'global', 'local' and 'no_ack' requests and size computation
 - fix: broken ids in jabber messages
 - fix: broken online/offline in user_server
-- default thinktime can now be overriden
+- default thinktime can now be overridden
 
 ### Added ###
 - add script to convert apache log file (combined) to idx-tsunami XML
@@ -520,12 +561,12 @@
 - Extension of XML attribute entity normalisation
 - HTTP: Content-type support in the recorder (needed to handle non-HTML form encoded posts)
 - add autoconf support to detect Erlang installation path
-- Preliminary Windows support: A workaround has been introduced in the code to handle behaviour difference between Erlang Un*x and Erlang Windows on how the command-line is handled. When an assumtion is made on the string type of a parameter, it should be check that this is actually a string and not an atom.
+- Preliminary Windows support: A workaround has been introduced in the code to handle behaviour difference between Erlang Un*x and Erlang Windows on how the command-line is handled. When an assumption is made on the string type of a parameter, it should be check that this is actually a string and not an atom.
 
 ## [1.0.beta4] - 2004-03-16 - Minor bugfixes ##
 ### Fixed ###
 - fix lost cookie when transfer-encoding:chunked is used
-- fix config parsing (the last request of the last page of a sesssion was not marked as endpage)
+- fix config parsing (the last request of the last page of a session was not marked as endpage)
 - don't crash anymore on error during start or stop
 
 ## [1.0.beta3] - 2004-02-24 - Minor feature enhancements ##
@@ -594,7 +635,7 @@
 - switch to R9C
 
 
-## [0.1.1] - 2002-08-13 - Bugfix realease ##
+## [0.1.1] - 2002-08-13 - Bugfix release ##
 
 ### Fixed ###
 - fix config file

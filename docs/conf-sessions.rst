@@ -25,7 +25,7 @@ sessions of type s1 than s2.
 A transaction is just a way to have customized statistics. Say if you
 want to know the response time of the login page of your website, you
 just have to put all the requests of this page (HTML + embedded
-pictures) within a transaction. In the example above, the transaction
+pictures) within a transaction. In the example below, the transaction
 called ``index_request`` will gives you in the
 statistics/reports the mean response time to get
 ``index.en.html + header.gif``. Be warn that If you have a
@@ -164,9 +164,9 @@ cookie is not persistent: you must add it in every ``<requests>``:
 
 .. code-block:: xml
 
- <http url="/">
+ <http url="/" method="GET" version="1.1">
    <add_cookie key="foo" value="bar"/>
-   <add_cookie key="id"  value="123"/>
+   <add_cookie key="id" value="123"/>
  </http>
 
 
@@ -675,7 +675,7 @@ offline and random users (also used for pubsub):
 
 
 The username (resp. passwd) should be the first (resp. second) entry in the each CSV line (the
-delimiter is by default ``";"`` and can be overriden).
+delimiter is by default ``";"`` and can be overridden).
 
 raw XML
 """""""
@@ -889,6 +889,16 @@ If not set this defaults to the ``host`` value.
 
   <websocket type="connect" origin="https://example.com"></websocket>
 
+**New in 1.7.1**: You can also add any HTTP header now, as in:
+
+.. code-block:: xml
+
+  <request subst="true">
+    <websocket type="connect" path="/path/to/ws">
+      <http_header name="Cookie" value="sessionid=%%_sessionid%%"/>
+    </websocket>
+  </request>
+
 AMQP
 ^^^^^^^^^
 .. _sec-session-amqp-label:
@@ -982,7 +992,7 @@ MQTT
 It supports publish messages, subscribe and unsubscribe topics,
 Available request types:
 
-* connect (with options like clean_start, will_topic, username, password, etc.)
+* connect (with options like client_id, clean_start, will_topic, username, password, etc.)
 * disconnect
 * publish (with topic name, qos level and retain flag)
 * subscribe (with topic name and qos level)
@@ -996,12 +1006,12 @@ Example with MQTT as a session type:
 
     <session name="mqtt-example" probability="100" type="ts_mqtt">
         <request>
-            <mqtt type="connect" clean_start="true" keepalive="10" will_topic="will_topic" will_qos="0" will_msg="will_msg" will_retain="false"></mqtt>
+            <mqtt type="connect" client_id="client_id" clean_start="true" keepalive="10" will_topic="will_topic" will_qos="0" will_msg="will_msg" will_retain="false"></mqtt>
         </request>
 
         <for from="1" to="10" incr="1" var="loops">
             <request subst="true">
-                <mqtt type="publish" topic="test_topic" qos="1" retained="true">test_message</mqtt>
+                <mqtt type="publish" topic="test_topic" qos="1" retained="true" stamped="false">test_message</mqtt>
             </request>
         </for>
 
@@ -1022,6 +1032,23 @@ Example with MQTT as a session type:
             <mqtt type="disconnect"></mqtt>
         </request>
     </session>
+
+Note that if a ``client_id`` is omitted upon connecting Tsung will create a random one, prefixed with ``tsung-``.
+
+Message stamping
+""""""""""""""""
+
+It is possible to stamp measure the broker's forwarding latency by setting
+``stamped`` attribute inside ``<publish>`` element to ``true``. The stamp
+will include current timestamp and ID of the sender node. If the recipient
+will recognize the node ID, it will compare the timestamp inside message
+with the current one. The difference will be reported as ``mqtt_forward_latency``
+metric (in milliseconds). The aim of node ID comparison is to avoid slight
+inconsistencies of timestamps on different Tsung nodes. Note that the stamp
+will be add ahead of the publish payload and will increase publish payload size.
+
+Only a fraction of requests will hit the same node they originated from,
+but with request rate high enough this fraction should be sufficient.
 
 LDAP
 ^^^^

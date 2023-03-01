@@ -24,8 +24,8 @@
 
 %%% ---------------------------------------------------------------------
 %%% Purpose: plugin for mysql >= 4.1
-%%% Dependancies: none
-%%% Note: Packet fragmentation isnt implemented yet
+%%% Dependencies: none
+%%% Note: Packet fragmentation isn't implemented yet
 %%% ---------------------------------------------------------------------
 -module(ts_mysql).
 -vc('$Id:$ ').

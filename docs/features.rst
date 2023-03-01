@@ -1,3 +1,5 @@
+.. _ab: http://httpd.apache.org/docs/current/programs/ab.html
+
 ========
 Features
 ========
@@ -12,7 +14,7 @@ Tsung main features
   active: it can be idle during a ``thinktime``
   period). Traditional injection tools can hardly go further than a 
   few hundreds (Hint: if all you want to do is requesting a single URL
-  in a loop, use :program:`ab`; but if you want to build complex
+  in a loop, use ab_; but if you want to build complex
   scenarios with extended reports, ``Tsung`` is for you).
 
 * *Distributed*: the load can be distributed on a cluster of client machines
@@ -51,7 +53,7 @@ HTTP related features
 
 * HTTP/1.0 and HTTP/1.1 support
 
-* GET, POST, PUT, DELETE, HEAD, OPTIONS and PATCH requests
+* GET, POST, PUT, DELETE, HEAD, OPTIONS, PURGE and PATCH requests
 
 * Cookies: Automatic cookies management (but you can also manually add
   more cookies)
@@ -76,7 +78,7 @@ WEBDAV related features
 =======================
 
 The WebDAV (:RFC:`4918`) plugin is a superset of the HTTP plugin. It adds the
-following features (some versionning extensions to WebDAV (:RFC:`3253`)
+following features (some versioning extensions to WebDAV (:RFC:`3253`)
 are also supported):
 
 

@@ -1,4 +1,4 @@
-%%%  This code was developped by IDEALX (http://IDEALX.org/) and
+%%%  This code was developed by IDEALX (http://IDEALX.org/) and
 %%%  contributors (their names can be found in the CONTRIBUTORS file).
 %%%  Copyright (C) 2000-2003 IDEALX
 %%%
@@ -494,16 +494,20 @@ parse(_Element = #xmlElement{name='if', attributes=Attrs,content=Content},
                       {none, none, none, Lt, none, none} ->
                           {lt,Lt};
                       {none, none, none, none, Gte, none} ->
-                          {gt,Gte};
+                          {gte,Gte};
                       {none, none, none, none, none, Lte} ->
-                          {lt,Lte}
+                          {lte,Lte}
                   end,
     ?LOGF("Add if_start action in session ~p as id ~p",
           [CurS#session.id,Id+1],?INFO),
     NewConf = lists:foldl(fun parse/2, Conf#config{curid=Id+1}, Content),
     NewId = NewConf#config.curid,
     ?LOGF("endif in session ~p as id ~p",[CurS#session.id,NewId+1],?INFO),
-    InitialAction = {ctrl_struct, {if_start, Rel, VarName, list_to_binary(Value) , NewId+1}},
+    SubstitutionFlag = case re:run(Value, "%%.+%%") of
+                         {match, _} -> subst;
+                         nomatch -> nosubst
+                       end,
+    InitialAction = {ctrl_struct, {if_start, Rel, VarName, list_to_binary(Value), SubstitutionFlag, NewId+1}},
     %%NewId+1 -> id of the first action after the if
     ets:insert(Tab,{{CurS#session.id,Id+1},InitialAction}),
     NewConf;
@@ -588,9 +592,9 @@ parse(_Element = #xmlElement{name=repeat,attributes=Attrs,content=Content},
                               {none, none, none, Lt, none, none} ->
                                   {lt,Lt};
                               {none, none, none, none, Gte, none} ->
-                                  {gt,Gte};
+                                  {gte,Gte};
                               {none, none, none, none, none, Lte} ->
-                                  {lt,Lte}
+                                  {lte,Lte}
                           end,
                           %either <while .. eq=".."/> , <while ..neq=".."/>
                           %either <while .. gt=".."/> , <while ..gte=".."/>
@@ -610,7 +614,7 @@ parse(_Element = #xmlElement{name=repeat,attributes=Attrs,content=Content},
 
 %%% Parsing the dyn_variable element
 parse(#xmlElement{name=dyn_variable, attributes=Attrs},
-      Conf=#config{sessions=[CurS|_],dynvar=DynVars}) ->
+      Conf=#config{sessions=[CurS|_],dynvar=DynVars,subst=SubstitutionFlag}) ->
     StrName  = ts_utils:clean_str(getAttr(Attrs, name)),
     {ok, [{atom,_,Name}],_} = erl_scan:string("'"++StrName++"'"),
     {Type,Expr} = case {getAttr(string,Attrs,re,none),
@@ -651,6 +655,14 @@ parse(#xmlElement{name=dyn_variable, attributes=Attrs},
                      ?LOGF("Add new xpath: ~s ~n", [Expr],?INFO),
                      CompiledXPathExp = mochiweb_xpath:compile_xpath(FlattenExpr),
                      {xpath,Name,CompiledXPathExp};
+                 jsonpath ->
+                     ?LOGF("Add new jsonpath: ~s ~n", [Expr],?INFO),
+                     EnableSubstitution = case {SubstitutionFlag, re:run(Expr, "%%.+%%")} of
+                                            { true, { match, _ } } -> true;
+                                            _ -> false
+                                        end,
+
+                     {jsonpath,Name,Expr,EnableSubstitution};
                  _Other ->
                      ?LOGF("Add ~s ~s ~p ~n", [Type,Name,Expr],?INFO),
                      {Type,Name,Expr}
@@ -674,7 +686,7 @@ parse( #xmlElement{name=change_type, attributes=Attrs},
                  true  -> CType % back to the main type
              end,
     ets:insert(Tab,{{CurS#session.id, Id+1}, {change_type, CType, Server, Port, PType, Store, Restore, Bidi}}),
-    ?LOGF("Parse change_type (~p) ~p:~p:~p:~p ~n",[CType, Server,Port,PType,Id],?NOTICE),
+    ?LOGF("Parse change_type (~p) ~p:~p:~p:~p (store/restore: ~p:~p)~n",[CType, Server,Port,PType,Id, Store, Restore],?NOTICE),
     Conf#config{main_sess_type=SessType, curid=Id+1,
                 sessions=[CurS#session{type=CType}|Other] };
 
@@ -819,6 +831,19 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                         true -> % default value, do nothing
                             lists:foldl( fun parse/2, Conf, Element#xmlElement.content)
                         end;
+                "ssl_disable_sni" ->
+                    case getAttr(atom, Attrs, value, false) of
+                        true ->
+                            OldProto = Conf#config.proto_opts,
+                            NewProto = OldProto#proto_opts{disable_sni = true},
+                            lists:foldl(
+                                fun parse/2,
+                                Conf#config{proto_opts=NewProto},
+                                Element#xmlElement.content
+                            );
+                        false ->
+                            lists:foldl(fun parse/2, Conf, Element#xmlElement.content)
+                    end;
                 "seed" ->
                     Seed =  getAttr(integer,Attrs, value, now),
                     lists:foldl( fun parse/2, Conf#config{seed=Seed},
@@ -925,6 +950,12 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     NewProto =  OldProto#proto_opts{websocket_subprotocols=SubProtocols},
                     lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
                                  Element#xmlElement.content);
+               "websocket_origin" ->
+                   Origin = getAttr(string,Attrs, value, ?config(websocket_origin)),
+                   OldProto =  Conf#config.proto_opts,
+                   NewProto =  OldProto#proto_opts{websocket_origin=Origin},
+                   lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                Element#xmlElement.content);
                 "bosh_path" ->
                     Path = getAttr(string,Attrs, value, ?config(bosh_path)),
                     OldProto =  Conf#config.proto_opts,
@@ -943,6 +974,18 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                     lists:foldl( fun parse/2,
                                  Conf#config{file_server=[{Id, FileName} | Conf#config.file_server]},
                                  Element#xmlElement.content);
+                "local_file_server" ->
+                    FileName = getAttr(Attrs, value),
+                    case file:read_file_info(FileName) of
+                        {ok, _} ->
+                            ok;
+                        {error, _Reason} ->
+                            exit({error, bad_filename, FileName})
+                    end,
+                    Id       = getAttr(atom, Attrs, id,default),
+                    lists:foldl( fun parse/2,
+                                 Conf#config{local_file_server=[{Id, FileName} | Conf#config.local_file_server]},
+                                 Element#xmlElement.content);
                 "global_number" ->
                     GlobalNumber = getAttr(integer, Attrs, value, ?config(global_number)),
                     ts_timer:config(GlobalNumber),
@@ -956,6 +999,16 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
                         true ->
                             OldProto =  Conf#config.proto_opts,
                             NewProto =  OldProto#proto_opts{ip_transparent = true},
+                            lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
+                                         Element#xmlElement.content);
+                        false ->
+                            lists:foldl( fun parse/2, Conf, Element#xmlElement.content)
+                    end;
+                "ip_bind_address_no_port" ->
+                    case getAttr(atom, Attrs, value, false) of
+                        true ->
+                            OldProto =  Conf#config.proto_opts,
+                            NewProto =  OldProto#proto_opts{ip_bind_address_no_port = true},
                             lists:foldl( fun parse/2, Conf#config{proto_opts=NewProto},
                                          Element#xmlElement.content);
                         false ->
@@ -1066,6 +1119,16 @@ parse(Element = #xmlElement{name=setdynvars, attributes=Attrs},
                              {setdynvars,file,{Order,FileId,Delimiter},Vars};
                          false ->
                              io:format(standard_error, "Unknown_file_id ~p in file setdynvars declaration: you forgot to add a file_server option~n",[FileId]),
+                             exit({error, unknown_file_id})
+                     end;
+                  "local_file" ->
+                     FileId = getAttr(atom,Attrs,fileid,none),
+                     case lists:keysearch(FileId,1,Conf#config.local_file_server) of
+                         {value,_Val} ->
+                             Delimiter = list_to_binary(getAttr(string,Attrs,delimiter,";")),
+                             {setdynvars,local_file,{FileId,Delimiter},Vars};
+                         false ->
+                             io:format(standard_error, "Unknown_file_id ~p in file setdynvars declaration: you forgot to add a local_file_server option~n",[FileId]),
                              exit({error, unknown_file_id})
                      end;
                  "random_string" ->
@@ -1286,7 +1349,7 @@ get_dynvar_name(VarNameStr) ->
 get_popularity(-1, -1, _, _)->
     erlang:error({"must set weight or probability in session"});
 get_popularity(Proba,Weight,_,_) when is_number(Proba), Proba >= 0, is_number(Weight), Weight >= 0 ->
-    erlang:error({"can't mix probabilites and weights", Proba, Weight} );
+    erlang:error({"can't mix probabilities and weights", Proba, Weight} );
 get_popularity(Proba, _Weight, true,_)     when is_number(Proba), Proba >= 0->
     erlang:error({"can't use probability when using weight"});
 get_popularity(_, Weight, false,_)        when is_number(Weight), Weight >= 0->

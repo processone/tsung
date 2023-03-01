@@ -21,7 +21,7 @@
 
 %%% File    : ts_search.erl
 %%% Author  : Mickael Remond <mickael.remond@erlang-fr.org>
-%%% Description : Add dynamic / Differenciated parameters in tsung
+%%% Description : Add dynamic / Differentiated parameters in tsung
 %%%               request and response
 %%%               The function subst is intended to be called for each
 %%%               relevant field in ts_protocol implementation.
@@ -32,7 +32,7 @@
 -module(ts_search).
 -vc('$Id$ ').
 
--export([subst/2, match/5, parse_dynvar/2]).
+-export([subst/2, match/5, parse_dynvar/2, parse_dynvar/3]).
 
 -include("ts_macros.hrl").
 -include("ts_profile.hrl").
@@ -261,17 +261,20 @@ setcount(#match{do=abort_test,name=Name}, {Count,MaxC,SessionId,UserId}, Stats,_
 %% @doc Look for dynamic variables in Data
 %% @end
 %%----------------------------------------------------------------------
-parse_dynvar([], _Data) -> ts_dynvars:new();
-parse_dynvar(DynVarSpecs, Data)  when is_binary(Data) ->
+parse_dynvar(Specs, Data) ->
+    parse_dynvar(Specs, Data, ts_dynvars:new()).
+
+parse_dynvar([], _Data, DynVars) -> DynVars;
+parse_dynvar(DynVarSpecs, Data, DynVars)  when is_binary(Data) ->
     ?DebugF("Parsing Dyn Variable (specs=~p); data is ~p~n",[DynVarSpecs,Data]),
-    parse_dynvar(DynVarSpecs,Data, undefined,undefined,[]);
-parse_dynvar(DynVarSpecs, {_,_,_,Data})  when is_binary(Data) ->
+    parse_dynvar(DynVarSpecs,Data, undefined,undefined,DynVars);
+parse_dynvar(DynVarSpecs, {_,_,_,Data}, DynVars)  when is_binary(Data) ->
     ?DebugF("Parsing Dyn Variable (specs=~p); data is ~p~n",[DynVarSpecs,Data]),
-    parse_dynvar(DynVarSpecs,Data, undefined,undefined,[]);
-parse_dynvar(DynVarSpecs, {_,_,_,Data})  when is_list(Data) ->
+    parse_dynvar(DynVarSpecs,Data, undefined,undefined,DynVars);
+parse_dynvar(DynVarSpecs, {_,_,_,Data}, DynVars)  when is_list(Data) ->
     ?DebugF("Parsing Dyn Variable (specs=~p); data is ~p~n",[DynVarSpecs,Data]),
-    parse_dynvar(DynVarSpecs,list_to_binary(Data), undefined,undefined,[]);
-parse_dynvar(DynVarSpecs, _Data)  ->
+    parse_dynvar(DynVarSpecs,list_to_binary(Data), undefined,undefined,DynVars);
+parse_dynvar(DynVarSpecs, _Data, _DynVars)  ->
     ?LOGF("Error while Parsing dyn Variable(~p)~n",[DynVarSpecs],?WARN),
     ts_dynvars:new().
 
@@ -360,13 +363,14 @@ parse_dynvar(D=[{xpath,_VarName, _Expr}| _DynVarsSpecs],
     catch
         Type:Exp ->
             ?LOGF("Page couldn't be parsed:(~p:~p) ~n Page:~p~n",
-                    [Type,Exp,Binary],?ERR),
+                    [Type,Exp,Binary],?NOTICE),
+            ts_mon_cache:add({ count, error_xml_unparsable }),
             parse_dynvar(D,Binary,String,xpath_error,DynVars)
     end;
 
 
 
-parse_dynvar(D=[{jsonpath,_VarName, _Expr}| _DynVarsSpecs],
+parse_dynvar(D=[{jsonpath,_VarName, _Expr, _SubstitutionFlag}| _DynVarsSpecs],
                 Binary,String,undefined,DynVars) ->
     Body = extract_body(Binary),
     try mochijson2:decode(Body) of
@@ -390,9 +394,10 @@ parse_dynvar(D=[{pgsql_expr,_VarName, _Expr}| _DynVarsSpecs],
 parse_dynvar([{xpath,VarName,_Expr}|DynVarsSpecs],Binary,String,xpath_error,DynVars)->
     ?LOGF("Couldn't execute XPath: page not parsed (varname=~p)~n",
           [VarName],?ERR),
+    ts_mon_cache:add({ count, error_xml_not_parsed }),
     parse_dynvar(DynVarsSpecs, Binary,String,xpath_error,DynVars);
 
-parse_dynvar([{jsonpath,VarName,_Expr}|DynVarsSpecs],Binary,String,json_error,DynVars)->
+parse_dynvar([{jsonpath,VarName,_Expr,_SubstitutionFlag}|DynVarsSpecs],Binary,String,json_error,DynVars)->
     ?LOGF("Couldn't execute JSONPath: page not parsed (varname=~p)~n",
           [VarName],?NOTICE),
     ts_mon_cache:add({ count, error_json_not_parsed }),
@@ -413,8 +418,13 @@ parse_dynvar([{xpath,VarName, Expr}| DynVarsSpecs],Binary,String,Tree,DynVars)->
             end,
     parse_dynvar(DynVarsSpecs, Binary,String,Tree,ts_dynvars:set(VarName,Value,DynVars));
 
-parse_dynvar([{jsonpath,VarName, Expr}| DynVarsSpecs],Binary,String,JSON,DynVars)->
-    Values = case ts_utils:jsonpath(Expr,JSON) of
+parse_dynvar([{jsonpath,VarName, Expr, SubstitutionFlag}| DynVarsSpecs],Binary,String,JSON,DynVars)->
+    NewExpr = case SubstitutionFlag of
+        true -> ts_search:subst(Expr, DynVars);
+        false -> Expr
+    end,
+
+    Values = case ts_utils:jsonpath(NewExpr,JSON) of
                 undefined ->
                     ?LOGF("Dyn Var: no Match (varname=~p), ~n",[VarName],?NOTICE),
                      << >>;

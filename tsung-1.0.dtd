@@ -214,7 +214,7 @@ repeat | if | change_type | foreach | set_option | interaction | abort )*>
     contents_from_file CDATA #IMPLIED
     content_type       CDATA #IMPLIED
     if_modified_since  CDATA #IMPLIED
-    method             (GET | POST | PUT | PATCH | DELETE | HEAD | PROPFIND | PROPPATCH | COPY | MOVE | LOCK | UNLOCK | MKCOL | MKACTIVITY | OPTIONS | REPORT | VERSION-CONTROL | MERGE | CHECKOUT) "GET"
+    method             (GET | POST | PUT | PATCH | PURGE | DELETE | HEAD | PROPFIND | PROPPATCH | COPY | MOVE | LOCK | UNLOCK | MKCOL | MKACTIVITY | OPTIONS | REPORT | VERSION-CONTROL | MERGE | CHECKOUT) "GET"
     url                CDATA #REQUIRED
     version            (1.0 | 1.1) "1.1" >
 
@@ -374,7 +374,7 @@ repeat | if | change_type | foreach | set_option | interaction | abort )*>
     certfile    CDATA   #IMPLIED
     dn          CDATA   #IMPLIED
     >
-<!ELEMENT websocket (#PCDATA) >
+<!ELEMENT websocket (#PCDATA | http_header)* >
 <!ATTLIST websocket
     type (connect | message | close) #REQUIRED
     ack  (no_ack | parse) #IMPLIED
@@ -413,7 +413,9 @@ repeat | if | change_type | foreach | set_option | interaction | abort )*>
     retained CDATA "false"
     timeout CDATA "1"
     username CDATA ""
-    password CDATA "">
+    password CDATA ""
+    stamped (true | false) "false"
+    client_id CDATA "">
 
 <!ELEMENT modification (attr*) >
 <!ATTLIST modification
@@ -430,7 +432,7 @@ repeat | if | change_type | foreach | set_option | interaction | abort )*>
 <!ELEMENT setdynvars (var*) >
 <!ATTLIST setdynvars
     sourcetype   (random_string | urandom_string | random_number |
-          file | erlang | eval| jsonpath | value | server)  #REQUIRED
+          local_file | file | erlang | eval| jsonpath | value | server)  #REQUIRED
     callback     CDATA   #IMPLIED
     code         CDATA   #IMPLIED
     fileid       CDATA   #IMPLIED

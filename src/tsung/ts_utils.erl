@@ -1,4 +1,4 @@
-%%%  This code was developped by IDEALX (http://IDEALX.org/) and
+%%%  This code was developed by IDEALX (http://IDEALX.org/) and
 %%%  contributors (their names can be found in the CONTRIBUTORS file).
 %%%  Copyright (C) 2000-2001 IDEALX
 %%%
@@ -68,7 +68,7 @@ level2int("emergency") -> ?EMERG.
 
 %%----------------------------------------------------------------------
 %% Func: get_val/1
-%% Purpose: return environnement variable value for the current application
+%% Purpose: return environment variable value for the current application
 %% Returns: Value | {undef_var, Var}
 %%----------------------------------------------------------------------
 get_val(Var) ->
@@ -84,7 +84,7 @@ get_val(Var) ->
 
 
 
-%% ensure atom to string conversion of environnement variable
+%% ensure atom to string conversion of environment variable
 %% This is intended to fix a problem making tsung run under Windows
 %%  I convert parameter that are called from the command-line
 ensure_string(log_file, Atom) when is_atom(Atom) ->
@@ -542,7 +542,7 @@ join(Sep, List) when is_list(List)->
             end,
     string:join(lists:map(ToStr,List), Sep).
 
-%% split a string given a string (at first occurence of char)
+%% split a string given a string (at first occurrence of char)
 split(String,Chr) when is_list(String), is_list(Chr) ->
     re:split(String,Chr,[{return,list}]);
 
@@ -563,7 +563,7 @@ splitchar2([Other|String],Chr,AccChr,Acc) ->
     splitchar2(String,Chr,[Other|AccChr],Acc).
 
 
-%% split a string in 2 (at first occurence of char)
+%% split a string in 2 (at first occurrence of char)
 split2(String,Chr) ->
     split2(String,Chr,nostrip).
 
@@ -588,7 +588,7 @@ wait_pids(N) ->
         {ok, _Pid, _Res } ->
             wait_pids(N-1)
     after ?TIMEOUT_PARALLEL_SPAWN ->
-            {error, {timout, N}} % N missing answer
+            {error, {timeout, N}} % N missing answer
     end.
 
 spawn_par(Fun, PidFrom, Args) ->
@@ -878,7 +878,6 @@ json_get_bin([<<"?",Expr/binary>> | Keys],L) when  is_list(L) ->
                                     binary_to_list(Other) =:= Val
                             end
                   end,
-            ?LOG("ok~n",?ERR),
             case lists:filter(Fun,L) of
                 [] ->
                     undefined;

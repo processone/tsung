@@ -1,4 +1,4 @@
-%%%  This code was developped by IDEALX (http://IDEALX.org/) and
+%%%  This code was developed by IDEALX (http://IDEALX.org/) and
 %%%  contributors (their names can be found in the CONTRIBUTORS file).
 %%%  Copyright (C) 2000-2004 IDEALX
 %%%
@@ -371,6 +371,18 @@ check_resp_size(Http=#http{content_length=CLength, close=Close},
     log_error(Dump, error_http_bad_content_length),
     {State#state_rcv{session= reset_session(Http), ack_done = true,
                      datasize = DataSize }, [], Close};
+
+%% header is complete (partial=false), HTTP Method is HEAD, so we do not
+%% expect any more data
+check_resp_size(Http=#http{partial=false, close=Close},
+    _BodySize,
+    State=#state_rcv{request=#ts_request{param=#http_request{method=head}}},
+    DataSize, _Dump) ->
+
+    {State#state_rcv{session=reset_session(Http), ack_done=true,
+                     datasize=DataSize}, [], Close};
+
+
 check_resp_size(Http=#http{}, BodySize,  State, DataSize,_Dump) ->
     %% need to read more data
     {State#state_rcv{session  = Http#http{body_size = BodySize},
@@ -408,7 +420,7 @@ read_chunk(<<Char:1/binary, Data/binary>>, State=#state_rcv{session=Http}, Int, 
     <<?CR>> when Int>0 ->
         read_chunk_data(Data, State, Int+3, Acc+1);
     <<?CR>> when Int==0, size(Data) == 3 -> %% should be the end of transfer
-            ?DebugF("Finish tranfer chunk ~p~n", [binary_to_list(Data)]),
+            ?DebugF("Finish transfer chunk ~p~n", [binary_to_list(Data)]),
             {State#state_rcv{session= reset_session(Http), ack_done = true,
                              datasize = Acc %% FIXME: is it the correct size?
                             }, []};

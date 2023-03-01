@@ -1,5 +1,6 @@
 .. index:: faq
 .. _faq:
+.. _ab: http://httpd.apache.org/docs/current/programs/ab.html
 
 ==========================
 Frequently Asked Questions
@@ -327,7 +328,7 @@ How can i simulate a fix number of users?
 =========================================
 
 Use ``maxnumber`` to set the max number of concurrent users in a
-phase, and if you want Tsung to behave like ab, you can use a loop
+phase, and if you want Tsung to behave like ab_, you can use a loop
 in a session (to send requests as fast as possible); you can also define a
 max ``duration`` in ``<load>``.
 
