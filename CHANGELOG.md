@@ -1,5 +1,46 @@
 # Changelog #
 
+## [1.8.0] - 2023-03-02 - Major enhancements and bugfixes ##
+### Fixed ###
+- Fix ts_http:split_body for non-chunked responses [#302](https://github.com/processone/tsung/pull/302)
+- Fix: <if> and <repeat> does not work with lte and gte [#300](https://github.com/processone/tsung/pull/300)
+- Fix typos [#394](https://github.com/processone/tsung/pull/394)
+- Pubsub fixes [#290](https://github.com/processone/tsung/pull/290)
+- Change the wrong closing tag </stats> to the correct one </th> [#384](https://github.com/processone/tsung/pull/384)
+- Fix(websocket): can connect now [#349](https://github.com/processone/tsung/pull/349)
+- Fix waiting for response body on HTTP HEAD requests with Content-Length set [#334](https://github.com/processone/tsung/pull/334)
+- Fix docs to substitute for-loop counter variable [#330](https://github.com/processone/tsung/pull/330)
+- MQTT subscribe packet MUST set qos to 1 for the fixed header [#327](https://github.com/processone/tsung/pull/327)
+- Tsung fails in ts_dynvars:merge when arguments are [<<>>, Dynvars] [#258](https://github.com/processone/tsung/pull/258)
+- Fix connection with websocket ssl [#310](https://github.com/processone/tsung/pull/310)
+- Fix ts_config_http:parse_URL/4 to deal with empty paths [#307](https://github.com/processone/tsung/pull/307)
+
+### Changed ###
+- Update conf-sessions.rst [#390](https://github.com/processone/tsung/pull/390)
+- Improve docs: Add links to apache benchmark [#389](https://github.com/processone/tsung/pull/389)
+- Travis: Test against Erlang 21 [#323](https://github.com/processone/tsung/pull/323)
+- Reduce loglevel for xpath page parsing errors [#322](https://github.com/processone/tsung/pull/322)
+- Docs: fixed add_cookie example [#321](https://github.com/processone/tsung/pull/321)
+- Use --dygraph even when tsung_stats.pl is found in the path [#291](https://github.com/processone/tsung/pull/291)
+- Log HTTP Digest configuration on debug level [#299](https://github.com/processone/tsung/pull/299)
+- Make generated graphs more comparable over time and space. [#292](https://github.com/processone/tsung/pull/292)
+- Run <if> value by ts_search:subst/2 [#311](https://github.com/processone/tsung/pull/311)
+- Handle ts_server_websocket_ssl:close/1 when socket is none [#325](https://github.com/processone/tsung/pull/325)
+- Substitution in <dyn_variable> [#317](https://github.com/processone/tsung/pull/317)
+
+### Added ###
+- Add support for IP_BIND_ADDRESS_NO_PORT option [#400](https://github.com/processone/tsung/pull/400)
+- Add ping support [#289](https://github.com/processone/tsung/pull/289)
+- Add websocket_origin parameters to customize Origin header [#388](https://github.com/processone/tsung/pull/388)
+- Add local_file_server [#237](https://github.com/processone/tsung/pull/237)
+- Support RFC 7395 (WebSocket) framing [#397](https://github.com/processone/tsung/pull/397)
+- Add forwarding latency statistic for mqtt [#287](https://github.com/processone/tsung/pull/287)
+- Add option to disable SNI for TLS connections [#344](https://github.com/processone/tsung/pull/344)
+- Add PURGE for Varnish support [#326](https://github.com/processone/tsung/pull/326)
+- Mqtt connect's will topic with dynamic substitution [#273](https://github.com/processone/tsung/pull/273)
+- Add custom headers with websocket request [#296](https://github.com/processone/tsung/pull/296)
+- Add ClientId option on MQTT connect message [#303](https://github.com/processone/tsung/pull/303)
+
 ## [1.7.0] - 2017-08-28 - Major enhancements and bugfixes ##
 ### Fixed ###
 - [#117] Closing TCP connection in think state considered an error?
