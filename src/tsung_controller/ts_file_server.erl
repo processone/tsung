@@ -48,9 +48,9 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
          code_change/3]).
 
--record(file, {items,       %% tuple of lines read from a file
-               size,        %% total number of lines
-               current=-1   %% current line in file
+-record(file, {bin,         %% binary representation of file
+               size,        %% total number of bytes
+               current=0   %% current byte offset
               }).
 
 -record(state, {files}).
@@ -146,22 +146,33 @@ init([]) ->
 %%----------------------------------------------------------------------
 handle_call({get_all_lines, FileID}, _From, State) ->
     FileDesc = ?DICT:fetch(FileID, State#state.files),
-    Reply = {ok, tuple_to_list(FileDesc#file.items)},
+    List_items = binary:split(FileDesc#file.bin, <<"\n">> , [global,trim]),
+    Reply = {ok, List_items},
     {reply, Reply, State};
 
 handle_call({get_random_line, FileID}, _From, State) ->
-    FileDesc = ?DICT:fetch(FileID, State#state.files),
-    I = random:uniform(FileDesc#file.size),
-    Reply = {ok, element(I, FileDesc#file.items)},
+    File = ?DICT:fetch(FileID, State#state.files),
+    Reply = {ok, get_random_line(File#file.bin, File#file.size)},
     {reply, Reply, State};
 
 handle_call({get_next_line, FileID}, _From, State) ->
-    FileDesc = ?DICT:fetch(FileID, State#state.files),
-    I = (FileDesc#file.current + 1) rem FileDesc#file.size,
-    Reply = {ok, element(I+1, FileDesc#file.items)},
-    NewFileDesc = FileDesc#file{current=I},
-    {reply, Reply,
-     State#state{files=?DICT:store(FileID, NewFileDesc, State#state.files)}};
+    FD = ?DICT:fetch(FileID, State#state.files),
+    #file{
+        bin=Bin,
+        size=Size,
+        current=Current
+    } = FD,
+    case read_line_from_pos(Bin, Size, Current) of
+        undefined ->
+            {reply, {ok, <<>>}, State};
+        Line ->
+            FD1 = FD#file{current=Current + byte_size(Line)},
+            {
+                reply,
+                {ok, Line},
+                State#state{files=?DICT:store(FileID, FD1, State#state.files)}
+            }
+    end;
 
 handle_call({read, Filenames}, _From, State) ->
     lists:foldl(fun open_file/2, {reply, ok, State}, Filenames);
@@ -220,11 +231,36 @@ open_file({ID, Path}, {reply, Result, State}) ->
 
             case file:read_file(Path) of
                 {ok, Bin} ->
-                    List_items = binary:split( Bin , <<"\n">> , [global,trim]),
-                    FileDesc = #file{items = list_to_tuple(List_items), size=length(List_items)},
+                    FileDesc = #file{bin=Bin, size=byte_size(Bin)},
                     {reply, Result, State#state{files = ?DICT:store(ID, FileDesc, State#state.files)}};
                 {error,Reason} ->
                     ?LOGF("Error while opening file ~p :~p~n",[ Path, Reason], ?ERR),
                     {reply, {error, Path}, State}
+            end
+    end.
+
+get_random_line(Bin, Size) ->
+    I = random:uniform(Size),
+    case read_line_from_pos(Bin, Size, I) of
+        undefined -> get_random_line(Bin, Size);
+        Line -> Line
+    end.
+
+read_line_from_pos(Bin, _, 0) ->
+    case binary:match(Bin, <<"\n">>) of
+        nomatch -> undefined;
+        {End, _} ->
+            binary:part(Bin, 0, End)
+    end;
+read_line_from_pos(Bin, Size, Pos) ->
+    case binary:match(Bin, <<"\n">>, [{scope, {Pos, Size - Pos}}]) of
+        nomatch -> undefined;
+        {Start, _} ->
+            % Wooo off-by-one errors
+            Start1 = Start + 1,
+            case binary:match(Bin, <<"\n">>, [{scope, {Start1, Size - Start1}}]) of
+                nomatch -> undefined;
+                {End, _} ->
+                    binary:part(Bin, Start1, End - Start1)
             end
     end.
