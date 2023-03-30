@@ -793,6 +793,15 @@ parse(Element = #xmlElement{name=option, attributes=Attrs},
     case getAttr(atom, Attrs, type) of
         "" ->
             case getAttr(Attrs, name) of
+                "module_distribution" ->
+                    case getAttr(atom, Attrs, module_type) of
+                      beam ->
+                        ModuleName = getAttr(atom, Attrs, value),
+                        lists:foldl( fun parse/2, Conf#config{modules_beam = [ModuleName | Conf#config.modules_beam]}, Element#xmlElement.content);
+                      source ->
+                        Path = getAttr(string, Attrs, value),
+                        lists:foldl( fun parse/2, Conf#config{modules_source = [Path | Conf#config.modules_source]}, Element#xmlElement.content)
+                    end;
                 "thinktime" ->
                     Val = getAttr(float_or_integer,Attrs, value),
                     ets:insert(Tab,{{thinktime, value}, Val}),
