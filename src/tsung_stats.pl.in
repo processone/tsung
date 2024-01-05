@@ -32,7 +32,8 @@ use strict;
 use Getopt::Long;
 use vars qw ($help @files $dygraph $verbose $debug $noplot $noextra $version $stats
              $template_dir $nohtml $template_dir $gnuplot $logy $rotate_xtics
-             $imgfmt $newgnuplot $report_title $allgraph);
+             $imgfmt $newgnuplot $report_title $allgraph
+             $width $height $tnwidth $tnheight);
 use File::Spec::Functions qw(rel2abs);
 use File::Basename;
 use File::Copy;
@@ -120,6 +121,11 @@ $gnuplot = "gnuplot" unless $gnuplot;
 my $newgnuplot = is_newgnuplot($gnuplot);
 $gnuplot .= " >> gnuplot.log 2>&1";
 
+$width = "800" unless $width;
+$height = "495" unless $height;
+$tnwidth = "320" unless $tnwidth;
+$tnheight = "240" unless $tnheight;
+
 &parse_stats_file($stats);
 &html_report() unless $nohtml;
 
@@ -204,11 +210,11 @@ sub plot_stats {
         print "set xtics rotate\n"  if (($output_ext eq "png") and ($rotate_xtics));
         print "set style data  $style\n";
         if (($output_fmt eq "tn.png") and $newgnuplot  and ($output_type !~ /pngcairo/)) {
-            print "set terminal $output_type tiny size 320,240\n";
+            print "set terminal $output_type tiny size $tnwidth,$tnheight\n";
         } elsif (($output_fmt eq "tn.png") and $newgnuplot) {
-            print "set terminal $output_type size 320,240 font 'Verdana,7'\n";
+            print "set terminal $output_type size $tnwidth,$tnheight font 'Verdana,7'\n";
         } elsif ((($output_ext eq "svg") or (($output_ext eq "png")) ) and $newgnuplot) {
-            print "set terminal $output_type size 1024,768 \n";
+            print "set terminal $output_type size $width,$height\n";
         } else {
             print "set terminal $output_type\n";
         }
@@ -228,11 +234,11 @@ sub plot_stats {
             } else  {
                 print "set output \"$imgdir/graphes-$datatype-@{$names}[$d].$output_ext\"\n";
             }
-            print "set title \" @{$titles}[$d]\"\n";
+            if (@{$titles}[$d]) { print "set title \" @{$titles}[$d]\"\n"; }
             if ($timestamp) {
                 print "set xlabel \"unit = $timestamp sec \"\n";
             } else {
-                print "set xlabel \"time (sec of the running test)\"\n";
+                print "set xlabel \"time (seconds since start of test)\"\n";
             }
             print "set ylabel \"".$ylabel->[$d]."\"\n" if $ylabel->[$d];
             print "show title\n";
@@ -652,7 +658,11 @@ sub html_report {
          os_mon_other=> $os_mon_other,
          contact     => $contact,
          conf        => $xml_conf,
-         ext         => $imgfmt
+         ext         => $imgfmt,
+         width       => $width,
+         height      => $height,
+         tnwidth     => $tnwidth,
+         tnheight    => $tnheight
         };
 
     mkdir "style" unless -d "./style";
