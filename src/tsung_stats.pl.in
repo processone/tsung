@@ -32,7 +32,7 @@ use strict;
 use Getopt::Long;
 use vars qw ($help @files $dygraph $verbose $debug $noplot $noextra $version $stats
              $template_dir $nohtml $template_dir $gnuplot $logy $rotate_xtics
-             $imgfmt $newgnuplot $report_title );
+             $imgfmt $newgnuplot $report_title $allgraph);
 use File::Spec::Functions qw(rel2abs);
 use File::Basename;
 use File::Copy;
@@ -53,7 +53,8 @@ GetOptions( "help",\$help,
             "rotate-xtics",\$rotate_xtics,
             "noextra",\$noextra,
             "img_format=s",\$imgfmt,
-            "title=s",\$report_title
+            "title=s",\$report_title,
+            "allgraph",\$allgraph
           );
 
 &usage if $help or $Getopt::Long::error;
@@ -173,7 +174,12 @@ sub plot_stats {
     $datatype = "unknown" unless $datatype;
     open(GP,">$gplotdir/graphes-$datatype.gplot") or die "can't open graphes-$datatype.gplot: $!";
     select GP;
-    foreach my $output_fmt ($imgfmt, "tn.png") {
+    my @formats = ($imgfmt);
+    if ($allgraph)
+        @formats = ("pdf", "png", "ps", "svg");
+    }
+    push @formats, "tn.png";
+    foreach my $output_fmt (@formats) {
         my $output_ext;
         my $output_type;
         if (($output_fmt eq "png") || ($output_fmt eq "tn.png")) {
@@ -526,7 +532,7 @@ sub parse_stats_file {
         }
         close TYPE;
     }
-  if (not $dygraph) {
+  if ($allgraph or not $dygraph) {
     plot_stats(\@col,\@col,"Session",undef,\@session,["sessions/sec"],$logy) unless $noplot;
     plot_stats(\@colcount,["HTTP Code Response rate","total"], "HTTP_CODE",undef,\@code,["number/sec","total"],$logy) if not $noplot and @code;
     plot_stats(\@colcount,\@colcount,"Bosh",undef,\@bosh_tps,["rate"],$logy) unless $noplot;
@@ -539,7 +545,8 @@ sub parse_stats_file {
     plot_stats(\@colusers,["Simultaneous users and opened TCP/UDP connections","maximum_simultaneous"],"Users",undef,\@users,["value", "total"],$logy) unless $noplot;
     plot_stats(\@colcount,["Users arrival/departure rate", "Total users"],"Users_Arrival",undef,\@users_rate,["number of users/sec", "total"],$logy) unless $noplot;
     plot_stats(\@colcount,["Network throughput","Total send/receive bytes"],"Size",undef,\@size,["Kbits/sec","total Kbits"],$logy) unless $noplot;
-  } else {
+  }
+  if ($allgraph or $dygraph) {
     plot_stats_dygraph(\@col,"Session",undef,\@session,["sessions/sec"],$logy) unless $noplot;
     plot_stats_dygraph(\@colcount,"HTTP_CODE",undef,\@code,["number/sec","total"],$logy) if not $noplot and @code;
     plot_stats_dygraph(\@colcount,"Bosh",undef,\@bosh_tps,["rate"],$logy) if not $noplot and @bosh_tps;
@@ -558,9 +565,10 @@ sub parse_stats_file {
         print STDOUT "Generation os_mon graphs\n" if $verbose;
         foreach my $key (sort keys %extra_info) {
             my $pos = index($key,":");
-            if (not $dygraph) {
-                plot_stats(\@col,\@col, $key, undef, \@{$extra_info{$key}}, [$key],$logy);
-            } else {
+            if ($allgraph or not $dygraph) {
+                plot_stats(\@col,undef, $key, undef, \@{$extra_info{$key}}, [$key],$logy);
+            }
+            if ($allgraph or $dygraph) {
                 plot_stats_dygraph(\@col, $key, undef, \@{$extra_info{$key}}, [$key],$logy);
             }
         }
@@ -653,12 +661,18 @@ sub html_report {
     copy (($template_dir . "/style/dashboard.css"), "./style/") or die "copy failed : $!";
     copy (($template_dir . "/style/docs.min.css"), "./style/") or die "copy failed : $!";
     copy (($template_dir . "/style/jquery.min.js"), "./style/") or die "copy failed : $!";
+if (not $allgraph) {
   if (not $dygraph) {
     $tt->process("graph.thtml", $vars, "graph.html") or die $tt->error(), "\n";
   } else {
     $tt->process("graph_dy.thtml", $vars, "graph.html") or die $tt->error(), "\n";
     copy (($template_dir . "/style/dygraph-combined.js"), "./style/") or die "copy failed : $!";
   }
+ } else {
+    $tt->process("graph.thtml", $vars, "graph.html") or die $tt->error(), "\n";
+    $tt->process("graph_dy.thtml", $vars, "graph_dy.html") or die $tt->error(), "\n";
+    copy (($template_dir . "/style/dygraph-combined.js"), "./style/") or die "copy failed : $!";
+}
 }
 
 
@@ -674,6 +688,7 @@ type `tsung_stats.pl --version` for details.\n\n";
     "[--verbose] (print all messages)\n\t",
     "[--debug] (print receive without send messages)\n\t",
     "[--dygraph] use dygraphs (http://dygraphs.com) to render graphs\n\t",
+    "[--allgraph] generate all graph and image formats\n\t",
     "[--noplot]  (don't make graphics)\n\t",
     "[--gnuplot <command>]  (path to the gnuplot binary)\n\t",
     "[--nohtml]  (don't create HTML reports)\n\t",
