@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl -w
 # -*- Mode: CPerl -*-
 #
 #  This code was developed by IDEALX (http://IDEALX.org/) and
