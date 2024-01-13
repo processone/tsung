@@ -28,7 +28,7 @@
 -author('jzhihui521@gmail.com').
 
 -export([get_handshake/6, check_handshake/2, encode_binary/1, encode_text/1,
-         encode_close/1, encode/2, decode/1]).
+         encode_close/1, encode_ping/1, encode_pong/1, encode/2, decode/1]).
 
 -include("ts_profile.hrl").
 -include("ts_config.hrl").
@@ -112,6 +112,12 @@ encode_close(Reason) ->
     StatusCode = <<3, 232>>,
     Data = <<StatusCode/binary, Reason/binary>>,
     encode(Data, ?OP_CLOSE).
+
+encode_ping(Data) ->
+    encode(Data, ?OP_PING).
+
+encode_pong(Data) ->
+    encode(Data, ?OP_PONG).
 
 encode(Data, Opcode) ->
     Key = crypto:strong_rand_bytes(4),

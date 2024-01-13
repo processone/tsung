@@ -98,7 +98,11 @@ get_message(#websocket_request{type = message, data = Data, frame = Frame},
 get_message(#websocket_request{type = close},
             #state_rcv{session = WebsocketSession})
   when WebsocketSession#websocket_session.status == connected ->
-    {websocket:encode_close(<<"close">>), WebsocketSession}.
+    {websocket:encode_close(<<"close">>), WebsocketSession};
+get_message(#websocket_request{type = ping, data = Data},
+            #state_rcv{session = WebsocketSession})
+  when WebsocketSession#websocket_session.status == connected ->
+    {websocket:encode_ping(list_to_binary(Data)), WebsocketSession#websocket_session{ping = list_to_binary(Data)}}.
 
 %%----------------------------------------------------------------------
 %% Function: parse/2
@@ -137,10 +141,16 @@ parse(Data, State=#state_rcv{acc = [],
 %% normal websocket message
 parse(Data, State=#state_rcv{acc = [], session = WebsocketSession})
   when WebsocketSession#websocket_session.status == connected ->
+    Expected = WebsocketSession#websocket_session.ping,
     case websocket:decode(Data) of
-        {?OP_CLOSE, _Reason, _} ->
-            ?DebugF("receive close from server: ~p~n", [_Reason]),
-            {State#state_rcv{ack_done = true}, [], true};
+        {?OP_PONG, Expected, << >>} ->
+            ?DebugF("received pong: [~p] ~n", [Expected]),
+            ts_mon_cache:add({count, websocket_pong}),
+            {State#state_rcv{ack_done = true, session = WebsocketSession#websocket_session{ping = none}}, [], false};
+        {?OP_PONG, _Unexpected, << >>} ->
+            ts_mon_cache:add({count, error_websocket_pong}),
+            ?DebugF("unexpected pong: [~p] ~n", [_Unexpected]),
+            {State#state_rcv{ack_done = true}, [], false};
         {_Opcode, _Payload, Left} ->
             ?DebugF("receive from server: ~p ~p~n", [_Opcode, _Payload]),
             {State#state_rcv{ack_done = true, acc = Left}, [], false};
@@ -154,8 +164,19 @@ parse(Data, State=#state_rcv{acc = Acc, datasize = DataSize}) ->
     parse(<< Acc/binary, Data/binary >>,
           State#state_rcv{acc = [], datasize = NewSize}).
 
-parse_bidi(Data, State) ->
-    ts_plugin:parse_bidi(Data, State).
+parse_bidi(Data, State=#state_rcv{acc=[]}) ->
+    case websocket:decode(Data) of
+        {?OP_CLOSE, _Reason, _} ->
+            ?DebugF("receive close from server: ~p~n", [_Reason]),
+            {websocket:encode_close(<< >>), State, think};
+        {?OP_PING, Payload, Tail} ->
+            ts_mon_cache:add({count, websocket_ping}),
+            {websocket:encode_pong(Payload), State#state_rcv{acc = Tail}, think};
+        {_Opcode, _Payload, Tail} ->
+            {nodata, State#state_rcv{acc = Tail}, think}
+    end;
+parse_bidi(Data, State=#state_rcv{acc=Acc}) ->
+    parse_bidi(<< Acc/binary, Data/binary >>, State#state_rcv{acc = []}).
 
 %%----------------------------------------------------------------------
 %% Function: parse_config/2
