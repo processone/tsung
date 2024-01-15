@@ -37,14 +37,18 @@ start() ->
     ts_controller_sup:start_inets(?config(log_dir), Redirect).
 
 graph(SessionID, Env, Input) ->
-    graph(SessionID, Env, Input,"graph.html").
+    render(SessionID, Env, Input,"graph.html").
 
 report(SessionID, Env, Input) ->
-    graph(SessionID, Env, Input,"report.html").
+    render(SessionID, Env, Input,"report.html").
 
-graph(SessionID, Env, Input, File) ->
+render(SessionID, Env, Input, File) ->
     Begin=?NOW,
-    {ok,Path} = application:get_env(tsung_controller,log_dir_real),
+    {Path, ViewOnly} = case application:get_env(tsung_controller,log_dir_real) of
+            {ok,P} -> {P, false};
+            _      -> {?config(log_dir), true}
+    end,
+
     GraphFile = filename:join(Path,File),
     case update_reports() of
         {error, not_found} ->
@@ -62,16 +66,21 @@ graph(SessionID, Env, Input, File) ->
  "++ ts_utils:datestr() ++ ": Report and graphs generated in "++ number_to_list(Time/1000) ++" sec
 </div>",
                     WorkingDir=filename:basename(Path),
-                    Str=replace(Data,[{"=\"style/","=\"/style/"},
+                    Str=replace(Data,[{"=\"images/","=\"/images/"},
+                                      {"=\"style/","=\"/style/"},
                                       {"\"graph.html","\"/es/ts_web:graph"},
                                       {"\"report.html","\"/es/ts_web:report"},
                                       {"csv_data","/csv_data"},
                                       {"<!-- tsung_stats_duration -->",Text},
                                       {"<!-- SUBTITLE -->","Dashboard - " ++ WorkingDir}
                                      ]),
+                    Str2 = case ViewOnly of
+                        false -> Str;
+                        true -> replace(Str, [{"<li><a href=\"/es/ts_web:status\">Status</a></li>", ""}])
+                    end,
                     mod_esi:deliver(SessionID,
                                     [ "Content-Type: text/html\r\n\r\n",
-                                      Str
+                                      Str2
                                     ])
             end
     end.
@@ -98,13 +107,19 @@ error(SessionID, _Env, _Input, Msg) ->
                    ).
 
 script_paths()->
-    {ok,Path} = application:get_env(tsung_controller,log_dir_real),
+    Path = case application:get_env(tsung_controller,log_dir_real) of
+               {ok,P} -> P;
+               _      -> ?config(log_dir)
+           end,
     UserPath = filename:join(Path,"../../../lib/tsung/bin"),
     ts_utils:join(":",[UserPath,"/usr/lib64/tsung/bin/","/usr/lib/tsung/bin","/usr/local/lib/tsung/bin"]).
 
 update_reports() ->
     %% Referer = proplists:get_value(http_referer,Env),
-    {ok,Path} = application:get_env(tsung_controller,log_dir_real),
+    Path = case application:get_env(tsung_controller,log_dir_real) of
+               {ok,P} -> P;
+               _      -> ?config(log_dir)
+           end,
     case os:find_executable("tsung_stats.pl") of
         false ->
             case os:find_executable("tsung_stats.pl", script_paths()) of
@@ -253,12 +268,16 @@ head(Title) ->
   </head>".
 
 nav() ->
-    Path = case application:get_env(tsung_controller,log_dir_real) of
-               {ok,P} -> P;
-               _      -> ?config(log_dir)
-           end,
+    {Path, ViewOnly} = case application:get_env(tsung_controller,log_dir_real) of
+            {ok,P} -> {P, false};
+            _      -> {?config(log_dir), true}
+    end,
 
     WorkingDir=filename:basename(Path),
+    Status = case ViewOnly of
+        true -> "";
+        false -> "            <li><a href=\"/es/ts_web:status\">Status</a></li>"
+    end,
     Subtitle = "Dashboard - " ++ WorkingDir,
     "
     <script src=\"/style/jquery.min.js\"></script>
@@ -275,8 +294,8 @@ nav() ->
           <a class=\"navbar-brand\" href=\"http://tsung.erlang-projects.org/\">Tsung "++ Subtitle++"</a>
         </div>
         <div class=\"navbar-collapse collapse\">
-          <ul class=\"nav navbar-nav navbar-right\">
-            <li><a href=\"/es/ts_web:status\">Status</a></li>
+          <ul class=\"nav navbar-nav navbar-right\">"
+          ++ Status ++ "
             <li><a href=\"/es/ts_web:report\">Reports</a></li>
             <li><a href=\"/es/ts_web:graph\">Graphs</a></li>
             <li><a href=\"/es/ts_web:logs\">Logs</a></li>
