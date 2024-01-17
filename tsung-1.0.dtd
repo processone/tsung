@@ -124,13 +124,15 @@
     type     (ts_http | ts_jabber | ts_pgsql) #IMPLIED
     value    CDATA #IMPLIED>
 
-<!ELEMENT certificate EMPTY >
+<!ELEMENT certificate (cert | key)*>
 <!ATTLIST certificate
     cacertfile  CDATA #IMPLIED
     keyfile     CDATA #IMPLIED
     keypass     CDATA #IMPLIED
     certfile    CDATA #IMPLIED
 >
+<!ELEMENT key (#PCDATA)>
+<!ELEMENT cert (#PCDATA)>
 
 <!ELEMENT sessions (session+)>
 <!ELEMENT session ( request | thinktime | transaction | setdynvars | for |

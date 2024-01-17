@@ -720,14 +720,27 @@ parse( Element = #xmlElement{name=set_option, attributes=Attrs},
                         Max  = getAttr(integer, Attrs, max, Rate),
                         {undefined, rate_limit, {1024*Rate div 1000, 1024 * Max}};
                     "certificate" ->
-                        {value, #xmlElement{attributes=AttrCert}} = lists:keysearch(certificate,
+                        {value, CertificateElement = #xmlElement{attributes=AttrCert}} = lists:keysearch(certificate,
                                                                      #xmlElement.name,
                                                                      Element#xmlElement.content),
                         Cacert = getAttr(string, AttrCert, cacertfile, undefined),
                         KeyFile = getAttr(string, AttrCert, keyfile, undefined),
                         KeyPass = getAttr(string, AttrCert, keypass, undefined),
                         CertFile = getAttr(string, AttrCert, certfile, undefined),
-                        {undefined, certificate, {Cacert, KeyFile,KeyPass,CertFile}};
+
+                        TLSCert = case lists:keysearch(cert, #xmlElement.name, CertificateElement#xmlElement.content) of
+                          {value, #xmlElement{content=CertRaw}} ->
+                            ts_utils:clean_str(getText(CertRaw));
+                          _ -> undefined
+                        end,
+
+                        TLSKey = case lists:keysearch(key, #xmlElement.name, CertificateElement#xmlElement.content) of
+                          {value, #xmlElement{content=KeyRaw}} ->
+                            ts_utils:clean_str(getText(KeyRaw));
+                          _ -> undefined
+                        end,
+
+                        {undefined, certificate, {Cacert, KeyFile, TLSKey, KeyPass, CertFile, TLSCert}};
                     "connect_timeout" ->
                         ConnectTimeout = getAttr(integer, Attrs, value),
                         {undefined, connect_timeout, {ConnectTimeout}}
