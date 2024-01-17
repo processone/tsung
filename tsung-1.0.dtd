@@ -376,8 +376,8 @@ repeat | if | change_type | foreach | set_option | interaction | abort )*>
     >
 <!ELEMENT websocket (#PCDATA | http_header)* >
 <!ATTLIST websocket
-    type (connect | message | close) #REQUIRED
-    ack  (no_ack | parse) #IMPLIED
+    type (connect | message | ping | close) #REQUIRED
+    ack  (no_ack | parse | bidi_ack) #IMPLIED
     frame (binary | text) #IMPLIED
     origin CDATA ""
     subprotocols CDATA ""
