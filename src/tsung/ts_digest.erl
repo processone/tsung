@@ -72,13 +72,13 @@ shahex(Clear) ->
 %%%----------------------------------------------------------------------
 tohex(A)->
     Fun = fun(X)->
-                  ts_utils:to_lower(padhex(httpd_util:integer_to_hexlist(X)))
+                  ts_utils:to_lower(padhex(erlang:integer_to_list(X, 16)))
           end,
     lists:flatten( lists:map(Fun, A) ).
 
 %%%----------------------------------------------------------------------
 %%% Func: padhex/1
-%%% Purpose: needed because httpd_util:integer_to_hexlist returns hex
+%%% Purpose: needed because erlang:integer_to_list(X, 16) returns hex
 %%%    values <10 as only 1 character, ie. "0F" is simply returned as
 %%%    "F". For our digest, we need these leading zeros to be present.
 %%% ----------------------------------------------------------------------

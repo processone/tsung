@@ -315,7 +315,7 @@ decode_chunk_size(<<Head:2/binary, Data/binary >>, Headers, Body, <<>>) when Hea
     ?Debug("decode chunk: crlf, no digit"),
     decode_chunk_size(Data, Headers, Body, <<>>);
 decode_chunk_size(<<Head:2/binary, Data/binary >>, Headers, Body,Digits) when Head ==  << "\r\n" >> ->
-    case httpd_util:hexlist_to_integer(binary_to_list(Digits)) of
+    case erlang:list_to_integer(binary_to_list(Digits), 16) of
         0 ->
             decode_chunk_size(Data, Headers, Body ,<<>>);
         Size ->
