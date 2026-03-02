@@ -242,7 +242,7 @@ snmp_get("snmp://"++Host, [], State, _TimeOut, Results )->
     analyse_snmp_data(Results,Agent,State);
 snmp_get(URI, [OIDs|Tail], State, TimeOut,PrevRes)->
     ?LOGF("Running snmp get ~p ~p~n", [URI,OIDs], ?DEB),
-    Res = snmpm:sync_get("tsung",URI,OIDs,TimeOut),
+    Res = snmpm:sync_get2("tsung",URI,OIDs,TimeOut),
     ?LOGF("Res ~p ~n", [Res], ?DEB),
     case Res of
         {ok,{noError,_,Results},_Remaining} ->
