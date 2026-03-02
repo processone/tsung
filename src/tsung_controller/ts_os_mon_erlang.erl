@@ -262,25 +262,11 @@ get_os_data(DataName) -> get_os_data(DataName,os:type()).
 %% Use the result of the free commands on Linux and os_mon on all
 %% other platforms
 get_os_data(freemem, {unix, linux}) ->
-    case file:open("/proc/meminfo",[raw,read]) of
-        {ok, FD} ->
-            file:read_line(FD), % skip  MemTotal
-            {ok, Data} = file:read_line(FD),
-            ["MemFree:",RawFree,_] = string:tokens(Data," \n"),
-            case file:read_line(FD) of
-                {ok, "MemAvailable:" ++Tail} ->
-                    [Avail,_] = string:tokens(Tail," \n"),
-                    file:close(FD),
-                    list_to_integer(Avail)/1024;
-                {ok, NextLine} ->
-                    ["Buffers:",Buf,_] = string:tokens(NextLine," \n"),
-                    {ok, LastLine} = file:read_line(FD),
-                    ["Cached:",Cached,_] = string:tokens(LastLine," \n"),
-                    file:close(FD),
-                    (list_to_integer(RawFree)+list_to_integer(Buf) + list_to_integer(Cached)) / 1024
-            end;
-        _ ->
-            0
+    case os:cmd("awk '/^MemFree|^Cached|^Buffers/ {freemem+=$2} END {print freemem}' /proc/meminfo") of
+        "" -> 0;
+        Data ->
+            RealFreeMem = string:strip(Data, right, $\n),
+            list_to_integer(RealFreeMem) / 1024
     end;
 get_os_data(freemem, {unix, sunos}) ->
     Result = os:cmd("vmstat 1 2 | tail -1"),
