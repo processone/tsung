@@ -32,8 +32,16 @@
         </request>
 
         <request>
+            <websocket type="ping" ack="bidi_ack">hi</websocket>
+        </request>
+
+        <request>
             <websocket type="message" ack="no_ack">{"key":"value"}</websocket>
         </request>
+
+        <for var="i" from="1" to="3" incr="1">
+            <thinktime value="30"/>
+        </for>
 
         <request>
             <websocket type="close"></websocket>

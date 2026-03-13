@@ -44,7 +44,8 @@
 
 -record(websocket_session, {
           status, % status of handshake
-          accept  % Sec-Websocket-Accept header value
+          accept, % Sec-Websocket-Accept header value
+          ping    % ping payload, expected in pong response
          }).
 
 %% opcode of websocket
