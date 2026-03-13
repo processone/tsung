@@ -79,7 +79,9 @@
           total_server_weights=0,
           job_notify_port,
           max_ssh_startup = 20,
-          tag
+          tag,
+          modules_source = [],   % list of paths of modules to be compiled and distributed
+          modules_beam = []      % list of module names (atoms) to be distributed
          }).
 
 
