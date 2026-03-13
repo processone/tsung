@@ -496,8 +496,8 @@ handle_next_action(State=#state_rcv{dynvars = DynVars}) ->
             RateConf=#token_bucket{rate=Rate,burst=Burst,last_packet_date=?NOW},
             Thresh=lists:min([Burst,State#state_rcv.size_mon_thresh]),
             handle_next_action(State#state_rcv{size_mon=Thresh,size_mon_thresh=Thresh,rate_limit=RateConf,count=Count});
-        {set_option, undefined, certificate, {Cacert, KeyFile, KeyPass, CertFile}} ->
-            ?LOGF("Set client certificate: ~p ~p ~p ~p~n",[Cacert, KeyFile, KeyPass, CertFile],?DEB),
+        {set_option, undefined, certificate, {Cacert, KeyFile, TLSKey, KeyPass, CertFile, TLSCert}} ->
+            ?LOGF("Set client certificate: ~p ~p ~p ~p ~p ~p ~n",[Cacert, KeyFile, TLSKey, KeyPass, CertFile, TLSCert],?DEB),
             Opts = ts_utils:filtermap(fun({N,V}) ->
                                            case V of
                                                undefined ->
@@ -507,14 +507,33 @@ handle_next_action(State=#state_rcv{dynvars = DynVars}) ->
                                                Val ->
                                                    {true, {N,ts_search:subst(Val, DynVars)}}
                                            end
-                                   end ,
+                                   end,
                                    [{certfile, CertFile},
+                                    {cert,TLSCert},
                                     {keyfile,KeyFile},
+                                    {key,TLSKey},
                                     {password,KeyPass},
                                     {cacertfile,Cacert}]),
-            ?LOGF("SSL options for certificate: ~p~n",[Opts],?DEB),
+
+            Opts2 = ts_utils:filtermap(
+                fun({N,V}) ->
+                    case {N,V} of
+                        {_, undefined} -> false;
+                        {key, _} ->
+                            [{KeyType, KeyData, _} | _] = public_key:pem_decode(list_to_binary(V)),
+                            {true, {key, {KeyType, KeyData}}};
+                        {cert, _} ->
+                            [{'Certificate', CertData, _} | _] = public_key:pem_decode(list_to_binary(V)),
+                            {true, {cert, CertData}};
+                        {_, V} -> {true, {N,V}}
+                    end
+                end,
+                Opts
+            ),
+
+            ?LOGF("SSL options for certificate: ~p~n",[Opts2],?DEB),
             OldOpts = State#state_rcv.proto_opts,
-            NewOpts = OldOpts#proto_opts{certificate = Opts},
+            NewOpts = OldOpts#proto_opts{certificate = Opts2},
             %% close connection if necessary
             (State#state_rcv.protocol):close(State#state_rcv.socket),
             set_connected_status(false),
@@ -1053,6 +1072,11 @@ reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,CPort, Try}) when 
                     end,
                     ?LOGF("Connect failed with client port ~p, retry with ~p~n",[CPort, NewCPort],?INFO),
                     reconnect(none, ServerName, Port, {Protocol, Proto_opts}, {IP,NewCPort, undefined});
+                {{options, {Option, _}}, _, _} ->
+                    CountName="error_connect_option_"++atom_to_list(Option),
+                    ts_mon_cache:add({ count, list_to_atom(CountName) });
+                {tls_alert, "bad certificate"} ->
+                    ts_mon_cache:add({ count, list_to_atom("error_connect_tls_bad_certificate") });
                 _ ->
                     CountName="error_connect_"++atom_to_list(Reason),
                     ts_mon_cache:add({ count, list_to_atom(CountName) })
